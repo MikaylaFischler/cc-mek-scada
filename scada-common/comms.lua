@@ -1,18 +1,14 @@
 
-function server_comms()
+function coord_comms()
     local self = {
         reactor_struct_cache = nil
     }
+end
 
-    local record_struct = function (id, mek_data)
-    end
-
-    -- send the structure data by request to pocket computers
-    local send_struct = function ()
-    end
-
-    local command_waste = function ()
-    end
+function superv_comms()
+    local self = {
+        reactor_struct_cache = nil
+    }
 end
 
 function rplc_comms(id, modem, local_port, server_port, reactor)
