@@ -1,20 +1,20 @@
 --
--- RCaSS: Reactor Controller and Safety Subsystem
+-- Reactor Programmable Logic Controller
 --
 
-os.loadAPI("common/util.lua")
-os.loadAPI("common/comms.lua")
-os.loadAPI("rcass/config.lua")
-os.loadAPI("rcass/safety.lua")
+os.loadAPI("scada-common/util.lua")
+os.loadAPI("scada-common/comms.lua")
+os.loadAPI("reactor-plc/config.lua")
+os.loadAPI("reactor-plc/safety.lua")
 
-local RCASS_VERSION = "alpha-v0.1"
+local R_PLC_VERSION = "alpha-v0.1"
 
 local print_ts = util.print_ts
 
 local reactor = peripheral.find("fissionReactor")
 local modem = peripheral.find("modem")
 
-print(">> RCaSS " .. RCASS_VERSION .. " <<")
+print(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
 -- we need a reactor and a modem
 if reactor == nil then
@@ -41,7 +41,7 @@ if not modem.isOpen(config.LISTEN_PORT) then
     modem.open(config.LISTEN_PORT)
 end
 
-local comms = comms.rcass_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
+local comms = comms.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
 
 -- attempt server connection
 local linked = false
