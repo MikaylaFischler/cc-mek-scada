@@ -3,17 +3,23 @@ function rtu_init()
         discrete_inputs = {},
         coils = {},
         input_regs = {},
-        holding_regs = {}
+        holding_regs = {},
+        io_count_cache = { 0, 0, 0, 0 }
     }
 
-    local count_io = function ()
-        return #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs
+    local __count_io = function ()
+        self.io_count_cache = { #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs }
+    end
+
+    local io_count = function ()
+        return self.io_count_cache[0], self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3]
     end
 
     -- discrete inputs: single bit read-only
 
     local connect_di = function (f)
         table.insert(self.discrete_inputs, f)
+        __count_io()
         return #self.discrete_inputs
     end
 
@@ -25,6 +31,7 @@ function rtu_init()
 
     local connect_coil = function (f_read, f_write)
         table.insert(self.coils, { read = f_read, write = f_write })
+        __count_io()
         return #self.coils
     end
 
@@ -40,6 +47,7 @@ function rtu_init()
 
     local connect_input_reg = function (f)
         table.insert(self.input_regs, f)
+        __count_io()
         return #self.input_regs
     end
 
@@ -51,6 +59,7 @@ function rtu_init()
 
     local connect_holding_reg = function (f_read, f_write)
         table.insert(self.holding_regs, { read = f_read, write = f_write })
+        __count_io()
         return #self.holding_regs
     end
 
@@ -63,7 +72,7 @@ function rtu_init()
     end
 
     return {
-        count_io = count_io,
+        io_count = io_count,
         connect_di = connect_di,
         read_di = read_di,
         connect_coil = connect_coil,
