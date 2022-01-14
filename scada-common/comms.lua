@@ -1,16 +1,86 @@
+PROTOCOLS = {
+    MODBUS_TCP = 0, -- our "modbus tcp"-esque protocol
+    RPLC = 1,       -- reactor plc protocol
+    SCADA_MGMT = 2, -- SCADA supervisor intercommunication
+    COORD_DATA = 3  -- data packets for coordinators to/from supervisory controller
+}
 
+-- generic SCADA packet object
+function scada_packet()
+    local self = {
+        modem_msg_in = nil,
+        raw = nil
+        seq_id = nil,
+        protocol = nil,
+        length = nil
+    }
+
+    local receive = function (side, sender, reply_to, message, distance)
+        self.modem_msg_in = {
+            iface = side,
+            s_port = sender,
+            r_port = reply_to,
+            msg = message,
+            dist = distance
+        }
+
+        self.raw = self.modem_msg_in.msg
+
+        if #self.raw < 3 then
+            -- malformed
+            return false
+        else
+            self.seq_id = self.raw[0]
+            self.protocol = self.raw[1]
+            self.length = self.raw[2]
+        end
+    end
+
+    local seq_id = function (packet)
+        return self.seq_id
+    end
+
+    local protocol = function (packet)
+        return self.protocol
+    end
+
+    local length = function (packet)
+        return self.length
+    end
+
+    local raw = function (packet)
+        return self.raw
+    end
+
+    local modem_event = function (packet)
+        return self.modem_msg_in
+    end
+
+    return {
+        receive = receive,
+        seq_id = seq_id,
+        protocol = protocol,
+        length = length,
+        raw = raw,
+        modem_event = modem_event
+    }
+end
+
+-- coordinator communications
 function coord_comms()
     local self = {
         reactor_struct_cache = nil
     }
 end
 
+-- supervisory controller communications
 function superv_comms()
     local self = {
         reactor_struct_cache = nil
     }
 end
 
+-- reactor PLC communications
 function rplc_comms(id, modem, local_port, server_port, reactor)
     local self = {
         _id = id,

@@ -1,3 +1,5 @@
+-- #REQUIRES comms.lua
+
 -- modbus function codes
 local MODBUS_FCODE = {
     READ_COILS = 0x01,
@@ -175,9 +177,8 @@ function modbus_init(rtu_dev)
     }
 end
 
--- create new modbus packet
-function new_modbus_packet(txn_id, protocol, length, unit_id, func_code, data)
-    return {
+function modbus_packet()
+    local self = {
         txn_id = txn_id,
         protocol = protocol,
         length = length,
@@ -185,25 +186,34 @@ function new_modbus_packet(txn_id, protocol, length, unit_id, func_code, data)
         func_code = func_code,
         data = data
     }
-end
 
--- parse raw table data as a modbus packet
-function parse_modbus_packet(raw)
-    if #raw ~= 6 then
-        return nil
-    else
-        return new_modbus_packet(raw[1], raw[2], raw[3], raw[4], raw[5], raw[6])
+    local receive = function (raw)
+        local size_ok = #raw ~= 6
+
+        if size_ok then
+            set(raw[1], raw[2], raw[3], raw[4], raw[5], raw[6])
+        end
+
+        return size_ok and self.protocol == comms.PROTOCOLS.MODBUS_TCP
     end
-end
 
--- create raw table data from a modbus packet
-function modbus_to_raw(packet)
-    return {
-        packet.txn_id,
-        packet.protocol,
-        packet.length,
-        packet.unit_id,
-        packet.func_code,
-        packet.data
-    }
+    local set = function (txn_id, protocol, length, unit_id, func_code, data)
+        self.txn_id = txn_id
+        self.protocol = protocol
+        self.length = length
+        self.unit_id = unit_id
+        self.func_code = func_code
+        self.data = data
+    end
+
+    local get = function ()
+        return {
+            txn_id = self.txn_id,
+            protocol = self.protocol,
+            length = self.length,
+            unit_id = self.unit_id,
+            func_code = self.func_code,
+            data = self.data
+        }
+    end
 end
