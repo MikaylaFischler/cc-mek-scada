@@ -1,122 +1,121 @@
---
--- Reactor Programmable Logic Controller
---
+function scada_link(comms)
+    local linked = false
+    local link_timeout = os.startTimer(5)
 
-os.loadAPI("scada-common/util.lua")
-os.loadAPI("scada-common/comms.lua")
-os.loadAPI("reactor-plc/config.lua")
-os.loadAPI("reactor-plc/safety.lua")
+    comms.send_link_req()
+    print_ts("sent link request")
+    
+    repeat
+        local event, p1, p2, p3, p4, p5 = os.pullEvent()
+    
+        -- handle event
+        if event == "timer" and param1 == link_timeout then
+            -- no response yet
+            print("...no response");
+            comms.send_link_req()
+            print_ts("sent link request")
+            link_timeout = os.startTimer(5)
+        elseif event == "modem_message" then
+            -- server response? cancel timeout
+            if link_timeout ~= nil then
+                os.cancelTimer(link_timeout)
+            end
 
-local R_PLC_VERSION = "alpha-v0.1"
+            local packet = comms.make_packet(p1, p2, p3, p4, p5)
 
-local print_ts = util.print_ts
-
-local reactor = peripheral.find("fissionReactor")
-local modem = peripheral.find("modem")
-
-print(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
-
--- we need a reactor and a modem
-if reactor == nil then
-    print("Fission reactor not found, exiting...");
-    return
-elseif modem == nil then
-    print("No modem found, disabling reactor and exiting...")
-    reactor.scram()
-    return
-end
-
--- just booting up, no fission allowed (neutrons stay put thanks)
-reactor.scram()
-
--- init internal safety system
-local iss = safety.iss_init(reactor)
-local iss_status = "ok"
-local iss_tripped = false
-
--- read config
-
--- start comms
-if not modem.isOpen(config.LISTEN_PORT) then
-    modem.open(config.LISTEN_PORT)
-end
-
-local comms = comms.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
-
--- attempt server connection
-local linked = false
-local link_timeout = os.startTimer(5)
-comms.send_link_req()
-print_ts("sent link request")
-repeat
-    local event, param1, param2, param3, param4, param5 = os.pullEvent()
-   
-    -- handle event
-    if event == "timer" and param1 == link_timeout then
-        -- no response yet
-        print("...no response");
-        comms.send_link_req()
-        print_ts("sent link request")
-        link_timeout = os.startTimer(5)
-    elseif event == "modem_message" then
-        -- server response? cancel timeout
-        if link_timeout ~= nil then
-            os.cancelTimer(link_timeout)
+            -- handle response
+            local response = comms.handle_link(packet)
+            if response == nil then
+                print_ts("invalid link response, bad channel?\n")
+                return
+            elseif response == true then
+                print_ts("...linked!\n")
+                linked = true
+            else
+                print_ts("...denied, exiting\n")
+                return
+            end
         end
+    until linked
+end
 
-        local packet = {
-            side = param1,
-            sender = param2,
-            reply_to = param3,
-            message = param4,
-            distance = param5
-        }
+-- Internal Safety System
+-- identifies dangerous states and SCRAMs reactor if warranted
+-- autonomous from main control
+function iss_init(reactor)
+    local self = {
+        _reactor = reactor,
+        _tripped = false,
+        _trip_cause = ""
+    }
 
-        -- handle response
-        response = comms.handle_link(packet)
-        if response == "wrong_type" then
-            print_ts("invalid link response, bad channel?\n")
-            return
-        elseif response == true then
-            print_ts("...linked!\n")
-            linked = true
+    local check = function ()
+        local status = "ok"
+        
+        -- check system states in order of severity
+        if self.damage_critical() then
+            status = "dmg_crit"
+        elseif self.high_temp() then
+            status = "high_temp"
+        elseif self.excess_heated_coolant() then
+            status = "heated_coolant_backup"
+        elseif self.excess_waste() then
+            status = "full_waste"
+        elseif self.insufficient_fuel() then
+            status = "no_fuel"
+        elseif self._tripped then
+            status = self._trip_cause
         else
-            print_ts("...denied, exiting\n")
-            return
+            self._tripped = false
         end
-    end
-until linked
-
--- comms watchdog, 3 second timeout
-local conn_watchdog = watchdog.new_watchdog(3)
-
--- loop clock (10Hz, 2 ticks)
--- send status updates at 4Hz (every 5 ticks)
-local loop_tick = os.startTimer(0.05)
-local ticks_to_update = 5
-
--- event loop
-while true do
-    local event, param1, param2, param3, param4, param5 = os.pullEvent()
-
-    -- check safety (SCRAM occurs if tripped)
-    iss_status, iss_tripped = iss.check()
-
-    -- handle event
-    if event == "timer" and param1 == loop_tick then
-        -- basic event tick, send updated data if it is time
-        ticks_to_update = ticks_to_update - 1
-        if ticks_to_update == 0 then
-            ticks_to_update = 5
+    
+        if status ~= "ok" then
+            self._tripped = true
+            self._trip_cause = status
+            self._reactor.scram()
         end
-    elseif event == "modem_message" then
-        -- got a packet
-        -- feed the watchdog first so it doesn't eat our packets
-        conn_watchdog.feed()
-
-    elseif event == "timer" and param1 == conn_watchdog.get_timer() then
-        -- haven't heard from server recently? shutdown
-        reactor.scram()
-        print_ts("[alert] server timeout, reactor disabled\n")
+    
+        return self._tripped, status
     end
+
+    local reset = function ()
+        self._tripped = false
+        self._trip_cause = ""
+    end
+    
+    local damage_critical = function ()
+        return self._reactor.getDamagePercent() >= 100
+    end
+    
+    local excess_heated_coolant = function ()
+        return self._reactor.getHeatedCoolantNeeded() == 0
+    end
+    
+    local excess_waste = function ()
+        return self._reactor.getWasteNeeded() == 0
+    end
+
+    local high_temp = function ()
+        -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
+        return self._reactor.getTemperature() >= 1200
+    end
+    
+    local insufficient_fuel = function ()
+        return self._reactor.getFuel() == 0
+    end
+
+    local no_coolant = function()
+        return self._reactor.getCoolantFilledPercentage() < 2
+    end
+
+    return {
+        check = check,
+        reset = reset,
+        damage_critical = damage_critical,
+        excess_heated_coolant = excess_heated_coolant,
+        excess_waste = excess_waste,
+        high_temp = high_temp,
+        insufficient_fuel = insufficient_fuel,
+        no_coolant = no_coolant
+    }
 end

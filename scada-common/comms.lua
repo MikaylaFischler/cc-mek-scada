@@ -88,11 +88,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _server = server_port,
         _local = local_port,
         _reactor = reactor,
-        _status_cache = nil,
-        
-        _send = function (msg)
-            self._modem.transmit(self._server, self._local, msg)
-        end
+        _status_cache = nil
     }
 
     local _send = function (msg)
@@ -209,7 +205,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         if packet.type == "link_response" then
             return packet.accepted
         else
-            return "wrong_type"
+            return nil
         end
     end
 
