@@ -5,14 +5,12 @@
 --      instant failover if active goes offline without re-sync
 SYSTEM_TYPE = 'active'
 
--- scada network
-SCADA_NET_PFX = 16000
+-- scada network listen for PLC's and RTU's
+SCADA_DEV_LISTEN = 16000
 -- failover synchronization
 SCADA_FO_CHANNEL = 16001
--- listen port for SCADA supervisor access
+-- listen port for SCADA supervisor access by coordinators
 SCADA_SV_CHANNEL = 16002
--- listen port for PLC's
-SCADA_PLC_LISTEN = 16003
 
 -- expected number of reactors
 NUM_REACTORS = 4

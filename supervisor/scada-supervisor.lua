@@ -20,14 +20,24 @@ if modem == nil then
     return
 end
 
--- read config
-
--- start comms
-if not modem.isOpen(config.LISTEN_PORT) then
-    modem.open(config.LISTEN_PORT)
+-- determine active/backup mode
+local mode = comms.SCADA_SV_MODES.BACKUP
+if config.SYSTEM_TYPE == "active" then
+    mode = comms.SCADA_SV_MODES.ACTIVE
 end
 
-local comms = comms.superv_comms(config.NUM_REACTORS, modem, config.SCADA_PLC_LISTEN, config.SCADA_SV_CHANNEL)
+-- start comms, open all channels
+if not modem.isOpen(config.SCADA_DEV_LISTEN) then
+    modem.open(config.SCADA_DEV_LISTEN)
+end
+if not modem.isOpen(config.SCADA_FO_CHANNEL) then
+    modem.open(config.SCADA_FO_CHANNEL)
+end
+if not modem.isOpen(config.SCADA_SV_CHANNEL) then
+    modem.open(config.SCADA_SV_CHANNEL)
+end
+
+local comms = comms.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_FO_CHANNEL, config.SCADA_SV_CHANNEL)
 
 -- base loop clock (4Hz, 5 ticks)
 local loop_tick = os.startTimer(0.25)

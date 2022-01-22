@@ -5,6 +5,11 @@ PROTOCOLS = {
     COORD_DATA = 3  -- data packets for coordinators to/from supervisory controller
 }
 
+SCADA_SV_MODES = {
+    ACTIVE = 0,
+    BACKUP = 1
+}
+
 RPLC_TYPES = {
     KEEP_ALIVE = 0,     -- keep alive packets
     LINK_REQ = 1,       -- linking requests
@@ -131,8 +136,15 @@ function coord_comms()
 end
 
 -- supervisory controller communications
-function superv_comms()
+function superv_comms(mode, num_reactors, modem, dev_listen, fo_channel, sv_channel)
     local self = {
+        mode = mode,
+        seq_id = 0,
+        num_reactors = num_reactors,
+        modem = modem,
+        dev_listen = dev_listen,
+        fo_channel = fo_channel,
+        sv_channel = sv_channel,
         reactor_struct_cache = nil
     }
 end
