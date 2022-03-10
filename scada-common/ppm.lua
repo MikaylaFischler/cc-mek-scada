@@ -16,10 +16,15 @@ local peri_init = function (device)
             local status, result = pcall(func, ...)
 
             if status then
-                return result
+                -- assume nil is only for functions with no return, so return status
+                if result == nil then
+                    return true
+                else
+                    return result
+                end
             else
                 -- function failed
-                log._error("protected " .. key .. "() -> " .. result)
+                log._error("PPM: protected " .. key .. "() -> " .. result)
                 return nil
             end
         end
@@ -36,6 +41,10 @@ function mount_all()
         local pm_dev = peripheral.wrap(ifaces[i])
         peri_init(pm_dev)
         self.mounts[ifaces[i]] = { peripheral.getType(ifaces[i]), pm_dev }
+    end
+
+    if #ifaces == 0 then
+        log._warning("PPM: mount_all() -> no devices found")
     end
 end
 
@@ -61,12 +70,12 @@ function mount(name)
 end
 
 -- handle peripheral_detach event
-function unmount_handler(iface)
+function handle_unmount(iface)
     -- what got disconnected?
     local lost_dev = self.mounts[iface]
     local type = lost_dev.type
     
-    log._warning("PMGR: lost device " .. type .. " mounted to " .. iface)
+    log._warning("PPM: lost device " .. type .. " mounted to " .. iface)
 
     return self.mounts[iface]
 end
