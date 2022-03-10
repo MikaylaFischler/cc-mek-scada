@@ -2,6 +2,8 @@
 -- Reactor Programmable Logic Controller
 --
 
+os.loadAPI("scada-common/log.lua")
+os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/comms.lua")
 os.loadAPI("reactor-plc/config.lua")
@@ -11,8 +13,10 @@ local R_PLC_VERSION = "alpha-v0.1"
 
 local print_ts = util.print_ts
 
-local reactor = peripheral.find("fissionReactor")
-local modem = peripheral.find("modem")
+ppm.mount_all()
+
+local reactor = ppm.get_device("fissionReactor")
+local modem = ppm.get_device("modem")
 
 print(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
@@ -58,14 +62,19 @@ local control_state = false
 
 -- event loop
 while true do
-    local event, param1, param2, param3, param4, param5 = os.pullEvent()
+    local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
     if event == "peripheral_detach" then
-        print_ts("[fatal] lost a peripheral, stopping...\n")
-        -- todo: determine which disconnected and what is left
-        -- hopefully it wasn't the reactor
-        reactor.scram()
-        -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_DC) ?
+        ppm.handle_unmount(param1)
+
+        -- try to scram reactor if it is still connected
+        if reactor.scram() then
+            print_ts("[fatal] PLC lost a peripheral: successful SCRAM, now exiting...\n")
+        else
+            print_ts("[fatal] PLC lost a peripheral: failed SCRAM, now exiting...\n")
+        end
+
+        -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
         return
     end
 
@@ -95,5 +104,11 @@ while true do
         -- haven't heard from server recently? shutdown
         iss.trip_timeout()
         print_ts("[alert] server timeout, reactor disabled\n")
+    elseif event == "terminate" then
+        -- safe exit
+        reactor.scram()
+        -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
+        print_ts("[alert] exiting, reactor disabled\n")
+        return
     end
 end
