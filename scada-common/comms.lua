@@ -1,7 +1,7 @@
 PROTOCOLS = {
     MODBUS_TCP = 0, -- our "modbus tcp"-esque protocol
     RPLC = 1,       -- reactor plc protocol
-    SCADA_MGMT = 2, -- SCADA supervisor intercommunication
+    SCADA_MGMT = 2, -- SCADA supervisor intercommunication and device advertisements
     COORD_DATA = 3  -- data packets for coordinators to/from supervisory controller
 }
 
@@ -37,18 +37,18 @@ function scada_packet()
     local self = {
         modem_msg_in = nil,
         valid = false,
-        seq_id = nil,
+        seq_num = nil,
         protocol = nil,
         length = nil,
         raw = nil
     }
 
-    local make = function (seq_id, protocol, payload)
+    local make = function (seq_num, protocol, payload)
         self.valid = true
-        self.seq_id = seq_id
+        self.seq_num = seq_num
         self.protocol = protocol
         self.length = #payload
-        self.raw = { self.seq_id, self.protocol, self.length, payload }
+        self.raw = { self.seq_num, self.protocol, self.length, payload }
     end
 
     local receive = function (side, sender, reply_to, message, distance)
@@ -67,23 +67,18 @@ function scada_packet()
             return false
         else
             self.valid = true
-            self.seq_id = self.raw[1]
+            self.seq_num = self.raw[1]
             self.protocol = self.raw[2]
             self.length = self.raw[3]
         end
     end
 
-    local seq_id = function (packet)
-        return self.seq_id
-    end
-
-    local protocol = function (packet)
-        return self.protocol
-    end
-
-    local length = function (packet)
-        return self.length
-    end
+    -- basic gets
+    local modem_event = function (packet) return self.modem_msg_in end
+    local raw = function (packet) return self.raw end
+    local seq_num = function (packet) return self.seq_num  end
+    local protocol = function (packet) return self.protocol end
+    local length = function (packet) return self.length end
 
     local data = function (packet)
         local subset = nil
@@ -93,38 +88,15 @@ function scada_packet()
         return subset
     end
 
-    local raw = function (packet)
-        return self.raw
-    end
-
-    local modem_event = function (packet)
-        return self.modem_msg_in
-    end
-
-    local as_rplc = function ()
-        local pkt = nil
-        if self.valid and self.protocol == PROTOCOLS.RPLC then
-            local body = data()
-            if #body > 2 then
-                pkt = {
-                    id = body[1],
-                    type = body[2],
-                    length = #body - 2,
-                    body = { table.unpack(body, 3, 2 + #body) }
-                }
-            end
-        end
-        return pkt
-    end
-
     return {
         make = make,
         receive = receive,
-        seq_id = seq_id,
+        modem_event = modem_event,
+        raw = raw
+        seq_num = seq_num,
         protocol = protocol,
         length = length,
-        raw = raw,
-        modem_event = modem_event
+        data = data
     }
 end
 
@@ -139,7 +111,7 @@ end
 function superv_comms(mode, num_reactors, modem, dev_listen, fo_channel, sv_channel)
     local self = {
         mode = mode,
-        seq_id = 0,
+        seq_num = 0,
         num_reactors = num_reactors,
         modem = modem,
         dev_listen = dev_listen,
@@ -149,11 +121,20 @@ function superv_comms(mode, num_reactors, modem, dev_listen, fo_channel, sv_chan
     }
 end
 
+function rtu_comms(modem, local_port, server_port)
+    local self = {
+        txn_id = 0,
+        modem = modem,
+        s_port = server_port,
+        l_port = local_port
+    }
+end
+
 -- reactor PLC communications
 function rplc_comms(id, modem, local_port, server_port, reactor)
     local self = {
         id = id,
-        seq_id = 0,
+        seq_num = 0,
         modem = modem,
         s_port = server_port,
         l_port = local_port,
@@ -165,9 +146,9 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
 
     local _send = function (msg)
         local packet = scada_packet()
-        packet.make(self.seq_id, PROTOCOLS.RPLC, msg)
+        packet.make(self.seq_num, PROTOCOLS.RPLC, msg)
         self.modem.transmit(self.s_port, self.l_port, packet.raw())
-        self.seq_id = self.seq_id + 1
+        self.seq_num = self.seq_num + 1
     end
 
     -- variable reactor status information, excluding heating rate
@@ -218,6 +199,59 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
 
     -- PUBLIC FUNCTIONS --
 
+    -- parse an RPLC packet
+    local parse_packet = function(side, sender, reply_to, message, distance)
+        local pkt = nil
+        local s_pkt = scada_packet()
+
+        -- parse packet as generic SCADA packet
+        s_pkt.recieve(side, sender, reply_to, message, distance)
+
+        -- get using RPLC protocol format
+        if self.valid and self.protocol == PROTOCOLS.RPLC then
+            local body = data()
+            if #body > 2 then
+                pkt = {
+                    id = body[1],
+                    type = body[2],
+                    length = #body - 2,
+                    body = { table.unpack(body, 3, 2 + #body) }
+                }
+            end
+        end
+
+        return pkt
+    end
+
+    -- handle a linking packet
+    local handle_link = function (packet)
+        if packet.type == RPLC_TYPES.LINK_REQ then
+            return packet.data[1] == RPLC_LINKING.ALLOW
+        else
+            return nil
+        end
+    end
+
+    -- handle an RPLC packet
+    local handle_packet = function (packet)
+        if packet.type == RPLC_TYPES.KEEP_ALIVE then
+            -- keep alive request received, nothing to do except feed watchdog
+        elseif packet.type == RPLC_TYPES.MEK_STRUCT then
+            -- request for physical structure
+            send_struct()
+        elseif packet.type == RPLC_TYPES.RS_IO_CONNS then
+            -- request for redstone connections
+            send_rs_io_conns()
+        elseif packet.type == RPLC_TYPES.RS_IO_GET then
+        elseif packet.type == RPLC_TYPES.RS_IO_SET then
+        elseif packet.type == RPLC_TYPES.MEK_SCRAM then
+        elseif packet.type == RPLC_TYPES.MEK_ENABLE then
+        elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
+        elseif packet.type == RPLC_TYPES.ISS_GET then
+        elseif packet.type == RPLC_TYPES.ISS_CLEAR then
+        end
+    end
+
     -- attempt to establish link with supervisor
     local send_link_req = function ()
         local linking_data = {
@@ -229,7 +263,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
     end
 
     -- send structure properties (these should not change)
-    -- server will cache these
+    -- (server will cache these)
     local send_struct = function ()
         local mek_data = {
             heat_cap  = self.reactor.getHeatCapacity(),
@@ -252,8 +286,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
     end
 
     -- send live status information
-    -- control_state: acknowledged control state from supervisor
-    -- overridden: if ISS force disabled reactor
+    -- control_state : acknowledged control state from supervisor
+    -- overridden    : if ISS force disabled reactor
     local send_status = function (control_state, overridden)
         local mek_data = nil
 
@@ -277,38 +311,13 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
     local send_rs_io_conns = function ()
     end
 
-    local handle_link = function (packet)
-        if packet.type == RPLC_TYPES.LINK_REQ then
-            return packet.data[1] == RPLC_LINKING.ALLOW
-        else
-            return nil
-        end
-    end
-
-    local handle_packet = function (packet)
-        if packet.type == RPLC_TYPES.KEEP_ALIVE then
-            -- keep alive request received, nothing to do except feed watchdog
-        elseif packet.type == RPLC_TYPES.MEK_STRUCT then
-            -- request for physical structure
-            send_struct()
-        elseif packet.type == RPLC_TYPES.RS_IO_CONNS then
-            -- request for redstone connections
-            send_rs_io_conns()
-        elseif packet.type == RPLC_TYPES.RS_IO_GET then
-        elseif packet.type == RPLC_TYPES.RS_IO_SET then
-        elseif packet.type == RPLC_TYPES.MEK_SCRAM then
-        elseif packet.type == RPLC_TYPES.MEK_ENABLE then
-        elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
-        elseif packet.type == RPLC_TYPES.ISS_GET then
-        elseif packet.type == RPLC_TYPES.ISS_CLEAR then
-        end
-    end
-
     return {
+        parse_packet = parse_packet,
+        handle_link = handle_link,
+        handle_packet = handle_packet,
         send_link_req = send_link_req,
         send_struct = send_struct,
         send_status = send_status,
-        send_rs_io_conns = send_rs_io_conns,
-        handle_link = handle_link
+        send_rs_io_conns = send_rs_io_conns
     }
 end

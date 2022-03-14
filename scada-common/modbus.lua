@@ -1,4 +1,4 @@
--- #REQUIRES comms.lua
+-- #REQUIRES rtu.lua
 
 -- modbus function codes
 local MODBUS_FCODE = {

@@ -18,9 +18,7 @@ function scada_link(plc_comms)
                 os.cancelTimer(link_timeout)
             end
 
-            local s_packet = comms.scada_packet()
-            s_packet.receive(p1, p2, p3, p4, p5)
-            local packet = s_packet.as_rplc()
+            local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
             if packet then
                 -- handle response
                 local response = plc_comms.handle_link(packet)

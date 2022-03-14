@@ -3,13 +3,14 @@
 --
 
 os.loadAPI("scada-common/log.lua")
-os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/util.lua")
+os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
+
 os.loadAPI("reactor-plc/config.lua")
 os.loadAPI("reactor-plc/plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.1"
+local R_PLC_VERSION = "alpha-v0.1.0"
 
 local print_ts = util.print_ts
 
@@ -97,7 +98,7 @@ while true do
         -- feed the watchdog first so it doesn't uhh,,,eat our packets
         conn_watchdog.feed()
 
-        local packet = comms.make_packet(p1, p2, p3, p4, p5)
+        local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
         plc_comms.handle_packet(packet)
 
     elseif event == "timer" and param1 == conn_watchdog.get_timer() then
@@ -106,9 +107,13 @@ while true do
         print_ts("[alert] server timeout, reactor disabled\n")
     elseif event == "terminate" then
         -- safe exit
-        reactor.scram()
+        if reactor.scram() then
+            print_ts("[alert] exiting, reactor disabled\n")
+        else
+            -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_LOST_CONTROL) ?
+            print_ts("[alert] exiting, reactor failed to disable\n")
+        end
         -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
-        print_ts("[alert] exiting, reactor disabled\n")
         return
     end
 end
