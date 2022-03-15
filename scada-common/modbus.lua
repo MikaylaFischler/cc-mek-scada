@@ -1,5 +1,3 @@
--- #REQUIRES rtu.lua
-
 -- modbus function codes
 local MODBUS_FCODE = {
     READ_COILS = 0x01,
@@ -178,6 +176,8 @@ function modbus_init(rtu_dev)
 end
 
 function modbus_packet()
+    local MODBUS_TCP = 0
+
     local self = {
         txn_id = txn_id,
         protocol = protocol,
@@ -187,23 +187,23 @@ function modbus_packet()
         data = data
     }
 
-    local receive = function (raw)
-        local size_ok = #raw ~= 6
-
-        if size_ok then
-            set(raw[1], raw[2], raw[3], raw[4], raw[5], raw[6])
-        end
-
-        return size_ok and self.protocol == comms.PROTOCOLS.MODBUS_TCP
-    end
-
-    local set = function (txn_id, protocol, length, unit_id, func_code, data)
+    local make = function (txn_id, protocol, length, unit_id, func_code, data)
         self.txn_id = txn_id
         self.protocol = protocol
         self.length = length
         self.unit_id = unit_id
         self.func_code = func_code
         self.data = data
+    end
+
+    local receive = function (raw)
+        local size_ok = #raw ~= 6
+
+        if size_ok then
+            make(raw[1], raw[2], raw[3], raw[4], raw[5], raw[6])
+        end
+
+        return size_ok and self.protocol == MODBUS_TCP
     end
 
     local get = function ()
@@ -216,4 +216,10 @@ function modbus_packet()
             data = self.data
         }
     end
+
+    return {
+        make = make,
+        receive = receive,
+        get = get
+    }
 end
