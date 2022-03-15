@@ -95,6 +95,11 @@ function get_periph(iface)
     return self.mounts[iface].device
 end
 
+-- get a mounted peripheral type by side/interface
+function get_type(iface)
+    return self.mounts[iface].type
+end
+
 -- get a mounted peripheral by type
 function get_device(name)
     local device = nil
