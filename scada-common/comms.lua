@@ -1,13 +1,15 @@
+-- #REQUIRES modbus.lua
+
 PROTOCOLS = {
-    MODBUS_TCP = 0, -- our "modbus tcp"-esque protocol
-    RPLC = 1,       -- reactor plc protocol
-    SCADA_MGMT = 2, -- SCADA supervisor intercommunication and device advertisements
-    COORD_DATA = 3  -- data packets for coordinators to/from supervisory controller
+    MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
+    RPLC = 1,           -- reactor PLC protocol
+    SCADA_MGMT = 2,     -- SCADA supervisor intercommunication, device advertisements, etc
+    COORD_DATA = 3      -- data packets for coordinators to/from supervisory controller
 }
 
 SCADA_SV_MODES = {
-    ACTIVE = 0,
-    BACKUP = 1
+    ACTIVE = 0,         -- supervisor running as primary
+    BACKUP = 1          -- supervisor running as hot backup
 }
 
 RPLC_TYPES = {
@@ -23,13 +25,26 @@ RPLC_TYPES = {
     MEK_BURN_RATE = 9,  -- set burn rate
     ISS_ALARM = 10,     -- ISS alarm broadcast
     ISS_GET = 11,       -- get ISS status
-    ISS_CLEAR = 12      -- clear ISS trip (if in bad state, will trip immideatly)
+    ISS_CLEAR = 12      -- clear ISS trip (if in bad state, will trip immediately)
 }
 
 RPLC_LINKING = {
-    ALLOW = 0,
-    DENY = 1,
-    COLLISION = 2
+    ALLOW = 0,          -- link approved
+    DENY = 1,           -- link denied
+    COLLISION = 2       -- link denied due to existing active link
+}
+
+SCADA_MGMT_TYPES = {
+    PING = 0,           -- generic ping
+    SV_HEARTBEAT = 1,   -- supervisor heartbeat
+    RTU_HEARTBEAT = 2,  -- RTU heartbeat
+    RTU_ADVERT = 3      -- RTU capability advertisement
+}
+
+RTU_ADVERT_TYPES = {
+    BOILER = 0,         -- boiler
+    TURBINE = 1,        -- turbine
+    IMATRIX = 2         -- induction matrix
 }
 
 -- generic SCADA packet object
@@ -73,14 +88,16 @@ function scada_packet()
         end
     end
 
-    -- basic gets
-    local modem_event = function (packet) return self.modem_msg_in end
-    local raw = function (packet) return self.raw end
-    local seq_num = function (packet) return self.seq_num  end
-    local protocol = function (packet) return self.protocol end
-    local length = function (packet) return self.length end
+    local modem_event = function () return self.modem_msg_in end
+    local raw = function () return self.raw end
 
-    local data = function (packet)
+    local is_valid = function () return self.valid end
+
+    local seq_num = function () return self.seq_num  end
+    local protocol = function () return self.protocol end
+    local length = function () return self.length end
+
+    local data = function ()
         local subset = nil
         if self.valid then
             subset = { table.unpack(self.raw, 4, 3 + self.length) }
@@ -92,7 +109,8 @@ function scada_packet()
         make = make,
         receive = receive,
         modem_event = modem_event,
-        raw = raw
+        raw = raw,
+        is_valid = is_valid,
         seq_num = seq_num,
         protocol = protocol,
         length = length,
@@ -123,10 +141,91 @@ end
 
 function rtu_comms(modem, local_port, server_port)
     local self = {
+        seq_num = 0,
         txn_id = 0,
         modem = modem,
         s_port = server_port,
         l_port = local_port
+    }
+
+    -- PRIVATE FUNCTIONS --
+
+    local _send = function (protocol, msg)
+        local packet = scada_packet()
+        packet.make(self.seq_num, protocol, msg)
+        self.modem.transmit(self.s_port, self.l_port, packet.raw())
+        self.seq_num = self.seq_num + 1
+    end
+
+    -- PUBLIC FUNCTIONS --
+
+    -- parse a MODBUS/SCADA packet
+    local parse_packet = function(side, sender, reply_to, message, distance)
+        local pkt = nil
+        local s_pkt = scada_packet()
+
+        -- parse packet as generic SCADA packet
+        s_pkt.recieve(side, sender, reply_to, message, distance)
+
+        if s_pkt.is_valid() then
+            -- get as MODBUS TCP packet
+            if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
+                local m_pkt = modbus_packet()
+                m_pkt.receive(s_pkt.data())
+
+                pkt = {
+                    scada_frame = s_pkt,
+                    modbus_frame = m_pkt
+                }
+            -- get as SCADA management packet
+            elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+                local body = s_pkt.data()
+                if #body > 1 then
+                    pkt = {
+                        scada_frame = s_pkt,
+                        type = body[1],
+                        length = #body - 1,
+                        body = { table.unpack(body, 2, 1 + #body) }
+                    }
+                end
+            end
+        end
+
+        return pkt
+    end
+
+    -- send capability advertisement
+    local send_advertisement = function (units)
+        local advertisement = {
+            type = SCADA_MGMT_TYPES.RTU_ADVERT,
+            units = {}
+        }
+
+        for i = 1, #units do
+            local type = nil
+
+            if units[i].type == "boiler" then
+                type = RTU_ADVERT_TYPES.BOILER
+            elseif units[i].type == "turbine" then
+                type = RTU_ADVERT_TYPES.TURBINE
+            elseif units[i].type == "imatrix" then
+                type = RTU_ADVERT_TYPES.IMATRIX
+            end
+
+            if type ~= nil then
+                table.insert(advertisement.units, {
+                    type = type,
+                    index = units[i].index,
+                    reactor = units[i].for_reactor
+                })
+            end
+        end
+
+        _send(advertisement, PROTOCOLS.SCADA_MGMT)
+    end
+
+    return {
+        parse_packet = parse_packet
     }
 end
 
@@ -208,10 +307,11 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         s_pkt.recieve(side, sender, reply_to, message, distance)
 
         -- get using RPLC protocol format
-        if self.valid and self.protocol == PROTOCOLS.RPLC then
-            local body = data()
+        if s_pkt.is_valid() and s_pkt.protocol() == PROTOCOLS.RPLC then
+            local body = s_pkt.data()
             if #body > 2 then
                 pkt = {
+                    scada_frame = s_pkt,
                     id = body[1],
                     type = body[2],
                     length = #body - 2,
