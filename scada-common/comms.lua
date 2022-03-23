@@ -17,15 +17,12 @@ RPLC_TYPES = {
     LINK_REQ = 1,       -- linking requests
     STATUS = 2,         -- reactor/system status
     MEK_STRUCT = 3,     -- mekanism build structure
-    RS_IO_CONNS = 4,    -- redstone I/O connections
-    RS_IO_SET = 5,      -- set redstone outputs
-    RS_IO_GET = 6,      -- get redstone inputs
-    MEK_SCRAM = 7,      -- SCRAM reactor
-    MEK_ENABLE = 8,     -- enable reactor
-    MEK_BURN_RATE = 9,  -- set burn rate
-    ISS_ALARM = 10,     -- ISS alarm broadcast
-    ISS_GET = 11,       -- get ISS status
-    ISS_CLEAR = 12      -- clear ISS trip (if in bad state, will trip immediately)
+    MEK_SCRAM = 4,      -- SCRAM reactor
+    MEK_ENABLE = 5,     -- enable reactor
+    MEK_BURN_RATE = 6,  -- set burn rate
+    ISS_ALARM = 7,      -- ISS alarm broadcast
+    ISS_GET = 8,        -- get ISS status
+    ISS_CLEAR = 9       -- clear ISS trip (if in bad state, will trip immediately)
 }
 
 RPLC_LINKING = {
@@ -44,7 +41,8 @@ SCADA_MGMT_TYPES = {
 RTU_ADVERT_TYPES = {
     BOILER = 0,         -- boiler
     TURBINE = 1,        -- turbine
-    IMATRIX = 2         -- induction matrix
+    IMATRIX = 2,        -- induction matrix
+    REDSTONE = 3        -- redstone I/O
 }
 
 -- generic SCADA packet object
@@ -187,11 +185,48 @@ function rtu_comms(modem, local_port, server_port)
                         length = #body - 1,
                         body = { table.unpack(body, 2, 1 + #body) }
                     }
+                elseif #body == 1 then
+                    pkt = {
+                        scada_frame = s_pkt,
+                        type = body[1],
+                        length = #body - 1,
+                        body = nil
+                    }
+                else
+                    log._error("Malformed SCADA packet has no length field")
                 end
+            else
+                log._error("Illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
         return pkt
+    end
+
+    local handle_packet = function(packet, units)
+        if packet ~= nil then
+            local protocol = packet.scada_frame.protocol()
+
+            if protocol == PROTOCOLS.MODBUS_TCP then
+                -- MODBUS instruction
+                if packet.modbus_frame.unit_id <= #units then
+                    local return_code, response = units.modbus_io.handle_packet(packet.modbus_frame)
+                    _send(response, PROTOCOLS.MODBUS_TCP)
+
+                    if not return_code then
+                        log._warning("MODBUS operation failed")
+                    end
+                else
+                    -- unit ID out of range?
+                    log._error("MODBUS packet requesting non-existent unit")
+                end
+            elseif protocol == PROTOCOLS.SCADA_MGMT then
+                -- SCADA management packet
+            else
+                -- should be unreachable assuming packet is from parse_packet()
+                log._error("Illegal packet type " .. protocol, true)
+            end
+        end
     end
 
     -- send capability advertisement
@@ -210,22 +245,47 @@ function rtu_comms(modem, local_port, server_port)
                 type = RTU_ADVERT_TYPES.TURBINE
             elseif units[i].type == "imatrix" then
                 type = RTU_ADVERT_TYPES.IMATRIX
+            elseif units[i].type == "redstone" then
+                type = RTU_ADVERT_TYPES.REDSTONE
             end
 
             if type ~= nil then
-                table.insert(advertisement.units, {
-                    type = type,
-                    index = units[i].index,
-                    reactor = units[i].for_reactor
-                })
+                if type == RTU_ADVERT_TYPES.REDSTONE then
+                    table.insert(advertisement.units, {
+                        unit = i,
+                        type = type,
+                        index = units[i].index,
+                        reactor = units[i].for_reactor,
+                        rsio = units[i].device
+                    })
+                else
+                    table.insert(advertisement.units, {
+                        unit = i,
+                        type = type,
+                        index = units[i].index,
+                        reactor = units[i].for_reactor,
+                        rsio = nil
+                    })
+                end
             end
         end
 
         _send(advertisement, PROTOCOLS.SCADA_MGMT)
     end
 
+    local send_heartbeat = function ()
+        local heartbeat = {
+            type = SCADA_MGMT_TYPES.RTU_HEARTBEAT
+        }
+
+        _send(heartbeat, PROTOCOLS.SCADA_MGMT)
+    end
+
     return {
-        parse_packet = parse_packet
+        parse_packet = parse_packet,
+        handle_packet = handle_packet,
+        send_advertisement = send_advertisement,
+        send_heartbeat = send_heartbeat
     }
 end
 
@@ -408,16 +468,12 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _send(sys_status)
     end
 
-    local send_rs_io_conns = function ()
-    end
-
     return {
         parse_packet = parse_packet,
         handle_link = handle_link,
         handle_packet = handle_packet,
         send_link_req = send_link_req,
         send_struct = send_struct,
-        send_status = send_status,
-        send_rs_io_conns = send_rs_io_conns
+        send_status = send_status
     }
 end
