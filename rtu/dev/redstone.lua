@@ -1,5 +1,9 @@
 -- #REQUIRES rtu.lua
+-- #REQUIRES rsio.lua
 -- note: this RTU makes extensive use of the programming concept of closures
+
+local digital_read = rsio.digital_read
+local digital_is_active = rsio.digital_is_active
 
 function redstone_rtu()
     local self = {
@@ -10,56 +14,57 @@ function redstone_rtu()
         return self.rtu
     end
 
-    local link_di = function (side, color)
+    local link_di = function (channel, side, color)
         local f_read = nil
 
         if color then
             f_read = function ()
-                return rs.testBundledInput(side, color)
+                return digital_read(rs.testBundledInput(side, color))
             end
         else
             f_read = function ()
-                return rs.getInput(side)
+                return digital_read(rs.getInput(side))
             end
         end
             
         self.rtu.connect_di(f_read)
     end
 
-    local link_do = function (side, color)
+    local link_do = function (channel, side, color)
         local f_read = nil
         local f_write = nil
 
         if color then
             f_read = function ()
-                return colors.test(rs.getBundledOutput(side), color)
+                return digital_read(colors.test(rs.getBundledOutput(side), color))
             end
 
-            f_write = function (value)
+            f_write = function (level)
                 local output = rs.getBundledOutput(side)
+                local active = digital_is_active(channel, level)
 
-                if value then
-                    colors.combine(output, value)
+                if active then
+                    colors.combine(output, color)
                 else
-                    colors.subtract(output, value)
+                    colors.subtract(output, color)
                 end
 
                 rs.setBundledOutput(side, output)
             end
         else
             f_read = function ()
-                return rs.getOutput(side)
+                return digital_read(rs.getOutput(side))
             end
 
-            f_write = function (value)
-                rs.setOutput(side, color)
+            f_write = function (level)
+                rs.setOutput(side, digital_is_active(channel, level))
             end
         end
             
         self.rtu.connect_coil(f_read, f_write)
     end
 
-    local link_ai = function (side)
+    local link_ai = function (channel, side)
         self.rtu.connect_input_reg(
             function ()
                 return rs.getAnalogInput(side)
@@ -67,7 +72,7 @@ function redstone_rtu()
         )
     end
 
-    local link_ao = function (side)
+    local link_ao = function (channel, side)
         self.rtu.connect_holding_reg(
             function ()
                 return rs.getAnalogOutput(side)
