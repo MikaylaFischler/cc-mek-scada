@@ -34,8 +34,9 @@ RPLC_LINKING = {
 SCADA_MGMT_TYPES = {
     PING = 0,           -- generic ping
     SV_HEARTBEAT = 1,   -- supervisor heartbeat
-    RTU_HEARTBEAT = 2,  -- RTU heartbeat
-    RTU_ADVERT = 3      -- RTU capability advertisement
+    REMOTE_LINKED = 2,  -- remote device linked
+    RTU_ADVERT = 3,     -- RTU capability advertisement
+    RTU_HEARTBEAT = 4,  -- RTU heartbeat
 }
 
 RTU_ADVERT_TYPES = {
@@ -203,7 +204,7 @@ function rtu_comms(modem, local_port, server_port)
         return pkt
     end
 
-    local handle_packet = function(packet, units)
+    local handle_packet = function(packet, units, ref)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
 
@@ -222,6 +223,16 @@ function rtu_comms(modem, local_port, server_port)
                 end
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
+                if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
+                    -- acknowledgement
+                    ref.linked = true
+                elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
+                    -- request for capabilities again
+                    send_advertisement(units)
+                else
+                    -- not supported
+                    log._warning("RTU got unexpected SCADA message type " .. packet.type, true)
+                end
             else
                 -- should be unreachable assuming packet is from parse_packet()
                 log._error("Illegal packet type " .. protocol, true)

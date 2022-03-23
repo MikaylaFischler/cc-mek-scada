@@ -179,11 +179,15 @@ while true do
         end
     elseif event == "modem_message" then
         -- got a packet
-
+        local link_ref = { linked = linked }
         local packet = rtu_comms.parse_packet(p1, p2, p3, p4, p5)
-        rtu_comms.handle_packet(packet)
 
+        rtu_comms.handle_packet(packet, units, link_ref)
+
+        -- if linked, stop sending advertisements
+        linked = link_ref.linked
     elseif event == "terminate" then
+        print_ts("Exiting...\n")
         return
     end
 end
