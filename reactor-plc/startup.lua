@@ -42,7 +42,7 @@ if not modem.isOpen(config.LISTEN_PORT) then
     modem.open(config.LISTEN_PORT)
 end
 
-local plc_comms = comms.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
+local plc_comms = plc.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
 
 -- attempt server connection
 -- exit application if connection is denied

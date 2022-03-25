@@ -41,7 +41,7 @@ if not modem.isOpen(config.LISTEN_PORT) then
     modem.open(config.LISTEN_PORT)
 end
 
-local rtu_comms = comms.rtu_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
+local rtu_comms = rtu.rtu_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
 
 ----------------------------------------
 -- determine configuration
