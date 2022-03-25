@@ -95,14 +95,14 @@ while true do
         end
     elseif event == "modem_message" then
         -- got a packet
-        -- feed the watchdog first so it doesn't uhh,,,eat our packets
+        -- feed the watchdog first so it doesn't uhh...eat our packets
         conn_watchdog.feed()
 
         local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
         plc_comms.handle_packet(packet)
 
     elseif event == "timer" and param1 == conn_watchdog.get_timer() then
-        -- haven't heard from server recently? shutdown
+        -- haven't heard from server recently? shutdown reactor
         iss.trip_timeout()
         print_ts("[alert] server timeout, reactor disabled\n")
     elseif event == "terminate" then
