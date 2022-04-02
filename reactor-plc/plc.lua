@@ -197,7 +197,7 @@ function rplc_packet()
 end
 
 -- reactor PLC communications
-function rplc_comms(id, modem, local_port, server_port, reactor)
+function rplc_comms(id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
         seq_num = 0,
@@ -205,6 +205,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         s_port = server_port,
         l_port = local_port,
         reactor = reactor,
+        iss = iss,
         status_cache = nil,
         scrammed = false,
         linked = false
@@ -265,6 +266,61 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         return changed
     end
 
+    -- keep alive ack
+    local _send_keep_alive_ack = function ()
+        local keep_alive_data = {
+            id = self.id,
+            timestamp = os.time(),
+            type = RPLC_TYPES.KEEP_ALIVE
+        }
+
+        _send(keep_alive_data)
+    end
+
+    -- general ack
+    local _send_ack = function (type, succeeded)
+        local ack_data = {
+            id = self.id,
+            type = type,
+            ack = succeeded
+        }
+
+        _send(ack_data)
+    end
+
+    -- send structure properties (these should not change)
+    -- (server will cache these)
+    local _send_struct = function ()
+        local mek_data = {
+            heat_cap  = self.reactor.getHeatCapacity(),
+            fuel_asm  = self.reactor.getFuelAssemblies(),
+            fuel_sa   = self.reactor.getFuelSurfaceArea(),
+            fuel_cap  = self.reactor.getFuelCapacity(),
+            waste_cap = self.reactor.getWasteCapacity(),
+            cool_cap  = self.reactor.getCoolantCapacity(),
+            hcool_cap = self.reactor.getHeatedCoolantCapacity(),
+            max_burn  = self.reactor.getMaxBurnRate()
+        }
+
+        local struct_packet = {
+            id = self.id,
+            type = RPLC_TYPES.MEK_STRUCT,
+            mek_data = mek_data
+        }
+
+        _send(struct_packet)
+    end
+
+    local _send_iss_status = function ()
+        local iss_status = {
+            id = self.id,
+            type = RPLC_TYPES.ISS_GET,
+            status = iss.status()
+        }
+
+        _send(iss_status)
+    end
+
     -- PUBLIC FUNCTIONS --
 
     -- parse an RPLC packet
@@ -302,27 +358,74 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
             if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
                 if self.linked then
                     if packet.type == RPLC_TYPES.KEEP_ALIVE then
-                        -- keep alive request received, nothing to do except feed watchdog
+                        -- keep alive request received, echo back
+                        local timestamp = packet.data[1]
+                        local trip_time = os.time() - ts
+
+                        if trip_time < 0 then
+                            log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
+                        elseif trip_time > 1 then
+                            log._warning("PLC KEEP_ALIVE trip time > 1s (" .. trip_time .. ")")
+                        end
+
+                        _send_keep_alive_ack()
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
-                        log._debug("received link request response after already being linked")
+                        log._debug("received unsolicited link request response")
+
+                        local link_ack = packet.data[1]
+                        
+                        if link_ack == RPLC_LINKING.ALLOW then
+                            _send_struct()
+                            send_status()
+                            log._debug("re-sent initial status data")
+                        elseif link_ack == RPLC_LINKING.DENY then
+                            -- @todo: make sure this doesn't become an MITM security risk
+                            print_ts("received unsolicited link denial, unlinking\n")
+                            log._debug("unsolicited rplc link request denied")
+                        elseif link_ack == RPLC_LINKING.COLLISION then
+                            -- @todo: make sure this doesn't become an MITM security risk
+                            print_ts("received unsolicited link collision, unlinking\n")
+                            log._warning("unsolicited rplc link request collision")
+                        else
+                            print_ts("invalid unsolicited link response\n")
+                            log._error("unsolicited unknown rplc link request response")
+                        end
+
+                        self.linked = link_ack == RPLC_LINKING.ALLOW
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
-                        send_struct()
-                    elseif packet.type == RPLC_TYPES.RS_IO_CONNS then
-                        -- request for redstone connections
-                        send_rs_io_conns()
-                    elseif packet.type == RPLC_TYPES.RS_IO_GET then
-                    elseif packet.type == RPLC_TYPES.RS_IO_SET then
+                        _send_struct()
                     elseif packet.type == RPLC_TYPES.MEK_SCRAM then
+                        -- disable the reactor
                         self.scrammed = true
-                        self.reactor.scram()
+                        _send_ack(packet.type, self.reactor.scram())
                     elseif packet.type == RPLC_TYPES.MEK_ENABLE then
+                        -- enable the reactor
                         self.scrammed = false
-                        self.reactor.activate()
+                        _send_ack(packet.type, self.reactor.activate())
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
+                        -- set the burn rate
+                        local burn_rate = packet.data[1]
+                        local max_burn_rate = self.reactor.getMaxBurnRate()
+                        local success = false
+
+                        if max_burn_rate is not nil then
+                            if burn_rate > 0 and burn_rate <= max_burn_rate then
+                                success = self.reactor.setBurnRate(burn_rate)
+                            end
+                        end
+
+                        _send_ack(packet.type, success)
                     elseif packet.type == RPLC_TYPES.ISS_GET then
+                        -- get the ISS status
+                        _send_iss_status(iss.status())
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
+                        -- clear the ISS status
+                        iss.reset()
+                        _send_ack(packet.type, true)
+                    else
+                        log._warning("received unknown RPLC packet type " .. packet.type)
                     end
                 elseif packet.type == RPLC_TYPES.LINK_REQ then
                     -- link request confirmation
@@ -332,9 +435,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
                         print_ts("...linked!\n")
                         log._debug("rplc link request approved")
 
-                        plc_comms.send_rs_io_conns()
-                        plc_comms.send_struct()
-                        plc_comms.send_status()
+                        _send_struct()
+                        send_status()
 
                         log._debug("sent initial status data")
                     elseif link_ack == RPLC_LINKING.DENY then
@@ -367,29 +469,6 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _send(linking_data)
     end
 
-    -- send structure properties (these should not change)
-    -- (server will cache these)
-    local send_struct = function ()
-        local mek_data = {
-            heat_cap  = self.reactor.getHeatCapacity(),
-            fuel_asm  = self.reactor.getFuelAssemblies(),
-            fuel_sa   = self.reactor.getFuelSurfaceArea(),
-            fuel_cap  = self.reactor.getFuelCapacity(),
-            waste_cap = self.reactor.getWasteCapacity(),
-            cool_cap  = self.reactor.getCoolantCapacity(),
-            hcool_cap = self.reactor.getHeatedCoolantCapacity(),
-            max_burn  = self.reactor.getMaxBurnRate()
-        }
-
-        local struct_packet = {
-            id = self.id,
-            type = RPLC_TYPES.MEK_STRUCT,
-            mek_data = mek_data
-        }
-
-        _send(struct_packet)
-    end
-
     -- send live status information
     -- control_state : acknowledged control state from supervisor
     -- overridden    : if ISS force disabled reactor
@@ -413,17 +492,27 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _send(sys_status)
     end
 
+    local send_iss_alarm = function (cause)
+        local iss_alarm = {
+            id = self.id,
+            type = RPLC_TYPES.ISS_ALARM,
+            cause = cause,
+            status = iss.status()
+        }
+
+        _send(iss_alarm)
+    end
+
     local is_scrammed = function () return self.scrammed end
     local is_linked = function () return self.linked end
     local unlink = function () self.linked = false end
 
     return {
         parse_packet = parse_packet,
-        handle_link = handle_link,
         handle_packet = handle_packet,
         send_link_req = send_link_req,
-        send_struct = send_struct,
         send_status = send_status,
+        send_iss_alarm = send_iss_alarm,
         is_scrammed = is_scrammed,
         is_linked = is_linked,
         unlink = unlink

@@ -43,7 +43,7 @@ if not modem.isOpen(config.LISTEN_PORT) then
     modem.open(config.LISTEN_PORT)
 end
 
-local plc_comms = plc.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
+local plc_comms = plc.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor, iss)
 
 -- comms watchdog, 3 second timeout
 local conn_watchdog = watchdog.new_watchdog(3)
@@ -91,7 +91,7 @@ while true do
     end
 
     -- check safety (SCRAM occurs if tripped)
-    local iss_status, iss_tripped, iss_first = iss.check()
+    local iss_tripped, iss_status, iss_first = iss.check()
     reactor_scram = reactor_scram or iss_tripped
     if iss_first then
         plc_comms.send_iss_alarm(iss_status)
