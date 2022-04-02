@@ -14,12 +14,13 @@ local R_PLC_VERSION = "alpha-v0.1.0"
 
 local print_ts = util.print_ts
 
+print(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
+
+-- mount connected devices
 ppm.mount_all()
 
 local reactor = ppm.get_device("fissionReactor")
 local modem = ppm.get_device("modem")
-
-print(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
 -- we need a reactor and a modem
 if reactor == nil then
@@ -44,19 +45,19 @@ end
 
 local plc_comms = plc.rplc_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
 
--- attempt server connection
--- exit application if connection is denied
-if ~plc.scada_link(plc_comms) then
-    return
-end
-
 -- comms watchdog, 3 second timeout
 local conn_watchdog = watchdog.new_watchdog(3)
 
 -- loop clock (10Hz, 2 ticks)
--- send status updates at 4Hz (every 5 ticks)
 local loop_tick = os.startTimer(0.05)
-local ticks_to_update = 5
+
+-- send status updates at ~3.33Hz (every 6 server ticks) (every 3 loop ticks)
+-- send link requests at 0.5Hz (every 40 server ticks) (every 20 loop ticks)
+local UPDATE_TICKS = 3
+local LINK_TICKS = 20
+
+-- start by linking
+local ticks_to_update = LINK_TICKS
 
 -- runtime variables
 local control_state = false
@@ -70,13 +71,12 @@ while true do
 
         -- try to scram reactor if it is still connected
         if reactor.scram() then
-            print_ts("[fatal] PLC lost a peripheral: successful SCRAM, now exiting...\n")
+            print_ts("[fatal] PLC lost a peripheral: successful SCRAM\n")
         else
-            print_ts("[fatal] PLC lost a peripheral: failed SCRAM, now exiting...\n")
+            print_ts("[fatal] PLC lost a peripheral: failed SCRAM\n")
         end
 
         -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
-        return
     end
 
     -- check safety (SCRAM occurs if tripped)
@@ -87,11 +87,20 @@ while true do
 
     -- handle event
     if event == "timer" and param1 == loop_tick then
-        -- basic event tick, send updated data if it is time (4Hz)
+        -- basic event tick, send updated data if it is time (~3.33Hz)
+        -- iss was already checked (main reason for this tick rate)
         ticks_to_update = ticks_to_update - 1
-        if ticks_to_update == 0 then
-            plc_comms.send_status(control_state, iss_tripped)
-            ticks_to_update = 5
+
+        if plc_comms.linked() then
+            if ticks_to_update <= 0 then
+                plc_comms.send_status(control_state, iss_tripped)
+                ticks_to_update = UPDATE_TICKS
+            end
+        else
+            if ticks_to_update <= 0 then
+                plc_comms.send_link_req()
+                ticks_to_update = LINK_TICKS
+            end
         end
     elseif event == "modem_message" then
         -- got a packet
@@ -100,9 +109,9 @@ while true do
 
         local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
         plc_comms.handle_packet(packet)
-
     elseif event == "timer" and param1 == conn_watchdog.get_timer() then
         -- haven't heard from server recently? shutdown reactor
+        plc_comms.unlink()
         iss.trip_timeout()
         print_ts("[alert] server timeout, reactor disabled\n")
     elseif event == "terminate" then

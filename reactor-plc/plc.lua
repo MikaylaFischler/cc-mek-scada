@@ -1,53 +1,5 @@
 -- #REQUIRES comms.lua
 
-function scada_link(plc_comms)
-    local linked = false
-    local link_timeout = os.startTimer(5)
-
-    plc_comms.send_link_req()
-    print_ts("sent link request")
-    
-    repeat
-        local event, p1, p2, p3, p4, p5 = os.pullEvent()
-    
-        -- handle event
-        if event == "timer" and param1 == link_timeout then
-            -- no response yet
-            print("...no response");
-        elseif event == "modem_message" then
-            -- server response? cancel timeout
-            if link_timeout ~= nil then
-                os.cancelTimer(link_timeout)
-            end
-
-            local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
-            if packet then
-                -- handle response
-                local response = plc_comms.handle_link(packet)
-                if response == nil then
-                    print_ts("invalid link response, bad channel?\n")
-                    break
-                elseif response == comms.RPLC_LINKING.COLLISION then
-                    print_ts("...reactor PLC ID collision (check config), exiting...\n")
-                    break
-                elseif response == comms.RPLC_LINKING.ALLOW then
-                    print_ts("...linked!\n")
-                    linked = true
-                    plc_comms.send_rs_io_conns()
-                    plc_comms.send_struct()
-                    plc_comms.send_status()
-                    print_ts("sent initial data\n")
-                else
-                    print_ts("...denied, exiting...\n")
-                    break
-                end
-            end
-        end
-    until linked
-
-    return linked
-end
-
 -- Internal Safety System
 -- identifies dangerous states and SCRAMs reactor if warranted
 -- autonomous from main control
@@ -253,7 +205,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         s_port = server_port,
         l_port = local_port,
         reactor = reactor,
-        status_cache = nil
+        status_cache = nil,
+        linked = false
     }
 
     -- PRIVATE FUNCTIONS --
@@ -342,32 +295,60 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         return pkt
     end
 
-    -- handle a linking packet
-    local handle_link = function (packet)
-        if packet.type == RPLC_TYPES.LINK_REQ then
-            return packet.data[1] == RPLC_LINKING.ALLOW
-        else
-            return nil
-        end
-    end
-
     -- handle an RPLC packet
     local handle_packet = function (packet)
-        if packet.type == RPLC_TYPES.KEEP_ALIVE then
-            -- keep alive request received, nothing to do except feed watchdog
-        elseif packet.type == RPLC_TYPES.MEK_STRUCT then
-            -- request for physical structure
-            send_struct()
-        elseif packet.type == RPLC_TYPES.RS_IO_CONNS then
-            -- request for redstone connections
-            send_rs_io_conns()
-        elseif packet.type == RPLC_TYPES.RS_IO_GET then
-        elseif packet.type == RPLC_TYPES.RS_IO_SET then
-        elseif packet.type == RPLC_TYPES.MEK_SCRAM then
-        elseif packet.type == RPLC_TYPES.MEK_ENABLE then
-        elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
-        elseif packet.type == RPLC_TYPES.ISS_GET then
-        elseif packet.type == RPLC_TYPES.ISS_CLEAR then
+        if packet ~= nil then
+            if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
+                if self.linked then
+                    if packet.type == RPLC_TYPES.KEEP_ALIVE then
+                        -- keep alive request received, nothing to do except feed watchdog
+                    elseif packet.type == RPLC_TYPES.LINK_REQ then
+                        -- link request confirmation
+                        log._debug("received link request response after already being linked")
+                    elseif packet.type == RPLC_TYPES.MEK_STRUCT then
+                        -- request for physical structure
+                        send_struct()
+                    elseif packet.type == RPLC_TYPES.RS_IO_CONNS then
+                        -- request for redstone connections
+                        send_rs_io_conns()
+                    elseif packet.type == RPLC_TYPES.RS_IO_GET then
+                    elseif packet.type == RPLC_TYPES.RS_IO_SET then
+                    elseif packet.type == RPLC_TYPES.MEK_SCRAM then
+                    elseif packet.type == RPLC_TYPES.MEK_ENABLE then
+                    elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
+                    elseif packet.type == RPLC_TYPES.ISS_GET then
+                    elseif packet.type == RPLC_TYPES.ISS_CLEAR then
+                    end
+                elseif packet.type == RPLC_TYPES.LINK_REQ then
+                    -- link request confirmation
+                    local link_ack = packet.data[1]
+                    
+                    if link_ack == RPLC_LINKING.ALLOW then
+                        print_ts("...linked!\n")
+                        log._debug("rplc link request approved")
+
+                        plc_comms.send_rs_io_conns()
+                        plc_comms.send_struct()
+                        plc_comms.send_status()
+
+                        log._debug("sent initial status data")
+                    elseif link_ack == RPLC_LINKING.DENY then
+                        print_ts("...denied, retrying...\n")
+                        log._debug("rplc link request denied")
+                    elseif link_ack == RPLC_LINKING.COLLISION then
+                        print_ts("reactor PLC ID collision (check config), retrying...\n")
+                        log._warning("rplc link request collision")
+                    else
+                        print_ts("invalid link response, bad channel? retrying...\n")
+                        log._error("unknown rplc link request response")
+                    end
+
+                    self.linked = link_ack == RPLC_LINKING.ALLOW
+                else
+                    log._("discarding non-link packet before linked")
+                end
+            elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
+            end
         end
     end
 
@@ -427,12 +408,17 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _send(sys_status)
     end
 
+    local linked = function () return self.linked end
+    local unlink = function () self.linked = false end
+
     return {
         parse_packet = parse_packet,
         handle_link = handle_link,
         handle_packet = handle_packet,
         send_link_req = send_link_req,
         send_struct = send_struct,
-        send_status = send_status
+        send_status = send_status,
+        linked = linked,
+        unlink = unlink
     }
 end
