@@ -114,3 +114,67 @@ function scada_packet()
         data = data
     }
 end
+
+function mgmt_packet()
+    local self = {
+        frame = nil,
+        type = nil,
+        length = nil,
+        data = nil
+    }
+
+    local _scada_type_valid = function ()
+        return self.type == SCADA_MGMT_TYPES.PING or
+                self.type == SCADA_MGMT_TYPES.SV_HEARTBEAT or
+                self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
+                self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
+                self.type == SCADA_MGMT_TYPES.RTU_HEARTBEAT
+    end
+
+    -- make a SCADA management packet
+    local make = function (packet_type, length, data)
+        self.type = packet_type
+        self.length = length
+        self.data = data
+    end
+
+    -- decode a SCADA management packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+
+            if frame.protocol() == comms.PROTOCOLS.SCADA_MGMT then
+                local data = frame.data()
+                local ok = #data > 1
+    
+                if ok then
+                    make(data[1], data[2], { table.unpack(data, 3, #data) })
+                    ok = _scada_type_valid()
+                end
+    
+                return ok
+            else
+                log._debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
+                return false    
+            end
+        else
+            log._debug("nil frame encountered", true)
+            return false
+        end
+    end
+
+    local get = function ()
+        return {
+            scada_frame = self.frame,
+            type = self.type,
+            length = self.length,
+            data = self.data
+        }
+    end
+
+    return {
+        make = make,
+        decode = decode,
+        get = get
+    }
+end

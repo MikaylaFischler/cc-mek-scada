@@ -172,6 +172,78 @@ function iss_init(reactor)
     }
 end
 
+function rplc_packet()
+    local self = {
+        frame = nil,
+        id = nil,
+        type = nil,
+        length = nil,
+        body = nil
+    }
+
+    local _rplc_type_valid = function ()
+        return self.type == RPLC_TYPES.KEEP_ALIVE or
+                self.type == RPLC_TYPES.LINK_REQ or
+                self.type == RPLC_TYPES.STATUS or
+                self.type == RPLC_TYPES.MEK_STRUCT or
+                self.type == RPLC_TYPES.MEK_SCRAM or
+                self.type == RPLC_TYPES.MEK_ENABLE or
+                self.type == RPLC_TYPES.MEK_BURN_RATE or
+                self.type == RPLC_TYPES.ISS_ALARM or
+                self.type == RPLC_TYPES.ISS_GET or
+                self.type == RPLC_TYPES.ISS_CLEAR
+    end
+
+    -- make an RPLC packet
+    local make = function (id, packet_type, length, data)
+        self.id = id
+        self.type = packet_type
+        self.length = length
+        self.data = data
+    end
+
+    -- decode an RPLC packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+            
+            if frame.protocol() == comms.PROTOCOLS.RPLC then
+                local data = frame.data()
+                local ok = #data > 2
+    
+                if ok then
+                    make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
+                    ok = _rplc_type_valid()
+                end
+    
+                return ok
+            else
+                log._debug("attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
+                return false    
+            end
+        else
+            log._debug("nil frame encountered", true)
+            return false
+        end
+    end
+
+    local get = function ()
+        return {
+            scada_frame = self.frame,
+            id = self.id,
+            type = self.type,
+            length = self.length,
+            data = self.data
+        }
+    end
+
+    return {
+        make = make,
+        decode = decode,
+        get = get
+    }
+end
+
 -- reactor PLC communications
 function rplc_comms(id, modem, local_port, server_port, reactor)
     local self = {
@@ -249,17 +321,21 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         -- parse packet as generic SCADA packet
         s_pkt.recieve(side, sender, reply_to, message, distance)
 
-        -- get using RPLC protocol format
-        if s_pkt.is_valid() and s_pkt.protocol() == PROTOCOLS.RPLC then
-            local body = s_pkt.data()
-            if #body > 2 then
-                pkt = {
-                    scada_frame = s_pkt,
-                    id = body[1],
-                    type = body[2],
-                    length = #body - 2,
-                    body = { table.unpack(body, 3, 2 + #body) }
-                }
+        if s_pkt.is_valid() then
+            -- get as RPLC packet
+            if s_pkt.protocol() == PROTOCOLS.RPLC then
+                local rplc_pkt = rplc_packet()
+                if rplc_pkt.decode(s_pkt) then
+                    pkt = rplc_pkt.get()
+                end
+            -- get as SCADA management packet
+            elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+                local mgmt_pkt = mgmt_packet()
+                if mgmt_pkt.decode(s_pkt) then
+                    pkt = mgmt_packet.get()
+                end
+            else
+                log._error("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 

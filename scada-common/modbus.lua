@@ -176,9 +176,8 @@ function modbus_init(rtu_dev)
 end
 
 function modbus_packet()
-    local MODBUS_TCP = 0
-
     local self = {
+        frame = nil,
         txn_id = txn_id,
         protocol = protocol,
         length = length,
@@ -187,6 +186,7 @@ function modbus_packet()
         data = data
     }
 
+    -- make a MODBUS packet
     local make = function (txn_id, protocol, length, unit_id, func_code, data)
         self.txn_id = txn_id
         self.protocol = protocol
@@ -196,18 +196,29 @@ function modbus_packet()
         self.data = data
     end
 
-    local receive = function (raw)
-        local size_ok = #raw ~= 6
+    -- decode a MODBUS packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+            
+            local data = frame.data()
+            local size_ok = #data ~= 6
 
-        if size_ok then
-            make(raw[1], raw[2], raw[3], raw[4], raw[5], raw[6])
+            if size_ok then
+                make(data[1], data[2], data[3], data[4], data[5], data[6])
+            end
+
+            return size_ok and self.protocol == comms.PROTOCOLS.MODBUS_TCP
+        else
+            log._debug("nil frame encountered", true)
+            return false
         end
-
-        return size_ok and self.protocol == MODBUS_TCP
     end
 
+    -- get this packet
     local get = function ()
         return {
+            scada_frame = self.frame,
             txn_id = self.txn_id,
             protocol = self.protocol,
             length = self.length,
@@ -219,7 +230,7 @@ function modbus_packet()
 
     return {
         make = make,
-        receive = receive,
+        decode = decode,
         get = get
     }
 end

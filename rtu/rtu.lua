@@ -121,34 +121,17 @@ function rtu_comms(modem, local_port, server_port)
             -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
                 local m_pkt = modbus_packet()
-                m_pkt.receive(s_pkt.data())
-
-                pkt = {
-                    scada_frame = s_pkt,
-                    modbus_frame = m_pkt
-                }
+                if m_pkt.decode(s_pkt) then
+                    pkt = m_pkt.get()
+                end
             -- get as SCADA management packet
             elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
-                local body = s_pkt.data()
-                if #body > 1 then
-                    pkt = {
-                        scada_frame = s_pkt,
-                        type = body[1],
-                        length = #body - 1,
-                        body = { table.unpack(body, 2, 1 + #body) }
-                    }
-                elseif #body == 1 then
-                    pkt = {
-                        scada_frame = s_pkt,
-                        type = body[1],
-                        length = #body - 1,
-                        body = nil
-                    }
-                else
-                    log._error("Malformed SCADA packet has no length field")
+                local mgmt_pkt = mgmt_packet()
+                if mgmt_pkt.decode(s_pkt) then
+                    pkt = mgmt_packet.get()
                 end
             else
-                log._error("Illegal packet type " .. s_pkt.protocol(), true)
+                log._error("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -161,8 +144,9 @@ function rtu_comms(modem, local_port, server_port)
 
             if protocol == PROTOCOLS.MODBUS_TCP then
                 -- MODBUS instruction
-                if packet.modbus_frame.unit_id <= #units then
-                    local return_code, response = units.modbus_io.handle_packet(packet.modbus_frame)
+                if packet.unit_id <= #units then
+                    local unit = units[packet.unit_id]
+                    local return_code, response = unit.modbus_io.handle_packet(packet)
                     _send(response, PROTOCOLS.MODBUS_TCP)
 
                     if not return_code then
@@ -186,7 +170,7 @@ function rtu_comms(modem, local_port, server_port)
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()
-                log._error("Illegal packet type " .. protocol, true)
+                log._error("illegal packet type " .. protocol, true)
             end
         end
     end
