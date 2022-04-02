@@ -5,7 +5,8 @@
 --
 
 local self = {
-    mounts = {}
+    mounts = {},
+    mute = false
 }
 
 -- wrap peripheral calls with lua protected call
@@ -24,11 +25,23 @@ local peri_init = function (device)
                 end
             else
                 -- function failed
-                log._error("PPM: protected " .. key .. "() -> " .. result)
+                if not mute then
+                    log._error("PPM: protected " .. key .. "() -> " .. result)
+                end
                 return nil
             end
         end
     end
+end
+
+-- silence error prints
+function disable_reporting()
+    self.mute = true
+end
+
+-- allow error prints
+function enable_reporting()
+    self.mute = false
 end
 
 -- mount all available peripherals (clears mounts first)
