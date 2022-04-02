@@ -61,15 +61,26 @@ local ticks_to_update = LINK_TICKS
 
 -- runtime variables
 local control_state = false
+local reactor_scram = true      -- treated as latching e-stop
 
 -- event loop
 while true do
     local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
+    -- if we tried to SCRAM but failed, keep trying
+    -- if it disconnected, isPowered will return nil (and error logs will get spammed at 10Hz, so disable reporting)
+    -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
+    ppm.disable_reporting()
+    if reactor_scram and reactor.isPowered() then
+        reactor.scram()
+    end
+    ppm.enable_reporting()
+
     if event == "peripheral_detach" then
         ppm.handle_unmount(param1)
 
         -- try to scram reactor if it is still connected
+        reactor_scram = true
         if reactor.scram() then
             print_ts("[fatal] PLC lost a peripheral: successful SCRAM\n")
         else
@@ -81,6 +92,7 @@ while true do
 
     -- check safety (SCRAM occurs if tripped)
     local iss_status, iss_tripped, iss_first = iss.check()
+    reactor_scram = reactor_scram or iss_tripped
     if iss_first then
         plc_comms.send_iss_alarm(iss_status)
     end
@@ -91,7 +103,7 @@ while true do
         -- iss was already checked (main reason for this tick rate)
         ticks_to_update = ticks_to_update - 1
 
-        if plc_comms.linked() then
+        if plc_comms.is_linked() then
             if ticks_to_update <= 0 then
                 plc_comms.send_status(control_state, iss_tripped)
                 ticks_to_update = UPDATE_TICKS
@@ -109,13 +121,16 @@ while true do
 
         local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
         plc_comms.handle_packet(packet)
+        reactor_scram = reactor_scram or plc_comms.is_scrammed()
     elseif event == "timer" and param1 == conn_watchdog.get_timer() then
         -- haven't heard from server recently? shutdown reactor
+        reactor_scram = true        
         plc_comms.unlink()
         iss.trip_timeout()
         print_ts("[alert] server timeout, reactor disabled\n")
     elseif event == "terminate" then
         -- safe exit
+        reactor_scram = true
         if reactor.scram() then
             print_ts("[alert] exiting, reactor disabled\n")
         else

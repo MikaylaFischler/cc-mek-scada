@@ -206,6 +206,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         l_port = local_port,
         reactor = reactor,
         status_cache = nil,
+        scrammed = false,
         linked = false
     }
 
@@ -314,7 +315,11 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
                     elseif packet.type == RPLC_TYPES.RS_IO_GET then
                     elseif packet.type == RPLC_TYPES.RS_IO_SET then
                     elseif packet.type == RPLC_TYPES.MEK_SCRAM then
+                        self.scrammed = true
+                        self.reactor.scram()
                     elseif packet.type == RPLC_TYPES.MEK_ENABLE then
+                        self.scrammed = false
+                        self.reactor.activate()
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                     elseif packet.type == RPLC_TYPES.ISS_GET then
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
@@ -408,7 +413,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         _send(sys_status)
     end
 
-    local linked = function () return self.linked end
+    local is_scrammed = function () return self.scrammed end
+    local is_linked = function () return self.linked end
     local unlink = function () self.linked = false end
 
     return {
@@ -418,7 +424,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor)
         send_link_req = send_link_req,
         send_struct = send_struct,
         send_status = send_status,
-        linked = linked,
+        is_scrammed = is_scrammed,
+        is_linked = is_linked,
         unlink = unlink
     }
 end
