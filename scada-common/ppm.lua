@@ -90,7 +90,7 @@ function handle_unmount(iface)
     
     log._warning("PPM: lost device " .. type .. " mounted to " .. iface)
 
-    return self.mounts[iface]
+    return lost_dev
 end
 
 -- list all available peripherals

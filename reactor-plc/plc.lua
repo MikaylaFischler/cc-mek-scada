@@ -11,6 +11,10 @@ function iss_init(reactor)
         trip_cause = ""
     }
 
+    local reconnect_reactor = function (reactor)
+        self.reactor = reactor
+    end
+
     local check = function ()
         local status = "ok"
         local was_tripped = self.tripped
@@ -110,6 +114,7 @@ function iss_init(reactor)
     end
 
     return {
+        reconnect_reactor = reconnect_reactor,
         check = check,
         trip_timeout = trip_timeout,
         reset = reset,
@@ -197,7 +202,7 @@ function rplc_packet()
 end
 
 -- reactor PLC communications
-function rplc_comms(id, modem, local_port, server_port, reactor, iss)
+function comms_init(id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
         seq_num = 0,
@@ -210,6 +215,11 @@ function rplc_comms(id, modem, local_port, server_port, reactor, iss)
         scrammed = false,
         linked = false
     }
+
+    -- open modem
+    if not self.modem.isOpen(self.l_port) then
+        self.modem.open(self.l_port)
+    end
 
     -- PRIVATE FUNCTIONS --
 
@@ -323,6 +333,21 @@ function rplc_comms(id, modem, local_port, server_port, reactor, iss)
 
     -- PUBLIC FUNCTIONS --
 
+    -- reconnect a newly connected modem
+    local reconnect_modem = function (modem)
+        self.modem = modem
+
+        -- open modem
+        if not self.modem.isOpen(self.l_port) then
+            self.modem.open(self.l_port)
+        end
+    end
+
+    -- reconnect a newly connected reactor
+    local reconnect_reactor = function (reactor)
+        self.reactor = reactor
+    end
+
     -- parse an RPLC packet
     local parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
@@ -410,7 +435,7 @@ function rplc_comms(id, modem, local_port, server_port, reactor, iss)
                         local max_burn_rate = self.reactor.getMaxBurnRate()
                         local success = false
 
-                        if max_burn_rate is not nil then
+                        if max_burn_rate ~= nil then
                             if burn_rate > 0 and burn_rate <= max_burn_rate then
                                 success = self.reactor.setBurnRate(burn_rate)
                             end
@@ -508,6 +533,8 @@ function rplc_comms(id, modem, local_port, server_port, reactor, iss)
     local unlink = function () self.linked = false end
 
     return {
+        reconnect_modem = reconnect_modem,
+        reconnect_reactor = reconnect_reactor,
         parse_packet = parse_packet,
         handle_packet = handle_packet,
         send_link_req = send_link_req,

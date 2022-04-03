@@ -34,6 +34,10 @@ function _debug(msg, trace)
     end
 end
 
+function _info(msg)
+    _log("[INF] " .. msg .. "\n")
+end
+
 function _warning(msg)
     _log("[WRN] " .. msg .. "\n")
 end
