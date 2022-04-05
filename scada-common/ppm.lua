@@ -53,7 +53,13 @@ function mount_all()
     for i = 1, #ifaces do
         local pm_dev = peripheral.wrap(ifaces[i])
         peri_init(pm_dev)
-        self.mounts[ifaces[i]] = { peripheral.getType(ifaces[i]), pm_dev }
+
+        self.mounts[ifaces[i]] = {
+            type = peripheral.getType(ifaces[i]),
+            dev = pm_dev
+        }
+
+        log._debug("PPM: found a " .. self.mounts[ifaces[i]].type)
     end
 
     if #ifaces == 0 then
@@ -62,24 +68,28 @@ function mount_all()
 end
 
 -- mount a particular device
-function mount(name)
+function mount(iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
+    local type = nil
 
     for i = 1, #ifaces do
-        if name == peripheral.getType(ifaces[i]) then
-            pm_dev = peripheral.wrap(ifaces[i])
+        if iface == ifaces[i] then
+            log._debug("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
+
+            type = peripheral.getType(iface)
+            pm_dev = peripheral.wrap(iface)
             peri_init(pm_dev)
 
-            self.mounts[ifaces[i]] = { 
-                type = peripheral.getType(ifaces[i]), 
-                device = pm_dev 
+            self.mounts[iface] = {
+                type = peripheral.getType(iface),
+                dev = pm_dev
             }
             break
         end
     end
 
-    return pm_dev
+    return type, pm_dev
 end
 
 -- handle peripheral_detach event
@@ -105,7 +115,7 @@ end
 
 -- get a mounted peripheral by side/interface
 function get_periph(iface)
-    return self.mounts[iface].device
+    return self.mounts[iface].dev
 end
 
 -- get a mounted peripheral type by side/interface
@@ -119,7 +129,7 @@ function get_device(name)
 
     for side, data in pairs(self.mounts) do
         if data.type == name then
-            device = data.device
+            device = data.dev
             break
         end
     end
@@ -133,7 +143,7 @@ function list_monitors()
 
     for side, data in pairs(self.mounts) do
         if data.type == "monitor" then
-            monitors[side] = data.device
+            table.insert(monitors, data.dev)
         end
     end
 
