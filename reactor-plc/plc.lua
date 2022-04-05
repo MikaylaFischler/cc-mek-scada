@@ -495,9 +495,8 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     end
 
     -- send live status information
-    -- control_state : acknowledged control state from supervisor
-    -- overridden    : if ISS force disabled reactor
-    local send_status = function (control_state, overridden)
+    -- overridden : if ISS force disabled reactor
+    local send_status = function (overridden)
         local mek_data = nil
 
         if _update_status_cache() then
@@ -508,7 +507,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             id = self.id,
             type = RPLC_TYPES.STATUS,
             timestamp = os.time(),
-            control_state = control_state,
+            control_state = ~self.scrammed,
             overridden = overridden,
             heating_rate = self.reactor.getHeatingRate(),
             mek_data = mek_data

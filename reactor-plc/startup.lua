@@ -22,28 +22,38 @@ ppm.mount_all()
 local reactor = ppm.get_device("fissionReactor")
 local modem = ppm.get_device("modem")
 
-local init_ok = true
-local control_degraded = { degraded = false, no_reactor = false, no_modem = false }
+local plc_state = {
+    init_ok = true,
+    scram = true,       -- treated as latching e-stop, all conditions must be OK to set false
+    degraded = false,
+    no_reactor = false,
+    no_modem = false
+}
 
 -- we need a reactor and a modem
 if reactor == nil then
     print_ts("Fission reactor not found. Running in a degraded state...\n");
     log._warning("no reactor on startup")
-    init_ok = false
-    control_degraded.degraded = true
-    control_degraded.no_reactor = true
+    plc_state.init_ok = false
+    plc_state.degraded = true
+    plc_state.no_reactor = true
 end
 if modem == nil then
-    print_ts("No modem found. Disabling reactor and running in a degraded state...\n")
+    if reactor ~= nil then
+        print_ts("No modem found. Disabling reactor and running in a degraded state...\n")
+        reactor.scram()
+    else
+        print_ts("No modem found. Running in a degraded state...\n")
+    end
+
     log._warning("no modem on startup")
-    reactor.scram()
-    init_ok = false
-    control_degraded.degraded = true
-    control_degraded.no_modem = true
+    plc_state.init_ok = false
+    plc_state.degraded = true
+    plc_state.no_modem = true
 end
 
 ::init::
-if init_ok then
+if plc_state.init_ok then
     -- just booting up, no fission allowed (neutrons stay put thanks)
     reactor.scram()
 
@@ -74,20 +84,16 @@ local LINK_TICKS = 20
 -- start by linking
 local ticks_to_update = LINK_TICKS
 
--- runtime variables
-local control_state = false
-local reactor_scram = true      -- treated as latching e-stop
-
 -- event loop
 while true do
     local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
-    if init_ok then
+    if plc_state.init_ok then
         -- if we tried to SCRAM but failed, keep trying
         -- if it disconnected, isPowered will return nil (and error logs will get spammed at 10Hz, so disable reporting)
         -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
         ppm.disable_reporting()
-        if reactor_scram and reactor.isPowered() then
+        if plc_state.scram and reactor.isPowered() then
             reactor.scram()
         end
         ppm.enable_reporting()
@@ -100,16 +106,16 @@ while true do
         if device.type == "fissionReactor" then
             print_ts("reactor disconnected!\n")
             log._error("reactor disconnected!")
-            control_degraded.no_reactor = true
+            plc_state.no_reactor = true
             -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
         elseif device.type == "modem" then
             print_ts("modem disconnected!\n")
             log._error("modem disconnected!")
-            control_degraded.no_modem = true
+            plc_state.no_modem = true
 
-            if init_ok then
+            if plc_state.init_ok then
                 -- try to scram reactor if it is still connected
-                reactor_scram = true
+                plc_state.scram = true
                 if reactor.scram() then
                     print_ts("successful reactor SCRAM\n")
                 else
@@ -117,55 +123,55 @@ while true do
                 end
             end
 
-            control_degraded.degraded = true
+            plc_state.degraded = true
         end
     elseif event == "peripheral" then
         local device = ppm.mount(param1)
 
         if device.type == "fissionReactor" then
             -- reconnected reactor
-            reactor_scram = true
+            plc_state.scram = true
             device.scram()
 
             print_ts("reactor reconnected.\n")
             log._info("reactor reconnected.")
-            control_degraded.no_reactor = false
+            plc_state.no_reactor = false
 
-            if init_ok then
+            if plc_state.init_ok then
                 iss.reconnect_reactor(device)
                 plc_comms.reconnect_reactor(device)
             end
 
             -- determine if we are still in a degraded state
             if get_device("modem") not nil then
-                control_degraded.degraded = false
+                plc_state.degraded = false
             end
         elseif device.type == "modem" then
             -- reconnected modem
-            if init_ok then
+            if plc_state.init_ok then
                 plc_comms.reconnect_modem(device)
             end
 
             print_ts("modem reconnected.\n")
             log._info("modem reconnected.")
-            control_degraded.no_modem = false
+            plc_state.no_modem = false
 
             -- determine if we are still in a degraded state
             if ppm.get_device("fissionReactor") not nil then
-                control_degraded.degraded = false
+                plc_state.degraded = false
             end
         end
 
-        if not init_ok and not control_degraded.degraded then
-            init_ok = false
+        if not plc_state.init_ok and not plc_state.degraded then
+            plc_state.init_ok = false
             goto init
         end
     end
 
     -- check safety (SCRAM occurs if tripped)
-    if not control_degraded.degraded then
+    if not plc_state.degraded then
         local iss_tripped, iss_status, iss_first = iss.check()
-        reactor_scram = reactor_scram or iss_tripped
+        plc_state.scram = plc_state.scram or iss_tripped
         if iss_first then
             plc_comms.send_iss_alarm(iss_status)
         end
@@ -173,14 +179,14 @@ while true do
 
     -- handle event
     if event == "timer" and param1 == loop_tick then
-        if not control_degraded.no_modem then
+        if not plc_state.no_modem then
             -- basic event tick, send updated data if it is time (~3.33Hz)
             -- iss was already checked (main reason for this tick rate)
             ticks_to_update = ticks_to_update - 1
 
             if plc_comms.is_linked() then
                 if ticks_to_update <= 0 then
-                    plc_comms.send_status(control_state, iss_tripped)
+                    plc_comms.send_status(iss_tripped)
                     ticks_to_update = UPDATE_TICKS
                 end
             else
@@ -197,17 +203,17 @@ while true do
 
         local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
         plc_comms.handle_packet(packet)
-        reactor_scram = reactor_scram or plc_comms.is_scrammed()
+        plc_state.scram = plc_state.scram or plc_comms.is_scrammed()
     elseif event == "timer" and param1 == conn_watchdog.get_timer() then
         -- haven't heard from server recently? shutdown reactor
-        reactor_scram = true        
+        plc_state.scram = true
         plc_comms.unlink()
         iss.trip_timeout()
         print_ts("[alert] server timeout, reactor disabled\n")
     elseif event == "terminate" then
         -- safe exit
-        if init_ok then
-            reactor_scram = true
+        if plc_state.init_ok then
+            plc_state.scram = true
             if reactor.scram() then
                 print_ts("[alert] exiting, reactor disabled\n")
             else
