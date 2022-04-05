@@ -7,10 +7,10 @@ os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
 
-os.loadAPI("reactor-plc/config.lua")
-os.loadAPI("reactor-plc/plc.lua")
+os.loadAPI("config.lua")
+os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.1.0"
+local R_PLC_VERSION = "alpha-v0.1.1"
 
 local print_ts = util.print_ts
 
@@ -66,34 +66,37 @@ local LINK_TICKS = 20
 local loop_tick = nil
 local ticks_to_update = LINK_TICKS  -- start by linking
 
--- initialize PLC
-::init::
-if plc_state.init_ok then
-    -- just booting up, no fission allowed (neutrons stay put thanks)
-    reactor.scram()
+function init()
+    if plc_state.init_ok then
+        -- just booting up, no fission allowed (neutrons stay put thanks)
+        reactor.scram()
 
-    -- init internal safety system
-    iss = plc.iss_init(reactor)
-    log._debug("iss init")
+        -- init internal safety system
+        iss = plc.iss_init(reactor)
+        log._debug("iss init")
 
-    if networked then
-        -- start comms
-        plc_comms = plc.comms_init(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor, iss)
-        log._debug("comms init")
+        if networked then
+            -- start comms
+            plc_comms = plc.comms_init(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor, iss)
+            log._debug("comms init")
 
-        -- comms watchdog, 3 second timeout
-        conn_watchdog = watchdog.new_watchdog(3)
-        log._debug("conn watchdog started")
+            -- comms watchdog, 3 second timeout
+            conn_watchdog = watchdog.new_watchdog(3)
+            log._debug("conn watchdog started")
+        else
+            log._debug("running without networking")
+        end
+
+        -- loop clock (10Hz, 2 ticks)
+        loop_tick = os.startTimer(0.05)
+        log._debug("loop clock started")
     else
-        log._debug("running without networking")
+        log._warning("booted in a degraded state, awaiting peripheral connections...")
     end
-
-    -- loop clock (10Hz, 2 ticks)
-    loop_tick = os.startTimer(0.05)
-    log._debug("loop clock started")
-else
-    log._warning("booted in a degraded state, awaiting peripheral connections...")
 end
+
+-- initialize PLC
+init()
 
 -- event loop
 while true do
@@ -156,7 +159,7 @@ while true do
             end
 
             -- determine if we are still in a degraded state
-            if not networked or get_device("modem") not nil then
+            if not networked or get_device("modem") ~= nil then
                 plc_state.degraded = false
             end
         elseif networked and device.type == "modem" then
@@ -170,14 +173,14 @@ while true do
             plc_state.no_modem = false
 
             -- determine if we are still in a degraded state
-            if ppm.get_device("fissionReactor") not nil then
+            if ppm.get_device("fissionReactor") ~= nil then
                 plc_state.degraded = false
             end
         end
 
         if not plc_state.init_ok and not plc_state.degraded then
             plc_state.init_ok = false
-            goto init
+            init()
         end
     end
 

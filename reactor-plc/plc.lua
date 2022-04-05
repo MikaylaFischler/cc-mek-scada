@@ -42,7 +42,7 @@ function iss_init(reactor)
             self.reactor.scram()
         end
 
-        local first_trip = ~was_tripped and self.tripped
+        local first_trip = not was_tripped and self.tripped
     
         return self.tripped, status, first_trip
     end
@@ -507,7 +507,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             id = self.id,
             type = RPLC_TYPES.STATUS,
             timestamp = os.time(),
-            control_state = ~self.scrammed,
+            control_state = not self.scrammed,
             overridden = overridden,
             heating_rate = self.reactor.getHeatingRate(),
             mek_data = mek_data
