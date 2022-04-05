@@ -15,20 +15,49 @@ function iss_init(reactor)
         self.reactor = reactor
     end
 
+    local damage_critical = function ()
+        return self.reactor.getDamagePercent() >= 100
+    end
+
+    local excess_heated_coolant = function ()
+        return self.reactor.getHeatedCoolantNeeded() == 0
+    end
+
+    local excess_waste = function ()
+        return self.reactor.getWasteNeeded() == 0
+    end
+
+    local high_temp = function ()
+        -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
+        return self.reactor.getTemperature() >= 1200
+    end
+
+    local insufficient_fuel = function ()
+        return self.reactor.getFuel() == 0
+    end
+
+    local no_coolant = function ()
+        return self.reactor.getCoolantFilledPercentage() < 2
+    end
+
+    local timed_out = function ()
+        return self.timed_out
+    end
+
     local check = function ()
         local status = "ok"
         local was_tripped = self.tripped
         
         -- check system states in order of severity
-        if self.damage_critical() then
+        if damage_critical() then
             status = "dmg_crit"
-        elseif self.high_temp() then
+        elseif high_temp() then
             status = "high_temp"
-        elseif self.excess_heated_coolant() then
+        elseif excess_heated_coolant() then
             status = "heated_coolant_backup"
-        elseif self.excess_waste() then
+        elseif excess_waste() then
             status = "full_waste"
-        elseif self.insufficient_fuel() then
+        elseif insufficient_fuel() then
             status = "no_fuel"
         elseif self.tripped then
             status = self.trip_cause
@@ -82,35 +111,6 @@ function iss_init(reactor)
                 timed_out()
             }
         end
-    end
-    
-    local damage_critical = function ()
-        return self.reactor.getDamagePercent() >= 100
-    end
-    
-    local excess_heated_coolant = function ()
-        return self.reactor.getHeatedCoolantNeeded() == 0
-    end
-    
-    local excess_waste = function ()
-        return self.reactor.getWasteNeeded() == 0
-    end
-
-    local high_temp = function ()
-        -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
-        return self.reactor.getTemperature() >= 1200
-    end
-    
-    local insufficient_fuel = function ()
-        return self.reactor.getFuel() == 0
-    end
-
-    local no_coolant = function ()
-        return self.reactor.getCoolantFilledPercentage() < 2
-    end
-
-    local timed_out = function ()
-        return self.timed_out
     end
 
     return {
