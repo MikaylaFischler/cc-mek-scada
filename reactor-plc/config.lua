@@ -1,3 +1,5 @@
+-- set to false to run in standalone mode (safety regulation only)
+NETWORKED = true
 -- unique reactor ID
 REACTOR_ID  = 1
 -- port to send packets TO server
