@@ -30,16 +30,16 @@ function _debug(msg, trace)
                 debug.getinfo(2).currentline .. " > "
         end
 
-        _log("[DBG] " .. dbg_info .. msg .. "\n")
+        _log("[DBG] " .. dbg_info .. msg)
     end
 end
 
 function _info(msg)
-    _log("[INF] " .. msg .. "\n")
+    _log("[INF] " .. msg)
 end
 
 function _warning(msg)
-    _log("[WRN] " .. msg .. "\n")
+    _log("[WRN] " .. msg)
 end
 
 function _error(msg, trace)
@@ -56,9 +56,9 @@ function _error(msg, trace)
             debug.getinfo(2).currentline .. " > "
     end
 
-    _log("[ERR] " .. dbg_info .. msg .. "\n")
+    _log("[ERR] " .. dbg_info .. msg)
 end
 
 function _fatal(msg)
-    _log("[FTL] " .. msg .. "\n")
+    _log("[FTL] " .. msg)
 end
