@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.1.2"
+local R_PLC_VERSION = "alpha-v0.1.3"
 
 local print = util.print
 local println = util.println
@@ -32,7 +32,7 @@ local networked = config.NETWORKED
 
 local plc_state = {
     init_ok = true,
-    scram = true,       -- treated as latching e-stop, all conditions must be OK to set false
+    scram = true,
     degraded = false,
     no_reactor = false,
     no_modem = false
@@ -69,7 +69,7 @@ local conn_watchdog = nil
 local UPDATE_TICKS = 3
 local LINK_TICKS = 20
 
-local loop_tick = nil
+local loop_clock = nil
 local ticks_to_update = LINK_TICKS  -- start by linking
 
 function init()
@@ -94,7 +94,7 @@ function init()
         end
 
         -- loop clock (10Hz, 2 ticks)
-        loop_tick = os.startTimer(0.05)
+        loop_clock = os.startTimer(0.05)
         log._debug("loop clock started")
 
         println("boot> completed");
@@ -198,43 +198,62 @@ while true do
         end
     end
 
-    -- check safety (SCRAM occurs if tripped)
-    if not plc_state.degraded then
-        local iss_tripped, iss_status, iss_first = iss.check()
-        plc_state.scram = plc_state.scram or iss_tripped
-        if networked and iss_first then
-            plc_comms.send_iss_alarm(iss_status)
+    -- ISS
+    if plc_state.init_ok then
+        -- if we are in standalone mode, continuously reset ISS
+        -- ISS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
+        if not networked then
+            plc_state.scram = false
+            iss.reset()
         end
-    elseif plc_state.init_ok then
-        reactor.scram()
+
+        -- check safety (SCRAM occurs if tripped)
+        if not plc_state.degraded then
+            local iss_tripped, iss_status, iss_first = iss.check()
+            plc_state.scram = plc_state.scram or iss_tripped
+
+            if iss_first then
+                println_ts("[ISS] reactor shutdown, safety tripped: " .. iss_status)
+                if networked then
+                    plc_comms.send_iss_alarm(iss_status)
+                end
+            end
+        else
+            reactor.scram()
+        end
     end
 
     -- handle event
-    if event == "timer" and param1 == loop_tick and networked and not plc_state.no_modem then
+    if event == "timer" and param1 == loop_clock then
         -- basic event tick, send updated data if it is time (~3.33Hz)
         -- iss was already checked (that's the main reason for this tick rate)
-        ticks_to_update = ticks_to_update - 1
+        if networked and not plc_state.no_modem then
+            ticks_to_update = ticks_to_update - 1
 
-        if plc_comms.is_linked() then
-            if ticks_to_update <= 0 then
-                plc_comms.send_status(iss_tripped)
-                ticks_to_update = UPDATE_TICKS
-            end
-        else
-            if ticks_to_update <= 0 then
-                plc_comms.send_link_req()
-                ticks_to_update = LINK_TICKS
+            if plc_comms.is_linked() then
+                if ticks_to_update <= 0 then
+                    plc_comms.send_status(iss_tripped)
+                    ticks_to_update = UPDATE_TICKS
+                end
+            else
+                if ticks_to_update <= 0 then
+                    plc_comms.send_link_req()
+                    ticks_to_update = LINK_TICKS
+                end
             end
         end
+
+        -- start next clock timer
+        loop_clock = os.startTimer(0.05)
     elseif event == "modem_message" and networked and not plc_state.no_modem then
         -- got a packet
         -- feed the watchdog first so it doesn't uhh...eat our packets
         conn_watchdog.feed()
 
+        -- handle the packet (plc_state passed to allow clearing SCRAM flag)
         local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
-        plc_comms.handle_packet(packet)
-        plc_state.scram = plc_state.scram or plc_comms.is_scrammed()
-    elseif event == "timer" and param1 == conn_watchdog.get_timer() and networked then
+        plc_comms.handle_packet(packet, plc_state)
+    elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
         -- haven't heard from server recently? shutdown reactor
         plc_state.scram = true
         plc_comms.unlink()

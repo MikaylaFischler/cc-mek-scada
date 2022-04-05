@@ -50,14 +50,19 @@ function iss_init(reactor)
         
         -- check system states in order of severity
         if damage_critical() then
+            log._warning("ISS: damage critical!")
             status = "dmg_crit"
         elseif high_temp() then
+            log._warning("ISS: high temperature!")
             status = "high_temp"
         elseif excess_heated_coolant() then
+            log._warning("ISS: heated coolant backup!")
             status = "heated_coolant_backup"
         elseif excess_waste() then
+            log._warning("ISS: full waste!")
             status = "full_waste"
         elseif insufficient_fuel() then
+            log._warning("ISS: no fuel!")
             status = "no_fuel"
         elseif self.tripped then
             status = self.trip_cause
@@ -66,6 +71,7 @@ function iss_init(reactor)
         end
     
         if status ~= "ok" then
+            log._warning("ISS: reactor SCRAM")
             self.tripped = true
             self.trip_cause = status
             self.reactor.scram()
@@ -378,7 +384,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     end
 
     -- handle an RPLC packet
-    local handle_packet = function (packet)
+    local handle_packet = function (packet, plc_state)
         if packet ~= nil then
             if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
                 if self.linked then
@@ -424,10 +430,12 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     elseif packet.type == RPLC_TYPES.MEK_SCRAM then
                         -- disable the reactor
                         self.scrammed = true
+                        plc_state.scram = true
                         _send_ack(packet.type, self.reactor.scram())
                     elseif packet.type == RPLC_TYPES.MEK_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
+                        plc_state.scram = false
                         _send_ack(packet.type, self.reactor.activate())
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
