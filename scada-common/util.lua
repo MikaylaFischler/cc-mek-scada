@@ -1,14 +1,33 @@
+-- we are overwriting 'print' so save it first
+local _print = print
+
+-- print
+function print(message)
+    term.write(message)
+end
+
+-- print line
+function println(message)
+    _print(message)
+end
+
 -- timestamped print
 function print_ts(message)
     term.write(os.date("[%H:%M:%S] ") .. message)
 end
+
+-- timestamped print line
+function println_ts(message)
+    _print(os.date("[%H:%M:%S] ") .. message)
+end
+
 
 -- ComputerCraft OS Timer based Watchdog
 -- triggers a timer event if not fed within 'timeout' seconds
 function new_watchdog(timeout)
     local self = { 
         _timeout = timeout, 
-        _wd_timer = os.startTimer(_timeout)
+        _wd_timer = os.startTimer(timeout)
     }
 
     local get_timer = function ()
