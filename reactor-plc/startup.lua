@@ -25,8 +25,8 @@ println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 -- mount connected devices
 ppm.mount_all()
 
-local reactor = ppm.get_device("fissionReactor")
-local modem = ppm.get_device("modem")
+local reactor = ppm.get_fission_reactor()
+local modem = ppm.get_wireless_modem()
 
 local networked = config.NETWORKED
 
@@ -48,8 +48,8 @@ if reactor == nil then
     plc_state.no_reactor = true
 end
 if networked and modem == nil then
-    println("boot> modem not found")
-    log._warning("no modem on startup")
+    println("boot> wireless modem not found")
+    log._warning("no wireless modem on startup")
 
     if reactor ~= nil then
         reactor.scram()
@@ -133,21 +133,28 @@ while true do
             plc_state.degraded = true
             -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
         elseif networked and device.type == "modem" then
-            println_ts("modem disconnected!")
-            log._error("modem disconnected!")
-            plc_state.no_modem = true
+            -- we only care if this is our wireless modem
+            if device.dev == modem then
+                println_ts("wireless modem disconnected!")
+                log._error("comms modem disconnected!")
+                plc_state.no_modem = true
 
-            if plc_state.init_ok then
-                -- try to scram reactor if it is still connected
-                plc_state.scram = true
-                if reactor.scram() then
-                    println_ts("successful reactor SCRAM")
-                else
-                    println_ts("failed reactor SCRAM")
+                if plc_state.init_ok then
+                    -- try to scram reactor if it is still connected
+                    plc_state.scram = true
+                    if reactor.scram() then
+                        println_ts("successful reactor SCRAM")
+                        log._error("successful reactor SCRAM")
+                    else
+                        println_ts("failed reactor SCRAM")
+                        log._error("failed reactor SCRAM")
+                    end
                 end
-            end
 
-            plc_state.degraded = true
+                plc_state.degraded = true
+            else
+                log._warning("non-comms modem disconnected")
+            end
         end
     elseif event == "peripheral" then
         local type, device = ppm.mount(param1)
@@ -175,20 +182,24 @@ while true do
                 plc_state.degraded = false
             end
         elseif networked and type == "modem" then
-            -- reconnected modem
-            modem = device
+            if device.isWireless() then
+                -- reconnected modem
+                modem = device
 
-            if plc_state.init_ok then
-                plc_comms.reconnect_modem(modem)
-            end
+                if plc_state.init_ok then
+                    plc_comms.reconnect_modem(modem)
+                end
 
-            println_ts("modem reconnected.")
-            log._info("modem reconnected.")
-            plc_state.no_modem = false
+                println_ts("wireless modem reconnected.")
+                log._info("comms modem reconnected.")
+                plc_state.no_modem = false
 
-            -- determine if we are still in a degraded state
-            if ppm.get_device("fissionReactor") ~= nil then
-                plc_state.degraded = false
+                -- determine if we are still in a degraded state
+                if ppm.get_device("fissionReactor") ~= nil then
+                    plc_state.degraded = false
+                end
+            else
+                log._info("wired modem reconnected.")
             end
         end
 

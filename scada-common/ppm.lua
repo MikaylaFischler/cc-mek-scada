@@ -4,6 +4,10 @@
 -- Protected Peripheral Manager
 --
 
+----------------------------
+-- PRIVATE DATA/FUNCTIONS --
+----------------------------
+
 local self = {
     mounts = {},
     mute = false
@@ -34,6 +38,12 @@ local peri_init = function (device)
     end
 end
 
+----------------------
+-- PUBLIC FUNCTIONS --
+----------------------
+
+-- REPORTING --
+
 -- silence error prints
 function disable_reporting()
     self.mute = true
@@ -43,6 +53,8 @@ end
 function enable_reporting()
     self.mute = false
 end
+
+-- MOUNTING --
 
 -- mount all available peripherals (clears mounts first)
 function mount_all()
@@ -103,6 +115,8 @@ function handle_unmount(iface)
     return lost_dev
 end
 
+-- GENERAL ACCESSORS --
+
 -- list all available peripherals
 function list_avail()
     return peripheral.getNames()
@@ -123,7 +137,20 @@ function get_type(iface)
     return self.mounts[iface].type
 end
 
--- get a mounted peripheral by type
+-- get all mounted peripherals by type
+function get_all_devices(name)
+    local devices = {}
+
+    for side, data in pairs(self.mounts) do
+        if data.type == name then
+            table.insert(devices, data.dev)
+        end
+    end
+
+    return devices
+end
+
+-- get a mounted peripheral by type (if multiple, returns the first)
 function get_device(name)
     local device = nil
 
@@ -137,15 +164,28 @@ function get_device(name)
     return device
 end
 
--- list all connected monitors
-function list_monitors()
-    local monitors = {}
+-- SPECIFIC DEVICE ACCESSORS --
 
-    for side, data in pairs(self.mounts) do
-        if data.type == "monitor" then
-            table.insert(monitors, data.dev)
+-- get the fission reactor (if multiple, returns the first)
+function get_fission_reactor()
+    return get_device("fissionReactor")
+end
+
+-- get the wireless modem (if multiple, returns the first)
+function get_wireless_modem()
+    local w_modem = nil
+
+    for side, device in pairs(self.mounts) do
+        if device.type == "modem" and device.dev.isWireless() then
+            w_modem = device.dev
+            break
         end
     end
 
-    return monitors
+    return w_modem
+end
+
+-- list all connected monitors
+function list_monitors()
+    return get_all_devices("monitor")
 end

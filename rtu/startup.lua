@@ -30,9 +30,10 @@ local linked = false
 ppm.mount_all()
 
 -- get modem
-local modem = ppm.get_device("modem")
+local modem = ppm.get_wireless_modem()
 if modem == nil then
-    print("No modem found, exiting...")
+    println("boot> wireless modem not found")
+    log._warning("no wireless modem on startup")
     return
 end
 
