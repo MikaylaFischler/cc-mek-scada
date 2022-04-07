@@ -2,7 +2,7 @@
 
 -- Internal Safety System
 -- identifies dangerous states and SCRAMs reactor if warranted
--- autonomous from main control
+-- autonomous from main SCADA supervisor/coordinator control
 function iss_init(reactor)
     local self = {
         reactor = reactor,
@@ -11,39 +11,90 @@ function iss_init(reactor)
         trip_cause = ""
     }
 
+    -- re-link a reactor after a peripheral re-connect
     local reconnect_reactor = function (reactor)
         self.reactor = reactor
     end
 
+    -- check for critical damage
     local damage_critical = function ()
-        return self.reactor.getDamagePercent() >= 100
+        local damage_percent = self.reactor.getDamagePercent()
+        if damage_percent == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor damage")
+            return false
+        else
+            return damage_percent >= 100
+        end
     end
 
+    -- check for heated coolant backup
     local excess_heated_coolant = function ()
-        return self.reactor.getHeatedCoolantNeeded() == 0
+        local hc_needed = self.reactor.getHeatedCoolantNeeded()
+        if hc_needed == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor heated coolant level")
+            return false
+        else
+            return hc_needed == 0
+        end
     end
 
+    -- check for excess waste
     local excess_waste = function ()
-        return self.reactor.getWasteNeeded() == 0
+        local w_needed = self.reactor.getWasteNeeded()
+        if w_needed == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor waste level")
+            return false
+        else
+            return w_needed == 0
+        end
     end
 
+    -- check if the reactor is at a critically high temperature
     local high_temp = function ()
         -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
-        return self.reactor.getTemperature() >= 1200
+        local temp = self.reactor.getTemperature()
+        if temp == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor temperature")
+            return false
+        else
+            return temp >= 1200
+        end
     end
 
+    -- check if there is no fuel
     local insufficient_fuel = function ()
-        return self.reactor.getFuel() == 0
+        local fuel = self.reactor.getFuel()
+        if fuel == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor fuel level")
+            return false
+        else
+            return fuel == 0
+        end
     end
 
+    -- check if there is no coolant
     local no_coolant = function ()
-        return self.reactor.getCoolantFilledPercentage() < 2
+        local coolant_filled = self.reactor.getCoolantFilledPercentage()
+        if coolant_filled == nil then
+            -- lost the peripheral or terminated, handled later
+            log._error("ISS: failed to check reactor coolant level")
+            return false
+        else
+            return coolant_filled < 2
+        end
     end
 
+    -- if PLC timed out
     local timed_out = function ()
         return self.timed_out
     end
 
+    -- check all safety conditions
     local check = function ()
         local status = "ok"
         local was_tripped = self.tripped
@@ -70,6 +121,7 @@ function iss_init(reactor)
             self.tripped = false
         end
     
+        -- if a new trip occured...
         if status ~= "ok" then
             log._warning("ISS: reactor SCRAM")
             self.tripped = true
@@ -82,6 +134,7 @@ function iss_init(reactor)
         return self.tripped, status, first_trip
     end
 
+    -- report a PLC comms timeout
     local trip_timeout = function ()
         self.tripped = false
         self.trip_cause = "timeout"
@@ -89,12 +142,14 @@ function iss_init(reactor)
         self.reactor.scram()
     end
 
+    -- reset the ISS
     local reset = function ()
         self.timed_out = false
         self.tripped = false
         self.trip_cause = ""
     end
 
+    -- get the ISS status
     local status = function (named)
         if named then
             return {
