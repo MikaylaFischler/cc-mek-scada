@@ -170,9 +170,43 @@ while true do
     local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
     if event == "peripheral_detach" then
-        ppm.handle_unmount(param1)
+        -- handle loss of a device
+        local device = ppm.handle_unmount(param1)
 
-        -- todo: handle unit change
+        for i = 1, #units do
+            -- find disconnected device
+            if units[i].device == device then
+                -- we are going to let the PPM prevent crashes
+                -- return fault flags/codes to MODBUS queries
+                local unit = units[i]
+                println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+            end
+        end
+    elseif event == "peripheral" then
+        -- relink lost peripheral to correct unit entry
+        local type, device = ppm.mount(param1)
+
+        for i = 1, #units do
+            local unit = units[i]
+
+            -- find disconnected device to reconnect
+            if unit.name == param1 then
+                -- found, re-link
+                unit.device = device
+
+                if unit.type == "boiler" then
+                    unit.rtu = boiler_rtu(device)
+                elseif unit.type == "turbine" then
+                    unit.rtu = turbine_rtu(device)
+                elseif unit.type == "imatrix" then
+                    unit.rtu = imatrix_rtu(device)
+                end
+
+                unit.modbus_io = modbus_init(unit.rtu)
+
+                println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
+            end
+        end
     elseif event == "timer" and param1 == loop_tick then
         -- period tick, if we are linked send heartbeat, if not send advertisement
         if linked then
