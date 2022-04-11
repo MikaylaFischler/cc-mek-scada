@@ -17,7 +17,15 @@ os.loadAPI("dev/turbine.lua")
 
 local RTU_VERSION = "alpha-v0.1.0"
 
+local print = util.print
+local println = util.println
 local print_ts = util.print_ts
+local println_ts = util.println_ts
+
+log._info("========================================")
+log._info("BOOTING rtu.startup " .. RTU_VERSION)
+log._info("========================================")
+println(">> RTU " .. RTU_VERSION .. " <<")
 
 ----------------------------------------
 -- startup
@@ -37,12 +45,7 @@ if modem == nil then
     return
 end
 
--- start comms
-if not modem.isOpen(config.LISTEN_PORT) then
-    modem.open(config.LISTEN_PORT)
-end
-
-local rtu_comms = rtu.rtu_comms(config.REACTOR_ID, modem, config.LISTEN_PORT, config.SERVER_PORT, reactor)
+local rtu_comms = rtu.rtu_comms(modem, config.LISTEN_PORT, config.SERVER_PORT)
 
 ----------------------------------------
 -- determine configuration
@@ -69,8 +72,8 @@ for reactor_idx = 1, #RTU_REDSTONE do
         end
 
         if ~valid then
-            local message = "invalid redstone configuration at index " .. i
-            print_ts(message .. "\n")
+            local message = "init> invalid redstone definition at index " .. i
+            println_ts(message)
             log._warning(message)
         else
             -- link redstone in RTU
@@ -85,13 +88,13 @@ for reactor_idx = 1, #RTU_REDSTONE do
                 rs_rtu.link_ao(config.channel, config.side)
             else
                 -- should be unreachable code, we already validated channels
-                log._error("fell through if chain attempting to identify IO mode", true)
+                log._error("init> fell through if chain attempting to identify IO mode", true)
                 break
             end
 
             table.insert(capabilities, config.channel)
 
-            log._debug("startup> linked redstone " .. #capabilities .. ": " .. rsio.to_string(config.channel) .. " (" .. config.side ..
+            log._debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(config.channel) .. " (" .. config.side ..
                 ") for reactor " .. RTU_REDSTONE[reactor_idx].for_reactor)
         end
     end
@@ -112,8 +115,8 @@ for i = 1, #RTU_DEVICES do
     local device = ppm.get_periph(RTU_DEVICES[i].name)
 
     if device == nil then
-        local message = "'" .. RTU_DEVICES[i].name .. "' not found"
-        print_ts(message .. "\n")
+        local message = "init> '" .. RTU_DEVICES[i].name .. "' not found"
+        println_ts(message)
         log._warning(message)
     else
         local type = ppm.get_type(RTU_DEVICES[i].name)
@@ -133,8 +136,8 @@ for i = 1, #RTU_DEVICES do
             rtu_type = "imatrix"
             rtu_iface = imatrix_rtu(device)
         else
-            local message = "device '" .. RTU_DEVICES[i].name .. "' is not a known type (" .. type .. ")"
-            print_ts(message .. "\n")
+            local message = "init> device '" .. RTU_DEVICES[i].name .. "' is not a known type (" .. type .. ")"
+            println_ts(message)
             log._warning(message)
         end
 
@@ -149,7 +152,7 @@ for i = 1, #RTU_DEVICES do
                 modbus_io = modbus_init(rtu_iface)
             })
 
-            log._debug("startup> initialized RTU unit #" .. #units .. ": " .. RTU_DEVICES[i].name .. " (" .. rtu_type .. ") [" ..
+            log._debug("init> initialized RTU unit #" .. #units .. ": " .. RTU_DEVICES[i].name .. " (" .. rtu_type .. ") [" ..
                 RTU_DEVICES[i].index .. "] for reactor " .. RTU_DEVICES[i].for_reactor)
         end
     end
@@ -188,7 +191,7 @@ while true do
         -- if linked, stop sending advertisements
         linked = link_ref.linked
     elseif event == "terminate" then
-        print_ts("Exiting...\n")
+        println_ts("exiting...")
         return
     end
 end

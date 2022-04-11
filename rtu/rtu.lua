@@ -98,6 +98,11 @@ function rtu_comms(modem, local_port, server_port)
         l_port = local_port
     }
 
+    -- open modem
+    if not self.modem.isOpen(self.l_port) then
+        self.modem.open(self.l_port)
+    end
+
     -- PRIVATE FUNCTIONS --
 
     local _send = function (protocol, msg)

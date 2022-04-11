@@ -1,7 +1,10 @@
 -- #REQUIRES rsio.lua
 
-SCADA_SERVER = 16000
-
+-- port to send packets TO server
+SERVER_PORT = 16000
+-- port to listen to incoming packets FROM server
+LISTEN_PORT = 15001
+-- RTU peripheral devices (named: side/network device name)
 RTU_DEVICES = {
     {
         name = "boiler_0",
@@ -14,7 +17,7 @@ RTU_DEVICES = {
         for_reactor = 1
     }
 }
-
+-- RTU redstone interface definitions
 RTU_REDSTONE = {
     {
         for_reactor = 1,
