@@ -1,6 +1,6 @@
 -- #REQUIRES rtu.lua
 
-function imatrix_rtu(imatrix)
+function new(imatrix)
     local self = {
         rtu = rtu.rtu_init(),
         imatrix = imatrix

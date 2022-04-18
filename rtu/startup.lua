@@ -12,22 +12,17 @@ os.loadAPI("scada-common/rsio.lua")
 os.loadAPI("config.lua")
 os.loadAPI("rtu.lua")
 
-os.loadAPI("dev/redstone.lua")
-os.loadAPI("dev/boiler.lua")
-os.loadAPI("dev/imatrix.lua")
-os.loadAPI("dev/turbine.lua")
+os.loadAPI("dev/redstone_rtu.lua")
+os.loadAPI("dev/boiler_rtu.lua")
+os.loadAPI("dev/imatrix_rtu.lua")
+os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.1.2"
+local RTU_VERSION = "alpha-v0.1.3"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
-
-local redstone_rtu = redstone.redstone_rtu
-local boiler_rtu = boiler.boiler_rtu
-local turbine_rtu = turbine.turbine_rtu
-local imatrix_rtu = imatrix.imatrix_rtu
 
 log._info("========================================")
 log._info("BOOTING rtu.startup " .. RTU_VERSION)
@@ -63,7 +58,7 @@ local rtu_devices = config.RTU_DEVICES
 
 -- redstone interfaces
 for reactor_idx = 1, #rtu_redstone do
-    local rs_rtu = redstone_rtu()
+    local rs_rtu = redstone_rtu.new()
     local io_table = rtu_redstone[reactor_idx].io
 
     local capabilities = {}
@@ -141,15 +136,15 @@ for i = 1, #rtu_devices do
         if type == "boiler" then
             -- boiler multiblock
             rtu_type = "boiler"
-            rtu_iface = boiler_rtu(device)
+            rtu_iface = boiler_rtu.new(device)
         elseif type == "turbine" then
             -- turbine multiblock
             rtu_type = "turbine"
-            rtu_iface = turbine_rtu(device)
+            rtu_iface = turbine_rtu.new(device)
         elseif type == "mekanismMachine" then
             -- assumed to be an induction matrix multiblock
             rtu_type = "imatrix"
-            rtu_iface = imatrix_rtu(device)
+            rtu_iface = imatrix_rtu.new(device)
         else
             local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
             println_ts(message)
@@ -210,11 +205,11 @@ while true do
                 unit.device = device
 
                 if unit.type == "boiler" then
-                    unit.rtu = boiler_rtu(device)
+                    unit.rtu = boiler_rtu.new(device)
                 elseif unit.type == "turbine" then
-                    unit.rtu = turbine_rtu(device)
+                    unit.rtu = turbine_rtu.new(device)
                 elseif unit.type == "imatrix" then
-                    unit.rtu = imatrix_rtu(device)
+                    unit.rtu = imatrix_rtu.new(device)
                 end
 
                 unit.modbus_io = modbus.new(unit.rtu)

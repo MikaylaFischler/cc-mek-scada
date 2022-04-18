@@ -1,6 +1,6 @@
 -- #REQUIRES rtu.lua
 
-function turbine_rtu(turbine)
+function new(turbine)
     local self = {
         rtu = rtu.rtu_init(),
         turbine = turbine

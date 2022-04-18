@@ -5,7 +5,7 @@
 local digital_read = rsio.digital_read
 local digital_is_active = rsio.digital_is_active
 
-function redstone_rtu()
+function new()
     local self = {
         rtu = rtu.rtu_init()
     }

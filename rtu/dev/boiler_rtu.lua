@@ -1,6 +1,6 @@
 -- #REQUIRES rtu.lua
 
-function boiler_rtu(boiler)
+function new(boiler)
     local self = {
         rtu = rtu.rtu_init(),
         boiler = boiler
