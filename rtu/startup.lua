@@ -17,7 +17,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.1.3"
+local RTU_VERSION = "alpha-v0.1.4"
 
 local print = util.print
 local println = util.println
@@ -173,7 +173,7 @@ end
 ----------------------------------------
 
 -- advertisement/heartbeat clock (every 2 seconds)
-local loop_tick = os.startTimer(2)
+local loop_clock = os.startTimer(2)
 
 -- event loop
 while true do
@@ -217,7 +217,7 @@ while true do
                 println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
             end
         end
-    elseif event == "timer" and param1 == loop_tick then
+    elseif event == "timer" and param1 == loop_clock then
         -- period tick, if we are linked send heartbeat, if not send advertisement
         if linked then
             rtu_comms.send_heartbeat()
@@ -225,6 +225,9 @@ while true do
             -- advertise units
             rtu_comms.send_advertisement(units)
         end
+
+        -- start next clock timer
+        loop_clock = os.startTimer(2)
     elseif event == "modem_message" then
         -- got a packet
         local link_ref = { linked = linked }
@@ -235,7 +238,10 @@ while true do
         -- if linked, stop sending advertisements
         linked = link_ref.linked
     elseif event == "terminate" then
-        println_ts("exiting...")
-        return
+        log._warning("terminate requested, exiting...")
+        break
     end
 end
+
+println_ts("exited")
+log._info("exited")

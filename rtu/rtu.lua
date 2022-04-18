@@ -180,7 +180,7 @@ function rtu_comms(modem, local_port, server_port)
                 if packet.unit_id <= #units then
                     local unit = units[packet.unit_id]
                     local return_code, response = unit.modbus_io.handle_packet(packet)
-                    _send(response, PROTOCOLS.MODBUS_TCP)
+                    _send(PROTOCOLS.MODBUS_TCP, response)
 
                     if not return_code then
                         log._warning("MODBUS operation failed")
@@ -249,7 +249,7 @@ function rtu_comms(modem, local_port, server_port)
             end
         end
 
-        _send(advertisement, PROTOCOLS.SCADA_MGMT)
+        _send(PROTOCOLS.SCADA_MGMT, advertisement)
     end
 
     local send_heartbeat = function ()
@@ -257,7 +257,7 @@ function rtu_comms(modem, local_port, server_port)
             type = SCADA_MGMT_TYPES.RTU_HEARTBEAT
         }
 
-        _send(heartbeat, PROTOCOLS.SCADA_MGMT)
+        _send(PROTOCOLS.SCADA_MGMT, heartbeat)
     end
 
     return {
