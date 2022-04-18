@@ -26,7 +26,7 @@ local MODBUS_EXCODE = {
 }
 
 -- new modbus comms handler object
-function modbus_init(rtu_dev)
+function new(rtu_dev)
     local self = {
         rtu = rtu_dev
     }

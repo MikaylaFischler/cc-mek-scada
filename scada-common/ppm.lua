@@ -102,7 +102,7 @@ function mount_all()
             dev = pm_dev
         }
 
-        log._debug("PPM: found a " .. self.mounts[ifaces[i]].type)
+        log._debug("PPM: found a " .. self.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
     end
 
     if #ifaces == 0 then
