@@ -17,7 +17,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.1.5"
+local RTU_VERSION = "alpha-v0.2.0"
 
 local print = util.print
 local println = util.println
