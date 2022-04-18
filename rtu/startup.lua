@@ -5,6 +5,7 @@
 os.loadAPI("scada-common/log.lua") 
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
+os.loadAPI("scada-common/comms.lua")
 os.loadAPI("scada-common/modbus.lua")
 os.loadAPI("scada-common/rsio.lua")
 
@@ -16,7 +17,7 @@ os.loadAPI("dev/boiler.lua")
 os.loadAPI("dev/imatrix.lua")
 os.loadAPI("dev/turbine.lua")
 
-local RTU_VERSION = "alpha-v0.1.1"
+local RTU_VERSION = "alpha-v0.1.2"
 
 local print = util.print
 local println = util.println
@@ -67,6 +68,8 @@ for reactor_idx = 1, #rtu_redstone do
 
     local capabilities = {}
 
+    log._debug("init> starting redstone RTU I/O linking for reactor " .. rtu_redstone[reactor_idx].for_reactor .. "...")
+
     for i = 1, #io_table do
         local valid = false
         local config = io_table[i]
@@ -81,7 +84,8 @@ for reactor_idx = 1, #rtu_redstone do
         end
 
         if not valid then
-            local message = "init> invalid redstone definition at index " .. i
+            local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. reactor_idx ..
+                " (for reactor " .. rtu_redstone[reactor_idx].for_reactor .. ")"
             println_ts(message)
             log._warning(message)
         else
@@ -117,6 +121,8 @@ for reactor_idx = 1, #rtu_redstone do
         rtu = rs_rtu,
         modbus_io = modbus.new(rs_rtu)
     })
+
+    log._debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
 end
 
 -- mounted peripherals

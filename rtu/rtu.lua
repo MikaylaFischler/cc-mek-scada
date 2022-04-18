@@ -2,6 +2,10 @@
 -- #REQUIRES modbus.lua
 -- #REQUIRES ppm.lua
 
+local PROTOCOLS = comms.PROTOCOLS
+local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
+
 function rtu_init()
     local self = {
         discrete_inputs = {},
@@ -130,7 +134,7 @@ function rtu_comms(modem, local_port, server_port)
     -- PRIVATE FUNCTIONS --
 
     local _send = function (protocol, msg)
-        local packet = scada_packet()
+        local packet = comms.scada_packet()
         packet.make(self.seq_num, protocol, msg)
         self.modem.transmit(self.s_port, self.l_port, packet.raw())
         self.seq_num = self.seq_num + 1
@@ -141,7 +145,7 @@ function rtu_comms(modem, local_port, server_port)
     -- parse a MODBUS/SCADA packet
     local parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = scada_packet()
+        local s_pkt = comms.scada_packet()
 
         -- parse packet as generic SCADA packet
         s_pkt.recieve(side, sender, reply_to, message, distance)
@@ -149,13 +153,13 @@ function rtu_comms(modem, local_port, server_port)
         if s_pkt.is_valid() then
             -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
-                local m_pkt = modbus_packet()
+                local m_pkt = modbus.packet()
                 if m_pkt.decode(s_pkt) then
                     pkt = m_pkt.get()
                 end
             -- get as SCADA management packet
             elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
-                local mgmt_pkt = mgmt_packet()
+                local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
                     pkt = mgmt_packet.get()
                 end

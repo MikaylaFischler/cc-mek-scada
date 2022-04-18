@@ -264,7 +264,7 @@ function new(rtu_dev)
     }
 end
 
-function modbus_packet()
+function packet()
     local self = {
         frame = nil,
         txn_id = txn_id,
