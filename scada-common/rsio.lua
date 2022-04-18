@@ -86,12 +86,14 @@ function to_string(channel)
 end
 
 function is_valid_channel(channel)
-    return channel > 0 and channel <= A_T_FLOW_RATE
+    return channel ~= nil and channel > 0 and channel <= RS_IO.A_T_FLOW_RATE
 end
 
 function is_valid_side(side)
-    for _, s in pairs(redstone.getSides()) do
-        if s == side then return true end
+    if side ~= nil then
+        for _, s in pairs(rs.getSides()) do
+            if s == side then return true end
+        end
     end
     return false
 end
