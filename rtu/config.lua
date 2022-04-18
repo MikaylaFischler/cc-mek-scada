@@ -23,19 +23,19 @@ RTU_REDSTONE = {
         for_reactor = 1,
         io = {
             {
-                channel = RS_IO.WASTE_PO,
+                channel = rsio.RS_IO.WASTE_PO,
                 side = "top",
                 bundled_color = colors.blue,
                 for_reactor = 1
             },
             {
-                channel = RS_IO.WASTE_PU,
+                channel = rsio.RS_IO.WASTE_PU,
                 side = "top",
                 bundled_color = colors.cyan,
                 for_reactor = 1
             },
             {
-                channel = RS_IO.WASTE_AM,
+                channel = rsio.RS_IO.WASTE_AM,
                 side = "top",
                 bundled_color = colors.purple,
                 for_reactor = 1
