@@ -11,16 +11,22 @@ os.loadAPI("scada-common/rsio.lua")
 os.loadAPI("config.lua")
 os.loadAPI("rtu.lua")
 
+os.loadAPI("dev/redstone.lua")
 os.loadAPI("dev/boiler.lua")
 os.loadAPI("dev/imatrix.lua")
 os.loadAPI("dev/turbine.lua")
 
-local RTU_VERSION = "alpha-v0.1.0"
+local RTU_VERSION = "alpha-v0.1.1"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+local redstone_rtu = redstone.redstone_rtu
+local boiler_rtu = boiler.boiler_rtu
+local turbine_rtu = turbine.turbine_rtu
+local imatrix_rtu = imatrix.imatrix_rtu
 
 log._info("========================================")
 log._info("BOOTING rtu.startup " .. RTU_VERSION)
@@ -51,10 +57,13 @@ local rtu_comms = rtu.rtu_comms(modem, config.LISTEN_PORT, config.SERVER_PORT)
 -- determine configuration
 ----------------------------------------
 
+local rtu_redstone = config.RTU_REDSTONE
+local rtu_devices = config.RTU_DEVICES
+
 -- redstone interfaces
-for reactor_idx = 1, #RTU_REDSTONE do
+for reactor_idx = 1, #rtu_redstone do
     local rs_rtu = redstone_rtu()
-    local io_table = RTU_REDSTONE[reactor_idx].io
+    local io_table = rtu_redstone[reactor_idx].io
 
     local capabilities = {}
 
@@ -71,7 +80,7 @@ for reactor_idx = 1, #RTU_REDSTONE do
             end
         end
 
-        if ~valid then
+        if not valid then
             local message = "init> invalid redstone definition at index " .. i
             println_ts(message)
             log._warning(message)
@@ -95,7 +104,7 @@ for reactor_idx = 1, #RTU_REDSTONE do
             table.insert(capabilities, config.channel)
 
             log._debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(config.channel) .. " (" .. config.side ..
-                ") for reactor " .. RTU_REDSTONE[reactor_idx].for_reactor)
+                ") for reactor " .. rtu_redstone[reactor_idx].for_reactor)
         end
     end
 
@@ -103,7 +112,7 @@ for reactor_idx = 1, #RTU_REDSTONE do
         name = "redstone_io",
         type = "redstone",
         index = 1,
-        reactor = RTU_REDSTONE[reactor_idx].for_reactor,
+        reactor = rtu_redstone[reactor_idx].for_reactor,
         device = capabilities,  -- use device field for redstone channels
         rtu = rs_rtu,
         modbus_io = modbus_init(rs_rtu)
@@ -111,15 +120,15 @@ for reactor_idx = 1, #RTU_REDSTONE do
 end
 
 -- mounted peripherals
-for i = 1, #RTU_DEVICES do
-    local device = ppm.get_periph(RTU_DEVICES[i].name)
+for i = 1, #rtu_devices do
+    local device = ppm.get_periph(rtu_devices[i].name)
 
     if device == nil then
-        local message = "init> '" .. RTU_DEVICES[i].name .. "' not found"
+        local message = "init> '" .. rtu_devices[i].name .. "' not found"
         println_ts(message)
         log._warning(message)
     else
-        local type = ppm.get_type(RTU_DEVICES[i].name)
+        local type = ppm.get_type(rtu_devices[i].name)
         local rtu_iface = nil
         local rtu_type = ""
 
@@ -136,24 +145,24 @@ for i = 1, #RTU_DEVICES do
             rtu_type = "imatrix"
             rtu_iface = imatrix_rtu(device)
         else
-            local message = "init> device '" .. RTU_DEVICES[i].name .. "' is not a known type (" .. type .. ")"
+            local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
             println_ts(message)
             log._warning(message)
         end
 
         if rtu_iface ~= nil then
             table.insert(units, {
-                name = RTU_DEVICES[i].name,
+                name = rtu_devices[i].name,
                 type = rtu_type,
-                index = RTU_DEVICES[i].index,
-                reactor = RTU_DEVICES[i].for_reactor,
+                index = rtu_devices[i].index,
+                reactor = rtu_devices[i].for_reactor,
                 device = device,
                 rtu = rtu_iface,
                 modbus_io = modbus_init(rtu_iface)
             })
 
-            log._debug("init> initialized RTU unit #" .. #units .. ": " .. RTU_DEVICES[i].name .. " (" .. rtu_type .. ") [" ..
-                RTU_DEVICES[i].index .. "] for reactor " .. RTU_DEVICES[i].for_reactor)
+            log._debug("init> initialized RTU unit #" .. #units .. ": " .. rtu_devices[i].name .. " (" .. rtu_type .. ") [" ..
+                rtu_devices[i].index .. "] for reactor " .. rtu_devices[i].for_reactor)
         end
     end
 end
