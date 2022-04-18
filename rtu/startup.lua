@@ -17,7 +17,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.1.4"
+local RTU_VERSION = "alpha-v0.1.5"
 
 local print = util.print
 local println = util.println
@@ -237,7 +237,10 @@ while true do
 
         -- if linked, stop sending advertisements
         linked = link_ref.linked
-    elseif event == "terminate" then
+    end
+
+    -- check for termination request
+    if event == "terminate" or ppm.should_terminate() then
         log._warning("terminate requested, exiting...")
         break
     end

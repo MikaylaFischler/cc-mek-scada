@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.1.5"
+local R_PLC_VERSION = "alpha-v0.1.6"
 
 local print = util.print
 local println = util.println
@@ -271,7 +271,12 @@ while true do
         iss.trip_timeout()
         println_ts("server timeout, reactor disabled")
         log._warning("server timeout, reactor disabled")
-    elseif event == "terminate" then
+    end
+
+    -- check for termination request
+    if event == "terminate" or ppm.should_terminate() then
+        log._warning("terminate requested, exiting...")
+
         -- safe exit
         if plc_state.init_ok then
             plc_state.scram = true
@@ -282,9 +287,11 @@ while true do
                 println_ts("exiting, reactor failed to disable")
             end
         end
-        -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
-        println_ts("exited")
-        log._info("terminate requested, exiting")
-        return
+
+        break
     end
 end
+
+-- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
+println_ts("exited")
+log._info("exited")

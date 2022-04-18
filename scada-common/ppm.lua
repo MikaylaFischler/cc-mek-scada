@@ -15,6 +15,7 @@ local self = {
     mounts = {},
     auto_cf = false,
     faulted = false,
+    terminate = false,
     mute = false
 }
 
@@ -38,9 +39,15 @@ local peri_init = function (device)
             else
                 -- function failed
                 self.faulted = true
+
                 if not mute then
                     log._error("PPM: protected " .. key .. "() -> " .. result)
                 end
+
+                if result == "Terminated" then
+                    self.terminate = true
+                end
+
                 return ACCESS_FAULT
             end
         end
@@ -83,6 +90,13 @@ end
 -- clear fault flag
 function clear_fault()
     self.faulted = false
+end
+
+-- TERMINATION --
+
+-- if a caught error was a termination request
+function should_terminate()
+    return self.terminate
 end
 
 -- MOUNTING --
