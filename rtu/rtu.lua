@@ -1,5 +1,6 @@
 -- #REQUIRES comms.lua
 -- #REQUIRES modbus.lua
+-- #REQUIRES ppm.lua
 
 function rtu_init()
     local self = {
@@ -10,68 +11,91 @@ function rtu_init()
         io_count_cache = { 0, 0, 0, 0 }
     }
 
-    local __count_io = function ()
+    local _count_io = function ()
         self.io_count_cache = { #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs }
     end
 
+    -- return : IO count table
     local io_count = function ()
         return self.io_count_cache[0], self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3]
     end
 
     -- discrete inputs: single bit read-only
 
+    -- return : count of discrete inputs
     local connect_di = function (f)
         table.insert(self.discrete_inputs, f)
-        __count_io()
+        _count_io()
         return #self.discrete_inputs
     end
 
+    -- return : value, access fault
     local read_di = function (di_addr)
-        return self.discrete_inputs[di_addr]()
+        ppm.clear_fault()
+        local value = self.discrete_inputs[di_addr]()
+        return value, ppm.is_faulted()
     end
 
     -- coils: single bit read-write
 
+    -- return : count of coils
     local connect_coil = function (f_read, f_write)
         table.insert(self.coils, { read = f_read, write = f_write })
-        __count_io()
+        _count_io()
         return #self.coils
     end
 
+    -- return : value, access fault
     local read_coil = function (coil_addr)
-        return self.coils[coil_addr].read()
+        ppm.clear_fault()
+        local value = self.coils[coil_addr].read()
+        return value, ppm.is_faulted()
     end
 
+    -- return : access fault
     local write_coil = function (coil_addr, value)
+        ppm.clear_fault()
         self.coils[coil_addr].write(value)
+        return ppm.is_faulted()
     end
 
     -- input registers: multi-bit read-only
 
+    -- return : count of input registers
     local connect_input_reg = function (f)
         table.insert(self.input_regs, f)
-        __count_io()
+        _count_io()
         return #self.input_regs
     end
 
+    -- return : value, access fault
     local read_input_reg = function (reg_addr)
-        return self.coils[reg_addr]()
+        ppm.clear_fault()
+        local value = self.coils[reg_addr]()
+        return value, ppm.is_faulted()
     end
 
     -- holding registers: multi-bit read-write
 
+    -- return : count of holding registers
     local connect_holding_reg = function (f_read, f_write)
         table.insert(self.holding_regs, { read = f_read, write = f_write })
-        __count_io()
+        _count_io()
         return #self.holding_regs
     end
 
+    -- return : value, access fault
     local read_holding_reg = function (reg_addr)
-        return self.coils[reg_addr].read()
+        ppm.clear_fault()
+        local value = self.coils[reg_addr].read()
+        return value, ppm.is_faulted()
     end
 
+    -- return : access fault
     local write_holding_reg = function (reg_addr, value)
+        ppm.clear_fault()
         self.coils[reg_addr].write(value)
+        return ppm.is_faulted()
     end
 
     return {

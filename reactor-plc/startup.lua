@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.1.4"
+local R_PLC_VERSION = "alpha-v0.1.5"
 
 local print = util.print
 local println = util.println
@@ -243,7 +243,7 @@ while true do
 
             if plc_comms.is_linked() then
                 if ticks_to_update <= 0 then
-                    plc_comms.send_status(iss_tripped)
+                    plc_comms.send_status(iss_tripped, plc_state.degraded)
                     ticks_to_update = UPDATE_TICKS
                 end
             else
@@ -275,7 +275,7 @@ while true do
         -- safe exit
         if plc_state.init_ok then
             plc_state.scram = true
-            if reactor.scram() then
+            if reactor.scram() ~= ppm.ACCESS_FAULT then
                 println_ts("reactor disabled")
             else
                 -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_LOST_CONTROL) ?

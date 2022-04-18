@@ -1,4 +1,5 @@
 -- #REQUIRES comms.lua
+-- #REQUIRES ppm.lua
 
 -- Internal Safety System
 -- identifies dangerous states and SCRAMs reactor if warranted
@@ -19,7 +20,7 @@ function iss_init(reactor)
     -- check for critical damage
     local damage_critical = function ()
         local damage_percent = self.reactor.getDamagePercent()
-        if damage_percent == nil then
+        if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor damage")
             return false
@@ -31,7 +32,7 @@ function iss_init(reactor)
     -- check for heated coolant backup
     local excess_heated_coolant = function ()
         local hc_needed = self.reactor.getHeatedCoolantNeeded()
-        if hc_needed == nil then
+        if hc_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor heated coolant level")
             return false
@@ -43,7 +44,7 @@ function iss_init(reactor)
     -- check for excess waste
     local excess_waste = function ()
         local w_needed = self.reactor.getWasteNeeded()
-        if w_needed == nil then
+        if w_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor waste level")
             return false
@@ -56,7 +57,7 @@ function iss_init(reactor)
     local high_temp = function ()
         -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
         local temp = self.reactor.getTemperature()
-        if temp == nil then
+        if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor temperature")
             return false
@@ -68,7 +69,7 @@ function iss_init(reactor)
     -- check if there is no fuel
     local insufficient_fuel = function ()
         local fuel = self.reactor.getFuel()
-        if fuel == nil then
+        if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor fuel level")
             return false
@@ -80,7 +81,7 @@ function iss_init(reactor)
     -- check if there is no coolant
     local no_coolant = function ()
         local coolant_filled = self.reactor.getCoolantFilledPercentage()
-        if coolant_filled == nil then
+        if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log._error("ISS: failed to check reactor coolant level")
             return false
@@ -126,7 +127,9 @@ function iss_init(reactor)
             log._warning("ISS: reactor SCRAM")
             self.tripped = true
             self.trip_cause = status
-            self.reactor.scram()
+            if self.reactor.scram() == ppm.ACCESS_FAULT then
+                log._error("ISS: failed reactor SCRAM")
+            end
         end
 
         local first_trip = not was_tripped and self.tripped
@@ -293,6 +296,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- variable reactor status information, excluding heating rate
     local _reactor_status = function ()
+        ppm.clear_fault()
         return {
             status     = self.reactor.getStatus(),
             burn_rate  = self.reactor.getBurnRate(),
@@ -316,17 +320,19 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             hcool_amnt = self.reactor.getHeatedCoolant()['amount'],
             hcool_need = self.reactor.getHeatedCoolantNeeded(),
             hcool_fill = self.reactor.getHeatedCoolantFilledPercentage()
-        }
+        }, ppm.faulted()
     end
 
     local _update_status_cache = function ()
-        local status = _reactor_status()
+        local status, faulted = _reactor_status()
         local changed = false
 
-        for key, value in pairs(status) do
-            if value ~= self.status_cache[key] then
-                changed = true
-                break
+        if not faulted then
+            for key, value in pairs(status) do
+                if value ~= self.status_cache[key] then
+                    changed = true
+                    break
+                end
             end
         end
 
@@ -362,6 +368,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- send structure properties (these should not change)
     -- (server will cache these)
     local _send_struct = function ()
+        ppm.clear_fault()
         local mek_data = {
             heat_cap  = self.reactor.getHeatCapacity(),
             fuel_asm  = self.reactor.getFuelAssemblies(),
@@ -373,13 +380,17 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             max_burn  = self.reactor.getMaxBurnRate()
         }
 
-        local struct_packet = {
-            id = self.id,
-            type = RPLC_TYPES.MEK_STRUCT,
-            mek_data = mek_data
-        }
+        if not faulted then
+            local struct_packet = {
+                id = self.id,
+                type = RPLC_TYPES.MEK_STRUCT,
+                mek_data = mek_data
+            }
 
-        _send(struct_packet)
+            _send(struct_packet)
+        else
+            log._error("failed to send structure: PPM fault")
+        end
     end
 
     local _send_iss_status = function ()
@@ -407,6 +418,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- reconnect a newly connected reactor
     local reconnect_reactor = function (reactor)
         self.reactor = reactor
+        _update_status_cache()
     end
 
     -- parse an RPLC packet
@@ -486,25 +498,25 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         -- disable the reactor
                         self.scrammed = true
                         plc_state.scram = true
-                        _send_ack(packet.type, self.reactor.scram())
+                        _send_ack(packet.type, self.reactor.scram() == ppm.ACCESS_OK)
                     elseif packet.type == RPLC_TYPES.MEK_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
                         plc_state.scram = false
-                        _send_ack(packet.type, self.reactor.activate())
+                        _send_ack(packet.type, self.reactor.activate() == ppm.ACCESS_OK)
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
                         local burn_rate = packet.data[1]
                         local max_burn_rate = self.reactor.getMaxBurnRate()
                         local success = false
 
-                        if max_burn_rate ~= nil then
+                        if max_burn_rate ~= ppm.ACCESS_FAULT then
                             if burn_rate > 0 and burn_rate <= max_burn_rate then
                                 success = self.reactor.setBurnRate(burn_rate)
                             end
                         end
 
-                        _send_ack(packet.type, success)
+                        _send_ack(packet.type, success == ppm.ACCESS_OK)
                     elseif packet.type == RPLC_TYPES.ISS_GET then
                         -- get the ISS status
                         _send_iss_status(iss.status())
@@ -540,9 +552,10 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                     self.linked = link_ack == RPLC_LINKING.ALLOW
                 else
-                    log._("discarding non-link packet before linked")
+                    log._debug("discarding non-link packet before linked")
                 end
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
+                -- todo
             end
         end
     end
@@ -559,7 +572,8 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- send live status information
     -- overridden : if ISS force disabled reactor
-    local send_status = function (overridden)
+    -- degraded   : if PLC status is degraded
+    local send_status = function (overridden, degraded)
         local mek_data = nil
 
         if _update_status_cache() then
@@ -572,6 +586,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             timestamp = os.time(),
             control_state = not self.scrammed,
             overridden = overridden,
+            degraded = degraded,
             heating_rate = self.reactor.getHeatingRate(),
             mek_data = mek_data
         }

@@ -4,12 +4,17 @@
 -- Protected Peripheral Manager
 --
 
+ACCESS_OK = true
+ACCESS_FAULT = nil
+
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
 ----------------------------
 
 local self = {
     mounts = {},
+    auto_cf = false,
+    faulted = false,
     mute = false
 }
 
@@ -21,18 +26,22 @@ local peri_init = function (device)
             local status, result = pcall(func, ...)
 
             if status then
+                -- auto fault clear
+                if self.auto_cf then self.faulted = false end
+
                 -- assume nil is only for functions with no return, so return status
                 if result == nil then
-                    return true
+                    return ACCESS_OK
                 else
                     return result
                 end
             else
                 -- function failed
+                self.faulted = true
                 if not mute then
                     log._error("PPM: protected " .. key .. "() -> " .. result)
                 end
-                return nil
+                return ACCESS_FAULT
             end
         end
     end
@@ -52,6 +61,28 @@ end
 -- allow error prints
 function enable_reporting()
     self.mute = false
+end
+
+-- FAULT MEMORY --
+
+-- enable automatically clearing fault flag
+function enable_afc()
+    self.auto_cf = true
+end
+
+-- disable automatically clearing fault flag
+function disable_afc()
+    self.auto_cf = false
+end
+
+-- check fault flag
+function is_faulted()
+    return self.faulted
+end
+
+-- clear fault flag
+function clear_fault()
+    self.faulted = false
 end
 
 -- MOUNTING --
