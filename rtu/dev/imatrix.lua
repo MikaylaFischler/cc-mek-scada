@@ -2,7 +2,7 @@
 
 function imatrix_rtu(imatrix)
     local self = {
-        rtu = rtu_init(),
+        rtu = rtu.rtu_init(),
         imatrix = imatrix
     }
 

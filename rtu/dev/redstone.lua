@@ -7,7 +7,7 @@ local digital_is_active = rsio.digital_is_active
 
 function redstone_rtu()
     local self = {
-        rtu = rtu_init()
+        rtu = rtu.rtu_init()
     }
 
     local rtu_interface = function ()

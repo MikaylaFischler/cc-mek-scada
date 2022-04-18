@@ -2,7 +2,7 @@
 
 function boiler_rtu(boiler)
     local self = {
-        rtu = rtu_init(),
+        rtu = rtu.rtu_init(),
         boiler = boiler
     }
 

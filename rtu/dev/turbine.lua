@@ -2,7 +2,7 @@
 
 function turbine_rtu(turbine)
     local self = {
-        rtu = rtu_init(),
+        rtu = rtu.rtu_init(),
         turbine = turbine
     }
 
