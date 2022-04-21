@@ -487,7 +487,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     log._debug("discarding non-link packet before linked")
                 end
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-                -- todo
+                -- @todo
             end
         end
     end
