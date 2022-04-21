@@ -207,9 +207,10 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         l_port = local_port,
         reactor = reactor,
         iss = iss,
-        status_cache = nil,
         scrammed = false,
-        linked = false
+        linked = false,
+        status_cache = nil,
+        max_burn_rate = nil
     }
 
     -- open modem
@@ -328,7 +329,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     local _send_iss_status = function ()
         local iss_status = {
             id = self.id,
-            type = RPLC_TYPES.ISS_GET,
+            type = RPLC_TYPES.ISS_STATUS,
             status = iss.status()
         }
 
@@ -438,10 +439,17 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         _send_ack(packet.type, self.reactor.activate() == ppm.ACCESS_OK)
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
-                        local burn_rate = packet.data[1]
-                        local max_burn_rate = self.reactor.getMaxBurnRate()
                         local success = false
+                        local burn_rate = packet.data[1]
+                        local max_burn_rate = self.max_burn_rate
 
+                        -- if no known max burn rate, check again
+                        if max_burn_rate == nil then
+                            max_burn_rate = self.reactor.getMaxBurnRate()
+                            self.max_burn_rate = max_burn_rate
+                        end
+
+                        -- if we know our max burn rate, update current burn rate if in range
                         if max_burn_rate ~= ppm.ACCESS_FAULT then
                             if burn_rate > 0 and burn_rate <= max_burn_rate then
                                 success = self.reactor.setBurnRate(burn_rate)
@@ -449,9 +457,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         end
 
                         _send_ack(packet.type, success == ppm.ACCESS_OK)
-                    elseif packet.type == RPLC_TYPES.ISS_GET then
-                        -- get the ISS status
-                        _send_iss_status(iss.status())
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
                         -- clear the ISS status
                         iss.reset()
@@ -526,6 +531,16 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         _send(sys_status)
     end
 
+    local send_iss_status = function ()
+        local iss_status = {
+            id = self.id,
+            type = RPLC_TYPES.ISS_STATUS,
+            status = iss.status()
+        }
+
+        _send(iss_status)
+    end
+
     local send_iss_alarm = function (cause)
         local iss_alarm = {
             id = self.id,
@@ -548,6 +563,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         handle_packet = handle_packet,
         send_link_req = send_link_req,
         send_status = send_status,
+        send_iss_status = send_iss_status,
         send_iss_alarm = send_iss_alarm,
         is_scrammed = is_scrammed,
         is_linked = is_linked,

@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.2.1"
+local R_PLC_VERSION = "alpha-v0.2.2"
 
 local print = util.print
 local println = util.println
@@ -90,6 +90,7 @@ function init()
             conn_watchdog = util.new_watchdog(3)
             log._debug("conn watchdog started")
         else
+            println("boot> starting in offline mode");
             log._debug("running without networking")
         end
 
@@ -220,13 +221,13 @@ while true do
 
         -- check safety (SCRAM occurs if tripped)
         if not plc_state.degraded then
-            local iss_tripped, iss_status, iss_first = iss.check()
+            local iss_tripped, iss_status_string, iss_first = iss.check()
             plc_state.scram = plc_state.scram or iss_tripped
 
             if iss_first then
-                println_ts("[ISS] reactor shutdown, safety tripped: " .. iss_status)
+                println_ts("[ISS] reactor shutdown, safety tripped: " .. iss_status_string)
                 if networked then
-                    plc_comms.send_iss_alarm(iss_status)
+                    plc_comms.send_iss_alarm(iss_status_string)
                 end
             end
         else
@@ -244,6 +245,7 @@ while true do
             if plc_comms.is_linked() then
                 if ticks_to_update <= 0 then
                     plc_comms.send_status(iss_tripped, plc_state.degraded)
+                    plc_comms.send_iss_status()
                     ticks_to_update = UPDATE_TICKS
                 end
             else
@@ -275,9 +277,8 @@ while true do
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
-        log._warning("terminate requested, exiting...")
-
         -- safe exit
+        log._warning("terminate requested, exiting...")
         if plc_state.init_ok then
             plc_state.scram = true
             if reactor.scram() ~= ppm.ACCESS_FAULT then
@@ -287,7 +288,6 @@ while true do
                 println_ts("exiting, reactor failed to disable")
             end
         end
-
         break
     end
 end

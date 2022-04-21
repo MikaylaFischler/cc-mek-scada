@@ -18,8 +18,8 @@ RPLC_TYPES = {
     MEK_SCRAM = 4,      -- SCRAM reactor
     MEK_ENABLE = 5,     -- enable reactor
     MEK_BURN_RATE = 6,  -- set burn rate
-    ISS_ALARM = 7,      -- ISS alarm broadcast
-    ISS_GET = 8,        -- get ISS status
+    ISS_STATUS = 7,     -- ISS status
+    ISS_ALARM = 8,      -- ISS alarm broadcast
     ISS_CLEAR = 9       -- clear ISS trip (if in bad state, will trip immediately)
 }
 
@@ -200,7 +200,7 @@ function rplc_packet()
                 self.type == RPLC_TYPES.MEK_ENABLE or
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
                 self.type == RPLC_TYPES.ISS_ALARM or
-                self.type == RPLC_TYPES.ISS_GET or
+                self.type == RPLC_TYPES.ISS_STATUS or
                 self.type == RPLC_TYPES.ISS_CLEAR
     end
 
