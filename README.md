@@ -10,16 +10,16 @@ This project implements concepts of a SCADA system in ComputerCraft (because why
 ![Architecture](https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Functional_levels_of_a_Distributed_Control_System.svg/1000px-Functional_levels_of_a_Distributed_Control_System.svg.png)
 
 SCADA and industrial automation terminology is used throughout the project, such as:
-- Supervisory Computer: Gathers data and control the process
+- Supervisory Computer: Gathers data and controls the process
 - Coordinating Computer: Used as the HMI component, user requests high-level processing operations
 - RTU: Remote Terminal Unit
 - PLC: Programmable Logic Controller
 
 ## ComputerCraft Architecture
 
-### Coordinating Computers
+### Coordinator Server
 
-There can be one or more of these. They can be either an Advanced Computer or a Pocket Computer.
+There can only be one of these. This server acts as a hybrid of levels 3 & 4 in the SCADA diagram above. In addition to viewing status and controlling processes with advanced monitors, it can host access for one or more Pocket computers.
 
 ### Supervisory Computers
 
