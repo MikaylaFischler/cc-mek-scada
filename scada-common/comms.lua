@@ -88,6 +88,9 @@ function scada_packet()
     local modem_event = function () return self.modem_msg_in end
     local raw = function () return self.raw end
 
+    local sender = function () return self.s_port end
+    local receiver = function () return self.r_port end
+
     local is_valid = function () return self.valid end
 
     local seq_num = function () return self.seq_num  end
@@ -107,6 +110,8 @@ function scada_packet()
         receive = receive,
         modem_event = modem_event,
         raw = raw,
+        sender = sender,
+        receiver = receiver,
         is_valid = is_valid,
         seq_num = seq_num,
         protocol = protocol,
@@ -115,6 +120,141 @@ function scada_packet()
     }
 end
 
+-- MODBUS packet
+function modbus_packet()
+    local self = {
+        frame = nil,
+        txn_id = txn_id,
+        protocol = protocol,
+        length = length,
+        unit_id = unit_id,
+        func_code = func_code,
+        data = data
+    }
+
+    -- make a MODBUS packet
+    local make = function (txn_id, protocol, length, unit_id, func_code, data)
+        self.txn_id = txn_id
+        self.protocol = protocol
+        self.length = length
+        self.unit_id = unit_id
+        self.func_code = func_code
+        self.data = data
+    end
+
+    -- decode a MODBUS packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+
+            local data = frame.data()
+            local size_ok = #data ~= 6
+
+            if size_ok then
+                make(data[1], data[2], data[3], data[4], data[5], data[6])
+            end
+
+            return size_ok and self.protocol == comms.PROTOCOLS.MODBUS_TCP
+        else
+            log._debug("nil frame encountered", true)
+            return false
+        end
+    end
+
+    -- get this packet
+    local get = function ()
+        return {
+            scada_frame = self.frame,
+            txn_id = self.txn_id,
+            protocol = self.protocol,
+            length = self.length,
+            unit_id = self.unit_id,
+            func_code = self.func_code,
+            data = self.data
+        }
+    end
+
+    return {
+        make = make,
+        decode = decode,
+        get = get
+    }
+end
+
+-- reactor PLC packet
+function rplc_packet()
+    local self = {
+        frame = nil,
+        id = nil,
+        type = nil,
+        length = nil,
+        body = nil
+    }
+
+    local _rplc_type_valid = function ()
+        return self.type == RPLC_TYPES.KEEP_ALIVE or
+                self.type == RPLC_TYPES.LINK_REQ or
+                self.type == RPLC_TYPES.STATUS or
+                self.type == RPLC_TYPES.MEK_STRUCT or
+                self.type == RPLC_TYPES.MEK_SCRAM or
+                self.type == RPLC_TYPES.MEK_ENABLE or
+                self.type == RPLC_TYPES.MEK_BURN_RATE or
+                self.type == RPLC_TYPES.ISS_ALARM or
+                self.type == RPLC_TYPES.ISS_GET or
+                self.type == RPLC_TYPES.ISS_CLEAR
+    end
+
+    -- make an RPLC packet
+    local make = function (id, packet_type, length, data)
+        self.id = id
+        self.type = packet_type
+        self.length = length
+        self.data = data
+    end
+
+    -- decode an RPLC packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+
+            if frame.protocol() == comms.PROTOCOLS.RPLC then
+                local data = frame.data()
+                local ok = #data > 2
+
+                if ok then
+                    make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
+                    ok = _rplc_type_valid()
+                end
+
+                return ok
+            else
+                log._debug("attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
+                return false
+            end
+        else
+            log._debug("nil frame encountered", true)
+            return false
+        end
+    end
+
+    local get = function ()
+        return {
+            scada_frame = self.frame,
+            id = self.id,
+            type = self.type,
+            length = self.length,
+            data = self.data
+        }
+    end
+
+    return {
+        make = make,
+        decode = decode,
+        get = get
+    }
+end
+
+-- SCADA management packet
 function mgmt_packet()
     local self = {
         frame = nil,

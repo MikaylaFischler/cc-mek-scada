@@ -153,7 +153,7 @@ function rtu_comms(modem, local_port, server_port)
         if s_pkt.is_valid() then
             -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
-                local m_pkt = modbus.packet()
+                local m_pkt = comms.modbus_packet()
                 if m_pkt.decode(s_pkt) then
                     pkt = m_pkt.get()
                 end

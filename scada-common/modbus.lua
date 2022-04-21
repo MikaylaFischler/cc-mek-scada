@@ -1,3 +1,5 @@
+-- #REQUIRES comms.lua
+
 -- modbus function codes
 local MODBUS_FCODE = {
     READ_COILS = 0x01,
@@ -261,65 +263,5 @@ function new(rtu_dev)
 
     return {
         handle_packet = handle_packet
-    }
-end
-
-function packet()
-    local self = {
-        frame = nil,
-        txn_id = txn_id,
-        protocol = protocol,
-        length = length,
-        unit_id = unit_id,
-        func_code = func_code,
-        data = data
-    }
-
-    -- make a MODBUS packet
-    local make = function (txn_id, protocol, length, unit_id, func_code, data)
-        self.txn_id = txn_id
-        self.protocol = protocol
-        self.length = length
-        self.unit_id = unit_id
-        self.func_code = func_code
-        self.data = data
-    end
-
-    -- decode a MODBUS packet from a SCADA frame
-    local decode = function (frame)
-        if frame then
-            self.frame = frame
-            
-            local data = frame.data()
-            local size_ok = #data ~= 6
-
-            if size_ok then
-                make(data[1], data[2], data[3], data[4], data[5], data[6])
-            end
-
-            return size_ok and self.protocol == comms.PROTOCOLS.MODBUS_TCP
-        else
-            log._debug("nil frame encountered", true)
-            return false
-        end
-    end
-
-    -- get this packet
-    local get = function ()
-        return {
-            scada_frame = self.frame,
-            txn_id = self.txn_id,
-            protocol = self.protocol,
-            length = self.length,
-            unit_id = self.unit_id,
-            func_code = self.func_code,
-            data = self.data
-        }
-    end
-
-    return {
-        make = make,
-        decode = decode,
-        get = get
     }
 end
