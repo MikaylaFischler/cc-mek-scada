@@ -1,13 +1,8 @@
 PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
-    SCADA_MGMT = 2,     -- SCADA supervisor intercommunication, device advertisements, etc
+    SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
     COORD_DATA = 3      -- data packets for coordinators to/from supervisory controller
-}
-
-SCADA_SV_MODES = {
-    ACTIVE = 0,         -- supervisor running as primary
-    BACKUP = 1          -- supervisor running as hot backup
 }
 
 RPLC_TYPES = {

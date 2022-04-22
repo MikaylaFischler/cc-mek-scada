@@ -39,15 +39,8 @@ if modem == nil then
     return
 end
 
--- determine active/backup mode
-local mode = comms.SCADA_SV_MODES.BACKUP
-if config.SYSTEM_TYPE == "active" then
-    mode = comms.SCADA_SV_MODES.ACTIVE
-end
-
 -- start comms, open all channels
-local comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_FO_LOCAL, config.SCADA_FO_PEER, 
-    config.SCADA_SV_CHANNEL)
+local comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
 
 -- base loop clock (4Hz, 5 ticks)
 local loop_clock = os.startTimer(0.25)
@@ -96,7 +89,6 @@ while true do
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
         log._warning("terminate requested, exiting...")
-        -- @todo: attempt failover, alert hot backup
         break
     end
 end

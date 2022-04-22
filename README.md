@@ -1,6 +1,8 @@
 # cc-mek-scada
 Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fission reactors with a GUI, automatic safety features, waste processing control, and more! 
 
+This requires CC: Tweaked and Mekanism v10.0+ (10.1 recommended for full feature set).
+
 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
@@ -23,7 +25,7 @@ There can only be one of these. This server acts as a hybrid of levels 3 & 4 in 
 
 ### Supervisory Computers
 
-There can be at most two of these in an active-backup configuration. If a backup is configured, it will act as a hot backup. This means it will be live, all data will be recieved by both it and the active computer, but it will not be commanding anything unless it hears that the active supervisor is shutting down or loses communication with the active supervisor.
+There should be one of these per facility system. Currently, that means only one. In the future, multiple supervisors would provide the capability of coordinating between multiple facilities (like a fission facility, fusion facility, etc).
 
 ### RTUs
 

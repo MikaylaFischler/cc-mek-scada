@@ -11,16 +11,13 @@ local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
 local SESSION_TYPE = svsessions.SESSION_TYPE
 
 -- supervisory controller communications
-function superv_comms(mode, num_reactors, modem, dev_listen, fo_local, fo_peer, coord_listen)
+function superv_comms(mode, num_reactors, modem, dev_listen, coord_listen)
     local self = {
         mode = mode,
-        fo_seq_num = 0,
         ln_seq_num = 0,
         num_reactors = num_reactors,
         modem = modem,
         dev_listen = dev_listen,
-        fo_rx = fo_local,
-        fo_tx = fo_peer,
         coord_listen = coord_listen,
         reactor_struct_cache = nil
     }
@@ -32,19 +29,9 @@ function superv_comms(mode, num_reactors, modem, dev_listen, fo_local, fo_peer, 
         if not self.modem.isOpen(self.dev_listen) then
             self.modem.open(self.dev_listen)
         end
-        if not self.modem.isOpen(self.fo_rx) then
-            self.modem.open(self.fo_rx)
-        end
         if not self.modem.isOpen(self.coord_listen) then
             self.modem.open(self.coord_listen)
         end
-    end
-
-    local _send_fo = function (msg)
-        local packet = comms.scada_packet()
-        packet.make(self.fo_seq_num, PROTOCOLS.SCADA_MGMT, msg)
-        self.modem.transmit(self.fo_tx, self.fo_rx, packet.raw())
-        self.fo_seq_num = self.fo_seq_num + 1
     end
 
     local _send_plc_linking = function (dest, msg)
@@ -145,13 +132,6 @@ function superv_comms(mode, num_reactors, modem, dev_listen, fo_local, fo_peer, 
                     -- SCADA management packet
                 else
                     log._debug("illegal packet type " .. protocol .. " on device listening channel")
-                end
-            -- failover listening channel
-            elseif receiver == self.fo_rx then
-                if protocol == PROTOCOLS.SCADA_MGMT then
-                    -- SCADA management packet
-                else
-                    log._debug("illegal packet type " .. protocol .. " on failover listening channel")
                 end
             -- coordinator listening channel
             elseif reciever == self.coord_listen then
