@@ -6,11 +6,18 @@ os.loadAPI("scada-common/log.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
+os.loadAPI("scada-common/modbus.lua")
 
 os.loadAPI("config.lua")
+os.loadAPI("mqueue.lua")
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.0"
+os.loadAPI("session/rtu.lua")
+os.loadAPI("session/plc.lua")
+os.loadAPI("session/coordinator.lua")
+os.loadAPI("session/svsessions.lua")
+
+local SUPERVISOR_VERSION = "alpha-v0.1.1"
 
 local print = util.print
 local println = util.println
@@ -20,7 +27,6 @@ local println_ts = util.println_ts
 log._info("========================================")
 log._info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)
 log._info("========================================")
-
 println(">> SCADA Supervisor " .. SUPERVISOR_VERSION .. " <<")
 
 -- mount connected devices
@@ -40,7 +46,8 @@ if config.SYSTEM_TYPE == "active" then
 end
 
 -- start comms, open all channels
-local comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_FO_CHANNEL, config.SCADA_SV_CHANNEL)
+local comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_FO_LOCAL, config.SCADA_FO_PEER, 
+    config.SCADA_SV_CHANNEL)
 
 -- base loop clock (4Hz, 5 ticks)
 local loop_clock = os.startTimer(0.25)
@@ -82,12 +89,14 @@ while true do
         loop_clock = os.startTimer(0.25)
     elseif event == "modem_message" then
         -- got a packet
+        local packet = superv_comms.parse_packet(p1, p2, p3, p4, p5)
+        superv_comms.handle_packet(packet)
     end
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
         log._warning("terminate requested, exiting...")
-        -- todo: attempt failover, alert hot backup
+        -- @todo: attempt failover, alert hot backup
         break
     end
 end

@@ -318,3 +318,66 @@ function mgmt_packet()
         get = get
     }
 end
+
+-- SCADA coordinator packet
+-- @todo
+function coord_packet()
+    local self = {
+        frame = nil,
+        type = nil,
+        length = nil,
+        data = nil
+    }
+
+    local _coord_type_valid = function ()
+        -- @todo
+        return false
+    end
+
+    -- make a coordinator packet
+    local make = function (packet_type, length, data)
+        self.type = packet_type
+        self.length = length
+        self.data = data
+    end
+
+    -- decode a coordinator packet from a SCADA frame
+    local decode = function (frame)
+        if frame then
+            self.frame = frame
+
+            if frame.protocol() == comms.PROTOCOLS.COORD_DATA then
+                local data = frame.data()
+                local ok = #data > 1
+
+                if ok then
+                    make(data[1], data[2], { table.unpack(data, 3, #data) })
+                    ok = _coord_type_valid()
+                end
+
+                return ok
+            else
+                log._debug("attempted COORD_DATA parse of incorrect protocol " .. frame.protocol(), true)
+                return false
+            end
+        else
+            log._debug("nil frame encountered", true)
+            return false
+        end
+    end
+
+    local get = function ()
+        return {
+            scada_frame = self.frame,
+            type = self.type,
+            length = self.length,
+            data = self.data
+        }
+    end
+
+    return {
+        make = make,
+        decode = decode,
+        get = get
+    }
+end
