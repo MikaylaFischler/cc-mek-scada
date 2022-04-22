@@ -116,7 +116,7 @@ function mount_all()
             dev = pm_dev
         }
 
-        log._debug("PPM: found a " .. self.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
+        log._info("PPM: found a " .. self.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
     end
 
     if #ifaces == 0 then
@@ -132,7 +132,7 @@ function mount(iface)
 
     for i = 1, #ifaces do
         if iface == ifaces[i] then
-            log._debug("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
+            log._info("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
 
             type = peripheral.getType(iface)
             pm_dev = peripheral.wrap(iface)
@@ -153,9 +153,13 @@ end
 function handle_unmount(iface)
     -- what got disconnected?
     local lost_dev = self.mounts[iface]
-    local type = lost_dev.type
-    
-    log._warning("PPM: lost device " .. type .. " mounted to " .. iface)
+
+    if lost_dev then
+        local type = lost_dev.type
+        log._warning("PPM: lost device " .. type .. " mounted to " .. iface)
+    else
+        log._error("PPM: lost device unknown to the PPM mounted to " .. iface)
+    end
 
     return lost_dev
 end

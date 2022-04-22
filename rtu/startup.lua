@@ -17,7 +17,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.2.2"
+local RTU_VERSION = "alpha-v0.2.3"
 
 local print = util.print
 local println = util.println
@@ -185,7 +185,7 @@ while true do
 
         for i = 1, #units do
             -- find disconnected device
-            if units[i].device == device then
+            if units[i].device == device.dev then
                 -- we are going to let the PPM prevent crashes
                 -- return fault flags/codes to MODBUS queries
                 local unit = units[i]

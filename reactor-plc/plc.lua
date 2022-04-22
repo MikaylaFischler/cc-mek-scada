@@ -326,16 +326,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         end
     end
 
-    local _send_iss_status = function ()
-        local iss_status = {
-            id = self.id,
-            type = RPLC_TYPES.ISS_STATUS,
-            status = iss.status()
-        }
-
-        _send(iss_status)
-    end
-
     -- PUBLIC FUNCTIONS --
 
     -- reconnect a newly connected modem
