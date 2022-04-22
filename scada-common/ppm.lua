@@ -174,12 +174,16 @@ end
 
 -- get a mounted peripheral by side/interface
 function get_periph(iface)
-    return self.mounts[iface].dev
+    if self.mounts[iface] then
+        return self.mounts[iface].dev
+    else return nil end
 end
 
 -- get a mounted peripheral type by side/interface
 function get_type(iface)
-    return self.mounts[iface].type
+    if self.mounts[iface] then
+        return self.mounts[iface].type
+    else return nil end
 end
 
 -- get all mounted peripherals by type
