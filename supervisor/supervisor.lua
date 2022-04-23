@@ -29,15 +29,24 @@ function superv_comms(mode, num_reactors, modem, dev_listen, coord_listen)
         if not self.modem.isOpen(self.dev_listen) then
             self.modem.open(self.dev_listen)
         end
+
         if not self.modem.isOpen(self.coord_listen) then
             self.modem.open(self.coord_listen)
         end
     end
 
+    -- open at construct time
+    _open_channels()
+
+    -- send PLC link request responses
     local _send_plc_linking = function (dest, msg)
-        local packet = comms.scada_packet()
-        packet.make(self.ln_seq_num, PROTOCOLS.RPLC, msg)
-        self.modem.transmit(dest, self.dev_listen, packet.raw())
+        local s_pkt = comms.scada_packet()
+        local r_pkt = comms.rplc_packet()
+
+        r_pkt.make(0, RPLC_TYPES.LINK_REQ, msg)
+        s_pkt.make(self.ln_seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+
+        self.modem.transmit(dest, self.dev_listen, s_pkt.raw_sendable())
         self.ln_seq_num = self.ln_seq_num + 1
     end
 
