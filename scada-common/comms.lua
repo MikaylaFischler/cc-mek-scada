@@ -88,7 +88,7 @@ function scada_packet()
     -- public accessors --
 
     local modem_event = function () return self.modem_msg_in end
-    local raw = function () return self.raw end
+    local raw_sendable = function () return self.raw end
 
     local sender = function () return self.s_port end
     local receiver = function () return self.r_port end
@@ -106,7 +106,7 @@ function scada_packet()
         receive = receive,
         -- raw access
         modem_event = modem_event,
-        raw = raw,
+        raw_sendable = raw_sendable,
         -- sender/receiver
         sender = sender,
         receiver = receiver,
@@ -121,13 +121,12 @@ function scada_packet()
 end
 
 -- MODBUS packet 
--- modeled after MODBUS TCP packet, but length is not transmitted since these are tables (#data = length, easy)
+-- modeled after MODBUS TCP packet
 function modbus_packet()
     local self = {
         frame = nil,
         raw = nil,
         txn_id = txn_id,
-        protocol = protocol,
         length = length,
         unit_id = unit_id,
         func_code = func_code,
@@ -135,16 +134,15 @@ function modbus_packet()
     }
 
     -- make a MODBUS packet
-    local make = function (txn_id, protocol, unit_id, func_code, data)
+    local make = function (txn_id, unit_id, func_code, data)
         self.txn_id = txn_id
-        self.protocol = protocol
         self.length = #data
         self.unit_id = unit_id
         self.func_code = func_code
         self.data = data
 
         -- populate raw array
-        self.raw = { self.txn_id, self.protocol, self.unit_id, self.func_code }
+        self.raw = { self.txn_id, self.unit_id, self.func_code }
         for i = 1, self.length do
             table.insert(self.raw, data[i])
         end
@@ -156,11 +154,11 @@ function modbus_packet()
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.MODBUS_TCP then
-                local size_ok = frame.length() >= 4
+                local size_ok = frame.length() >= 3
     
                 if size_ok then
                     local data = frame.data()
-                    make(data[1], data[2], data[3], data[4], { table.unpack(data, 5, #data) })
+                    make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
                 end
     
                 return size_ok
@@ -182,7 +180,6 @@ function modbus_packet()
         return {
             scada_frame = self.frame,
             txn_id = self.txn_id,
-            protocol = self.protocol,
             length = self.length,
             unit_id = self.unit_id,
             func_code = self.func_code,

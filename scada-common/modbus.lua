@@ -203,10 +203,10 @@ function new(rtu_dev)
         return return_ok, response
     end
 
+    -- handle a MODBUS TCP packet and generate a reply
     local handle_packet = function (packet)
         local return_code = true
         local response = nil
-        local reply = packet
 
         if #packet.data == 2 then
             -- handle  by function code
@@ -236,32 +236,51 @@ function new(rtu_dev)
             return_code = false
         end
 
-        if return_code then
-            -- default is to echo back
-            if type(response) == "table" then
-                reply.length = #response
-                reply.data = response
-            end
-        else
+        -- default is to echo back
+        local func_code = packet.func_code
+        if not return_code then
             -- echo back with error flag
-            reply.func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+            func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
 
             if type(response) == "nil" then
-                reply.length = 0
-                reply.data = {}
+                response = { }
             elseif type(response) == "number" then
-                reply.length = 1
-                reply.data = { response }
+                response = { response }
             elseif type(response) == "table" then
-                reply.length = #response
-                reply.data = response
+                response = response
             end
         end
+
+        -- create reply
+        local reply = comms.modbus_packet()
+        reply.make(packet.txn_id, packet.unit_id, func_code, response)
 
         return return_code, reply
     end
 
+    -- return a NEG_ACKNOWLEDGE error reply
+    local reply__neg_ack = function (packet)
+        -- reply back with error flag and exception code
+        local reply = comms.modbus_packet()
+        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        local data = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
+        reply.make(packet.txn_id, packet.unit_id, fcode, data)
+        return reply
+    end
+
+    -- return a GATEWAY_PATH_UNAVAILABLE error reply
+    local reply__gw_unavailable = function (packet)
+        -- reply back with error flag and exception code
+        local reply = comms.modbus_packet()
+        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        local data = { MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE }
+        reply.make(packet.txn_id, packet.unit_id, fcode, data)
+        return reply
+    end
+
     return {
-        handle_packet = handle_packet
+        handle_packet = handle_packet,
+        reply__neg_ack = reply__neg_ack,
+        reply__gw_unavailable = reply__gw_unavailable
     }
 end
