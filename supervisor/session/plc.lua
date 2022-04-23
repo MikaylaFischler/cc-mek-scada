@@ -95,22 +95,45 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.iss_status.timed_out = iss_status[7]
     end
 
-    local _copy_status = function (heating_rate, mek_data)
-        self.sDB.mek_status.heating_rate = heating_rate
-        for key, value in pairs(mek_data) do
-            self.sDB.mek_status[key] = value
-        end
+    local _copy_status = function (mek_data)
+        self.sDB.mek_status.status        = mek_data[1]
+        self.sDB.mek_status.burn_rate     = mek_data[2]
+        self.sDB.mek_status.act_burn_rate = mek_data[3]
+        self.sDB.mek_status.temp          = mek_data[4]
+        self.sDB.mek_status.damage        = mek_data[5]
+        self.sDB.mek_status.boil_eff      = mek_data[6]
+        self.sDB.mek_status.env_loss      = mek_data[7]
+
+        self.sDB.mek_status.fuel          = mek_data[8]
+        self.sDB.mek_status.fuel_need     = mek_data[9]
+        self.sDB.mek_status.fuel_fill     = mek_data[10]
+        self.sDB.mek_status.waste         = mek_data[11]
+        self.sDB.mek_status.waste_need    = mek_data[12]
+        self.sDB.mek_status.waste_fill    = mek_data[13]
+        self.sDB.mek_status.cool_type     = mek_data[14]
+        self.sDB.mek_status.cool_amnt     = mek_data[15]
+        self.sDB.mek_status.cool_need     = mek_data[16]
+        self.sDB.mek_status.cool_fill     = mek_data[17]
+        self.sDB.mek_status.hcool_type    = mek_data[18]
+        self.sDB.mek_status.hcool_amnt    = mek_data[19]
+        self.sDB.mek_status.hcool_need    = mek_data[20]
+        self.sDB.mek_status.hcool_fill    = mek_data[21]
     end
 
     local _copy_struct = function (mek_data)
-        for key, value in pairs(mek_data) do
-            self.sDB.mek_struct[key] = value
-        end
+        self.sDB.mek_struct.heat_cap  = mek_data[1]
+        self.sDB.mek_struct.fuel_asm  = mek_data[2]
+        self.sDB.mek_struct.fuel_sa   = mek_data[3]
+        self.sDB.mek_struct.fuel_cap  = mek_data[4]
+        self.sDB.mek_struct.waste_cap = mek_data[5]
+        self.sDB.mek_struct.cool_cap  = mek_data[6]
+        self.sDB.mek_struct.hcool_cap = mek_data[7]
+        self.sDB.mek_struct.max_burn  = mek_data[8]
     end
 
     local _get_ack = function (pkt)
-        if rplc_packet.length == 1 then
-            return rplc_packet.data[1]
+        if pkt.length == 1 then
+            return pkt.data[1]
         else
             log._warning(log_header .. "RPLC ACK length mismatch")
             return nil
@@ -145,34 +168,33 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
                 if rplc_pkt.id == for_reactor then
                     if rplc_pkt.type == RPLC_TYPES.KEEP_ALIVE then
-                        -- periodic keep alive
+                        -- keep alive reply
                     elseif rplc_pkt.type == RPLC_TYPES.STATUS then
                         -- status packet received, update data
-                        if rplc_packet.length == 6 then
+                        if rplc_pkt.length >= 5 then
                             -- @todo [1] is timestamp, determine how this will be used (if at all)
-                            self.sDB.control_state = rplc_packet.data[2]
-                            self.sDB.overridden = rplc_packet.data[3]
-                            self.sDB.degraded = rplc_packet.data[4]
+                            self.sDB.control_state = rplc_pkt.data[2]
+                            self.sDB.overridden = rplc_pkt.data[3]
+                            self.sDB.degraded = rplc_pkt.data[4]
+                            self.sDB.mek_status.heating_rate = rplc_pkt.data[5]
     
                             -- attempt to read mek_data table
-                            if rplc_packet.data[6] ~= nil then
-                                local status = pcall(_copy_status, rplc_packet.data[5], rplc_packet.data[6])
+                            if rplc_pkt.data[6] ~= nil then
+                                local status = pcall(_copy_status, rplc_pkt.data[6])
                                 if status then
                                     -- copied in status data OK
                                 else
                                     -- error copying status data
                                     log._error(log_header .. "failed to parse status packet data")
                                 end
-                            else
-                                self.sDB.mek_status.heating_rate = rplc_packet.data[5]
                             end
                         else
                             log._warning(log_header .. "RPLC status packet length mismatch")
                         end
                     elseif rplc_pkt.type == RPLC_TYPES.MEK_STRUCT then
                         -- received reactor structure, record it
-                        if rplc_packet.length == 1 then
-                            local status = pcall(_copy_struct, rplc_packet.data[1])
+                        if rplc_pkt.length == 8 then
+                            local status = pcall(_copy_struct, rplc_pkt.data)
                             if status then
                                 -- copied in structure data OK
                             else
@@ -205,8 +227,8 @@ function new_session(id, for_reactor, in_queue, out_queue)
                         end
                     elseif rplc_pkt.type == RPLC_TYPES.ISS_STATUS then
                         -- ISS status packet received, copy data
-                        if rplc_packet.length == 1 then
-                            local status = pcall(_copy_iss_status, rplc_packet.data[1])
+                        if rplc_pkt.length == 7 then
+                            local status = pcall(_copy_iss_status, rplc_pkt.data)
                             if status then
                                 -- copied in ISS status data OK
                             else
