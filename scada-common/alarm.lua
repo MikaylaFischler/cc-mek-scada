@@ -9,7 +9,7 @@ SEVERITY = {
 
 function scada_alarm(severity, device, message)
     local self = {
-        time = os.time(),
+        time = os.epoch(),
         ts_string = os.date("[%H:%M:%S]"),
         severity = severity,
         device = device,
