@@ -133,10 +133,21 @@ function rtu_comms(modem, local_port, server_port)
 
     -- PRIVATE FUNCTIONS --
 
-    local _send = function (protocol, msg)
-        local packet = comms.scada_packet()
-        packet.make(self.seq_num, protocol, msg)
-        self.modem.transmit(self.s_port, self.l_port, packet.raw())
+    local _send = function (msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local m_pkt = comms.mgmt_packet()
+
+        m_pkt.make(msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.seq_num = self.seq_num + 1
+    end
+
+    local _send_modbus = function (m_pkt)
+        local s_pkt = comms.scada_packet()
+        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -171,24 +182,29 @@ function rtu_comms(modem, local_port, server_port)
         return pkt
     end
 
+    -- handle a MODBUS/SCADA packet
     local handle_packet = function(packet, units, ref)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
 
             if protocol == PROTOCOLS.MODBUS_TCP then
+                local reply = modbus.reply__neg_ack(packet)
+
                 -- MODBUS instruction
                 if packet.unit_id <= #units then
                     local unit = units[packet.unit_id]
-                    local return_code, response = unit.modbus_io.handle_packet(packet)
-                    _send(PROTOCOLS.MODBUS_TCP, response)
+                    local return_code, reply = unit.modbus_io.handle_packet(packet)
 
                     if not return_code then
                         log._warning("MODBUS operation failed")
                     end
                 else
                     -- unit ID out of range?
+                    reply = modbus.reply__gw_unavailable(packet)
                     log._error("MODBUS packet requesting non-existent unit")
                 end
+
+                _send_modbus(reply)
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
                 if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
@@ -210,10 +226,7 @@ function rtu_comms(modem, local_port, server_port)
 
     -- send capability advertisement
     local send_advertisement = function (units)
-        local advertisement = {
-            type = SCADA_MGMT_TYPES.RTU_ADVERT,
-            units = {}
-        }
+        local advertisement = {}
 
         for i = 1, #units do
             local type = nil
@@ -230,7 +243,7 @@ function rtu_comms(modem, local_port, server_port)
 
             if type ~= nil then
                 if type == RTU_ADVERT_TYPES.REDSTONE then
-                    table.insert(advertisement.units, {
+                    table.insert(advertisement, {
                         unit = i,
                         type = type,
                         index = units[i].index,
@@ -238,7 +251,7 @@ function rtu_comms(modem, local_port, server_port)
                         rsio = units[i].device
                     })
                 else
-                    table.insert(advertisement.units, {
+                    table.insert(advertisement, {
                         unit = i,
                         type = type,
                         index = units[i].index,
@@ -249,15 +262,11 @@ function rtu_comms(modem, local_port, server_port)
             end
         end
 
-        _send(PROTOCOLS.SCADA_MGMT, advertisement)
+        _send(SCADA_MGMT_TYPES.RTU_ADVERT, advertisement)
     end
 
     local send_heartbeat = function ()
-        local heartbeat = {
-            type = SCADA_MGMT_TYPES.RTU_HEARTBEAT
-        }
-
-        _send(PROTOCOLS.SCADA_MGMT, heartbeat)
+        _send(SCADA_MGMT_TYPES.RTU_HEARTBEAT, {})
     end
 
     return {
