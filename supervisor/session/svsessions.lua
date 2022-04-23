@@ -10,6 +10,7 @@ SESSION_TYPE = {
 }
 
 local self = {
+    modem = nil
     num_reactors = 0,
     rtu_sessions = {},
     plc_sessions = {},
@@ -18,6 +19,10 @@ local self = {
     next_plc_id = 0,
     next_coord_id = 0
 }
+
+function link_modem(modem)
+    self.modem = modem
+end
 
 function alloc_reactor_plcs(num_reactors)
     self.num_reactors = num_reactors
@@ -64,12 +69,13 @@ function get_reactor_session(reactor)
     return session
 end
 
-function establish_plc_session(remote_port, for_reactor)
+function establish_plc_session(local_port, remote_port, for_reactor)
     if get_reactor_session(for_reactor) == nil then 
         local plc_s = {
             open = true,
             reactor = for_reactor,
-            r_host = remote_port,
+            l_port = local_port,
+            r_port = remote_port,
             in_queue = mqueue.new(),
             out_queue = mqueue.new(),
             instance = nil
@@ -87,12 +93,46 @@ function establish_plc_session(remote_port, for_reactor)
     end
 end
 
+local function _check_watchdogs(sessions, timer_event)
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session.open then
+            local triggered = session.instance.check_wd(timer_event)
+            if triggered then
+                log._debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+                session.open = false
+                session.instance.close()
+            end
+        end
+    end
+end
+
+function check_all_watchdogs(timer_event)
+    -- check RTU session watchdogs
+    _check_watchdogs(self.rtu_sessions, timer_event)
+
+    -- check PLC session watchdogs
+    _check_watchdogs(self.plc_sessions, timer_event)
+
+    -- check coordinator session watchdogs
+    _check_watchdogs(self.coord_sessions, timer_event)
+end
+
 local function _iterate(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
         if session.open then
             local ok = session.instance.iterate()
-            if not ok then
+            if ok then
+                -- send packets in out queue
+                -- @todo handle commands if that's being used too
+                while not session.out_queue.empty() do
+                    local msg = session.out_queue.pop()
+                    if msg.qtype == mqueue.TYPE.PACKET then
+                        self.modem.transmit(self.r_port, self.l_port, msg.message.raw_sendable())
+                    end
+                end
+            else
                 session.open = false
                 session.instance.close()
             end
@@ -123,6 +163,7 @@ local function _free_closed(sessions)
                 end
                 move_to = move_to + 1
             else
+                log._debug("free'ing closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
                 sessions[i] = nil
             end
         end

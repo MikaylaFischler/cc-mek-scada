@@ -17,7 +17,7 @@ os.loadAPI("session/plc.lua")
 os.loadAPI("session/coordinator.lua")
 os.loadAPI("session/svsessions.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.1"
+local SUPERVISOR_VERSION = "alpha-v0.1.2"
 
 local print = util.print
 local println = util.println
@@ -78,8 +78,18 @@ while true do
             end
         end
     elseif event == "timer" and param1 == loop_clock then
-        -- basic event tick, send keep-alives
+        -- main loop tick
+
+        -- iterate sessions
+        svsessions.iterate_all()
+
+        -- free any closed sessions
+        svsessions.free_all_closed()
+
         loop_clock = os.startTimer(0.25)
+    elseif event == "timer" then
+        -- another timer event, check watchdogs
+        svsessions.check_all_watchdogs(param1)
     elseif event == "modem_message" then
         -- got a packet
         local packet = superv_comms.parse_packet(p1, p2, p3, p4, p5)

@@ -38,6 +38,9 @@ function superv_comms(mode, num_reactors, modem, dev_listen, coord_listen)
     -- open at construct time
     _open_channels()
 
+    -- link modem to svsessions
+    svsessions.link_modem(self.modem)
+
     -- send PLC link request responses
     local _send_plc_linking = function (dest, msg)
         local s_pkt = comms.scada_packet()
@@ -55,6 +58,7 @@ function superv_comms(mode, num_reactors, modem, dev_listen, coord_listen)
     -- reconnect a newly connected modem
     local reconnect_modem = function (modem)
         self.modem = modem
+        svsessions.link_modem(self.modem)
         _open_channels()
     end
 
