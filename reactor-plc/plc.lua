@@ -220,10 +220,14 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- PRIVATE FUNCTIONS --
 
-    local _send = function (msg)
-        local packet = scada_packet()
-        packet.make(self.seq_num, PROTOCOLS.RPLC, msg)
-        self.modem.transmit(self.s_port, self.l_port, packet.raw())
+    local _send = function (msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local r_pkt = comms.rplc_packet()
+
+        r_pkt.make(self.id, msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -231,28 +235,28 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     local _reactor_status = function ()
         ppm.clear_fault()
         return {
-            status     = self.reactor.getStatus(),
-            burn_rate  = self.reactor.getBurnRate(),
-            act_burn_r = self.reactor.getActualBurnRate(),
-            temp       = self.reactor.getTemperature(),
-            damage     = self.reactor.getDamagePercent(),
-            boil_eff   = self.reactor.getBoilEfficiency(),
-            env_loss   = self.reactor.getEnvironmentalLoss(),
+            self.reactor.getStatus(),
+            self.reactor.getBurnRate(),
+            self.reactor.getActualBurnRate(),
+            self.reactor.getTemperature(),
+            self.reactor.getDamagePercent(),
+            self.reactor.getBoilEfficiency(),
+            self.reactor.getEnvironmentalLoss(),
 
-            fuel       = self.reactor.getFuel(),
-            fuel_need  = self.reactor.getFuelNeeded(),
-            fuel_fill  = self.reactor.getFuelFilledPercentage(),
-            waste      = self.reactor.getWaste(),
-            waste_need = self.reactor.getWasteNeeded(),
-            waste_fill = self.reactor.getWasteFilledPercentage(),
-            cool_type  = self.reactor.getCoolant()['name'],
-            cool_amnt  = self.reactor.getCoolant()['amount'],
-            cool_need  = self.reactor.getCoolantNeeded(),
-            cool_fill  = self.reactor.getCoolantFilledPercentage(),
-            hcool_type = self.reactor.getHeatedCoolant()['name'],
-            hcool_amnt = self.reactor.getHeatedCoolant()['amount'],
-            hcool_need = self.reactor.getHeatedCoolantNeeded(),
-            hcool_fill = self.reactor.getHeatedCoolantFilledPercentage()
+            self.reactor.getFuel(),
+            self.reactor.getFuelNeeded(),
+            self.reactor.getFuelFilledPercentage(),
+            self.reactor.getWaste(),
+            self.reactor.getWasteNeeded(),
+            self.reactor.getWasteFilledPercentage(),
+            self.reactor.getCoolant()['name'],
+            self.reactor.getCoolant()['amount'],
+            self.reactor.getCoolantNeeded(),
+            self.reactor.getCoolantFilledPercentage(),
+            self.reactor.getHeatedCoolant()['name'],
+            self.reactor.getHeatedCoolant()['amount'],
+            self.reactor.getHeatedCoolantNeeded(),
+            self.reactor.getHeatedCoolantFilledPercentage()
         }, ppm.faulted()
     end
 
@@ -261,8 +265,8 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         local changed = false
 
         if not faulted then
-            for key, value in pairs(status) do
-                if value ~= self.status_cache[key] then
+            for i = 1, #status do
+                if status[i] ~= self.status_cache[i] then
                     changed = true
                     break
                 end
@@ -277,50 +281,33 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     end
 
     -- keep alive ack
-    local _send_keep_alive_ack = function ()
-        local keep_alive_data = {
-            id = self.id,
-            timestamp = os.time(),
-            type = RPLC_TYPES.KEEP_ALIVE
-        }
-
-        _send(keep_alive_data)
+    local _send_keep_alive_ack = function (srv_time)
+        _send(RPLC_TYPES.KEEP_ALIVE, { srv_time, os.time() })
     end
 
     -- general ack
-    local _send_ack = function (type, succeeded)
-        local ack_data = {
-            id = self.id,
-            type = type,
-            ack = succeeded
-        }
-
-        _send(ack_data)
+    local _send_ack = function (msg_type, succeeded)
+        _send(msg_type, { succeeded })
     end
 
     -- send structure properties (these should not change)
     -- (server will cache these)
     local _send_struct = function ()
         ppm.clear_fault()
+
         local mek_data = {
-            heat_cap  = self.reactor.getHeatCapacity(),
-            fuel_asm  = self.reactor.getFuelAssemblies(),
-            fuel_sa   = self.reactor.getFuelSurfaceArea(),
-            fuel_cap  = self.reactor.getFuelCapacity(),
-            waste_cap = self.reactor.getWasteCapacity(),
-            cool_cap  = self.reactor.getCoolantCapacity(),
-            hcool_cap = self.reactor.getHeatedCoolantCapacity(),
-            max_burn  = self.reactor.getMaxBurnRate()
+            self.reactor.getHeatCapacity(),
+            self.reactor.getFuelAssemblies(),
+            self.reactor.getFuelSurfaceArea(),
+            self.reactor.getFuelCapacity(),
+            self.reactor.getWasteCapacity(),
+            self.reactor.getCoolantCapacity(),
+            self.reactor.getHeatedCoolantCapacity(),
+            self.reactor.getMaxBurnRate()
         }
 
-        if not faulted then
-            local struct_packet = {
-                id = self.id,
-                type = RPLC_TYPES.MEK_STRUCT,
-                mek_data = mek_data
-            }
-
-            _send(struct_packet)
+        if not ppm.is_faulted() then
+            _send(RPLC_TYPES.MEK_STRUCT, mek_data)
         else
             log._error("failed to send structure: PPM fault")
         end
@@ -381,7 +368,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     if packet.type == RPLC_TYPES.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         local timestamp = packet.data[1]
-                        local trip_time = os.time() - ts
+                        local trip_time = os.time() - timestamp
 
                         if trip_time < 0 then
                             log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
@@ -389,7 +376,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                             log._warning("PLC KEEP_ALIVE trip time > 1s (" .. trip_time .. ")")
                         end
 
-                        _send_keep_alive_ack()
+                        _send_keep_alive_ack(timestamp)
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
                         log._debug("received unsolicited link request response")
@@ -489,12 +476,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- attempt to establish link with supervisor
     local send_link_req = function ()
-        local linking_data = {
-            id = self.id,
-            type = RPLC_TYPES.LINK_REQ
-        }
-
-        _send(linking_data)
+        _send(RPLC_TYPES.LINK_REQ, {})
     end
 
     -- send live status information
@@ -508,38 +490,28 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         end
 
         local sys_status = {
-            id = self.id,
-            type = RPLC_TYPES.STATUS,
-            timestamp = os.time(),
-            control_state = not self.scrammed,
-            overridden = overridden,
-            degraded = degraded,
-            heating_rate = self.reactor.getHeatingRate(),
-            mek_data = mek_data
+            os.time(),
+            (not self.scrammed),
+            overridden,
+            degraded,
+            self.reactor.getHeatingRate(),
+            mek_data
         }
 
-        _send(sys_status)
+        _send(RPLC_TYPES.STATUS, sys_status)
     end
 
     local send_iss_status = function ()
-        local iss_status = {
-            id = self.id,
-            type = RPLC_TYPES.ISS_STATUS,
-            status = iss.status()
-        }
-
-        _send(iss_status)
+        _send(RPLC_TYPES.ISS_STATUS, iss.status())
     end
 
     local send_iss_alarm = function (cause)
         local iss_alarm = {
-            id = self.id,
-            type = RPLC_TYPES.ISS_ALARM,
-            cause = cause,
-            status = iss.status()
+            cause,
+            iss.status()
         }
 
-        _send(iss_alarm)
+        _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
     end
 
     local is_scrammed = function () return self.scrammed end
