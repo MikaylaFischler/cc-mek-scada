@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.2.4"
+local R_PLC_VERSION = "alpha-v0.2.5"
 
 local print = util.print
 local println = util.println
