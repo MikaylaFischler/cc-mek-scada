@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.2.6"
+local R_PLC_VERSION = "alpha-v0.2.7"
 
 local print = util.print
 local println = util.println
@@ -95,7 +95,7 @@ function init()
         end
 
         -- loop clock (10Hz, 2 ticks)
-        loop_clock = os.startTimer(0.05)
+        loop_clock = os.startTimer(0.1)
         log._debug("loop clock started")
 
         println("boot> completed");
@@ -257,7 +257,7 @@ while true do
         end
 
         -- start next clock timer
-        loop_clock = os.startTimer(0.05)
+        loop_clock = os.startTimer(0.1)
     elseif event == "modem_message" and networked and not plc_state.no_modem then
         -- got a packet
         -- feed the watchdog first so it doesn't uhh...eat our packets
