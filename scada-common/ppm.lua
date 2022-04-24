@@ -4,14 +4,13 @@
 -- Protected Peripheral Manager
 --
 
-ACCESS_OK = true
 ACCESS_FAULT = nil
 
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
 ----------------------------
 
-local self = {
+local _ppm_sys = {
     mounts = {},
     auto_cf = false,
     faulted = false,
@@ -20,38 +19,66 @@ local self = {
 }
 
 -- wrap peripheral calls with lua protected call
--- ex. reason: we don't want a disconnect to crash the program before a SCRAM
-local peri_init = function (device)
-    for key, func in pairs(device) do
-        device[key] = function (...)
+-- we don't want a disconnect to crash a program
+-- also provides peripheral-specific fault checks (auto-clear fault defaults to true)
+local peri_init = function (iface)
+    local self = {
+        faulted = false,
+        auto_cf = true,
+        type = peripheral.getType(iface),
+        device = peripheral.wrap(iface)
+    }
+
+    -- initialization process (re-map)
+
+    for key, func in pairs(self.device) do
+        self.device[key] = function (...)
             local status, result = pcall(func, ...)
 
             if status then
                 -- auto fault clear
                 if self.auto_cf then self.faulted = false end
-
-                -- assume nil is only for functions with no return, so return status
-                if result == nil then
-                    return ACCESS_OK
-                else
-                    return result
-                end
+                if _ppm_sys.auto_cf then _ppm_sys.faulted = false end
+                return result
             else
                 -- function failed
                 self.faulted = true
+                _ppm_sys.faulted = true
 
-                if not mute then
+                if not _ppm_sys.mute then
                     log._error("PPM: protected " .. key .. "() -> " .. result)
                 end
 
                 if result == "Terminated" then
-                    self.terminate = true
+                    _ppm_sys.terminate = true
                 end
 
                 return ACCESS_FAULT
             end
         end
     end
+
+    -- fault management functions
+
+    local clear_fault = function () self.faulted = false end
+    local is_faulted = function () return self.faulted end
+    local is_ok = function () return not self.faulted end
+
+    local enable_afc = function () self.auto_cf = true end
+    local disable_afc = function () self.auto_cf = false end
+
+    -- append to device functions
+
+    self.device.__p_clear_fault = clear_fault
+    self.device.__p_is_faulted  = is_faulted
+    self.device.__p_is_ok       = is_ok
+    self.device.__p_enable_afc  = enable_afc
+    self.device.__p_disable_afc = disable_afc
+
+    return {
+        type = self.type,
+        dev = self.device
+    }
 end
 
 ----------------------
@@ -62,41 +89,41 @@ end
 
 -- silence error prints
 function disable_reporting()
-    self.mute = true
+    _ppm_sys.mute = true
 end
 
 -- allow error prints
 function enable_reporting()
-    self.mute = false
+    _ppm_sys.mute = false
 end
 
 -- FAULT MEMORY --
 
 -- enable automatically clearing fault flag
 function enable_afc()
-    self.auto_cf = true
+    _ppm_sys.auto_cf = true
 end
 
 -- disable automatically clearing fault flag
 function disable_afc()
-    self.auto_cf = false
+    _ppm_sys.auto_cf = false
 end
 
 -- check fault flag
 function is_faulted()
-    return self.faulted
+    return _ppm_sys.faulted
 end
 
 -- clear fault flag
 function clear_fault()
-    self.faulted = false
+    _ppm_sys.faulted = false
 end
 
 -- TERMINATION --
 
 -- if a caught error was a termination request
 function should_terminate()
-    return self.terminate
+    return _ppm_sys.terminate
 end
 
 -- MOUNTING --
@@ -105,18 +132,12 @@ end
 function mount_all()
     local ifaces = peripheral.getNames()
 
-    self.mounts = {}
+    _ppm_sys.mounts = {}
 
     for i = 1, #ifaces do
-        local pm_dev = peripheral.wrap(ifaces[i])
-        peri_init(pm_dev)
+        _ppm_sys.mounts[ifaces[i]] = peri_init(ifaces[i])
 
-        self.mounts[ifaces[i]] = {
-            type = peripheral.getType(ifaces[i]),
-            dev = pm_dev
-        }
-
-        log._info("PPM: found a " .. self.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
+        log._info("PPM: found a " .. _ppm_sys.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
     end
 
     if #ifaces == 0 then
@@ -128,31 +149,27 @@ end
 function mount(iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
-    local type = nil
+    local pm_type = nil
 
     for i = 1, #ifaces do
         if iface == ifaces[i] then
             log._info("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
 
-            type = peripheral.getType(iface)
-            pm_dev = peripheral.wrap(iface)
-            peri_init(pm_dev)
+            _ppm_sys.mounts[iface] = peri_init(iface)
 
-            self.mounts[iface] = {
-                type = peripheral.getType(iface),
-                dev = pm_dev
-            }
+            pm_type = _ppm_sys.mounts[iface].type
+            pm_dev = _ppm_sys.mounts[iface].dev
             break
         end
     end
 
-    return type, pm_dev
+    return pm_type, pm_dev
 end
 
 -- handle peripheral_detach event
 function handle_unmount(iface)
     -- what got disconnected?
-    local lost_dev = self.mounts[iface]
+    local lost_dev = _ppm_sys.mounts[iface]
 
     if lost_dev then
         local type = lost_dev.type
@@ -173,20 +190,20 @@ end
 
 -- list mounted peripherals
 function list_mounts()
-    return self.mounts
+    return _ppm_sys.mounts
 end
 
 -- get a mounted peripheral by side/interface
 function get_periph(iface)
-    if self.mounts[iface] then
-        return self.mounts[iface].dev
+    if _ppm_sys.mounts[iface] then
+        return _ppm_sys.mounts[iface].dev
     else return nil end
 end
 
 -- get a mounted peripheral type by side/interface
 function get_type(iface)
-    if self.mounts[iface] then
-        return self.mounts[iface].type
+    if _ppm_sys.mounts[iface] then
+        return _ppm_sys.mounts[iface].type
     else return nil end
 end
 
@@ -194,7 +211,7 @@ end
 function get_all_devices(name)
     local devices = {}
 
-    for side, data in pairs(self.mounts) do
+    for side, data in pairs(_ppm_sys.mounts) do
         if data.type == name then
             table.insert(devices, data.dev)
         end
@@ -207,7 +224,7 @@ end
 function get_device(name)
     local device = nil
 
-    for side, data in pairs(self.mounts) do
+    for side, data in pairs(_ppm_sys.mounts) do
         if data.type == name then
             device = data.dev
             break
@@ -228,7 +245,7 @@ end
 function get_wireless_modem()
     local w_modem = nil
 
-    for side, device in pairs(self.mounts) do
+    for side, device in pairs(_ppm_sys.mounts) do
         if device.type == "modem" and device.dev.isWireless() then
             w_modem = device.dev
             break

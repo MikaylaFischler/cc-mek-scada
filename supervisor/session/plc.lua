@@ -330,7 +330,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
             -- handle queue --
             ------------------
 
-            if ~self.in_q.empty() then
+            if not self.in_q.empty() then
                 -- get a new message to process
                 local message = self.in_q.pop()
 

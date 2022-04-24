@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.2.5"
+local R_PLC_VERSION = "alpha-v0.2.6"
 
 local print = util.print
 local println = util.println
@@ -281,7 +281,8 @@ while true do
         log._warning("terminate requested, exiting...")
         if plc_state.init_ok then
             plc_state.scram = true
-            if reactor.scram() ~= ppm.ACCESS_FAULT then
+            reactor.scram()
+            if reactor.__p_is_ok() then
                 println_ts("reactor disabled")
             else
                 -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_LOST_CONTROL) ?

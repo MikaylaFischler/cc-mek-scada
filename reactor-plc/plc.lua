@@ -131,7 +131,8 @@ function iss_init(reactor)
             log._warning("ISS: reactor SCRAM")
             self.tripped = true
             self.trip_cause = status
-            if self.reactor.scram() == ppm.ACCESS_FAULT then
+            self.reactor.scram()
+            if self.reactor.__p_is_faulted() then
                 log._error("ISS: failed reactor SCRAM")
             end
         end
@@ -420,12 +421,14 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         -- disable the reactor
                         self.scrammed = true
                         plc_state.scram = true
-                        _send_ack(packet.type, self.reactor.scram() == ppm.ACCESS_OK)
+                        self.reactor.scram()
+                        _send_ack(packet.type, self.reactor.__p_is_ok())
                     elseif packet.type == RPLC_TYPES.MEK_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
                         plc_state.scram = false
-                        _send_ack(packet.type, self.reactor.activate() == ppm.ACCESS_OK)
+                        self.reactor.activate()
+                        _send_ack(packet.type, self.reactor.__p_is_ok())
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
                         local success = false
@@ -441,11 +444,12 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         -- if we know our max burn rate, update current burn rate if in range
                         if max_burn_rate ~= ppm.ACCESS_FAULT then
                             if burn_rate > 0 and burn_rate <= max_burn_rate then
-                                success = self.reactor.setBurnRate(burn_rate)
+                                self.reactor.setBurnRate(burn_rate)
+                                success = self.reactor.__p_is_ok()
                             end
                         end
 
-                        _send_ack(packet.type, success == ppm.ACCESS_OK)
+                        _send_ack(packet.type, success)
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
                         -- clear the ISS status
                         iss.reset()
