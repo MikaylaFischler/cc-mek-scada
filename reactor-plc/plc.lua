@@ -202,6 +202,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
         seq_num = 0,
+        r_seq_num = nil,
         modem = modem,
         s_port = server_port,
         l_port = local_port,
@@ -363,6 +364,17 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- handle an RPLC packet
     local handle_packet = function (packet, plc_state)
         if packet ~= nil then
+            -- check sequence number
+            if self.r_seq_num == nil then
+                self.r_seq_num = packet.scada_frame.seq_num()
+            elseif self.r_seq_num >= packet.scada_frame.seq_num() then
+                log._warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                return
+            else
+                self.r_seq_num = packet.scada_frame.seq_num()
+            end
+
+            -- handle packet
             if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
                 if self.linked then
                     if packet.type == RPLC_TYPES.KEEP_ALIVE then
@@ -372,7 +384,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                         if trip_time < 0 then
                             log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
-                        elseif trip_time > 1 then
+                        elseif trip_time > 1000 then
                             log._warning("PLC KEEP_ALIVE trip time > 1s (" .. trip_time .. ")")
                         end
 

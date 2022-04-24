@@ -190,11 +190,11 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
                     if self.last_rtt < 0 then
                         log._warning(log_header .. "PLC KEEP_ALIVE round trip time less than 0 (" .. trip_time .. ")") 
-                    elseif trip_time > 1 then
+                    elseif trip_time > 1000 then
                         log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 1s (" .. trip_time .. ")")
                     end
 
-                    log._debug(log_header .. "RPLC RTT = ".. trip_time)
+                    log._debug(log_header .. "RPLC RTT = ".. trip_time .. "ms")
                 else
                     log._debug(log_header .. "RPLC keep alive packet length mismatch")
                 end
