@@ -10,7 +10,7 @@ SESSION_TYPE = {
 }
 
 local self = {
-    modem = nil
+    modem = nil,
     num_reactors = 0,
     rtu_sessions = {},
     plc_sessions = {},

@@ -11,9 +11,8 @@ local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
 local SESSION_TYPE = svsessions.SESSION_TYPE
 
 -- supervisory controller communications
-function superv_comms(mode, num_reactors, modem, dev_listen, coord_listen)
+function superv_comms(num_reactors, modem, dev_listen, coord_listen)
     local self = {
-        mode = mode,
         ln_seq_num = 0,
         num_reactors = num_reactors,
         modem = modem,

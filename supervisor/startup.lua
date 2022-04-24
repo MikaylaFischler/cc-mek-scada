@@ -10,14 +10,15 @@ os.loadAPI("scada-common/modbus.lua")
 
 os.loadAPI("config.lua")
 os.loadAPI("mqueue.lua")
-os.loadAPI("supervisor.lua")
 
 os.loadAPI("session/rtu.lua")
 os.loadAPI("session/plc.lua")
 os.loadAPI("session/coordinator.lua")
 os.loadAPI("session/svsessions.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.3"
+os.loadAPI("supervisor.lua")
+
+local SUPERVISOR_VERSION = "alpha-v0.1.4"
 
 local print = util.print
 local println = util.println
@@ -40,7 +41,7 @@ if modem == nil then
 end
 
 -- start comms, open all channels
-local comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
+local superv_comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
 
 -- base loop clock (4Hz, 5 ticks)
 local loop_clock = os.startTimer(0.25)

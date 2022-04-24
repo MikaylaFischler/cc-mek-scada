@@ -348,7 +348,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
             local elapsed = os.clock() - self.periodics.last_update
 
-            self.periodics.keep_alive += elapsed
+            self.periodics.keep_alive = self.periodics.keep_alive + elapsed
 
             if self.periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
                 _send(RPLC_TYPES.KEEP_ALIVE, { os.epoch() })
