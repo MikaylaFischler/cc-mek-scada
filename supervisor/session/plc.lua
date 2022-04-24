@@ -35,7 +35,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         last_rtt = 0,
         -- when to next retry one of these requests
         periodics = {
-            last_update = 0
+            last_update = 0,
             keep_alive = 0
         },
         retry_times = {
@@ -45,6 +45,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         },
         -- session database
         sDB = {
+            last_status_update = 0,
             control_state = false,
             overridden = false,
             degraded = false,
@@ -200,7 +201,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
             elseif rplc_pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
                 if rplc_pkt.length >= 5 then
-                    -- @todo [1] is timestamp, determine how this will be used (if at all)
+                    self.sDB.last_status_update = rplc_pkt.data[1]
                     self.sDB.control_state = rplc_pkt.data[2]
                     self.sDB.overridden = rplc_pkt.data[3]
                     self.sDB.degraded = rplc_pkt.data[4]
