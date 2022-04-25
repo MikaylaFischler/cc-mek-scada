@@ -17,12 +17,14 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.2.4"
+local RTU_VERSION = "alpha-v0.3.0"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+local async_wait = util.async_wait
 
 log._info("========================================")
 log._info("BOOTING rtu.startup " .. RTU_VERSION)
@@ -218,6 +220,9 @@ while true do
             end
         end
     elseif event == "timer" and param1 == loop_clock then
+        -- start next clock timer
+        loop_clock = os.startTimer(2)
+
         -- period tick, if we are linked send heartbeat, if not send advertisement
         if linked then
             rtu_comms.send_heartbeat()
@@ -225,15 +230,12 @@ while true do
             -- advertise units
             rtu_comms.send_advertisement(units)
         end
-
-        -- start next clock timer
-        loop_clock = os.startTimer(2)
     elseif event == "modem_message" then
         -- got a packet
         local link_ref = { linked = linked }
         local packet = rtu_comms.parse_packet(p1, p2, p3, p4, p5)
 
-        rtu_comms.handle_packet(packet, units, link_ref)
+        async_wait(function () rtu_comms.handle_packet(packet, units, link_ref) end)
 
         -- if linked, stop sending advertisements
         linked = link_ref.linked
