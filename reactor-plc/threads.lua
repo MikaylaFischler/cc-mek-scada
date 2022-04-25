@@ -251,7 +251,6 @@ function thread__iss(shared_memory)
                 -- last_update = util.time()
             elseif event == "iss_command" then
                 -- handle ISS commands
-                println("got iss command?")
                 if param1 == ISS_EVENT.SCRAM then
                     -- basic SCRAM
                     plc_state.scram = true
