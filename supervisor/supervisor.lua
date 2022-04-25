@@ -67,7 +67,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
         local s_pkt = scada_packet()
 
         -- parse packet as generic SCADA packet
-        s_pkt.recieve(side, sender, reply_to, message, distance)
+        s_pkt.receive(side, sender, reply_to, message, distance)
 
         if s_pkt.is_valid() then
             -- get as MODBUS TCP packet
@@ -146,7 +146,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     log._debug("illegal packet type " .. protocol .. " on device listening channel")
                 end
             -- coordinator listening channel
-            elseif reciever == self.coord_listen then
+            elseif receiver == self.coord_listen then
                 if protocol == PROTOCOLS.SCADA_MGMT then
                     -- SCADA management packet
                 elseif protocol == PROTOCOLS.COORD_DATA then

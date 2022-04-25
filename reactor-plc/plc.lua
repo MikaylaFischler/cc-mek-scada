@@ -329,7 +329,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         local s_pkt = scada_packet()
 
         -- parse packet as generic SCADA packet
-        s_pkt.recieve(side, sender, reply_to, message, distance)
+        s_pkt.receive(side, sender, reply_to, message, distance)
 
         if s_pkt.is_valid() then
             -- get as RPLC packet
