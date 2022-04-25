@@ -40,7 +40,7 @@ end
 -- PARALLELIZATION --
 
 -- block waiting for parallel call
-function task_wait(f)
+function async_wait(f)
     parallel.waitForAll(f)
 end
 

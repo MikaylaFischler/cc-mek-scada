@@ -89,7 +89,7 @@ function iss_init(reactor)
             log._error("ISS: failed to check reactor coolant level")
             return false
         else
-            return coolant_filled < 2
+            return coolant_filled < 0.02
         end
     end
 
@@ -122,7 +122,9 @@ function iss_init(reactor)
         }
         
         -- check system states in order of severity
-        if self.cache[1] then
+        if self.tripped then
+            status = self.trip_cause
+        elseif self.cache[1] then
             log._warning("ISS: damage critical!")
             status = "dmg_crit"
         elseif self.cache[4] then
@@ -143,25 +145,24 @@ function iss_init(reactor)
         elseif self.timed_out then
             log._warning("ISS: supervisor connection timeout!")
             status = "timeout"
-        elseif self.tripped then
-            status = self.trip_cause
         else
             self.tripped = false
         end
     
-        -- if a trip occured...
-        if status ~= "ok" then
+        -- if a new trip occured...
+        local first_trip = false
+        if not was_tripped and status ~= "ok" then
             log._warning("ISS: reactor SCRAM")
+
+            first_trip = true
             self.tripped = true
             self.trip_cause = status
+
             self.reactor.scram()
             if self.reactor.__p_is_faulted() then
                 log._error("ISS: failed reactor SCRAM")
             end
         end
-
-        -- evaluate if this is a new trip
-        local first_trip = not was_tripped and self.tripped
     
         return self.tripped, status, first_trip
     end
