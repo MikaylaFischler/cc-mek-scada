@@ -86,7 +86,6 @@ function thread__main(shared_memory, init)
                 async_wait(function () plc_comms.handle_packet(packet, plc_state) end)
             elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
                 -- haven't heard from server recently? shutdown reactor
-                println("timed out, passing event")
                 plc_comms.unlink()
                 os.queueEvent("iss_command", ISS_EVENT.TRIP_TIMEOUT)
             elseif event == "peripheral_detach" then
