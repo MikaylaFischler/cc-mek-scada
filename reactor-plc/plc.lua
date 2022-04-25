@@ -11,18 +11,16 @@ local RPLC_LINKING = comms.RPLC_LINKING
 function iss_init(reactor)
     local self = {
         reactor = reactor,
+        cache = { false, false, false, false, false, false, false },
         timed_out = false,
         tripped = false,
         trip_cause = ""
     }
 
-    -- re-link a reactor after a peripheral re-connect
-    local reconnect_reactor = function (reactor)
-        self.reactor = reactor
-    end
+    -- PRIVATE FUNCTIONS --
 
     -- check for critical damage
-    local damage_critical = function ()
+    local _damage_critical = function ()
         local damage_percent = self.reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
@@ -34,7 +32,7 @@ function iss_init(reactor)
     end
 
     -- check for heated coolant backup
-    local excess_heated_coolant = function ()
+    local _excess_heated_coolant = function ()
         local hc_needed = self.reactor.getHeatedCoolantNeeded()
         if hc_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
@@ -46,7 +44,7 @@ function iss_init(reactor)
     end
 
     -- check for excess waste
-    local excess_waste = function ()
+    local _excess_waste = function ()
         local w_needed = self.reactor.getWasteNeeded()
         if w_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
@@ -58,7 +56,7 @@ function iss_init(reactor)
     end
 
     -- check if the reactor is at a critically high temperature
-    local high_temp = function ()
+    local _high_temp = function ()
         -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
         local temp = self.reactor.getTemperature()
         if temp == ppm.ACCESS_FAULT then
@@ -71,7 +69,7 @@ function iss_init(reactor)
     end
 
     -- check if there is no fuel
-    local insufficient_fuel = function ()
+    local _insufficient_fuel = function ()
         local fuel = self.reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
@@ -83,7 +81,7 @@ function iss_init(reactor)
     end
 
     -- check if there is no coolant
-    local no_coolant = function ()
+    local _no_coolant = function ()
         local coolant_filled = self.reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
@@ -94,39 +92,63 @@ function iss_init(reactor)
         end
     end
 
-    -- if PLC timed out
-    local timed_out = function ()
-        return self.timed_out
+    -- PUBLIC FUNCTIONS --
+
+    -- re-link a reactor after a peripheral re-connect
+    local reconnect_reactor = function (reactor)
+        self.reactor = reactor
+    end
+
+    -- report a PLC comms timeout
+    local trip_timeout = function ()
+        self.timed_out = true
     end
 
     -- check all safety conditions
     local check = function ()
         local status = "ok"
         local was_tripped = self.tripped
+
+        -- update cache
+        self.cache = {
+            _damage_critical(),
+            _excess_heated_coolant(),
+            _excess_waste(),
+            _high_temp(),
+            _insufficient_fuel(),
+            _no_coolant(),
+            self.timed_out
+        }
         
         -- check system states in order of severity
-        if damage_critical() then
+        if self.cache[1] then
             log._warning("ISS: damage critical!")
             status = "dmg_crit"
-        elseif high_temp() then
+        elseif self.cache[4] then
             log._warning("ISS: high temperature!")
             status = "high_temp"
-        elseif excess_heated_coolant() then
+        elseif self.cache[2] then
             log._warning("ISS: heated coolant backup!")
             status = "heated_coolant_backup"
-        elseif excess_waste() then
+        elseif self.cache[6] then
+            log._warning("ISS: no coolant!")
+            status = "no_coolant"
+        elseif self.cache[3] then
             log._warning("ISS: full waste!")
             status = "full_waste"
-        elseif insufficient_fuel() then
+        elseif self.cache[5] then
             log._warning("ISS: no fuel!")
             status = "no_fuel"
+        elseif self.timed_out then
+            log._warning("ISS: supervisor connection timeout!")
+            status = "timeout"
         elseif self.tripped then
             status = self.trip_cause
         else
             self.tripped = false
         end
     
-        -- if a new trip occured...
+        -- if a trip occured...
         if status ~= "ok" then
             log._warning("ISS: reactor SCRAM")
             self.tripped = true
@@ -137,17 +159,10 @@ function iss_init(reactor)
             end
         end
 
+        -- evaluate if this is a new trip
         local first_trip = not was_tripped and self.tripped
     
         return self.tripped, status, first_trip
-    end
-
-    -- report a PLC comms timeout
-    local trip_timeout = function ()
-        self.tripped = false
-        self.trip_cause = "timeout"
-        self.timed_out = true
-        self.reactor.scram()
     end
 
     -- reset the ISS
@@ -158,43 +173,16 @@ function iss_init(reactor)
     end
 
     -- get the ISS status
-    local status = function (named)
-        if named then
-            return {
-                damage_critical = damage_critical(),
-                excess_heated_coolant = excess_heated_coolant(),
-                excess_waste = excess_waste(),
-                high_temp = high_temp(),
-                insufficient_fuel = insufficient_fuel(),
-                no_coolant = no_coolant(),
-                timed_out = timed_out()
-            }
-        else
-            return {
-                damage_critical(),
-                excess_heated_coolant(),
-                excess_waste(),
-                high_temp(),
-                insufficient_fuel(),
-                no_coolant(),
-                timed_out()
-            }
-        end
+    local status = function ()
+        return self.cache
     end
 
     return {
         reconnect_reactor = reconnect_reactor,
-        check = check,
         trip_timeout = trip_timeout,
+        check = check,
         reset = reset,
-        status = status,
-        damage_critical = damage_critical,
-        excess_heated_coolant = excess_heated_coolant,
-        excess_waste = excess_waste,
-        high_temp = high_temp,
-        insufficient_fuel = insufficient_fuel,
-        no_coolant = no_coolant,
-        timed_out = timed_out
+        status = status
     }
 end
 

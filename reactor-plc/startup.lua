@@ -10,7 +10,7 @@ os.loadAPI("scada-common/comms.lua")
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 
-local R_PLC_VERSION = "alpha-v0.2.7"
+local R_PLC_VERSION = "alpha-v0.2.8"
 
 local print = util.print
 local println = util.println
@@ -230,7 +230,8 @@ while true do
                     plc_comms.send_iss_alarm(iss_status_string)
                 end
             end
-        else
+        elseif not plc_state.no_reactor then
+            -- degraded but we have a reactor
             reactor.scram()
         end
     end
