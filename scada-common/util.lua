@@ -1,3 +1,5 @@
+-- PRINT --
+
 -- we are overwriting 'print' so save it first
 local _print = print
 
@@ -21,6 +23,28 @@ function println_ts(message)
     _print(os.date("[%H:%M:%S] ") .. message)
 end
 
+-- TIME --
+
+function time_ms()
+    return os.epoch('local')
+end
+
+function time_s()
+    return os.epoch('local') / 1000
+end
+
+function time()
+    return time_ms()
+end
+
+-- PARALLELIZATION --
+
+-- block waiting for parallel call
+function task_wait(f)
+    parallel.waitForAll(f)
+end
+
+-- WATCHDOG --
 
 -- ComputerCraft OS Timer based Watchdog
 -- triggers a timer event if not fed within 'timeout' seconds

@@ -1,5 +1,6 @@
 -- #REQUIRES comms.lua
 -- #REQUIRES ppm.lua
+-- #REQUIRES util.lua
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
@@ -272,7 +273,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- keep alive ack
     local _send_keep_alive_ack = function (srv_time)
-        _send(RPLC_TYPES.KEEP_ALIVE, { srv_time, os.epoch() })
+        _send(RPLC_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
@@ -369,7 +370,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     if packet.type == RPLC_TYPES.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         local timestamp = packet.data[1]
-                        local trip_time = os.epoch() - timestamp
+                        local trip_time = util.time() - timestamp
 
                         if trip_time < 0 then
                             log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
@@ -494,7 +495,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         end
 
         local sys_status = {
-            os.epoch(),
+            util.time(),
             (not self.scrammed),
             overridden,
             degraded,

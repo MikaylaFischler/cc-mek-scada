@@ -185,7 +185,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 if rplc_pkt.length == 2 then
                     local srv_start = rplc_pkt.data[1]
                     local plc_send = rplc_pkt.data[2]
-                    local srv_now = os.epoch()
+                    local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt < 0 then
@@ -351,7 +351,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
             self.periodics.keep_alive = self.periodics.keep_alive + elapsed
 
             if self.periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send(RPLC_TYPES.KEEP_ALIVE, { os.epoch() })
+                _send(RPLC_TYPES.KEEP_ALIVE, { util.time() })
                 self.periodics.keep_alive = 0
             end
 

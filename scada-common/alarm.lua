@@ -1,3 +1,5 @@
+-- #REQUIRES util.lua
+
 SEVERITY = {
     INFO = 0,       -- basic info message
     WARNING = 1,    -- warning about some abnormal state
@@ -9,7 +11,7 @@ SEVERITY = {
 
 function scada_alarm(severity, device, message)
     local self = {
-        time = os.epoch(),
+        time = util.time(),
         ts_string = os.date("[%H:%M:%S]"),
         severity = severity,
         device = device,
