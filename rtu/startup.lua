@@ -17,7 +17,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.3.1"
+local RTU_VERSION = "alpha-v0.3.2"
 
 local print = util.print
 local println = util.println
@@ -233,7 +233,7 @@ while true do
     elseif event == "modem_message" then
         -- got a packet
         local link_ref = { linked = linked }
-        local packet = rtu_comms.parse_packet(p1, p2, p3, p4, p5)
+        local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
 
         async_wait(function () rtu_comms.handle_packet(packet, units, link_ref) end)
 

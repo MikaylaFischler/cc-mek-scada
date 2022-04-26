@@ -18,7 +18,7 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.4"
+local SUPERVISOR_VERSION = "alpha-v0.1.5"
 
 local print = util.print
 local println = util.println
@@ -93,7 +93,7 @@ while true do
         svsessions.check_all_watchdogs(param1)
     elseif event == "modem_message" then
         -- got a packet
-        local packet = superv_comms.parse_packet(p1, p2, p3, p4, p5)
+        local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
         superv_comms.handle_packet(packet)
     end
 

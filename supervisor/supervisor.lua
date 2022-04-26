@@ -5,6 +5,7 @@
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
+local RPLC_LINKING = comms.RPLC_LINKING
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
 
@@ -64,7 +65,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
     -- parse a packet
     local parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = scada_packet()
+        local s_pkt = comms.scada_packet()
 
         -- parse packet as generic SCADA packet
         s_pkt.receive(side, sender, reply_to, message, distance)
@@ -104,21 +105,22 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
 
     local handle_packet = function(packet)
         if packet ~= nil then
-            local sender = packet.scada_frame.sender()
-            local receiver = packet.scada_frame.receiver()
+            local l_port = packet.scada_frame.local_port()
+            local r_port = packet.scada_frame.remote_port()
             local protocol = packet.scada_frame.protocol()
 
             -- device (RTU/PLC) listening channel
-            if receiver == self.dev_listen then
+            if l_port == self.dev_listen then
                 if protocol == PROTOCOLS.MODBUS_TCP then
                     -- MODBUS response
                 elseif protocol == PROTOCOLS.RPLC then
                     -- reactor PLC packet
-                    local session = svsessions.find_session(SESSION_TYPE.PLC_SESSION, sender)
+                    local session = svsessions.find_session(SESSION_TYPE.PLC_SESSION, r_port)
                     if session then
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             -- new device on this port? that's a collision
-                            _send_plc_linking(sender, { RPLC_LINKING.COLLISION })
+                            log._debug("PLC_LNK: request from existing connection received on " .. r_port .. ", responding with collision")
+                            _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
                         else
                             -- pass the packet onto the session handler
                             session.in_queue.push_packet(packet)
@@ -126,18 +128,25 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     else
                         -- unknown session, is this a linking request?
                         if packet.type == RPLC_TYPES.LINK_REQ then
-                            -- this is a linking request
-                            local plc_id = svsessions.establish_plc_session(sender)
-                            if plc_id == false then
-                                -- reactor already has a PLC assigned
-                                _send_plc_linking(sender, { RPLC_LINKING.COLLISION })
+                            if packet.length == 1 then
+                                -- this is a linking request
+                                local plc_id = svsessions.establish_plc_session(l_port, r_port, packet.data[1])
+                                if plc_id == false then
+                                    -- reactor already has a PLC assigned
+                                    log._debug("PLC_LNK: assignment collision with reactor " .. packet.data[1])
+                                    _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
+                                else
+                                    -- got an ID; assigned to a reactor successfully
+                                    log._debug("PLC_LNK: allowed for device at " .. r_port)
+                                    _send_plc_linking(r_port, { RPLC_LINKING.ALLOW })
+                                end
                             else
-                                -- got an ID; assigned to a reactor successfully
-                                _send_plc_linking(sender, { RPLC_LINKING.ALLOW })
+                                log._debug("PLC_LNK: new linking packet length mismatch")
                             end
                         else
                             -- force a re-link
-                            _send_plc_linking(sender, { RPLC_LINKING.DENY })
+                            log._debug("PLC_LNK: no session but not a link, force relink")
+                            _send_plc_linking(r_port, { RPLC_LINKING.DENY })
                         end
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
@@ -146,7 +155,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     log._debug("illegal packet type " .. protocol .. " on device listening channel")
                 end
             -- coordinator listening channel
-            elseif receiver == self.coord_listen then
+            elseif l_port == self.coord_listen then
                 if protocol == PROTOCOLS.SCADA_MGMT then
                     -- SCADA management packet
                 elseif protocol == PROTOCOLS.COORD_DATA then
@@ -155,7 +164,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     log._debug("illegal packet type " .. protocol .. " on coordinator listening channel")
                 end
             else
-                log._error("received packet on unused channel " .. receiver, true)
+                log._error("received packet on unused channel " .. l_port, true)
             end
         end
     end

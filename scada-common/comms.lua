@@ -74,12 +74,14 @@ function scada_packet()
 
         self.raw = self.modem_msg_in.msg
 
-        if #self.raw >= 3 then
-            self.valid = true
-            self.seq_num = self.raw[1]
-            self.protocol = self.raw[2]
-            self.length = #self.raw[3]
-            self.payload = self.raw[3]
+        if type(self.raw) == "table" then
+            if #self.raw >= 3 then
+                self.valid = true
+                self.seq_num = self.raw[1]
+                self.protocol = self.raw[2]
+                self.length = #self.raw[3]
+                self.payload = self.raw[3]
+            end
         end
 
         return self.valid
@@ -90,12 +92,12 @@ function scada_packet()
     local modem_event = function () return self.modem_msg_in end
     local raw_sendable = function () return self.raw end
 
-    local sender = function () return self.s_port end
-    local receiver = function () return self.r_port end
+    local local_port = function () return self.modem_msg_in.s_port end
+    local remote_port = function () return self.modem_msg_in.r_port end
 
     local is_valid = function () return self.valid end
 
-    local seq_num = function () return self.seq_num  end
+    local seq_num = function () return self.seq_num end
     local protocol = function () return self.protocol end
     local length = function () return self.length end
     local data = function () return self.payload end
@@ -107,9 +109,9 @@ function scada_packet()
         -- raw access
         modem_event = modem_event,
         raw_sendable = raw_sendable,
-        -- sender/receiver
-        sender = sender,
-        receiver = receiver,
+        -- ports
+        local_port = local_port,
+        remote_port = remote_port,
         -- well-formed
         is_valid = is_valid,
         -- packet properties

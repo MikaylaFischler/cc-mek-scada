@@ -23,11 +23,11 @@ function new()
     end
     
     local push_packet = function (message)
-        push(TYPE.PACKET, message)
+        _push(TYPE.PACKET, message)
     end
     
     local push_command = function (message)
-        push(TYPE.COMMAND, message)
+        _push(TYPE.COMMAND, message)
     end
     
     local pop = function ()

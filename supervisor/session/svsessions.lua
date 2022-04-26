@@ -70,6 +70,7 @@ function get_reactor_session(reactor)
 end
 
 function establish_plc_session(local_port, remote_port, for_reactor)
+    util.println(remote_port)
     if get_reactor_session(for_reactor) == nil then 
         local plc_s = {
             open = true,
@@ -81,9 +82,12 @@ function establish_plc_session(local_port, remote_port, for_reactor)
             instance = nil
         }
 
-        plc_s.instance = plc.new_session(next_plc_id, plc_s.in_queue, plc_s.out_queue)
+        plc_s.instance = plc.new_session(self.next_plc_id, for_reactor, plc_s.in_queue, plc_s.out_queue)
         table.insert(self.plc_sessions, plc_s)
-        next_plc_id = next_plc_id + 1
+
+        log._debug("established new PLC session to " .. remote_port .. " with ID " .. self.next_plc_id)
+
+        self.next_plc_id = self.next_plc_id + 1
 
         -- success
         return plc_s.instance.get_id()
@@ -129,7 +133,7 @@ local function _iterate(sessions)
                 while not session.out_queue.empty() do
                     local msg = session.out_queue.pop()
                     if msg.qtype == mqueue.TYPE.PACKET then
-                        self.modem.transmit(self.r_port, self.l_port, msg.message.raw_sendable())
+                        self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
                     end
                 end
             else
@@ -163,7 +167,7 @@ local function _free_closed(sessions)
                 end
                 move_to = move_to + 1
             else
-                log._debug("free'ing closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+                log._debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
                 sessions[i] = nil
             end
         end

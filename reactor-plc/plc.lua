@@ -6,6 +6,11 @@ local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local RPLC_LINKING = comms.RPLC_LINKING
 
+local print = util.print
+local println = util.println
+local print_ts = util.print_ts
+local println_ts = util.println_ts
+
 -- Internal Safety System
 -- identifies dangerous states and SCRAMs reactor if warranted
 -- autonomous from main SCADA supervisor/coordinator control
@@ -167,6 +172,10 @@ function iss_init(reactor)
         return self.tripped, status, first_trip
     end
 
+    -- get the ISS status
+    local status = function () return self.cache end
+    local is_tripped = function () return self.tripped end
+
     -- reset the ISS
     local reset = function ()
         self.timed_out = false
@@ -174,17 +183,13 @@ function iss_init(reactor)
         self.trip_cause = ""
     end
 
-    -- get the ISS status
-    local status = function ()
-        return self.cache
-    end
-
     return {
         reconnect_reactor = reconnect_reactor,
         trip_timeout = trip_timeout,
         check = check,
-        reset = reset,
-        status = status
+        status = status,
+        is_tripped = is_tripped,
+        reset = reset
     }
 end
 
@@ -225,7 +230,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- variable reactor status information, excluding heating rate
     local _reactor_status = function ()
-        ppm.clear_fault()
         return {
             self.reactor.getStatus(),
             self.reactor.getBurnRate(),
@@ -249,20 +253,24 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             self.reactor.getHeatedCoolant()['amount'],
             self.reactor.getHeatedCoolantNeeded(),
             self.reactor.getHeatedCoolantFilledPercentage()
-        }, ppm.faulted()
+        }, self.reactor.__p_is_faulted()
     end
 
     local _update_status_cache = function ()
         local status, faulted = _reactor_status()
         local changed = false
 
-        if not faulted then
-            for i = 1, #status do
-                if status[i] ~= self.status_cache[i] then
-                    changed = true
-                    break
+        if self.status_cache ~= nil then
+            if not faulted then
+                for i = 1, #status do
+                    if status[i] ~= self.status_cache[i] then
+                        changed = true
+                        break
+                    end
                 end
             end
+        else
+            changed = true
         end
 
         if changed then
@@ -285,8 +293,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- send structure properties (these should not change)
     -- (server will cache these)
     local _send_struct = function ()
-        ppm.clear_fault()
-
         local mek_data = {
             self.reactor.getHeatCapacity(),
             self.reactor.getFuelAssemblies(),
@@ -298,7 +304,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             self.reactor.getMaxBurnRate()
         }
 
-        if not ppm.is_faulted() then
+        if not self.reactor.__p_is_faulted() then
             _send(RPLC_TYPES.MEK_STRUCT, mek_data)
         else
             log._error("failed to send structure: PPM fault")
@@ -323,10 +329,48 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         _update_status_cache()
     end
 
+    -- attempt to establish link with supervisor
+    local send_link_req = function ()
+        _send(RPLC_TYPES.LINK_REQ, { self.id })
+    end
+
+    -- send live status information
+    local send_status = function (degraded)
+        local mek_data = nil
+
+        if _update_status_cache() then
+            mek_data = self.status_cache
+        end
+
+        local sys_status = {
+            util.time(),
+            (not self.scrammed),
+            iss.is_tripped(),
+            degraded,
+            self.reactor.getHeatingRate(),
+            mek_data
+        }
+
+        _send(RPLC_TYPES.STATUS, sys_status)
+    end
+
+    local send_iss_status = function ()
+        _send(RPLC_TYPES.ISS_STATUS, iss.status())
+    end
+
+    local send_iss_alarm = function (cause)
+        local iss_alarm = {
+            cause,
+            iss.status()
+        }
+
+        _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
+    end
+
     -- parse an RPLC packet
     local parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = scada_packet()
+        local s_pkt = comms.scada_packet()
 
         -- parse packet as generic SCADA packet
         s_pkt.receive(side, sender, reply_to, message, distance)
@@ -358,7 +402,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.r_seq_num >= packet.scada_frame.seq_num() then
+            elseif self.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
                 log._warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else
@@ -388,19 +432,19 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         
                         if link_ack == RPLC_LINKING.ALLOW then
                             _send_struct()
-                            send_status()
+                            send_status(plc_state.degraded)
                             log._debug("re-sent initial status data")
                         elseif link_ack == RPLC_LINKING.DENY then
                             -- @todo: make sure this doesn't become a MITM security risk
-                            print_ts("received unsolicited link denial, unlinking\n")
-                            log._debug("unsolicited rplc link request denied")
+                            println_ts("received unsolicited link denial, unlinking")
+                            log._debug("unsolicited RPLC link request denied")
                         elseif link_ack == RPLC_LINKING.COLLISION then
                             -- @todo: make sure this doesn't become a MITM security risk
-                            print_ts("received unsolicited link collision, unlinking\n")
-                            log._warning("unsolicited rplc link request collision")
+                            println_ts("received unsolicited link collision, unlinking")
+                            log._warning("unsolicited RPLC link request collision")
                         else
-                            print_ts("invalid unsolicited link response\n")
-                            log._error("unsolicited unknown rplc link request response")
+                            println_ts("invalid unsolicited link response")
+                            log._error("unsolicited unknown RPLC link request response")
                         end
 
                         self.linked = link_ack == RPLC_LINKING.ALLOW
@@ -452,22 +496,25 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     local link_ack = packet.data[1]
                     
                     if link_ack == RPLC_LINKING.ALLOW then
-                        print_ts("...linked!\n")
-                        log._debug("rplc link request approved")
+                        println_ts("linked!")
+                        log._debug("RPLC link request approved")
+
+                        -- reset remote sequence number
+                        self.r_seq_num = nil
 
                         _send_struct()
-                        send_status()
+                        send_status(plc_state.degraded)
 
                         log._debug("sent initial status data")
                     elseif link_ack == RPLC_LINKING.DENY then
-                        print_ts("...denied, retrying...\n")
-                        log._debug("rplc link request denied")
+                        println_ts("link request denied, retrying...")
+                        log._debug("RPLC link request denied")
                     elseif link_ack == RPLC_LINKING.COLLISION then
-                        print_ts("reactor PLC ID collision (check config), retrying...\n")
-                        log._warning("rplc link request collision")
+                        println_ts("reactor PLC ID collision (check config), retrying...")
+                        log._warning("RPLC link request collision")
                     else
-                        print_ts("invalid link response, bad channel? retrying...\n")
-                        log._error("unknown rplc link request response")
+                        println_ts("invalid link response, bad channel? retrying...")
+                        log._error("unknown RPLC link request response")
                     end
 
                     self.linked = link_ack == RPLC_LINKING.ALLOW
@@ -478,46 +525,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                 -- @todo
             end
         end
-    end
-
-    -- attempt to establish link with supervisor
-    local send_link_req = function ()
-        _send(RPLC_TYPES.LINK_REQ, {})
-    end
-
-    -- send live status information
-    -- overridden : if ISS force disabled reactor
-    -- degraded   : if PLC status is degraded
-    local send_status = function (overridden, degraded)
-        local mek_data = nil
-
-        if _update_status_cache() then
-            mek_data = self.status_cache
-        end
-
-        local sys_status = {
-            util.time(),
-            (not self.scrammed),
-            overridden,
-            degraded,
-            self.reactor.getHeatingRate(),
-            mek_data
-        }
-
-        _send(RPLC_TYPES.STATUS, sys_status)
-    end
-
-    local send_iss_status = function ()
-        _send(RPLC_TYPES.ISS_STATUS, iss.status())
-    end
-
-    local send_iss_alarm = function (cause)
-        local iss_alarm = {
-            cause,
-            iss.status()
-        }
-
-        _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
     end
 
     local is_scrammed = function () return self.scrammed end

@@ -10,8 +10,8 @@ local println_ts = util.println_ts
 
 local async_wait = util.async_wait
 
-local MAIN_CLOCK = 0.5 -- (2Hz, 10 ticks)
-local ISS_CLOCK  = 0.5 -- (2Hz, 10 ticks)
+local MAIN_CLOCK = 0.5  -- (2Hz, 10 ticks)
+local ISS_CLOCK  = 0.25 -- (4Hz, 5 ticks) however this is AFTER all the ISS checks, so it is a pause between calls, not start-to-start
 
 local ISS_EVENT = {
     SCRAM = 1,
@@ -28,7 +28,7 @@ function thread__main(shared_memory, init)
         local LINK_TICKS = 4
         
         local loop_clock = nil
-        local ticks_to_update = LINK_TICKS  -- start by linking
+        local ticks_to_update = 0
 
         -- load in from shared memory
         local networked   = shared_memory.networked
@@ -40,7 +40,7 @@ function thread__main(shared_memory, init)
         local conn_watchdog = shared_memory.system.conn_watchdog
 
         -- debug
-        -- local last_update = util.time()
+        local last_update = util.time()
 
         -- event loop
         while true do
@@ -55,26 +55,25 @@ function thread__main(shared_memory, init)
 
                     -- send updated data
                     if not plc_state.no_modem then
-
                         if plc_comms.is_linked() then
                             async_wait(function () 
                                 plc_comms.send_status(iss_tripped, plc_state.degraded)
                                 plc_comms.send_iss_status()
                             end)
                         else
-                            ticks_to_update = ticks_to_update - 1
-
-                            if ticks_to_update <= 0 then
+                            if ticks_to_update == 0 then
                                 plc_comms.send_link_req()
                                 ticks_to_update = LINK_TICKS
+                            else
+                                ticks_to_update = ticks_to_update - 1
                             end
                         end
                     end
 
                     -- debug
-                    -- print(util.time() - last_update)
-                    -- println("ms")
-                    -- last_update = util.time()
+                    print(util.time() - last_update)
+                    println("ms")
+                    last_update = util.time()
                 end
             elseif event == "modem_message" and networked and not plc_state.no_modem then
                 -- got a packet
@@ -82,8 +81,10 @@ function thread__main(shared_memory, init)
                 conn_watchdog.feed()
 
                 -- handle the packet (plc_state passed to allow clearing SCRAM flag)
-                local packet = plc_comms.parse_packet(p1, p2, p3, p4, p5)
-                async_wait(function () plc_comms.handle_packet(packet, plc_state) end)
+                async_wait(function () 
+                    local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
+                    plc_comms.handle_packet(packet, plc_state) 
+                end)
             elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
                 -- haven't heard from server recently? shutdown reactor
                 plc_comms.unlink()
@@ -169,7 +170,7 @@ function thread__main(shared_memory, init)
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock = os.startTimer(MAIN_CLOCK)
-                log._debug("loop clock started")
+                log._debug("main thread started")
             end
 
             -- check for termination request
@@ -208,9 +209,6 @@ function thread__iss(shared_memory)
             local reactor = shared_memory.plc_devices.reactor
     
             if event == "timer" and param1 == loop_clock then
-                -- start next clock timer
-                loop_clock = os.startTimer(ISS_CLOCK)
-
                 -- ISS checks
                 if plc_state.init_ok then
                     -- if we tried to SCRAM but failed, keep trying
@@ -244,6 +242,10 @@ function thread__iss(shared_memory)
                     end)
                 end
 
+                -- start next clock timer after all the long operations
+                -- otherwise we will never get around to other events
+                loop_clock = os.startTimer(ISS_CLOCK)
+
                 -- debug
                 -- print(util.time() - last_update)
                 -- println("ms")
@@ -270,13 +272,13 @@ function thread__iss(shared_memory)
                     -- watchdog tripped
                     plc_state.scram = true
                     iss.trip_timeout()
-                    println_ts("server timeout, reactor disabled")
-                    log._warning("server timeout, reactor disabled")
+                    println_ts("server timeout")
+                    log._warning("server timeout")
                 end
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock = os.startTimer(ISS_CLOCK)
-                log._debug("loop clock started")
+                log._debug("iss thread started")
             end
 
             -- check for termination request
