@@ -8,6 +8,8 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
+local psleep = util.psleep
+
 local MAIN_CLOCK = 2 -- (2Hz, 40 ticks)
 local COMMS_CLOCK = 0.25 -- (4Hz, 5 ticks)
 
@@ -146,9 +148,9 @@ function thread__comms(smem)
             local sleep_for = COMMS_CLOCK - (util.time() - last_update)
             last_update = util.time()
             if sleep_for > 0 then
-                sleep(sleep_for)
+                psleep(sleep_for)
             else
-                sleep(0.05)
+                psleep(0.05)
             end
         end
     end
