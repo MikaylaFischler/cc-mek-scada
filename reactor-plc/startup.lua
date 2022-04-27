@@ -129,7 +129,11 @@ local iss_thread   = threads.thread__iss(__shared_memory)
 local comms_thread = threads.thread__comms(__shared_memory)
 
 -- run threads
-parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread.exec)
+if __shared_memory.networked then
+    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread.exec)
+else
+    parallel.waitForAll(main_thread.exec, iss_thread.exec)
+end
 
 -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
 println_ts("exited")
