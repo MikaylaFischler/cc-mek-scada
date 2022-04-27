@@ -10,8 +10,8 @@ local println_ts = util.println_ts
 
 local psleep = util.psleep
 
-local MAIN_CLOCK = 2 -- (2Hz, 40 ticks)
-local COMMS_CLOCK = 0.25 -- (4Hz, 5 ticks)
+local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
+local COMMS_SLEEP = 150 -- (150ms, 3 ticks)
 
 -- main thread
 function thread__main(smem)
@@ -134,8 +134,8 @@ function thread__comms(smem)
                     rtu_comms.handle_packet(msg.message, units, rtu_state) 
                 end
 
-                -- quick yield if we are looping right back
-                if comms_queue.ready() then util.nop() end
+                -- quick yield
+                util.nop()
             end
 
             -- check for termination request
@@ -144,13 +144,12 @@ function thread__comms(smem)
                 break
             end
 
-            -- delay before next check
-            local sleep_for = COMMS_CLOCK - (util.time() - last_update)
+            -- delay before next check, only if >50ms since we did already yield
+            local sleep_for = COMMS_SLEEP - (util.time() - last_update)
             last_update = util.time()
-            if sleep_for > 0 then
-                psleep(sleep_for)
-            else
-                psleep(0.05)
+            if sleep_for >= 50 then
+                println("sleep for " .. (sleep_for / 1000.0))
+                psleep(sleep_for / 1000.0)
             end
         end
     end

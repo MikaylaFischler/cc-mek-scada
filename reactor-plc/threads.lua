@@ -10,9 +10,9 @@ local println_ts = util.println_ts
 
 local psleep = util.psleep
 
-local MAIN_CLOCK  = 1    -- (1Hz, 20 ticks)
-local ISS_CLOCK   = 0.5  -- (2Hz, 10 ticks)
-local COMMS_CLOCK = 0.25 -- (4Hz, 5 ticks)
+local MAIN_CLOCK  = 1   -- (1Hz, 20 ticks)
+local ISS_SLEEP   = 500 -- (500ms, 10 ticks)
+local COMMS_SLEEP = 150 -- (150ms, 3 ticks)
 
 local MQ__ISS_CMD = {
     SCRAM = 1,
@@ -44,9 +44,6 @@ function thread__main(smem, init)
         local plc_comms     = smem.plc_sys.plc_comms
         local conn_watchdog = smem.plc_sys.conn_watchdog
 
-        -- debug
-        local last_update = util.time()
-
         -- event loop
         while true do
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
@@ -71,11 +68,6 @@ function thread__main(smem, init)
                             end
                         end
                     end
-
-                    -- debug
-                    print(util.time() - last_update)
-                    println("ms")
-                    last_update = util.time()
                 end
             elseif event == "modem_message" and networked and not plc_state.no_modem then
                 -- got a packet
@@ -271,8 +263,8 @@ function thread__iss(smem)
                     -- received a packet
                 end
 
-                -- quick yield if we are looping right back
-                if iss_queue.ready() then util.nop() end
+                -- quick yield
+                util.nop()
             end
 
             -- check for termination request
@@ -300,13 +292,11 @@ function thread__iss(smem)
             -- println("ms")
             -- last_update = util.time()
 
-            -- delay before next check
-            local sleep_for = ISS_CLOCK - (util.time() - last_update)
+            -- delay before next check, only if >50ms since we did already yield
+            local sleep_for = ISS_SLEEP - (util.time() - last_update)
             last_update = util.time()
-            if sleep_for > 0 then
-                psleep(sleep_for)
-            else
-                psleep(0.05)
+            if sleep_for >= 50 then
+                psleep(sleep_for / 1000.0)
             end
         end
     end
@@ -349,8 +339,8 @@ function thread__comms(smem)
                     plc_comms.handle_packet(msg.message, plc_state) 
                 end
 
-                -- quick yield if we are looping right back
-                if comms_queue.ready() then util.nop() end
+                -- quick yield
+                util.nop()
             end
 
             -- check for termination request
@@ -359,13 +349,12 @@ function thread__comms(smem)
                 break
             end
 
-            -- delay before next check
-            local sleep_for = COMMS_CLOCK - (util.time() - last_update)
+            -- delay before next check, only if >50ms since we did already yield
+            local sleep_for = COMMS_SLEEP - (util.time() - last_update)
             last_update = util.time()
-            if sleep_for > 0 then
-                psleep(sleep_for)
-            else
-                psleep(0.05)
+            if sleep_for >= 50 then
+                println("sleep for " .. (sleep_for / 1000.0))
+                psleep(sleep_for / 1000.0)
             end
         end
     end
