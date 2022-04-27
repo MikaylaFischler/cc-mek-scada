@@ -39,10 +39,15 @@ end
 
 -- PARALLELIZATION --
 
+-- protected sleep call so we still are in charge of catching termination
+function psleep(t)
+    pcall(os.sleep, t)
+end
+
 -- no-op to provide a brief pause (and a yield)
 -- EVENT_CONSUMER: this function consumes events
 function nop()
-    sleep(0.05)
+    psleep(0.05)
 end
 
 -- WATCHDOG --
