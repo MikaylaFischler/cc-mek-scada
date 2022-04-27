@@ -287,11 +287,6 @@ function thread__iss(smem)
                 break
             end
 
-            -- debug
-            -- print(util.time() - last_update)
-            -- println("ms")
-            -- last_update = util.time()
-
             -- delay before next check, only if >50ms since we did already yield
             local sleep_for = ISS_SLEEP - (util.time() - last_update)
             last_update = util.time()
@@ -353,7 +348,6 @@ function thread__comms(smem)
             local sleep_for = COMMS_SLEEP - (util.time() - last_update)
             last_update = util.time()
             if sleep_for >= 50 then
-                println("sleep for " .. (sleep_for / 1000.0))
                 psleep(sleep_for / 1000.0)
             end
         end

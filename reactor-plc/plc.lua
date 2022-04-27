@@ -230,6 +230,24 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- variable reactor status information, excluding heating rate
     local _reactor_status = function ()
+        local coolant = self.reactor.getCoolant()
+        local coolant_name = ""
+        local coolant_amnt = 0
+
+        local hcoolant = self.reactor.getHeatedCoolant()
+        local hcoolant_name = ""
+        local hcoolant_amnt = 0
+
+        if coolant ~= nil then
+            coolant_name = coolant.name
+            coolant_amnt = coolant.amount
+        end
+
+        if hcoolant ~= nil then
+            hcoolant_name = hcoolant.name
+            hcoolant_amnt = hcoolant.amount
+        end
+
         return {
             self.reactor.getStatus(),
             self.reactor.getBurnRate(),
@@ -240,18 +258,14 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             self.reactor.getEnvironmentalLoss(),
 
             self.reactor.getFuel(),
-            self.reactor.getFuelNeeded(),
             self.reactor.getFuelFilledPercentage(),
             self.reactor.getWaste(),
-            self.reactor.getWasteNeeded(),
             self.reactor.getWasteFilledPercentage(),
-            self.reactor.getCoolant()['name'],
-            self.reactor.getCoolant()['amount'],
-            self.reactor.getCoolantNeeded(),
+            coolant_name,
+            coolant_amnt,
             self.reactor.getCoolantFilledPercentage(),
-            self.reactor.getHeatedCoolant()['name'],
-            self.reactor.getHeatedCoolant()['amount'],
-            self.reactor.getHeatedCoolantNeeded(),
+            hcoolant_name,
+            hcoolant_amnt,
             self.reactor.getHeatedCoolantFilledPercentage()
         }, self.reactor.__p_is_faulted()
     end
@@ -273,7 +287,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             changed = true
         end
 
-        if changed then
+        if changed and not faulted then
             self.status_cache = status
         end
 
@@ -419,9 +433,11 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                         if trip_time < 0 then
                             log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
-                        elseif trip_time > 1000 then
-                            log._warning("PLC KEEP_ALIVE trip time > 1s (" .. trip_time .. ")")
+                        elseif trip_time > 1200 then
+                            log._warning("PLC KEEP_ALIVE trip time > 1.2s (" .. trip_time .. ")")
                         end
+
+                        -- log._debug("RPLC RTT = ".. trip_time .. "ms")
 
                         _send_keep_alive_ack(timestamp)
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
