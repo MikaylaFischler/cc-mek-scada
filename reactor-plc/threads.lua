@@ -239,7 +239,7 @@ function thread__iss(smem)
             end
         
             -- check for messages in the message queue
-            while iss_queue.ready() do
+            while iss_queue.ready() and not plc_state.shutdown do
                 local msg = iss_queue.pop()
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
@@ -331,7 +331,7 @@ function thread__comms(smem)
         -- thread loop
         while true do
             -- check for messages in the message queue
-            while comms_queue.ready() do
+            while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
