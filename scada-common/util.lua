@@ -39,9 +39,10 @@ end
 
 -- PARALLELIZATION --
 
--- block waiting for parallel call
-function async_wait(f)
-    parallel.waitForAll(f)
+-- no-op to provide a brief pause (and a yield)
+-- EVENT_CONSUMER: this function consumes events
+function nop()
+    sleep(0.05)
 end
 
 -- WATCHDOG --

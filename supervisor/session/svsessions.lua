@@ -130,7 +130,7 @@ local function _iterate(sessions)
             if ok then
                 -- send packets in out queue
                 -- @todo handle commands if that's being used too
-                while not session.out_queue.empty() do
+                while session.out_queue.ready() do
                     local msg = session.out_queue.pop()
                     if msg.qtype == mqueue.TYPE.PACKET then
                         self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
