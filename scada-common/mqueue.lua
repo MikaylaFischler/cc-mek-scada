@@ -4,7 +4,8 @@
 
 TYPE = {
     COMMAND = 0,
-    PACKET = 1
+    DATA = 1,
+    PACKET = 2
 }
 
 function new()
@@ -17,19 +18,27 @@ function new()
     local empty = function ()
         return #queue == 0
     end
+
+    local ready = function ()
+        return #queue > 0
+    end
     
     local _push = function (qtype, message)
         table.insert(queue, { qtype = qtype, message = message })
     end
     
-    local push_packet = function (message)
-        _push(TYPE.PACKET, message)
-    end
-    
     local push_command = function (message)
         _push(TYPE.COMMAND, message)
     end
-    
+
+    local push_data = function (message)
+        _push(TYPE.DATA, message)
+    end
+
+    local push_packet = function (message)
+        _push(TYPE.PACKET, message)
+    end
+
     local pop = function ()
         if #queue > 0 then
             return table.remove(queue)
@@ -41,7 +50,9 @@ function new()
     return {
         length = length,
         empty = empty,
+        ready = ready,
         push_packet = push_packet,
+        push_data = push_data,
         push_command = push_command,
         pop = pop
     }

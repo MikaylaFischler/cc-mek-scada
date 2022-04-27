@@ -6,25 +6,25 @@ os.loadAPI("scada-common/log.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
+os.loadAPI("scada-common/mqueue.lua")
 os.loadAPI("scada-common/modbus.lua")
 os.loadAPI("scada-common/rsio.lua")
 
 os.loadAPI("config.lua")
 os.loadAPI("rtu.lua")
+os.loadAPI("threads.lua")
 
 os.loadAPI("dev/redstone_rtu.lua")
 os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.3.2"
+local RTU_VERSION = "alpha-v0.4.2"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
-
-local async_wait = util.async_wait
 
 log._info("========================================")
 log._info("BOOTING rtu.startup " .. RTU_VERSION)
@@ -35,25 +35,50 @@ println(">> RTU " .. RTU_VERSION .. " <<")
 -- startup
 ----------------------------------------
 
-local units = {}
-local linked = false
-
 -- mount connected devices
 ppm.mount_all()
 
+local __shared_memory = {
+    -- RTU system state flags
+    rtu_state = {
+        linked = false,
+        shutdown = false
+    },
+
+    -- core RTU devices
+    rtu_dev = {
+        modem = ppm.get_wireless_modem()
+    },
+
+    -- system objects
+    rtu_sys = {
+        rtu_comms = nil,
+        units = {}
+    },
+
+    -- message queues
+    q = {
+        mq_comms = mqueue.new()
+    }
+}
+
+local smem_dev = __shared_memory.rtu_dev
+local smem_sys = __shared_memory.rtu_sys
+
 -- get modem
-local modem = ppm.get_wireless_modem()
-if modem == nil then
+if smem_dev.modem == nil then
     println("boot> wireless modem not found")
     log._warning("no wireless modem on startup")
     return
 end
 
-local rtu_comms = rtu.rtu_comms(modem, config.LISTEN_PORT, config.SERVER_PORT)
+smem_sys.rtu_comms = rtu.rtu_comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT)
 
 ----------------------------------------
--- determine configuration
+-- interpret config and init units
 ----------------------------------------
+
+local units = __shared_memory.rtu_sys.units
 
 local rtu_redstone = config.RTU_REDSTONE
 local rtu_devices = config.RTU_DEVICES
@@ -69,12 +94,12 @@ for reactor_idx = 1, #rtu_redstone do
 
     for i = 1, #io_table do
         local valid = false
-        local config = io_table[i]
+        local conf = io_table[i]
 
         -- verify configuration
-        if rsio.is_valid_channel(config.channel) and rsio.is_valid_side(config.side) then
-            if config.bundled_color then
-                valid = rsio.is_color(config.bundled_color)
+        if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
+            if conf.bundled_color then
+                valid = rsio.is_color(conf.bundled_color)
             else
                 valid = true
             end
@@ -87,24 +112,24 @@ for reactor_idx = 1, #rtu_redstone do
             log._warning(message)
         else
             -- link redstone in RTU
-            local mode = rsio.get_io_mode(config.channel)
+            local mode = rsio.get_io_mode(conf.channel)
             if mode == rsio.IO_MODE.DIGITAL_IN then
-                rs_rtu.link_di(config.channel, config.side, config.bundled_color)
+                rs_rtu.link_di(conf.channel, conf.side, conf.bundled_color)
             elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                rs_rtu.link_do(config.channel, config.side, config.bundled_color)
+                rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
             elseif mode == rsio.IO_MODE.ANALOG_IN then
-                rs_rtu.link_ai(config.channel, config.side)
+                rs_rtu.link_ai(conf.channel, conf.side)
             elseif mode == rsio.IO_MODE.ANALOG_OUT then
-                rs_rtu.link_ao(config.channel, config.side)
+                rs_rtu.link_ao(conf.channel, conf.side)
             else
                 -- should be unreachable code, we already validated channels
                 log._error("init> fell through if chain attempting to identify IO mode", true)
                 break
             end
 
-            table.insert(capabilities, config.channel)
+            table.insert(capabilities, conf.channel)
 
-            log._debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(config.channel) .. " (" .. config.side ..
+            log._debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
                 ") for reactor " .. rtu_redstone[reactor_idx].for_reactor)
         end
     end
@@ -171,82 +196,15 @@ for i = 1, #rtu_devices do
 end
 
 ----------------------------------------
--- main loop
+-- start system
 ----------------------------------------
 
--- advertisement/heartbeat clock (every 2 seconds)
-local loop_clock = os.startTimer(2)
+-- init threads
+local main_thread  = threads.thread__main(__shared_memory)
+local comms_thread = threads.thread__comms(__shared_memory)
 
--- event loop
-while true do
-    local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
-
-    if event == "peripheral_detach" then
-        -- handle loss of a device
-        local device = ppm.handle_unmount(param1)
-
-        for i = 1, #units do
-            -- find disconnected device
-            if units[i].device == device.dev then
-                -- we are going to let the PPM prevent crashes
-                -- return fault flags/codes to MODBUS queries
-                local unit = units[i]
-                println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
-            end
-        end
-    elseif event == "peripheral" then
-        -- relink lost peripheral to correct unit entry
-        local type, device = ppm.mount(param1)
-
-        for i = 1, #units do
-            local unit = units[i]
-
-            -- find disconnected device to reconnect
-            if unit.name == param1 then
-                -- found, re-link
-                unit.device = device
-
-                if unit.type == "boiler" then
-                    unit.rtu = boiler_rtu.new(device)
-                elseif unit.type == "turbine" then
-                    unit.rtu = turbine_rtu.new(device)
-                elseif unit.type == "imatrix" then
-                    unit.rtu = imatrix_rtu.new(device)
-                end
-
-                unit.modbus_io = modbus.new(unit.rtu)
-
-                println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
-            end
-        end
-    elseif event == "timer" and param1 == loop_clock then
-        -- start next clock timer
-        loop_clock = os.startTimer(2)
-
-        -- period tick, if we are linked send heartbeat, if not send advertisement
-        if linked then
-            rtu_comms.send_heartbeat()
-        else
-            -- advertise units
-            rtu_comms.send_advertisement(units)
-        end
-    elseif event == "modem_message" then
-        -- got a packet
-        local link_ref = { linked = linked }
-        local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
-
-        async_wait(function () rtu_comms.handle_packet(packet, units, link_ref) end)
-
-        -- if linked, stop sending advertisements
-        linked = link_ref.linked
-    end
-
-    -- check for termination request
-    if event == "terminate" or ppm.should_terminate() then
-        log._warning("terminate requested, exiting...")
-        break
-    end
-end
+-- run threads
+parallel.waitForAll(main_thread.exec, comms_thread.exec)
 
 println_ts("exited")
 log._info("exited")

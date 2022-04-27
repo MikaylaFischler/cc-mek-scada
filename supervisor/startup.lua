@@ -7,9 +7,9 @@ os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
 os.loadAPI("scada-common/modbus.lua")
+os.loadAPI("scada-common/mqueue.lua")
 
 os.loadAPI("config.lua")
-os.loadAPI("mqueue.lua")
 
 os.loadAPI("session/rtu.lua")
 os.loadAPI("session/plc.lua")
@@ -18,7 +18,7 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.5"
+local SUPERVISOR_VERSION = "alpha-v0.1.6"
 
 local print = util.print
 local println = util.println

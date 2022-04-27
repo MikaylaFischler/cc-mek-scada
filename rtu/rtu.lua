@@ -183,7 +183,7 @@ function rtu_comms(modem, local_port, server_port)
     end
 
     -- handle a MODBUS/SCADA packet
-    local handle_packet = function(packet, units, ref)
+    local handle_packet = function(packet, units, rtu_state)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
 
@@ -209,7 +209,7 @@ function rtu_comms(modem, local_port, server_port)
                 -- SCADA management packet
                 if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
                     -- acknowledgement
-                    ref.linked = true
+                    rtu_state.linked = true
                 elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                     -- request for capabilities again
                     send_advertisement(units)

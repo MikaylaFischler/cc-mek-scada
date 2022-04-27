@@ -6,12 +6,13 @@ os.loadAPI("scada-common/log.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
+os.loadAPI("scada-common/mqueue.lua")
 
 os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 os.loadAPI("threads.lua")
 
-local R_PLC_VERSION = "alpha-v0.3.3"
+local R_PLC_VERSION = "alpha-v0.4.2"
 
 local print = util.print
 local println = util.println
@@ -28,30 +29,41 @@ ppm.mount_all()
 
 -- shared memory across threads
 local __shared_memory = {
+    -- networked setting
     networked = config.NETWORKED,
 
+    -- PLC system state flags
     plc_state = {
         init_ok = true,
+        shutdown = false,
         scram = true,
         degraded = false,
         no_reactor = false,
         no_modem = false
     },
     
-    plc_devices = {
+    -- core PLC devices
+    plc_dev = {
         reactor = ppm.get_fission_reactor(),
         modem = ppm.get_wireless_modem()
     },
 
-    system = {
+    -- system objects
+    plc_sys = {
         iss = nil,
         plc_comms = nil,
         conn_watchdog = nil
+    },
+
+    -- message queues
+    q = {
+        mq_iss = mqueue.new(),
+        mq_comms = mqueue.new()
     }
 }
 
-local smem_dev = __shared_memory.plc_devices
-local smem_sys = __shared_memory.system
+local smem_dev = __shared_memory.plc_dev
+local smem_sys = __shared_memory.plc_sys
 
 local plc_state = __shared_memory.plc_state
 
@@ -112,12 +124,16 @@ end
 init()
 
 -- init threads
-local main_thread = threads.thread__main(__shared_memory, init)
-local iss_thread = threads.thread__iss(__shared_memory)
--- local comms_thread = plc.thread__comms(__shared_memory)
+local main_thread  = threads.thread__main(__shared_memory, init)
+local iss_thread   = threads.thread__iss(__shared_memory)
+local comms_thread = threads.thread__comms(__shared_memory)
 
 -- run threads
-parallel.waitForAll(main_thread.exec, iss_thread.exec)
+if __shared_memory.networked then
+    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread.exec)
+else
+    parallel.waitForAll(main_thread.exec, iss_thread.exec)
+end
 
 -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
 println_ts("exited")
