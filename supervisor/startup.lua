@@ -18,7 +18,7 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.6"
+local SUPERVISOR_VERSION = "alpha-v0.1.7"
 
 local print = util.print
 local println = util.println
@@ -43,8 +43,9 @@ end
 -- start comms, open all channels
 local superv_comms = supervisor.superv_comms(config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
 
--- base loop clock (4Hz, 5 ticks)
-local loop_clock = os.startTimer(0.25)
+-- base loop clock (6.67Hz, 3 ticks)
+local MAIN_CLOCK = 0.15
+local loop_clock = os.startTimer(MAIN_CLOCK)
 
 -- event loop
 while true do
@@ -87,7 +88,7 @@ while true do
         -- free any closed sessions
         svsessions.free_all_closed()
 
-        loop_clock = os.startTimer(0.25)
+        loop_clock = os.startTimer(MAIN_CLOCK)
     elseif event == "timer" then
         -- another timer event, check watchdogs
         svsessions.check_all_watchdogs(param1)

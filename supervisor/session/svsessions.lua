@@ -34,19 +34,19 @@ end
 function find_session(stype, remote_port)
     if stype == SESSION_TYPE.RTU_SESSION then
         for i = 1, #self.rtu_sessions do
-            if self.rtu_sessions[i].r_host == remote_port then
+            if self.rtu_sessions[i].r_port == remote_port then
                 return self.rtu_sessions[i]
             end
         end
     elseif stype == SESSION_TYPE.PLC_SESSION then
         for i = 1, #self.plc_sessions do
-            if self.plc_sessions[i].r_host == remote_port then
+            if self.plc_sessions[i].r_port == remote_port then
                 return self.plc_sessions[i]
             end
         end
     elseif stype == SESSION_TYPE.COORD_SESSION then
         for i = 1, #self.coord_sessions do
-            if self.coord_sessions[i].r_host == remote_port then
+            if self.coord_sessions[i].r_port == remote_port then
                 return self.coord_sessions[i]
             end
         end

@@ -13,7 +13,7 @@ PLC_S_COMMANDS = {
 }
 
 local PERIODICS = {
-    KEEP_ALIVE = 1.0
+    KEEP_ALIVE = 2.0
 }
 
 -- PLC supervisor session
@@ -117,19 +117,15 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.mek_status.env_loss      = mek_data[7]
 
         self.sDB.mek_status.fuel          = mek_data[8]
-        self.sDB.mek_status.fuel_need     = mek_data[9]
-        self.sDB.mek_status.fuel_fill     = mek_data[10]
-        self.sDB.mek_status.waste         = mek_data[11]
-        self.sDB.mek_status.waste_need    = mek_data[12]
-        self.sDB.mek_status.waste_fill    = mek_data[13]
-        self.sDB.mek_status.cool_type     = mek_data[14]
-        self.sDB.mek_status.cool_amnt     = mek_data[15]
-        self.sDB.mek_status.cool_need     = mek_data[16]
-        self.sDB.mek_status.cool_fill     = mek_data[17]
-        self.sDB.mek_status.hcool_type    = mek_data[18]
-        self.sDB.mek_status.hcool_amnt    = mek_data[19]
-        self.sDB.mek_status.hcool_need    = mek_data[20]
-        self.sDB.mek_status.hcool_fill    = mek_data[21]
+        self.sDB.mek_status.fuel_fill     = mek_data[9]
+        self.sDB.mek_status.waste         = mek_data[10]
+        self.sDB.mek_status.waste_fill    = mek_data[11]
+        self.sDB.mek_status.cool_type     = mek_data[12]
+        self.sDB.mek_status.cool_amnt     = mek_data[13]
+        self.sDB.mek_status.cool_fill     = mek_data[14]
+        self.sDB.mek_status.hcool_type    = mek_data[15]
+        self.sDB.mek_status.hcool_amnt    = mek_data[16]
+        self.sDB.mek_status.hcool_fill    = mek_data[17]
     end
 
     local _copy_struct = function (mek_data)
@@ -152,11 +148,8 @@ function new_session(id, for_reactor, in_queue, out_queue)
         end
     end
 
-    local _handle_packet = function (message)
+    local _handle_packet = function (rplc_pkt)
         local checks_ok = true
-
-        -- handle an incoming packet from the PLC
-        rplc_pkt = message.get()
 
         -- check sequence number
         if self.r_seq_num == nil then
@@ -189,12 +182,13 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt < 0 then
-                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time less than 0 (" .. trip_time .. ")") 
-                    elseif trip_time > 1000 then
-                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 1s (" .. trip_time .. ")")
+                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time less than 0 (" .. self.last_rtt .. ")")
+                    elseif self.last_rtt > 1200 then
+                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 1.2s (" .. self.last_rtt .. ")")
                     end
 
-                    log._debug(log_header .. "RPLC RTT = ".. trip_time .. "ms")
+                    -- log._debug(log_header .. "RPLC RTT = ".. self.last_rtt .. "ms")
+                    -- log._debug(log_header .. "RPLC TT  = ".. (srv_now - plc_send) .. "ms")
                 else
                     log._debug(log_header .. "RPLC keep alive packet length mismatch")
                 end
@@ -330,15 +324,24 @@ function new_session(id, for_reactor, in_queue, out_queue)
             -- handle queue --
             ------------------
 
-            if self.in_q.ready() then
+            local handle_start = util.time()
+
+            while self.in_q.ready() do
                 -- get a new message to process
                 local message = self.in_q.pop()
 
                 if message.qtype == mqueue.TYPE.PACKET then
+                    -- handle a packet
                     _handle_packet(message.message)
                 elseif message.qtype == mqueue.TYPE.COMMAND then
                     -- handle instruction
 
+                end
+
+                -- max 100ms spent processing queue
+                if util.time() - handle_start > 100 then
+                    log._warning(log_header .. "exceeded 100ms queue process limit")
+                    break
                 end
             end
 
