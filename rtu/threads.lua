@@ -15,6 +15,8 @@ local COMMS_CLOCK = 0.25 -- (4Hz, 5 ticks)
 function thread__main(smem)
     -- execute thread
     local exec = function ()
+        log._debug("main thread start")
+
         -- advertisement/heartbeat clock
         local loop_clock = os.startTimer(MAIN_CLOCK)
 
@@ -22,6 +24,7 @@ function thread__main(smem)
         local rtu_state = smem.rtu_state
         local rtu_dev   = smem.rtu_dev
         local rtu_comms = smem.rtu_sys.rtu_comms
+        local units     = smem.rtu_sys.units
 
         -- event loop
         while true do
@@ -102,6 +105,8 @@ end
 function thread__comms(smem)
     -- execute thread
     local exec = function ()
+        log._debug("comms thread start")
+
         -- load in from shared memory
         local rtu_state   = smem.rtu_state
         local rtu_comms   = smem.rtu_sys.rtu_comms
@@ -127,7 +132,7 @@ function thread__comms(smem)
                     rtu_comms.handle_packet(msg.message, units, rtu_state) 
                 end
 
-                -- quick yield
+                -- quick yield if we are looping right back
                 if comms_queue.ready() then util.nop() end
             end
 
@@ -139,9 +144,14 @@ function thread__comms(smem)
 
             -- delay before next check
             local sleep_for = COMMS_CLOCK - (util.time() - last_update)
-            if sleep_for > 0.05 then
+            last_update = util.time()
+            if sleep_for > 0 then
                 sleep(sleep_for)
+            else
+                sleep(0.05)
             end
         end
     end
+
+    return { exec = exec }
 end

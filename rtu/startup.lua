@@ -19,7 +19,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.0"
+local RTU_VERSION = "alpha-v0.4.1"
 
 local print = util.print
 local println = util.println
@@ -58,11 +58,12 @@ local __shared_memory = {
 
     -- message queues
     q = {
-        mq_comms = mqeueu.new()
+        mq_comms = mqueue.new()
     }
 }
 
 local smem_dev = __shared_memory.rtu_dev
+local smem_sys = __shared_memory.rtu_sys
 
 -- get modem
 if smem_dev.modem == nil then
@@ -71,7 +72,7 @@ if smem_dev.modem == nil then
     return
 end
 
-local rtu_comms = rtu.rtu_comms(modem, config.LISTEN_PORT, config.SERVER_PORT)
+smem_sys.rtu_comms = rtu.rtu_comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT)
 
 ----------------------------------------
 -- interpret config and init units

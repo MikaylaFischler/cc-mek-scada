@@ -26,6 +26,8 @@ local MQ__COMM_CMD = {
 function thread__main(smem, init)
     -- execute thread
     local exec = function ()
+        log._debug("main thread init, clock inactive")
+
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
         -- send link requests at 0.5Hz (every 40 server ticks) (every 4 loop ticks)
         local LINK_TICKS = 4
@@ -168,7 +170,7 @@ function thread__main(smem, init)
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock = os.startTimer(MAIN_CLOCK)
-                log._debug("main thread started")
+                log._debug("main thread clock started")
             end
 
             -- check for termination request
@@ -188,6 +190,8 @@ end
 function thread__iss(smem)
     -- execute thread
     local exec = function ()
+        log._debug("iss thread start")
+
         -- load in from shared memory
         local networked   = smem.networked
         local plc_state   = smem.plc_state
@@ -233,8 +237,8 @@ function thread__iss(smem)
             end
         
             -- check for messages in the message queue
-            while comms_queue.ready() do
-                local msg = comms_queue.pop()
+            while iss_queue.ready() do
+                local msg = iss_queue.pop()
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
                     -- received a command
@@ -265,7 +269,7 @@ function thread__iss(smem)
                     -- received a packet
                 end
 
-                -- quick yield
+                -- quick yield if we are looping right back
                 if iss_queue.ready() then util.nop() end
             end
 
@@ -296,8 +300,11 @@ function thread__iss(smem)
 
             -- delay before next check
             local sleep_for = ISS_CLOCK - (util.time() - last_update)
-            if sleep_for > 0.05 then
+            last_update = util.time()
+            if sleep_for > 0 then
                 sleep(sleep_for)
+            else
+                sleep(0.05)
             end
         end
     end
@@ -309,6 +316,8 @@ end
 function thread__comms(smem)
     -- execute thread
     local exec = function ()
+        log._debug("comms thread start")
+
         -- load in from shared memory
         local plc_state   = smem.plc_state
         local plc_comms   = smem.plc_sys.plc_comms
@@ -338,7 +347,7 @@ function thread__comms(smem)
                     plc_comms.handle_packet(msg.message, plc_state) 
                 end
 
-                -- quick yield
+                -- quick yield if we are looping right back
                 if comms_queue.ready() then util.nop() end
             end
 
@@ -350,9 +359,14 @@ function thread__comms(smem)
 
             -- delay before next check
             local sleep_for = COMMS_CLOCK - (util.time() - last_update)
-            if sleep_for > 0.05 then
+            last_update = util.time()
+            if sleep_for > 0 then
                 sleep(sleep_for)
+            else
+                sleep(0.05)
             end
         end
     end
+
+    return { exec = exec }
 end
