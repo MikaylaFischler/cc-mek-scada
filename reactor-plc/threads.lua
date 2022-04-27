@@ -286,7 +286,7 @@ function thread__iss(smem)
                     end
                 end
                 log._warning("iss thread exiting")
-                return
+                break
             end
 
             -- debug
@@ -305,6 +305,7 @@ function thread__iss(smem)
     return { exec = exec }
 end
 
+-- communications handler thread
 function thread__comms(smem)
     -- execute thread
     local exec = function ()
@@ -314,10 +315,10 @@ function thread__comms(smem)
 
         local comms_queue = smem.q.mq_comms
 
+        local last_update = util.time()
+
         -- thread loop
         while true do
-            local last_update = util.time()
-        
             -- check for messages in the message queue
             while comms_queue.ready() do
                 local msg = comms_queue.pop()
@@ -344,7 +345,7 @@ function thread__comms(smem)
             -- check for termination request
             if plc_state.shutdown then
                 log._warning("comms thread exiting")
-                return
+                break
             end
 
             -- delay before next check
