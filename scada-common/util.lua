@@ -50,6 +50,16 @@ function nop()
     psleep(0.05)
 end
 
+-- attempt to maintain a minimum loop timing (duration of execution)
+function adaptive_delay(target_timing, last_update)
+    local sleep_for = target_timing - (time() - last_update)
+    -- only if >50ms since worker loops already yield 0.05s
+    if sleep_for >= 50 then
+        psleep(sleep_for / 1000.0)
+    end
+    return time()
+end
+
 -- WATCHDOG --
 
 -- ComputerCraft OS Timer based Watchdog
