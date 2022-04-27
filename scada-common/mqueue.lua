@@ -41,7 +41,7 @@ function new()
 
     local pop = function ()
         if #queue > 0 then
-            return table.remove(queue)
+            return table.remove(queue, 1)
         else 
             return nil
         end
