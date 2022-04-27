@@ -1,6 +1,5 @@
 -- #REQUIRES comms.lua
 -- #REQUIRES ppm.lua
--- #REQUIRES plc.lua
 -- #REQUIRES util.lua
 
 local print = util.print

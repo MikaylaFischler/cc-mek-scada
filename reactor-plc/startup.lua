@@ -57,9 +57,8 @@ local __shared_memory = {
 
     -- message queues
     q = {
-        mq_main = mqueue.new(),
         mq_iss = mqueue.new(),
-        mq_comms = mqeuue.new()
+        mq_comms = mqeueu.new()
     }
 }
 
