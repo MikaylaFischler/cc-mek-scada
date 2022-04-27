@@ -1,4 +1,5 @@
 -- #REQUIRES comms.lua
+-- #REQUIRES log.lua
 -- #REQUIRES ppm.lua
 -- #REQUIRES util.lua
 
@@ -80,7 +81,7 @@ function thread__main(smem, init)
                 -- handle the packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
-                    smem.q.mq_comms.puch_packet(packet)
+                    smem.q.mq_comms.push_packet(packet)
                 end
             elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
                 -- haven't heard from server recently? shutdown reactor

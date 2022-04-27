@@ -48,7 +48,7 @@ local __shared_memory = {
         modem = ppm.get_wireless_modem()
     },
 
-    -- system control objects
+    -- system objects
     plc_sys = {
         iss = nil,
         plc_comms = nil,
