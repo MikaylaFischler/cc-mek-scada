@@ -203,6 +203,46 @@ function new(rtu_dev)
         return return_ok, response
     end
 
+    -- validate a request without actually executing it
+    local check_request = function (packet)
+        local return_code = true
+        local response = { MODBUS_EXCODE.ACKNOWLEDGE }
+
+        if #packet.data == 2 then
+            -- handle  by function code
+            if packet.func_code == MODBUS_FCODE.READ_COILS then
+            elseif packet.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
+            elseif packet.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
+            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGISTERS then
+            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
+            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
+            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
+            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
+            else
+                -- unknown function
+                return_code = false
+                response = { MODBUS_EXCODE.ILLEGAL_FUNCTION }
+            end
+        else
+            -- invalid length
+            return_code = false
+            response = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
+        end
+
+        -- default is to echo back
+        local func_code = packet.func_code
+        if not return_code then
+            -- echo back with error flag
+            func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        end
+
+        -- create reply
+        local reply = comms.modbus_packet()
+        reply.make(packet.txn_id, packet.unit_id, func_code, response)
+
+        return return_code, reply
+    end
+
     -- handle a MODBUS TCP packet and generate a reply
     local handle_packet = function (packet)
         local return_code = true
@@ -258,6 +298,16 @@ function new(rtu_dev)
         return return_code, reply
     end
 
+    -- return a SERVER_DEVICE_BUSY error reply
+    local reply__srv_device_busy = function (packet)
+        -- reply back with error flag and exception code
+        local reply = comms.modbus_packet()
+        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        local data = { MODBUS_EXCODE.SERVER_DEVICE_BUSY }
+        reply.make(packet.txn_id, packet.unit_id, fcode, data)
+        return reply
+    end
+
     -- return a NEG_ACKNOWLEDGE error reply
     local reply__neg_ack = function (packet)
         -- reply back with error flag and exception code
@@ -279,7 +329,9 @@ function new(rtu_dev)
     end
 
     return {
+        check_request = check_request,
         handle_packet = handle_packet,
+        reply__srv_device_busy = reply__srv_device_busy,
         reply__neg_ack = reply__neg_ack,
         reply__gw_unavailable = reply__gw_unavailable
     }

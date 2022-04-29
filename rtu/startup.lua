@@ -19,7 +19,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.7"
+local RTU_VERSION = "alpha-v0.4.8"
 
 local print = util.print
 local println = util.println
@@ -142,7 +142,10 @@ for reactor_idx = 1, #rtu_redstone do
         reactor = rtu_redstone[reactor_idx].for_reactor,
         device = capabilities,  -- use device field for redstone channels
         rtu = rs_rtu,
-        modbus_io = modbus.new(rs_rtu)
+        modbus_io = modbus.new(rs_rtu),
+        modbus_busy = false,
+        pkt_queue = nil,
+        thread = nil
     })
 
     log._debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
@@ -180,15 +183,22 @@ for i = 1, #rtu_devices do
         end
 
         if rtu_iface ~= nil then
-            table.insert(units, {
+            local rtu_unit = {
                 name = rtu_devices[i].name,
                 type = rtu_type,
                 index = rtu_devices[i].index,
                 reactor = rtu_devices[i].for_reactor,
                 device = device,
                 rtu = rtu_iface,
-                modbus_io = modbus.new(rtu_iface)
-            })
+                modbus_io = modbus.new(rtu_iface),
+                modbus_busy = false,
+                pkt_queue = mqueue.new(),
+                thread = nil
+            }
+
+            rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
+
+            table.insert(units, rtu_unit)
 
             log._debug("init> initialized RTU unit #" .. #units .. ": " .. rtu_devices[i].name .. " (" .. rtu_type .. ") [" ..
                 rtu_devices[i].index .. "] for reactor " .. rtu_devices[i].for_reactor)
@@ -208,8 +218,16 @@ local comms_thread = threads.thread__comms(__shared_memory)
 smem_sys.conn_watchdog = util.new_watchdog(5)
 log._debug("init> conn watchdog started")
 
+-- assemble thread list
+local _threads = { main_thread.exec, comms_thread.exec }
+for i = 1, #units do
+    if units[i].thread ~= nil then
+        table.insert(_threads, units[i].thread.exec)
+    end
+end
+
 -- run threads
-parallel.waitForAll(main_thread.exec, comms_thread.exec)
+parallel.waitForAll(table.unpack(_threads))
 
 println_ts("exited")
 log._info("exited")

@@ -145,13 +145,6 @@ function rtu_comms(modem, local_port, server_port)
         self.seq_num = self.seq_num + 1
     end
 
-    local _send_modbus = function (m_pkt)
-        local s_pkt = comms.scada_packet()
-        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
-    end
-
     -- PUBLIC FUNCTIONS --
 
     -- reconnect a newly connected modem
@@ -162,6 +155,14 @@ function rtu_comms(modem, local_port, server_port)
         if not self.modem.isOpen(self.l_port) then
             self.modem.open(self.l_port)
         end
+    end
+
+    -- send a MODBUS TCP packet
+    local send_modbus = function (m_pkt)
+        local s_pkt = comms.scada_packet()
+        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.seq_num = self.seq_num + 1
     end
 
     -- parse a MODBUS/SCADA packet
@@ -216,13 +217,28 @@ function rtu_comms(modem, local_port, server_port)
             if protocol == PROTOCOLS.MODBUS_TCP then
                 local reply = modbus.reply__neg_ack(packet)
 
-                -- MODBUS instruction
+                -- handle MODBUS instruction
                 if packet.unit_id <= #units then
                     local unit = units[packet.unit_id]
-                    local return_code, reply = unit.modbus_io.handle_packet(packet)
-
-                    if not return_code then
-                        log._warning("MODBUS operation failed")
+                    if unit.name == "redstone_io" then
+                        -- immediately execute redstone RTU requests
+                        local return_code, reply = unit.modbus_io.handle_packet(packet)
+                        if not return_code then
+                            log._warning("requested MODBUS operation failed")
+                        end
+                    else
+                        -- check validity then pass off to unit comms thread
+                        local return_code, reply = unit.modbus_io.check_request(packet)
+                        if return_code then
+                            -- check if an operation is already in progress for this unit
+                            if unit.modbus_busy then
+                                reply = unit.modbus_io.reply__srv_device_busy(packet)
+                            else
+                                unit.pkt_queue.push(packet)
+                            end
+                        else
+                            log._warning("cannot perform requested MODBUS operation")
+                        end
                     end
                 else
                     -- unit ID out of range?
@@ -230,7 +246,7 @@ function rtu_comms(modem, local_port, server_port)
                     log._error("MODBUS packet requesting non-existent unit")
                 end
 
-                _send_modbus(reply)
+                send_modbus(reply)
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
                 if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
@@ -302,6 +318,7 @@ function rtu_comms(modem, local_port, server_port)
     end
 
     return {
+        send_modbus = send_modbus,
         reconnect_modem = reconnect_modem,
         parse_packet = parse_packet,
         handle_packet = handle_packet,

@@ -180,3 +180,52 @@ function thread__comms(smem)
 
     return { exec = exec }
 end
+
+-- per-unit communications handler thread
+function thread__unit_comms(smem, unit)
+    -- execute thread
+    local exec = function ()
+        log._debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
+
+        -- load in from shared memory
+        local rtu_state    = smem.rtu_state
+
+        local packet_queue = unit.pkt_queue
+
+        local last_update  = util.time()
+
+        -- thread loop
+        while true do
+            -- check for messages in the message queue
+            while packet_queue.ready() and not rtu_state.shutdown do
+                local msg = packet_queue.pop()
+
+                if msg.qtype == mqueue.TYPE.COMMAND then
+                    -- received a command
+                elseif msg.qtype == mqueue.TYPE.DATA then
+                    -- received data
+                elseif msg.qtype == mqueue.TYPE.PACKET then
+                    -- received a packet
+                    unit.modbus_busy = true
+                    local return_code, reply = unit.modbus_io.handle_packet(packet)
+                    rtu.send_modbus(reply)
+                    unit.modbus_busy = false
+                end
+
+                -- quick yield
+                util.nop()
+            end
+
+            -- check for termination request
+            if rtu_state.shutdown then
+                log._warning("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
+                break
+            end
+
+            -- delay before next check
+            last_update = util.adaptive_delay(COMMS_SLEEP, last_update)
+        end
+    end
+
+    return { exec = exec }
+end
