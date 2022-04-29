@@ -153,6 +153,16 @@ function rtu_comms(modem, local_port, server_port)
 
     -- PUBLIC FUNCTIONS --
 
+    -- reconnect a newly connected modem
+    local reconnect_modem = function (modem)
+        self.modem = modem
+
+        -- open modem
+        if not self.modem.isOpen(self.l_port) then
+            self.modem.open(self.l_port)
+        end
+    end
+
     -- parse a MODBUS/SCADA packet
     local parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
@@ -270,6 +280,7 @@ function rtu_comms(modem, local_port, server_port)
     end
 
     return {
+        reconnect_modem = reconnect_modem,
         parse_packet = parse_packet,
         handle_packet = handle_packet,
         send_advertisement = send_advertisement,

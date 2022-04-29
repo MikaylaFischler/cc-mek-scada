@@ -36,38 +36,62 @@ function thread__main(smem)
                 -- handle loss of a device
                 local device = ppm.handle_unmount(param1)
 
-                for i = 1, #units do
-                    -- find disconnected device
-                    if units[i].device == device.dev then
-                        -- we are going to let the PPM prevent crashes
-                        -- return fault flags/codes to MODBUS queries
-                        local unit = units[i]
-                        println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+                if device.type == "modem" then
+                    -- we only care if this is our wireless modem
+                    if device.dev == rtu_dev.modem then
+                        println_ts("wireless modem disconnected!")
+                        log._warning("comms modem disconnected!")
+                    else
+                        log._warning("non-comms modem disconnected")
+                    end
+                else
+                    for i = 1, #units do
+                        -- find disconnected device
+                        if units[i].device == device.dev then
+                            -- we are going to let the PPM prevent crashes
+                            -- return fault flags/codes to MODBUS queries
+                            local unit = units[i]
+                            println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+                        end
                     end
                 end
             elseif event == "peripheral" then
-                -- relink lost peripheral to correct unit entry
+                -- peripheral connect
                 local type, device = ppm.mount(param1)
 
-                for i = 1, #units do
-                    local unit = units[i]
+                if type == "modem" then
+                    if device.isWireless() then
+                        -- reconnected modem
+                        rtu_dev.modem = device
+                        rtu_comms.reconnect_modem(rtu_dev.modem)
 
-                    -- find disconnected device to reconnect
-                    if unit.name == param1 then
-                        -- found, re-link
-                        unit.device = device
+                        println_ts("wireless modem reconnected.")
+                        log._info("comms modem reconnected.")
+                    else
+                        log._info("wired modem reconnected.")
+                    end
+                else
+                    -- relink lost peripheral to correct unit entry
+                    for i = 1, #units do
+                        local unit = units[i]
 
-                        if unit.type == "boiler" then
-                            unit.rtu = boiler_rtu.new(device)
-                        elseif unit.type == "turbine" then
-                            unit.rtu = turbine_rtu.new(device)
-                        elseif unit.type == "imatrix" then
-                            unit.rtu = imatrix_rtu.new(device)
+                        -- find disconnected device to reconnect
+                        if unit.name == param1 then
+                            -- found, re-link
+                            unit.device = device
+
+                            if unit.type == "boiler" then
+                                unit.rtu = boiler_rtu.new(device)
+                            elseif unit.type == "turbine" then
+                                unit.rtu = turbine_rtu.new(device)
+                            elseif unit.type == "imatrix" then
+                                unit.rtu = imatrix_rtu.new(device)
+                            end
+
+                            unit.modbus_io = modbus.new(unit.rtu)
+
+                            println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                         end
-
-                        unit.modbus_io = modbus.new(unit.rtu)
-
-                        println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                     end
                 end
             elseif event == "timer" and param1 == loop_clock then
@@ -87,8 +111,6 @@ function thread__main(smem)
                 if packet ~= nil then
                     smem.q.mq_comms.push_packet(packet)
                 end
-
-                rtu_comms.handle_packet(packet, units, link_ref)
             end
 
             -- check for termination request
@@ -121,7 +143,7 @@ function thread__comms(smem)
         -- thread loop
         while true do
             -- check for messages in the message queue
-            while comms_queue.ready() and not plc_state.shutdown do
+            while comms_queue.ready() and not rtu_state.shutdown do
                 local msg = comms_queue.pop()
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
