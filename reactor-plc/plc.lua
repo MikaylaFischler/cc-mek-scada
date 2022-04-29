@@ -411,7 +411,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     end
 
     -- handle an RPLC packet
-    local handle_packet = function (packet, plc_state)
+    local handle_packet = function (packet, plc_state, conn_watchdog)
         if packet ~= nil then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -423,6 +423,9 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                 self.r_seq_num = packet.scada_frame.seq_num()
             end
 
+            -- feed the watchdog first so it doesn't uhh...eat our packets
+            conn_watchdog.feed()
+
             -- handle packet
             if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
                 if self.linked then
@@ -431,10 +434,8 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         local timestamp = packet.data[1]
                         local trip_time = util.time() - timestamp
 
-                        if trip_time < 0 then
-                            log._warning("PLC KEEP_ALIVE trip time less than 0 (" .. trip_time .. ")") 
-                        elseif trip_time > 1200 then
-                            log._warning("PLC KEEP_ALIVE trip time > 1.2s (" .. trip_time .. ")")
+                        if trip_time > 500 then
+                            log._warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
                         end
 
                         -- log._debug("RPLC RTT = ".. trip_time .. "ms")

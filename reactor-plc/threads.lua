@@ -58,7 +58,7 @@ function thread__main(smem, init)
                     -- send updated data
                     if not plc_state.no_modem then
                         if plc_comms.is_linked() then
-                            smem.q.mq_comms.push_command(MQ__COMM_CMD.SEND_STATUS)
+                            smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
                         else
                             if ticks_to_update == 0 then
                                 plc_comms.send_link_req()
@@ -71,13 +71,10 @@ function thread__main(smem, init)
                 end
             elseif event == "modem_message" and networked and not plc_state.no_modem then
                 -- got a packet
-                -- feed the watchdog first so it doesn't uhh...eat our packets
-                conn_watchdog.feed()
-
-                -- handle the packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
-                    smem.q.mq_comms.push_packet(packet)
+                    -- pass the packet onto the comms message queue
+                    smem.q.mq_comms_rx.push_packet(packet)
                 end
             elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
                 -- haven't heard from server recently? shutdown reactor
@@ -296,16 +293,16 @@ function thread__iss(smem)
 end
 
 -- communications handler thread
-function thread__comms(smem)
+function thread__comms_tx(smem)
     -- execute thread
     local exec = function ()
-        log._debug("comms thread start")
+        log._debug("comms tx thread start")
 
         -- load in from shared memory
         local plc_state   = smem.plc_state
         local plc_comms   = smem.plc_sys.plc_comms
 
-        local comms_queue = smem.q.mq_comms
+        local comms_queue = smem.q.mq_comms_tx
 
         local last_update = util.time()
 
@@ -326,8 +323,6 @@ function thread__comms(smem)
                     -- received data
                 elseif msg.qtype == mqueue.TYPE.PACKET then
                     -- received a packet
-                    -- handle the packet (plc_state passed to allow clearing SCRAM flag)
-                    plc_comms.handle_packet(msg.message, plc_state) 
                 end
 
                 -- quick yield
@@ -336,7 +331,55 @@ function thread__comms(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._warning("comms thread exiting")
+                log._warning("comms tx thread exiting")
+                break
+            end
+
+            -- delay before next check
+            last_update = util.adaptive_delay(COMMS_SLEEP, last_update)
+        end
+    end
+
+    return { exec = exec }
+end
+
+function thread__comms_rx(smem)
+    -- execute thread
+    local exec = function ()
+        log._debug("comms rx thread start")
+
+        -- load in from shared memory
+        local plc_state     = smem.plc_state
+        local plc_comms     = smem.plc_sys.plc_comms
+        local conn_watchdog = smem.plc_sys.conn_watchdog
+
+        local comms_queue   = smem.q.mq_comms_rx
+
+        local last_update   = util.time()
+
+        -- thread loop
+        while true do
+            -- check for messages in the message queue
+            while comms_queue.ready() and not plc_state.shutdown do
+                local msg = comms_queue.pop()
+
+                if msg.qtype == mqueue.TYPE.COMMAND then
+                    -- received a command
+                elseif msg.qtype == mqueue.TYPE.DATA then
+                    -- received data
+                elseif msg.qtype == mqueue.TYPE.PACKET then
+                    -- received a packet
+                    -- handle the packet (plc_state passed to allow clearing SCRAM flag)
+                    plc_comms.handle_packet(msg.message, plc_state, conn_watchdog)
+                end
+
+                -- quick yield
+                util.nop()
+            end
+
+            -- check for termination request
+            if plc_state.shutdown then
+                log._warning("comms rx thread exiting")
                 break
             end
 

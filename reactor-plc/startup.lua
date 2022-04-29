@@ -12,7 +12,7 @@ os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 os.loadAPI("threads.lua")
 
-local R_PLC_VERSION = "alpha-v0.4.6"
+local R_PLC_VERSION = "alpha-v0.4.7"
 
 local print = util.print
 local println = util.println
@@ -58,7 +58,8 @@ local __shared_memory = {
     -- message queues
     q = {
         mq_iss = mqueue.new(),
-        mq_comms = mqueue.new()
+        mq_comms_tx = mqueue.new(),
+        mq_comms_rx = mqueue.new()
     }
 }
 
@@ -126,12 +127,16 @@ init()
 -- init threads
 local main_thread  = threads.thread__main(__shared_memory, init)
 local iss_thread   = threads.thread__iss(__shared_memory)
-local comms_thread = threads.thread__comms(__shared_memory)
 
--- run threads
 if __shared_memory.networked then
-    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread.exec)
+    -- init comms threads
+    local comms_thread_tx = threads.thread__comms_tx(__shared_memory)
+    local comms_thread_rx = threads.thread__comms_rx(__shared_memory)
+
+    -- run threads
+    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec)
 else
+    -- run threads, excluding comms
     parallel.waitForAll(main_thread.exec, iss_thread.exec)
 end
 
