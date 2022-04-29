@@ -1,6 +1,7 @@
 -- #REQUIRES comms.lua
 -- #REQUIRES modbus.lua
 -- #REQUIRES mqueue.lua
+-- #REQUIRES util.lua
 -- #REQUIRES svsessions.lua
 
 local PROTOCOLS = comms.PROTOCOLS
@@ -10,6 +11,11 @@ local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
 
 local SESSION_TYPE = svsessions.SESSION_TYPE
+
+local print = util.print
+local println = util.println
+local print_ts = util.print_ts
+local println_ts = util.println_ts
 
 -- supervisory controller communications
 function superv_comms(num_reactors, modem, dev_listen, coord_listen)
@@ -137,6 +143,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                                     _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
                                 else
                                     -- got an ID; assigned to a reactor successfully
+                                    println("connected to reactor " .. packet.data[1] .. " PLC (port " .. r_port .. ")")
                                     log._debug("PLC_LNK: allowed for device at " .. r_port)
                                     _send_plc_linking(r_port, { RPLC_LINKING.ALLOW })
                                 end

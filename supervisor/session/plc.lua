@@ -181,10 +181,8 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
-                    if self.last_rtt < 0 then
-                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time less than 0 (" .. self.last_rtt .. ")")
-                    elseif self.last_rtt > 1200 then
-                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 1.2s (" .. self.last_rtt .. ")")
+                    if self.last_rtt > 500 then
+                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. ")")
                     end
 
                     -- log._debug(log_header .. "RPLC RTT = ".. self.last_rtt .. "ms")

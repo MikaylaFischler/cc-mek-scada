@@ -70,7 +70,6 @@ function get_reactor_session(reactor)
 end
 
 function establish_plc_session(local_port, remote_port, for_reactor)
-    util.println(remote_port)
     if get_reactor_session(for_reactor) == nil then 
         local plc_s = {
             open = true,
