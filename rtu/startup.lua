@@ -19,7 +19,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.6"
+local RTU_VERSION = "alpha-v0.4.7"
 
 local print = util.print
 local println = util.println
@@ -53,6 +53,7 @@ local __shared_memory = {
     -- system objects
     rtu_sys = {
         rtu_comms = nil,
+        conn_watchdog = nil,
         units = {}
     },
 
@@ -202,6 +203,10 @@ end
 -- init threads
 local main_thread  = threads.thread__main(__shared_memory)
 local comms_thread = threads.thread__comms(__shared_memory)
+
+-- start connection watchdog
+smem_sys.conn_watchdog = util.new_watchdog(5)
+log._debug("init> conn watchdog started")
 
 -- run threads
 parallel.waitForAll(main_thread.exec, comms_thread.exec)

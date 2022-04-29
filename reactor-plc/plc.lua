@@ -457,11 +457,9 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                                 send_status(plc_state.degraded)
                                 log._debug("re-sent initial status data")
                             elseif link_ack == RPLC_LINKING.DENY then
-                                -- @todo: make sure this doesn't become a MITM security risk
                                 println_ts("received unsolicited link denial, unlinking")
                                 log._debug("unsolicited RPLC link request denied")
                             elseif link_ack == RPLC_LINKING.COLLISION then
-                                -- @todo: make sure this doesn't become a MITM security risk
                                 println_ts("received unsolicited link collision, unlinking")
                                 log._warning("unsolicited RPLC link request collision")
                             else
@@ -562,7 +560,11 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     local is_scrammed = function () return self.scrammed end
     local is_linked = function () return self.linked end
-    local unlink = function () self.linked = false end
+
+    local unlink = function ()
+        self.linked = false
+        self.r_seq_num = nil
+    end
 
     return {
         reconnect_modem = reconnect_modem,

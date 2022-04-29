@@ -120,6 +120,7 @@ end
 function rtu_comms(modem, local_port, server_port)
     local self = {
         seq_num = 0,
+        r_seq_num = nil,
         txn_id = 0,
         modem = modem,
         s_port = server_port,
@@ -193,8 +194,23 @@ function rtu_comms(modem, local_port, server_port)
     end
 
     -- handle a MODBUS/SCADA packet
-    local handle_packet = function(packet, units, rtu_state)
+    local handle_packet = function(packet, units, rtu_state, conn_watchdog)
         if packet ~= nil then
+            local seq_ok = true
+
+            -- check sequence number
+            if self.r_seq_num == nil then
+                self.r_seq_num = packet.scada_frame.seq_num()
+            elseif rtu_state.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
+                log._warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                return
+            else
+                self.r_seq_num = packet.scada_frame.seq_num()
+            end
+
+            -- feed watchdog on valid sequence number
+            conn_watchdog.feed()
+
             local protocol = packet.scada_frame.protocol()
 
             if protocol == PROTOCOLS.MODBUS_TCP then
@@ -220,6 +236,7 @@ function rtu_comms(modem, local_port, server_port)
                 if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
                     -- acknowledgement
                     rtu_state.linked = true
+                    self.r_seq_num = nil
                 elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                     -- request for capabilities again
                     send_advertisement(units)
@@ -279,11 +296,17 @@ function rtu_comms(modem, local_port, server_port)
         _send(SCADA_MGMT_TYPES.RTU_HEARTBEAT, {})
     end
 
+    local unlink = function (rtu_state)
+        rtu_state.linked = false
+        self.r_seq_num = nil
+    end
+
     return {
         reconnect_modem = reconnect_modem,
         parse_packet = parse_packet,
         handle_packet = handle_packet,
         send_advertisement = send_advertisement,
-        send_heartbeat = send_heartbeat
+        send_heartbeat = send_heartbeat,
+        unlink = unlink
     }
 end

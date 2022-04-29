@@ -23,16 +23,38 @@ function thread__main(smem)
         local loop_clock = os.startTimer(MAIN_CLOCK)
 
         -- load in from shared memory
-        local rtu_state = smem.rtu_state
-        local rtu_dev   = smem.rtu_dev
-        local rtu_comms = smem.rtu_sys.rtu_comms
-        local units     = smem.rtu_sys.units
+        local rtu_state     = smem.rtu_state
+        local rtu_dev       = smem.rtu_dev
+        local rtu_comms     = smem.rtu_sys.rtu_comms
+        local conn_watchdog = smem.rtu_sys.conn_watchdog
+        local units         = smem.rtu_sys.units
 
         -- event loop
         while true do
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
-            if event == "peripheral_detach" then
+            if event == "timer" and param1 == loop_clock then
+                -- start next clock timer
+                loop_clock = os.startTimer(MAIN_CLOCK)
+
+                -- period tick, if we are linked send heartbeat, if not send advertisement
+                if rtu_state.linked then
+                    rtu_comms.send_heartbeat()
+                else
+                    -- advertise units
+                    rtu_comms.send_advertisement(units)
+                end
+            elseif event == "modem_message" then
+                -- got a packet
+                local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
+                if packet ~= nil then
+                    -- pass the packet onto the comms message queue
+                    smem.q.mq_comms.push_packet(packet)
+                end
+            elseif event == "timer" and param1 == conn_watchdog.get_timer() then
+                -- haven't heard from server recently? unlink
+                rtu_comms.unlink(rtu_state)
+            elseif event == "peripheral_detach" then
                 -- handle loss of a device
                 local device = ppm.handle_unmount(param1)
 
@@ -94,23 +116,6 @@ function thread__main(smem)
                         end
                     end
                 end
-            elseif event == "timer" and param1 == loop_clock then
-                -- start next clock timer
-                loop_clock = os.startTimer(MAIN_CLOCK)
-
-                -- period tick, if we are linked send heartbeat, if not send advertisement
-                if rtu_state.linked then
-                    rtu_comms.send_heartbeat()
-                else
-                    -- advertise units
-                    rtu_comms.send_advertisement(units)
-                end
-            elseif event == "modem_message" then
-                -- got a packet
-                local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
-                if packet ~= nil then
-                    smem.q.mq_comms.push_packet(packet)
-                end
             end
 
             -- check for termination request
@@ -132,13 +137,14 @@ function thread__comms(smem)
         log._debug("comms thread start")
 
         -- load in from shared memory
-        local rtu_state   = smem.rtu_state
-        local rtu_comms   = smem.rtu_sys.rtu_comms
-        local units       = smem.rtu_sys.units
+        local rtu_state     = smem.rtu_state
+        local rtu_comms     = smem.rtu_sys.rtu_comms
+        local conn_watchdog = smem.rtu_sys.conn_watchdog
+        local units         = smem.rtu_sys.units
 
-        local comms_queue = smem.q.mq_comms
+        local comms_queue   = smem.q.mq_comms
 
-        local last_update = util.time()
+        local last_update   = util.time()
 
         -- thread loop
         while true do
@@ -153,7 +159,8 @@ function thread__comms(smem)
                 elseif msg.qtype == mqueue.TYPE.PACKET then
                     -- received a packet
                     -- handle the packet (rtu_state passed to allow setting link flag)
-                    rtu_comms.handle_packet(msg.message, units, rtu_state) 
+                    --                   (conn_watchdog passed to allow feeding watchdog)
+                    rtu_comms.handle_packet(msg.message, units, rtu_state, conn_watchdog)
                 end
 
                 -- quick yield
