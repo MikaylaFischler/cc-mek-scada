@@ -431,40 +431,48 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                 if self.linked then
                     if packet.type == RPLC_TYPES.KEEP_ALIVE then
                         -- keep alive request received, echo back
-                        local timestamp = packet.data[1]
-                        local trip_time = util.time() - timestamp
+                        if packet.length == 1 then
+                            local timestamp = packet.data[1]
+                            local trip_time = util.time() - timestamp
 
-                        if trip_time > 500 then
-                            log._warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
+                            if trip_time > 500 then
+                                log._warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
+                            end
+
+                            -- log._debug("RPLC RTT = ".. trip_time .. "ms")
+
+                            _send_keep_alive_ack(timestamp)
+                        else
+                            log._debug(log_header .. "RPLC keep alive packet length mismatch")
                         end
-
-                        -- log._debug("RPLC RTT = ".. trip_time .. "ms")
-
-                        _send_keep_alive_ack(timestamp)
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
-                        log._debug("received unsolicited link request response")
+                        if packet.length == 1 then
+                            log._debug("received unsolicited link request response")
 
-                        local link_ack = packet.data[1]
-                        
-                        if link_ack == RPLC_LINKING.ALLOW then
-                            _send_struct()
-                            send_status(plc_state.degraded)
-                            log._debug("re-sent initial status data")
-                        elseif link_ack == RPLC_LINKING.DENY then
-                            -- @todo: make sure this doesn't become a MITM security risk
-                            println_ts("received unsolicited link denial, unlinking")
-                            log._debug("unsolicited RPLC link request denied")
-                        elseif link_ack == RPLC_LINKING.COLLISION then
-                            -- @todo: make sure this doesn't become a MITM security risk
-                            println_ts("received unsolicited link collision, unlinking")
-                            log._warning("unsolicited RPLC link request collision")
+                            local link_ack = packet.data[1]
+
+                            if link_ack == RPLC_LINKING.ALLOW then
+                                _send_struct()
+                                send_status(plc_state.degraded)
+                                log._debug("re-sent initial status data")
+                            elseif link_ack == RPLC_LINKING.DENY then
+                                -- @todo: make sure this doesn't become a MITM security risk
+                                println_ts("received unsolicited link denial, unlinking")
+                                log._debug("unsolicited RPLC link request denied")
+                            elseif link_ack == RPLC_LINKING.COLLISION then
+                                -- @todo: make sure this doesn't become a MITM security risk
+                                println_ts("received unsolicited link collision, unlinking")
+                                log._warning("unsolicited RPLC link request collision")
+                            else
+                                println_ts("invalid unsolicited link response")
+                                log._error("unsolicited unknown RPLC link request response")
+                            end
+
+                            self.linked = link_ack == RPLC_LINKING.ALLOW
                         else
-                            println_ts("invalid unsolicited link response")
-                            log._error("unsolicited unknown RPLC link request response")
+                            log._debug(log_header .. "RPLC link req packet length mismatch")
                         end
-
-                        self.linked = link_ack == RPLC_LINKING.ALLOW
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
@@ -482,25 +490,29 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         _send_ack(packet.type, self.reactor.__p_is_ok())
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
-                        local success = false
-                        local burn_rate = packet.data[1]
-                        local max_burn_rate = self.max_burn_rate
+                        if packet.length == 1 then
+                            local success = false
+                            local burn_rate = packet.data[1]
+                            local max_burn_rate = self.max_burn_rate
 
-                        -- if no known max burn rate, check again
-                        if max_burn_rate == nil then
-                            max_burn_rate = self.reactor.getMaxBurnRate()
-                            self.max_burn_rate = max_burn_rate
-                        end
-
-                        -- if we know our max burn rate, update current burn rate if in range
-                        if max_burn_rate ~= ppm.ACCESS_FAULT then
-                            if burn_rate > 0 and burn_rate <= max_burn_rate then
-                                self.reactor.setBurnRate(burn_rate)
-                                success = self.reactor.__p_is_ok()
+                            -- if no known max burn rate, check again
+                            if max_burn_rate == nil then
+                                max_burn_rate = self.reactor.getMaxBurnRate()
+                                self.max_burn_rate = max_burn_rate
                             end
-                        end
 
-                        _send_ack(packet.type, success)
+                            -- if we know our max burn rate, update current burn rate if in range
+                            if max_burn_rate ~= ppm.ACCESS_FAULT then
+                                if burn_rate > 0 and burn_rate <= max_burn_rate then
+                                    self.reactor.setBurnRate(burn_rate)
+                                    success = self.reactor.__p_is_ok()
+                                end
+                            end
+
+                            _send_ack(packet.type, success)
+                        else
+                            log._debug(log_header .. "RPLC set burn rate packet length mismatch")
+                        end
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
                         -- clear the ISS status
                         iss.reset()
@@ -510,31 +522,35 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     end
                 elseif packet.type == RPLC_TYPES.LINK_REQ then
                     -- link request confirmation
-                    local link_ack = packet.data[1]
-                    
-                    if link_ack == RPLC_LINKING.ALLOW then
-                        println_ts("linked!")
-                        log._debug("RPLC link request approved")
+                    if packet.length == 1 then
+                        local link_ack = packet.data[1]
 
-                        -- reset remote sequence number
-                        self.r_seq_num = nil
+                        if link_ack == RPLC_LINKING.ALLOW then
+                            println_ts("linked!")
+                            log._debug("RPLC link request approved")
 
-                        _send_struct()
-                        send_status(plc_state.degraded)
+                            -- reset remote sequence number
+                            self.r_seq_num = nil
 
-                        log._debug("sent initial status data")
-                    elseif link_ack == RPLC_LINKING.DENY then
-                        println_ts("link request denied, retrying...")
-                        log._debug("RPLC link request denied")
-                    elseif link_ack == RPLC_LINKING.COLLISION then
-                        println_ts("reactor PLC ID collision (check config), retrying...")
-                        log._warning("RPLC link request collision")
+                            _send_struct()
+                            send_status(plc_state.degraded)
+
+                            log._debug("sent initial status data")
+                        elseif link_ack == RPLC_LINKING.DENY then
+                            println_ts("link request denied, retrying...")
+                            log._debug("RPLC link request denied")
+                        elseif link_ack == RPLC_LINKING.COLLISION then
+                            println_ts("reactor PLC ID collision (check config), retrying...")
+                            log._warning("RPLC link request collision")
+                        else
+                            println_ts("invalid link response, bad channel? retrying...")
+                            log._error("unknown RPLC link request response")
+                        end
+
+                        self.linked = link_ack == RPLC_LINKING.ALLOW
                     else
-                        println_ts("invalid link response, bad channel? retrying...")
-                        log._error("unknown RPLC link request response")
+                        log._debug(log_header .. "RPLC link req packet length mismatch")
                     end
-
-                    self.linked = link_ack == RPLC_LINKING.ALLOW
                 else
                     log._debug("discarding non-link packet before linked")
                 end

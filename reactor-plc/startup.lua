@@ -12,7 +12,7 @@ os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 os.loadAPI("threads.lua")
 
-local R_PLC_VERSION = "alpha-v0.4.7"
+local R_PLC_VERSION = "alpha-v0.4.8"
 
 local print = util.print
 local println = util.println
