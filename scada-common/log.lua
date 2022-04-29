@@ -5,10 +5,16 @@
 -- we use extra short abbreviations since computer craft screens are very small
 -- underscores are used since some of these names are used elsewhere (e.g. 'debug' is a lua table)
 
-local LOG_DEBUG = true
-local LOG_PATH = "/log.txt"
+MODE = {
+    APPEND = 0,
+    NEW = 1
+}
 
-local file_handle = fs.open(LOG_PATH, "a")
+local LOG_DEBUG = true
+
+local log_path = "/log.txt"
+local mode = MODE.APPEND
+local file_handle = nil
 
 local _log = function (msg)
     local stamped = os.date("[%c] ") .. msg
@@ -20,7 +26,7 @@ local _log = function (msg)
     end)
 
     -- if we don't have much space, we need to create a new log file
-    local delete_log = fs.getFreeSpace(LOG_PATH) < 100
+    local delete_log = fs.getFreeSpace(log_path) < 100
 
     if not status then
         if result == "Out of space" then
@@ -33,14 +39,25 @@ local _log = function (msg)
     if delete_log then
         -- delete the old log file and open a new one
         file_handle.close()
-        fs.delete(LOG_PATH)
-        file_handle = fs.open(LOG_PATH, "a")
+        fs.delete(log_path)
+        init(log_path, mode)
 
         -- leave a message
         local notif = os.date("[%c] ") .. "recycled log file"
         file_handle.writeLine(notif)
         file_handle.writeLine(stamped)
         file_handle.flush()
+    end
+end
+
+function init(path, write_mode)
+    log_path = path
+    mode = write_mode
+
+    if mode == MODE.APPEND then
+        file_handle = fs.open(path, "a")
+    else
+        file_handle = fs.open(path, "w+")
     end
 end
 

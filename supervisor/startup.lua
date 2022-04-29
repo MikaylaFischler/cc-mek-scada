@@ -18,12 +18,14 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.8"
+local SUPERVISOR_VERSION = "alpha-v0.1.9"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+log.init("/log.txt", log.MODE.APPEND)
 
 log._info("========================================")
 log._info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)

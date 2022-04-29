@@ -19,12 +19,14 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.8"
+local RTU_VERSION = "alpha-v0.4.9"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+log.init("/log.txt", log.MODE.APPEND)
 
 log._info("========================================")
 log._info("BOOTING rtu.startup " .. RTU_VERSION)
