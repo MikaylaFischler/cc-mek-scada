@@ -25,7 +25,7 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-log.init("/log.txt", log.MODE.APPEND)
+log.init(config.LOG_PATH, config.LOG_MODE)
 
 log._info("========================================")
 log._info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)

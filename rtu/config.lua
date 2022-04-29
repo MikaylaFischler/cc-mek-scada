@@ -4,6 +4,12 @@
 SERVER_PORT = 16000
 -- port to listen to incoming packets FROM server
 LISTEN_PORT = 15001
+-- log path
+LOG_PATH = "/log.txt"
+-- log mode
+--  0 = APPEND (adds to existing file on start)
+--  1 = NEW (replaces existing file on start)
+LOG_MODE = 0
 -- RTU peripheral devices (named: side/network device name)
 RTU_DEVICES = {
     {
