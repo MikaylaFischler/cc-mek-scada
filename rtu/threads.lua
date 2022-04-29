@@ -121,7 +121,7 @@ function thread__main(smem)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 rtu_state.shutdown = true
-                log._warning("terminate requested, main thread exiting")
+                log._info("terminate requested, main thread exiting")
                 break
             end
         end
@@ -169,7 +169,7 @@ function thread__comms(smem)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log._warning("comms thread exiting")
+                log._info("comms thread exiting")
                 break
             end
 
@@ -218,7 +218,7 @@ function thread__unit_comms(smem, unit)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log._warning("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
+                log._info("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
                 break
             end
 

@@ -100,7 +100,7 @@ while true do
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
-        log._warning("terminate requested, exiting...")
+        log._info("terminate requested, exiting...")
         break
     end
 end

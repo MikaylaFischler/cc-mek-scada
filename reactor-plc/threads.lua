@@ -168,7 +168,7 @@ function thread__main(smem, init)
             if event == "terminate" or ppm.should_terminate() then
                 -- iss handles reactor shutdown
                 plc_state.shutdown = true
-                log._warning("terminate requested, main thread exiting")
+                log._info("terminate requested, main thread exiting")
                 break
             end
         end
@@ -267,7 +267,7 @@ function thread__iss(smem)
             -- check for termination request
             if plc_state.shutdown then
                 -- safe exit
-                log._warning("iss thread shutdown initiated")
+                log._info("iss thread shutdown initiated")
                 if plc_state.init_ok then
                     plc_state.scram = true
                     reactor.scram()
@@ -280,7 +280,7 @@ function thread__iss(smem)
                         log._error("iss thread failed to SCRAM reactor on exit")
                     end
                 end
-                log._warning("iss thread exiting")
+                log._info("iss thread exiting")
                 break
             end
 
@@ -331,7 +331,7 @@ function thread__comms_tx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._warning("comms tx thread exiting")
+                log._info("comms tx thread exiting")
                 break
             end
 
@@ -379,7 +379,7 @@ function thread__comms_rx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._warning("comms rx thread exiting")
+                log._info("comms rx thread exiting")
                 break
             end
 
