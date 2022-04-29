@@ -92,7 +92,7 @@ function thread__main(smem, init)
                     -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
                 elseif networked and device.type == "modem" then
                     -- we only care if this is our wireless modem
-                    if device.dev == modem then
+                    if device.dev == plc_dev.modem then
                         println_ts("wireless modem disconnected!")
                         log._error("comms modem disconnected!")
                         plc_state.no_modem = true
