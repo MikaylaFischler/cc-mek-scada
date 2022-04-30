@@ -420,8 +420,20 @@ function thread__setpoint_control(smem)
 
             -- check if we should start ramping
             if setpoints.burn_rate ~= last_sp_burn then
-                last_sp_burn = setpoints.burn_rate
-                running = true
+                if not plc_state.scram then
+                    if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
+                        -- update without ramp if <= 5 mB/t change
+                        log._debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
+                        reactor.setBurnRate(setpoints.burn_rate)
+                    else
+                        log._debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
+                        running = true
+                    end
+
+                    last_sp_burn = setpoints.burn_rate
+                else
+                    last_sp_burn = 0
+                end
             end
 
             -- only check I/O if active to save on processing time
@@ -459,6 +471,8 @@ function thread__setpoint_control(smem)
 
                         running = running or (new_burn_rate ~= setpoints.burn_rate)
                     end
+                else
+                    last_sp_burn = 0
                 end
             end
 
