@@ -12,7 +12,7 @@ os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 os.loadAPI("threads.lua")
 
-local R_PLC_VERSION = "alpha-v0.4.11"
+local R_PLC_VERSION = "alpha-v0.4.12"
 
 local print = util.print
 local println = util.println
@@ -42,6 +42,10 @@ local __shared_memory = {
         degraded = false,
         no_reactor = false,
         no_modem = false
+    },
+
+    setpoints = {
+        burn_rate = 0.0
     },
     
     -- core PLC devices
@@ -135,8 +139,11 @@ if __shared_memory.networked then
     local comms_thread_tx = threads.thread__comms_tx(__shared_memory)
     local comms_thread_rx = threads.thread__comms_rx(__shared_memory)
 
+    -- setpoint control only needed when networked
+    local sp_ctrl_thread = threads.thread__setpoint_control(__shared_memory)
+
     -- run threads
-    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec)
+    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec, sp_ctrl_thread.exec)
 else
     -- run threads, excluding comms
     parallel.waitForAll(main_thread.exec, iss_thread.exec)

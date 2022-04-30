@@ -357,12 +357,12 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         end
 
         local sys_status = {
-            util.time(),
-            (not self.scrammed),
-            iss.is_tripped(),
-            degraded,
-            self.reactor.getHeatingRate(),
-            mek_data
+            util.time(),                    -- timestamp
+            (not self.scrammed),            -- enabled
+            iss.is_tripped(),               -- overridden
+            degraded,                       -- degraded
+            self.reactor.getHeatingRate(),  -- heating rate
+            mek_data                        -- mekanism status data
         }
 
         _send(RPLC_TYPES.STATUS, sys_status)
@@ -411,7 +411,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     end
 
     -- handle an RPLC packet
-    local handle_packet = function (packet, plc_state, conn_watchdog)
+    local handle_packet = function (packet, plc_state, setpoints, conn_watchdog)
         if packet ~= nil then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -499,11 +499,11 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                                 self.max_burn_rate = max_burn_rate
                             end
 
-                            -- if we know our max burn rate, update current burn rate if in range
+                            -- if we know our max burn rate, update current burn rate setpoint if in range
                             if max_burn_rate ~= ppm.ACCESS_FAULT then
                                 if burn_rate > 0 and burn_rate <= max_burn_rate then
-                                    self.reactor.setBurnRate(burn_rate)
-                                    success = self.reactor.__p_is_ok()
+                                    setpoints.burn_rate = burn_rate
+                                    success = true
                                 end
                             end
 
