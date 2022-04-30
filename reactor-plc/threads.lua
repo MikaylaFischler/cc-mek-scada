@@ -483,7 +483,7 @@ function thread__setpoint_control(smem)
             end
 
             -- delay before next check
-            last_update = util.adaptive_delay(SETPOINT_CTRL_SLEEP, last_update)
+            last_update = util.adaptive_delay(SP_CTRL_SLEEP, last_update)
         end
     end
 
