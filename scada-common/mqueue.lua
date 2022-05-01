@@ -31,8 +31,8 @@ function new()
         _push(TYPE.COMMAND, message)
     end
 
-    local push_data = function (message)
-        _push(TYPE.DATA, message)
+    local push_data = function (key, value)
+        _push(TYPE.DATA, { key = key, val = value })
     end
 
     local push_packet = function (message)
