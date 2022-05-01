@@ -6,10 +6,15 @@
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 
-PLC_S_COMMANDS = {
+-- retry time constants in ms
+local INITIAL_WAIT = 1500
+local RETRY_PERIOD = 1000
+
+PLC_S_CMDS = {
     SCRAM = 0,
     ENABLE = 1,
-    ISS_CLEAR = 2
+    BURN_RATE = 2,
+    ISS_CLEAR = 3
 }
 
 local PERIODICS = {
@@ -26,6 +31,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         in_q = in_queue,
         out_q = out_queue,
         commanded_state = false,
+        commanded_burn_rate = 0.0,
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -33,15 +39,25 @@ function new_session(id, for_reactor, in_queue, out_queue)
         received_struct = false,
         plc_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
-        -- when to next retry one of these requests
+        -- periodic messages
         periodics = {
             last_update = 0,
             keep_alive = 0
         },
+        -- when to next retry one of these requests
         retry_times = {
-            struct_req = 0,
+            struct_req = 500,
             scram_req = 0,
-            enable_req = 0
+            enable_req = 0,
+            burn_rate_req = 0,
+            iss_clear_req = 0
+        },
+        -- command acknowledgements
+        acks = {
+            scram = true,
+            enable = true,
+            burn_rate = true,
+            iss_clear = true
         },
         -- session database
         sDB = {
@@ -110,6 +126,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
     end
 
     local _copy_status = function (mek_data)
+        -- copy status information
         self.sDB.mek_status.status        = mek_data[1]
         self.sDB.mek_status.burn_rate     = mek_data[2]
         self.sDB.mek_status.act_burn_rate = mek_data[3]
@@ -118,6 +135,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.mek_status.boil_eff      = mek_data[6]
         self.sDB.mek_status.env_loss      = mek_data[7]
 
+        -- copy container information
         self.sDB.mek_status.fuel          = mek_data[8]
         self.sDB.mek_status.fuel_fill     = mek_data[9]
         self.sDB.mek_status.waste         = mek_data[10]
@@ -128,6 +146,14 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.mek_status.hcool_type    = mek_data[15]
         self.sDB.mek_status.hcool_amnt    = mek_data[16]
         self.sDB.mek_status.hcool_fill    = mek_data[17]
+
+        -- update computable fields if we have our structure
+        if self.received_struct then
+            self.sDB.mek_status.fuel_need  = self.sDB.mek_struct.fuel_cap  - self.sDB.mek_status.fuel_fill
+            self.sDB.mek_status.waste_need = self.sDB.mek_struct.waste_cap - self.sDB.mek_status.waste_fill
+            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.cool_cap  - self.sDB.mek_status.cool_fill
+            self.sDB.mek_status.hcool_need = self.sDB.mek_struct.hcool_cap - self.sDB.mek_status.hcool_fill
+        end
     end
 
     local _copy_struct = function (mek_data)
@@ -231,22 +257,26 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 -- SCRAM acknowledgement
                 local ack = _get_ack(rplc_pkt)
                 if ack then
+                    self.acks.scram = true
                     self.sDB.control_state = false
                 elseif ack == false then
-                    log._warning(log_header .. "SCRAM failed!")
+                    log._debug(log_header .. "SCRAM failed!")
                 end
             elseif rplc_pkt.type == RPLC_TYPES.MEK_ENABLE then
                 -- enable acknowledgement
                 local ack = _get_ack(rplc_pkt)
                 if ack then
+                    self.acks.enable = true
                     self.sDB.control_state = true
                 elseif ack == false then
-                    log._warning(log_header .. "enable failed!")
+                    log._debug(log_header .. "enable failed!")
                 end
             elseif rplc_pkt.type == RPLC_TYPES.MEK_BURN_RATE then
                 -- burn rate acknowledgement
-                if _get_ack(rplc_pkt) == false then
-                    log._warning(log_header .. "burn rate update failed!")
+                if _get_ack(rplc_pkt) then
+                    self.acks.burn_rate = true
+                else
+                    log._debug(log_header .. "burn rate update failed!")
                 end
             elseif rplc_pkt.type == RPLC_TYPES.ISS_STATUS then
                 -- ISS status packet received, copy data
@@ -279,11 +309,12 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif rplc_pkt.type == RPLC_TYPES.ISS_CLEAR then
                 -- ISS clear acknowledgement
-                if _get_ack(rplc_pkt) == false then
-                    log._warning(log_header .. "ISS clear failed")
-                else
+                if _get_ack(rplc_pkt) then
+                    self.acks.iss_tripped = true
                     self.sDB.iss_tripped = false
                     self.sDB.iss_trip_cause = "ok"
+                else
+                    log._debug(log_header .. "ISS clear failed")
                 end
             else
                 log._debug(log_header .. "handler received unsupported RPLC packet type " .. rplc_pkt.type)
@@ -318,7 +349,6 @@ function new_session(id, for_reactor, in_queue, out_queue)
         if self.received_struct then
             return self.sDB.mek_struct
         else
-            -- @todo: need a system in place to re-request this periodically
             return nil
         end
     end
@@ -340,7 +370,33 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     _handle_packet(message.message)
                 elseif message.qtype == mqueue.TYPE.COMMAND then
                     -- handle instruction
-
+                    local cmd = message.message
+                    if cmd == PLC_S_CMDS.SCRAM then
+                        -- SCRAM reactor
+                        self.acks.scram = false
+                        self.retry_times.scram_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.MEK_SCRAM, {})
+                    elseif cmd == PLC_S_CMDS.ENABLE then
+                        -- enable reactor
+                        self.acks.enable = false
+                        self.retry_times.enable_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.MEK_ENABLE, {})
+                    elseif cmd == PLC_S_CMDS.ISS_CLEAR then
+                        -- clear ISS
+                        self.acks.iss_clear = false
+                        self.retry_times.iss_clear_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.ISS_CLEAR, {})
+                    end
+                elseif message.qtype == mqueue.TYPE.DATA then
+                    -- instruction with body
+                    local cmd = message.message
+                    if cmd.key == PLC_S_CMDS.BURN_RATE then
+                        -- update burn rate
+                        self.commanded_burn_rate = cmd.val
+                        self.acks.burn_rate = false
+                        self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate })
+                    end
                 end
 
                 -- max 100ms spent processing queue
@@ -354,16 +410,70 @@ function new_session(id, for_reactor, in_queue, out_queue)
             -- update periodics --
             ----------------------
 
-            local elapsed = os.clock() - self.periodics.last_update
+            local elapsed = util.time() - self.periodics.last_update
 
-            self.periodics.keep_alive = self.periodics.keep_alive + elapsed
+            local periodics = self.periodics
 
-            if self.periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
+            -- keep alive
+
+            periodics.keep_alive = periodics.keep_alive + elapsed
+            if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
                 _send(RPLC_TYPES.KEEP_ALIVE, { util.time() })
-                self.periodics.keep_alive = 0
+                periodics.keep_alive = 0
             end
 
-            self.periodics.last_update = os.clock()
+            self.periodics.last_update = util.time()
+
+            ---------------------
+            -- attempt retries --
+            ---------------------
+
+            local rtimes = self.rtimes
+
+            -- struct request retry
+
+            if not self.received_struct then
+                if rtimes.struct_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.LINK_REQ, {})
+                    rtimes.struct_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- SCRAM request retry
+
+            if not self.acks.scram then
+                if rtimes.scram_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.MEK_SCRAM, {})
+                    rtimes.scram_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- enable request retry
+
+            if not self.acks.enable then
+                if rtimes.enable_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.MEK_ENABLE, {})
+                    rtimes.enable_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- burn rate request retry
+
+            if not self.acks.burn_rate then
+                if rtimes.burn_rate_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate })
+                    rtimes.burn_rate_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- ISS clear request retry
+
+            if not self.acks.iss_clear then
+                if rtimes.iss_clear_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.ISS_CLEAR, {})
+                    rtimes.iss_clear_req = util.time() + RETRY_PERIOD
+                end
+            end
         end
 
         return self.connected

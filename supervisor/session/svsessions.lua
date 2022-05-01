@@ -128,7 +128,6 @@ local function _iterate(sessions)
             local ok = session.instance.iterate()
             if ok then
                 -- send packets in out queue
-                -- @todo handle commands if that's being used too
                 while session.out_queue.ready() do
                     local msg = session.out_queue.pop()
                     if msg.qtype == mqueue.TYPE.PACKET then
