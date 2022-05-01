@@ -147,7 +147,7 @@ function iss_init(reactor)
         elseif self.cache[5] then
             log._warning("ISS: no fuel!")
             status = "no_fuel"
-        elseif self.timed_out then
+        elseif self.cache[7] then
             log._warning("ISS: supervisor connection timeout!")
             status = "timeout"
         else
@@ -368,14 +368,16 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         _send(RPLC_TYPES.STATUS, sys_status)
     end
 
+    -- send safety system status
     local send_iss_status = function ()
         _send(RPLC_TYPES.ISS_STATUS, iss.status())
     end
 
+    -- send safety system alarm
     local send_iss_alarm = function (cause)
         local iss_alarm = {
             cause,
-            iss.status()
+            table.unpack(iss.status())
         }
 
         _send(RPLC_TYPES.ISS_ALARM, iss_alarm)

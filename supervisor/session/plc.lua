@@ -49,6 +49,8 @@ function new_session(id, for_reactor, in_queue, out_queue)
             control_state = false,
             overridden = false,
             degraded = false,
+            iss_tripped = false,
+            iss_trip_cause = "ok",
             iss_status = {
                 dmg_crit = false,
                 ex_hcool = false,
@@ -262,13 +264,15 @@ function new_session(id, for_reactor, in_queue, out_queue)
             elseif rplc_pkt.type == RPLC_TYPES.ISS_ALARM then
                 -- ISS alarm
                 self.sDB.overridden = true
-                if rplc_pkt.length == 7 then
-                    local status = pcall(_copy_iss_status, rplc_pkt.data)
+                if rplc_pkt.length == 8 then
+                    self.sDB.iss_tripped = true
+                    self.sDB.iss_trip_cause = rplc_pkt.data[1]
+                    local status = pcall(_copy_iss_status, { table.unpack(rplc_pkt.data, 2, #rplc_pkt.length) })
                     if status then
                         -- copied in ISS status data OK
                     else
                         -- error copying ISS status data
-                        log._error(log_header .. "failed to parse ISS status packet data")
+                        log._error(log_header .. "failed to parse ISS alarm status data")
                     end
                 else
                     log._debug(log_header .. "RPLC ISS alarm packet length mismatch")
@@ -277,6 +281,9 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 -- ISS clear acknowledgement
                 if _get_ack(rplc_pkt) == false then
                     log._warning(log_header .. "ISS clear failed")
+                else
+                    self.sDB.iss_tripped = false
+                    self.sDB.iss_trip_cause = "ok"
                 end
             else
                 log._debug(log_header .. "handler received unsupported RPLC packet type " .. rplc_pkt.type)

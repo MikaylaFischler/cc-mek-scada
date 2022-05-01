@@ -131,8 +131,8 @@ end
 init()
 
 -- init threads
-local main_thread  = threads.thread__main(__shared_memory, init)
-local iss_thread   = threads.thread__iss(__shared_memory)
+local main_thread = threads.thread__main(__shared_memory, init)
+local iss_thread  = threads.thread__iss(__shared_memory)
 
 if __shared_memory.networked then
     -- init comms threads
