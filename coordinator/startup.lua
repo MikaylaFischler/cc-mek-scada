@@ -22,7 +22,7 @@ log.init("/log.txt", log.MODE.APPEND)
 log._info("========================================")
 log._info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
 log._info("========================================")
-println(">> RTU " .. COORDINATOR_VERSION .. " <<")
+println(">> SCADA Coordinator " .. COORDINATOR_VERSION .. " <<")
 
 -- mount connected devices
 ppm.mount_all()
