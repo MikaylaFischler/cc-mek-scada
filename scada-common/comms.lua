@@ -303,7 +303,7 @@ function mgmt_packet()
     -- check that type is known
     local _scada_type_valid = function ()
         return self.type == SCADA_MGMT_TYPES.PING or
-                self.type == SCADA_MGMT_TYPES.SV_HEARTBEAT or
+                self.type == SCADA_MGMT_TYPES.CLOSE or
                 self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
                 self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
                 self.type == SCADA_MGMT_TYPES.RTU_HEARTBEAT
@@ -329,7 +329,7 @@ function mgmt_packet()
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.SCADA_MGMT then
-                local ok = #data >= 1
+                local ok = frame.length() >= 1
     
                 if ok then
                     local data = frame.data()
@@ -408,7 +408,7 @@ function coord_packet()
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.COORD_DATA then
-                local ok = #data >= 1
+                local ok = frame.length() >= 1
 
                 if ok then
                     local data = frame.data()
@@ -487,7 +487,7 @@ function capi_packet()
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.COORD_API then
-                local ok = #data >= 1
+                local ok = frame.length() >= 1
 
                 if ok then
                     local data = frame.data()
