@@ -365,6 +365,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
     -- close the connection
     local close = function ()
+        self.plc_conn_watchdod.cancel()
         self.connected = false
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end

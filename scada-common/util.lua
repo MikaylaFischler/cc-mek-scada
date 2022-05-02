@@ -81,6 +81,12 @@ function new_watchdog(timeout)
         self._wd_timer = os.startTimer(self._timeout)
     end
 
+    local cancel = function ()
+        if self._wd_timer ~= nil then
+            os.cancelTimer(self._wd_timer)
+        end
+    end
+
     return {
         get_timer = get_timer,
         feed = feed
