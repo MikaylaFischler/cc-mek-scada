@@ -249,6 +249,10 @@ function rtu_comms(modem, local_port, server_port)
                 send_modbus(reply)
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
+                if packet.type == SCADA_MGMT_TYPES.CLOSE then
+                    -- close connection
+                    conn_watchdog.cancel()
+                    unlink(rtu_state)
                 if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
                     -- acknowledgement
                     rtu_state.linked = true
@@ -317,6 +321,11 @@ function rtu_comms(modem, local_port, server_port)
         self.r_seq_num = nil
     end
 
+    local close = function (rtu_state)
+        unlink(rtu_state)
+        _send(SCADA_MGMT_TYPES.CLOSE, {})
+    end
+
     return {
         send_modbus = send_modbus,
         reconnect_modem = reconnect_modem,
@@ -324,6 +333,7 @@ function rtu_comms(modem, local_port, server_port)
         handle_packet = handle_packet,
         send_advertisement = send_advertisement,
         send_heartbeat = send_heartbeat,
-        unlink = unlink
+        unlink = unlink,
+        close = close
     }
 end

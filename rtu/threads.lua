@@ -169,6 +169,7 @@ function thread__comms(smem)
 
             -- check for termination request
             if rtu_state.shutdown then
+                rtu_comms.close()
                 log._info("comms thread exiting")
                 break
             end
