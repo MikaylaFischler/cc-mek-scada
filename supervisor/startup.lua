@@ -18,7 +18,7 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.10"
+local SUPERVISOR_VERSION = "alpha-v0.1.11"
 
 local print = util.print
 local println = util.println
@@ -102,7 +102,10 @@ while true do
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
-        log._info("terminate requested, exiting...")
+        println_ts("closing sessions...")
+        log._info("terminate requested, closing sessions...")
+        svsessions.close_all()
+        log._info("sessions closed")
         break
     end
 end

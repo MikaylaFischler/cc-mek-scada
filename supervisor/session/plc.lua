@@ -167,6 +167,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.mek_struct.max_burn  = mek_data[8]
     end
 
+    -- get an ACK status
     local _get_ack = function (pkt)
         if pkt.length == 1 then
             return pkt.data[1]
@@ -176,36 +177,35 @@ function new_session(id, for_reactor, in_queue, out_queue)
         end
     end
 
-    local _handle_packet = function (rplc_pkt)
-        local checks_ok = true
-
+    -- handle a packet
+    local _handle_packet = function (pkt)
         -- check sequence number
         if self.r_seq_num == nil then
-            self.r_seq_num = rplc_pkt.scada_frame.seq_num()
-        elseif self.r_seq_num >= rplc_pkt.scada_frame.seq_num() then
-            log._warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. rplc_pkt.scada_frame.seq_num())
-            checks_ok = false
+            self.r_seq_num = pkt.scada_frame.seq_num()
+        elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
+            log._warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            return
         else
-            self.r_seq_num = rplc_pkt.scada_frame.seq_num()
-        end
-
-        -- check reactor ID
-        if rplc_pkt.id ~= for_reactor then
-            log._warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. rplc_pkt.id)
-            checks_ok = false
+            self.r_seq_num = pkt.scada_frame.seq_num()
         end
 
         -- process packet
-        if checks_ok then
+        if pkt.scada_frame.protocol() == PROTOCOLS.RPLC then
+            -- check reactor ID
+            if pkt.id ~= for_reactor then
+                log._warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. pkt.id)
+                return
+            end
+
             -- feed watchdog
             self.plc_conn_watchdog.feed()
 
             -- handle packet by type
-            if rplc_pkt.type == RPLC_TYPES.KEEP_ALIVE then
+            if pkt.type == RPLC_TYPES.KEEP_ALIVE then
                 -- keep alive reply
-                if rplc_pkt.length == 2 then
-                    local srv_start = rplc_pkt.data[1]
-                    local plc_send = rplc_pkt.data[2]
+                if pkt.length == 2 then
+                    local srv_start = pkt.data[1]
+                    local plc_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
@@ -218,18 +218,18 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 else
                     log._debug(log_header .. "RPLC keep alive packet length mismatch")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.STATUS then
+            elseif pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
-                if rplc_pkt.length >= 5 then
-                    self.sDB.last_status_update = rplc_pkt.data[1]
-                    self.sDB.control_state = rplc_pkt.data[2]
-                    self.sDB.overridden = rplc_pkt.data[3]
-                    self.sDB.degraded = rplc_pkt.data[4]
-                    self.sDB.mek_status.heating_rate = rplc_pkt.data[5]
+                if pkt.length >= 5 then
+                    self.sDB.last_status_update = pkt.data[1]
+                    self.sDB.control_state = pkt.data[2]
+                    self.sDB.overridden = pkt.data[3]
+                    self.sDB.degraded = pkt.data[4]
+                    self.sDB.mek_status.heating_rate = pkt.data[5]
 
                     -- attempt to read mek_data table
-                    if rplc_pkt.data[6] ~= nil then
-                        local status = pcall(_copy_status, rplc_pkt.data[6])
+                    if pkt.data[6] ~= nil then
+                        local status = pcall(_copy_status, pkt.data[6])
                         if status then
                             -- copied in status data OK
                         else
@@ -240,10 +240,10 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 else
                     log._debug(log_header .. "RPLC status packet length mismatch")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.MEK_STRUCT then
+            elseif pkt.type == RPLC_TYPES.MEK_STRUCT then
                 -- received reactor structure, record it
-                if rplc_pkt.length == 8 then
-                    local status = pcall(_copy_struct, rplc_pkt.data)
+                if pkt.length == 8 then
+                    local status = pcall(_copy_struct, pkt.data)
                     if status then
                         -- copied in structure data OK
                     else
@@ -253,35 +253,36 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 else
                     log._debug(log_header .. "RPLC struct packet length mismatch")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.MEK_SCRAM then
+            elseif pkt.type == RPLC_TYPES.MEK_SCRAM then
                 -- SCRAM acknowledgement
-                local ack = _get_ack(rplc_pkt)
+                local ack = _get_ack(pkt)
                 if ack then
                     self.acks.scram = true
                     self.sDB.control_state = false
                 elseif ack == false then
                     log._debug(log_header .. "SCRAM failed!")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.MEK_ENABLE then
+            elseif pkt.type == RPLC_TYPES.MEK_ENABLE then
                 -- enable acknowledgement
-                local ack = _get_ack(rplc_pkt)
+                local ack = _get_ack(pkt)
                 if ack then
                     self.acks.enable = true
                     self.sDB.control_state = true
                 elseif ack == false then
                     log._debug(log_header .. "enable failed!")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.MEK_BURN_RATE then
+            elseif pkt.type == RPLC_TYPES.MEK_BURN_RATE then
                 -- burn rate acknowledgement
-                if _get_ack(rplc_pkt) then
+                local ack = _get_ack(pkt)
+                if ack then
                     self.acks.burn_rate = true
-                else
+                elseif ack == false then
                     log._debug(log_header .. "burn rate update failed!")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.ISS_STATUS then
+            elseif pkt.type == RPLC_TYPES.ISS_STATUS then
                 -- ISS status packet received, copy data
-                if rplc_pkt.length == 7 then
-                    local status = pcall(_copy_iss_status, rplc_pkt.data)
+                if pkt.length == 7 then
+                    local status = pcall(_copy_iss_status, pkt.data)
                     if status then
                         -- copied in ISS status data OK
                     else
@@ -291,13 +292,13 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 else
                     log._debug(log_header .. "RPLC ISS status packet length mismatch")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.ISS_ALARM then
+            elseif pkt.type == RPLC_TYPES.ISS_ALARM then
                 -- ISS alarm
                 self.sDB.overridden = true
-                if rplc_pkt.length == 8 then
+                if pkt.length == 8 then
                     self.sDB.iss_tripped = true
-                    self.sDB.iss_trip_cause = rplc_pkt.data[1]
-                    local status = pcall(_copy_iss_status, { table.unpack(rplc_pkt.data, 2, #rplc_pkt.length) })
+                    self.sDB.iss_trip_cause = pkt.data[1]
+                    local status = pcall(_copy_iss_status, { table.unpack(pkt.data, 2, #pkt.length) })
                     if status then
                         -- copied in ISS status data OK
                     else
@@ -307,21 +308,30 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 else
                     log._debug(log_header .. "RPLC ISS alarm packet length mismatch")
                 end
-            elseif rplc_pkt.type == RPLC_TYPES.ISS_CLEAR then
+            elseif pkt.type == RPLC_TYPES.ISS_CLEAR then
                 -- ISS clear acknowledgement
-                if _get_ack(rplc_pkt) then
+                local ack = _get_ack(pkt)
+                if ack then
                     self.acks.iss_tripped = true
                     self.sDB.iss_tripped = false
                     self.sDB.iss_trip_cause = "ok"
-                else
+                elseif ack == false then
                     log._debug(log_header .. "ISS clear failed")
                 end
             else
-                log._debug(log_header .. "handler received unsupported RPLC packet type " .. rplc_pkt.type)
+                log._debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
+            end
+        elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
+            if pkt.type == SCADA_MGMT_TYPES.CLOSE then
+                -- close the session
+                self.connected = false
+            else
+                log._debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         end
     end
 
+    -- send an RPLC packet
     local _send = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
@@ -333,18 +343,38 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.seq_num = self.seq_num + 1
     end
 
+    -- send a SCADA management packet
+    local _send_mgmt = function (msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local m_pkt = comms.mgmt_packet()
+
+        m_pkt.make(msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+
+        self.out_q.push_packet(s_pkt)
+        self.seq_num = self.seq_num + 1
+    end
+
     -- PUBLIC FUNCTIONS --
 
+    -- get the session ID
     local get_id = function () return self.id end
 
+    -- get the session database
     local get_db = function () return self.sDB end
 
-    local close = function () self.connected = false end
+    -- close the connection
+    local close = function ()
+        self.connected = false
+        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+    end
 
+    -- check if a timer matches this session's watchdog
     local check_wd = function (timer)
         return timer == self.plc_conn_watchdog.get_timer()
     end
 
+    -- get the reactor structure
     local get_struct = function ()
         if self.received_struct then
             return self.sDB.mek_struct
@@ -353,6 +383,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         end
     end
 
+    -- iterate the session
     local iterate = function ()
         if self.connected then
             ------------------
@@ -361,7 +392,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
             local handle_start = util.time()
 
-            while self.in_q.ready() do
+            while self.in_q.ready() and self.connected do
                 -- get a new message to process
                 local message = self.in_q.pop()
 
@@ -404,6 +435,12 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     log._warning(log_header .. "exceeded 100ms queue process limit")
                     break
                 end
+            end
+
+            -- exit if connection was closed
+            if not self.connected then
+                log._info(log_header .. "session closed by remote host")
+                return false
             end
 
             ----------------------

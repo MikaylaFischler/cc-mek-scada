@@ -117,11 +117,13 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
 
             -- device (RTU/PLC) listening channel
             if l_port == self.dev_listen then
+                -- look for an associated session
+                local session = svsessions.find_session(r_port)
+
                 if protocol == PROTOCOLS.MODBUS_TCP then
                     -- MODBUS response
                 elseif protocol == PROTOCOLS.RPLC then
                     -- reactor PLC packet
-                    local session = svsessions.find_session(SESSION_TYPE.PLC_SESSION, r_port)
                     if session then
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             -- new device on this port? that's a collision
@@ -158,6 +160,10 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
                     -- SCADA management packet
+                    if session then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    end
                 else
                     log._debug("illegal packet type " .. protocol .. " on device listening channel")
                 end

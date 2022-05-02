@@ -24,39 +24,33 @@ function link_modem(modem)
     self.modem = modem
 end
 
-function alloc_reactor_plcs(num_reactors)
-    self.num_reactors = num_reactors
-    for i = 1, num_reactors do
-        table.insert(self.plc_sessions, false)
+-- find a session by the remote port
+function find_session(,remote_port)
+    -- check RTU sessions
+    for i = 1, #self.rtu_sessions do
+        if self.rtu_sessions[i].r_port == remote_port then
+            return self.rtu_sessions[i]
+        end
     end
-end
 
-function find_session(stype, remote_port)
-    if stype == SESSION_TYPE.RTU_SESSION then
-        for i = 1, #self.rtu_sessions do
-            if self.rtu_sessions[i].r_port == remote_port then
-                return self.rtu_sessions[i]
-            end
+    -- check PLC sessions
+    for i = 1, #self.plc_sessions do
+        if self.plc_sessions[i].r_port == remote_port then
+            return self.plc_sessions[i]
         end
-    elseif stype == SESSION_TYPE.PLC_SESSION then
-        for i = 1, #self.plc_sessions do
-            if self.plc_sessions[i].r_port == remote_port then
-                return self.plc_sessions[i]
-            end
+    end
+
+    -- check coordinator sessions
+    for i = 1, #self.coord_sessions do
+        if self.coord_sessions[i].r_port == remote_port then
+            return self.coord_sessions[i]
         end
-    elseif stype == SESSION_TYPE.COORD_SESSION then
-        for i = 1, #self.coord_sessions do
-            if self.coord_sessions[i].r_port == remote_port then
-                return self.coord_sessions[i]
-            end
-        end
-    else
-        log._error("cannot search for unknown session type " .. stype, true)
     end
 
     return nil
 end
 
+-- get a session by reactor ID
 function get_reactor_session(reactor)
     local session = nil
 
@@ -69,6 +63,7 @@ function get_reactor_session(reactor)
     return session
 end
 
+-- establish a new PLC session
 function establish_plc_session(local_port, remote_port, for_reactor)
     if get_reactor_session(for_reactor) == nil then 
         local plc_s = {
@@ -96,6 +91,7 @@ function establish_plc_session(local_port, remote_port, for_reactor)
     end
 end
 
+-- check if a watchdog timer event matches that of one of the provided sessions
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
         local session = sessions[i]
@@ -110,6 +106,7 @@ local function _check_watchdogs(sessions, timer_event)
     end
 end
 
+-- attempt to identify which session's watchdog timer fired
 function check_all_watchdogs(timer_event)
     -- check RTU session watchdogs
     _check_watchdogs(self.rtu_sessions, timer_event)
@@ -121,6 +118,7 @@ function check_all_watchdogs(timer_event)
     _check_watchdogs(self.coord_sessions, timer_event)
 end
 
+-- iterate all the given sessions
 local function _iterate(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
@@ -142,6 +140,7 @@ local function _iterate(sessions)
     end
 end
 
+-- iterate all sessions
 function iterate_all()
     -- iterate RTU sessions
     _iterate(self.rtu_sessions)
@@ -153,6 +152,7 @@ function iterate_all()
     _iterate(self.coord_sessions)
 end
 
+-- delete any closed sessions
 local function _free_closed(sessions)
     local move_to = 1
     for i = 1, #sessions do
@@ -172,6 +172,7 @@ local function _free_closed(sessions)
     end
 end
 
+-- delete all closed sessions
 function free_all_closed()
     -- free closed RTU sessions
     _free_closed(self.rtu_sessions)
@@ -181,4 +182,26 @@ function free_all_closed()
 
     -- free closed coordinator sessions
     _free_closed(self.coord_sessions)
+end
+
+-- close connections
+local function _close(sessions)
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session.open then
+            session.open = false
+            session.instance.close()
+        end
+    end
+end
+
+-- close all open connections
+function close_all()
+    -- close sessions
+    _close(self.rtu_sessions)
+    _close(self.plc_sessions)
+    _close(self.coord_sessions)
+
+    -- free sessions
+    free_all_closed()
 end

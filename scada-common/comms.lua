@@ -27,10 +27,10 @@ RPLC_LINKING = {
 
 SCADA_MGMT_TYPES = {
     PING = 0,           -- generic ping
-    SV_HEARTBEAT = 1,   -- supervisor heartbeat
+    CLOSE = 1,          -- close a connection
     REMOTE_LINKED = 2,  -- remote device linked
     RTU_ADVERT = 3,     -- RTU capability advertisement
-    RTU_HEARTBEAT = 4,  -- RTU heartbeat
+    RTU_HEARTBEAT = 4   -- RTU heartbeat
 }
 
 RTU_ADVERT_TYPES = {
