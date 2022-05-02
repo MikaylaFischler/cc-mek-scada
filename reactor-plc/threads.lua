@@ -170,10 +170,10 @@ function thread__main(smem, init)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 log._info("terminate requested, main thread exiting")
+                -- close connection
+                plc_comms.close(conn_watchdog)
                 -- iss handles reactor shutdown
                 plc_state.shutdown = true
-                -- close connection
-                plc_comms.close()
                 break
             end
         end
@@ -197,7 +197,7 @@ function thread__iss(smem)
 
         local iss_queue   = smem.q.mq_iss
 
-        local was_closed  = true
+        local was_linked  = false
         local last_update = util.time()
 
         -- thread loop
@@ -207,16 +207,15 @@ function thread__iss(smem)
             -- ISS checks
             if plc_state.init_ok then
                 -- SCRAM if no open connection
-                if networked and plc_comms.is_closed() then
+                if networked and not plc_comms.is_linked() then
                     plc_state.scram = true
-                    if not was_closed then
-                        was_closed = true
+                    if was_linked then
+                        was_linked = false
                         iss.trip_timeout()
-                        println_ts("server connection closed by remote host")
-                        log._warning("server connection closed by remote host")
                     end
                 else
-                    was_closed = false
+                    -- would do elseif not networked but there is no reason to do that extra operation
+                    was_linked = true
                 end
 
                 -- if we tried to SCRAM but failed, keep trying
@@ -418,7 +417,7 @@ end
 function thread__setpoint_control(smem)
     -- execute thread
     local exec = function ()
-        log._debug("comms rx thread start")
+        log._debug("setpoint control thread start")
 
         -- load in from shared memory
         local plc_state     = smem.plc_state

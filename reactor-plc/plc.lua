@@ -5,6 +5,7 @@
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local RPLC_LINKING = comms.RPLC_LINKING
+local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
 local print = util.print
 local println = util.println
@@ -197,7 +198,6 @@ end
 function comms_init(id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
-        open = false,
         seq_num = 0,
         r_seq_num = nil,
         modem = modem,
@@ -219,71 +219,83 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- PRIVATE FUNCTIONS --
 
     local _send = function (msg_type, msg)
-        if self.open then
-            local s_pkt = comms.scada_packet()
-            local r_pkt = comms.rplc_packet()
+        local s_pkt = comms.scada_packet()
+        local r_pkt = comms.rplc_packet()
 
-            r_pkt.make(self.id, msg_type, msg)
-            s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+        r_pkt.make(self.id, msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
 
-            self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-            self.seq_num = self.seq_num + 1
-        end
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.seq_num = self.seq_num + 1
     end
 
     local _send_mgmt = function (msg_type, msg)
-        if self.open then
-            local s_pkt = comms.scada_packet()
-            local m_pkt = comms.mgmt_packet()
+        local s_pkt = comms.scada_packet()
+        local m_pkt = comms.mgmt_packet()
 
-            m_pkt.make(msg_type, msg)
-            s_pkt.make(self.seq_num, PROTOCOLS.RPLC, m_pkt.raw_sendable())
+        m_pkt.make(msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
 
-            self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-            self.seq_num = self.seq_num + 1
-        end
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.seq_num = self.seq_num + 1
     end
 
     -- variable reactor status information, excluding heating rate
     local _reactor_status = function ()
-        local coolant = self.reactor.getCoolant()
-        local coolant_name = ""
-        local coolant_amnt = 0
+        local coolant = nil
+        local hcoolant = nil
 
-        local hcoolant = self.reactor.getHeatedCoolant()
-        local hcoolant_name = ""
-        local hcoolant_amnt = 0
+        local data_table = {
+            false, -- getStatus
+            0,     -- getBurnRate
+            0,     -- getActualBurnRate
+            0,     -- getTemperature
+            0,     -- getDamagePercent
+            0,     -- getBoilEfficiency
+            0,     -- getEnvironmentalLoss
+            0,     -- getFuel
+            0,     -- getFuelFilledPercentage
+            0,     -- getWaste
+            0,     -- getWasteFilledPercentage
+            "",    -- coolant_name
+            0,     -- coolant_amnt
+            0,     -- getCoolantFilledPercentage
+            "",    -- hcoolant_name
+            0,     -- hcoolant_amnt
+            0      -- getHeatedCoolantFilledPercentage
+        }
+
+        local tasks = {
+            function () data_table[1]  = self.reactor.getStatus() end,
+            function () data_table[2]  = self.reactor.getBurnRate() end,
+            function () data_table[3]  = self.reactor.getActualBurnRate() end,
+            function () data_table[4]  = self.reactor.getTemperature() end,
+            function () data_table[5]  = self.reactor.getDamagePercent() end,
+            function () data_table[6]  = self.reactor.getBoilEfficiency() end,
+            function () data_table[7]  = self.reactor.getEnvironmentalLoss() end,
+            function () data_table[8]  = self.reactor.getFuel() end,
+            function () data_table[9]  = self.reactor.getFuelFilledPercentage() end,
+            function () data_table[10] = self.reactor.getWaste() end,
+            function () data_table[11] = self.reactor.getWasteFilledPercentage() end,
+            function () coolant        = self.reactor.getCoolant() end,
+            function () data_table[14] = self.reactor.getCoolantFilledPercentage() end,
+            function () hcoolant       = self.reactor.getHeatedCoolant() end,
+            function () data_table[17] = self.reactor.getHeatedCoolantFilledPercentage() end
+        }
+
+        parallel.waitForAll(table.unpack(tasks))
 
         if coolant ~= nil then
-            coolant_name = coolant.name
-            coolant_amnt = coolant.amount
+            data_table[12] = coolant.name
+            data_table[13] = coolant.amount
         end
 
         if hcoolant ~= nil then
-            hcoolant_name = hcoolant.name
-            hcoolant_amnt = hcoolant.amount
+            data_table[15] = hcoolant.name
+            data_table[16] = hcoolant.amount
         end
 
-        return {
-            self.reactor.getStatus(),
-            self.reactor.getBurnRate(),
-            self.reactor.getActualBurnRate(),
-            self.reactor.getTemperature(),
-            self.reactor.getDamagePercent(),
-            self.reactor.getBoilEfficiency(),
-            self.reactor.getEnvironmentalLoss(),
-
-            self.reactor.getFuel(),
-            self.reactor.getFuelFilledPercentage(),
-            self.reactor.getWaste(),
-            self.reactor.getWasteFilledPercentage(),
-            coolant_name,
-            coolant_amnt,
-            self.reactor.getCoolantFilledPercentage(),
-            hcoolant_name,
-            hcoolant_amnt,
-            self.reactor.getHeatedCoolantFilledPercentage()
-        }, self.reactor.__p_is_faulted()
+        return data_table, self.reactor.__p_is_faulted()
     end
 
     local _update_status_cache = function ()
@@ -320,19 +332,22 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         _send(msg_type, { succeeded })
     end
 
-    -- send structure properties (these should not change)
-    -- (server will cache these)
+    -- send structure properties (these should not change, server will cache these)
     local _send_struct = function ()
-        local mek_data = {
-            self.reactor.getHeatCapacity(),
-            self.reactor.getFuelAssemblies(),
-            self.reactor.getFuelSurfaceArea(),
-            self.reactor.getFuelCapacity(),
-            self.reactor.getWasteCapacity(),
-            self.reactor.getCoolantCapacity(),
-            self.reactor.getHeatedCoolantCapacity(),
-            self.reactor.getMaxBurnRate()
+        local mek_data = { 0, 0, 0, 0, 0, 0, 0, 0 }
+
+        local tasks = {
+            function () mek_data[1] = self.reactor.getHeatCapacity() end,
+            function () mek_data[2] = self.reactor.getFuelAssemblies() end,
+            function () mek_data[3] = self.reactor.getFuelSurfaceArea() end,
+            function () mek_data[4] = self.reactor.getFuelCapacity() end,
+            function () mek_data[5] = self.reactor.getWasteCapacity() end,
+            function () mek_data[6] = self.reactor.getCoolantCapacity() end,
+            function () mek_data[7] = self.reactor.getHeatedCoolantCapacity() end,
+            function () mek_data[8] = self.reactor.getMaxBurnRate() end
         }
+
+        parallel.waitForAll(table.unpack(tasks))
 
         if not self.reactor.__p_is_faulted() then
             _send(RPLC_TYPES.MEK_STRUCT, mek_data)
@@ -359,6 +374,19 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         _update_status_cache()
     end
 
+    -- unlink from the server
+    local unlink = function ()
+        self.linked = false
+        self.r_seq_num = nil
+    end
+
+    -- close the connection to the server
+    local close = function (conn_watchdog)
+        conn_watchdog.cancel()
+        unlink()
+        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+    end
+
     -- attempt to establish link with supervisor
     local send_link_req = function ()
         _send(RPLC_TYPES.LINK_REQ, { self.id })
@@ -366,37 +394,47 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     -- send live status information
     local send_status = function (degraded)
-        local mek_data = nil
+        if self.linked then
+            local mek_data = nil
 
-        if _update_status_cache() then
-            mek_data = self.status_cache
+            if _update_status_cache() then
+                mek_data = self.status_cache
+            end
+
+            local sys_status = {
+                util.time(),                    -- timestamp
+                (not self.scrammed),            -- enabled
+                iss.is_tripped(),               -- overridden
+                degraded,                       -- degraded
+                self.reactor.getHeatingRate(),  -- heating rate
+                mek_data                        -- mekanism status data
+            }
+
+            if not self.reactor.__p_is_faulted() then
+                _send(RPLC_TYPES.STATUS, sys_status)
+            else
+                log._error("failed to send status: PPM fault")
+            end
         end
-
-        local sys_status = {
-            util.time(),                    -- timestamp
-            (not self.scrammed),            -- enabled
-            iss.is_tripped(),               -- overridden
-            degraded,                       -- degraded
-            self.reactor.getHeatingRate(),  -- heating rate
-            mek_data                        -- mekanism status data
-        }
-
-        _send(RPLC_TYPES.STATUS, sys_status)
     end
 
     -- send safety system status
     local send_iss_status = function ()
-        _send(RPLC_TYPES.ISS_STATUS, iss.status())
+        if self.linked then
+            _send(RPLC_TYPES.ISS_STATUS, iss.status())
+        end
     end
 
     -- send safety system alarm
     local send_iss_alarm = function (cause)
-        local iss_alarm = {
-            cause,
-            table.unpack(iss.status())
-        }
+        if self.linked then
+            local iss_alarm = {
+                cause,
+                table.unpack(iss.status())
+            }
 
-        _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
+            _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
+        end
     end
 
     -- parse an RPLC packet
@@ -418,7 +456,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_packet.get()
+                    pkt = mgmt_pkt.get()
                 end
             else
                 log._error("illegal packet type " .. s_pkt.protocol(), true)
@@ -441,9 +479,6 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                 self.r_seq_num = packet.scada_frame.seq_num()
             end
 
-            -- mark connection as open
-            self.open = true
-
             -- feed the watchdog first so it doesn't uhh...eat our packets
             conn_watchdog.feed()
 
@@ -464,7 +499,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                             _send_keep_alive_ack(timestamp)
                         else
-                            log._debug(log_header .. "RPLC keep alive packet length mismatch")
+                            log._debug("RPLC keep alive packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
@@ -490,11 +525,12 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                             self.linked = link_ack == RPLC_LINKING.ALLOW
                         else
-                            log._debug(log_header .. "RPLC link req packet length mismatch")
+                            log._debug("RPLC link req packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
+                        log._debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_SCRAM then
                         -- disable the reactor
                         self.scrammed = true
@@ -530,7 +566,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                             _send_ack(packet.type, success)
                         else
-                            log._debug(log_header .. "RPLC set burn rate packet length mismatch")
+                            log._debug("RPLC set burn rate packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
                         -- clear the ISS status
@@ -568,7 +604,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                         self.linked = link_ack == RPLC_LINKING.ALLOW
                     else
-                        log._debug(log_header .. "RPLC link req packet length mismatch")
+                        log._debug("RPLC link req packet length mismatch")
                     end
                 else
                     log._debug("discarding non-link packet before linked")
@@ -576,9 +612,10 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
                 -- handle session close
                 if packet.type == SCADA_MGMT_TYPES.CLOSE then
-                    self.open = false
                     conn_watchdog.cancel()
                     unlink()
+                    println_ts("server connection closed by remote host")
+                    log._warning("server connection closed by remote host")
                 else
                     log._warning("received unknown SCADA_MGMT packet type " .. packet.type)
                 end
@@ -588,33 +625,19 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
     local is_scrammed = function () return self.scrammed end
     local is_linked = function () return self.linked end
-    local is_closed = function () return not self.open end
-
-    local unlink = function ()
-        self.linked = false
-        self.r_seq_num = nil
-    end
-
-    local close = function ()
-        self.open = false
-        conn_watchdog.cancel()
-        unlink()
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
-    end
 
     return {
         reconnect_modem = reconnect_modem,
         reconnect_reactor = reconnect_reactor,
-        parse_packet = parse_packet,
-        handle_packet = handle_packet,
+        unlink = unlink,
+        close = close,
         send_link_req = send_link_req,
         send_status = send_status,
         send_iss_status = send_iss_status,
         send_iss_alarm = send_iss_alarm,
+        parse_packet = parse_packet,
+        handle_packet = handle_packet,
         is_scrammed = is_scrammed,
-        is_linked = is_linked,
-        is_closed = is_closed,
-        unlink = unlink,
-        close = close
+        is_linked = is_linked
     }
 end
