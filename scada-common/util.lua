@@ -89,6 +89,7 @@ function new_watchdog(timeout)
 
     return {
         get_timer = get_timer,
-        feed = feed
+        feed = feed,
+        cancel = cancel
     }
 end
