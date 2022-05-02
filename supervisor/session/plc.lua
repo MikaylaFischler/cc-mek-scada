@@ -5,6 +5,7 @@
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
+local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
 -- retry time constants in ms
 local INITIAL_WAIT = 1500
@@ -46,7 +47,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         },
         -- when to next retry one of these requests
         retry_times = {
-            struct_req = 500,
+            struct_req = (util.time() + 500),
             scram_req = 0,
             enable_req = 0,
             burn_rate_req = 0,
@@ -167,6 +168,30 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.mek_struct.max_burn  = mek_data[8]
     end
 
+    -- send an RPLC packet
+    local _send = function (msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local r_pkt = comms.rplc_packet()
+
+        r_pkt.make(self.id, msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+
+        self.out_q.push_packet(s_pkt)
+        self.seq_num = self.seq_num + 1
+    end
+
+    -- send a SCADA management packet
+    local _send_mgmt = function (msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local m_pkt = comms.mgmt_packet()
+
+        m_pkt.make(msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+
+        self.out_q.push_packet(s_pkt)
+        self.seq_num = self.seq_num + 1
+    end
+
     -- get an ACK status
     local _get_ack = function (pkt)
         if pkt.length == 1 then
@@ -246,6 +271,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     local status = pcall(_copy_struct, pkt.data)
                     if status then
                         -- copied in structure data OK
+                        self.received_struct = true
                     else
                         -- error copying structure data
                         log._error(log_header .. "failed to parse struct packet data")
@@ -331,30 +357,6 @@ function new_session(id, for_reactor, in_queue, out_queue)
         end
     end
 
-    -- send an RPLC packet
-    local _send = function (msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local r_pkt = comms.rplc_packet()
-
-        r_pkt.make(self.id, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
-
-        self.out_q.push_packet(s_pkt)
-        self.seq_num = self.seq_num + 1
-    end
-
-    -- send a SCADA management packet
-    local _send_mgmt = function (msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
-
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
-
-        self.out_q.push_packet(s_pkt)
-        self.seq_num = self.seq_num + 1
-    end
-
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
@@ -365,7 +367,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
     -- close the connection
     local close = function ()
-        self.plc_conn_watchdod.cancel()
+        self.plc_conn_watchdog.cancel()
         self.connected = false
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end
@@ -441,7 +443,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
             -- exit if connection was closed
             if not self.connected then
                 log._info(log_header .. "session closed by remote host")
-                return false
+                return self.connected
             end
 
             ----------------------
@@ -466,13 +468,13 @@ function new_session(id, for_reactor, in_queue, out_queue)
             -- attempt retries --
             ---------------------
 
-            local rtimes = self.rtimes
+            local rtimes = self.retry_times
 
             -- struct request retry
 
             if not self.received_struct then
                 if rtimes.struct_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.LINK_REQ, {})
+                    _send(RPLC_TYPES.MEK_STRUCT, {})
                     rtimes.struct_req = util.time() + RETRY_PERIOD
                 end
             end

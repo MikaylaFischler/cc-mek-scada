@@ -25,7 +25,7 @@ function link_modem(modem)
 end
 
 -- find a session by the remote port
-function find_session(,remote_port)
+function find_session(remote_port)
     -- check RTU sessions
     for i = 1, #self.rtu_sessions do
         if self.rtu_sessions[i].r_port == remote_port then
@@ -191,6 +191,16 @@ local function _close(sessions)
         if session.open then
             session.open = false
             session.instance.close()
+
+            -- send packets in out queue (namely the close packet)
+            while session.out_queue.ready() do
+                local msg = session.out_queue.pop()
+                if msg.qtype == mqueue.TYPE.PACKET then
+                    self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+                end
+            end
+
+            log._debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
         end
     end
 end

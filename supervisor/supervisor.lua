@@ -93,7 +93,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
             elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_packet.get()
+                    pkt = mgmt_pkt.get()
                 end
             -- get as coordinator packet
             elseif s_pkt.protocol() == PROTOCOLS.COORD_DATA then

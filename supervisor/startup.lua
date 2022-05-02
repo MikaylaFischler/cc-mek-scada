@@ -18,7 +18,7 @@ os.loadAPI("session/svsessions.lua")
 
 os.loadAPI("supervisor.lua")
 
-local SUPERVISOR_VERSION = "alpha-v0.1.11"
+local SUPERVISOR_VERSION = "alpha-v0.1.12"
 
 local print = util.print
 local println = util.println
