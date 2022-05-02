@@ -197,6 +197,7 @@ end
 function comms_init(id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
+        open = false,
         seq_num = 0,
         r_seq_num = nil,
         modem = modem,
@@ -218,14 +219,29 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- PRIVATE FUNCTIONS --
 
     local _send = function (msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local r_pkt = comms.rplc_packet()
+        if self.open then
+            local s_pkt = comms.scada_packet()
+            local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(self.id, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+            r_pkt.make(self.id, msg_type, msg)
+            s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
 
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
+            self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+            self.seq_num = self.seq_num + 1
+        end
+    end
+
+    local _send_mgmt = function (msg_type, msg)
+        if self.open then
+            local s_pkt = comms.scada_packet()
+            local m_pkt = comms.mgmt_packet()
+
+            m_pkt.make(msg_type, msg)
+            s_pkt.make(self.seq_num, PROTOCOLS.RPLC, m_pkt.raw_sendable())
+
+            self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+            self.seq_num = self.seq_num + 1
+        end
     end
 
     -- variable reactor status information, excluding heating rate
@@ -425,6 +441,9 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                 self.r_seq_num = packet.scada_frame.seq_num()
             end
 
+            -- mark connection as open
+            self.open = true
+
             -- feed the watchdog first so it doesn't uhh...eat our packets
             conn_watchdog.feed()
 
@@ -555,17 +574,32 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     log._debug("discarding non-link packet before linked")
                 end
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-                -- @todo
+                -- handle session close
+                if packet.type == SCADA_MGMT_TYPES.CLOSE then
+                    self.open = false
+                    conn_watchdog.cancel()
+                    unlink()
+                else
+                    log._warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                end
             end
         end
     end
 
     local is_scrammed = function () return self.scrammed end
     local is_linked = function () return self.linked end
+    local is_closed = function () return not self.open end
 
     local unlink = function ()
         self.linked = false
         self.r_seq_num = nil
+    end
+
+    local close = function ()
+        self.open = false
+        conn_watchdog.cancel()
+        unlink()
+        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end
 
     return {
@@ -579,6 +613,8 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         send_iss_alarm = send_iss_alarm,
         is_scrammed = is_scrammed,
         is_linked = is_linked,
-        unlink = unlink
+        is_closed = is_closed,
+        unlink = unlink,
+        close = close
     }
 end

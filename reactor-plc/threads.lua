@@ -169,9 +169,11 @@ function thread__main(smem, init)
 
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
+                log._info("terminate requested, main thread exiting")
                 -- iss handles reactor shutdown
                 plc_state.shutdown = true
-                log._info("terminate requested, main thread exiting")
+                -- close connection
+                plc_comms.close()
                 break
             end
         end
@@ -195,6 +197,7 @@ function thread__iss(smem)
 
         local iss_queue   = smem.q.mq_iss
 
+        local was_closed  = true
         local last_update = util.time()
 
         -- thread loop
@@ -203,6 +206,19 @@ function thread__iss(smem)
             
             -- ISS checks
             if plc_state.init_ok then
+                -- SCRAM if no open connection
+                if networked and plc_comms.is_closed() then
+                    plc_state.scram = true
+                    if not was_closed then
+                        was_closed = true
+                        iss.trip_timeout()
+                        println_ts("server connection closed by remote host")
+                        log._warning("server connection closed by remote host")
+                    end
+                else
+                    was_closed = false
+                end
+
                 -- if we tried to SCRAM but failed, keep trying
                 -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
                 if not plc_state.no_reactor and plc_state.scram and reactor.getStatus() then
@@ -217,13 +233,13 @@ function thread__iss(smem)
                 end
 
                 -- check safety (SCRAM occurs if tripped)
-                if not plc_state.degraded then
+                if not plc_state.no_reactor then
                     local iss_tripped, iss_status_string, iss_first = iss.check()
                     plc_state.scram = plc_state.scram or iss_tripped
 
                     if iss_first then
                         println_ts("[ISS] SCRAM! safety trip: " .. iss_status_string)
-                        if networked then
+                        if networked and not plc_state.no_modem then
                             plc_comms.send_iss_alarm(iss_status_string)
                         end
                     end
