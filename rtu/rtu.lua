@@ -184,7 +184,7 @@ function rtu_comms(modem, local_port, server_port)
             elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_packet.get()
+                    pkt = mgmt_pkt.get()
                 end
             else
                 log._error("illegal packet type " .. s_pkt.protocol(), true)
