@@ -1,6 +1,9 @@
+-- #REQUIRES types.lua
 -- #REQUIRES comms.lua
 -- #REQUIRES ppm.lua
 -- #REQUIRES util.lua
+
+local iss_status_t = types.iss_status_t
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
@@ -113,7 +116,7 @@ function iss_init(reactor)
 
     -- check all safety conditions
     local check = function ()
-        local status = "ok"
+        local status = iss_status_t.ok
         local was_tripped = self.tripped
 
         -- update cache
@@ -132,32 +135,32 @@ function iss_init(reactor)
             status = self.trip_cause
         elseif self.cache[1] then
             log._warning("ISS: damage critical!")
-            status = "dmg_crit"
+            status = iss_status_t.dmg_crit
         elseif self.cache[4] then
             log._warning("ISS: high temperature!")
-            status = "high_temp"
+            status = iss_status_t.high_temp
         elseif self.cache[2] then
             log._warning("ISS: heated coolant backup!")
-            status = "heated_coolant_backup"
+            status = iss_status_t.ex_hcoolant
         elseif self.cache[6] then
             log._warning("ISS: no coolant!")
-            status = "no_coolant"
+            status = iss_status_t.no_coolant
         elseif self.cache[3] then
             log._warning("ISS: full waste!")
-            status = "full_waste"
+            status = iss_status_t.ex_waste
         elseif self.cache[5] then
             log._warning("ISS: no fuel!")
-            status = "no_fuel"
+            status = iss_status_t.no_fuel
         elseif self.cache[7] then
             log._warning("ISS: supervisor connection timeout!")
-            status = "timeout"
+            status = iss_status_t.timeout
         else
             self.tripped = false
         end
     
         -- if a new trip occured...
         local first_trip = false
-        if not was_tripped and status ~= "ok" then
+        if not was_tripped and status ~= iss_status_t.ok then
             log._warning("ISS: reactor SCRAM")
 
             first_trip = true
@@ -181,7 +184,7 @@ function iss_init(reactor)
     local reset = function ()
         self.timed_out = false
         self.tripped = false
-        self.trip_cause = ""
+        self.trip_cause = iss_status_t.ok
     end
 
     return {

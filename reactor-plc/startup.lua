@@ -3,6 +3,7 @@
 --
 
 os.loadAPI("scada-common/log.lua")
+os.loadAPI("scada-common/types.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")

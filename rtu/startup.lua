@@ -3,6 +3,7 @@
 --
 
 os.loadAPI("scada-common/log.lua") 
+os.loadAPI("scada-common/types.lua")
 os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
@@ -20,6 +21,8 @@ os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
 local RTU_VERSION = "alpha-v0.4.11"
+
+local rtu_t = types.rtu_t
 
 local print = util.print
 local println = util.println
@@ -139,7 +142,7 @@ for reactor_idx = 1, #rtu_redstone do
 
     table.insert(units, {
         name = "redstone_io",
-        type = "redstone",
+        type = rtu_t.redstone,
         index = 1,
         reactor = rtu_redstone[reactor_idx].for_reactor,
         device = capabilities,  -- use device field for redstone channels
@@ -168,15 +171,15 @@ for i = 1, #rtu_devices do
 
         if type == "boiler" then
             -- boiler multiblock
-            rtu_type = "boiler"
+            rtu_type = rtu_t.boiler
             rtu_iface = boiler_rtu.new(device)
         elseif type == "turbine" then
             -- turbine multiblock
-            rtu_type = "turbine"
+            rtu_type = rtu_t.turbine
             rtu_iface = turbine_rtu.new(device)
         elseif type == "mekanismMachine" then
             -- assumed to be an induction matrix multiblock
-            rtu_type = "imatrix"
+            rtu_type = rtu_t.induction_matrix
             rtu_iface = imatrix_rtu.new(device)
         else
             local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
