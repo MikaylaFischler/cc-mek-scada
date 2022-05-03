@@ -374,13 +374,14 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
     -- reconnect a newly connected reactor
     local reconnect_reactor = function (reactor)
         self.reactor = reactor
-        _update_status_cache()
+        self.status_cache = nil
     end
 
     -- unlink from the server
     local unlink = function ()
         self.linked = false
         self.r_seq_num = nil
+        self.status_cache = nil
     end
 
     -- close the connection to the server
@@ -512,6 +513,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                             local link_ack = packet.data[1]
 
                             if link_ack == RPLC_LINKING.ALLOW then
+                                self.status_cache = nil
                                 _send_struct()
                                 send_status(plc_state.degraded)
                                 log._debug("re-sent initial status data")
@@ -530,6 +532,10 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         else
                             log._debug("RPLC link req packet length mismatch")
                         end
+                    elseif packet.type == RPLC_TYPES.STATUS then
+                        -- request of full status, clear cache first
+                        self.status_cache = nil
+                        send_status(plc_state.degraded)
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
@@ -587,8 +593,9 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                             println_ts("linked!")
                             log._debug("RPLC link request approved")
 
-                            -- reset remote sequence number
+                            -- reset remote sequence number and cache
                             self.r_seq_num = nil
+                            self.status_cache = nil
 
                             _send_struct()
                             send_status(plc_state.degraded)
