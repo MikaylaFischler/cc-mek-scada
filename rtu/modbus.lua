@@ -11,6 +11,7 @@ function new(rtu_dev, use_parallel_read)
     }
 
     local _1_read_coils = function (c_addr_start, count)
+        local tasks = {}
         local readings = {}
         local access_fault = false
         local _, coils, _, _ = self.rtu.io_count()
@@ -19,12 +20,30 @@ function new(rtu_dev, use_parallel_read)
         if return_ok then
             for i = 1, count do
                 local addr = c_addr_start + i - 1
-                readings[i], access_fault = self.rtu.read_coil(addr)
+
+                if self.use_parallel then
+                    table.insert(tasks, function ()
+                        local reading, fault = self.rtu.read_coil(addr)
+                        if fault then access_fault = true else readings[i] = reading end
+                    end)
+                else
+                    readings[i], access_fault = self.rtu.read_coil(addr)
+
+                    if access_fault then
+                        return_ok = false
+                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                        break
+                    end
+                end
+            end
+
+            -- run parallel tasks if configured
+            if self.use_parallel then
+                parallel.waitForAll(table.unpack(tasks))
 
                 if access_fault then
                     return_ok = false
                     readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                    break
                 end
             end
         else
@@ -35,6 +54,7 @@ function new(rtu_dev, use_parallel_read)
     end
 
     local _2_read_discrete_inputs = function (di_addr_start, count)
+        local tasks = {}
         local readings = {}
         local access_fault = false
         local discrete_inputs, _, _, _ = self.rtu.io_count()
@@ -43,12 +63,30 @@ function new(rtu_dev, use_parallel_read)
         if return_ok then
             for i = 1, count do
                 local addr = di_addr_start + i - 1
-                readings[i], access_fault = self.rtu.read_di(addr)
+
+                if self.use_parallel then
+                    table.insert(tasks, function ()
+                        local reading, fault = self.rtu.read_di(addr)
+                        if fault then access_fault = true else readings[i] = reading end
+                    end)
+                else
+                    readings[i], access_fault = self.rtu.read_di(addr)
+
+                    if access_fault then
+                        return_ok = false
+                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                        break
+                    end
+                end
+            end
+
+            -- run parallel tasks if configured
+            if self.use_parallel then
+                parallel.waitForAll(table.unpack(tasks))
 
                 if access_fault then
                     return_ok = false
                     readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                    break
                 end
             end
         else
@@ -59,6 +97,7 @@ function new(rtu_dev, use_parallel_read)
     end
 
     local _3_read_multiple_holding_registers = function (hr_addr_start, count)
+        local tasks = {}
         local readings = {}
         local access_fault = false
         local _, _, _, hold_regs = self.rtu.io_count()
@@ -67,12 +106,30 @@ function new(rtu_dev, use_parallel_read)
         if return_ok then
             for i = 1, count do
                 local addr = hr_addr_start + i - 1
-                readings[i], access_fault = self.rtu.read_holding_reg(addr)
+
+                if self.use_parallel then
+                    table.insert(tasks, function ()
+                        local reading, fault = self.rtu.read_holding_reg(addr)
+                        if fault then access_fault = true else readings[i] = reading end
+                    end)
+                else
+                    readings[i], access_fault = self.rtu.read_holding_reg(addr)
+
+                    if access_fault then
+                        return_ok = false
+                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                        break
+                    end
+                end
+            end
+
+            -- run parallel tasks if configured
+            if self.use_parallel then
+                parallel.waitForAll(table.unpack(tasks))
 
                 if access_fault then
                     return_ok = false
                     readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                    break
                 end
             end
         else
@@ -83,6 +140,7 @@ function new(rtu_dev, use_parallel_read)
     end
 
     local _4_read_input_registers = function (ir_addr_start, count)
+        local tasks = {}
         local readings = {}
         local access_fault = false
         local _, _, input_regs, _ = self.rtu.io_count()
@@ -91,12 +149,30 @@ function new(rtu_dev, use_parallel_read)
         if return_ok then
             for i = 1, count do
                 local addr = ir_addr_start + i - 1
-                readings[i], access_fault = self.rtu.read_input_reg(addr)
+
+                if self.use_parallel then
+                    table.insert(tasks, function ()
+                        local reading, fault = self.rtu.read_input_reg(addr)
+                        if fault then access_fault = true else readings[i] = reading end
+                    end)
+                else
+                    readings[i], access_fault = self.rtu.read_input_reg(addr)
+
+                    if access_fault then
+                        return_ok = false
+                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                        break
+                    end
+                end
+            end
+
+            -- run parallel tasks if configured
+            if self.use_parallel then
+                parallel.waitForAll(table.unpack(tasks))
 
                 if access_fault then
                     return_ok = false
                     readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                    break
                 end
             end
         else

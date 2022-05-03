@@ -8,10 +8,10 @@ os.loadAPI("scada-common/util.lua")
 os.loadAPI("scada-common/ppm.lua")
 os.loadAPI("scada-common/comms.lua")
 os.loadAPI("scada-common/mqueue.lua")
-os.loadAPI("scada-common/modbus.lua")
 os.loadAPI("scada-common/rsio.lua")
 
 os.loadAPI("config.lua")
+os.loadAPI("modbus.lua")
 os.loadAPI("rtu.lua")
 os.loadAPI("threads.lua")
 
@@ -20,7 +20,7 @@ os.loadAPI("dev/boiler_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.12"
+local RTU_VERSION = "alpha-v0.4.13"
 
 local rtu_t = types.rtu_t
 
@@ -147,7 +147,7 @@ for reactor_idx = 1, #rtu_redstone do
         reactor = rtu_redstone[reactor_idx].for_reactor,
         device = capabilities,  -- use device field for redstone channels
         rtu = rs_rtu,
-        modbus_io = modbus.new(rs_rtu),
+        modbus_io = modbus.new(rs_rtu, false),
         modbus_busy = false,
         pkt_queue = nil,
         thread = nil
@@ -199,7 +199,7 @@ for i = 1, #rtu_devices do
                 reactor = rtu_devices[i].for_reactor,
                 device = device,
                 rtu = rtu_iface,
-                modbus_io = modbus.new(rtu_iface),
+                modbus_io = modbus.new(rtu_iface, true),
                 modbus_busy = false,
                 pkt_queue = mqueue.new(),
                 thread = nil
