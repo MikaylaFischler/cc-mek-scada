@@ -91,6 +91,22 @@ function establish_plc_session(local_port, remote_port, for_reactor)
     end
 end
 
+-- cleanly close a session
+local function _shutdown(session)
+    session.open = false
+    session.instance.close()
+
+    -- send packets in out queue (namely the close packet)
+    while session.out_queue.ready() do
+        local msg = session.out_queue.pop()
+        if msg.qtype == mqueue.TYPE.PACKET then
+            self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+        end
+    end
+
+    log._debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+end
+
 -- check if a watchdog timer event matches that of one of the provided sessions
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
@@ -98,9 +114,8 @@ local function _check_watchdogs(sessions, timer_event)
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
-                log._debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
-                session.open = false
-                session.instance.close()
+                log._debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port .. "...")
+                _shutdown(session)
             end
         end
     end
@@ -134,7 +149,6 @@ local function _iterate(sessions)
                 end
             else
                 session.open = false
-                session.instance.close()
             end
         end
     end
@@ -189,18 +203,7 @@ local function _close(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
         if session.open then
-            session.open = false
-            session.instance.close()
-
-            -- send packets in out queue (namely the close packet)
-            while session.out_queue.ready() do
-                local msg = session.out_queue.pop()
-                if msg.qtype == mqueue.TYPE.PACKET then
-                    self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
-                end
-            end
-
-            log._debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+            _shutdown(session)
         end
     end
 end

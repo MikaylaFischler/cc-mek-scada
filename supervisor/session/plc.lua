@@ -7,6 +7,11 @@ local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
+local print = util.print
+local println = util.println
+local print_ts = util.print_ts
+local println_ts = util.println_ts
+
 -- retry time constants in ms
 local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
@@ -38,6 +43,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         r_seq_num = nil,
         connected = true,
         received_struct = false,
+        received_status_cache = false,
         plc_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
         -- periodic messages
@@ -48,6 +54,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         -- when to next retry one of these requests
         retry_times = {
             struct_req = (util.time() + 500),
+            status_req = (util.time() + 500),
             scram_req = 0,
             enable_req = 0,
             burn_rate_req = 0,
@@ -257,6 +264,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                         local status = pcall(_copy_status, pkt.data[6])
                         if status then
                             -- copied in status data OK
+                            self.received_status_cache = true
                         else
                             -- error copying status data
                             log._error(log_header .. "failed to parse status packet data")
@@ -365,18 +373,6 @@ function new_session(id, for_reactor, in_queue, out_queue)
     -- get the session database
     local get_db = function () return self.sDB end
 
-    -- close the connection
-    local close = function ()
-        self.plc_conn_watchdog.cancel()
-        self.connected = false
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
-    end
-
-    -- check if a timer matches this session's watchdog
-    local check_wd = function (timer)
-        return timer == self.plc_conn_watchdog.get_timer()
-    end
-
     -- get the reactor structure
     local get_struct = function ()
         if self.received_struct then
@@ -384,6 +380,29 @@ function new_session(id, for_reactor, in_queue, out_queue)
         else
             return nil
         end
+    end
+
+    -- get the reactor structure
+    local get_status = function ()
+        if self.received_status_cache then
+            return self.sDB.mek_status
+        else
+            return nil
+        end
+    end
+
+    -- check if a timer matches this session's watchdog
+    local check_wd = function (timer)
+        return timer == self.plc_conn_watchdog.get_timer()
+    end
+
+    -- close the connection
+    local close = function ()
+        self.plc_conn_watchdog.cancel()
+        self.connected = false
+        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+        println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
+        log._info(log_header .. "session closed by server")
     end
 
     -- iterate the session
@@ -442,6 +461,8 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
             -- exit if connection was closed
             if not self.connected then
+                self.plc_conn_watchdog.cancel()
+                println("connection to reactor " .. self.for_reactor .. " PLC closed by remote host")
                 log._info(log_header .. "session closed by remote host")
                 return self.connected
             end
@@ -476,6 +497,15 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 if rtimes.struct_req - util.time() <= 0 then
                     _send(RPLC_TYPES.MEK_STRUCT, {})
                     rtimes.struct_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- status cache request retry
+
+            if not self.received_status_cache then
+                if rtimes.status_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.MEK_STATUS, {})
+                    rtimes.status_req = util.time() + RETRY_PERIOD
                 end
             end
 
@@ -522,9 +552,10 @@ function new_session(id, for_reactor, in_queue, out_queue)
     return {
         get_id = get_id,
         get_db = get_db,
-        close = close,
-        check_wd = check_wd,
         get_struct = get_struct,
+        get_status = get_status,
+        check_wd = check_wd,
+        close = close,
         iterate = iterate
     }
 end
