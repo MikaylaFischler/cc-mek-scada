@@ -1,47 +1,25 @@
--- #REQUIRES comms.lua
+-- #REQUIRES types.lua
 
--- modbus function codes
-local MODBUS_FCODE = {
-    READ_COILS = 0x01,
-    READ_DISCRETE_INPUTS = 0x02,
-    READ_MUL_HOLD_REGS = 0x03,
-    READ_INPUT_REGS = 0x04,
-    WRITE_SINGLE_COIL = 0x05,
-    WRITE_SINGLE_HOLD_REG = 0x06,
-    WRITE_MUL_COILS = 0x0F,
-    WRITE_MUL_HOLD_REGS = 0x10,
-    ERROR_FLAG = 0x80
-}
-
--- modbus exception codes
-local MODBUS_EXCODE = {
-    ILLEGAL_FUNCTION = 0x01,
-    ILLEGAL_DATA_ADDR = 0x02,
-    ILLEGAL_DATA_VALUE = 0x03,
-    SERVER_DEVICE_FAIL = 0x04,
-    ACKNOWLEDGE = 0x05,
-    SERVER_DEVICE_BUSY = 0x06,
-    NEG_ACKNOWLEDGE = 0x07,
-    MEMORY_PARITY_ERROR = 0x08,
-    GATEWAY_PATH_UNAVAILABLE = 0x0A,
-    GATEWAY_TARGET_TIMEOUT = 0x0B
-}
+local MODBUS_FCODE = types.MODBUS_FCODE
+local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 -- new modbus comms handler object
-function new(rtu_dev)
+function new(rtu_dev, use_parallel_read)
     local self = {
-        rtu = rtu_dev
+        rtu = rtu_dev,
+        use_parallel = use_parallel_read
     }
 
     local _1_read_coils = function (c_addr_start, count)
         local readings = {}
         local access_fault = false
         local _, coils, _, _ = self.rtu.io_count()
-        local return_ok = (c_addr_start + count) <= coils
+        local return_ok = ((c_addr_start + count) <= coils) and (count > 0)
 
         if return_ok then
-            for i = 0, (count - 1) do
-                readings[i], access_fault = self.rtu.read_coil(c_addr_start + i)
+            for i = 1, count do
+                local addr = c_addr_start + i - 1
+                readings[i], access_fault = self.rtu.read_coil(addr)
 
                 if access_fault then
                     return_ok = false
@@ -60,11 +38,12 @@ function new(rtu_dev)
         local readings = {}
         local access_fault = false
         local discrete_inputs, _, _, _ = self.rtu.io_count()
-        local return_ok = (di_addr_start + count) <= discrete_inputs
+        local return_ok = ((di_addr_start + count) <= discrete_inputs) and (count > 0)
         
         if return_ok then
-            for i = 0, (count - 1) do
-                readings[i], access_fault = self.rtu.read_di(di_addr_start + i)
+            for i = 1, count do
+                local addr = di_addr_start + i - 1
+                readings[i], access_fault = self.rtu.read_di(addr)
 
                 if access_fault then
                     return_ok = false
@@ -83,11 +62,12 @@ function new(rtu_dev)
         local readings = {}
         local access_fault = false
         local _, _, _, hold_regs = self.rtu.io_count()
-        local return_ok = (hr_addr_start + count) <= hold_regs
+        local return_ok = ((hr_addr_start + count) <= hold_regs) and (count > 0)
 
         if return_ok then
-            for i = 0, (count - 1) do
-                readings[i], access_fault = self.rtu.read_holding_reg(hr_addr_start + i)
+            for i = 1, count do
+                local addr = hr_addr_start + i - 1
+                readings[i], access_fault = self.rtu.read_holding_reg(addr)
 
                 if access_fault then
                     return_ok = false
@@ -106,11 +86,12 @@ function new(rtu_dev)
         local readings = {}
         local access_fault = false
         local _, _, input_regs, _ = self.rtu.io_count()
-        local return_ok = (ir_addr_start + count) <= input_regs
+        local return_ok = ((ir_addr_start + count) <= input_regs) and (count > 0)
 
         if return_ok then
-            for i = 0, (count - 1) do
-                readings[i], access_fault = self.rtu.read_input_reg(ir_addr_start + i)
+            for i = 1, count do
+                local addr = ir_addr_start + i - 1
+                readings[i], access_fault = self.rtu.read_input_reg(addr)
 
                 if access_fault then
                     return_ok = false
@@ -156,6 +137,8 @@ function new(rtu_dev)
                 return_ok = false
                 readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
+        else
+            response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
         end
 
         return return_ok
@@ -165,11 +148,12 @@ function new(rtu_dev)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
         local count = #values
-        local return_ok = (c_addr_start + count) <= coils
+        local return_ok = ((c_addr_start + count) <= coils) and (count > 0)
 
         if return_ok then
-            for i = 0, (count - 1) do
-                local access_fault = self.rtu.write_coil(c_addr_start + i, values[i + 1])
+            for i = 1, count do
+                local addr = c_addr_start + i - 1
+                local access_fault = self.rtu.write_coil(addr, values[i])
 
                 if access_fault then
                     return_ok = false
@@ -177,6 +161,8 @@ function new(rtu_dev)
                     break
                 end
             end
+        else
+            response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
         end
 
         return return_ok, response
@@ -186,11 +172,12 @@ function new(rtu_dev)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
         local count = #values
-        local return_ok = (hr_addr_start + count) <= hold_regs
+        local return_ok = ((hr_addr_start + count) <= hold_regs) and (count > 0)
 
         if return_ok then
-            for i = 0, (count - 1) do
-                local access_fault = self.rtu.write_coil(hr_addr_start + i, values[i + 1])
+            for i = 1, count do
+                local addr = hr_addr_start + i - 1
+                local access_fault = self.rtu.write_coil(addr, values[i])
 
                 if access_fault then
                     return_ok = false
@@ -198,6 +185,8 @@ function new(rtu_dev)
                     break
                 end
             end
+        else
+            response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
         end
 
         return return_ok, response

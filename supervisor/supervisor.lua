@@ -1,5 +1,4 @@
 -- #REQUIRES comms.lua
--- #REQUIRES modbus.lua
 -- #REQUIRES mqueue.lua
 -- #REQUIRES util.lua
 -- #REQUIRES svsessions.lua
