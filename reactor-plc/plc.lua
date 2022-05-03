@@ -536,6 +536,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                         -- request of full status, clear cache first
                         self.status_cache = nil
                         send_status(plc_state.degraded)
+                        log._debug("sent out status cache again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
