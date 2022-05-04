@@ -92,7 +92,6 @@ function thread__main(smem, init)
                     log._error("reactor disconnected!")
                     plc_state.no_reactor = true
                     plc_state.degraded = true
-                    -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_PERI_DC) ?
                 elseif networked and device.type == "modem" then
                     -- we only care if this is our wireless modem
                     if device.dev == plc_dev.modem then
@@ -170,8 +169,6 @@ function thread__main(smem, init)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 log._info("terminate requested, main thread exiting")
-                -- close connection
-                plc_comms.close(conn_watchdog)
                 -- iss handles reactor shutdown
                 plc_state.shutdown = true
                 break
@@ -293,7 +290,6 @@ function thread__iss(smem)
                         println_ts("reactor disabled")
                         log._info("iss thread reactor SCRAM OK")
                     else
-                        -- send an alarm: plc_comms.send_alarm(ALARMS.PLC_LOST_CONTROL) ?
                         println_ts("exiting, reactor failed to disable")
                         log._error("iss thread failed to SCRAM reactor on exit")
                     end

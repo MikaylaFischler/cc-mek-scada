@@ -13,7 +13,7 @@ os.loadAPI("config.lua")
 os.loadAPI("plc.lua")
 os.loadAPI("threads.lua")
 
-local R_PLC_VERSION = "alpha-v0.5.1"
+local R_PLC_VERSION = "alpha-v0.5.2"
 
 local print = util.print
 local println = util.println
@@ -145,11 +145,19 @@ if __shared_memory.networked then
 
     -- run threads
     parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec, sp_ctrl_thread.exec)
+
+    if plc_state.init_ok then
+        -- send status one last time after ISS shutdown
+        plc_comms.send_status(plc_state.degraded)
+        plc_comms.send_iss_status()
+
+        -- close connection
+        plc_comms.close(conn_watchdog)
+    end
 else
     -- run threads, excluding comms
     parallel.waitForAll(main_thread.exec, iss_thread.exec)
 end
 
--- send an alarm: plc_comms.send_alarm(ALARMS.PLC_SHUTDOWN) ?
 println_ts("exited")
 log._info("exited")
