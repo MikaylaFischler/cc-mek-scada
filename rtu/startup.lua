@@ -2,28 +2,27 @@
 -- RTU: Remote Terminal Unit
 --
 
-os.loadAPI("scada-common/log.lua") 
-os.loadAPI("scada-common/types.lua")
-os.loadAPI("scada-common/util.lua")
-os.loadAPI("scada-common/ppm.lua")
-os.loadAPI("scada-common/comms.lua")
-os.loadAPI("scada-common/mqueue.lua")
-os.loadAPI("scada-common/rsio.lua")
+local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local ppm = require("scada-common.ppm")
+local rsio = require("scada-common.rsio")
+local types = require("scada-common.types")
+local util = require("scada-common.util")
 
-os.loadAPI("config.lua")
-os.loadAPI("modbus.lua")
-os.loadAPI("rtu.lua")
-os.loadAPI("threads.lua")
+local config = require("config")
+local modbus = require("modbus")
+local rtu = require("rtu")
+local threads = require("threads")
 
-os.loadAPI("dev/redstone_rtu.lua")
-os.loadAPI("dev/boiler_rtu.lua")
-os.loadAPI("dev/boilerv_rtu.lua")
-os.loadAPI("dev/energymachine_rtu.lua")
-os.loadAPI("dev/imatrix_rtu.lua")
-os.loadAPI("dev/turbine_rtu.lua")
-os.loadAPI("dev/turbinev_rtu.lua")
+local redstone_rtu = require("dev.redstone_rtu")
+local boiler_rtu = require("dev.boiler_rtu")
+local boilerv_rtu = require("dev.boilerv_rtu")
+local energymachine_rtu = require("dev.energymachine_rtu")
+local imatrix_rtu = require("dev.imatrix_rtu")
+local turbine_rtu = require("dev.turbine_rtu")
+local turbinev_rtu = require("dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.5.0"
+local RTU_VERSION = "alpha-v0.6.0"
 
 local rtu_t = types.rtu_t
 
@@ -34,9 +33,9 @@ local println_ts = util.println_ts
 
 log.init(config.LOG_PATH, config.LOG_MODE)
 
-log._info("========================================")
-log._info("BOOTING rtu.startup " .. RTU_VERSION)
-log._info("========================================")
+log.info("========================================")
+log.info("BOOTING rtu.startup " .. RTU_VERSION)
+log.info("========================================")
 println(">> RTU " .. RTU_VERSION .. " <<")
 
 ----------------------------------------
@@ -77,11 +76,11 @@ local smem_sys = __shared_memory.rtu_sys
 -- get modem
 if smem_dev.modem == nil then
     println("boot> wireless modem not found")
-    log._warning("no wireless modem on startup")
+    log.warning("no wireless modem on startup")
     return
 end
 
-smem_sys.rtu_comms = rtu.rtu_comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT)
+smem_sys.rtu_comms = rtu.comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT)
 
 ----------------------------------------
 -- interpret config and init units
@@ -99,7 +98,7 @@ for reactor_idx = 1, #rtu_redstone do
 
     local capabilities = {}
 
-    log._debug("init> starting redstone RTU I/O linking for reactor " .. rtu_redstone[reactor_idx].for_reactor .. "...")
+    log.debug("init> starting redstone RTU I/O linking for reactor " .. rtu_redstone[reactor_idx].for_reactor .. "...")
 
     for i = 1, #io_table do
         local valid = false
@@ -118,7 +117,7 @@ for reactor_idx = 1, #rtu_redstone do
             local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. reactor_idx ..
                 " (for reactor " .. rtu_redstone[reactor_idx].for_reactor .. ")"
             println_ts(message)
-            log._warning(message)
+            log.warning(message)
         else
             -- link redstone in RTU
             local mode = rsio.get_io_mode(conf.channel)
@@ -132,13 +131,13 @@ for reactor_idx = 1, #rtu_redstone do
                 rs_rtu.link_ao(conf.channel, conf.side)
             else
                 -- should be unreachable code, we already validated channels
-                log._error("init> fell through if chain attempting to identify IO mode", true)
+                log.error("init> fell through if chain attempting to identify IO mode", true)
                 break
             end
 
             table.insert(capabilities, conf.channel)
 
-            log._debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
+            log.debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
                 ") for reactor " .. rtu_redstone[reactor_idx].for_reactor)
         end
     end
@@ -156,7 +155,7 @@ for reactor_idx = 1, #rtu_redstone do
         thread = nil
     })
 
-    log._debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
+    log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
 end
 
 -- mounted peripherals
@@ -166,7 +165,7 @@ for i = 1, #rtu_devices do
     if device == nil then
         local message = "init> '" .. rtu_devices[i].name .. "' not found"
         println_ts(message)
-        log._warning(message)
+        log.warning(message)
     else
         local type = ppm.get_type(rtu_devices[i].name)
         local rtu_iface = nil
@@ -200,7 +199,7 @@ for i = 1, #rtu_devices do
         else
             local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
             println_ts(message)
-            log._warning(message)
+            log.warning(message)
         end
 
         if rtu_iface ~= nil then
@@ -221,7 +220,7 @@ for i = 1, #rtu_devices do
 
             table.insert(units, rtu_unit)
 
-            log._debug("init> initialized RTU unit #" .. #units .. ": " .. rtu_devices[i].name .. " (" .. rtu_type .. ") [" ..
+            log.debug("init> initialized RTU unit #" .. #units .. ": " .. rtu_devices[i].name .. " (" .. rtu_type .. ") [" ..
                 rtu_devices[i].index .. "] for reactor " .. rtu_devices[i].for_reactor)
         end
     end
@@ -237,7 +236,7 @@ local comms_thread = threads.thread__comms(__shared_memory)
 
 -- start connection watchdog
 smem_sys.conn_watchdog = util.new_watchdog(5)
-log._debug("init> conn watchdog started")
+log.debug("init> conn watchdog started")
 
 -- assemble thread list
 local _threads = { main_thread.exec, comms_thread.exec }
@@ -251,4 +250,4 @@ end
 parallel.waitForAll(table.unpack(_threads))
 
 println_ts("exited")
-log._info("exited")
+log.info("exited")

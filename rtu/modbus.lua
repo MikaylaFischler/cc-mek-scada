@@ -1,10 +1,13 @@
--- #REQUIRES types.lua
+local comms = require("scada-common.comms")
+local types = require("scada-common.types")
+
+local modbus = {}
 
 local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 -- new modbus comms handler object
-function new(rtu_dev, use_parallel_read)
+modbus.new = function (rtu_dev, use_parallel_read)
     local self = {
         rtu = rtu_dev,
         use_parallel = use_parallel_read
@@ -401,3 +404,5 @@ function new(rtu_dev, use_parallel_read)
         reply__gw_unavailable = reply__gw_unavailable
     }
 end
+
+return modbus

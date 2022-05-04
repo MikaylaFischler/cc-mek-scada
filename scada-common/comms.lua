@@ -1,4 +1,10 @@
-PROTOCOLS = {
+--
+-- Communications
+--
+
+local comms = {}
+
+local PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
     SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
@@ -6,7 +12,7 @@ PROTOCOLS = {
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
-RPLC_TYPES = {
+local RPLC_TYPES = {
     KEEP_ALIVE = 0,     -- keep alive packets
     LINK_REQ = 1,       -- linking requests
     STATUS = 2,         -- reactor/system status
@@ -19,13 +25,13 @@ RPLC_TYPES = {
     ISS_CLEAR = 9       -- clear ISS trip (if in bad state, will trip immediately)
 }
 
-RPLC_LINKING = {
+local RPLC_LINKING = {
     ALLOW = 0,          -- link approved
     DENY = 1,           -- link denied
     COLLISION = 2       -- link denied due to existing active link
 }
 
-SCADA_MGMT_TYPES = {
+local SCADA_MGMT_TYPES = {
     PING = 0,           -- generic ping
     CLOSE = 1,          -- close a connection
     REMOTE_LINKED = 2,  -- remote device linked
@@ -33,15 +39,21 @@ SCADA_MGMT_TYPES = {
     RTU_HEARTBEAT = 4   -- RTU heartbeat
 }
 
-RTU_ADVERT_TYPES = {
+local RTU_ADVERT_TYPES = {
     BOILER = 0,         -- boiler
     TURBINE = 1,        -- turbine
     IMATRIX = 2,        -- induction matrix
     REDSTONE = 3        -- redstone I/O
 }
 
+comms.PROTOCOLS = PROTOCOLS
+comms.RPLC_TYPES = RPLC_TYPES
+comms.RPLC_LINKING = RPLC_LINKING
+comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
+comms.RTU_ADVERT_TYPES = RTU_ADVERT_TYPES
+
 -- generic SCADA packet object
-function scada_packet()
+comms.scada_packet = function ()
     local self = {
         modem_msg_in = nil,
         valid = false,
@@ -124,7 +136,7 @@ end
 
 -- MODBUS packet 
 -- modeled after MODBUS TCP packet
-function modbus_packet()
+comms.modbus_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
@@ -165,11 +177,11 @@ function modbus_packet()
     
                 return size_ok
             else
-                log._debug("attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log._debug("nil frame encountered", true)
+            log.debug("nil frame encountered", true)
             return false
         end
     end
@@ -201,7 +213,7 @@ function modbus_packet()
 end
 
 -- reactor PLC packet
-function rplc_packet()
+comms.rplc_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
@@ -256,11 +268,11 @@ function rplc_packet()
 
                 return ok
             else
-                log._debug("attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log._debug("nil frame encountered", true)
+            log.debug("nil frame encountered", true)
             return false
         end
     end
@@ -291,7 +303,7 @@ function rplc_packet()
 end
 
 -- SCADA management packet
-function mgmt_packet()
+comms.mgmt_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
@@ -339,11 +351,11 @@ function mgmt_packet()
     
                 return ok
             else
-                log._debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
                 return false    
             end
         else
-            log._debug("nil frame encountered", true)
+            log.debug("nil frame encountered", true)
             return false
         end
     end
@@ -374,7 +386,7 @@ end
 
 -- SCADA coordinator packet
 -- @todo
-function coord_packet()
+comms.coord_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
@@ -418,11 +430,11 @@ function coord_packet()
 
                 return ok
             else
-                log._debug("attempted COORD_DATA parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted COORD_DATA parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log._debug("nil frame encountered", true)
+            log.debug("nil frame encountered", true)
             return false
         end
     end
@@ -453,7 +465,7 @@ end
 
 -- coordinator API (CAPI) packet
 -- @todo
-function capi_packet()
+comms.capi_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
@@ -497,11 +509,11 @@ function capi_packet()
 
                 return ok
             else
-                log._debug("attempted COORD_API parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted COORD_API parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log._debug("nil frame encountered", true)
+            log.debug("nil frame encountered", true)
             return false
         end
     end
@@ -529,3 +541,5 @@ function capi_packet()
         get = get
     }
 end
+
+return comms

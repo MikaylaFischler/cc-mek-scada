@@ -1,7 +1,10 @@
--- #REQUIRES types.lua
--- #REQUIRES comms.lua
--- #REQUIRES ppm.lua
--- #REQUIRES util.lua
+local comms = require("scada-common.comms")
+local log = require("scada-common.log")
+local ppm = require("scada-common.ppm")
+local types = require("scada-common.types")
+local util = require("scada-common.util")
+
+local plc = {}
 
 local iss_status_t = types.iss_status_t
 
@@ -18,7 +21,7 @@ local println_ts = util.println_ts
 -- Internal Safety System
 -- identifies dangerous states and SCRAMs reactor if warranted
 -- autonomous from main SCADA supervisor/coordinator control
-function iss_init(reactor)
+plc.iss_init = function (reactor)
     local self = {
         reactor = reactor,
         cache = { false, false, false, false, false, false, false },
@@ -34,7 +37,7 @@ function iss_init(reactor)
         local damage_percent = self.reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor damage")
+            log.error("ISS: failed to check reactor damage")
             return false
         else
             return damage_percent >= 100
@@ -46,7 +49,7 @@ function iss_init(reactor)
         local hc_needed = self.reactor.getHeatedCoolantNeeded()
         if hc_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor heated coolant level")
+            log.error("ISS: failed to check reactor heated coolant level")
             return false
         else
             return hc_needed == 0
@@ -58,7 +61,7 @@ function iss_init(reactor)
         local w_needed = self.reactor.getWasteNeeded()
         if w_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor waste level")
+            log.error("ISS: failed to check reactor waste level")
             return false
         else
             return w_needed == 0
@@ -71,7 +74,7 @@ function iss_init(reactor)
         local temp = self.reactor.getTemperature()
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor temperature")
+            log.error("ISS: failed to check reactor temperature")
             return false
         else
             return temp >= 1200
@@ -83,7 +86,7 @@ function iss_init(reactor)
         local fuel = self.reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor fuel level")
+            log.error("ISS: failed to check reactor fuel level")
             return false
         else
             return fuel == 0
@@ -95,7 +98,7 @@ function iss_init(reactor)
         local coolant_filled = self.reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log._error("ISS: failed to check reactor coolant level")
+            log.error("ISS: failed to check reactor coolant level")
             return false
         else
             return coolant_filled < 0.02
@@ -134,25 +137,25 @@ function iss_init(reactor)
         if self.tripped then
             status = self.trip_cause
         elseif self.cache[1] then
-            log._warning("ISS: damage critical!")
+            log.warning("ISS: damage critical!")
             status = iss_status_t.dmg_crit
         elseif self.cache[4] then
-            log._warning("ISS: high temperature!")
+            log.warning("ISS: high temperature!")
             status = iss_status_t.high_temp
         elseif self.cache[2] then
-            log._warning("ISS: heated coolant backup!")
+            log.warning("ISS: heated coolant backup!")
             status = iss_status_t.ex_hcoolant
         elseif self.cache[6] then
-            log._warning("ISS: no coolant!")
+            log.warning("ISS: no coolant!")
             status = iss_status_t.no_coolant
         elseif self.cache[3] then
-            log._warning("ISS: full waste!")
+            log.warning("ISS: full waste!")
             status = iss_status_t.ex_waste
         elseif self.cache[5] then
-            log._warning("ISS: no fuel!")
+            log.warning("ISS: no fuel!")
             status = iss_status_t.no_fuel
         elseif self.cache[7] then
-            log._warning("ISS: supervisor connection timeout!")
+            log.warning("ISS: supervisor connection timeout!")
             status = iss_status_t.timeout
         else
             self.tripped = false
@@ -161,7 +164,7 @@ function iss_init(reactor)
         -- if a new trip occured...
         local first_trip = false
         if not was_tripped and status ~= iss_status_t.ok then
-            log._warning("ISS: reactor SCRAM")
+            log.warning("ISS: reactor SCRAM")
 
             first_trip = true
             self.tripped = true
@@ -169,7 +172,7 @@ function iss_init(reactor)
 
             self.reactor.scram()
             if self.reactor.__p_is_faulted() then
-                log._error("ISS: failed reactor SCRAM")
+                log.error("ISS: failed reactor SCRAM")
             end
         end
     
@@ -198,7 +201,7 @@ function iss_init(reactor)
 end
 
 -- reactor PLC communications
-function comms_init(id, modem, local_port, server_port, reactor, iss)
+plc.comms = function (id, modem, local_port, server_port, reactor, iss)
     local self = {
         id = id,
         seq_num = 0,
@@ -355,7 +358,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         if not self.reactor.__p_is_faulted() then
             _send(RPLC_TYPES.MEK_STRUCT, mek_data)
         else
-            log._error("failed to send structure: PPM fault")
+            log.error("failed to send structure: PPM fault")
         end
     end
 
@@ -417,7 +420,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             if not self.reactor.__p_is_faulted() then
                 _send(RPLC_TYPES.STATUS, sys_status)
             else
-                log._error("failed to send status: PPM fault")
+                log.error("failed to send status: PPM fault")
             end
         end
     end
@@ -463,7 +466,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     pkt = mgmt_pkt.get()
                 end
             else
-                log._error("illegal packet type " .. s_pkt.protocol(), true)
+                log.error("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -477,7 +480,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
             elseif self.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
-                log._warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -496,19 +499,19 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                             local trip_time = util.time() - timestamp
 
                             if trip_time > 500 then
-                                log._warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
+                                log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
                             end
 
-                            -- log._debug("RPLC RTT = ".. trip_time .. "ms")
+                            -- log.debug("RPLC RTT = ".. trip_time .. "ms")
 
                             _send_keep_alive_ack(timestamp)
                         else
-                            log._debug("RPLC keep alive packet length mismatch")
+                            log.debug("RPLC keep alive packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
                         if packet.length == 1 then
-                            log._debug("received unsolicited link request response")
+                            log.debug("received unsolicited link request response")
 
                             local link_ack = packet.data[1]
 
@@ -516,31 +519,31 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                                 self.status_cache = nil
                                 _send_struct()
                                 send_status(plc_state.degraded)
-                                log._debug("re-sent initial status data")
+                                log.debug("re-sent initial status data")
                             elseif link_ack == RPLC_LINKING.DENY then
                                 println_ts("received unsolicited link denial, unlinking")
-                                log._debug("unsolicited RPLC link request denied")
+                                log.debug("unsolicited RPLC link request denied")
                             elseif link_ack == RPLC_LINKING.COLLISION then
                                 println_ts("received unsolicited link collision, unlinking")
-                                log._warning("unsolicited RPLC link request collision")
+                                log.warning("unsolicited RPLC link request collision")
                             else
                                 println_ts("invalid unsolicited link response")
-                                log._error("unsolicited unknown RPLC link request response")
+                                log.error("unsolicited unknown RPLC link request response")
                             end
 
                             self.linked = link_ack == RPLC_LINKING.ALLOW
                         else
-                            log._debug("RPLC link req packet length mismatch")
+                            log.debug("RPLC link req packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
                         send_status(plc_state.degraded)
-                        log._debug("sent out status cache again, did supervisor miss it?")
+                        log.debug("sent out status cache again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
-                        log._debug("sent out structure again, did supervisor miss it?")
+                        log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_SCRAM then
                         -- disable the reactor
                         self.scrammed = true
@@ -576,14 +579,14 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                             _send_ack(packet.type, success)
                         else
-                            log._debug("RPLC set burn rate packet length mismatch")
+                            log.debug("RPLC set burn rate packet length mismatch")
                         end
                     elseif packet.type == RPLC_TYPES.ISS_CLEAR then
                         -- clear the ISS status
                         iss.reset()
                         _send_ack(packet.type, true)
                     else
-                        log._warning("received unknown RPLC packet type " .. packet.type)
+                        log.warning("received unknown RPLC packet type " .. packet.type)
                     end
                 elseif packet.type == RPLC_TYPES.LINK_REQ then
                     -- link request confirmation
@@ -592,7 +595,7 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
 
                         if link_ack == RPLC_LINKING.ALLOW then
                             println_ts("linked!")
-                            log._debug("RPLC link request approved")
+                            log.debug("RPLC link request approved")
 
                             -- reset remote sequence number and cache
                             self.r_seq_num = nil
@@ -601,24 +604,24 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                             _send_struct()
                             send_status(plc_state.degraded)
 
-                            log._debug("sent initial status data")
+                            log.debug("sent initial status data")
                         elseif link_ack == RPLC_LINKING.DENY then
                             println_ts("link request denied, retrying...")
-                            log._debug("RPLC link request denied")
+                            log.debug("RPLC link request denied")
                         elseif link_ack == RPLC_LINKING.COLLISION then
                             println_ts("reactor PLC ID collision (check config), retrying...")
-                            log._warning("RPLC link request collision")
+                            log.warning("RPLC link request collision")
                         else
                             println_ts("invalid link response, bad channel? retrying...")
-                            log._error("unknown RPLC link request response")
+                            log.error("unknown RPLC link request response")
                         end
 
                         self.linked = link_ack == RPLC_LINKING.ALLOW
                     else
-                        log._debug("RPLC link req packet length mismatch")
+                        log.debug("RPLC link req packet length mismatch")
                     end
                 else
-                    log._debug("discarding non-link packet before linked")
+                    log.debug("discarding non-link packet before linked")
                 end
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
                 -- handle session close
@@ -626,9 +629,9 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
                     conn_watchdog.cancel()
                     unlink()
                     println_ts("server connection closed by remote host")
-                    log._warning("server connection closed by remote host")
+                    log.warning("server connection closed by remote host")
                 else
-                    log._warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                    log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
                 end
             end
         end
@@ -652,3 +655,5 @@ function comms_init(id, modem, local_port, server_port, reactor, iss)
         is_linked = is_linked
     }
 end
+
+return plc

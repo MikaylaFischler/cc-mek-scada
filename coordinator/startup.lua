@@ -2,15 +2,14 @@
 -- Nuclear Generation Facility SCADA Coordinator
 --
 
-os.loadAPI("scada-common/log.lua")
-os.loadAPI("scada-common/util.lua")
-os.loadAPI("scada-common/ppm.lua")
-os.loadAPI("scada-common/comms.lua")
+local log = require("scada-common.log")
+local ppm = require("scada-common.ppm")
+local util = require("scada-common.util")
 
-os.loadAPI("coordinator/config.lua")
-os.loadAPI("coordinator/coordinator.lua")
+local config = require("config")
+local coordinator = require("coordinator")
 
-local COORDINATOR_VERSION = "alpha-v0.1.1"
+local COORDINATOR_VERSION = "alpha-v0.1.2"
 
 local print = util.print
 local println = util.println
@@ -19,9 +18,9 @@ local println_ts = util.println_ts
 
 log.init("/log.txt", log.MODE.APPEND)
 
-log._info("========================================")
-log._info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
-log._info("========================================")
+log.info("========================================")
+log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
+log.info("========================================")
 println(">> SCADA Coordinator " .. COORDINATOR_VERSION .. " <<")
 
 -- mount connected devices

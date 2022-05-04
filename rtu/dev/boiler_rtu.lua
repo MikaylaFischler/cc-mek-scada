@@ -1,8 +1,10 @@
--- #REQUIRES rtu.lua
+local rtu = require("rtu")
 
-function new(boiler)
+local boiler_rtu = {}
+
+boiler_rtu.new = function (boiler)
     local self = {
-        rtu = rtu.rtu_init(),
+        rtu = rtu.init_unit(),
         boiler = boiler
     }
 
@@ -49,3 +51,5 @@ function new(boiler)
         rtu_interface = rtu_interface
     }
 end
+
+return boiler_rtu

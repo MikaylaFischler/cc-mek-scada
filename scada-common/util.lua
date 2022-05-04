@@ -1,70 +1,69 @@
+local util = {}
+
 -- PRINT --
 
--- we are overwriting 'print' so save it first
-local _print = print
-
 -- print
-function print(message)
+util.print = function (message)
     term.write(message)
 end
 
 -- print line
-function println(message)
-    _print(message)
+util.println = function (message)
+    print(message)
 end
 
 -- timestamped print
-function print_ts(message)
+util.print_ts = function (message)
     term.write(os.date("[%H:%M:%S] ") .. message)
 end
 
 -- timestamped print line
-function println_ts(message)
-    _print(os.date("[%H:%M:%S] ") .. message)
+util.println_ts = function (message)
+    print(os.date("[%H:%M:%S] ") .. message)
 end
 
 -- TIME --
 
-function time_ms()
+util.time_ms = function ()
     return os.epoch('local')
 end
 
-function time_s()
+util.time_s = function ()
     return os.epoch('local') / 1000
 end
 
-function time()
-    return time_ms()
+util.time = function ()
+    return util.time_ms()
 end
 
 -- PARALLELIZATION --
 
 -- protected sleep call so we still are in charge of catching termination
-function psleep(t)
+util.psleep = function (t)
     pcall(os.sleep, t)
 end
 
 -- no-op to provide a brief pause (and a yield)
 -- EVENT_CONSUMER: this function consumes events
-function nop()
-    psleep(0.05)
+util.nop = function ()
+    util.psleep(0.05)
 end
 
 -- attempt to maintain a minimum loop timing (duration of execution)
-function adaptive_delay(target_timing, last_update)
-    local sleep_for = target_timing - (time() - last_update)
+util.adaptive_delay = function (target_timing, last_update)
+    local sleep_for = target_timing - (util.time() - last_update)
     -- only if >50ms since worker loops already yield 0.05s
     if sleep_for >= 50 then
-        psleep(sleep_for / 1000.0)
+        util.psleep(sleep_for / 1000.0)
     end
-    return time()
+    return util.time()
 end
 
 -- WATCHDOG --
 
 -- ComputerCraft OS Timer based Watchdog
 -- triggers a timer event if not fed within 'timeout' seconds
-function new_watchdog(timeout)
+util.new_watchdog = function (timeout)
     local self = { 
         _timeout = timeout, 
         _wd_timer = os.startTimer(timeout)
@@ -93,3 +92,5 @@ function new_watchdog(timeout)
         cancel = cancel
     }
 end
+
+return util

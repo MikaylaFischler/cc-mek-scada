@@ -2,18 +2,16 @@
 -- Reactor Programmable Logic Controller
 --
 
-os.loadAPI("scada-common/log.lua")
-os.loadAPI("scada-common/types.lua")
-os.loadAPI("scada-common/util.lua")
-os.loadAPI("scada-common/ppm.lua")
-os.loadAPI("scada-common/comms.lua")
-os.loadAPI("scada-common/mqueue.lua")
+local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local ppm = require("scada-common.ppm")
+local util = require("scada-common.util")
 
-os.loadAPI("config.lua")
-os.loadAPI("plc.lua")
-os.loadAPI("threads.lua")
+local config = require("config")
+local plc = require("plc")
+local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.5.2"
+local R_PLC_VERSION = "alpha-v0.6.0"
 
 local print = util.print
 local println = util.println
@@ -22,9 +20,9 @@ local println_ts = util.println_ts
 
 log.init(config.LOG_PATH, config.LOG_MODE)
 
-log._info("========================================")
-log._info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)
-log._info("========================================")
+log.info("========================================")
+log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)
+log.info("========================================")
 println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
 -- mount connected devices
@@ -78,7 +76,7 @@ local plc_state = __shared_memory.plc_state
 -- we need a reactor and a modem
 if smem_dev.reactor == nil then
     println("boot> fission reactor not found");
-    log._warning("no reactor on startup")
+    log.warning("no reactor on startup")
 
     plc_state.init_ok = false
     plc_state.degraded = true
@@ -86,7 +84,7 @@ if smem_dev.reactor == nil then
 end
 if networked and smem_dev.modem == nil then
     println("boot> wireless modem not found")
-    log._warning("no wireless modem on startup")
+    log.warning("no wireless modem on startup")
 
     if smem_dev.reactor ~= nil then
         smem_dev.reactor.scram()
@@ -104,19 +102,19 @@ function init()
 
         -- init internal safety system
         smem_sys.iss = plc.iss_init(smem_dev.reactor)
-        log._debug("iss init")
+        log.debug("iss init")
 
         if __shared_memory.networked then
             -- start comms
-            smem_sys.plc_comms = plc.comms_init(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.iss)
-            log._debug("comms init")
+            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.iss)
+            log.debug("comms init")
 
             -- comms watchdog, 3 second timeout
             smem_sys.conn_watchdog = util.new_watchdog(3)
-            log._debug("conn watchdog started")
+            log.debug("conn watchdog started")
         else
             println("boot> starting in offline mode");
-            log._debug("running without networking")
+            log.debug("running without networking")
         end
 
         os.queueEvent("clock_start")
@@ -124,7 +122,7 @@ function init()
         println("boot> completed");
     else
         println("boot> system in degraded state, awaiting devices...")
-        log._warning("booted in a degraded state, awaiting peripheral connections...")
+        log.warning("booted in a degraded state, awaiting peripheral connections...")
     end
 end
 
@@ -148,11 +146,11 @@ if __shared_memory.networked then
 
     if plc_state.init_ok then
         -- send status one last time after ISS shutdown
-        plc_comms.send_status(plc_state.degraded)
-        plc_comms.send_iss_status()
+        smem_sys.plc_comms.send_status(plc_state.degraded)
+        smem_sys.plc_comms.send_iss_status()
 
         -- close connection
-        plc_comms.close(conn_watchdog)
+        smem_sys.plc_comms.close(smem_sys.conn_watchdog)
     end
 else
     -- run threads, excluding comms
@@ -160,4 +158,4 @@ else
 end
 
 println_ts("exited")
-log._info("exited")
+log.info("exited")

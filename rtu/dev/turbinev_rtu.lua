@@ -1,8 +1,10 @@
--- #REQUIRES rtu.lua
+local rtu = require("rtu")
 
-function new(turbine)
+local turbinev_rtu = {}
+
+turbinev_rtu.new = function (turbine)
     local self = {
-        rtu = rtu.rtu_init(),
+        rtu = rtu.init_unit(),
         turbine = turbine
     }
 
@@ -14,8 +16,8 @@ function new(turbine)
     -- none
 
     -- coils --
-    self.rtu.connect_coil(function () self.turbine.incrementDumpingMode() end), function () end)
-    self.rtu.connect_coil(function () self.turbine.decrementDumpingMode() end), function () end)
+    self.rtu.connect_coil(function () self.turbine.incrementDumpingMode() end, function () end)
+    self.rtu.connect_coil(function () self.turbine.decrementDumpingMode() end, function () end)
 
     -- input registers --
     -- multiblock properties
@@ -54,3 +56,5 @@ function new(turbine)
         rtu_interface = rtu_interface
     }
 end
+
+return turbinev_rtu

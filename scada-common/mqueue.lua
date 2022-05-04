@@ -2,13 +2,17 @@
 -- Message Queue
 --
 
-TYPE = {
+local mqueue = {}
+
+local TYPE = {
     COMMAND = 0,
     DATA = 1,
     PACKET = 2
 }
 
-function new()
+mqueue.TYPE = TYPE
+
+mqueue.new = function ()
     local queue = {}
 
     local length = function ()
@@ -57,3 +61,5 @@ function new()
         pop = pop
     }
 end
+
+return mqueue

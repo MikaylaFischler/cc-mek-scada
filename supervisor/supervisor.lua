@@ -1,7 +1,10 @@
--- #REQUIRES comms.lua
--- #REQUIRES mqueue.lua
--- #REQUIRES util.lua
--- #REQUIRES svsessions.lua
+local comms = require("scada-common.comms")
+local log = require("scada-common.log")
+local util = require("scada-common.util")
+
+local svsessions = require("session.svsessions")
+
+local supervisor = {}
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
@@ -17,7 +20,7 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- supervisory controller communications
-function superv_comms(num_reactors, modem, dev_listen, coord_listen)
+supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     local self = {
         ln_seq_num = 0,
         num_reactors = num_reactors,
@@ -101,7 +104,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     pkt = coord_pkt.get()
                 end
             else
-                log._debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -126,7 +129,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                     if session then
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             -- new device on this port? that's a collision
-                            log._debug("PLC_LNK: request from existing connection received on " .. r_port .. ", responding with collision")
+                            log.debug("PLC_LNK: request from existing connection received on " .. r_port .. ", responding with collision")
                             _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
                         else
                             -- pass the packet onto the session handler
@@ -140,20 +143,20 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                                 local plc_id = svsessions.establish_plc_session(l_port, r_port, packet.data[1])
                                 if plc_id == false then
                                     -- reactor already has a PLC assigned
-                                    log._debug("PLC_LNK: assignment collision with reactor " .. packet.data[1])
+                                    log.debug("PLC_LNK: assignment collision with reactor " .. packet.data[1])
                                     _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
                                 else
                                     -- got an ID; assigned to a reactor successfully
                                     println("connected to reactor " .. packet.data[1] .. " PLC (port " .. r_port .. ")")
-                                    log._debug("PLC_LNK: allowed for device at " .. r_port)
+                                    log.debug("PLC_LNK: allowed for device at " .. r_port)
                                     _send_plc_linking(r_port, { RPLC_LINKING.ALLOW })
                                 end
                             else
-                                log._debug("PLC_LNK: new linking packet length mismatch")
+                                log.debug("PLC_LNK: new linking packet length mismatch")
                             end
                         else
                             -- force a re-link
-                            log._debug("PLC_LNK: no session but not a link, force relink")
+                            log.debug("PLC_LNK: no session but not a link, force relink")
                             _send_plc_linking(r_port, { RPLC_LINKING.DENY })
                         end
                     end
@@ -164,7 +167,7 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                         session.in_queue.push_packet(packet)
                     end
                 else
-                    log._debug("illegal packet type " .. protocol .. " on device listening channel")
+                    log.debug("illegal packet type " .. protocol .. " on device listening channel")
                 end
             -- coordinator listening channel
             elseif l_port == self.coord_listen then
@@ -173,10 +176,10 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
                 elseif protocol == PROTOCOLS.COORD_DATA then
                     -- coordinator packet
                 else
-                    log._debug("illegal packet type " .. protocol .. " on coordinator listening channel")
+                    log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")
                 end
             else
-                log._error("received packet on unused channel " .. l_port, true)
+                log.error("received packet on unused channel " .. l_port, true)
             end
         end
     end
@@ -187,3 +190,5 @@ function superv_comms(num_reactors, modem, dev_listen, coord_listen)
         handle_packet = handle_packet
     }
 end
+
+return supervisor

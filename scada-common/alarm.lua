@@ -1,4 +1,6 @@
--- #REQUIRES util.lua
+local util = require("scada-common.util")
+
+local alarm = {}
 
 SEVERITY = {
     INFO = 0,       -- basic info message
@@ -9,7 +11,27 @@ SEVERITY = {
     EMERGENCY = 5   -- critical safety alarm
 }
 
-function scada_alarm(severity, device, message)
+alarm.SEVERITY = SEVERITY
+
+alarm.severity_to_string = function (severity)
+    if severity == SEVERITY.INFO then
+        return "INFO"
+    elseif severity == SEVERITY.WARNING then
+        return "WARNING"
+    elseif severity == SEVERITY.ALERT then
+        return "ALERT"
+    elseif severity == SEVERITY.FACILITY then
+        return "FACILITY"
+    elseif severity == SEVERITY.SAFETY then
+        return "SAFETY"
+    elseif severity == SEVERITY.EMERGENCY then
+        return "EMERGENCY"
+    else
+        return "UNKNOWN"
+    end
+end
+
+alarm.scada_alarm = function (severity, device, message)
     local self = {
         time = util.time(),
         ts_string = os.date("[%H:%M:%S]"),
@@ -19,7 +41,7 @@ function scada_alarm(severity, device, message)
     }
 
     local format = function ()
-        return self.ts_string .. " [" .. severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
+        return self.ts_string .. " [" .. alarm.severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
     end
 
     local properties = function ()
@@ -37,20 +59,4 @@ function scada_alarm(severity, device, message)
     }
 end
 
-function severity_to_string(severity)
-    if severity == SEVERITY.INFO then
-        return "INFO"
-    elseif severity == SEVERITY.WARNING then
-        return "WARNING"
-    elseif severity == SEVERITY.ALERT then
-        return "ALERT"
-    elseif severity == SEVERITY.FACILITY then
-        return "FACILITY"
-    elseif severity == SEVERITY.SAFETY then
-        return "SAFETY"
-    elseif severity == SEVERITY.EMERGENCY then
-        return "EMERGENCY"
-    else
-        return "UNKNOWN"
-    end
-end
+return alarm

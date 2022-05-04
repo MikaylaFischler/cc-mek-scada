@@ -1,7 +1,9 @@
--- #REQUIRES mqueue.lua
--- #REQUIRES comms.lua
--- #REQUIRES log.lua
--- #REQUIRES util.lua
+local comms = require("scada-common.comms")
+local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local util = require("scada-common.util")
+
+local plc = {}
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
@@ -16,19 +18,21 @@ local println_ts = util.println_ts
 local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
 
-PLC_S_CMDS = {
+local PLC_S_CMDS = {
     SCRAM = 0,
     ENABLE = 1,
     BURN_RATE = 2,
     ISS_CLEAR = 3
 }
 
+plc.PLC_S_CMDS = PLC_S_CMDS
+
 local PERIODICS = {
     KEEP_ALIVE = 2.0
 }
 
 -- PLC supervisor session
-function new_session(id, for_reactor, in_queue, out_queue)
+plc.new_session = function (id, for_reactor, in_queue, out_queue)
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
@@ -204,7 +208,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         if pkt.length == 1 then
             return pkt.data[1]
         else
-            log._warning(log_header .. "RPLC ACK length mismatch")
+            log.warning(log_header .. "RPLC ACK length mismatch")
             return nil
         end
     end
@@ -215,7 +219,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
         elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
-            log._warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num()
@@ -225,7 +229,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         if pkt.scada_frame.protocol() == PROTOCOLS.RPLC then
             -- check reactor ID
             if pkt.id ~= for_reactor then
-                log._warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. pkt.id)
+                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. pkt.id)
                 return
             end
 
@@ -242,13 +246,13 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 500 then
-                        log._warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. ")")
+                        log.warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. ")")
                     end
 
-                    -- log._debug(log_header .. "RPLC RTT = ".. self.last_rtt .. "ms")
-                    -- log._debug(log_header .. "RPLC TT  = ".. (srv_now - plc_send) .. "ms")
+                    -- log.debug(log_header .. "RPLC RTT = ".. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "RPLC TT  = ".. (srv_now - plc_send) .. "ms")
                 else
-                    log._debug(log_header .. "RPLC keep alive packet length mismatch")
+                    log.debug(log_header .. "RPLC keep alive packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
@@ -267,11 +271,11 @@ function new_session(id, for_reactor, in_queue, out_queue)
                             self.received_status_cache = true
                         else
                             -- error copying status data
-                            log._error(log_header .. "failed to parse status packet data")
+                            log.error(log_header .. "failed to parse status packet data")
                         end
                     end
                 else
-                    log._debug(log_header .. "RPLC status packet length mismatch")
+                    log.debug(log_header .. "RPLC status packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPES.MEK_STRUCT then
                 -- received reactor structure, record it
@@ -282,10 +286,10 @@ function new_session(id, for_reactor, in_queue, out_queue)
                         self.received_struct = true
                     else
                         -- error copying structure data
-                        log._error(log_header .. "failed to parse struct packet data")
+                        log.error(log_header .. "failed to parse struct packet data")
                     end
                 else
-                    log._debug(log_header .. "RPLC struct packet length mismatch")
+                    log.debug(log_header .. "RPLC struct packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPES.MEK_SCRAM then
                 -- SCRAM acknowledgement
@@ -294,7 +298,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     self.acks.scram = true
                     self.sDB.control_state = false
                 elseif ack == false then
-                    log._debug(log_header .. "SCRAM failed!")
+                    log.debug(log_header .. "SCRAM failed!")
                 end
             elseif pkt.type == RPLC_TYPES.MEK_ENABLE then
                 -- enable acknowledgement
@@ -303,7 +307,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     self.acks.enable = true
                     self.sDB.control_state = true
                 elseif ack == false then
-                    log._debug(log_header .. "enable failed!")
+                    log.debug(log_header .. "enable failed!")
                 end
             elseif pkt.type == RPLC_TYPES.MEK_BURN_RATE then
                 -- burn rate acknowledgement
@@ -311,7 +315,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
                 if ack then
                     self.acks.burn_rate = true
                 elseif ack == false then
-                    log._debug(log_header .. "burn rate update failed!")
+                    log.debug(log_header .. "burn rate update failed!")
                 end
             elseif pkt.type == RPLC_TYPES.ISS_STATUS then
                 -- ISS status packet received, copy data
@@ -321,10 +325,10 @@ function new_session(id, for_reactor, in_queue, out_queue)
                         -- copied in ISS status data OK
                     else
                         -- error copying ISS status data
-                        log._error(log_header .. "failed to parse ISS status packet data")
+                        log.error(log_header .. "failed to parse ISS status packet data")
                     end
                 else
-                    log._debug(log_header .. "RPLC ISS status packet length mismatch")
+                    log.debug(log_header .. "RPLC ISS status packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPES.ISS_ALARM then
                 -- ISS alarm
@@ -337,10 +341,10 @@ function new_session(id, for_reactor, in_queue, out_queue)
                         -- copied in ISS status data OK
                     else
                         -- error copying ISS status data
-                        log._error(log_header .. "failed to parse ISS alarm status data")
+                        log.error(log_header .. "failed to parse ISS alarm status data")
                     end
                 else
-                    log._debug(log_header .. "RPLC ISS alarm packet length mismatch")
+                    log.debug(log_header .. "RPLC ISS alarm packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPES.ISS_CLEAR then
                 -- ISS clear acknowledgement
@@ -350,17 +354,17 @@ function new_session(id, for_reactor, in_queue, out_queue)
                     self.sDB.iss_tripped = false
                     self.sDB.iss_trip_cause = "ok"
                 elseif ack == false then
-                    log._debug(log_header .. "ISS clear failed")
+                    log.debug(log_header .. "ISS clear failed")
                 end
             else
-                log._debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
+                log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
             if pkt.type == SCADA_MGMT_TYPES.CLOSE then
                 -- close the session
                 self.connected = false
             else
-                log._debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
+                log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         end
     end
@@ -402,7 +406,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
         self.connected = false
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
         println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
-        log._info(log_header .. "session closed by server")
+        log.info(log_header .. "session closed by server")
     end
 
     -- iterate the session
@@ -454,7 +458,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log._warning(log_header .. "exceeded 100ms queue process limit")
+                    log.warning(log_header .. "exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -463,7 +467,7 @@ function new_session(id, for_reactor, in_queue, out_queue)
             if not self.connected then
                 self.plc_conn_watchdog.cancel()
                 println("connection to reactor " .. self.for_reactor .. " PLC closed by remote host")
-                log._info(log_header .. "session closed by remote host")
+                log.info(log_header .. "session closed by remote host")
                 return self.connected
             end
 
@@ -559,3 +563,5 @@ function new_session(id, for_reactor, in_queue, out_queue)
         iterate = iterate
     }
 end
+
+return plc

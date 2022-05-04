@@ -1,7 +1,9 @@
--- #REQUIRES comms.lua
--- #REQUIRES log.lua
--- #REQUIRES ppm.lua
--- #REQUIRES util.lua
+local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local ppm = require("scada-common.ppm")
+local util = require("scada-common.util")
+
+local threads = {}
 
 local print = util.print
 local println = util.println
@@ -28,10 +30,10 @@ local MQ__COMM_CMD = {
 }
 
 -- main thread
-function thread__main(smem, init)
+threads.thread__main = function (smem, init)
     -- execute thread
     local exec = function ()
-        log._debug("main thread init, clock inactive")
+        log.debug("main thread init, clock inactive")
 
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
         -- send link requests at 0.5Hz (every 40 server ticks) (every 4 loop ticks)
@@ -89,14 +91,14 @@ function thread__main(smem, init)
 
                 if device.type == "fissionReactor" then
                     println_ts("reactor disconnected!")
-                    log._error("reactor disconnected!")
+                    log.error("reactor disconnected!")
                     plc_state.no_reactor = true
                     plc_state.degraded = true
                 elseif networked and device.type == "modem" then
                     -- we only care if this is our wireless modem
                     if device.dev == plc_dev.modem then
                         println_ts("wireless modem disconnected!")
-                        log._error("comms modem disconnected!")
+                        log.error("comms modem disconnected!")
                         plc_state.no_modem = true
 
                         if plc_state.init_ok then
@@ -106,7 +108,7 @@ function thread__main(smem, init)
 
                         plc_state.degraded = true
                     else
-                        log._warning("non-comms modem disconnected")
+                        log.warning("non-comms modem disconnected")
                     end
                 end
             elseif event == "peripheral" then
@@ -120,7 +122,7 @@ function thread__main(smem, init)
                     smem.q.mq_iss.push_command(MQ__ISS_CMD.SCRAM)
 
                     println_ts("reactor reconnected.")
-                    log._info("reactor reconnected.")
+                    log.info("reactor reconnected.")
                     plc_state.no_reactor = false
 
                     if plc_state.init_ok then
@@ -144,7 +146,7 @@ function thread__main(smem, init)
                         end
 
                         println_ts("wireless modem reconnected.")
-                        log._info("comms modem reconnected.")
+                        log.info("comms modem reconnected.")
                         plc_state.no_modem = false
 
                         -- determine if we are still in a degraded state
@@ -152,7 +154,7 @@ function thread__main(smem, init)
                             plc_state.degraded = false
                         end
                     else
-                        log._info("wired modem reconnected.")
+                        log.info("wired modem reconnected.")
                     end
                 end
 
@@ -163,12 +165,12 @@ function thread__main(smem, init)
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock = os.startTimer(MAIN_CLOCK)
-                log._debug("main thread clock started")
+                log.debug("main thread clock started")
             end
 
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
-                log._info("terminate requested, main thread exiting")
+                log.info("terminate requested, main thread exiting")
                 -- iss handles reactor shutdown
                 plc_state.shutdown = true
                 break
@@ -180,10 +182,10 @@ function thread__main(smem, init)
 end
 
 -- ISS monitor thread
-function thread__iss(smem)
+threads.thread__iss = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("iss thread start")
+        log.debug("iss thread start")
 
         -- load in from shared memory
         local networked   = smem.networked
@@ -257,17 +259,17 @@ function thread__iss(smem)
                         plc_state.scram = true
                         if reactor.scram() then
                             println_ts("successful reactor SCRAM")
-                            log._error("successful reactor SCRAM")
+                            log.error("successful reactor SCRAM")
                         else
                             println_ts("failed reactor SCRAM")
-                            log._error("failed reactor SCRAM")
+                            log.error("failed reactor SCRAM")
                         end
                     elseif msg.message == MQ__ISS_CMD.TRIP_TIMEOUT then
                         -- watchdog tripped
                         plc_state.scram = true
                         iss.trip_timeout()
                         println_ts("server timeout")
-                        log._warning("server timeout")
+                        log.warning("server timeout")
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- received data
@@ -282,19 +284,19 @@ function thread__iss(smem)
             -- check for termination request
             if plc_state.shutdown then
                 -- safe exit
-                log._info("iss thread shutdown initiated")
+                log.info("iss thread shutdown initiated")
                 if plc_state.init_ok then
                     plc_state.scram = true
                     reactor.scram()
                     if reactor.__p_is_ok() then
                         println_ts("reactor disabled")
-                        log._info("iss thread reactor SCRAM OK")
+                        log.info("iss thread reactor SCRAM OK")
                     else
                         println_ts("exiting, reactor failed to disable")
-                        log._error("iss thread failed to SCRAM reactor on exit")
+                        log.error("iss thread failed to SCRAM reactor on exit")
                     end
                 end
-                log._info("iss thread exiting")
+                log.info("iss thread exiting")
                 break
             end
 
@@ -307,10 +309,10 @@ function thread__iss(smem)
 end
 
 -- communications sender thread
-function thread__comms_tx(smem)
+threads.thread__comms_tx = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("comms tx thread start")
+        log.debug("comms tx thread start")
 
         -- load in from shared memory
         local plc_state   = smem.plc_state
@@ -345,7 +347,7 @@ function thread__comms_tx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._info("comms tx thread exiting")
+                log.info("comms tx thread exiting")
                 break
             end
 
@@ -358,10 +360,10 @@ function thread__comms_tx(smem)
 end
 
 -- communications handler thread
-function thread__comms_rx(smem)
+threads.thread__comms_rx = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("comms rx thread start")
+        log.debug("comms rx thread start")
 
         -- load in from shared memory
         local plc_state     = smem.plc_state
@@ -397,7 +399,7 @@ function thread__comms_rx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._info("comms rx thread exiting")
+                log.info("comms rx thread exiting")
                 break
             end
 
@@ -410,10 +412,10 @@ function thread__comms_rx(smem)
 end
 
 -- apply setpoints
-function thread__setpoint_control(smem)
+threads.thread__setpoint_control = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("setpoint control thread start")
+        log.debug("setpoint control thread start")
 
         -- load in from shared memory
         local plc_state     = smem.plc_state
@@ -434,10 +436,10 @@ function thread__setpoint_control(smem)
                 if not plc_state.scram then
                     if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
                         -- update without ramp if <= 5 mB/t change
-                        log._debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
+                        log.debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
                         reactor.setBurnRate(setpoints.burn_rate)
                     else
-                        log._debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
+                        log.debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
                         running = true
                     end
 
@@ -489,7 +491,7 @@ function thread__setpoint_control(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log._info("setpoint control thread exiting")
+                log.info("setpoint control thread exiting")
                 break
             end
 
@@ -500,3 +502,5 @@ function thread__setpoint_control(smem)
 
     return { exec = exec }
 end
+
+return threads

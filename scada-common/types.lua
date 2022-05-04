@@ -1,6 +1,10 @@
+--
 -- Global Types
+--
 
-rtu_t = {
+local types = {}
+
+types.rtu_t = {
     redstone = "redstone",
     boiler = "boiler",
     boiler_valve = "boiler_valve",
@@ -10,7 +14,7 @@ rtu_t = {
     induction_matrix = "induction_matrix"
 }
 
-iss_status_t = {
+types.iss_status_t = {
     ok = "ok",
     dmg_crit = "dmg_crit",
     ex_hcoolant = "heated_coolant_backup",
@@ -24,7 +28,7 @@ iss_status_t = {
 -- MODBUS
 
 -- modbus function codes
-local MODBUS_FCODE = {
+types.MODBUS_FCODE = {
     READ_COILS = 0x01,
     READ_DISCRETE_INPUTS = 0x02,
     READ_MUL_HOLD_REGS = 0x03,
@@ -37,7 +41,7 @@ local MODBUS_FCODE = {
 }
 
 -- modbus exception codes
-local MODBUS_EXCODE = {
+types.MODBUS_EXCODE = {
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDR = 0x02,
     ILLEGAL_DATA_VALUE = 0x03,
@@ -49,3 +53,5 @@ local MODBUS_EXCODE = {
     GATEWAY_PATH_UNAVAILABLE = 0x0A,
     GATEWAY_TARGET_TIMEOUT = 0x0B
 }
+
+return types

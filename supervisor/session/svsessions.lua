@@ -1,13 +1,21 @@
--- #REQUIRES mqueue.lua
--- #REQUIRES log.lua
+local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+
+local coordinator = require("session.coordinator")
+local plc = require("session.plc")
+local rtu = require("session.rtu")
 
 -- Supervisor Sessions Handler
 
-SESSION_TYPE = {
+local svsessions = {}
+
+local SESSION_TYPE = {
     RTU_SESSION = 0,
     PLC_SESSION = 1,
     COORD_SESSION = 2
 }
+
+svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
     modem = nil,
@@ -20,12 +28,97 @@ local self = {
     next_coord_id = 0
 }
 
-function link_modem(modem)
+-- PRIVATE FUNCTIONS --
+
+-- iterate all the given sessions
+local function _iterate(sessions)
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session.open then
+            local ok = session.instance.iterate()
+            if ok then
+                -- send packets in out queue
+                while session.out_queue.ready() do
+                    local msg = session.out_queue.pop()
+                    if msg.qtype == mqueue.TYPE.PACKET then
+                        self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+                    end
+                end
+            else
+                session.open = false
+            end
+        end
+    end
+end
+
+-- cleanly close a session
+local function _shutdown(session)
+    session.open = false
+    session.instance.close()
+
+    -- send packets in out queue (namely the close packet)
+    while session.out_queue.ready() do
+        local msg = session.out_queue.pop()
+        if msg.qtype == mqueue.TYPE.PACKET then
+            self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+        end
+    end
+
+    log.debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+end
+
+-- close connections
+local function _close(sessions)
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session.open then
+            _shutdown(session)
+        end
+    end
+end
+
+-- check if a watchdog timer event matches that of one of the provided sessions
+local function _check_watchdogs(sessions, timer_event)
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session.open then
+            local triggered = session.instance.check_wd(timer_event)
+            if triggered then
+                log.debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port .. "...")
+                _shutdown(session)
+            end
+        end
+    end
+end
+
+-- delete any closed sessions
+local function _free_closed(sessions)
+    local move_to = 1
+    for i = 1, #sessions do
+        local session = sessions[i]
+        if session ~= nil then
+            if sessions[i].open then
+                if sessions[move_to] == nil then
+                    sessions[move_to] = session
+                    sessions[i] = nil
+                end
+                move_to = move_to + 1
+            else
+                log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+                sessions[i] = nil
+            end
+        end
+    end
+end
+
+-- PUBLIC FUNCTIONS --
+
+svsessions.link_modem = function (modem)
     self.modem = modem
 end
 
 -- find a session by the remote port
-function find_session(remote_port)
+svsessions.find_session = function (remote_port)
     -- check RTU sessions
     for i = 1, #self.rtu_sessions do
         if self.rtu_sessions[i].r_port == remote_port then
@@ -51,7 +144,7 @@ function find_session(remote_port)
 end
 
 -- get a session by reactor ID
-function get_reactor_session(reactor)
+svsessions.get_reactor_session = function (reactor)
     local session = nil
 
     for i = 1, #self.plc_sessions do
@@ -64,8 +157,8 @@ function get_reactor_session(reactor)
 end
 
 -- establish a new PLC session
-function establish_plc_session(local_port, remote_port, for_reactor)
-    if get_reactor_session(for_reactor) == nil then 
+svsessions.establish_plc_session = function (local_port, remote_port, for_reactor)
+    if svsessions.get_reactor_session(for_reactor) == nil then 
         local plc_s = {
             open = true,
             reactor = for_reactor,
@@ -79,7 +172,7 @@ function establish_plc_session(local_port, remote_port, for_reactor)
         plc_s.instance = plc.new_session(self.next_plc_id, for_reactor, plc_s.in_queue, plc_s.out_queue)
         table.insert(self.plc_sessions, plc_s)
 
-        log._debug("established new PLC session to " .. remote_port .. " with ID " .. self.next_plc_id)
+        log.debug("established new PLC session to " .. remote_port .. " with ID " .. self.next_plc_id)
 
         self.next_plc_id = self.next_plc_id + 1
 
@@ -91,38 +184,8 @@ function establish_plc_session(local_port, remote_port, for_reactor)
     end
 end
 
--- cleanly close a session
-local function _shutdown(session)
-    session.open = false
-    session.instance.close()
-
-    -- send packets in out queue (namely the close packet)
-    while session.out_queue.ready() do
-        local msg = session.out_queue.pop()
-        if msg.qtype == mqueue.TYPE.PACKET then
-            self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
-        end
-    end
-
-    log._debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
-end
-
--- check if a watchdog timer event matches that of one of the provided sessions
-local function _check_watchdogs(sessions, timer_event)
-    for i = 1, #sessions do
-        local session = sessions[i]
-        if session.open then
-            local triggered = session.instance.check_wd(timer_event)
-            if triggered then
-                log._debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port .. "...")
-                _shutdown(session)
-            end
-        end
-    end
-end
-
 -- attempt to identify which session's watchdog timer fired
-function check_all_watchdogs(timer_event)
+svsessions.check_all_watchdogs = function (timer_event)
     -- check RTU session watchdogs
     _check_watchdogs(self.rtu_sessions, timer_event)
 
@@ -133,29 +196,8 @@ function check_all_watchdogs(timer_event)
     _check_watchdogs(self.coord_sessions, timer_event)
 end
 
--- iterate all the given sessions
-local function _iterate(sessions)
-    for i = 1, #sessions do
-        local session = sessions[i]
-        if session.open then
-            local ok = session.instance.iterate()
-            if ok then
-                -- send packets in out queue
-                while session.out_queue.ready() do
-                    local msg = session.out_queue.pop()
-                    if msg.qtype == mqueue.TYPE.PACKET then
-                        self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
-                    end
-                end
-            else
-                session.open = false
-            end
-        end
-    end
-end
-
 -- iterate all sessions
-function iterate_all()
+svsessions.iterate_all = function ()
     -- iterate RTU sessions
     _iterate(self.rtu_sessions)
 
@@ -166,28 +208,8 @@ function iterate_all()
     _iterate(self.coord_sessions)
 end
 
--- delete any closed sessions
-local function _free_closed(sessions)
-    local move_to = 1
-    for i = 1, #sessions do
-        local session = sessions[i]
-        if session ~= nil then
-            if sessions[i].open then
-                if sessions[move_to] == nil then
-                    sessions[move_to] = session
-                    sessions[i] = nil
-                end
-                move_to = move_to + 1
-            else
-                log._debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
-                sessions[i] = nil
-            end
-        end
-    end
-end
-
 -- delete all closed sessions
-function free_all_closed()
+svsessions.free_all_closed = function ()
     -- free closed RTU sessions
     _free_closed(self.rtu_sessions)
 
@@ -198,23 +220,15 @@ function free_all_closed()
     _free_closed(self.coord_sessions)
 end
 
--- close connections
-local function _close(sessions)
-    for i = 1, #sessions do
-        local session = sessions[i]
-        if session.open then
-            _shutdown(session)
-        end
-    end
-end
-
 -- close all open connections
-function close_all()
+svsessions.close_all = function ()
     -- close sessions
     _close(self.rtu_sessions)
     _close(self.plc_sessions)
     _close(self.coord_sessions)
 
     -- free sessions
-    free_all_closed()
+    svsessions.free_all_closed()
 end
+
+return svsessions

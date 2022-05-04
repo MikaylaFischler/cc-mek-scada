@@ -1,7 +1,22 @@
--- #REQUIRES comms.lua
--- #REQUIRES log.lua
--- #REQUIRES ppm.lua
--- #REQUIRES util.lua
+local comms = require("scada-common.comms")
+local log = require("scada-common.log")
+local ppm = require("scada-common.ppm")
+local types = require("scada-common.types")
+local util = require("scada-common.util")
+
+local redstone_rtu = require("dev.redstone_rtu")
+local boiler_rtu = require("dev.boiler_rtu")
+local boilerv_rtu = require("dev.boilerv_rtu")
+local energymachine_rtu = require("dev.energymachine_rtu")
+local imatrix_rtu = require("dev.imatrix_rtu")
+local turbine_rtu = require("dev.turbine_rtu")
+local turbinev_rtu = require("dev.turbinev_rtu")
+
+local modbus = require("modbus")
+
+local threads = {}
+
+local rtu_t = types.rtu_t
 
 local print = util.print
 local println = util.println
@@ -14,10 +29,10 @@ local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
 local COMMS_SLEEP = 150 -- (150ms, 3 ticks)
 
 -- main thread
-function thread__main(smem)
+threads.thread__main = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("main thread start")
+        log.debug("main thread start")
 
         -- advertisement/heartbeat clock
         local loop_clock = os.startTimer(MAIN_CLOCK)
@@ -62,9 +77,9 @@ function thread__main(smem)
                     -- we only care if this is our wireless modem
                     if device.dev == rtu_dev.modem then
                         println_ts("wireless modem disconnected!")
-                        log._warning("comms modem disconnected!")
+                        log.warning("comms modem disconnected!")
                     else
-                        log._warning("non-comms modem disconnected")
+                        log.warning("non-comms modem disconnected")
                     end
                 else
                     for i = 1, #units do
@@ -88,9 +103,9 @@ function thread__main(smem)
                         rtu_comms.reconnect_modem(rtu_dev.modem)
 
                         println_ts("wireless modem reconnected.")
-                        log._info("comms modem reconnected.")
+                        log.info("comms modem reconnected.")
                     else
-                        log._info("wired modem reconnected.")
+                        log.info("wired modem reconnected.")
                     end
                 else
                     -- relink lost peripheral to correct unit entry
@@ -102,11 +117,17 @@ function thread__main(smem)
                             -- found, re-link
                             unit.device = device
 
-                            if unit.type == "boiler" then
+                            if unit.type == rtu_t.boiler then
                                 unit.rtu = boiler_rtu.new(device)
-                            elseif unit.type == "turbine" then
+                            elseif unit.type == rtu_t.boiler_valve then
+                                unit.rtu = boilerv_rtu.new(device)
+                            elseif unit.type == rtu_t.turbine then
                                 unit.rtu = turbine_rtu.new(device)
-                            elseif unit.type == "imatrix" then
+                            elseif unit.type == rtu_t.turbine_valve then
+                                unit.rtu = turbinev_rtu.new(device)
+                            elseif unit.type == rtu_t.energy_machine then
+                                unit.rtu = energymachine_rtu.new(device)
+                            elseif unit.type == rtu_t.induction_matrix then
                                 unit.rtu = imatrix_rtu.new(device)
                             end
 
@@ -121,7 +142,7 @@ function thread__main(smem)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 rtu_state.shutdown = true
-                log._info("terminate requested, main thread exiting")
+                log.info("terminate requested, main thread exiting")
                 break
             end
         end
@@ -131,10 +152,10 @@ function thread__main(smem)
 end
 
 -- communications handler thread
-function thread__comms(smem)
+threads.thread__comms = function (smem)
     -- execute thread
     local exec = function ()
-        log._debug("comms thread start")
+        log.debug("comms thread start")
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
@@ -169,8 +190,8 @@ function thread__comms(smem)
 
             -- check for termination request
             if rtu_state.shutdown then
-                rtu_comms.close()
-                log._info("comms thread exiting")
+                rtu_comms.close(rtu_state)
+                log.info("comms thread exiting")
                 break
             end
 
@@ -183,10 +204,10 @@ function thread__comms(smem)
 end
 
 -- per-unit communications handler thread
-function thread__unit_comms(smem, unit)
+threads.thread__unit_comms = function (smem, unit)
     -- execute thread
     local exec = function ()
-        log._debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
+        log.debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
@@ -219,7 +240,7 @@ function thread__unit_comms(smem, unit)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log._info("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
+                log.info("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
                 break
             end
 
@@ -230,3 +251,5 @@ function thread__unit_comms(smem, unit)
 
     return { exec = exec }
 end
+
+return threads

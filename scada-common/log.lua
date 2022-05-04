@@ -2,13 +2,16 @@
 -- File System Logger
 --
 
--- we use extra short abbreviations since computer craft screens are very small
--- underscores are used since some of these names are used elsewhere (e.g. 'debug' is a lua table)
+local log = {}
 
-MODE = {
+-- we use extra short abbreviations since computer craft screens are very small
+
+local MODE = {
     APPEND = 0,
     NEW = 1
 }
+
+log.MODE = MODE
 
 local LOG_DEBUG = true
 
@@ -50,7 +53,7 @@ local _log = function (msg)
     end
 end
 
-function init(path, write_mode)
+log.init = function (path, write_mode)
     log_path = path
     mode = write_mode
 
@@ -61,7 +64,7 @@ function init(path, write_mode)
     end
 end
 
-function _debug(msg, trace)
+log.debug = function (msg, trace)
     if LOG_DEBUG then
         local dbg_info = ""
 
@@ -80,15 +83,15 @@ function _debug(msg, trace)
     end
 end
 
-function _info(msg)
+log.info = function (msg)
     _log("[INF] " .. msg)
 end
 
-function _warning(msg)
+log.warning = function (msg)
     _log("[WRN] " .. msg)
 end
 
-function _error(msg, trace)
+log.error = function (msg, trace)
     local dbg_info = ""
     
     if trace then
@@ -105,6 +108,8 @@ function _error(msg, trace)
     _log("[ERR] " .. dbg_info .. msg)
 end
 
-function _fatal(msg)
+log.fatal = function (msg)
     _log("[FTL] " .. msg)
 end
+
+return log

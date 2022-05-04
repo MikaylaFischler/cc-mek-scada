@@ -1,13 +1,14 @@
--- #REQUIRES rtu.lua
--- #REQUIRES rsio.lua
--- note: this RTU makes extensive use of the programming concept of closures
+local rtu = require("rtu")
+local rsio = require("scada-common.rsio")
+
+local redstone_rtu = {}
 
 local digital_read = rsio.digital_read
 local digital_is_active = rsio.digital_is_active
 
-function new()
+redstone_rtu.new = function ()
     local self = {
-        rtu = rtu.rtu_init()
+        rtu = rtu.init_unit()
     }
 
     local rtu_interface = function ()
@@ -91,3 +92,5 @@ function new()
         link_ao = link_ao
     }
 end
+
+return redstone_rtu

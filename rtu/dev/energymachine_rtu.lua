@@ -1,8 +1,10 @@
--- #REQUIRES rtu.lua
+local rtu = require("rtu")
 
-function new(machine)
+local energymachine_rtu = {}
+
+energymachine_rtu.new = function (machine)
     local self = {
-        rtu = rtu.rtu_init(),
+        rtu = rtu.init_unit(),
         machine = machine
     }
 
@@ -31,3 +33,5 @@ function new(machine)
         rtu_interface = rtu_interface
     }
 end
+
+return energymachine_rtu

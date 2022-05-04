@@ -1,12 +1,15 @@
--- #REQUIRES comms.lua
--- #REQUIRES modbus.lua
--- #REQUIRES ppm.lua
+local comms = require("scada-common.comms")
+local ppm = require("scada-common.ppm")
+
+local modbus = require("modbus")
+
+local rtu = {}
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
 
-function rtu_init()
+rtu.init_unit = function ()
     local self = {
         discrete_inputs = {},
         coils = {},
@@ -117,7 +120,7 @@ function rtu_init()
     }
 end
 
-function rtu_comms(modem, local_port, server_port)
+rtu.comms = function (modem, local_port, server_port)
     local self = {
         seq_num = 0,
         r_seq_num = nil,
@@ -187,7 +190,7 @@ function rtu_comms(modem, local_port, server_port)
                     pkt = mgmt_pkt.get()
                 end
             else
-                log._error("illegal packet type " .. s_pkt.protocol(), true)
+                log.error("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -203,7 +206,7 @@ function rtu_comms(modem, local_port, server_port)
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
             elseif rtu_state.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
-                log._warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -224,7 +227,7 @@ function rtu_comms(modem, local_port, server_port)
                         -- immediately execute redstone RTU requests
                         local return_code, reply = unit.modbus_io.handle_packet(packet)
                         if not return_code then
-                            log._warning("requested MODBUS operation failed")
+                            log.warning("requested MODBUS operation failed")
                         end
                     else
                         -- check validity then pass off to unit comms thread
@@ -237,13 +240,13 @@ function rtu_comms(modem, local_port, server_port)
                                 unit.pkt_queue.push(packet)
                             end
                         else
-                            log._warning("cannot perform requested MODBUS operation")
+                            log.warning("cannot perform requested MODBUS operation")
                         end
                     end
                 else
                     -- unit ID out of range?
                     reply = modbus.reply__gw_unavailable(packet)
-                    log._error("MODBUS packet requesting non-existent unit")
+                    log.error("MODBUS packet requesting non-existent unit")
                 end
 
                 send_modbus(reply)
@@ -253,7 +256,7 @@ function rtu_comms(modem, local_port, server_port)
                     -- close connection
                     conn_watchdog.cancel()
                     unlink(rtu_state)
-                if packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
+                elseif packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
                     -- acknowledgement
                     rtu_state.linked = true
                     self.r_seq_num = nil
@@ -262,11 +265,11 @@ function rtu_comms(modem, local_port, server_port)
                     send_advertisement(units)
                 else
                     -- not supported
-                    log._warning("RTU got unexpected SCADA message type " .. packet.type, true)
+                    log.warning("RTU got unexpected SCADA message type " .. packet.type, true)
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()
-                log._error("illegal packet type " .. protocol, true)
+                log.error("illegal packet type " .. protocol, true)
             end
         end
     end
@@ -337,3 +340,5 @@ function rtu_comms(modem, local_port, server_port)
         close = close
     }
 end
+
+return rtu

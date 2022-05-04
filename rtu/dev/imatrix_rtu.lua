@@ -1,8 +1,10 @@
--- #REQUIRES rtu.lua
+local rtu = require("rtu")
 
-function new(imatrix)
+local imatrix_rtu = {}
+
+imatrix_rtu.new = function (imatrix)
     local self = {
-        rtu = rtu.rtu_init(),
+        rtu = rtu.init_unit(),
         imatrix = imatrix
     }
 
@@ -42,3 +44,5 @@ function new(imatrix)
         rtu_interface = rtu_interface
     }
 end
+
+return imatrix_rtu

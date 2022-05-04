@@ -1,10 +1,14 @@
--- #REQUIRES log.lua
+local log = require("scada-common.log")
 
 --
 -- Protected Peripheral Manager
 --
 
-ACCESS_FAULT = nil
+local ppm = {}
+
+local ACCESS_FAULT = nil
+
+ppm.ACCESS_FAULT = ACCESS_FAULT
 
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
@@ -46,7 +50,7 @@ local peri_init = function (iface)
                 _ppm_sys.faulted = true
 
                 if not _ppm_sys.mute then
-                    log._error("PPM: protected " .. key .. "() -> " .. result)
+                    log.error("PPM: protected " .. key .. "() -> " .. result)
                 end
 
                 if result == "Terminated" then
@@ -88,48 +92,48 @@ end
 -- REPORTING --
 
 -- silence error prints
-function disable_reporting()
+ppm.disable_reporting = function ()
     _ppm_sys.mute = true
 end
 
 -- allow error prints
-function enable_reporting()
+ppm.enable_reporting = function ()
     _ppm_sys.mute = false
 end
 
 -- FAULT MEMORY --
 
 -- enable automatically clearing fault flag
-function enable_afc()
+ppm.enable_afc = function ()
     _ppm_sys.auto_cf = true
 end
 
 -- disable automatically clearing fault flag
-function disable_afc()
+ppm.disable_afc = function ()
     _ppm_sys.auto_cf = false
 end
 
 -- check fault flag
-function is_faulted()
+ppm.is_faulted = function ()
     return _ppm_sys.faulted
 end
 
 -- clear fault flag
-function clear_fault()
+ppm.clear_fault = function ()
     _ppm_sys.faulted = false
 end
 
 -- TERMINATION --
 
 -- if a caught error was a termination request
-function should_terminate()
+ppm.should_terminate = function ()
     return _ppm_sys.terminate
 end
 
 -- MOUNTING --
 
 -- mount all available peripherals (clears mounts first)
-function mount_all()
+ppm.mount_all = function ()
     local ifaces = peripheral.getNames()
 
     _ppm_sys.mounts = {}
@@ -137,23 +141,23 @@ function mount_all()
     for i = 1, #ifaces do
         _ppm_sys.mounts[ifaces[i]] = peri_init(ifaces[i])
 
-        log._info("PPM: found a " .. _ppm_sys.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
+        log.info("PPM: found a " .. _ppm_sys.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
     end
 
     if #ifaces == 0 then
-        log._warning("PPM: mount_all() -> no devices found")
+        log.warning("PPM: mount_all() -> no devices found")
     end
 end
 
 -- mount a particular device
-function mount(iface)
+ppm.mount = function (iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
     local pm_type = nil
 
     for i = 1, #ifaces do
         if iface == ifaces[i] then
-            log._info("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
+            log.info("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
 
             _ppm_sys.mounts[iface] = peri_init(iface)
 
@@ -167,15 +171,15 @@ function mount(iface)
 end
 
 -- handle peripheral_detach event
-function handle_unmount(iface)
+ppm.handle_unmount = function (iface)
     -- what got disconnected?
     local lost_dev = _ppm_sys.mounts[iface]
 
     if lost_dev then
         local type = lost_dev.type
-        log._warning("PPM: lost device " .. type .. " mounted to " .. iface)
+        log.warning("PPM: lost device " .. type .. " mounted to " .. iface)
     else
-        log._error("PPM: lost device unknown to the PPM mounted to " .. iface)
+        log.error("PPM: lost device unknown to the PPM mounted to " .. iface)
     end
 
     return lost_dev
@@ -184,31 +188,31 @@ end
 -- GENERAL ACCESSORS --
 
 -- list all available peripherals
-function list_avail()
+ppm.list_avail = function ()
     return peripheral.getNames()
 end
 
 -- list mounted peripherals
-function list_mounts()
+ppm.list_mounts = function ()
     return _ppm_sys.mounts
 end
 
 -- get a mounted peripheral by side/interface
-function get_periph(iface)
+ppm.get_periph = function (iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].dev
     else return nil end
 end
 
 -- get a mounted peripheral type by side/interface
-function get_type(iface)
+ppm.get_type = function (iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].type
     else return nil end
 end
 
 -- get all mounted peripherals by type
-function get_all_devices(name)
+ppm.get_all_devices = function (name)
     local devices = {}
 
     for side, data in pairs(_ppm_sys.mounts) do
@@ -221,7 +225,7 @@ function get_all_devices(name)
 end
 
 -- get a mounted peripheral by type (if multiple, returns the first)
-function get_device(name)
+ppm.get_device = function (name)
     local device = nil
 
     for side, data in pairs(_ppm_sys.mounts) do
@@ -237,12 +241,12 @@ end
 -- SPECIFIC DEVICE ACCESSORS --
 
 -- get the fission reactor (if multiple, returns the first)
-function get_fission_reactor()
-    return get_device("fissionReactor")
+ppm.get_fission_reactor = function ()
+    return ppm.get_device("fissionReactor")
 end
 
 -- get the wireless modem (if multiple, returns the first)
-function get_wireless_modem()
+ppm.get_wireless_modem = function ()
     local w_modem = nil
 
     for side, device in pairs(_ppm_sys.mounts) do
@@ -256,6 +260,8 @@ function get_wireless_modem()
 end
 
 -- list all connected monitors
-function list_monitors()
-    return get_all_devices("monitor")
+ppm.list_monitors = function ()
+    return ppm.get_all_devices("monitor")
 end
+
+return ppm
