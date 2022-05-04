@@ -17,10 +17,13 @@ os.loadAPI("threads.lua")
 
 os.loadAPI("dev/redstone_rtu.lua")
 os.loadAPI("dev/boiler_rtu.lua")
+os.loadAPI("dev/boilerv_rtu.lua")
+os.loadAPI("dev/energymachine_rtu.lua")
 os.loadAPI("dev/imatrix_rtu.lua")
 os.loadAPI("dev/turbine_rtu.lua")
+os.loadAPI("dev/turbinev_rtu.lua")
 
-local RTU_VERSION = "alpha-v0.4.13"
+local RTU_VERSION = "alpha-v0.5.0"
 
 local rtu_t = types.rtu_t
 
@@ -173,16 +176,25 @@ for i = 1, #rtu_devices do
             -- boiler multiblock
             rtu_type = rtu_t.boiler
             rtu_iface = boiler_rtu.new(device)
+        elseif type == "boilerValve" then
+            -- boiler multiblock (10.1+)
+            rtu_type = rtu_t.boiler_valve
+            rtu_iface = boilerv_rtu.new(device)
         elseif type == "turbine" then
             -- turbine multiblock
             rtu_type = rtu_t.turbine
             rtu_iface = turbine_rtu.new(device)
+        elseif type == "turbineValve" then
+            -- turbine multiblock (10.1+)
+            rtu_type = rtu_t.turbine_valve
+            rtu_iface = turbinev_rtu.new(device)
         elseif type == "mekanismMachine" then
             -- assumed to be an induction matrix multiblock, pre Mekanism 10.1
+            -- also works with energy cubes
             rtu_type = rtu_t.energy_machine
             rtu_iface = energymachine_rtu.new(device)
-        elseif type == "inductionMatrix" then
-            -- induction matrix multiblock, post Mekanism 10.1
+        elseif type == "inductionPort" then
+            -- induction matrix multiblock (10.1+)
             rtu_type = rtu_t.induction_matrix
             rtu_iface = imatrix_rtu.new(device)
         else

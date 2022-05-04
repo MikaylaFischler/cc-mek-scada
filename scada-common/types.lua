@@ -3,9 +3,11 @@
 rtu_t = {
     redstone = "redstone",
     boiler = "boiler",
+    boiler_valve = "boiler_valve",
     turbine = "turbine",
+    turbine_valve = "turbine_valve",
     energy_machine = "emachine",
-    induction_matrix = "imatrix"
+    induction_matrix = "induction_matrix"
 }
 
 iss_status_t = {

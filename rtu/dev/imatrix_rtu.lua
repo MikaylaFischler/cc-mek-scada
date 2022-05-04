@@ -17,19 +17,21 @@ function new(imatrix)
     -- none
 
     -- input registers --
-    -- @todo check these on Mekanism 10.1+
+    -- multiblock properties
+    self.rtu.connect_input_reg(self.boiler.isFormed)
+    self.rtu.connect_input_reg(self.boiler.getLength)
+    self.rtu.connect_input_reg(self.boiler.getWidth)
+    self.rtu.connect_input_reg(self.boiler.getHeight)
     -- build properties
+    self.rtu.connect_input_reg(self.imatrix.getMaxEnergy)
     self.rtu.connect_input_reg(self.imatrix.getTransferCap)
     self.rtu.connect_input_reg(self.imatrix.getInstalledCells)
     self.rtu.connect_input_reg(self.imatrix.getInstalledProviders)
-    self.rtu.connect_input_reg(self.imatrix.getTotalMaxEnergy)
     -- containers
-    self.rtu.connect_input_reg(self.imatrix.getTotalEnergy)
-    self.rtu.connect_input_reg(self.imatrix.getTotalEnergyNeeded)
-    self.rtu.connect_input_reg(self.imatrix.getTotalEnergyFilledPercentage)
-    -- additional fields? check these on 10.1
-    self.rtu.connect_input_reg(self.imatrix.getInputItem)
-    self.rtu.connect_input_reg(self.imatrix.getOutputItem)
+    self.rtu.connect_input_reg(self.imatrix.getEnergy)
+    self.rtu.connect_input_reg(self.imatrix.getEnergyNeeded)
+    self.rtu.connect_input_reg(self.imatrix.getEnergyFilledPercentage)
+    -- I/O rates
     self.rtu.connect_input_reg(self.imatrix.getLastInput)
     self.rtu.connect_input_reg(self.imatrix.getLastOutput)
 
