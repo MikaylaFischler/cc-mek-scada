@@ -422,7 +422,7 @@ threads.thread__setpoint_control = function (smem)
             local reactor = plc_dev.reactor
 
             -- check if we should start ramping
-            if setpoints.burn_rate ~= last_sp_burn then
+            if setpoints.burn_rate_en and setpoints.burn_rate ~= last_sp_burn then
                 if rps.is_active() then
                     if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
                         -- update without ramp if <= 5 mB/t change
@@ -449,33 +449,37 @@ threads.thread__setpoint_control = function (smem)
                 running = false
 
                 -- adjust burn rate (setpoints.burn_rate)
-                if rps.is_active() then
-                    local current_burn_rate = reactor.getBurnRate()
-                    if (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
-                        -- calculate new burn rate
-                        local new_burn_rate = current_burn_rate
+                if setpoints.burn_rate_en then
+                    if rps.is_active() then
+                        local current_burn_rate = reactor.getBurnRate()
 
-                        if setpoints.burn_rate > current_burn_rate then
-                            -- need to ramp up
-                            local new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                            if new_burn_rate > setpoints.burn_rate then
-                                new_burn_rate = setpoints.burn_rate
+                        -- we yielded, check enable again
+                        if setpoints.burn_rate_en and (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
+                            -- calculate new burn rate
+                            local new_burn_rate = current_burn_rate
+
+                            if setpoints.burn_rate > current_burn_rate then
+                                -- need to ramp up
+                                local new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                if new_burn_rate > setpoints.burn_rate then
+                                    new_burn_rate = setpoints.burn_rate
+                                end
+                            else
+                                -- need to ramp down
+                                local new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                if new_burn_rate < setpoints.burn_rate then
+                                    new_burn_rate = setpoints.burn_rate
+                                end
                             end
-                        else
-                            -- need to ramp down
-                            local new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                            if new_burn_rate < setpoints.burn_rate then
-                                new_burn_rate = setpoints.burn_rate
-                            end
+
+                            -- set the burn rate
+                            reactor.setBurnRate(new_burn_rate)
+
+                            running = running or (new_burn_rate ~= setpoints.burn_rate)
                         end
-
-                        -- set the burn rate
-                        reactor.setBurnRate(new_burn_rate)
-
-                        running = running or (new_burn_rate ~= setpoints.burn_rate)
+                    else
+                        last_sp_burn = 0
                     end
-                else
-                    last_sp_burn = 0
                 end
             end
 

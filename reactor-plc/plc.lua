@@ -614,22 +614,27 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
                         log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
-                        if packet.length == 1 then
+                        if packet.length == 2 then
                             local success = false
                             local burn_rate = packet.data[1]
-                            local max_burn_rate = self.max_burn_rate
+                            local ramp = packet.data[2]
 
                             -- if no known max burn rate, check again
-                            if max_burn_rate == nil then
-                                max_burn_rate = self.reactor.getMaxBurnRate()
-                                self.max_burn_rate = max_burn_rate
+                            if self.max_burn_rate == nil then
+                                self.max_burn_rate = self.reactor.getMaxBurnRate()
                             end
 
                             -- if we know our max burn rate, update current burn rate setpoint if in range
-                            if max_burn_rate ~= ppm.ACCESS_FAULT then
-                                if burn_rate > 0 and burn_rate <= max_burn_rate then
-                                    setpoints.burn_rate = burn_rate
-                                    success = true
+                            if self.max_burn_rate ~= ppm.ACCESS_FAULT then
+                                if burn_rate > 0 and burn_rate <= self.max_burn_rate then
+                                    if ramp then
+                                        setpoints.burn_rate_en = true
+                                        setpoints.burn_rate = burn_rate
+                                        success = true
+                                    else
+                                        self.reactor.setBurnRate(burn_rate)
+                                        success = not self.reactor.__p_is_faulted()
+                                    end
                                 end
                             end
 

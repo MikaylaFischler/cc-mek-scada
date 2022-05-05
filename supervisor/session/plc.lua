@@ -21,11 +21,16 @@ local RETRY_PERIOD = 1000
 local PLC_S_CMDS = {
     SCRAM = 0,
     ENABLE = 1,
-    BURN_RATE = 2,
-    RPS_RESET = 3
+    RPS_RESET = 2
+}
+
+local PLC_S_DATA = {
+    BURN_RATE = 1,
+    RAMP_BURN_RATE = 2
 }
 
 plc.PLC_S_CMDS = PLC_S_CMDS
+plc.PLC_S_DATA = PLC_S_DATA
 
 local PERIODICS = {
     KEEP_ALIVE = 2.0
@@ -42,6 +47,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         out_q = out_queue,
         commanded_state = false,
         commanded_burn_rate = 0.0,
+        ramping_rate = false,
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -447,12 +453,20 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 elseif message.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
                     local cmd = message.message
-                    if cmd.key == PLC_S_CMDS.BURN_RATE then
+                    if cmd.key == PLC_S_DATA.BURN_RATE then
                         -- update burn rate
                         self.commanded_burn_rate = cmd.val
+                        self.ramping_rate = false
                         self.acks.burn_rate = false
                         self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate })
+                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                    elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
+                        -- ramp to burn rate
+                        self.commanded_burn_rate = cmd.val
+                        self.ramping_rate = true
+                        self.acks.burn_rate = false
+                        self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                     end
                 end
 
@@ -535,7 +549,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
             if not self.acks.burn_rate then
                 if rtimes.burn_rate_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate })
+                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                     rtimes.burn_rate_req = util.time() + RETRY_PERIOD
                 end
             end

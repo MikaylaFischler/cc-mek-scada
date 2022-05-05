@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.2"
+local R_PLC_VERSION = "alpha-v0.6.3"
 
 local print = util.print
 local println = util.println
@@ -43,6 +43,7 @@ local __shared_memory = {
     },
 
     setpoints = {
+        burn_rate_en = false,
         burn_rate = 0.0
     },
     
