@@ -20,9 +20,9 @@ local RPLC_TYPES = {
     MEK_SCRAM = 4,      -- SCRAM reactor
     MEK_ENABLE = 5,     -- enable reactor
     MEK_BURN_RATE = 6,  -- set burn rate
-    ISS_STATUS = 7,     -- ISS status
-    ISS_ALARM = 8,      -- ISS alarm broadcast
-    ISS_CLEAR = 9       -- clear ISS trip (if in bad state, will trip immediately)
+    RPS_STATUS = 7,     -- RPS status
+    RPS_ALARM = 8,      -- RPS alarm broadcast
+    RPS_RESET = 9       -- clear RPS trip (if in bad state, will trip immediately)
 }
 
 local RPLC_LINKING = {
@@ -232,9 +232,9 @@ comms.rplc_packet = function ()
                 self.type == RPLC_TYPES.MEK_SCRAM or
                 self.type == RPLC_TYPES.MEK_ENABLE or
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
-                self.type == RPLC_TYPES.ISS_ALARM or
-                self.type == RPLC_TYPES.ISS_STATUS or
-                self.type == RPLC_TYPES.ISS_CLEAR
+                self.type == RPLC_TYPES.RPS_ALARM or
+                self.type == RPLC_TYPES.RPS_STATUS or
+                self.type == RPLC_TYPES.RPS_RESET
     end
 
     -- make an RPLC packet

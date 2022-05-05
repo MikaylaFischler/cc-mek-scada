@@ -13,13 +13,13 @@ local println_ts = util.println_ts
 local psleep = util.psleep
 
 local MAIN_CLOCK    = 1   -- (1Hz, 20 ticks)
-local ISS_SLEEP     = 500 -- (500ms, 10 ticks)
+local RPS_SLEEP     = 500 -- (500ms, 10 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
 
 local BURN_RATE_RAMP_mB_s = 5.0
 
-local MQ__ISS_CMD = {
+local MQ__RPS_CMD = {
     SCRAM = 1,
     DEGRADED_SCRAM = 2,
     TRIP_TIMEOUT = 3
@@ -45,7 +45,7 @@ threads.thread__main = function (smem, init)
         local networked     = smem.networked
         local plc_state     = smem.plc_state
         local plc_dev       = smem.plc_dev
-        local iss           = smem.plc_sys.iss
+        local rps           = smem.plc_sys.rps
         local plc_comms     = smem.plc_sys.plc_comms
         local conn_watchdog = smem.plc_sys.conn_watchdog
 
@@ -84,7 +84,7 @@ threads.thread__main = function (smem, init)
             elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
                 -- haven't heard from server recently? shutdown reactor
                 plc_comms.unlink()
-                smem.q.mq_iss.push_command(MQ__ISS_CMD.TRIP_TIMEOUT)
+                smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
             elseif event == "peripheral_detach" then
                 -- peripheral disconnect
                 local device = ppm.handle_unmount(param1)
@@ -103,7 +103,7 @@ threads.thread__main = function (smem, init)
 
                         if plc_state.init_ok then
                             -- try to scram reactor if it is still connected
-                            smem.q.mq_iss.push_command(MQ__ISS_CMD.DEGRADED_SCRAM)
+                            smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
                         end
 
                         plc_state.degraded = true
@@ -119,14 +119,14 @@ threads.thread__main = function (smem, init)
                     -- reconnected reactor
                     plc_dev.reactor = device
 
-                    smem.q.mq_iss.push_command(MQ__ISS_CMD.SCRAM)
+                    smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
                     println_ts("reactor reconnected.")
                     log.info("reactor reconnected.")
                     plc_state.no_reactor = false
 
                     if plc_state.init_ok then
-                        iss.reconnect_reactor(plc_dev.reactor)
+                        rps.reconnect_reactor(plc_dev.reactor)
                         if networked then
                             plc_comms.reconnect_reactor(plc_dev.reactor)
                         end
@@ -171,7 +171,7 @@ threads.thread__main = function (smem, init)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 log.info("terminate requested, main thread exiting")
-                -- iss handles reactor shutdown
+                -- rps handles reactor shutdown
                 plc_state.shutdown = true
                 break
             end
@@ -181,20 +181,20 @@ threads.thread__main = function (smem, init)
     return { exec = exec }
 end
 
--- ISS monitor thread
-threads.thread__iss = function (smem)
+-- RPS operation thread
+threads.thread__rps = function (smem)
     -- execute thread
     local exec = function ()
-        log.debug("iss thread start")
+        log.debug("rps thread start")
 
         -- load in from shared memory
         local networked   = smem.networked
         local plc_state   = smem.plc_state
         local plc_dev     = smem.plc_dev
-        local iss         = smem.plc_sys.iss
+        local rps         = smem.plc_sys.rps
         local plc_comms   = smem.plc_sys.plc_comms
 
-        local iss_queue   = smem.q.mq_iss
+        local rps_queue   = smem.q.mq_rps
 
         local was_linked  = false
         local last_update = util.time()
@@ -203,14 +203,14 @@ threads.thread__iss = function (smem)
         while true do
             local reactor = plc_dev.reactor
             
-            -- ISS checks
+            -- RPS checks
             if plc_state.init_ok then
                 -- SCRAM if no open connection
                 if networked and not plc_comms.is_linked() then
                     plc_state.scram = true
                     if was_linked then
                         was_linked = false
-                        iss.trip_timeout()
+                        rps.trip_timeout()
                     end
                 else
                     -- would do elseif not networked but there is no reason to do that extra operation
@@ -223,38 +223,38 @@ threads.thread__iss = function (smem)
                     reactor.scram()
                 end
 
-                -- if we are in standalone mode, continuously reset ISS
-                -- ISS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
+                -- if we are in standalone mode, continuously reset RPS
+                -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
                 if not networked then
                     plc_state.scram = false
-                    iss.reset()
+                    rps.reset()
                 end
 
                 -- check safety (SCRAM occurs if tripped)
                 if not plc_state.no_reactor then
-                    local iss_tripped, iss_status_string, iss_first = iss.check()
-                    plc_state.scram = plc_state.scram or iss_tripped
+                    local rps_tripped, rps_status_string, rps_first = rps.check()
+                    plc_state.scram = plc_state.scram or rps_tripped
 
-                    if iss_first then
-                        println_ts("[ISS] SCRAM! safety trip: " .. iss_status_string)
+                    if rps_first then
+                        println_ts("[RPS] SCRAM! safety trip: " .. rps_status_string)
                         if networked and not plc_state.no_modem then
-                            plc_comms.send_iss_alarm(iss_status_string)
+                            plc_comms.send_rps_alarm(rps_status_string)
                         end
                     end
                 end
             end
         
             -- check for messages in the message queue
-            while iss_queue.ready() and not plc_state.shutdown do
-                local msg = iss_queue.pop()
+            while rps_queue.ready() and not plc_state.shutdown do
+                local msg = rps_queue.pop()
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
                     -- received a command
-                    if msg.message == MQ__ISS_CMD.SCRAM then
+                    if msg.message == MQ__RPS_CMD.SCRAM then
                         -- basic SCRAM
                         plc_state.scram = true
                         reactor.scram()
-                    elseif msg.message == MQ__ISS_CMD.DEGRADED_SCRAM then
+                    elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
                         -- SCRAM with print
                         plc_state.scram = true
                         if reactor.scram() then
@@ -264,10 +264,10 @@ threads.thread__iss = function (smem)
                             println_ts("failed reactor SCRAM")
                             log.error("failed reactor SCRAM")
                         end
-                    elseif msg.message == MQ__ISS_CMD.TRIP_TIMEOUT then
+                    elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
                         -- watchdog tripped
                         plc_state.scram = true
-                        iss.trip_timeout()
+                        rps.trip_timeout()
                         println_ts("server timeout")
                         log.warning("server timeout")
                     end
@@ -284,24 +284,24 @@ threads.thread__iss = function (smem)
             -- check for termination request
             if plc_state.shutdown then
                 -- safe exit
-                log.info("iss thread shutdown initiated")
+                log.info("rps thread shutdown initiated")
                 if plc_state.init_ok then
                     plc_state.scram = true
                     reactor.scram()
                     if reactor.__p_is_ok() then
                         println_ts("reactor disabled")
-                        log.info("iss thread reactor SCRAM OK")
+                        log.info("rps thread reactor SCRAM OK")
                     else
                         println_ts("exiting, reactor failed to disable")
-                        log.error("iss thread failed to SCRAM reactor on exit")
+                        log.error("rps thread failed to SCRAM reactor on exit")
                     end
                 end
-                log.info("iss thread exiting")
+                log.info("rps thread exiting")
                 break
             end
 
             -- delay before next check
-            last_update = util.adaptive_delay(ISS_SLEEP, last_update)
+            last_update = util.adaptive_delay(RPS_SLEEP, last_update)
         end
     end
 
@@ -331,9 +331,9 @@ threads.thread__comms_tx = function (smem)
                 if msg.qtype == mqueue.TYPE.COMMAND then
                     -- received a command
                     if msg.message == MQ__COMM_CMD.SEND_STATUS then
-                        -- send PLC/ISS status
+                        -- send PLC/RPS status
                         plc_comms.send_status(plc_state.degraded)
-                        plc_comms.send_iss_status()
+                        plc_comms.send_rps_status()
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- received data

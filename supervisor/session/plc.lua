@@ -22,7 +22,7 @@ local PLC_S_CMDS = {
     SCRAM = 0,
     ENABLE = 1,
     BURN_RATE = 2,
-    ISS_CLEAR = 3
+    RPS_RESET = 3
 }
 
 plc.PLC_S_CMDS = PLC_S_CMDS
@@ -62,14 +62,14 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
             scram_req = 0,
             enable_req = 0,
             burn_rate_req = 0,
-            iss_clear_req = 0
+            rps_reset_req = 0
         },
         -- command acknowledgements
         acks = {
             scram = true,
             enable = true,
             burn_rate = true,
-            iss_clear = true
+            rps_reset = true
         },
         -- session database
         sDB = {
@@ -77,9 +77,9 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
             control_state = false,
             overridden = false,
             degraded = false,
-            iss_tripped = false,
-            iss_trip_cause = "ok",
-            iss_status = {
+            rps_tripped = false,
+            rps_trip_cause = "ok",
+            rps_status = {
                 dmg_crit = false,
                 ex_hcool = false,
                 ex_waste = false,
@@ -127,14 +127,14 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         }
     }
 
-    local _copy_iss_status = function (iss_status)
-        self.sDB.iss_status.dmg_crit  = iss_status[1]
-        self.sDB.iss_status.ex_hcool  = iss_status[2]
-        self.sDB.iss_status.ex_waste  = iss_status[3]
-        self.sDB.iss_status.high_temp = iss_status[4]
-        self.sDB.iss_status.no_fuel   = iss_status[5]
-        self.sDB.iss_status.no_cool   = iss_status[6]
-        self.sDB.iss_status.timed_out = iss_status[7]
+    local _copy_rps_status = function (rps_status)
+        self.sDB.rps_status.dmg_crit  = rps_status[1]
+        self.sDB.rps_status.ex_hcool  = rps_status[2]
+        self.sDB.rps_status.ex_waste  = rps_status[3]
+        self.sDB.rps_status.high_temp = rps_status[4]
+        self.sDB.rps_status.no_fuel   = rps_status[5]
+        self.sDB.rps_status.no_cool   = rps_status[6]
+        self.sDB.rps_status.timed_out = rps_status[7]
     end
 
     local _copy_status = function (mek_data)
@@ -317,44 +317,44 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "burn rate update failed!")
                 end
-            elseif pkt.type == RPLC_TYPES.ISS_STATUS then
-                -- ISS status packet received, copy data
+            elseif pkt.type == RPLC_TYPES.RPS_STATUS then
+                -- RPS status packet received, copy data
                 if pkt.length == 7 then
-                    local status = pcall(_copy_iss_status, pkt.data)
+                    local status = pcall(_copy_rps_status, pkt.data)
                     if status then
-                        -- copied in ISS status data OK
+                        -- copied in RPS status data OK
                     else
-                        -- error copying ISS status data
-                        log.error(log_header .. "failed to parse ISS status packet data")
+                        -- error copying RPS status data
+                        log.error(log_header .. "failed to parse RPS status packet data")
                     end
                 else
-                    log.debug(log_header .. "RPLC ISS status packet length mismatch")
+                    log.debug(log_header .. "RPLC RPS status packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.ISS_ALARM then
-                -- ISS alarm
+            elseif pkt.type == RPLC_TYPES.RPS_ALARM then
+                -- RPS alarm
                 self.sDB.overridden = true
                 if pkt.length == 8 then
-                    self.sDB.iss_tripped = true
-                    self.sDB.iss_trip_cause = pkt.data[1]
-                    local status = pcall(_copy_iss_status, { table.unpack(pkt.data, 2, #pkt.length) })
+                    self.sDB.rps_tripped = true
+                    self.sDB.rps_trip_cause = pkt.data[1]
+                    local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, #pkt.length) })
                     if status then
-                        -- copied in ISS status data OK
+                        -- copied in RPS status data OK
                     else
-                        -- error copying ISS status data
-                        log.error(log_header .. "failed to parse ISS alarm status data")
+                        -- error copying RPS status data
+                        log.error(log_header .. "failed to parse RPS alarm status data")
                     end
                 else
-                    log.debug(log_header .. "RPLC ISS alarm packet length mismatch")
+                    log.debug(log_header .. "RPLC RPS alarm packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.ISS_CLEAR then
-                -- ISS clear acknowledgement
+            elseif pkt.type == RPLC_TYPES.RPS_RESET then
+                -- RPS reset acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.iss_tripped = true
-                    self.sDB.iss_tripped = false
-                    self.sDB.iss_trip_cause = "ok"
+                    self.acks.rps_tripped = true
+                    self.sDB.rps_tripped = false
+                    self.sDB.rps_trip_cause = "ok"
                 elseif ack == false then
-                    log.debug(log_header .. "ISS clear failed")
+                    log.debug(log_header .. "RPS reset failed")
                 end
             else
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
@@ -438,11 +438,11 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                         self.acks.enable = false
                         self.retry_times.enable_req = util.time() + INITIAL_WAIT
                         _send(RPLC_TYPES.MEK_ENABLE, {})
-                    elseif cmd == PLC_S_CMDS.ISS_CLEAR then
-                        -- clear ISS
-                        self.acks.iss_clear = false
-                        self.retry_times.iss_clear_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.ISS_CLEAR, {})
+                    elseif cmd == PLC_S_CMDS.RPS_RESET then
+                        -- reset RPS
+                        self.acks.rps_reset = false
+                        self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.RPS_RESET, {})
                     end
                 elseif message.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
@@ -540,12 +540,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 end
             end
 
-            -- ISS clear request retry
+            -- RPS reset request retry
 
-            if not self.acks.iss_clear then
-                if rtimes.iss_clear_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.ISS_CLEAR, {})
-                    rtimes.iss_clear_req = util.time() + RETRY_PERIOD
+            if not self.acks.rps_reset then
+                if rtimes.rps_reset_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.RPS_RESET, {})
+                    rtimes.rps_reset_req = util.time() + RETRY_PERIOD
                 end
             end
         end

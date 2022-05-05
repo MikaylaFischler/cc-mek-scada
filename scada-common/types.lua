@@ -14,7 +14,7 @@ types.rtu_t = {
     induction_matrix = "induction_matrix"
 }
 
-types.iss_status_t = {
+types.rps_status_t = {
     ok = "ok",
     dmg_crit = "dmg_crit",
     ex_hcoolant = "heated_coolant_backup",

@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.0"
+local R_PLC_VERSION = "alpha-v0.6.1"
 
 local print = util.print
 local println = util.println
@@ -55,14 +55,14 @@ local __shared_memory = {
 
     -- system objects
     plc_sys = {
-        iss = nil,
+        rps = nil,
         plc_comms = nil,
         conn_watchdog = nil
     },
 
     -- message queues
     q = {
-        mq_iss = mqueue.new(),
+        mq_rps = mqueue.new(),
         mq_comms_tx = mqueue.new(),
         mq_comms_rx = mqueue.new()
     }
@@ -100,13 +100,13 @@ function init()
         -- just booting up, no fission allowed (neutrons stay put thanks)
         smem_dev.reactor.scram()
 
-        -- init internal safety system
-        smem_sys.iss = plc.iss_init(smem_dev.reactor)
-        log.debug("iss init")
+        -- init reactor protection system
+        smem_sys.rps = plc.rps_init(smem_dev.reactor)
+        log.debug("rps init")
 
         if __shared_memory.networked then
             -- start comms
-            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.iss)
+            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.rps)
             log.debug("comms init")
 
             -- comms watchdog, 3 second timeout
@@ -131,7 +131,7 @@ init()
 
 -- init threads
 local main_thread = threads.thread__main(__shared_memory, init)
-local iss_thread  = threads.thread__iss(__shared_memory)
+local rps_thread  = threads.thread__rps(__shared_memory)
 
 if __shared_memory.networked then
     -- init comms threads
@@ -142,19 +142,19 @@ if __shared_memory.networked then
     local sp_ctrl_thread = threads.thread__setpoint_control(__shared_memory)
 
     -- run threads
-    parallel.waitForAll(main_thread.exec, iss_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec, sp_ctrl_thread.exec)
+    parallel.waitForAll(main_thread.exec, rps_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec, sp_ctrl_thread.exec)
 
     if plc_state.init_ok then
-        -- send status one last time after ISS shutdown
+        -- send status one last time after RPS shutdown
         smem_sys.plc_comms.send_status(plc_state.degraded)
-        smem_sys.plc_comms.send_iss_status()
+        smem_sys.plc_comms.send_rps_status()
 
         -- close connection
         smem_sys.plc_comms.close(smem_sys.conn_watchdog)
     end
 else
     -- run threads, excluding comms
-    parallel.waitForAll(main_thread.exec, iss_thread.exec)
+    parallel.waitForAll(main_thread.exec, rps_thread.exec)
 end
 
 println_ts("exited")

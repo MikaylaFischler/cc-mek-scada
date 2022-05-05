@@ -6,7 +6,7 @@ local util = require("scada-common.util")
 
 local plc = {}
 
-local iss_status_t = types.iss_status_t
+local rps_status_t = types.rps_status_t
 
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
@@ -18,10 +18,10 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
--- Internal Safety System
+-- Reactor Protection System
 -- identifies dangerous states and SCRAMs reactor if warranted
 -- autonomous from main SCADA supervisor/coordinator control
-plc.iss_init = function (reactor)
+plc.rps_init = function (reactor)
     local self = {
         reactor = reactor,
         cache = { false, false, false, false, false, false, false },
@@ -37,7 +37,7 @@ plc.iss_init = function (reactor)
         local damage_percent = self.reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor damage")
+            log.error("RPS: failed to check reactor damage")
             return false
         else
             return damage_percent >= 100
@@ -49,7 +49,7 @@ plc.iss_init = function (reactor)
         local hc_needed = self.reactor.getHeatedCoolantNeeded()
         if hc_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor heated coolant level")
+            log.error("RPS: failed to check reactor heated coolant level")
             return false
         else
             return hc_needed == 0
@@ -61,7 +61,7 @@ plc.iss_init = function (reactor)
         local w_needed = self.reactor.getWasteNeeded()
         if w_needed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor waste level")
+            log.error("RPS: failed to check reactor waste level")
             return false
         else
             return w_needed == 0
@@ -74,7 +74,7 @@ plc.iss_init = function (reactor)
         local temp = self.reactor.getTemperature()
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor temperature")
+            log.error("RPS: failed to check reactor temperature")
             return false
         else
             return temp >= 1200
@@ -86,7 +86,7 @@ plc.iss_init = function (reactor)
         local fuel = self.reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor fuel level")
+            log.error("RPS: failed to check reactor fuel level")
             return false
         else
             return fuel == 0
@@ -98,7 +98,7 @@ plc.iss_init = function (reactor)
         local coolant_filled = self.reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("ISS: failed to check reactor coolant level")
+            log.error("RPS: failed to check reactor coolant level")
             return false
         else
             return coolant_filled < 0.02
@@ -119,7 +119,7 @@ plc.iss_init = function (reactor)
 
     -- check all safety conditions
     local check = function ()
-        local status = iss_status_t.ok
+        local status = rps_status_t.ok
         local was_tripped = self.tripped
 
         -- update cache
@@ -137,34 +137,34 @@ plc.iss_init = function (reactor)
         if self.tripped then
             status = self.trip_cause
         elseif self.cache[1] then
-            log.warning("ISS: damage critical!")
-            status = iss_status_t.dmg_crit
+            log.warning("RPS: damage critical!")
+            status = rps_status_t.dmg_crit
         elseif self.cache[4] then
-            log.warning("ISS: high temperature!")
-            status = iss_status_t.high_temp
+            log.warning("RPS: high temperature!")
+            status = rps_status_t.high_temp
         elseif self.cache[2] then
-            log.warning("ISS: heated coolant backup!")
-            status = iss_status_t.ex_hcoolant
+            log.warning("RPS: heated coolant backup!")
+            status = rps_status_t.ex_hcoolant
         elseif self.cache[6] then
-            log.warning("ISS: no coolant!")
-            status = iss_status_t.no_coolant
+            log.warning("RPS: no coolant!")
+            status = rps_status_t.no_coolant
         elseif self.cache[3] then
-            log.warning("ISS: full waste!")
-            status = iss_status_t.ex_waste
+            log.warning("RPS: full waste!")
+            status = rps_status_t.ex_waste
         elseif self.cache[5] then
-            log.warning("ISS: no fuel!")
-            status = iss_status_t.no_fuel
+            log.warning("RPS: no fuel!")
+            status = rps_status_t.no_fuel
         elseif self.cache[7] then
-            log.warning("ISS: supervisor connection timeout!")
-            status = iss_status_t.timeout
+            log.warning("RPS: supervisor connection timeout!")
+            status = rps_status_t.timeout
         else
             self.tripped = false
         end
     
         -- if a new trip occured...
         local first_trip = false
-        if not was_tripped and status ~= iss_status_t.ok then
-            log.warning("ISS: reactor SCRAM")
+        if not was_tripped and status ~= rps_status_t.ok then
+            log.warning("RPS: reactor SCRAM")
 
             first_trip = true
             self.tripped = true
@@ -172,22 +172,22 @@ plc.iss_init = function (reactor)
 
             self.reactor.scram()
             if self.reactor.__p_is_faulted() then
-                log.error("ISS: failed reactor SCRAM")
+                log.error("RPS: failed reactor SCRAM")
             end
         end
     
         return self.tripped, status, first_trip
     end
 
-    -- get the ISS status
+    -- get the RPS status
     local status = function () return self.cache end
     local is_tripped = function () return self.tripped end
 
-    -- reset the ISS
+    -- reset the RPS
     local reset = function ()
         self.timed_out = false
         self.tripped = false
-        self.trip_cause = iss_status_t.ok
+        self.trip_cause = rps_status_t.ok
     end
 
     return {
@@ -201,7 +201,7 @@ plc.iss_init = function (reactor)
 end
 
 -- reactor PLC communications
-plc.comms = function (id, modem, local_port, server_port, reactor, iss)
+plc.comms = function (id, modem, local_port, server_port, reactor, rps)
     local self = {
         id = id,
         seq_num = 0,
@@ -210,7 +210,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, iss)
         s_port = server_port,
         l_port = local_port,
         reactor = reactor,
-        iss = iss,
+        rps = rps,
         scrammed = false,
         linked = false,
         status_cache = nil,
@@ -411,7 +411,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, iss)
             local sys_status = {
                 util.time(),                    -- timestamp
                 (not self.scrammed),            -- enabled
-                iss.is_tripped(),               -- overridden
+                rps.is_tripped(),               -- overridden
                 degraded,                       -- degraded
                 self.reactor.getHeatingRate(),  -- heating rate
                 mek_data                        -- mekanism status data
@@ -425,22 +425,22 @@ plc.comms = function (id, modem, local_port, server_port, reactor, iss)
         end
     end
 
-    -- send safety system status
-    local send_iss_status = function ()
+    -- send reactor protection system status
+    local send_rps_status = function ()
         if self.linked then
-            _send(RPLC_TYPES.ISS_STATUS, iss.status())
+            _send(RPLC_TYPES.RPS_STATUS, rps.status())
         end
     end
 
-    -- send safety system alarm
-    local send_iss_alarm = function (cause)
+    -- send reactor protection system alarm
+    local send_rps_alarm = function (cause)
         if self.linked then
-            local iss_alarm = {
+            local rps_alarm = {
                 cause,
-                table.unpack(iss.status())
+                table.unpack(rps.status())
             }
 
-            _send(RPLC_TYPES.ISS_ALARM, iss_alarm)
+            _send(RPLC_TYPES.RPS_ALARM, rps_alarm)
         end
     end
 
@@ -581,9 +581,9 @@ plc.comms = function (id, modem, local_port, server_port, reactor, iss)
                         else
                             log.debug("RPLC set burn rate packet length mismatch")
                         end
-                    elseif packet.type == RPLC_TYPES.ISS_CLEAR then
-                        -- clear the ISS status
-                        iss.reset()
+                    elseif packet.type == RPLC_TYPES.RPS_RESET then
+                        -- reset the RPS status
+                        rps.reset()
                         _send_ack(packet.type, true)
                     else
                         log.warning("received unknown RPLC packet type " .. packet.type)
@@ -647,8 +647,8 @@ plc.comms = function (id, modem, local_port, server_port, reactor, iss)
         close = close,
         send_link_req = send_link_req,
         send_status = send_status,
-        send_iss_status = send_iss_status,
-        send_iss_alarm = send_iss_alarm,
+        send_rps_status = send_rps_status,
+        send_rps_alarm = send_rps_alarm,
         parse_packet = parse_packet,
         handle_packet = handle_packet,
         is_scrammed = is_scrammed,
