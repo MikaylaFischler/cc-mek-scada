@@ -291,16 +291,15 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 else
                     log.debug(log_header .. "RPLC struct packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.MEK_SCRAM then
-                -- SCRAM acknowledgement
+            elseif pkt.type == RPLC_TYPES.MEK_BURN_RATE then
+                -- burn rate acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.scram = true
-                    self.sDB.control_state = false
+                    self.acks.burn_rate = true
                 elseif ack == false then
-                    log.debug(log_header .. "SCRAM failed!")
+                    log.debug(log_header .. "burn rate update failed!")
                 end
-            elseif pkt.type == RPLC_TYPES.MEK_ENABLE then
+            elseif pkt.type == RPLC_TYPES.RPS_ENABLE then
                 -- enable acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -309,13 +308,14 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "enable failed!")
                 end
-            elseif pkt.type == RPLC_TYPES.MEK_BURN_RATE then
-                -- burn rate acknowledgement
+            elseif pkt.type == RPLC_TYPES.RPS_SCRAM then
+                -- SCRAM acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.burn_rate = true
+                    self.acks.scram = true
+                    self.sDB.control_state = false
                 elseif ack == false then
-                    log.debug(log_header .. "burn rate update failed!")
+                    log.debug(log_header .. "SCRAM failed!")
                 end
             elseif pkt.type == RPLC_TYPES.RPS_STATUS then
                 -- RPS status packet received, copy data
@@ -428,16 +428,16 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 elseif message.qtype == mqueue.TYPE.COMMAND then
                     -- handle instruction
                     local cmd = message.message
-                    if cmd == PLC_S_CMDS.SCRAM then
-                        -- SCRAM reactor
-                        self.acks.scram = false
-                        self.retry_times.scram_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.MEK_SCRAM, {})
-                    elseif cmd == PLC_S_CMDS.ENABLE then
+                    if cmd == PLC_S_CMDS.ENABLE then
                         -- enable reactor
                         self.acks.enable = false
                         self.retry_times.enable_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.MEK_ENABLE, {})
+                        _send(RPLC_TYPES.RPS_ENABLE, {})
+                    elseif cmd == PLC_S_CMDS.SCRAM then
+                        -- SCRAM reactor
+                        self.acks.scram = false
+                        self.retry_times.scram_req = util.time() + INITIAL_WAIT
+                        _send(RPLC_TYPES.RPS_SCRAM, {})
                     elseif cmd == PLC_S_CMDS.RPS_RESET then
                         -- reset RPS
                         self.acks.rps_reset = false
@@ -517,7 +517,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
             if not self.acks.scram then
                 if rtimes.scram_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.MEK_SCRAM, {})
+                    _send(RPLC_TYPES.RPS_SCRAM, {})
                     rtimes.scram_req = util.time() + RETRY_PERIOD
                 end
             end
@@ -526,7 +526,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
             if not self.acks.enable then
                 if rtimes.enable_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.MEK_ENABLE, {})
+                    _send(RPLC_TYPES.RPS_ENABLE, {})
                     rtimes.enable_req = util.time() + RETRY_PERIOD
                 end
             end

@@ -17,12 +17,14 @@ types.rtu_t = {
 types.rps_status_t = {
     ok = "ok",
     dmg_crit = "dmg_crit",
-    ex_hcoolant = "heated_coolant_backup",
-    ex_waste = "full_waste",
     high_temp = "high_temp",
-    no_fuel = "no_fuel",
     no_coolant = "no_coolant",
-    timeout = "timeout"
+    ex_waste = "full_waste",
+    ex_hcoolant = "heated_coolant_backup",
+    no_fuel = "no_fuel",
+    fault = "fault",
+    timeout = "timeout",
+    manual = "manual"
 }
 
 -- MODBUS

@@ -17,9 +17,9 @@ local RPLC_TYPES = {
     LINK_REQ = 1,       -- linking requests
     STATUS = 2,         -- reactor/system status
     MEK_STRUCT = 3,     -- mekanism build structure
-    MEK_SCRAM = 4,      -- SCRAM reactor
-    MEK_ENABLE = 5,     -- enable reactor
-    MEK_BURN_RATE = 6,  -- set burn rate
+    MEK_BURN_RATE = 4,  -- set burn rate
+    RPS_ENABLE = 5,     -- enable reactor
+    RPS_SCRAM = 6,      -- SCRAM reactor
     RPS_STATUS = 7,     -- RPS status
     RPS_ALARM = 8,      -- RPS alarm broadcast
     RPS_RESET = 9       -- clear RPS trip (if in bad state, will trip immediately)
@@ -229,9 +229,9 @@ comms.rplc_packet = function ()
                 self.type == RPLC_TYPES.LINK_REQ or
                 self.type == RPLC_TYPES.STATUS or
                 self.type == RPLC_TYPES.MEK_STRUCT or
-                self.type == RPLC_TYPES.MEK_SCRAM or
-                self.type == RPLC_TYPES.MEK_ENABLE or
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
+                self.type == RPLC_TYPES.RPS_ENABLE or
+                self.type == RPLC_TYPES.RPS_SCRAM or
                 self.type == RPLC_TYPES.RPS_ALARM or
                 self.type == RPLC_TYPES.RPS_STATUS or
                 self.type == RPLC_TYPES.RPS_RESET

@@ -22,15 +22,37 @@ local println_ts = util.println_ts
 -- identifies dangerous states and SCRAMs reactor if warranted
 -- autonomous from main SCADA supervisor/coordinator control
 plc.rps_init = function (reactor)
+    local state_keys = {
+        dmg_crit = 1,
+        high_temp = 2,
+        no_coolant = 3,
+        ex_waste = 4,
+        ex_hcoolant = 5,
+        no_fuel = 6,
+        fault = 7,
+        timeout = 8,
+        manual = 9
+    }
+
     local self = {
         reactor = reactor,
-        cache = { false, false, false, false, false, false, false },
-        timed_out = false,
+        state = { false, false, false, false, false, false, false, false, false },
+        reactor_enabled = false,
         tripped = false,
         trip_cause = ""
     }
 
     -- PRIVATE FUNCTIONS --
+
+    -- set reactor access fault flag
+    local _set_fault = function ()
+        self.state[state_keys.fault] = true
+    end
+
+    -- clear reactor access fault flag
+    local _clear_fault = function ()
+        self.state[state_keys.fault] = false
+    end
 
     -- check for critical damage
     local _damage_critical = function ()
@@ -38,33 +60,10 @@ plc.rps_init = function (reactor)
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log.error("RPS: failed to check reactor damage")
-            return false
+            _set_fault()
+            self.state[state_keys.dmg_crit] = false
         else
-            return damage_percent >= 100
-        end
-    end
-
-    -- check for heated coolant backup
-    local _excess_heated_coolant = function ()
-        local hc_needed = self.reactor.getHeatedCoolantNeeded()
-        if hc_needed == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor heated coolant level")
-            return false
-        else
-            return hc_needed == 0
-        end
-    end
-
-    -- check for excess waste
-    local _excess_waste = function ()
-        local w_needed = self.reactor.getWasteNeeded()
-        if w_needed == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor waste level")
-            return false
-        else
-            return w_needed == 0
+            self.state[state_keys.dmg_crit] = damage_percent >= 100
         end
     end
 
@@ -75,9 +74,49 @@ plc.rps_init = function (reactor)
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             log.error("RPS: failed to check reactor temperature")
-            return false
+            _set_fault()
+            self.state[state_keys.high_temp] = false
         else
-            return temp >= 1200
+            self.state[state_keys.high_temp] = temp >= 1200
+        end
+    end
+
+    -- check if there is no coolant (<2% filled)
+    local _no_coolant = function ()
+        local coolant_filled = self.reactor.getCoolantFilledPercentage()
+        if coolant_filled == ppm.ACCESS_FAULT then
+            -- lost the peripheral or terminated, handled later
+            log.error("RPS: failed to check reactor coolant level")
+            _set_fault()
+            self.state[state_keys.no_coolant] = false
+        else
+            self.state[state_keys.no_coolant] = coolant_filled < 0.02
+        end
+    end
+
+    -- check for excess waste (>80% filled)
+    local _excess_waste = function ()
+        local w_filled = self.reactor.getWasteFilledPercentage()
+        if w_filled == ppm.ACCESS_FAULT then
+            -- lost the peripheral or terminated, handled later
+            log.error("RPS: failed to check reactor waste level")
+            _set_fault()
+            self.state[state_keys.ex_waste] = false
+        else
+            self.state[state_keys.ex_waste] = w_filled > 0.8
+        end
+    end
+
+    -- check for heated coolant backup (>95% filled)
+    local _excess_heated_coolant = function ()
+        local hc_filled = self.reactor.getHeatedCoolantFilledPercentage()
+        if hc_filled == ppm.ACCESS_FAULT then
+            -- lost the peripheral or terminated, handled later
+            log.error("RPS: failed to check reactor heated coolant level")
+            _set_fault()
+            state[state_keys.ex_hcoolant] = false
+        else
+            state[state_keys.ex_hcoolant] = hc_filled > 0.95
         end
     end
 
@@ -86,22 +125,11 @@ plc.rps_init = function (reactor)
         local fuel = self.reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor fuel level")
-            return false
+            log.error("RPS: failed to check reactor fuel")
+            _set_fault()
+            state[state_keys.no_fuel] = false
         else
-            return fuel == 0
-        end
-    end
-
-    -- check if there is no coolant
-    local _no_coolant = function ()
-        local coolant_filled = self.reactor.getCoolantFilledPercentage()
-        if coolant_filled == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor coolant level")
-            return false
-        else
-            return coolant_filled < 0.02
+            state[state_keys.no_fuel] = fuel.amount == 0
         end
     end
 
@@ -114,78 +142,114 @@ plc.rps_init = function (reactor)
 
     -- report a PLC comms timeout
     local trip_timeout = function ()
-        self.timed_out = true
+        state[state_keys.timed_out] = true
+    end
+
+    -- manually SCRAM the reactor
+    local trip_manual = function ()
+        state[state_keys.manual]  = true
+    end
+
+    -- SCRAM the reactor now
+    local scram = function ()
+        log.info("RPS: reactor SCRAM")
+
+        self.reactor.scram()
+        if self.reactor.__p_is_faulted() then
+            log.error("RPS: failed reactor SCRAM")
+            return false
+        else
+            self.reactor_enabled = false
+            return true
+        end
+    end
+
+    -- start the reactor
+    local activate = function ()
+        if not self.tripped then
+            log.info("RPS: reactor start")
+
+            self.reactor.activate()
+            if self.reactor.__p_is_faulted() then
+                log.error("RPS: failed reactor start")
+            else
+                self.reactor_enabled = true
+                return true
+            end
+        end
+
+        return false
     end
 
     -- check all safety conditions
     local check = function ()
         local status = rps_status_t.ok
         local was_tripped = self.tripped
+        local first_trip = false
 
-        -- update cache
-        self.cache = {
-            _damage_critical(),
-            _excess_heated_coolant(),
-            _excess_waste(),
-            _high_temp(),
-            _insufficient_fuel(),
-            _no_coolant(),
-            self.timed_out
-        }
-        
+        -- update state
+        parallel.waitForAll(
+            _damage_critical,
+            _high_temp,
+            _no_coolant,
+            _excess_waste,
+            _excess_heated_coolant,
+            _insufficient_fuel
+        )
+
         -- check system states in order of severity
         if self.tripped then
             status = self.trip_cause
-        elseif self.cache[1] then
-            log.warning("RPS: damage critical!")
+        elseif self.state[state_keys.dmg_crit] then
+            log.warning("RPS: damage critical")
             status = rps_status_t.dmg_crit
-        elseif self.cache[4] then
-            log.warning("RPS: high temperature!")
+        elseif self.state[state_keys.high_temp] then
+            log.warning("RPS: high temperature")
             status = rps_status_t.high_temp
-        elseif self.cache[2] then
-            log.warning("RPS: heated coolant backup!")
-            status = rps_status_t.ex_hcoolant
-        elseif self.cache[6] then
-            log.warning("RPS: no coolant!")
+        elseif self.state[state_keys.no_coolant] then
+            log.warning("RPS: no coolant")
             status = rps_status_t.no_coolant
-        elseif self.cache[3] then
-            log.warning("RPS: full waste!")
+        elseif self.state[state_keys.ex_waste] then
+            log.warning("RPS: full waste")
             status = rps_status_t.ex_waste
-        elseif self.cache[5] then
-            log.warning("RPS: no fuel!")
+        elseif self.state[state_keys.ex_hcoolant] then
+            log.warning("RPS: heated coolant backup")
+            status = rps_status_t.ex_hcoolant
+        elseif self.state[state_keys.no_fuel] then
+            log.warning("RPS: no fuel")
             status = rps_status_t.no_fuel
-        elseif self.cache[7] then
-            log.warning("RPS: supervisor connection timeout!")
+        elseif self.state[state_keys.fault] then
+            log.warning("RPS: reactor access fault")
+            status = rps_status_t.fault
+        elseif self.state[state_keys.timeout] then
+            log.warning("RPS: supervisor connection timeout")
             status = rps_status_t.timeout
+        elseif self.state[state_keys.manual] then
+            log.warning("RPS: manual SCRAM requested")
+            status = rps_status_t.manual
         else
             self.tripped = false
         end
-    
-        -- if a new trip occured...
-        local first_trip = false
-        if not was_tripped and status ~= rps_status_t.ok then
-            log.warning("RPS: reactor SCRAM")
 
+        -- if a new trip occured...
+        if (not was_tripped) and (status ~= rps_status_t.ok) then
             first_trip = true
             self.tripped = true
             self.trip_cause = status
 
-            self.reactor.scram()
-            if self.reactor.__p_is_faulted() then
-                log.error("RPS: failed reactor SCRAM")
-            end
+            scram()
         end
-    
+
         return self.tripped, status, first_trip
     end
 
     -- get the RPS status
-    local status = function () return self.cache end
+    local status = function () return self.state end
     local is_tripped = function () return self.tripped end
+    local is_active = function () return self.reactor_enabled end
 
     -- reset the RPS
     local reset = function ()
-        self.timed_out = false
         self.tripped = false
         self.trip_cause = rps_status_t.ok
     end
@@ -193,9 +257,13 @@ plc.rps_init = function (reactor)
     return {
         reconnect_reactor = reconnect_reactor,
         trip_timeout = trip_timeout,
+        trip_manual = trip_manual,
+        scram = scram,
+        activate = activate,
         check = check,
         status = status,
         is_tripped = is_tripped,
+        is_active = is_active,
         reset = reset
     }
 end
@@ -544,18 +612,6 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
                         -- request for physical structure
                         _send_struct()
                         log.debug("sent out structure again, did supervisor miss it?")
-                    elseif packet.type == RPLC_TYPES.MEK_SCRAM then
-                        -- disable the reactor
-                        self.scrammed = true
-                        plc_state.scram = true
-                        self.reactor.scram()
-                        _send_ack(packet.type, self.reactor.__p_is_ok())
-                    elseif packet.type == RPLC_TYPES.MEK_ENABLE then
-                        -- enable the reactor
-                        self.scrammed = false
-                        plc_state.scram = false
-                        self.reactor.activate()
-                        _send_ack(packet.type, self.reactor.__p_is_ok())
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
                         if packet.length == 1 then
@@ -581,6 +637,15 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
                         else
                             log.debug("RPLC set burn rate packet length mismatch")
                         end
+                    elseif packet.type == RPLC_TYPES.RPS_ENABLE then
+                        -- enable the reactor
+                        self.scrammed = false
+                        _send_ack(packet.type, self.rps.activate())
+                    elseif packet.type == RPLC_TYPES.RPS_SCRAM then
+                        -- disable the reactor
+                        self.scrammed = true
+                        self.rps.trip_manual()
+                        _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPES.RPS_RESET then
                         -- reset the RPS status
                         rps.reset()

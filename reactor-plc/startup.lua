@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.1"
+local R_PLC_VERSION = "alpha-v0.6.2"
 
 local print = util.print
 local println = util.println
@@ -37,7 +37,6 @@ local __shared_memory = {
     plc_state = {
         init_ok = true,
         shutdown = false,
-        scram = true,
         degraded = false,
         no_reactor = false,
         no_modem = false

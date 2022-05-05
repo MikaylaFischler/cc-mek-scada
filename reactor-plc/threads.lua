@@ -13,7 +13,7 @@ local println_ts = util.println_ts
 local psleep = util.psleep
 
 local MAIN_CLOCK    = 1   -- (1Hz, 20 ticks)
-local RPS_SLEEP     = 500 -- (500ms, 10 ticks)
+local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
 
@@ -207,7 +207,7 @@ threads.thread__rps = function (smem)
             if plc_state.init_ok then
                 -- SCRAM if no open connection
                 if networked and not plc_comms.is_linked() then
-                    plc_state.scram = true
+                    rps.scram()
                     if was_linked then
                         was_linked = false
                         rps.trip_timeout()
@@ -219,21 +219,17 @@ threads.thread__rps = function (smem)
 
                 -- if we tried to SCRAM but failed, keep trying
                 -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
-                if not plc_state.no_reactor and plc_state.scram and reactor.getStatus() then
-                    reactor.scram()
+                if not plc_state.no_reactor and rps.is_tripped() and reactor.getStatus() then
+                    rps.scram()
                 end
 
                 -- if we are in standalone mode, continuously reset RPS
                 -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
-                if not networked then
-                    plc_state.scram = false
-                    rps.reset()
-                end
+                if not networked then rps.reset() end
 
                 -- check safety (SCRAM occurs if tripped)
                 if not plc_state.no_reactor then
                     local rps_tripped, rps_status_string, rps_first = rps.check()
-                    plc_state.scram = plc_state.scram or rps_tripped
 
                     if rps_first then
                         println_ts("[RPS] SCRAM! safety trip: " .. rps_status_string)
@@ -250,26 +246,19 @@ threads.thread__rps = function (smem)
 
                 if msg.qtype == mqueue.TYPE.COMMAND then
                     -- received a command
-                    if msg.message == MQ__RPS_CMD.SCRAM then
-                        -- basic SCRAM
-                        plc_state.scram = true
-                        reactor.scram()
-                    elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
-                        -- SCRAM with print
-                        plc_state.scram = true
-                        if reactor.scram() then
-                            println_ts("successful reactor SCRAM")
-                            log.error("successful reactor SCRAM")
-                        else
-                            println_ts("failed reactor SCRAM")
-                            log.error("failed reactor SCRAM")
+                    if plc_state.init_ok then
+                        if msg.message == MQ__RPS_CMD.SCRAM then
+                            -- SCRAM
+                            rps.scram()
+                        elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
+                            -- lost peripheral(s)
+                            rps.trip_degraded()
+                        elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
+                            -- watchdog tripped
+                            rps.trip_timeout()
+                            println_ts("server timeout")
+                            log.warning("server timeout")
                         end
-                    elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
-                        -- watchdog tripped
-                        plc_state.scram = true
-                        rps.trip_timeout()
-                        println_ts("server timeout")
-                        log.warning("server timeout")
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- received data
@@ -286,9 +275,7 @@ threads.thread__rps = function (smem)
                 -- safe exit
                 log.info("rps thread shutdown initiated")
                 if plc_state.init_ok then
-                    plc_state.scram = true
-                    reactor.scram()
-                    if reactor.__p_is_ok() then
+                    if rps.scram() then
                         println_ts("reactor disabled")
                         log.info("rps thread reactor SCRAM OK")
                     else
@@ -368,6 +355,8 @@ threads.thread__comms_rx = function (smem)
         -- load in from shared memory
         local plc_state     = smem.plc_state
         local setpoints     = smem.setpoints
+        local plc_dev       = smem.plc_dev
+        local rps           = smem.plc_sys.rps
         local plc_comms     = smem.plc_sys.plc_comms
         local conn_watchdog = smem.plc_sys.conn_watchdog
 
@@ -388,7 +377,7 @@ threads.thread__comms_rx = function (smem)
                 elseif msg.qtype == mqueue.TYPE.PACKET then
                     -- received a packet
                     -- handle the packet (setpoints passed to update burn rate setpoint)
-                    --                   (plc_state passed to allow clearing SCRAM flag and check if degraded)
+                    --                   (plc_state passed to check if degraded)
                     --                   (conn_watchdog passed to allow feeding the watchdog)
                     plc_comms.handle_packet(msg.message, setpoints, plc_state, conn_watchdog)
                 end
@@ -421,6 +410,7 @@ threads.thread__setpoint_control = function (smem)
         local plc_state     = smem.plc_state
         local setpoints     = smem.setpoints
         local plc_dev       = smem.plc_dev
+        local rps           = smem.plc_sys.rps
 
         local last_update   = util.time()
         local running       = false
@@ -433,7 +423,7 @@ threads.thread__setpoint_control = function (smem)
 
             -- check if we should start ramping
             if setpoints.burn_rate ~= last_sp_burn then
-                if not plc_state.scram then
+                if rps.is_active() then
                     if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
                         -- update without ramp if <= 5 mB/t change
                         log.debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
@@ -459,7 +449,7 @@ threads.thread__setpoint_control = function (smem)
                 running = false
 
                 -- adjust burn rate (setpoints.burn_rate)
-                if not plc_state.scram then
+                if rps.is_active() then
                     local current_burn_rate = reactor.getBurnRate()
                     if (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
                         -- calculate new burn rate
