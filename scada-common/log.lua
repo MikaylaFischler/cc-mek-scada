@@ -1,10 +1,10 @@
+local util = require("scada-common.util")
+
 --
 -- File System Logger
 --
 
 local log = {}
-
--- we use extra short abbreviations since computer craft screens are very small
 
 local MODE = {
     APPEND = 0,
@@ -13,54 +13,63 @@ local MODE = {
 
 log.MODE = MODE
 
+----------------------------
+-- PRIVATE DATA/FUNCTIONS --
+----------------------------
+
 local LOG_DEBUG = true
 
-local log_path = "/log.txt"
-local mode = MODE.APPEND
-local file_handle = nil
+local _log_sys = {
+    path = "/log.txt",
+    mode = MODE.APPEND,
+    file = nil
+}
 
 local _log = function (msg)
-    local stamped = os.date("[%c] ") .. msg
+    local time_stamp = os.date("[%c] ")
+    local stamped = time_stamp .. msg
 
     -- attempt to write log
     local status, result = pcall(function () 
-        file_handle.writeLine(stamped)
-        file_handle.flush()
+        _log_sys.file.writeLine(stamped)
+        _log_sys.file.flush()
     end)
 
-    -- if we don't have much space, we need to create a new log file
-    local delete_log = fs.getFreeSpace(log_path) < 100
+    -- if we don't have space, we need to create a new log file
 
     if not status then
         if result == "Out of space" then
-            delete_log = true
+            -- will delete log file
         elseif result ~= nil then
-            print("unknown error writing to logfile: " .. result)
+            util.println("unknown error writing to logfile: " .. result)
         end
     end
 
-    if delete_log then
+    if (result == "Out of space") or (fs.getFreeSpace(_log_sys.path) < 100) then
         -- delete the old log file and open a new one
-        file_handle.close()
-        fs.delete(log_path)
-        init(log_path, mode)
+        _log_sys.file.close()
+        fs.delete(_log_sys.path)
+        init(_log_sys.path, _log_sys.mode)
 
         -- leave a message
-        local notif = os.date("[%c] ") .. "recycled log file"
-        file_handle.writeLine(notif)
-        file_handle.writeLine(stamped)
-        file_handle.flush()
+        _log_sys.file.writeLine(time_stamp .. "recycled log file")
+        _log_sys.file.writeLine(stamped)
+        _log_sys.file.flush()
     end
 end
 
-log.init = function (path, write_mode)
-    log_path = path
-    mode = write_mode
+----------------------
+-- PUBLIC FUNCTIONS --
+----------------------
 
-    if mode == MODE.APPEND then
-        file_handle = fs.open(path, "a")
+log.init = function (path, write_mode)
+    _log_sys.path = path
+    _log_sys.mode = write_mode
+
+    if _log_sys.mode == MODE.APPEND then
+        _log_sys.file = fs.open(path, "a")
     else
-        file_handle = fs.open(path, "w+")
+        _log_sys.file = fs.open(path, "w+")
     end
 end
 
@@ -69,14 +78,14 @@ log.debug = function (msg, trace)
         local dbg_info = ""
 
         if trace then
+            local info = debug.getinfo(2)
             local name = ""
 
-            if debug.getinfo(2).name ~= nil then
-                name = ":" .. debug.getinfo(2).name .. "():"
+            if info.name ~= nil then
+                name = ":" .. info.name .. "():"
             end
 
-            dbg_info = debug.getinfo(2).short_src .. ":" .. name ..
-                debug.getinfo(2).currentline .. " > "
+            dbg_info = info.short_src .. ":" .. name .. info.currentline .. " > "
         end
 
         _log("[DBG] " .. dbg_info .. msg)
@@ -95,14 +104,14 @@ log.error = function (msg, trace)
     local dbg_info = ""
     
     if trace then
+        local info = debug.getinfo(2)
         local name = ""
 
-        if debug.getinfo(2).name ~= nil then
-            name = ":" .. debug.getinfo(2).name .. "():"
+        if info.name ~= nil then
+            name = ":" .. info.name .. "():"
         end
         
-        dbg_info = debug.getinfo(2).short_src .. ":" .. name .. 
-            debug.getinfo(2).currentline .. " > "
+        dbg_info = info.short_src .. ":" .. name ..  info.currentline .. " > "
     end
 
     _log("[ERR] " .. dbg_info .. msg)
