@@ -4,6 +4,10 @@
 
 local rsio = {}
 
+----------------------
+-- RS I/O CONSTANTS --
+----------------------
+
 local IO_LVL = {
     LOW = 0,
     HIGH = 1
@@ -64,6 +68,11 @@ rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = RS_IO
 
+-----------------------
+-- UTILITY FUNCTIONS --
+-----------------------
+
+-- channel to string
 rsio.to_string = function (channel)
     local names = {
         "F_SCRAM",
@@ -96,22 +105,7 @@ rsio.to_string = function (channel)
     end
 end
 
-rsio.is_valid_channel = function (channel)
-    return channel ~= nil and channel > 0 and channel <= RS_IO.A_T_FLOW_RATE
-end
-
-rsio.is_valid_side = function (side)
-    if side ~= nil then
-        for _, s in pairs(rs.getSides()) do
-            if s == side then return true end
-        end
-    end
-    return false
-end
-
-rsio.is_color = function (color)
-    return (color > 0) and (bit.band(color, (color - 1)) == 0);
-end
+local _B_AND = bit.band
 
 local _TRINARY = function (cond, t, f) if cond then return t else return f end end
 
@@ -160,6 +154,7 @@ local RS_DIO_MAP = {
     { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT }
 }
 
+-- get the mode of a channel
 rsio.get_io_mode = function (channel)
     local modes = {
         IO_MODE.DIGITAL_IN,     -- F_SCRAM
@@ -191,6 +186,36 @@ rsio.get_io_mode = function (channel)
         return IO_MODE.ANALOG_IN
     end
 end
+
+--------------------
+-- GENERIC CHECKS --
+--------------------
+
+local RS_SIDES = rs.getSides()
+
+-- check if a channel is valid
+rsio.is_valid_channel = function (channel)
+    return channel ~= nil and channel > 0 and channel <= RS_IO.A_T_FLOW_RATE
+end
+
+-- check if a side is valid
+rsio.is_valid_side = function (side)
+    if side ~= nil then
+        for i = 0, #RS_SIDES do
+            if RS_SIDES[i] == side then return true end
+        end
+    end
+    return false
+end
+
+-- check if a color is a valid single color
+rsio.is_color = function (color)
+    return (color > 0) and (_B_AND(color, (color - 1)) == 0);
+end
+
+-----------------
+-- DIGITAL I/O --
+-----------------
 
 -- get digital IO level reading
 rsio.digital_read = function (rs_value)
