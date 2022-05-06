@@ -15,6 +15,9 @@ mqueue.TYPE = TYPE
 mqueue.new = function ()
     local queue = {}
 
+    local insert = table.insert
+    local remove = table.remove
+
     local length = function ()
         return #queue
     end
@@ -24,11 +27,11 @@ mqueue.new = function ()
     end
 
     local ready = function ()
-        return #queue > 0
+        return #queue ~= 0
     end
     
     local _push = function (qtype, message)
-        table.insert(queue, { qtype = qtype, message = message })
+        insert(queue, { qtype = qtype, message = message })
     end
     
     local push_command = function (message)
@@ -45,7 +48,7 @@ mqueue.new = function ()
 
     local pop = function ()
         if #queue > 0 then
-            return table.remove(queue, 1)
+            return remove(queue, 1)
         else 
             return nil
         end
