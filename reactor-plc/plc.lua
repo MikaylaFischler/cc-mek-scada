@@ -114,9 +114,9 @@ plc.rps_init = function (reactor)
             -- lost the peripheral or terminated, handled later
             log.error("RPS: failed to check reactor heated coolant level")
             _set_fault()
-            state[state_keys.ex_hcoolant] = false
+            self.state[state_keys.ex_hcoolant] = false
         else
-            state[state_keys.ex_hcoolant] = hc_filled > 0.95
+            self.state[state_keys.ex_hcoolant] = hc_filled > 0.95
         end
     end
 
@@ -127,9 +127,9 @@ plc.rps_init = function (reactor)
             -- lost the peripheral or terminated, handled later
             log.error("RPS: failed to check reactor fuel")
             _set_fault()
-            state[state_keys.no_fuel] = false
+            self.state[state_keys.no_fuel] = false
         else
-            state[state_keys.no_fuel] = fuel.amount == 0
+            self.state[state_keys.no_fuel] = fuel == 0
         end
     end
 
@@ -142,12 +142,12 @@ plc.rps_init = function (reactor)
 
     -- report a PLC comms timeout
     local trip_timeout = function ()
-        state[state_keys.timed_out] = true
+        self.state[state_keys.timed_out] = true
     end
 
     -- manually SCRAM the reactor
     local trip_manual = function ()
-        state[state_keys.manual]  = true
+        self.state[state_keys.manual]  = true
     end
 
     -- SCRAM the reactor now

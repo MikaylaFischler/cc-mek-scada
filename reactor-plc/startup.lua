@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.3"
+local R_PLC_VERSION = "alpha-v0.6.4"
 
 local print = util.print
 local println = util.println
