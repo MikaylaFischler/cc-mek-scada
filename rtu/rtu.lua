@@ -18,6 +18,8 @@ rtu.init_unit = function ()
         io_count_cache = { 0, 0, 0, 0 }
     }
 
+    local insert = table.insert
+
     local _count_io = function ()
         self.io_count_cache = { #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs }
     end
@@ -31,7 +33,7 @@ rtu.init_unit = function ()
 
     -- return : count of discrete inputs
     local connect_di = function (f)
-        table.insert(self.discrete_inputs, f)
+        insert(self.discrete_inputs, f)
         _count_io()
         return #self.discrete_inputs
     end
@@ -47,7 +49,7 @@ rtu.init_unit = function ()
 
     -- return : count of coils
     local connect_coil = function (f_read, f_write)
-        table.insert(self.coils, { read = f_read, write = f_write })
+        insert(self.coils, { read = f_read, write = f_write })
         _count_io()
         return #self.coils
     end
@@ -70,7 +72,7 @@ rtu.init_unit = function ()
 
     -- return : count of input registers
     local connect_input_reg = function (f)
-        table.insert(self.input_regs, f)
+        insert(self.input_regs, f)
         _count_io()
         return #self.input_regs
     end
@@ -86,7 +88,7 @@ rtu.init_unit = function ()
 
     -- return : count of holding registers
     local connect_holding_reg = function (f_read, f_write)
-        table.insert(self.holding_regs, { read = f_read, write = f_write })
+        insert(self.holding_regs, { read = f_read, write = f_write })
         _count_io()
         return #self.holding_regs
     end
@@ -293,7 +295,7 @@ rtu.comms = function (modem, local_port, server_port)
 
             if type ~= nil then
                 if type == RTU_ADVERT_TYPES.REDSTONE then
-                    table.insert(advertisement, {
+                    insert(advertisement, {
                         unit = i,
                         type = type,
                         index = units[i].index,
@@ -301,7 +303,7 @@ rtu.comms = function (modem, local_port, server_port)
                         rsio = units[i].device
                     })
                 else
-                    table.insert(advertisement, {
+                    insert(advertisement, {
                         unit = i,
                         type = type,
                         index = units[i].index,

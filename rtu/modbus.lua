@@ -13,6 +13,8 @@ modbus.new = function (rtu_dev, use_parallel_read)
         use_parallel = use_parallel_read
     }
 
+    local insert = table.insert
+
     local _1_read_coils = function (c_addr_start, count)
         local tasks = {}
         local readings = {}
@@ -25,7 +27,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
                 local addr = c_addr_start + i - 1
 
                 if self.use_parallel then
-                    table.insert(tasks, function ()
+                    insert(tasks, function ()
                         local reading, fault = self.rtu.read_coil(addr)
                         if fault then access_fault = true else readings[i] = reading end
                     end)
@@ -68,7 +70,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
                 local addr = di_addr_start + i - 1
 
                 if self.use_parallel then
-                    table.insert(tasks, function ()
+                    insert(tasks, function ()
                         local reading, fault = self.rtu.read_di(addr)
                         if fault then access_fault = true else readings[i] = reading end
                     end)
@@ -111,7 +113,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
                 local addr = hr_addr_start + i - 1
 
                 if self.use_parallel then
-                    table.insert(tasks, function ()
+                    insert(tasks, function ()
                         local reading, fault = self.rtu.read_holding_reg(addr)
                         if fault then access_fault = true else readings[i] = reading end
                     end)
@@ -154,7 +156,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
                 local addr = ir_addr_start + i - 1
 
                 if self.use_parallel then
-                    table.insert(tasks, function ()
+                    insert(tasks, function ()
                         local reading, fault = self.rtu.read_input_reg(addr)
                         if fault then access_fault = true else readings[i] = reading end
                     end)

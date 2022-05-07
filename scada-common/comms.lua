@@ -4,6 +4,8 @@
 
 local comms = {}
 
+local insert = table.insert
+
 local PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
@@ -158,7 +160,7 @@ comms.modbus_packet = function ()
         -- populate raw array
         self.raw = { self.txn_id, self.unit_id, self.func_code }
         for i = 1, self.length do
-            table.insert(self.raw, data[i])
+            insert(self.raw, data[i])
         end
     end
 
@@ -248,7 +250,7 @@ comms.rplc_packet = function ()
         -- populate raw array
         self.raw = { self.id, self.type }
         for i = 1, #data do
-            table.insert(self.raw, data[i])
+            insert(self.raw, data[i])
         end
     end
 
@@ -331,7 +333,7 @@ comms.mgmt_packet = function ()
         -- populate raw array
         self.raw = { self.type }
         for i = 1, #data do
-            table.insert(self.raw, data[i])
+            insert(self.raw, data[i])
         end
     end
 
@@ -410,7 +412,7 @@ comms.coord_packet = function ()
         -- populate raw array
         self.raw = { self.type }
         for i = 1, #data do
-            table.insert(self.raw, data[i])
+            insert(self.raw, data[i])
         end
     end
 
@@ -489,7 +491,7 @@ comms.capi_packet = function ()
         -- populate raw array
         self.raw = { self.type }
         for i = 1, #data do
-            table.insert(self.raw, data[i])
+            insert(self.raw, data[i])
         end
     end
 
