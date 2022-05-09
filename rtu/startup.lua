@@ -22,7 +22,7 @@ local imatrix_rtu = require("dev.imatrix_rtu")
 local turbine_rtu = require("dev.turbine_rtu")
 local turbinev_rtu = require("dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.0"
+local RTU_VERSION = "alpha-v0.6.1"
 
 local rtu_t = types.rtu_t
 
@@ -79,8 +79,6 @@ if smem_dev.modem == nil then
     log.warning("no wireless modem on startup")
     return
 end
-
-smem_sys.rtu_comms = rtu.comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT)
 
 ----------------------------------------
 -- interpret config and init units
@@ -230,13 +228,17 @@ end
 -- start system
 ----------------------------------------
 
+-- start connection watchdog
+smem_sys.conn_watchdog = util.new_watchdog(5)
+log.debug("boot> conn watchdog started")
+
+-- setup comms
+smem_sys.rtu_comms = rtu.comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
+log.debug("boot> comms init")
+
 -- init threads
 local main_thread  = threads.thread__main(__shared_memory)
 local comms_thread = threads.thread__comms(__shared_memory)
-
--- start connection watchdog
-smem_sys.conn_watchdog = util.new_watchdog(5)
-log.debug("init> conn watchdog started")
 
 -- assemble thread list
 local _threads = { main_thread.exec, comms_thread.exec }

@@ -180,8 +180,7 @@ threads.thread__comms = function (smem)
                 elseif msg.qtype == mqueue.TYPE.PACKET then
                     -- received a packet
                     -- handle the packet (rtu_state passed to allow setting link flag)
-                    --                   (conn_watchdog passed to allow feeding watchdog)
-                    rtu_comms.handle_packet(msg.message, units, rtu_state, conn_watchdog)
+                    rtu_comms.handle_packet(msg.message, units, rtu_state)
                 end
 
                 -- quick yield
@@ -211,7 +210,6 @@ threads.thread__unit_comms = function (smem, unit)
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
-
         local packet_queue = unit.pkt_queue
 
         local last_update  = util.time()

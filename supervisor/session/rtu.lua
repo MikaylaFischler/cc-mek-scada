@@ -35,7 +35,7 @@ rtu.new_session = function (id, in_queue, out_queue)
     }
 
     -- send a MODBUS TCP packet
-    local send_modbus = function (m_pkt)
+    local _send_modbus = function (m_pkt)
         local s_pkt = comms.scada_packet()
         s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
@@ -66,16 +66,31 @@ rtu.new_session = function (id, in_queue, out_queue)
             self.r_seq_num = pkt.scada_frame.seq_num()
         end
 
+        -- feed watchdog
+        self.rtu_conn_watchdog.feed()
+
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
-            -- feed watchdog
-            self.rtu_conn_watchdog.feed()
-
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-            -- feed watchdog
-            self.rtu_conn_watchdog.feed()
 
-            if pkt.type == SCADA_MGMT_TYPES.CLOSE then
+            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                -- keep alive reply
+                if pkt.length == 2 then
+                    local srv_start = pkt.data[1]
+                    local rtu_send = pkt.data[2]
+                    local srv_now = util.time()
+                    self.last_rtt = srv_now - srv_start
+
+                    if self.last_rtt > 500 then
+                        log.warning(log_header .. "RTU KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
+                    end
+
+                    -- log.debug(log_header .. "RTU RTT = ".. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "RTU TT  = ".. (srv_now - rtu_send) .. "ms")
+                else
+                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                end
+            elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
                 -- close the session
                 self.connected = false
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
@@ -84,8 +99,6 @@ rtu.new_session = function (id, in_queue, out_queue)
                     local unit = packet.data[i]
                     unit
                 end
-            elseif pkt.type == SCADA_MGMT_TYPES.RTU_HEARTBEAT then
-                -- periodic RTU heartbeat
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
@@ -162,7 +175,7 @@ rtu.new_session = function (id, in_queue, out_queue)
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                -- _send(RPLC_TYPES.KEEP_ALIVE, { util.time() })
+                _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 

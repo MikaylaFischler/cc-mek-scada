@@ -125,14 +125,15 @@ rtu.init_unit = function ()
     }
 end
 
-rtu.comms = function (modem, local_port, server_port)
+rtu.comms = function (modem, local_port, server_port, conn_watchdog)
     local self = {
         seq_num = 0,
         r_seq_num = nil,
         txn_id = 0,
         modem = modem,
         s_port = server_port,
-        l_port = local_port
+        l_port = local_port,
+        conn_watchdog = conn_watchdog
     }
 
     -- open modem
@@ -153,7 +154,20 @@ rtu.comms = function (modem, local_port, server_port)
         self.seq_num = self.seq_num + 1
     end
 
+    -- keep alive ack
+    local _send_keep_alive_ack = function (srv_time)
+        _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+    end
+
     -- PUBLIC FUNCTIONS --
+
+    -- send a MODBUS TCP packet
+    local send_modbus = function (m_pkt)
+        local s_pkt = comms.scada_packet()
+        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.seq_num = self.seq_num + 1
+    end
 
     -- reconnect a newly connected modem
     local reconnect_modem = function (modem)
@@ -165,12 +179,47 @@ rtu.comms = function (modem, local_port, server_port)
         end
     end
 
-    -- send a MODBUS TCP packet
-    local send_modbus = function (m_pkt)
-        local s_pkt = comms.scada_packet()
-        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
+    -- unlink from the server
+    local unlink = function (rtu_state)
+        rtu_state.linked = false
+        self.r_seq_num = nil
+    end
+
+    -- close the connection to the server
+    local close = function (rtu_state)
+        self.conn_watchdog.cancel()
+        unlink(rtu_state)
+        _send(SCADA_MGMT_TYPES.CLOSE, {})
+    end
+
+    -- send capability advertisement
+    local send_advertisement = function (units)
+        local advertisement = {}
+
+        for i = 1, #units do
+            local unit = units[i]
+            local type = comms.rtu_t_to_advert_type(unit.type)
+
+            if type ~= nil then
+                if type == RTU_ADVERT_TYPES.REDSTONE then
+                    insert(advertisement, {
+                        type = type,
+                        index = unit.index,
+                        reactor = unit.for_reactor,
+                        rsio = unit.device
+                    })
+                else
+                    insert(advertisement, {
+                        type = type,
+                        index = unit.index,
+                        reactor = unit.for_reactor,
+                        rsio = nil
+                    })
+                end
+            end
+        end
+
+        _send(SCADA_MGMT_TYPES.RTU_ADVERT, advertisement)
     end
 
     -- parse a MODBUS/SCADA packet
@@ -203,7 +252,7 @@ rtu.comms = function (modem, local_port, server_port)
     end
 
     -- handle a MODBUS/SCADA packet
-    local handle_packet = function(packet, units, rtu_state, conn_watchdog)
+    local handle_packet = function(packet, units, rtu_state)
         if packet ~= nil then
             local seq_ok = true
 
@@ -218,7 +267,7 @@ rtu.comms = function (modem, local_port, server_port)
             end
 
             -- feed watchdog on valid sequence number
-            conn_watchdog.feed()
+            self.conn_watchdog.feed()
 
             local protocol = packet.scada_frame.protocol()
 
@@ -257,10 +306,28 @@ rtu.comms = function (modem, local_port, server_port)
                 send_modbus(reply)
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
-                if packet.type == SCADA_MGMT_TYPES.CLOSE then
+                if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                    -- keep alive request received, echo back
+                    if packet.length == 1 then
+                        local timestamp = packet.data[1]
+                        local trip_time = util.time() - timestamp
+
+                        if trip_time > 500 then
+                            log.warning("RTU KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                        end
+
+                        -- log.debug("RTU RTT = ".. trip_time .. "ms")
+
+                        _send_keep_alive_ack(timestamp)
+                    else
+                        log.debug("SCADA keep alive packet length mismatch")
+                    end
+                elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
                     -- close connection
-                    conn_watchdog.cancel()
+                    self.conn_watchdog.cancel()
                     unlink(rtu_state)
+                    println_ts("server connection closed by remote host")
+                    log.warning("server connection closed by remote host")
                 elseif packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
                     -- acknowledgement
                     rtu_state.linked = true
@@ -277,50 +344,6 @@ rtu.comms = function (modem, local_port, server_port)
                 log.error("illegal packet type " .. protocol, true)
             end
         end
-    end
-
-    -- send capability advertisement
-    local send_advertisement = function (units)
-        local advertisement = {}
-
-        for i = 1, #units do
-            local unit = units[i]
-            local type = comms.rtu_t_to_advert_type(unit.type)
-
-            if type ~= nil then
-                if type == RTU_ADVERT_TYPES.REDSTONE then
-                    insert(advertisement, {
-                        type = type,
-                        index = unit.index,
-                        reactor = unit.for_reactor,
-                        rsio = unit.device
-                    })
-                else
-                    insert(advertisement, {
-                        type = type,
-                        index = unit.index,
-                        reactor = unit.for_reactor,
-                        rsio = nil
-                    })
-                end
-            end
-        end
-
-        _send(SCADA_MGMT_TYPES.RTU_ADVERT, advertisement)
-    end
-
-    local send_heartbeat = function ()
-        _send(SCADA_MGMT_TYPES.RTU_HEARTBEAT, {})
-    end
-
-    local unlink = function (rtu_state)
-        rtu_state.linked = false
-        self.r_seq_num = nil
-    end
-
-    local close = function (rtu_state)
-        unlink(rtu_state)
-        _send(SCADA_MGMT_TYPES.CLOSE, {})
     end
 
     return {

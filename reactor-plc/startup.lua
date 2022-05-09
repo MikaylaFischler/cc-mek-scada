@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.4"
+local R_PLC_VERSION = "alpha-v0.6.5"
 
 local print = util.print
 local println = util.println
@@ -102,29 +102,34 @@ function init()
 
         -- init reactor protection system
         smem_sys.rps = plc.rps_init(smem_dev.reactor)
-        log.debug("rps init")
+        log.debug("init> rps init")
 
         if __shared_memory.networked then
-            -- start comms
-            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.rps)
-            log.debug("comms init")
-
             -- comms watchdog, 3 second timeout
             smem_sys.conn_watchdog = util.new_watchdog(3)
-            log.debug("conn watchdog started")
+            log.debug("init> conn watchdog started")
+
+            -- start comms
+            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+            log.debug("init> comms init")
         else
             println("boot> starting in offline mode");
-            log.debug("running without networking")
+            log.debug("init> running without networking")
         end
 
         os.queueEvent("clock_start")
 
         println("boot> completed");
+        log.debug("init> boot completed")
     else
         println("boot> system in degraded state, awaiting devices...")
-        log.warning("booted in a degraded state, awaiting peripheral connections...")
+        log.warning("init> booted in a degraded state, awaiting peripheral connections...")
     end
 end
+
+----------------------------------------
+-- start system
+----------------------------------------
 
 -- initialize PLC
 init()

@@ -18,16 +18,15 @@ local PROTOCOLS = {
 }
 
 local RPLC_TYPES = {
-    KEEP_ALIVE = 0,     -- keep alive packets
-    LINK_REQ = 1,       -- linking requests
-    STATUS = 2,         -- reactor/system status
-    MEK_STRUCT = 3,     -- mekanism build structure
-    MEK_BURN_RATE = 4,  -- set burn rate
-    RPS_ENABLE = 5,     -- enable reactor
-    RPS_SCRAM = 6,      -- SCRAM reactor
-    RPS_STATUS = 7,     -- RPS status
-    RPS_ALARM = 8,      -- RPS alarm broadcast
-    RPS_RESET = 9       -- clear RPS trip (if in bad state, will trip immediately)
+    LINK_REQ = 0,       -- linking requests
+    STATUS = 1,         -- reactor/system status
+    MEK_STRUCT = 2,     -- mekanism build structure
+    MEK_BURN_RATE = 3,  -- set burn rate
+    RPS_ENABLE = 4,     -- enable reactor
+    RPS_SCRAM = 5,      -- SCRAM reactor
+    RPS_STATUS = 6,     -- RPS status
+    RPS_ALARM = 7,      -- RPS alarm broadcast
+    RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
 }
 
 local RPLC_LINKING = {
@@ -37,11 +36,10 @@ local RPLC_LINKING = {
 }
 
 local SCADA_MGMT_TYPES = {
-    PING = 0,           -- generic ping
+    KEEP_ALIVE = 0,     -- keep alive packet w/ RTT
     CLOSE = 1,          -- close a connection
-    REMOTE_LINKED = 2,  -- remote device linked
-    RTU_ADVERT = 3,     -- RTU capability advertisement
-    RTU_HEARTBEAT = 4   -- RTU heartbeat
+    RTU_ADVERT = 2,     -- RTU capability advertisement
+    REMOTE_LINKED = 3   -- remote device linked
 }
 
 local RTU_ADVERT_TYPES = {

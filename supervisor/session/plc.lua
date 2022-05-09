@@ -243,24 +243,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
             self.plc_conn_watchdog.feed()
 
             -- handle packet by type
-            if pkt.type == RPLC_TYPES.KEEP_ALIVE then
-                -- keep alive reply
-                if pkt.length == 2 then
-                    local srv_start = pkt.data[1]
-                    local plc_send = pkt.data[2]
-                    local srv_now = util.time()
-                    self.last_rtt = srv_now - srv_start
-
-                    if self.last_rtt > 500 then
-                        log.warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. ")")
-                    end
-
-                    -- log.debug(log_header .. "RPLC RTT = ".. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "RPLC TT  = ".. (srv_now - plc_send) .. "ms")
-                else
-                    log.debug(log_header .. "RPLC keep alive packet length mismatch")
-                end
-            elseif pkt.type == RPLC_TYPES.STATUS then
+            if pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
                 if pkt.length >= 5 then
                     self.sDB.last_status_update = pkt.data[1]
@@ -366,7 +349,24 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-            if pkt.type == SCADA_MGMT_TYPES.CLOSE then
+            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                -- keep alive reply
+                if pkt.length == 2 then
+                    local srv_start = pkt.data[1]
+                    local plc_send = pkt.data[2]
+                    local srv_now = util.time()
+                    self.last_rtt = srv_now - srv_start
+
+                    if self.last_rtt > 500 then
+                        log.warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
+                    end
+
+                    -- log.debug(log_header .. "PLC RTT = ".. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "PLC TT  = ".. (srv_now - plc_send) .. "ms")
+                else
+                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                end
+            elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
                 -- close the session
                 self.connected = false
             else
@@ -497,7 +497,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send(RPLC_TYPES.KEEP_ALIVE, { util.time() })
+                _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 

@@ -269,7 +269,7 @@ plc.rps_init = function (reactor)
 end
 
 -- reactor PLC communications
-plc.comms = function (id, modem, local_port, server_port, reactor, rps)
+plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_watchdog)
     local self = {
         id = id,
         seq_num = 0,
@@ -279,6 +279,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
         l_port = local_port,
         reactor = reactor,
         rps = rps,
+        conn_watchdog = conn_watchdog,
         scrammed = false,
         linked = false,
         status_cache = nil,
@@ -398,7 +399,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
 
     -- keep alive ack
     local _send_keep_alive_ack = function (srv_time)
-        _send(RPLC_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+        _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
@@ -456,8 +457,8 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
     end
 
     -- close the connection to the server
-    local close = function (conn_watchdog)
-        conn_watchdog.cancel()
+    local close = function ()
+        self.conn_watchdog.cancel()
         unlink()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end
@@ -478,7 +479,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
 
             local sys_status = {
                 util.time(),                    -- timestamp
-                (not self.scrammed),            -- enabled
+                (not self.scrammed),            -- requested control state
                 rps.is_tripped(),               -- overridden
                 degraded,                       -- degraded
                 self.reactor.getHeatingRate(),  -- heating rate
@@ -542,7 +543,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
     end
 
     -- handle an RPLC packet
-    local handle_packet = function (packet, plc_state, setpoints, conn_watchdog)
+    local handle_packet = function (packet, plc_state, setpoints)
         if packet ~= nil then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -554,29 +555,13 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
                 self.r_seq_num = packet.scada_frame.seq_num()
             end
 
-            -- feed the watchdog first so it doesn't uhh...eat our packets
-            conn_watchdog.feed()
+            -- feed the watchdog first so it doesn't uhh...eat our packets :)
+            self.conn_watchdog.feed()
 
             -- handle packet
             if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
                 if self.linked then
-                    if packet.type == RPLC_TYPES.KEEP_ALIVE then
-                        -- keep alive request received, echo back
-                        if packet.length == 1 then
-                            local timestamp = packet.data[1]
-                            local trip_time = util.time() - timestamp
-
-                            if trip_time > 500 then
-                                log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. ")")
-                            end
-
-                            -- log.debug("RPLC RTT = ".. trip_time .. "ms")
-
-                            _send_keep_alive_ack(timestamp)
-                        else
-                            log.debug("RPLC keep alive packet length mismatch")
-                        end
-                    elseif packet.type == RPLC_TYPES.LINK_REQ then
+                    if packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
                         if packet.length == 1 then
                             log.debug("received unsolicited link request response")
@@ -694,15 +679,34 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps)
                     log.debug("discarding non-link packet before linked")
                 end
             elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-                -- handle session close
-                if packet.type == SCADA_MGMT_TYPES.CLOSE then
-                    conn_watchdog.cancel()
+                if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                    -- keep alive request received, echo back
+                    if packet.length == 1 then
+                        local timestamp = packet.data[1]
+                        local trip_time = util.time() - timestamp
+
+                        if trip_time > 500 then
+                            log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                        end
+
+                        -- log.debug("RPLC RTT = ".. trip_time .. "ms")
+
+                        _send_keep_alive_ack(timestamp)
+                    else
+                        log.debug("SCADA keep alive packet length mismatch")
+                    end
+                elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                    -- handle session close
+                    self.conn_watchdog.cancel()
                     unlink()
                     println_ts("server connection closed by remote host")
                     log.warning("server connection closed by remote host")
                 else
                     log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
                 end
+            else
+                -- should be unreachable assuming packet is from parse_packet()
+                log.error("illegal packet type " .. protocol, true)
             end
         end
     end
