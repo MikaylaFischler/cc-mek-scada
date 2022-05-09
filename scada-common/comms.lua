@@ -2,8 +2,11 @@
 -- Communications
 --
 
+local types = require("scada-common.types")
+
 local comms = {}
 
+local rtu_t = types.rtu_t
 local insert = table.insert
 
 local PROTOCOLS = {
@@ -42,10 +45,13 @@ local SCADA_MGMT_TYPES = {
 }
 
 local RTU_ADVERT_TYPES = {
-    BOILER = 0,         -- boiler
-    TURBINE = 1,        -- turbine
-    IMATRIX = 2,        -- induction matrix
-    REDSTONE = 3        -- redstone I/O
+    REDSTONE = 0,       -- redstone I/O
+    BOILER = 1,         -- boiler
+    BOILER_VALVE = 2,   -- boiler mekanism 10.1+
+    TURBINE = 3,        -- turbine
+    TURBINE_VALVE = 4,  -- turbine, mekanism 10.1+
+    EMACHINE = 5,       -- energy machine
+    IMATRIX = 6         -- induction matrix
 }
 
 comms.PROTOCOLS = PROTOCOLS
@@ -542,6 +548,48 @@ comms.capi_packet = function ()
         -- formatted access
         get = get
     }
+end
+
+-- convert rtu_t to RTU advertisement type
+comms.rtu_t_to_advert_type = function (type)
+    if type == rtu_t.redstone then
+        return RTU_ADVERT_TYPES.REDSTONE
+    elseif type == rtu_t.boiler then
+        return RTU_ADVERT_TYPES.BOILER
+    elseif type == rtu_t.boiler_valve then
+        return RTU_ADVERT_TYPES.BOILER_VALVE
+    elseif type == rtu_t.turbine then
+        return RTU_ADVERT_TYPES.TURBINE
+    elseif type == rtu_t.turbine_valve then
+        return RTU_ADVERT_TYPES.TURBINE_VALVE
+    elseif type == rtu_t.energy_machine then
+        return RTU_ADVERT_TYPES.EMACHINE
+    elseif type == rtu_t.induction_matrix then
+        return RTU_ADVERT_TYPES.IMATRIX
+    end
+
+    return nil
+end
+
+-- convert RTU advertisement type to rtu_t
+comms.advert_type_to_rtu_t = function (atype)
+    if atype == RTU_ADVERT_TYPES.REDSTONE then
+        return rtu_t.redstone
+    elseif atype == RTU_ADVERT_TYPES.BOILER then
+        return rtu_t.boiler
+    elseif atype == RTU_ADVERT_TYPES.BOILER_VALVE then
+        return rtu_t.boiler_valve
+    elseif atype == RTU_ADVERT_TYPES.TURBINE then
+        return rtu_t.turbine
+    elseif atype == RTU_ADVERT_TYPES.TURBINE_VALVE then
+        return rtu_t.turbine_valve
+    elseif atype == RTU_ADVERT_TYPES.EMACHINE then
+        return rtu_t.energy_machine
+    elseif atype == RTU_ADVERT_TYPES.IMATRIX then
+        return rtu_t.induction_matrix
+    end
+
+    return nil
 end
 
 return comms

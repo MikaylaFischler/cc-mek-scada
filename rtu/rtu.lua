@@ -1,9 +1,12 @@
 local comms = require("scada-common.comms")
 local ppm = require("scada-common.ppm")
+local types = require("scada-common.types")
 
 local modbus = require("modbus")
 
 local rtu = {}
+
+local rtu_t = types.rtu_t
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
@@ -281,33 +284,22 @@ rtu.comms = function (modem, local_port, server_port)
         local advertisement = {}
 
         for i = 1, #units do
-            local type = nil
-
-            if units[i].type == "boiler" then
-                type = RTU_ADVERT_TYPES.BOILER
-            elseif units[i].type == "turbine" then
-                type = RTU_ADVERT_TYPES.TURBINE
-            elseif units[i].type == "imatrix" then
-                type = RTU_ADVERT_TYPES.IMATRIX
-            elseif units[i].type == "redstone" then
-                type = RTU_ADVERT_TYPES.REDSTONE
-            end
+            local unit = units[i]
+            local type = comms.rtu_t_to_advert_type(unit.type)
 
             if type ~= nil then
                 if type == RTU_ADVERT_TYPES.REDSTONE then
                     insert(advertisement, {
-                        unit = i,
                         type = type,
-                        index = units[i].index,
-                        reactor = units[i].for_reactor,
-                        rsio = units[i].device
+                        index = unit.index,
+                        reactor = unit.for_reactor,
+                        rsio = unit.device
                     })
                 else
                     insert(advertisement, {
-                        unit = i,
                         type = type,
-                        index = units[i].index,
-                        reactor = units[i].for_reactor,
+                        index = unit.index,
+                        reactor = unit.for_reactor,
                         rsio = nil
                     })
                 end
