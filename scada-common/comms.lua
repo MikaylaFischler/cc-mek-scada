@@ -5,11 +5,13 @@
 local log = require("scada-common.log")
 local types = require("scada-common.types")
 
+---@class comms
 local comms = {}
 
 local rtu_t = types.rtu_t
 local insert = table.insert
 
+---@alias PROTOCOLS integer
 local PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
@@ -18,6 +20,7 @@ local PROTOCOLS = {
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
+---@alias RPLC_TYPES integer
 local RPLC_TYPES = {
     LINK_REQ = 0,       -- linking requests
     STATUS = 1,         -- reactor/system status
@@ -30,12 +33,14 @@ local RPLC_TYPES = {
     RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
 }
 
+---@alias RPLC_LINKING integer
 local RPLC_LINKING = {
     ALLOW = 0,          -- link approved
     DENY = 1,           -- link denied
     COLLISION = 2       -- link denied due to existing active link
 }
 
+---@alias SCADA_MGMT_TYPES integer
 local SCADA_MGMT_TYPES = {
     KEEP_ALIVE = 0,     -- keep alive packet w/ RTT
     CLOSE = 1,          -- close a connection
@@ -43,6 +48,7 @@ local SCADA_MGMT_TYPES = {
     REMOTE_LINKED = 3   -- remote device linked
 }
 
+---@alias RTU_ADVERT_TYPES integer
 local RTU_ADVERT_TYPES = {
     REDSTONE = 0,       -- redstone I/O
     BOILER = 1,         -- boiler
@@ -71,8 +77,14 @@ comms.scada_packet = function ()
         payload = nil
     }
 
+    ---@class scada_packet
+    local public = {}
+
     -- make a SCADA packet
-    local make = function (seq_num, protocol, payload)
+    ---@param seq_num integer
+    ---@param protocol PROTOCOLS
+    ---@param payload table
+    public.make = function (seq_num, protocol, payload)
         self.valid = true
         self.seq_num = seq_num
         self.protocol = protocol
@@ -82,7 +94,12 @@ comms.scada_packet = function ()
     end
 
     -- parse in a modem message as a SCADA packet
-    local receive = function (side, sender, reply_to, message, distance)
+    ---@param side string
+    ---@param sender integer
+    ---@param reply_to integer
+    ---@param message any
+    ---@param distance integer
+    public.receive = function (side, sender, reply_to, message, distance)
         self.modem_msg_in = {
             iface = side,
             s_port = sender,
@@ -108,40 +125,23 @@ comms.scada_packet = function ()
 
     -- public accessors --
 
-    local modem_event = function () return self.modem_msg_in end
-    local raw_sendable = function () return self.raw end
+    public.modem_event = function () return self.modem_msg_in end
+    public.raw_sendable = function () return self.raw end
 
-    local local_port = function () return self.modem_msg_in.s_port end
-    local remote_port = function () return self.modem_msg_in.r_port end
+    public.local_port = function () return self.modem_msg_in.s_port end
+    public.remote_port = function () return self.modem_msg_in.r_port end
 
-    local is_valid = function () return self.valid end
+    public.is_valid = function () return self.valid end
 
-    local seq_num = function () return self.seq_num end
-    local protocol = function () return self.protocol end
-    local length = function () return self.length end
-    local data = function () return self.payload end
+    public.seq_num = function () return self.seq_num end
+    public.protocol = function () return self.protocol end
+    public.length = function () return self.length end
+    public.data = function () return self.payload end
 
-    return {
-        -- construct
-        make = make,
-        receive = receive,
-        -- raw access
-        modem_event = modem_event,
-        raw_sendable = raw_sendable,
-        -- ports
-        local_port = local_port,
-        remote_port = remote_port,
-        -- well-formed
-        is_valid = is_valid,
-        -- packet properties
-        seq_num = seq_num,
-        protocol = protocol,
-        length = length,
-        data = data
-    }
+    return public
 end
 
--- MODBUS packet 
+-- MODBUS packet
 -- modeled after MODBUS TCP packet
 comms.modbus_packet = function ()
     local self = {
@@ -154,8 +154,15 @@ comms.modbus_packet = function ()
         data = nil
     }
 
+    ---@class modbus_packet
+    local public = {}
+
     -- make a MODBUS packet
-    local make = function (txn_id, unit_id, func_code, data)
+    ---@param txn_id integer
+    ---@param unit_id integer
+    ---@param func_code MODBUS_FCODE
+    ---@param data table
+    public.make = function (txn_id, unit_id, func_code, data)
         self.txn_id = txn_id
         self.length = #data
         self.unit_id = unit_id
@@ -170,18 +177,20 @@ comms.modbus_packet = function ()
     end
 
     -- decode a MODBUS packet from a SCADA frame
-    local decode = function (frame)
+    ---@param frame scada_packet
+    ---@return boolean success
+    public.decode = function (frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.MODBUS_TCP then
                 local size_ok = frame.length() >= 3
-    
+
                 if size_ok then
                     local data = frame.data()
-                    make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
+                    public.make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
                 end
-    
+
                 return size_ok
             else
                 log.debug("attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
@@ -194,10 +203,10 @@ comms.modbus_packet = function ()
     end
 
     -- get raw to send
-    local raw_sendable = function () return self.raw end
+    public.raw_sendable = function () return self.raw end
 
     -- get this packet
-    local get = function ()
+    public.get = function ()
         return {
             scada_frame = self.frame,
             txn_id = self.txn_id,
@@ -208,15 +217,7 @@ comms.modbus_packet = function ()
         }
     end
 
-    return {
-        -- construct
-        make = make,
-        decode = decode,
-        -- raw access
-        raw_sendable = raw_sendable,
-        -- formatted access
-        get = get
-    }
+    return public
 end
 
 -- reactor PLC packet
@@ -230,10 +231,12 @@ comms.rplc_packet = function ()
         body = nil
     }
 
+    ---@class rplc_packet
+    local public = {}
+
     -- check that type is known
     local _rplc_type_valid = function ()
-        return self.type == RPLC_TYPES.KEEP_ALIVE or
-                self.type == RPLC_TYPES.LINK_REQ or
+        return self.type == RPLC_TYPES.LINK_REQ or
                 self.type == RPLC_TYPES.STATUS or
                 self.type == RPLC_TYPES.MEK_STRUCT or
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
@@ -245,7 +248,10 @@ comms.rplc_packet = function ()
     end
 
     -- make an RPLC packet
-    local make = function (id, packet_type, data)
+    ---@param id integer
+    ---@param packet_type RPLC_TYPES
+    ---@param data table
+    public.make = function (id, packet_type, data)
         -- packet accessor properties
         self.id = id
         self.type = packet_type
@@ -260,7 +266,9 @@ comms.rplc_packet = function ()
     end
 
     -- decode an RPLC packet from a SCADA frame
-    local decode = function (frame)
+    ---@param frame scada_packet
+    ---@return boolean success
+    public.decode = function (frame)
         if frame then
             self.frame = frame
 
@@ -269,7 +277,7 @@ comms.rplc_packet = function ()
 
                 if ok then
                     local data = frame.data()
-                    make(data[1], data[2], { table.unpack(data, 3, #data) })
+                    public.make(data[1], data[2], { table.unpack(data, 3, #data) })
                     ok = _rplc_type_valid()
                 end
 
@@ -285,10 +293,10 @@ comms.rplc_packet = function ()
     end
 
     -- get raw to send
-    local raw_sendable = function () return self.raw end
+    public.raw_sendable = function () return self.raw end
 
     -- get this packet
-    local get = function ()
+    public.get = function ()
         return {
             scada_frame = self.frame,
             id = self.id,
@@ -298,15 +306,7 @@ comms.rplc_packet = function ()
         }
     end
 
-    return {
-        -- construct
-        make = make,
-        decode = decode,
-        -- raw access
-        raw_sendable = raw_sendable,
-        -- formatted access
-        get = get
-    }
+    return public
 end
 
 -- SCADA management packet
@@ -319,17 +319,21 @@ comms.mgmt_packet = function ()
         data = nil
     }
 
+    ---@class mgmt_packet
+    local public = {}
+
     -- check that type is known
     local _scada_type_valid = function ()
-        return self.type == SCADA_MGMT_TYPES.PING or
+        return self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
                 self.type == SCADA_MGMT_TYPES.CLOSE or
                 self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
-                self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
-                self.type == SCADA_MGMT_TYPES.RTU_HEARTBEAT
+                self.type == SCADA_MGMT_TYPES.RTU_ADVERT
     end
 
     -- make a SCADA management packet
-    local make = function (packet_type, data)
+    ---@param packet_type SCADA_MGMT_TYPES
+    ---@param data table
+    public.make = function (packet_type, data)
         -- packet accessor properties
         self.type = packet_type
         self.length = #data
@@ -343,19 +347,21 @@ comms.mgmt_packet = function ()
     end
 
     -- decode a SCADA management packet from a SCADA frame
-    local decode = function (frame)
+    ---@param frame scada_packet
+    ---@return boolean success
+    public.decode = function (frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOLS.SCADA_MGMT then
                 local ok = frame.length() >= 1
-    
+
                 if ok then
                     local data = frame.data()
-                    make(data[1], { table.unpack(data, 2, #data) })
+                    public.make(data[1], { table.unpack(data, 2, #data) })
                     ok = _scada_type_valid()
                 end
-    
+
                 return ok
             else
                 log.debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
@@ -368,10 +374,10 @@ comms.mgmt_packet = function ()
     end
 
     -- get raw to send
-    local raw_sendable = function () return self.raw end
+    public.raw_sendable = function () return self.raw end
 
     -- get this packet
-    local get = function ()
+    public.get = function ()
         return {
             scada_frame = self.frame,
             type = self.type,
@@ -380,15 +386,7 @@ comms.mgmt_packet = function ()
         }
     end
 
-    return {
-        -- construct
-        make = make,
-        decode = decode,
-        -- raw access
-        raw_sendable = raw_sendable,
-        -- formatted access
-        get = get
-    }
+    return public
 end
 
 -- SCADA coordinator packet
@@ -402,13 +400,18 @@ comms.coord_packet = function ()
         data = nil
     }
 
+    ---@class coord_packet
+    local public = {}
+
     local _coord_type_valid = function ()
         -- @todo
         return false
     end
 
     -- make a coordinator packet
-    local make = function (packet_type, data)
+    ---@param packet_type any
+    ---@param data table
+    public.make = function (packet_type, data)
         -- packet accessor properties
         self.type = packet_type
         self.length = #data
@@ -422,7 +425,9 @@ comms.coord_packet = function ()
     end
 
     -- decode a coordinator packet from a SCADA frame
-    local decode = function (frame)
+    ---@param frame scada_packet
+    ---@return boolean success
+    public.decode = function (frame)
         if frame then
             self.frame = frame
 
@@ -431,7 +436,7 @@ comms.coord_packet = function ()
 
                 if ok then
                     local data = frame.data()
-                    make(data[1], { table.unpack(data, 2, #data) })
+                    public.make(data[1], { table.unpack(data, 2, #data) })
                     ok = _coord_type_valid()
                 end
 
@@ -447,10 +452,10 @@ comms.coord_packet = function ()
     end
 
     -- get raw to send
-    local raw_sendable = function () return self.raw end
+    public.raw_sendable = function () return self.raw end
 
     -- get this packet
-    local get = function ()
+    public.get = function ()
         return {
             scada_frame = self.frame,
             type = self.type,
@@ -459,15 +464,7 @@ comms.coord_packet = function ()
         }
     end
 
-    return {
-        -- construct
-        make = make,
-        decode = decode,
-        -- raw access
-        raw_sendable = raw_sendable,
-        -- formatted access
-        get = get
-    }
+    return public
 end
 
 -- coordinator API (CAPI) packet
@@ -481,13 +478,18 @@ comms.capi_packet = function ()
         data = nil
     }
 
+    ---@class capi_packet
+    local public = {}
+
     local _coord_type_valid = function ()
         -- @todo
         return false
     end
 
-    -- make a coordinator packet
-    local make = function (packet_type, data)
+    -- make a coordinator API packet
+    ---@param packet_type any
+    ---@param data table
+    public.make = function (packet_type, data)
         -- packet accessor properties
         self.type = packet_type
         self.length = #data
@@ -500,8 +502,10 @@ comms.capi_packet = function ()
         end
     end
 
-    -- decode a coordinator packet from a SCADA frame
-    local decode = function (frame)
+    -- decode a coordinator API packet from a SCADA frame
+    ---@param frame scada_packet
+    ---@return boolean success
+    public.decode = function (frame)
         if frame then
             self.frame = frame
 
@@ -510,7 +514,7 @@ comms.capi_packet = function ()
 
                 if ok then
                     local data = frame.data()
-                    make(data[1], { table.unpack(data, 2, #data) })
+                    public.make(data[1], { table.unpack(data, 2, #data) })
                     ok = _coord_type_valid()
                 end
 
@@ -526,10 +530,10 @@ comms.capi_packet = function ()
     end
 
     -- get raw to send
-    local raw_sendable = function () return self.raw end
+    public.raw_sendable = function () return self.raw end
 
     -- get this packet
-    local get = function ()
+    public.get = function ()
         return {
             scada_frame = self.frame,
             type = self.type,
@@ -538,18 +542,12 @@ comms.capi_packet = function ()
         }
     end
 
-    return {
-        -- construct
-        make = make,
-        decode = decode,
-        -- raw access
-        raw_sendable = raw_sendable,
-        -- formatted access
-        get = get
-    }
+    return public
 end
 
 -- convert rtu_t to RTU advertisement type
+---@param type rtu_t
+---@return RTU_ADVERT_TYPES|nil
 comms.rtu_t_to_advert_type = function (type)
     if type == rtu_t.redstone then
         return RTU_ADVERT_TYPES.REDSTONE
@@ -571,6 +569,8 @@ comms.rtu_t_to_advert_type = function (type)
 end
 
 -- convert RTU advertisement type to rtu_t
+---@param atype RTU_ADVERT_TYPES
+---@return rtu_t|nil
 comms.advert_type_to_rtu_t = function (atype)
     if atype == RTU_ADVERT_TYPES.REDSTONE then
         return rtu_t.redstone

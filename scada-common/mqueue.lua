@@ -4,6 +4,7 @@
 
 local mqueue = {}
 
+---@alias TYPE integer
 local TYPE = {
     COMMAND = 0,
     DATA = 1,
@@ -12,41 +13,61 @@ local TYPE = {
 
 mqueue.TYPE = TYPE
 
+-- create a new message queue
 mqueue.new = function ()
     local queue = {}
 
     local insert = table.insert
     local remove = table.remove
 
-    local length = function ()
-        return #queue
-    end
+    ---@class queue_item
+    local queue_item = {
+        qtype = 0,  ---@type TYPE
+        message = 0 ---@type any
+    }
 
-    local empty = function ()
-        return #queue == 0
-    end
+    ---@class mqueue
+    local public = {}
 
-    local ready = function ()
-        return #queue ~= 0
-    end
+    -- get queue length
+    public.length = function () return #queue end
 
+    -- check if queue is empty
+    ---@return boolean is_empty
+    public.empty = function () return #queue == 0 end
+
+    -- check if queue has contents
+    public.ready = function () return #queue ~= 0 end
+
+    -- push a new item onto the queue
+    ---@param qtype TYPE
+    ---@param message string
     local _push = function (qtype, message)
         insert(queue, { qtype = qtype, message = message })
     end
 
-    local push_command = function (message)
+    -- push a command onto the queue
+    ---@param message any
+    public.push_command = function (message)
         _push(TYPE.COMMAND, message)
     end
 
-    local push_data = function (key, value)
+    -- push data onto the queue
+    ---@param key any
+    ---@param value any
+    public.push_data = function (key, value)
         _push(TYPE.DATA, { key = key, val = value })
     end
 
-    local push_packet = function (message)
-        _push(TYPE.PACKET, message)
+    -- push a packet onto the queue
+    ---@param packet scada_packet|modbus_packet|rplc_packet|coord_packet|capi_packet
+    public.push_packet = function (packet)
+        _push(TYPE.PACKET, packet)
     end
 
-    local pop = function ()
+    -- get an item off the queue
+    ---@return queue_item|nil
+    public.pop = function ()
         if #queue > 0 then
             return remove(queue, 1)
         else
@@ -54,15 +75,7 @@ mqueue.new = function ()
         end
     end
 
-    return {
-        length = length,
-        empty = empty,
-        ready = ready,
-        push_packet = push_packet,
-        push_data = push_data,
-        push_command = push_command,
-        pop = pop
-    }
+    return public
 end
 
 return mqueue

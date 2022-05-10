@@ -1,7 +1,9 @@
 local util = require("scada-common.util")
 
+---@class alarm
 local alarm = {}
 
+---@alias SEVERITY integer
 SEVERITY = {
     INFO = 0,       -- basic info message
     WARNING = 1,    -- warning about some abnormal state
@@ -13,6 +15,8 @@ SEVERITY = {
 
 alarm.SEVERITY = SEVERITY
 
+-- severity integer to string
+---@param severity SEVERITY
 alarm.severity_to_string = function (severity)
     if severity == SEVERITY.INFO then
         return "INFO"
@@ -31,6 +35,10 @@ alarm.severity_to_string = function (severity)
     end
 end
 
+-- create a new scada alarm entry
+---@param severity SEVERITY
+---@param device string
+---@param message string
 alarm.scada_alarm = function (severity, device, message)
     local self = {
         time = util.time(),
@@ -40,11 +48,17 @@ alarm.scada_alarm = function (severity, device, message)
         message = message
     }
 
-    local format = function ()
+    ---@class scada_alarm
+    local public = {}
+
+    -- format the alarm as a string
+    ---@return string message
+    public.format = function ()
         return self.ts_string .. " [" .. alarm.severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
     end
 
-    local properties = function ()
+    -- get alarm properties
+    public.properties = function ()
         return {
             time = self.time,
             severity = self.severity,
@@ -53,10 +67,7 @@ alarm.scada_alarm = function (severity, device, message)
         }
     end
 
-    return {
-        format = format,
-        properties = properties
-    }
+    return public
 end
 
 return alarm

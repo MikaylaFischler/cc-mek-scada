@@ -2,8 +2,10 @@
 -- Global Types
 --
 
+---@class types
 local types = {}
 
+---@alias rtu_t string
 types.rtu_t = {
     redstone = "redstone",
     boiler = "boiler",
@@ -14,6 +16,7 @@ types.rtu_t = {
     induction_matrix = "induction_matrix"
 }
 
+---@alias rps_status_t string
 types.rps_status_t = {
     ok = "ok",
     dmg_crit = "dmg_crit",
@@ -30,6 +33,7 @@ types.rps_status_t = {
 -- MODBUS
 
 -- modbus function codes
+---@alias MODBUS_FCODE integer
 types.MODBUS_FCODE = {
     READ_COILS = 0x01,
     READ_DISCRETE_INPUTS = 0x02,
@@ -43,6 +47,7 @@ types.MODBUS_FCODE = {
 }
 
 -- modbus exception codes
+---@alias MODBUS_EXCODE integer
 types.MODBUS_EXCODE = {
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDR = 0x02,

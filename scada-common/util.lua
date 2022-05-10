@@ -1,3 +1,8 @@
+--
+-- Utility Functions
+--
+
+---@class util
 local util = {}
 
 -- PRINT --
@@ -24,16 +29,22 @@ end
 
 -- TIME --
 
+-- current time
+---@return integer milliseconds
 util.time_ms = function ()
 ---@diagnostic disable-next-line: undefined-field
     return os.epoch('local')
 end
 
+-- current time
+---@return integer seconds
 util.time_s = function ()
 ---@diagnostic disable-next-line: undefined-field
     return os.epoch('local') / 1000
 end
 
+-- current time
+---@return integer milliseconds
 util.time = function ()
     return util.time_ms()
 end
@@ -41,19 +52,24 @@ end
 -- PARALLELIZATION --
 
 -- protected sleep call so we still are in charge of catching termination
--- EVENT_CONSUMER: this function consumes events
+---@param t integer seconds
+--- EVENT_CONSUMER: this function consumes events
 util.psleep = function (t)
 ---@diagnostic disable-next-line: undefined-field
     pcall(os.sleep, t)
 end
 
--- no-op to provide a brief pause (and a yield)
--- EVENT_CONSUMER: this function consumes events
+-- no-op to provide a brief pause (1 tick) to yield
+---
+--- EVENT_CONSUMER: this function consumes events
 util.nop = function ()
     util.psleep(0.05)
 end
 
 -- attempt to maintain a minimum loop timing (duration of execution)
+---@param target_timing integer minimum amount of milliseconds to wait for
+---@param last_update integer millisecond time of last update
+---@return integer time_now
 -- EVENT_CONSUMER: this function consumes events
 util.adaptive_delay = function (target_timing, last_update)
     local sleep_for = target_timing - (util.time() - last_update)
@@ -63,6 +79,37 @@ util.adaptive_delay = function (target_timing, last_update)
     end
     return util.time()
 end
+
+-- MEKANISM POWER --
+
+-- function kFE(fe) return fe / 1000 end
+-- function MFE(fe) return fe / 1000000 end
+-- function GFE(fe) return fe / 1000000000 end
+-- function TFE(fe) return fe / 1000000000000 end
+
+-- -- FLOATING POINT PRINTS --
+
+-- local function fractional_1s(number)
+--     return number == math.round(number)
+-- end
+
+-- local function fractional_10ths(number)
+--     number = number * 10
+--     return number == math.round(number)
+-- end
+
+-- local function fractional_100ths(number)
+--     number = number * 100
+--     return number == math.round(number)
+-- end
+
+-- function power_format(fe)
+--     if fe < 1000 then
+--         return string.format("%.2f FE", fe)
+--     elseif fe < 1000000 then
+--         return string.format("%.3f kFE", kFE(fe))
+--     end
+-- end
 
 -- WATCHDOG --
 

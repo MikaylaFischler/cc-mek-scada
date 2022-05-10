@@ -4,8 +4,10 @@ local util = require("scada-common.util")
 -- File System Logger
 --
 
+---@class log
 local log = {}
 
+---@alias MODE integer
 local MODE = {
     APPEND = 0,
     NEW = 1
@@ -13,6 +15,7 @@ local MODE = {
 
 log.MODE = MODE
 
+-- whether to log debug messages or not
 local LOG_DEBUG = true
 
 local _log_sys = {
@@ -21,9 +24,12 @@ local _log_sys = {
     file = nil
 }
 
+---@type function
 local free_space = fs.getFreeSpace
 
 -- initialize logger
+---@param path string file path
+---@param write_mode MODE
 log.init = function (path, write_mode)
     _log_sys.path = path
     _log_sys.mode = write_mode
@@ -36,6 +42,7 @@ log.init = function (path, write_mode)
 end
 
 -- private log write function
+---@param msg string
 local _log = function (msg)
     local time_stamp = os.date("[%c] ")
     local stamped = time_stamp .. msg
@@ -70,6 +77,8 @@ local _log = function (msg)
 end
 
 -- log debug messages
+---@param msg string message
+---@param trace? boolean include file trace
 log.debug = function (msg, trace)
     if LOG_DEBUG then
         local dbg_info = ""
@@ -90,16 +99,20 @@ log.debug = function (msg, trace)
 end
 
 -- log info messages
+---@param msg string message
 log.info = function (msg)
     _log("[INF] " .. msg)
 end
 
 -- log warning messages
+---@param msg string message
 log.warning = function (msg)
     _log("[WRN] " .. msg)
 end
 
 -- log error messages
+---@param msg string message
+---@param trace? boolean include file trace
 log.error = function (msg, trace)
     local dbg_info = ""
 
@@ -118,6 +131,7 @@ log.error = function (msg, trace)
 end
 
 -- log fatal errors
+---@param msg string message
 log.fatal = function (msg)
     _log("[FTL] " .. msg)
 end

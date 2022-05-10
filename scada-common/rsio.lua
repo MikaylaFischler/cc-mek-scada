@@ -8,16 +8,19 @@ local rsio = {}
 -- RS I/O CONSTANTS --
 ----------------------
 
+---@alias IO_LVL integer
 local IO_LVL = {
     LOW = 0,
     HIGH = 1
 }
 
+---@alias IO_DIR integer
 local IO_DIR = {
     IN = 0,
     OUT = 1
 }
 
+---@alias IO_MODE integer
 local IO_MODE = {
     DIGITAL_OUT = 0,
     DIGITAL_IN = 1,
@@ -25,6 +28,7 @@ local IO_MODE = {
     ANALOG_IN = 3
 }
 
+---@alias RS_IO integer
 local RS_IO = {
     -- digital inputs --
 
@@ -73,6 +77,7 @@ rsio.IO = RS_IO
 -----------------------
 
 -- channel to string
+---@param channel RS_IO
 rsio.to_string = function (channel)
     local names = {
         "F_SCRAM",
@@ -155,6 +160,8 @@ local RS_DIO_MAP = {
 }
 
 -- get the mode of a channel
+---@param channel RS_IO
+---@return IO_MODE
 rsio.get_io_mode = function (channel)
     local modes = {
         IO_MODE.DIGITAL_IN,     -- F_SCRAM
@@ -194,11 +201,15 @@ end
 local RS_SIDES = rs.getSides()
 
 -- check if a channel is valid
+---@param channel RS_IO
+---@return boolean valid
 rsio.is_valid_channel = function (channel)
-    return channel ~= nil and channel > 0 and channel <= RS_IO.A_T_FLOW_RATE
+    return (channel ~= nil) and (channel > 0) and (channel <= RS_IO.A_T_FLOW_RATE)
 end
 
 -- check if a side is valid
+---@param side string
+---@return boolean valid
 rsio.is_valid_side = function (side)
     if side ~= nil then
         for i = 0, #RS_SIDES do
@@ -209,6 +220,8 @@ rsio.is_valid_side = function (side)
 end
 
 -- check if a color is a valid single color
+---@param color integer
+---@return boolean valid
 rsio.is_color = function (color)
     return (color > 0) and (_B_AND(color, (color - 1)) == 0);
 end
@@ -218,6 +231,8 @@ end
 -----------------
 
 -- get digital IO level reading
+---@param rs_value boolean
+---@return IO_LVL
 rsio.digital_read = function (rs_value)
     if rs_value then
         return IO_LVL.HIGH
@@ -227,6 +242,9 @@ rsio.digital_read = function (rs_value)
 end
 
 -- returns the level corresponding to active
+---@param channel RS_IO
+---@param active boolean
+---@return IO_LVL
 rsio.digital_write = function (channel, active)
     if channel < RS_IO.WASTE_PO or channel > RS_IO.R_PLC_TIMEOUT then
         return IO_LVL.LOW
@@ -236,6 +254,9 @@ rsio.digital_write = function (channel, active)
 end
 
 -- returns true if the level corresponds to active
+---@param channel RS_IO
+---@param level IO_LVL
+---@return boolean
 rsio.digital_is_active = function (channel, level)
     if channel > RS_IO.R_ENABLE or channel > RS_IO.R_PLC_TIMEOUT then
         return false

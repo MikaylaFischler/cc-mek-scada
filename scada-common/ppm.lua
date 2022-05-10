@@ -4,9 +4,10 @@ local log = require("scada-common.log")
 -- Protected Peripheral Manager
 --
 
+---@class ppm
 local ppm = {}
 
-local ACCESS_FAULT = nil
+local ACCESS_FAULT = nil    ---@type nil
 
 ppm.ACCESS_FAULT = ACCESS_FAULT
 
@@ -22,9 +23,12 @@ local _ppm_sys = {
     mute = false
 }
 
--- wrap peripheral calls with lua protected call
--- we don't want a disconnect to crash a program
--- also provides peripheral-specific fault checks (auto-clear fault defaults to true)
+-- wrap peripheral calls with lua protected call as we don't want a disconnect to crash a program
+---
+---also provides peripheral-specific fault checks (auto-clear fault defaults to true)
+---
+---assumes iface is a valid peripheral
+---@param iface string CC peripheral interface
 local peri_init = function (iface)
     local self = {
         faulted = false,
@@ -150,6 +154,8 @@ ppm.mount_all = function ()
 end
 
 -- mount a particular device
+---@param iface string CC peripheral interface
+---@return string|nil type, table|nil device
 ppm.mount = function (iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
@@ -171,33 +177,44 @@ ppm.mount = function (iface)
 end
 
 -- handle peripheral_detach event
+---@param iface string CC peripheral interface
+---@return string|nil type, table|nil device
 ppm.handle_unmount = function (iface)
+    local pm_dev = nil
+    local pm_type = nil
+
     -- what got disconnected?
     local lost_dev = _ppm_sys.mounts[iface]
 
     if lost_dev then
-        local type = lost_dev.type
-        log.warning("PPM: lost device " .. type .. " mounted to " .. iface)
+        pm_type = lost_dev.type
+        pm_dev = lost_dev.dev
+
+        log.warning("PPM: lost device " .. pm_type .. " mounted to " .. iface)
     else
         log.error("PPM: lost device unknown to the PPM mounted to " .. iface)
     end
 
-    return lost_dev
+    return pm_type, pm_dev
 end
 
 -- GENERAL ACCESSORS --
 
 -- list all available peripherals
+---@return table names
 ppm.list_avail = function ()
     return peripheral.getNames()
 end
 
 -- list mounted peripherals
+---@return table mounts
 ppm.list_mounts = function ()
     return _ppm_sys.mounts
 end
 
 -- get a mounted peripheral by side/interface
+---@param iface string CC peripheral interface
+---@return table|nil device function table
 ppm.get_periph = function (iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].dev
@@ -205,6 +222,8 @@ ppm.get_periph = function (iface)
 end
 
 -- get a mounted peripheral type by side/interface
+---@param iface string CC peripheral interface
+---@return string|nil type
 ppm.get_type = function (iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].type
@@ -212,6 +231,8 @@ ppm.get_type = function (iface)
 end
 
 -- get all mounted peripherals by type
+---@param name string type name
+---@return table devices device function tables
 ppm.get_all_devices = function (name)
     local devices = {}
 
@@ -225,6 +246,8 @@ ppm.get_all_devices = function (name)
 end
 
 -- get a mounted peripheral by type (if multiple, returns the first)
+---@param name string type name
+---@return table|nil device function table
 ppm.get_device = function (name)
     local device = nil
 
@@ -241,11 +264,13 @@ end
 -- SPECIFIC DEVICE ACCESSORS --
 
 -- get the fission reactor (if multiple, returns the first)
+---@return table|nil reactor function table
 ppm.get_fission_reactor = function ()
     return ppm.get_device("fissionReactor")
 end
 
 -- get the wireless modem (if multiple, returns the first)
+---@return table|nil modem function table
 ppm.get_wireless_modem = function ()
     local w_modem = nil
 
@@ -260,6 +285,7 @@ ppm.get_wireless_modem = function ()
 end
 
 -- list all connected monitors
+---@return table monitors
 ppm.list_monitors = function ()
     return ppm.get_all_devices("monitor")
 end
