@@ -29,11 +29,11 @@ mqueue.new = function ()
     local ready = function ()
         return #queue ~= 0
     end
-    
+
     local _push = function (qtype, message)
         insert(queue, { qtype = qtype, message = message })
     end
-    
+
     local push_command = function (message)
         _push(TYPE.COMMAND, message)
     end
@@ -49,7 +49,7 @@ mqueue.new = function ()
     local pop = function ()
         if #queue > 0 then
             return remove(queue, 1)
-        else 
+        else
             return nil
         end
     end

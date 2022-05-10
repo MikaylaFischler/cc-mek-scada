@@ -234,7 +234,7 @@ ppm.get_device = function (name)
             break
         end
     end
-    
+
     return device
 end
 

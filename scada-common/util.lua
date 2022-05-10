@@ -39,6 +39,7 @@ end
 -- PARALLELIZATION --
 
 -- protected sleep call so we still are in charge of catching termination
+-- EVENT_CONSUMER: this function consumes events
 util.psleep = function (t)
     pcall(os.sleep, t)
 end
@@ -50,6 +51,7 @@ util.nop = function ()
 end
 
 -- attempt to maintain a minimum loop timing (duration of execution)
+-- EVENT_CONSUMER: this function consumes events
 util.adaptive_delay = function (target_timing, last_update)
     local sleep_for = target_timing - (util.time() - last_update)
     -- only if >50ms since worker loops already yield 0.05s
@@ -64,15 +66,15 @@ end
 -- ComputerCraft OS Timer based Watchdog
 -- triggers a timer event if not fed within 'timeout' seconds
 util.new_watchdog = function (timeout)
-    local self = { 
-        _timeout = timeout, 
+    local self = {
+        _timeout = timeout,
         _wd_timer = os.startTimer(timeout)
     }
 
     local get_timer = function ()
         return self._wd_timer
     end
-    
+
     local feed = function ()
         if self._wd_timer ~= nil then
             os.cancelTimer(self._wd_timer)

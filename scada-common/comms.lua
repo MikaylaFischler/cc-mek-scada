@@ -2,6 +2,7 @@
 -- Communications
 --
 
+local log = require("scada-common.log")
 local types = require("scada-common.types")
 
 local comms = {}
@@ -146,11 +147,11 @@ comms.modbus_packet = function ()
     local self = {
         frame = nil,
         raw = nil,
-        txn_id = txn_id,
-        length = length,
-        unit_id = unit_id,
-        func_code = func_code,
-        data = data
+        txn_id = nil,
+        length = nil,
+        unit_id = nil,
+        func_code = nil,
+        data = nil
     }
 
     -- make a MODBUS packet

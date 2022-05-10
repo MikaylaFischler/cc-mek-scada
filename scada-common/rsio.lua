@@ -231,7 +231,7 @@ rsio.digital_write = function (channel, active)
     if channel < RS_IO.WASTE_PO or channel > RS_IO.R_PLC_TIMEOUT then
         return IO_LVL.LOW
     else
-        return RS_DIO_MAP[channel]._f(level)
+        return RS_DIO_MAP[channel]._f(active)
     end
 end
 
