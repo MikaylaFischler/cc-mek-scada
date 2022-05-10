@@ -43,41 +43,46 @@ local superv_comms = supervisor.comms(config.NUM_REACTORS, modem, config.SCADA_D
 
 -- base loop clock (6.67Hz, 3 ticks)
 local MAIN_CLOCK = 0.15
-local loop_clock = os.startTimer(MAIN_CLOCK)
+local loop_clock = util.new_clock(MAIN_CLOCK)
 
 -- event loop
 while true do
+---@diagnostic disable-next-line: undefined-field
     local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
     -- handle event
     if event == "peripheral_detach" then
-        local device = ppm.handle_unmount(param1)
+        local type, device = ppm.handle_unmount(param1)
 
-        if device.type == "modem" then
-            -- we only care if this is our wireless modem
-            if device.dev == modem then
-                println_ts("wireless modem disconnected!")
-                log.error("comms modem disconnected!")
-            else
-                log.warning("non-comms modem disconnected")
+        if type ~= nil and device ~= nil then
+            if type == "modem" then
+                -- we only care if this is our wireless modem
+                if device == modem then
+                    println_ts("wireless modem disconnected!")
+                    log.error("comms modem disconnected!")
+                else
+                    log.warning("non-comms modem disconnected")
+                end
             end
         end
     elseif event == "peripheral" then
         local type, device = ppm.mount(param1)
 
-        if type == "modem" then
-            if device.isWireless() then
-                -- reconnected modem
-                modem = device
-                superv_comms.reconnect_modem(modem)
+        if type ~= nil and device ~= nil then
+            if type == "modem" then
+                if device.isWireless() then
+                    -- reconnected modem
+                    modem = device
+                    superv_comms.reconnect_modem(modem)
 
-                println_ts("wireless modem reconnected.")
-                log.info("comms modem reconnected.")
-            else
-                log.info("wired modem reconnected.")
+                    println_ts("wireless modem reconnected.")
+                    log.info("comms modem reconnected.")
+                else
+                    log.info("wired modem reconnected.")
+                end
             end
         end
-    elseif event == "timer" and param1 == loop_clock then
+    elseif event == "timer" and loop_clock.is_clock(param1) then
         -- main loop tick
 
         -- iterate sessions
@@ -86,9 +91,9 @@ while true do
         -- free any closed sessions
         svsessions.free_all_closed()
 
-        loop_clock = os.startTimer(MAIN_CLOCK)
+        loop_clock.start()
     elseif event == "timer" then
-        -- another timer event, check watchdogs
+        -- a non-clock timer event, check watchdogs
         svsessions.check_all_watchdogs(param1)
     elseif event == "modem_message" then
         -- got a packet

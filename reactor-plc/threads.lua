@@ -88,74 +88,78 @@ threads.thread__main = function (smem, init)
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
             elseif event == "peripheral_detach" then
                 -- peripheral disconnect
-                local device = ppm.handle_unmount(param1)
+                local type, device = ppm.handle_unmount(param1)
 
-                if device.type == "fissionReactor" then
-                    println_ts("reactor disconnected!")
-                    log.error("reactor disconnected!")
-                    plc_state.no_reactor = true
-                    plc_state.degraded = true
-                elseif networked and device.type == "modem" then
-                    -- we only care if this is our wireless modem
-                    if device.dev == plc_dev.modem then
-                        println_ts("wireless modem disconnected!")
-                        log.error("comms modem disconnected!")
-                        plc_state.no_modem = true
-
-                        if plc_state.init_ok then
-                            -- try to scram reactor if it is still connected
-                            smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
-                        end
-
+                if type ~= nil and device ~= nil then
+                    if type == "fissionReactor" then
+                        println_ts("reactor disconnected!")
+                        log.error("reactor disconnected!")
+                        plc_state.no_reactor = true
                         plc_state.degraded = true
-                    else
-                        log.warning("non-comms modem disconnected")
+                    elseif networked and type == "modem" then
+                        -- we only care if this is our wireless modem
+                        if device == plc_dev.modem then
+                            println_ts("wireless modem disconnected!")
+                            log.error("comms modem disconnected!")
+                            plc_state.no_modem = true
+
+                            if plc_state.init_ok then
+                                -- try to scram reactor if it is still connected
+                                smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
+                            end
+
+                            plc_state.degraded = true
+                        else
+                            log.warning("non-comms modem disconnected")
+                        end
                     end
                 end
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
 
-                if type == "fissionReactor" then
-                    -- reconnected reactor
-                    plc_dev.reactor = device
+                if type ~= nil and device ~= nil then
+                    if type == "fissionReactor" then
+                        -- reconnected reactor
+                        plc_dev.reactor = device
 
-                    smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+                        smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
-                    println_ts("reactor reconnected.")
-                    log.info("reactor reconnected.")
-                    plc_state.no_reactor = false
-
-                    if plc_state.init_ok then
-                        rps.reconnect_reactor(plc_dev.reactor)
-                        if networked then
-                            plc_comms.reconnect_reactor(plc_dev.reactor)
-                        end
-                    end
-
-                    -- determine if we are still in a degraded state
-                    if not networked or ppm.get_device("modem") ~= nil then
-                        plc_state.degraded = false
-                    end
-                elseif networked and type == "modem" then
-                    if device.isWireless() then
-                        -- reconnected modem
-                        plc_dev.modem = device
+                        println_ts("reactor reconnected.")
+                        log.info("reactor reconnected.")
+                        plc_state.no_reactor = false
 
                         if plc_state.init_ok then
-                            plc_comms.reconnect_modem(plc_dev.modem)
+                            rps.reconnect_reactor(plc_dev.reactor)
+                            if networked then
+                                plc_comms.reconnect_reactor(plc_dev.reactor)
+                            end
                         end
-
-                        println_ts("wireless modem reconnected.")
-                        log.info("comms modem reconnected.")
-                        plc_state.no_modem = false
 
                         -- determine if we are still in a degraded state
-                        if ppm.get_device("fissionReactor") ~= nil then
+                        if not networked or ppm.get_device("modem") ~= nil then
                             plc_state.degraded = false
                         end
-                    else
-                        log.info("wired modem reconnected.")
+                    elseif networked and type == "modem" then
+                        if device.isWireless() then
+                            -- reconnected modem
+                            plc_dev.modem = device
+
+                            if plc_state.init_ok then
+                                plc_comms.reconnect_modem(plc_dev.modem)
+                            end
+
+                            println_ts("wireless modem reconnected.")
+                            log.info("comms modem reconnected.")
+                            plc_state.no_modem = false
+
+                            -- determine if we are still in a degraded state
+                            if ppm.get_device("fissionReactor") ~= nil then
+                                plc_state.degraded = false
+                            end
+                        else
+                            log.info("wired modem reconnected.")
+                        end
                     end
                 end
 
@@ -203,7 +207,7 @@ threads.thread__rps = function (smem)
         -- thread loop
         while true do
             local reactor = plc_dev.reactor
-            
+
             -- RPS checks
             if plc_state.init_ok then
                 -- SCRAM if no open connection
@@ -240,7 +244,7 @@ threads.thread__rps = function (smem)
                     end
                 end
             end
-        
+
             -- check for messages in the message queue
             while rps_queue.ready() and not plc_state.shutdown do
                 local msg = rps_queue.pop()

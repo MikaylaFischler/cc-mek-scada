@@ -74,24 +74,26 @@ threads.thread__main = function (smem)
                 rtu_comms.unlink(rtu_state)
             elseif event == "peripheral_detach" then
                 -- handle loss of a device
-                local device = ppm.handle_unmount(param1)
+                local type, device = ppm.handle_unmount(param1)
 
-                if device.type == "modem" then
-                    -- we only care if this is our wireless modem
-                    if device.dev == rtu_dev.modem then
-                        println_ts("wireless modem disconnected!")
-                        log.warning("comms modem disconnected!")
+                if type ~= nil and device ~= nil then
+                    if type == "modem" then
+                        -- we only care if this is our wireless modem
+                        if device == rtu_dev.modem then
+                            println_ts("wireless modem disconnected!")
+                            log.warning("comms modem disconnected!")
+                        else
+                            log.warning("non-comms modem disconnected")
+                        end
                     else
-                        log.warning("non-comms modem disconnected")
-                    end
-                else
-                    for i = 1, #units do
-                        -- find disconnected device
-                        if units[i].device == device.dev then
-                            -- we are going to let the PPM prevent crashes
-                            -- return fault flags/codes to MODBUS queries
-                            local unit = units[i]
-                            println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+                        for i = 1, #units do
+                            -- find disconnected device
+                            if units[i].device == device then
+                                -- we are going to let the PPM prevent crashes
+                                -- return fault flags/codes to MODBUS queries
+                                local unit = units[i]
+                                println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+                            end
                         end
                     end
                 end
@@ -99,44 +101,46 @@ threads.thread__main = function (smem)
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
 
-                if type == "modem" then
-                    if device.isWireless() then
-                        -- reconnected modem
-                        rtu_dev.modem = device
-                        rtu_comms.reconnect_modem(rtu_dev.modem)
+                if type ~= nil and device ~= nil then
+                    if type == "modem" then
+                        if device.isWireless() then
+                            -- reconnected modem
+                            rtu_dev.modem = device
+                            rtu_comms.reconnect_modem(rtu_dev.modem)
 
-                        println_ts("wireless modem reconnected.")
-                        log.info("comms modem reconnected.")
+                            println_ts("wireless modem reconnected.")
+                            log.info("comms modem reconnected.")
+                        else
+                            log.info("wired modem reconnected.")
+                        end
                     else
-                        log.info("wired modem reconnected.")
-                    end
-                else
-                    -- relink lost peripheral to correct unit entry
-                    for i = 1, #units do
-                        local unit = units[i]
+                        -- relink lost peripheral to correct unit entry
+                        for i = 1, #units do
+                            local unit = units[i]
 
-                        -- find disconnected device to reconnect
-                        if unit.name == param1 then
-                            -- found, re-link
-                            unit.device = device
+                            -- find disconnected device to reconnect
+                            if unit.name == param1 then
+                                -- found, re-link
+                                unit.device = device
 
-                            if unit.type == rtu_t.boiler then
-                                unit.rtu = boiler_rtu.new(device)
-                            elseif unit.type == rtu_t.boiler_valve then
-                                unit.rtu = boilerv_rtu.new(device)
-                            elseif unit.type == rtu_t.turbine then
-                                unit.rtu = turbine_rtu.new(device)
-                            elseif unit.type == rtu_t.turbine_valve then
-                                unit.rtu = turbinev_rtu.new(device)
-                            elseif unit.type == rtu_t.energy_machine then
-                                unit.rtu = energymachine_rtu.new(device)
-                            elseif unit.type == rtu_t.induction_matrix then
-                                unit.rtu = imatrix_rtu.new(device)
+                                if unit.type == rtu_t.boiler then
+                                    unit.rtu = boiler_rtu.new(device)
+                                elseif unit.type == rtu_t.boiler_valve then
+                                    unit.rtu = boilerv_rtu.new(device)
+                                elseif unit.type == rtu_t.turbine then
+                                    unit.rtu = turbine_rtu.new(device)
+                                elseif unit.type == rtu_t.turbine_valve then
+                                    unit.rtu = turbinev_rtu.new(device)
+                                elseif unit.type == rtu_t.energy_machine then
+                                    unit.rtu = energymachine_rtu.new(device)
+                                elseif unit.type == rtu_t.induction_matrix then
+                                    unit.rtu = imatrix_rtu.new(device)
+                                end
+
+                                unit.modbus_io = modbus.new(unit.rtu)
+
+                                println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                             end
-
-                            unit.modbus_io = modbus.new(unit.rtu)
-
-                            println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                         end
                     end
                 end
