@@ -39,7 +39,7 @@ threads.thread__main = function (smem, init)
         -- send link requests at 0.5Hz (every 40 server ticks) (every 4 loop ticks)
         local LINK_TICKS = 4
         local ticks_to_update = 0
-        local loop_clock = nil
+        local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
         local networked     = smem.networked
@@ -47,7 +47,7 @@ threads.thread__main = function (smem, init)
         local plc_dev       = smem.plc_dev
         local rps           = smem.plc_sys.rps
         local plc_comms     = smem.plc_sys.plc_comms
-        local conn_watchdog = smem.plc_sys.conn_watchdog
+        local conn_watchdog = smem.plc_sys.conn_watchdog    ---@type watchdog
 
         -- event loop
         while true do
@@ -55,11 +55,11 @@ threads.thread__main = function (smem, init)
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
             -- handle event
-            if event == "timer" and param1 == loop_clock then
+            if event == "timer" and loop_clock.is_clock(param1) then
                 -- core clock tick
                 if networked then
                     -- start next clock timer
-                    loop_clock = os.startTimer(MAIN_CLOCK)
+                    loop_clock.start()
 
                     -- send updated data
                     if not plc_state.no_modem then
@@ -82,7 +82,7 @@ threads.thread__main = function (smem, init)
                     -- pass the packet onto the comms message queue
                     smem.q.mq_comms_rx.push_packet(packet)
                 end
-            elseif event == "timer" and networked and param1 == conn_watchdog.get_timer() then
+            elseif event == "timer" and networked and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? shutdown reactor
                 plc_comms.unlink()
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
@@ -165,7 +165,7 @@ threads.thread__main = function (smem, init)
                 end
             elseif event == "clock_start" then
                 -- start loop clock
-                loop_clock = os.startTimer(MAIN_CLOCK)
+                loop_clock.start()
                 log.debug("main thread clock started")
             end
 

@@ -35,29 +35,30 @@ threads.thread__main = function (smem)
     local exec = function ()
         log.debug("main thread start")
 
-        -- advertisement/heartbeat clock
-        local loop_clock = os.startTimer(MAIN_CLOCK)
+        -- main loop clock
+        local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
         local rtu_dev       = smem.rtu_dev
         local rtu_comms     = smem.rtu_sys.rtu_comms
-        local conn_watchdog = smem.rtu_sys.conn_watchdog
+        local conn_watchdog = smem.rtu_sys.conn_watchdog    ---@type watchdog
         local units         = smem.rtu_sys.units
+
+        -- start clock
+        loop_clock.start()
 
         -- event loop
         while true do
 ---@diagnostic disable-next-line: undefined-field
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
-            if event == "timer" and param1 == loop_clock then
+            if event == "timer" and loop_clock.is_clock(param1) then
                 -- start next clock timer
-                loop_clock = os.startTimer(MAIN_CLOCK)
+                loop_clock.start()
 
-                -- period tick, if we are linked send heartbeat, if not send advertisement
-                if rtu_state.linked then
-                    rtu_comms.send_heartbeat()
-                else
+                -- period tick, if we are not linked send advertisement
+                if not rtu_state.linked then
                     -- advertise units
                     rtu_comms.send_advertisement(units)
                 end
@@ -68,7 +69,7 @@ threads.thread__main = function (smem)
                     -- pass the packet onto the comms message queue
                     smem.q.mq_comms.push_packet(packet)
                 end
-            elseif event == "timer" and param1 == conn_watchdog.get_timer() then
+            elseif event == "timer" and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? unlink
                 rtu_comms.unlink(rtu_state)
             elseif event == "peripheral_detach" then
@@ -162,7 +163,6 @@ threads.thread__comms = function (smem)
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
         local rtu_comms     = smem.rtu_sys.rtu_comms
-        local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
 
         local comms_queue   = smem.q.mq_comms

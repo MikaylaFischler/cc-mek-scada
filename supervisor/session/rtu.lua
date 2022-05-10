@@ -115,7 +115,7 @@ rtu.new_session = function (id, in_queue, out_queue)
 
     -- check if a timer matches this session's watchdog
     local check_wd = function (timer)
-        return timer == self.rtu_conn_watchdog.get_timer()
+        return self.rtu_conn_watchdog.is_timer(timer)
     end
 
     -- close the connection

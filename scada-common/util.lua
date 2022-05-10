@@ -67,40 +67,75 @@ end
 -- WATCHDOG --
 
 -- ComputerCraft OS Timer based Watchdog
--- triggers a timer event if not fed within 'timeout' seconds
+---@param timeout number timeout duration
+---
+--- triggers a timer event if not fed within 'timeout' seconds
 util.new_watchdog = function (timeout)
-    ---@diagnostic disable-next-line: undefined-field
+---@diagnostic disable-next-line: undefined-field
     local start_timer = os.startTimer
-    ---@diagnostic disable-next-line: undefined-field
+---@diagnostic disable-next-line: undefined-field
     local cancel_timer = os.cancelTimer
 
     local self = {
-        _timeout = timeout,
-        _wd_timer = start_timer(timeout)
+        timeout = timeout,
+        wd_timer = start_timer(timeout)
     }
 
-    local get_timer = function ()
-        return self._wd_timer
+    ---@class watchdog
+    local public = {}
+
+    ---@param timer number timer event timer ID
+    public.is_timer = function (timer)
+        return self.wd_timer == timer
     end
 
-    local feed = function ()
-        if self._wd_timer ~= nil then
-            cancel_timer(self._wd_timer)
+    -- satiate the beast
+    public.feed = function ()
+        if self.wd_timer ~= nil then
+            cancel_timer(self.wd_timer)
         end
-        self._wd_timer = start_timer(self._timeout)
+        self.wd_timer = start_timer(self.timeout)
     end
 
-    local cancel = function ()
-        if self._wd_timer ~= nil then
-            cancel_timer(self._wd_timer)
+    -- cancel the watchdog
+    public.cancel = function ()
+        if self.wd_timer ~= nil then
+            cancel_timer(self.wd_timer)
         end
     end
 
-    return {
-        get_timer = get_timer,
-        feed = feed,
-        cancel = cancel
+    return public
+end
+
+-- LOOP CLOCK --
+
+-- ComputerCraft OS Timer based Loop Clock
+---@param period number clock period
+---
+--- fires a timer event at the specified period, does not start at construct time
+util.new_clock = function (period)
+---@diagnostic disable-next-line: undefined-field
+    local start_timer = os.startTimer
+
+    local self = {
+        period = period,
+        timer = nil
     }
+
+    ---@class clock
+    local public = {}
+
+    ---@param timer number timer event timer ID
+    public.is_clock = function (timer)
+        return self.timer == timer
+    end
+
+    -- start the clock
+    public.start = function ()
+        self.timer = start_timer(self.period)
+    end
+
+    return public
 end
 
 return util
