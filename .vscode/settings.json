@@ -1,0 +1,9 @@
+{
+    "Lua.diagnostics.globals": [
+        "term",
+        "fs",
+        "peripheral",
+        "rs",
+        "bit"
+    ]
+}

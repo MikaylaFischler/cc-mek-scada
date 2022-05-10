@@ -25,10 +25,12 @@ end
 -- TIME --
 
 util.time_ms = function ()
+---@diagnostic disable-next-line: undefined-field
     return os.epoch('local')
 end
 
 util.time_s = function ()
+---@diagnostic disable-next-line: undefined-field
     return os.epoch('local') / 1000
 end
 
@@ -41,6 +43,7 @@ end
 -- protected sleep call so we still are in charge of catching termination
 -- EVENT_CONSUMER: this function consumes events
 util.psleep = function (t)
+---@diagnostic disable-next-line: undefined-field
     pcall(os.sleep, t)
 end
 
@@ -66,9 +69,14 @@ end
 -- ComputerCraft OS Timer based Watchdog
 -- triggers a timer event if not fed within 'timeout' seconds
 util.new_watchdog = function (timeout)
+    ---@diagnostic disable-next-line: undefined-field
+    local start_timer = os.startTimer
+    ---@diagnostic disable-next-line: undefined-field
+    local cancel_timer = os.cancelTimer
+
     local self = {
         _timeout = timeout,
-        _wd_timer = os.startTimer(timeout)
+        _wd_timer = start_timer(timeout)
     }
 
     local get_timer = function ()
@@ -77,14 +85,14 @@ util.new_watchdog = function (timeout)
 
     local feed = function ()
         if self._wd_timer ~= nil then
-            os.cancelTimer(self._wd_timer)
+            cancel_timer(self._wd_timer)
         end
-        self._wd_timer = os.startTimer(self._timeout)
+        self._wd_timer = start_timer(self._timeout)
     end
 
     local cancel = function ()
         if self._wd_timer ~= nil then
-            os.cancelTimer(self._wd_timer)
+            cancel_timer(self._wd_timer)
         end
     end
 
