@@ -64,7 +64,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local access_fault = false
         local discrete_inputs, _, _, _ = self.rtu.io_count()
         local return_ok = ((di_addr_start + count) <= discrete_inputs) and (count > 0)
-        
+
         if return_ok then
             for i = 1, count do
                 local addr = di_addr_start + i - 1
@@ -197,7 +197,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
 
             if access_fault then
                 return_ok = false
-                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                response = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
@@ -210,13 +210,13 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
         local return_ok = hr_addr <= hold_regs
- 
+
         if return_ok then
             local access_fault = self.rtu.write_holding_reg(hr_addr, value)
 
             if access_fault then
                 return_ok = false
-                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                response = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
@@ -238,7 +238,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
 
                 if access_fault then
                     return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                    response = MODBUS_EXCODE.SERVER_DEVICE_FAIL
                     break
                 end
             end
@@ -262,7 +262,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
 
                 if access_fault then
                     return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
+                    response = MODBUS_EXCODE.SERVER_DEVICE_FAIL
                     break
                 end
             end

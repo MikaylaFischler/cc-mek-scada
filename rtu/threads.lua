@@ -1,5 +1,6 @@
 local comms = require("scada-common.comms")
 local log = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
 local ppm = require("scada-common.ppm")
 local types = require("scada-common.types")
 local util = require("scada-common.util")
@@ -46,6 +47,7 @@ threads.thread__main = function (smem)
 
         -- event loop
         while true do
+---@diagnostic disable-next-line: undefined-field
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
             if event == "timer" and param1 == loop_clock then
@@ -210,6 +212,7 @@ threads.thread__unit_comms = function (smem, unit)
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
+        local rtu_comms    = smem.rtu_sys.rtu_comms
         local packet_queue = unit.pkt_queue
 
         local last_update  = util.time()
@@ -228,7 +231,7 @@ threads.thread__unit_comms = function (smem, unit)
                     -- received a packet
                     unit.modbus_busy = true
                     local return_code, reply = unit.modbus_io.handle_packet(packet)
-                    rtu.send_modbus(reply)
+                    rtu_comms.send_modbus(reply)
                     unit.modbus_busy = false
                 end
 

@@ -4,6 +4,8 @@
         "fs",
         "peripheral",
         "rs",
-        "bit"
+        "bit",
+        "parallel",
+        "colors"
     ]
 }

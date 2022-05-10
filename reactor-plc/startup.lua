@@ -11,7 +11,7 @@ local config = require("config")
 local plc = require("plc")
 local threads = require("threads")
 
-local R_PLC_VERSION = "alpha-v0.6.5"
+local R_PLC_VERSION = "alpha-v0.6.6"
 
 local print = util.print
 local println = util.println
@@ -46,7 +46,7 @@ local __shared_memory = {
         burn_rate_en = false,
         burn_rate = 0.0
     },
-    
+
     -- core PLC devices
     plc_dev = {
         reactor = ppm.get_fission_reactor(),
@@ -82,7 +82,7 @@ if smem_dev.reactor == nil then
     plc_state.degraded = true
     plc_state.no_reactor = true
 end
-if networked and smem_dev.modem == nil then
+if __shared_memory.networked and smem_dev.modem == nil then
     println("boot> wireless modem not found")
     log.warning("no wireless modem on startup")
 
@@ -95,7 +95,8 @@ if networked and smem_dev.modem == nil then
     plc_state.no_modem = true
 end
 
-function init()
+-- PLC init
+local init = function ()
     if plc_state.init_ok then
         -- just booting up, no fission allowed (neutrons stay put thanks)
         smem_dev.reactor.scram()
@@ -117,6 +118,7 @@ function init()
             log.debug("init> running without networking")
         end
 
+---@diagnostic disable-next-line: undefined-field
         os.queueEvent("clock_start")
 
         println("boot> completed");
@@ -155,7 +157,7 @@ if __shared_memory.networked then
         smem_sys.plc_comms.send_rps_status()
 
         -- close connection
-        smem_sys.plc_comms.close(smem_sys.conn_watchdog)
+        smem_sys.plc_comms.close()
     end
 else
     -- run threads, excluding comms

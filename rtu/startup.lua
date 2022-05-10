@@ -22,7 +22,7 @@ local imatrix_rtu = require("dev.imatrix_rtu")
 local turbine_rtu = require("dev.turbine_rtu")
 local turbinev_rtu = require("dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.1"
+local RTU_VERSION = "alpha-v0.6.2"
 
 local rtu_t = types.rtu_t
 

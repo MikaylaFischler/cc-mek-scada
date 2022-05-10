@@ -97,7 +97,7 @@ local function _free_closed(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
         if session ~= nil then
-            if sessions[i].open then
+            if session.open then
                 if sessions[move_to] == nil then
                     sessions[move_to] = session
                     sessions[i] = nil

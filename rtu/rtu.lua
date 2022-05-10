@@ -1,6 +1,8 @@
 local comms = require("scada-common.comms")
 local ppm = require("scada-common.ppm")
+local log = require("scada-common.log")
 local types = require("scada-common.types")
+local util = require("scada-common.util")
 
 local modbus = require("modbus")
 
@@ -11,6 +13,11 @@ local rtu_t = types.rtu_t
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
+
+local print = util.print
+local println = util.println
+local print_ts = util.print_ts
+local println_ts = util.println_ts
 
 rtu.init_unit = function ()
     local self = {
@@ -135,6 +142,8 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
         l_port = local_port,
         conn_watchdog = conn_watchdog
     }
+
+    local insert = table.insert
 
     -- open modem
     if not self.modem.isOpen(self.l_port) then
@@ -337,7 +346,7 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
                     send_advertisement(units)
                 else
                     -- not supported
-                    log.warning("RTU got unexpected SCADA message type " .. packet.type, true)
+                    log.warning("RTU got unexpected SCADA message type " .. packet.type)
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()
@@ -352,7 +361,6 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
         parse_packet = parse_packet,
         handle_packet = handle_packet,
         send_advertisement = send_advertisement,
-        send_heartbeat = send_heartbeat,
         unlink = unlink,
         close = close
     }

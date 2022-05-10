@@ -27,7 +27,7 @@ redstone_rtu.new = function ()
                 return digital_read(rs.getInput(side))
             end
         end
-            
+
         self.rtu.connect_di(f_read)
     end
 
@@ -61,7 +61,7 @@ redstone_rtu.new = function ()
                 rs.setOutput(side, digital_is_active(channel, level))
             end
         end
-            
+
         self.rtu.connect_coil(f_read, f_write)
     end
 

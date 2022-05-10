@@ -558,8 +558,10 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
             self.conn_watchdog.feed()
 
+            local protocol = packet.scada_frame.protocol()
+
             -- handle packet
-            if packet.scada_frame.protocol() == PROTOCOLS.RPLC then
+            if protocol == PROTOCOLS.RPLC then
                 if self.linked then
                     if packet.type == RPLC_TYPES.LINK_REQ then
                         -- link request confirmation
@@ -678,7 +680,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
                 else
                     log.debug("discarding non-link packet before linked")
                 end
-            elseif packet.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
+            elseif protocol == PROTOCOLS.SCADA_MGMT then
                 if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
                     -- keep alive request received, echo back
                     if packet.length == 1 then

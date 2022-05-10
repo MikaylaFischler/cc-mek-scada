@@ -45,18 +45,18 @@ unit.new = function (for_reactor)
         table.insert(self.turbines, turbine)
     end
 
-    public.add_boiler = function (turbine)
+    public.add_boiler = function (boiler)
         table.insert(self.boilers, boiler)
     end
 
     public.add_redstone = function (field, accessor)
         -- ensure field exists
-        if redstone[field] == nil then
-            redstone[field] = {}
+        if self.redstone[field] == nil then
+            self.redstone[field] = {}
         end
 
         -- insert into list
-        table.insert(redstone[field], accessor)
+        table.insert(self.redstone[field], accessor)
     end
 
     local _update_annunciator = function ()

@@ -51,6 +51,7 @@ threads.thread__main = function (smem, init)
 
         -- event loop
         while true do
+---@diagnostic disable-next-line: undefined-field
             local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
 
             -- handle event
@@ -443,7 +444,7 @@ threads.thread__setpoint_control = function (smem)
             if running then
                 -- do not use the actual elapsed time, it could spike
                 -- we do not want to have big jumps as that is what we are trying to avoid in the first place
-                local min_elapsed_s = SETPOINT_CTRL_SLEEP / 1000.0
+                local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
 
                 -- clear so we can later evaluate if we should keep running
                 running = false
