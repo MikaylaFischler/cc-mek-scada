@@ -112,30 +112,30 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 boil_eff = 0.0,
                 env_loss = 0.0,
 
-                fuel = 0.0,
-                fuel_need = 0.0,
+                fuel = 0,
+                fuel_need = 0,
                 fuel_fill = 0.0,
-                waste = 0.0,
-                waste_need = 0.0,
+                waste = 0,
+                waste_need = 0,
                 waste_fill = 0.0,
-                cool_type = "?",
-                cool_amnt = 0.0,
-                cool_need = 0.0,
-                cool_fill = 0.0,
+                ccool_type = "?",
+                ccool_amnt = 0,
+                ccool_need = 0,
+                ccool_fill = 0.0,
                 hcool_type = "?",
-                hcool_amnt = 0.0,
-                hcool_need = 0.0,
+                hcool_amnt = 0,
+                hcool_need = 0,
                 hcool_fill = 0.0
             },
             ---@class mek_struct
             mek_struct = {
-                heat_cap = 0.0,
-                fuel_asm = 0.0,
-                fuel_sa = 0.0,
-                fuel_cap = 0.0,
-                waste_cap = 0.0,
-                cool_cap = 0.0,
-                hcool_cap = 0.0,
+                heat_cap = 0,
+                fuel_asm = 0,
+                fuel_sa = 0,
+                fuel_cap = 0,
+                waste_cap = 0,
+                ccool_cap = 0,
+                hcool_cap = 0,
                 max_burn = 0.0
             }
         }
@@ -173,9 +173,9 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         self.sDB.mek_status.fuel_fill     = mek_data[9]
         self.sDB.mek_status.waste         = mek_data[10]
         self.sDB.mek_status.waste_fill    = mek_data[11]
-        self.sDB.mek_status.cool_type     = mek_data[12]
-        self.sDB.mek_status.cool_amnt     = mek_data[13]
-        self.sDB.mek_status.cool_fill     = mek_data[14]
+        self.sDB.mek_status.ccool_type    = mek_data[12]
+        self.sDB.mek_status.ccool_amnt    = mek_data[13]
+        self.sDB.mek_status.ccool_fill    = mek_data[14]
         self.sDB.mek_status.hcool_type    = mek_data[15]
         self.sDB.mek_status.hcool_amnt    = mek_data[16]
         self.sDB.mek_status.hcool_fill    = mek_data[17]
@@ -184,7 +184,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         if self.received_struct then
             self.sDB.mek_status.fuel_need  = self.sDB.mek_struct.fuel_cap  - self.sDB.mek_status.fuel_fill
             self.sDB.mek_status.waste_need = self.sDB.mek_struct.waste_cap - self.sDB.mek_status.waste_fill
-            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.cool_cap  - self.sDB.mek_status.cool_fill
+            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.ccool_cap  - self.sDB.mek_status.ccool_fill
             self.sDB.mek_status.hcool_need = self.sDB.mek_struct.hcool_cap - self.sDB.mek_status.hcool_fill
         end
     end
@@ -197,7 +197,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         self.sDB.mek_struct.fuel_sa   = mek_data[3]
         self.sDB.mek_struct.fuel_cap  = mek_data[4]
         self.sDB.mek_struct.waste_cap = mek_data[5]
-        self.sDB.mek_struct.cool_cap  = mek_data[6]
+        self.sDB.mek_struct.ccool_cap = mek_data[6]
         self.sDB.mek_struct.hcool_cap = mek_data[7]
         self.sDB.mek_struct.max_burn  = mek_data[8]
     end
