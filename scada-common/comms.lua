@@ -207,7 +207,8 @@ comms.modbus_packet = function ()
 
     -- get this packet
     public.get = function ()
-        return {
+        ---@class modbus_frame
+        local frame = {
             scada_frame = self.frame,
             txn_id = self.txn_id,
             length = self.length,
@@ -215,6 +216,8 @@ comms.modbus_packet = function ()
             func_code = self.func_code,
             data = self.data
         }
+
+        return frame
     end
 
     return public
@@ -297,13 +300,16 @@ comms.rplc_packet = function ()
 
     -- get this packet
     public.get = function ()
-        return {
+        ---@class rplc_frame
+        local frame = {
             scada_frame = self.frame,
             id = self.id,
             type = self.type,
             length = self.length,
             data = self.data
         }
+
+        return frame
     end
 
     return public
@@ -378,12 +384,15 @@ comms.mgmt_packet = function ()
 
     -- get this packet
     public.get = function ()
-        return {
+        ---@class mgmt_frame
+        local frame = {
             scada_frame = self.frame,
             type = self.type,
             length = self.length,
             data = self.data
         }
+
+        return frame
     end
 
     return public
@@ -456,12 +465,15 @@ comms.coord_packet = function ()
 
     -- get this packet
     public.get = function ()
-        return {
+        ---@class coord_frame
+        local frame = {
             scada_frame = self.frame,
             type = self.type,
             length = self.length,
             data = self.data
         }
+
+        return frame
     end
 
     return public
@@ -534,12 +546,15 @@ comms.capi_packet = function ()
 
     -- get this packet
     public.get = function ()
-        return {
+        ---@class capi_frame
+        local frame = {
             scada_frame = self.frame,
             type = self.type,
             length = self.length,
             data = self.data
         }
+
+        return frame
     end
 
     return public
