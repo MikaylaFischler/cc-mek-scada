@@ -179,7 +179,7 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
 
     -- send a scada management packet
     ---@param msg_type SCADA_MGMT_TYPES
-    ---@param msg any
+    ---@param msg table
     local _send = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
