@@ -5,15 +5,15 @@ local ppm = require("scada-common.ppm")
 local types = require("scada-common.types")
 local util = require("scada-common.util")
 
-local redstone_rtu = require("dev.redstone_rtu")
-local boiler_rtu = require("dev.boiler_rtu")
-local boilerv_rtu = require("dev.boilerv_rtu")
-local energymachine_rtu = require("dev.energymachine_rtu")
-local imatrix_rtu = require("dev.imatrix_rtu")
-local turbine_rtu = require("dev.turbine_rtu")
-local turbinev_rtu = require("dev.turbinev_rtu")
+local redstone_rtu = require("rtu.dev.redstone_rtu")
+local boiler_rtu = require("rtu.dev.boiler_rtu")
+local boilerv_rtu = require("rtu.dev.boilerv_rtu")
+local energymachine_rtu = require("rtu.dev.energymachine_rtu")
+local imatrix_rtu = require("rtu.dev.imatrix_rtu")
+local turbine_rtu = require("rtu.dev.turbine_rtu")
+local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local modbus = require("modbus")
+local modbus = require("rtu.modbus")
 
 local threads = {}
 

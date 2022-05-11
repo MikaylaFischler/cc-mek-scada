@@ -6,8 +6,8 @@ local log = require("scada-common.log")
 local ppm = require("scada-common.ppm")
 local util = require("scada-common.util")
 
-local config = require("config")
-local coordinator = require("coordinator")
+local config = require("coordinator.config")
+local coordinator = require("coordinator.coordinator")
 
 local COORDINATOR_VERSION = "alpha-v0.1.2"
 

@@ -2,7 +2,7 @@ local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local util = require("scada-common.util")
 
-local svsessions = require("session.svsessions")
+local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
 

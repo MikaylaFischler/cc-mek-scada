@@ -7,6 +7,7 @@
         "bit",
         "parallel",
         "colors",
-        "textutils"
+        "textutils",
+        "shell"
     ]
 }

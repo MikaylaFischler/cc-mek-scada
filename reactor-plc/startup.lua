@@ -7,9 +7,9 @@ local mqueue = require("scada-common.mqueue")
 local ppm = require("scada-common.ppm")
 local util = require("scada-common.util")
 
-local config = require("config")
-local plc = require("plc")
-local threads = require("threads")
+local config = require("reactor-plc.config")
+local plc = require("reactor-plc.plc")
+local threads = require("reactor-plc.threads")
 
 local R_PLC_VERSION = "alpha-v0.6.6"
 

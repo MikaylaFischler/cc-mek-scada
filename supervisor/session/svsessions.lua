@@ -1,9 +1,9 @@
 local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
 
-local coordinator = require("session.coordinator")
-local plc = require("session.plc")
-local rtu = require("session.rtu")
+local coordinator = require("supervisor.session.coordinator")
+local plc = require("supervisor.session.plc")
+local rtu = require("supervisor.session.rtu")
 
 -- Supervisor Sessions Handler
 
