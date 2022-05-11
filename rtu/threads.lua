@@ -1,11 +1,9 @@
-local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
 local ppm = require("scada-common.ppm")
 local types = require("scada-common.types")
 local util = require("scada-common.util")
 
-local redstone_rtu = require("rtu.dev.redstone_rtu")
 local boiler_rtu = require("rtu.dev.boiler_rtu")
 local boilerv_rtu = require("rtu.dev.boilerv_rtu")
 local energymachine_rtu = require("rtu.dev.energymachine_rtu")
@@ -24,12 +22,11 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-local psleep = util.psleep
-
 local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
 local COMMS_SLEEP = 150 -- (150ms, 3 ticks)
 
 -- main thread
+---@param smem rtu_shared_memory
 threads.thread__main = function (smem)
     -- execute thread
     local exec = function ()
@@ -42,7 +39,7 @@ threads.thread__main = function (smem)
         local rtu_state     = smem.rtu_state
         local rtu_dev       = smem.rtu_dev
         local rtu_comms     = smem.rtu_sys.rtu_comms
-        local conn_watchdog = smem.rtu_sys.conn_watchdog    ---@type watchdog
+        local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
 
         -- start clock
@@ -116,7 +113,7 @@ threads.thread__main = function (smem)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do
-                            local unit = units[i]
+                            local unit = units[i]   ---@type rtu_unit_registry_entry
 
                             -- find disconnected device to reconnect
                             if unit.name == param1 then
@@ -137,7 +134,7 @@ threads.thread__main = function (smem)
                                     unit.rtu = imatrix_rtu.new(device)
                                 end
 
-                                unit.modbus_io = modbus.new(unit.rtu)
+                                unit.modbus_io = modbus.new(unit.rtu, true)
 
                                 println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                             end
@@ -159,6 +156,7 @@ threads.thread__main = function (smem)
 end
 
 -- communications handler thread
+---@param smem rtu_shared_memory
 threads.thread__comms = function (smem)
     -- execute thread
     local exec = function ()
@@ -179,14 +177,16 @@ threads.thread__comms = function (smem)
             while comms_queue.ready() and not rtu_state.shutdown do
                 local msg = comms_queue.pop()
 
-                if msg.qtype == mqueue.TYPE.COMMAND then
-                    -- received a command
-                elseif msg.qtype == mqueue.TYPE.DATA then
-                    -- received data
-                elseif msg.qtype == mqueue.TYPE.PACKET then
-                    -- received a packet
-                    -- handle the packet (rtu_state passed to allow setting link flag)
-                    rtu_comms.handle_packet(msg.message, units, rtu_state)
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.COMMAND then
+                        -- received a command
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- received data
+                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                        -- received a packet
+                        -- handle the packet (rtu_state passed to allow setting link flag)
+                        rtu_comms.handle_packet(msg.message, units, rtu_state)
+                    end
                 end
 
                 -- quick yield
@@ -209,6 +209,8 @@ threads.thread__comms = function (smem)
 end
 
 -- per-unit communications handler thread
+---@param smem rtu_shared_memory
+---@param unit rtu_unit_registry_entry
 threads.thread__unit_comms = function (smem, unit)
     -- execute thread
     local exec = function ()
@@ -227,16 +229,18 @@ threads.thread__unit_comms = function (smem, unit)
             while packet_queue.ready() and not rtu_state.shutdown do
                 local msg = packet_queue.pop()
 
-                if msg.qtype == mqueue.TYPE.COMMAND then
-                    -- received a command
-                elseif msg.qtype == mqueue.TYPE.DATA then
-                    -- received data
-                elseif msg.qtype == mqueue.TYPE.PACKET then
-                    -- received a packet
-                    unit.modbus_busy = true
-                    local return_code, reply = unit.modbus_io.handle_packet(msg.message)
-                    rtu_comms.send_modbus(reply)
-                    unit.modbus_busy = false
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.COMMAND then
+                        -- received a command
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- received data
+                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                        -- received a packet
+                        unit.modbus_busy = true
+                        local _, reply = unit.modbus_io.handle_packet(msg.message)
+                        rtu_comms.send_modbus(reply)
+                        unit.modbus_busy = false
+                    end
                 end
 
                 -- quick yield

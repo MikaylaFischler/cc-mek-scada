@@ -22,7 +22,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.2"
+local RTU_VERSION = "alpha-v0.6.3"
 
 local rtu_t = types.rtu_t
 
@@ -45,8 +45,10 @@ println(">> RTU " .. RTU_VERSION .. " <<")
 -- mount connected devices
 ppm.mount_all()
 
+---@class rtu_shared_memory
 local __shared_memory = {
     -- RTU system state flags
+    ---@class rtu_state
     rtu_state = {
         linked = false,
         shutdown = false
@@ -59,9 +61,9 @@ local __shared_memory = {
 
     -- system objects
     rtu_sys = {
-        rtu_comms = nil,
-        conn_watchdog = nil,
-        units = {}
+        rtu_comms = nil,        ---@type rtu_comms
+        conn_watchdog = nil,    ---@type watchdog
+        units = {}              ---@type table
     },
 
     -- message queues
@@ -140,7 +142,8 @@ for reactor_idx = 1, #rtu_redstone do
         end
     end
 
-    table.insert(units, {
+    ---@class rtu_unit_registry_entry
+    local unit = {
         name = "redstone_io",
         type = rtu_t.redstone,
         index = 1,
@@ -151,7 +154,9 @@ for reactor_idx = 1, #rtu_redstone do
         modbus_busy = false,
         pkt_queue = nil,
         thread = nil
-    })
+    }
+
+    table.insert(units, unit)
 
     log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
 end
@@ -201,6 +206,7 @@ for i = 1, #rtu_devices do
         end
 
         if rtu_iface ~= nil then
+            ---@class rtu_unit_registry_entry
             local rtu_unit = {
                 name = rtu_devices[i].name,
                 type = rtu_type,

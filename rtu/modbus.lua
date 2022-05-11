@@ -7,14 +7,22 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 -- new modbus comms handler object
+---@param rtu_dev rtu RTU device
+---@param use_parallel_read boolean whether or not to use parallel calls when reading
 modbus.new = function (rtu_dev, use_parallel_read)
     local self = {
         rtu = rtu_dev,
         use_parallel = use_parallel_read
     }
 
+    ---@class modbus
+    local public = {}
+
     local insert = table.insert
 
+    ---@param c_addr_start integer
+    ---@param count integer
+    ---@return boolean ok, table readings
     local _1_read_coils = function (c_addr_start, count)
         local tasks = {}
         local readings = {}
@@ -58,6 +66,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    ---@param di_addr_start integer
+    ---@param count integer
+    ---@return boolean ok, table readings
     local _2_read_discrete_inputs = function (di_addr_start, count)
         local tasks = {}
         local readings = {}
@@ -101,6 +112,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    ---@param hr_addr_start integer
+    ---@param count integer
+    ---@return boolean ok, table readings
     local _3_read_multiple_holding_registers = function (hr_addr_start, count)
         local tasks = {}
         local readings = {}
@@ -144,6 +158,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    ---@param ir_addr_start integer
+    ---@param count integer
+    ---@return boolean ok, table readings
     local _4_read_input_registers = function (ir_addr_start, count)
         local tasks = {}
         local readings = {}
@@ -187,6 +204,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    ---@param c_addr integer
+    ---@param value any
+    ---@return boolean ok, MODBUS_EXCODE|nil
     local _5_write_single_coil = function (c_addr, value)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
@@ -206,6 +226,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, response
     end
 
+    ---@param hr_addr integer
+    ---@param value any
+    ---@return boolean ok, MODBUS_EXCODE|nil
     local _6_write_single_holding_register = function (hr_addr, value)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
@@ -222,9 +245,12 @@ modbus.new = function (rtu_dev, use_parallel_read)
             response = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
         end
 
-        return return_ok
+        return return_ok, response
     end
 
+    ---@param c_addr_start integer
+    ---@param values any
+    ---@return boolean ok, MODBUS_EXCODE|nil
     local _15_write_multiple_coils = function (c_addr_start, values)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
@@ -249,6 +275,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return return_ok, response
     end
 
+    ---@param hr_addr_start integer
+    ---@param values any
+    ---@return boolean ok, MODBUS_EXCODE|nil
     local _16_write_multiple_holding_registers = function (hr_addr_start, values)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
@@ -274,7 +303,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
     end
 
     -- validate a request without actually executing it
-    local check_request = function (packet)
+    ---@param packet modbus_frame
+    ---@return boolean return_code, modbus_packet reply
+    public.check_request = function (packet)
         local return_code = true
         local response = { MODBUS_EXCODE.ACKNOWLEDGE }
 
@@ -314,7 +345,9 @@ modbus.new = function (rtu_dev, use_parallel_read)
     end
 
     -- handle a MODBUS TCP packet and generate a reply
-    local handle_packet = function (packet)
+    ---@param packet modbus_frame
+    ---@return boolean return_code, modbus_packet reply
+    public.handle_packet = function (packet)
         local return_code = true
         local response = nil
 
@@ -369,7 +402,8 @@ modbus.new = function (rtu_dev, use_parallel_read)
     end
 
     -- return a SERVER_DEVICE_BUSY error reply
-    local reply__srv_device_busy = function (packet)
+    ---@return modbus_packet reply
+    public.reply__srv_device_busy = function (packet)
         -- reply back with error flag and exception code
         local reply = comms.modbus_packet()
         local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
@@ -379,7 +413,8 @@ modbus.new = function (rtu_dev, use_parallel_read)
     end
 
     -- return a NEG_ACKNOWLEDGE error reply
-    local reply__neg_ack = function (packet)
+    ---@return modbus_packet reply
+    public.reply__neg_ack = function (packet)
         -- reply back with error flag and exception code
         local reply = comms.modbus_packet()
         local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
@@ -389,7 +424,8 @@ modbus.new = function (rtu_dev, use_parallel_read)
     end
 
     -- return a GATEWAY_PATH_UNAVAILABLE error reply
-    local reply__gw_unavailable = function (packet)
+    ---@return modbus_packet reply
+    public.reply__gw_unavailable = function (packet)
         -- reply back with error flag and exception code
         local reply = comms.modbus_packet()
         local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
@@ -398,13 +434,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         return reply
     end
 
-    return {
-        check_request = check_request,
-        handle_packet = handle_packet,
-        reply__srv_device_busy = reply__srv_device_busy,
-        reply__neg_ack = reply__neg_ack,
-        reply__gw_unavailable = reply__gw_unavailable
-    }
+    return public
 end
 
 return modbus
