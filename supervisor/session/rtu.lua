@@ -100,7 +100,7 @@ rtu.new_session = function (id, in_queue, out_queue)
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                 -- RTU unit advertisement
                 for i = 1, pkt.length do
-                    local unit = pkt.data[i]
+                    local unit = pkt.data[i]    ---@type rtu_advertisement
                 end
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)

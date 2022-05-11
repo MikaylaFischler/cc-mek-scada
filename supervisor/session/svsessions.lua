@@ -31,16 +31,17 @@ local self = {
 -- PRIVATE FUNCTIONS --
 
 -- iterate all the given sessions
+---@param sessions table
 local function _iterate(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]
+        local session = sessions[i]  ---@type plc_session_struct
         if session.open then
             local ok = session.instance.iterate()
             if ok then
                 -- send packets in out queue
                 while session.out_queue.ready() do
                     local msg = session.out_queue.pop()
-                    if msg.qtype == mqueue.TYPE.PACKET then
+                    if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
                         self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
                     end
                 end
@@ -52,6 +53,7 @@ local function _iterate(sessions)
 end
 
 -- cleanly close a session
+---@param session plc_session_struct
 local function _shutdown(session)
     session.open = false
     session.instance.close()
@@ -59,7 +61,7 @@ local function _shutdown(session)
     -- send packets in out queue (namely the close packet)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
-        if msg.qtype == mqueue.TYPE.PACKET then
+        if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
             self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
         end
     end
@@ -68,9 +70,10 @@ local function _shutdown(session)
 end
 
 -- close connections
+---@param sessions table
 local function _close(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]
+        local session = sessions[i]  ---@type plc_session_struct
         if session.open then
             _shutdown(session)
         end
@@ -78,9 +81,11 @@ local function _close(sessions)
 end
 
 -- check if a watchdog timer event matches that of one of the provided sessions
+---@param sessions table
+---@param timer_event number
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
-        local session = sessions[i]
+        local session = sessions[i]  ---@type plc_session_struct
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -92,10 +97,11 @@ local function _check_watchdogs(sessions, timer_event)
 end
 
 -- delete any closed sessions
+---@param sessions table
 local function _free_closed(sessions)
     local move_to = 1
     for i = 1, #sessions do
-        local session = sessions[i]
+        local session = sessions[i] ---@type plc_session_struct
         if session ~= nil then
             if session.open then
                 if sessions[move_to] == nil then
@@ -113,11 +119,15 @@ end
 
 -- PUBLIC FUNCTIONS --
 
+-- link the modem
+---@param modem table
 svsessions.link_modem = function (modem)
     self.modem = modem
 end
 
 -- find a session by the remote port
+---@param remote_port integer
+---@return plc_session_struct|nil
 svsessions.find_session = function (remote_port)
     -- check RTU sessions
     for i = 1, #self.rtu_sessions do
@@ -144,6 +154,8 @@ svsessions.find_session = function (remote_port)
 end
 
 -- get a session by reactor ID
+---@param reactor integer
+---@return plc_session_struct session
 svsessions.get_reactor_session = function (reactor)
     local session = nil
 
@@ -157,8 +169,13 @@ svsessions.get_reactor_session = function (reactor)
 end
 
 -- establish a new PLC session
+---@param local_port integer
+---@param remote_port integer
+---@param for_reactor integer
+---@return integer|false session_id
 svsessions.establish_plc_session = function (local_port, remote_port, for_reactor)
-    if svsessions.get_reactor_session(for_reactor) == nil then 
+    if svsessions.get_reactor_session(for_reactor) == nil then
+        ---@class plc_session_struct
         local plc_s = {
             open = true,
             reactor = for_reactor,
@@ -185,6 +202,7 @@ svsessions.establish_plc_session = function (local_port, remote_port, for_reacto
 end
 
 -- attempt to identify which session's watchdog timer fired
+---@param timer_event number
 svsessions.check_all_watchdogs = function (timer_event)
     -- check RTU session watchdogs
     _check_watchdogs(self.rtu_sessions, timer_event)

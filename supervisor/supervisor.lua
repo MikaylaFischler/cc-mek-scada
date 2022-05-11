@@ -20,6 +20,10 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- supervisory controller communications
+---@param num_reactors integer
+---@param modem table
+---@param dev_listen integer
+---@param coord_listen integer
 supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     local self = {
         ln_seq_num = 0,
@@ -29,6 +33,9 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
         coord_listen = coord_listen,
         reactor_struct_cache = nil
     }
+
+    ---@class superv_comms
+    local public = {}
 
     -- PRIVATE FUNCTIONS --
 
@@ -50,6 +57,8 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     svsessions.link_modem(self.modem)
 
     -- send PLC link request responses
+    ---@param dest integer
+    ---@param msg table
     local _send_plc_linking = function (dest, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
@@ -64,14 +73,22 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     -- PUBLIC FUNCTIONS --
 
     -- reconnect a newly connected modem
-    local reconnect_modem = function (modem)
+    ---@param modem table
+---@diagnostic disable-next-line: redefined-local
+    public.reconnect_modem = function (modem)
         self.modem = modem
         svsessions.link_modem(self.modem)
         _open_channels()
     end
 
     -- parse a packet
-    local parse_packet = function(side, sender, reply_to, message, distance)
+    ---@param side string
+    ---@param sender integer
+    ---@param reply_to integer
+    ---@param message any
+    ---@param distance integer
+    ---@return modbus_frame|rplc_frame|mgmt_frame|coord_frame|nil packet
+    public.parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
         local s_pkt = comms.scada_packet()
 
@@ -111,7 +128,9 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
         return pkt
     end
 
-    local handle_packet = function(packet)
+    -- handle a packet
+    ---@param packet modbus_frame|rplc_frame|mgmt_frame|coord_frame
+    public.handle_packet = function(packet)
         if packet ~= nil then
             local l_port = packet.scada_frame.local_port()
             local r_port = packet.scada_frame.remote_port()
@@ -126,7 +145,7 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                     -- MODBUS response
                 elseif protocol == PROTOCOLS.RPLC then
                     -- reactor PLC packet
-                    if session then
+                    if session ~= nil then
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             -- new device on this port? that's a collision
                             log.debug("PLC_LNK: request from existing connection received on " .. r_port .. ", responding with collision")
@@ -162,7 +181,7 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
                     -- SCADA management packet
-                    if session then
+                    if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
                     end
@@ -184,11 +203,7 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
         end
     end
 
-    return {
-        reconnect_modem = reconnect_modem,
-        parse_packet = parse_packet,
-        handle_packet = handle_packet
-    }
+    return public
 end
 
 return supervisor

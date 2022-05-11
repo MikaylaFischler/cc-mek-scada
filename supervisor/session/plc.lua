@@ -37,6 +37,10 @@ local PERIODICS = {
 }
 
 -- PLC supervisor session
+---@param id integer
+---@param for_reactor integer
+---@param in_queue mqueue
+---@param out_queue mqueue
 plc.new_session = function (id, for_reactor, in_queue, out_queue)
     local log_header = "plc_session(" .. id .. "): "
 
@@ -78,6 +82,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
             rps_reset = true
         },
         -- session database
+        ---@class reactor_db
         sDB = {
             last_status_update = 0,
             control_state = false,
@@ -85,6 +90,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
             degraded = false,
             rps_tripped = false,
             rps_trip_cause = "ok",
+            ---@class rps_status
             rps_status = {
                 dmg_crit = false,
                 ex_hcool = false,
@@ -94,45 +100,52 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 no_cool = false,
                 timed_out = false
             },
+            ---@class mek_status
             mek_status = {
-                heating_rate = 0,
+                heating_rate = 0.0,
 
                 status = false,
-                burn_rate = 0,
-                act_burn_rate = 0,
-                temp = 0,
-                damage = 0,
-                boil_eff = 0,
-                env_loss = 0,
+                burn_rate = 0.0,
+                act_burn_rate = 0.0,
+                temp = 0.0,
+                damage = 0.0,
+                boil_eff = 0.0,
+                env_loss = 0.0,
 
-                fuel = 0,
-                fuel_need = 0,
-                fuel_fill = 0,
-                waste = 0,
-                waste_need = 0,
-                waste_fill = 0,
+                fuel = 0.0,
+                fuel_need = 0.0,
+                fuel_fill = 0.0,
+                waste = 0.0,
+                waste_need = 0.0,
+                waste_fill = 0.0,
                 cool_type = "?",
-                cool_amnt = 0,
-                cool_need = 0,
-                cool_fill = 0,
+                cool_amnt = 0.0,
+                cool_need = 0.0,
+                cool_fill = 0.0,
                 hcool_type = "?",
-                hcool_amnt = 0,
-                hcool_need = 0,
-                hcool_fill = 0
+                hcool_amnt = 0.0,
+                hcool_need = 0.0,
+                hcool_fill = 0.0
             },
+            ---@class mek_struct
             mek_struct = {
-                heat_cap = 0,
-                fuel_asm = 0,
-                fuel_sa = 0,
-                fuel_cap = 0,
-                waste_cap = 0,
-                cool_cap = 0,
-                hcool_cap = 0,
-                max_burn = 0
+                heat_cap = 0.0,
+                fuel_asm = 0.0,
+                fuel_sa = 0.0,
+                fuel_cap = 0.0,
+                waste_cap = 0.0,
+                cool_cap = 0.0,
+                hcool_cap = 0.0,
+                max_burn = 0.0
             }
         }
     }
 
+    ---@class plc_session
+    local public = {}
+
+    -- copy in the RPS status
+    ---@param rps_status table
     local _copy_rps_status = function (rps_status)
         self.sDB.rps_status.dmg_crit  = rps_status[1]
         self.sDB.rps_status.ex_hcool  = rps_status[2]
@@ -143,6 +156,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         self.sDB.rps_status.timed_out = rps_status[7]
     end
 
+    -- copy in the reactor status
+    ---@param mek_data table
     local _copy_status = function (mek_data)
         -- copy status information
         self.sDB.mek_status.status        = mek_data[1]
@@ -174,6 +189,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         end
     end
 
+    -- copy in the reactor structure
+    ---@param mek_data table
     local _copy_struct = function (mek_data)
         self.sDB.mek_struct.heat_cap  = mek_data[1]
         self.sDB.mek_struct.fuel_asm  = mek_data[2]
@@ -186,6 +203,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- send an RPLC packet
+    ---@param msg_type RPLC_TYPES
+    ---@param msg table
     local _send = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
@@ -198,6 +217,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- send a SCADA management packet
+    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg table
     local _send_mgmt = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
@@ -210,6 +231,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- get an ACK status
+    ---@param pkt rplc_frame
+    ---@return boolean|nil ack
     local _get_ack = function (pkt)
         if pkt.length == 1 then
             return pkt.data[1]
@@ -220,6 +243,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- handle a packet
+    ---@param pkt rplc_frame
     local _handle_packet = function (pkt)
         -- check sequence number
         if self.r_seq_num == nil then
@@ -378,13 +402,13 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
-    local get_id = function () return self.id end
+    public.get_id = function () return self.id end
 
     -- get the session database
-    local get_db = function () return self.sDB end
+    public.get_db = function () return self.sDB end
 
     -- get the reactor structure
-    local get_struct = function ()
+    public.get_struct = function ()
         if self.received_struct then
             return self.sDB.mek_struct
         else
@@ -393,7 +417,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- get the reactor structure
-    local get_status = function ()
+    public.get_status = function ()
         if self.received_status_cache then
             return self.sDB.mek_status
         else
@@ -402,12 +426,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- check if a timer matches this session's watchdog
-    local check_wd = function (timer)
+    public.check_wd = function (timer)
         return self.plc_conn_watchdog.is_timer(timer)
     end
 
     -- close the connection
-    local close = function ()
+    public.close = function ()
         self.plc_conn_watchdog.cancel()
         self.connected = false
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
@@ -416,7 +440,8 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- iterate the session
-    local iterate = function ()
+    ---@return boolean connected
+    public.iterate = function ()
         if self.connected then
             ------------------
             -- handle queue --
@@ -428,45 +453,47 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 -- get a new message to process
                 local message = self.in_q.pop()
 
-                if message.qtype == mqueue.TYPE.PACKET then
-                    -- handle a packet
-                    _handle_packet(message.message)
-                elseif message.qtype == mqueue.TYPE.COMMAND then
-                    -- handle instruction
-                    local cmd = message.message
-                    if cmd == PLC_S_CMDS.ENABLE then
-                        -- enable reactor
-                        self.acks.enable = false
-                        self.retry_times.enable_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.RPS_ENABLE, {})
-                    elseif cmd == PLC_S_CMDS.SCRAM then
-                        -- SCRAM reactor
-                        self.acks.scram = false
-                        self.retry_times.scram_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.RPS_SCRAM, {})
-                    elseif cmd == PLC_S_CMDS.RPS_RESET then
-                        -- reset RPS
-                        self.acks.rps_reset = false
-                        self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.RPS_RESET, {})
-                    end
-                elseif message.qtype == mqueue.TYPE.DATA then
-                    -- instruction with body
-                    local cmd = message.message
-                    if cmd.key == PLC_S_DATA.BURN_RATE then
-                        -- update burn rate
-                        self.commanded_burn_rate = cmd.val
-                        self.ramping_rate = false
-                        self.acks.burn_rate = false
-                        self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
-                    elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
-                        -- ramp to burn rate
-                        self.commanded_burn_rate = cmd.val
-                        self.ramping_rate = true
-                        self.acks.burn_rate = false
-                        self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                if message ~= nil then
+                    if message.qtype == mqueue.TYPE.PACKET then
+                        -- handle a packet
+                        _handle_packet(message.message)
+                    elseif message.qtype == mqueue.TYPE.COMMAND then
+                        -- handle instruction
+                        local cmd = message.message
+                        if cmd == PLC_S_CMDS.ENABLE then
+                            -- enable reactor
+                            self.acks.enable = false
+                            self.retry_times.enable_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPES.RPS_ENABLE, {})
+                        elseif cmd == PLC_S_CMDS.SCRAM then
+                            -- SCRAM reactor
+                            self.acks.scram = false
+                            self.retry_times.scram_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPES.RPS_SCRAM, {})
+                        elseif cmd == PLC_S_CMDS.RPS_RESET then
+                            -- reset RPS
+                            self.acks.rps_reset = false
+                            self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPES.RPS_RESET, {})
+                        end
+                    elseif message.qtype == mqueue.TYPE.DATA then
+                        -- instruction with body
+                        local cmd = message.message
+                        if cmd.key == PLC_S_DATA.BURN_RATE then
+                            -- update burn rate
+                            self.commanded_burn_rate = cmd.val
+                            self.ramping_rate = false
+                            self.acks.burn_rate = false
+                            self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
+                            -- ramp to burn rate
+                            self.commanded_burn_rate = cmd.val
+                            self.ramping_rate = true
+                            self.acks.burn_rate = false
+                            self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        end
                     end
                 end
 
@@ -567,15 +594,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         return self.connected
     end
 
-    return {
-        get_id = get_id,
-        get_db = get_db,
-        get_struct = get_struct,
-        get_status = get_status,
-        check_wd = check_wd,
-        close = close,
-        iterate = iterate
-    }
+    return public
 end
 
 return plc
