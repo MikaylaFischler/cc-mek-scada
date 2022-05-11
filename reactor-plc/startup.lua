@@ -29,11 +29,13 @@ println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 ppm.mount_all()
 
 -- shared memory across threads
+---@class plc_shared_memory
 local __shared_memory = {
     -- networked setting
-    networked = config.NETWORKED,
+    networked = config.NETWORKED,   ---@type boolean
 
     -- PLC system state flags
+    ---@class plc_state
     plc_state = {
         init_ok = true,
         shutdown = false,
@@ -42,6 +44,8 @@ local __shared_memory = {
         no_modem = false
     },
 
+    -- control setpoints
+    ---@class setpoints
     setpoints = {
         burn_rate_en = false,
         burn_rate = 0.0
@@ -55,9 +59,9 @@ local __shared_memory = {
 
     -- system objects
     plc_sys = {
-        rps = nil,
-        plc_comms = nil,
-        conn_watchdog = nil
+        rps = nil,              ---@type rps
+        plc_comms = nil,        ---@type plc_comms
+        conn_watchdog = nil     ---@type watchdog
     },
 
     -- message queues

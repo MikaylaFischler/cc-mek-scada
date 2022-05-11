@@ -10,8 +10,6 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-local psleep = util.psleep
-
 local MAIN_CLOCK    = 1   -- (1Hz, 20 ticks)
 local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
@@ -30,6 +28,8 @@ local MQ__COMM_CMD = {
 }
 
 -- main thread
+---@param smem plc_shared_memory
+---@param init function
 threads.thread__main = function (smem, init)
     -- execute thread
     local exec = function ()
@@ -47,7 +47,7 @@ threads.thread__main = function (smem, init)
         local plc_dev       = smem.plc_dev
         local rps           = smem.plc_sys.rps
         local plc_comms     = smem.plc_sys.plc_comms
-        local conn_watchdog = smem.plc_sys.conn_watchdog    ---@type watchdog
+        local conn_watchdog = smem.plc_sys.conn_watchdog
 
         -- event loop
         while true do
@@ -187,6 +187,7 @@ threads.thread__main = function (smem, init)
 end
 
 -- RPS operation thread
+---@param smem plc_shared_memory
 threads.thread__rps = function (smem)
     -- execute thread
     local exec = function ()
@@ -224,6 +225,7 @@ threads.thread__rps = function (smem)
 
                 -- if we tried to SCRAM but failed, keep trying
                 -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
+---@diagnostic disable-next-line: need-check-nil
                 if not plc_state.no_reactor and rps.is_tripped() and reactor.getStatus() then
                     rps.scram()
                 end
@@ -249,26 +251,28 @@ threads.thread__rps = function (smem)
             while rps_queue.ready() and not plc_state.shutdown do
                 local msg = rps_queue.pop()
 
-                if msg.qtype == mqueue.TYPE.COMMAND then
-                    -- received a command
-                    if plc_state.init_ok then
-                        if msg.message == MQ__RPS_CMD.SCRAM then
-                            -- SCRAM
-                            rps.scram()
-                        elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
-                            -- lost peripheral(s)
-                            rps.trip_degraded()
-                        elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
-                            -- watchdog tripped
-                            rps.trip_timeout()
-                            println_ts("server timeout")
-                            log.warning("server timeout")
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.COMMAND then
+                        -- received a command
+                        if plc_state.init_ok then
+                            if msg.message == MQ__RPS_CMD.SCRAM then
+                                -- SCRAM
+                                rps.scram()
+                            elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
+                                -- lost peripheral(s)
+                                rps.trip_fault()
+                            elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
+                                -- watchdog tripped
+                                rps.trip_timeout()
+                                println_ts("server timeout")
+                                log.warning("server timeout")
+                            end
                         end
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- received data
+                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                        -- received a packet
                     end
-                elseif msg.qtype == mqueue.TYPE.DATA then
-                    -- received data
-                elseif msg.qtype == mqueue.TYPE.PACKET then
-                    -- received a packet
                 end
 
                 -- quick yield
@@ -301,6 +305,7 @@ threads.thread__rps = function (smem)
 end
 
 -- communications sender thread
+---@param smem plc_shared_memory
 threads.thread__comms_tx = function (smem)
     -- execute thread
     local exec = function ()
@@ -320,17 +325,19 @@ threads.thread__comms_tx = function (smem)
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
 
-                if msg.qtype == mqueue.TYPE.COMMAND then
-                    -- received a command
-                    if msg.message == MQ__COMM_CMD.SEND_STATUS then
-                        -- send PLC/RPS status
-                        plc_comms.send_status(plc_state.degraded)
-                        plc_comms.send_rps_status()
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.COMMAND then
+                        -- received a command
+                        if msg.message == MQ__COMM_CMD.SEND_STATUS then
+                            -- send PLC/RPS status
+                            plc_comms.send_status(plc_state.degraded)
+                            plc_comms.send_rps_status()
+                        end
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- received data
+                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                        -- received a packet
                     end
-                elseif msg.qtype == mqueue.TYPE.DATA then
-                    -- received data
-                elseif msg.qtype == mqueue.TYPE.PACKET then
-                    -- received a packet
                 end
 
                 -- quick yield
@@ -352,22 +359,20 @@ threads.thread__comms_tx = function (smem)
 end
 
 -- communications handler thread
+---@param smem plc_shared_memory
 threads.thread__comms_rx = function (smem)
     -- execute thread
     local exec = function ()
         log.debug("comms rx thread start")
 
         -- load in from shared memory
-        local plc_state     = smem.plc_state
-        local setpoints     = smem.setpoints
-        local plc_dev       = smem.plc_dev
-        local rps           = smem.plc_sys.rps
-        local plc_comms     = smem.plc_sys.plc_comms
-        local conn_watchdog = smem.plc_sys.conn_watchdog
+        local plc_state   = smem.plc_state
+        local setpoints   = smem.setpoints
+        local plc_comms   = smem.plc_sys.plc_comms
 
-        local comms_queue   = smem.q.mq_comms_rx
+        local comms_queue = smem.q.mq_comms_rx
 
-        local last_update   = util.time()
+        local last_update = util.time()
 
         -- thread loop
         while true do
@@ -375,16 +380,17 @@ threads.thread__comms_rx = function (smem)
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
 
-                if msg.qtype == mqueue.TYPE.COMMAND then
-                    -- received a command
-                elseif msg.qtype == mqueue.TYPE.DATA then
-                    -- received data
-                elseif msg.qtype == mqueue.TYPE.PACKET then
-                    -- received a packet
-                    -- handle the packet (setpoints passed to update burn rate setpoint)
-                    --                   (plc_state passed to check if degraded)
-                    --                   (conn_watchdog passed to allow feeding the watchdog)
-                    plc_comms.handle_packet(msg.message, setpoints, plc_state, conn_watchdog)
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.COMMAND then
+                        -- received a command
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- received data
+                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                        -- received a packet
+                        -- handle the packet (setpoints passed to update burn rate setpoint)
+                        --                   (plc_state passed to check if degraded)
+                        plc_comms.handle_packet(msg.message, setpoints, plc_state)
+                    end
                 end
 
                 -- quick yield
@@ -406,84 +412,90 @@ threads.thread__comms_rx = function (smem)
 end
 
 -- apply setpoints
+---@param smem plc_shared_memory
 threads.thread__setpoint_control = function (smem)
     -- execute thread
     local exec = function ()
         log.debug("setpoint control thread start")
 
         -- load in from shared memory
-        local plc_state     = smem.plc_state
-        local setpoints     = smem.setpoints
-        local plc_dev       = smem.plc_dev
-        local rps           = smem.plc_sys.rps
+        local plc_state    = smem.plc_state
+        local setpoints    = smem.setpoints
+        local plc_dev      = smem.plc_dev
+        local rps          = smem.plc_sys.rps
 
-        local last_update   = util.time()
-        local running       = false
+        local last_update  = util.time()
+        local running      = false
 
-        local last_sp_burn  = 0
+        local last_sp_burn = 0.0
+
+        -- do not use the actual elapsed time, it could spike
+        -- we do not want to have big jumps as that is what we are trying to avoid in the first place
+        local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
 
         -- thread loop
         while true do
             local reactor = plc_dev.reactor
 
-            -- check if we should start ramping
-            if setpoints.burn_rate_en and setpoints.burn_rate ~= last_sp_burn then
-                if rps.is_active() then
-                    if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
-                        -- update without ramp if <= 5 mB/t change
-                        log.debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
-                        reactor.setBurnRate(setpoints.burn_rate)
-                    else
-                        log.debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
-                        running = true
-                    end
-
-                    last_sp_burn = setpoints.burn_rate
-                else
-                    last_sp_burn = 0
-                end
-            end
-
-            -- only check I/O if active to save on processing time
-            if running then
-                -- do not use the actual elapsed time, it could spike
-                -- we do not want to have big jumps as that is what we are trying to avoid in the first place
-                local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
-
-                -- clear so we can later evaluate if we should keep running
-                running = false
-
-                -- adjust burn rate (setpoints.burn_rate)
-                if setpoints.burn_rate_en then
+            if plc_state.init_ok and not plc_state.no_reactor then
+                -- check if we should start ramping
+                if setpoints.burn_rate_en and setpoints.burn_rate ~= last_sp_burn then
                     if rps.is_active() then
-                        local current_burn_rate = reactor.getBurnRate()
-
-                        -- we yielded, check enable again
-                        if setpoints.burn_rate_en and (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
-                            -- calculate new burn rate
-                            local new_burn_rate = current_burn_rate
-
-                            if setpoints.burn_rate > current_burn_rate then
-                                -- need to ramp up
-                                local new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                if new_burn_rate > setpoints.burn_rate then
-                                    new_burn_rate = setpoints.burn_rate
-                                end
-                            else
-                                -- need to ramp down
-                                local new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                if new_burn_rate < setpoints.burn_rate then
-                                    new_burn_rate = setpoints.burn_rate
-                                end
-                            end
-
-                            -- set the burn rate
-                            reactor.setBurnRate(new_burn_rate)
-
-                            running = running or (new_burn_rate ~= setpoints.burn_rate)
+                        if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
+                            -- update without ramp if <= 5 mB/t change
+                            log.debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
+---@diagnostic disable-next-line: need-check-nil
+                            reactor.setBurnRate(setpoints.burn_rate)
+                        else
+                            log.debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
+                            running = true
                         end
+
+                        last_sp_burn = setpoints.burn_rate
                     else
-                        last_sp_burn = 0
+                        last_sp_burn = 0.0
+                    end
+                end
+
+                -- only check I/O if active to save on processing time
+                if running then
+                    -- clear so we can later evaluate if we should keep running
+                    running = false
+
+                    -- adjust burn rate (setpoints.burn_rate)
+                    if setpoints.burn_rate_en then
+                        if rps.is_active() then
+---@diagnostic disable-next-line: need-check-nil
+                            local current_burn_rate = reactor.getBurnRate()
+
+                            -- we yielded, check enable again
+                            if setpoints.burn_rate_en and (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
+                                -- calculate new burn rate
+                                local new_burn_rate = current_burn_rate
+
+                                if setpoints.burn_rate > current_burn_rate then
+                                    -- need to ramp up
+                                    local new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    if new_burn_rate > setpoints.burn_rate then
+                                        new_burn_rate = setpoints.burn_rate
+                                    end
+                                else
+                                    -- need to ramp down
+                                    local new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    if new_burn_rate < setpoints.burn_rate then
+                                        new_burn_rate = setpoints.burn_rate
+                                    end
+                                end
+
+                                -- set the burn rate
+---@diagnostic disable-next-line: need-check-nil
+                                reactor.setBurnRate(new_burn_rate)
+
+                                running = running or (new_burn_rate ~= setpoints.burn_rate)
+                            end
+                        else
+                            last_sp_burn = 0.0
+                        end
                     end
                 end
             end

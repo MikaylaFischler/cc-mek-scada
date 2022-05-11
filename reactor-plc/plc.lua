@@ -1,3 +1,4 @@
+---@diagnostic disable: redefined-local
 local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local ppm = require("scada-common.ppm")
@@ -18,9 +19,11 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
--- Reactor Protection System
--- identifies dangerous states and SCRAMs reactor if warranted
--- autonomous from main SCADA supervisor/coordinator control
+--- RPS: Reactor Protection System
+---
+--- identifies dangerous states and SCRAMs reactor if warranted
+---
+--- autonomous from main SCADA supervisor/coordinator control
 plc.rps_init = function (reactor)
     local state_keys = {
         dmg_crit = 1,
@@ -41,6 +44,9 @@ plc.rps_init = function (reactor)
         tripped = false,
         trip_cause = ""
     }
+
+    ---@class rps
+    local public = {}
 
     -- PRIVATE FUNCTIONS --
 
@@ -136,22 +142,28 @@ plc.rps_init = function (reactor)
     -- PUBLIC FUNCTIONS --
 
     -- re-link a reactor after a peripheral re-connect
-    local reconnect_reactor = function (reactor)
+    public.reconnect_reactor = function (reactor)
         self.reactor = reactor
     end
 
-    -- report a PLC comms timeout
-    local trip_timeout = function ()
+    -- trip for lost peripheral
+    public.trip_fault = function ()
+        _set_fault()
+    end
+
+    -- trip for a PLC comms timeout
+    public.trip_timeout = function ()
         self.state[state_keys.timed_out] = true
     end
 
     -- manually SCRAM the reactor
-    local trip_manual = function ()
+    public.trip_manual = function ()
         self.state[state_keys.manual]  = true
     end
 
     -- SCRAM the reactor now
-    local scram = function ()
+    ---@return boolean success
+    public.scram = function ()
         log.info("RPS: reactor SCRAM")
 
         self.reactor.scram()
@@ -165,7 +177,8 @@ plc.rps_init = function (reactor)
     end
 
     -- start the reactor
-    local activate = function ()
+    ---@return boolean success
+    public.activate = function ()
         if not self.tripped then
             log.info("RPS: reactor start")
 
@@ -182,7 +195,8 @@ plc.rps_init = function (reactor)
     end
 
     -- check all safety conditions
-    local check = function ()
+    ---@return boolean tripped, rps_status_t trip_status, boolean first_trip
+    public.check = function ()
         local status = rps_status_t.ok
         local was_tripped = self.tripped
         local first_trip = false
@@ -237,38 +251,37 @@ plc.rps_init = function (reactor)
             self.tripped = true
             self.trip_cause = status
 
-            scram()
+            public.scram()
         end
 
         return self.tripped, status, first_trip
     end
 
-    -- get the RPS status
-    local status = function () return self.state end
-    local is_tripped = function () return self.tripped end
-    local is_active = function () return self.reactor_enabled end
+    public.status = function () return self.state end
+    public.is_tripped = function () return self.tripped end
+    public.is_active = function () return self.reactor_enabled end
 
     -- reset the RPS
-    local reset = function ()
+    public.reset = function ()
         self.tripped = false
         self.trip_cause = rps_status_t.ok
+
+        for i = 1, #self.state do
+            self.state[i] = false
+        end
     end
 
-    return {
-        reconnect_reactor = reconnect_reactor,
-        trip_timeout = trip_timeout,
-        trip_manual = trip_manual,
-        scram = scram,
-        activate = activate,
-        check = check,
-        status = status,
-        is_tripped = is_tripped,
-        is_active = is_active,
-        reset = reset
-    }
+    return public
 end
 
--- reactor PLC communications
+-- Reactor PLC Communications
+---@param id integer
+---@param modem table
+---@param local_port integer
+---@param server_port integer
+---@param reactor table
+---@param rps rps
+---@param conn_watchdog watchdog
 plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_watchdog)
     local self = {
         id = id,
@@ -286,6 +299,9 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
         max_burn_rate = nil
     }
 
+    ---@class plc_comms
+    local public = {}
+
     -- open modem
     if not self.modem.isOpen(self.l_port) then
         self.modem.open(self.l_port)
@@ -293,6 +309,9 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
 
     -- PRIVATE FUNCTIONS --
 
+    -- send an RPLC packet
+    ---@param msg_type RPLC_TYPES
+    ---@param msg string
     local _send = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
@@ -304,6 +323,9 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
         self.seq_num = self.seq_num + 1
     end
 
+    -- send a SCADA management packet
+    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg string
     local _send_mgmt = function (msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
@@ -316,6 +338,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- variable reactor status information, excluding heating rate
+    ---@return table data_table, boolean faulted
     local _reactor_status = function ()
         local coolant = nil
         local hcoolant = nil
@@ -373,6 +396,8 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
         return data_table, self.reactor.__p_is_faulted()
     end
 
+    -- update the status cache if changed
+    ---@return boolean changed
     local _update_status_cache = function ()
         local status, faulted = _reactor_status()
         local changed = false
@@ -398,11 +423,14 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- keep alive ack
+    ---@param srv_time integer
     local _send_keep_alive_ack = function (srv_time)
         _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
+    ---@param msg_type RPLC_TYPES
+    ---@param succeeded boolean
     local _send_ack = function (msg_type, succeeded)
         _send(msg_type, { succeeded })
     end
@@ -434,7 +462,8 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     -- PUBLIC FUNCTIONS --
 
     -- reconnect a newly connected modem
-    local reconnect_modem = function (modem)
+    ---@param modem table
+    public.reconnect_modem = function (modem)
         self.modem = modem
 
         -- open modem
@@ -444,32 +473,34 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- reconnect a newly connected reactor
-    local reconnect_reactor = function (reactor)
+    ---@param reactor table
+    public.reconnect_reactor = function (reactor)
         self.reactor = reactor
         self.status_cache = nil
     end
 
     -- unlink from the server
-    local unlink = function ()
+    public.unlink = function ()
         self.linked = false
         self.r_seq_num = nil
         self.status_cache = nil
     end
 
     -- close the connection to the server
-    local close = function ()
+    public.close = function ()
         self.conn_watchdog.cancel()
-        unlink()
+        public.unlink()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end
 
     -- attempt to establish link with supervisor
-    local send_link_req = function ()
+    public.send_link_req = function ()
         _send(RPLC_TYPES.LINK_REQ, { self.id })
     end
 
     -- send live status information
-    local send_status = function (degraded)
+    ---@param degraded boolean
+    public.send_status = function (degraded)
         if self.linked then
             local mek_data = nil
 
@@ -495,14 +526,15 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- send reactor protection system status
-    local send_rps_status = function ()
+    public.send_rps_status = function ()
         if self.linked then
             _send(RPLC_TYPES.RPS_STATUS, rps.status())
         end
     end
 
     -- send reactor protection system alarm
-    local send_rps_alarm = function (cause)
+    ---@param cause rps_status_t
+    public.send_rps_alarm = function (cause)
         if self.linked then
             local rps_alarm = {
                 cause,
@@ -514,7 +546,13 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- parse an RPLC packet
-    local parse_packet = function(side, sender, reply_to, message, distance)
+    ---@param side string
+    ---@param sender integer
+    ---@param reply_to integer
+    ---@param message any
+    ---@param distance integer
+    ---@return rplc_frame|mgmt_frame|nil packet
+    public.parse_packet = function(side, sender, reply_to, message, distance)
         local pkt = nil
         local s_pkt = comms.scada_packet()
 
@@ -543,7 +581,10 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
     end
 
     -- handle an RPLC packet
-    local handle_packet = function (packet, plc_state, setpoints)
+    ---@param packet rplc_frame|mgmt_frame
+    ---@param plc_state plc_state
+    ---@param setpoints setpoints
+    public.handle_packet = function (packet, plc_state, setpoints)
         if packet ~= nil then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -573,7 +614,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
                             if link_ack == RPLC_LINKING.ALLOW then
                                 self.status_cache = nil
                                 _send_struct()
-                                send_status(plc_state.degraded)
+                                public.send_status(plc_state.degraded)
                                 log.debug("re-sent initial status data")
                             elseif link_ack == RPLC_LINKING.DENY then
                                 println_ts("received unsolicited link denial, unlinking")
@@ -593,7 +634,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
                     elseif packet.type == RPLC_TYPES.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
-                        send_status(plc_state.degraded)
+                        public.send_status(plc_state.degraded)
                         log.debug("sent out status cache again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
@@ -659,7 +700,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
                             self.status_cache = nil
 
                             _send_struct()
-                            send_status(plc_state.degraded)
+                            public.send_status(plc_state.degraded)
 
                             log.debug("sent initial status data")
                         elseif link_ack == RPLC_LINKING.DENY then
@@ -700,7 +741,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
                 elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
                     -- handle session close
                     self.conn_watchdog.cancel()
-                    unlink()
+                    public.unlink()
                     println_ts("server connection closed by remote host")
                     log.warning("server connection closed by remote host")
                 else
@@ -713,23 +754,10 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
         end
     end
 
-    local is_scrammed = function () return self.scrammed end
-    local is_linked = function () return self.linked end
+    public.is_scrammed = function () return self.scrammed end
+    public.is_linked = function () return self.linked end
 
-    return {
-        reconnect_modem = reconnect_modem,
-        reconnect_reactor = reconnect_reactor,
-        unlink = unlink,
-        close = close,
-        send_link_req = send_link_req,
-        send_status = send_status,
-        send_rps_status = send_rps_status,
-        send_rps_alarm = send_rps_alarm,
-        parse_packet = parse_packet,
-        handle_packet = handle_packet,
-        is_scrammed = is_scrammed,
-        is_linked = is_linked
-    }
+    return public
 end
 
 return plc
