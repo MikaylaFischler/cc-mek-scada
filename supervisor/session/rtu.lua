@@ -3,6 +3,9 @@ local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
 local util = require("scada-common.util")
 
+-- supervisor rtu sessions (svrs)
+local svrs_boiler = require("supervisor.session.rtu.boiler")
+
 local rtu = {}
 
 local PROTOCOLS = comms.PROTOCOLS
