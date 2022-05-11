@@ -1,4 +1,3 @@
----@diagnostic disable: redefined-local
 local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local ppm = require("scada-common.ppm")
@@ -142,6 +141,7 @@ plc.rps_init = function (reactor)
     -- PUBLIC FUNCTIONS --
 
     -- re-link a reactor after a peripheral re-connect
+---@diagnostic disable-next-line: redefined-local
     public.reconnect_reactor = function (reactor)
         self.reactor = reactor
     end
@@ -463,6 +463,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
 
     -- reconnect a newly connected modem
     ---@param modem table
+---@diagnostic disable-next-line: redefined-local
     public.reconnect_modem = function (modem)
         self.modem = modem
 
@@ -474,6 +475,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
 
     -- reconnect a newly connected reactor
     ---@param reactor table
+---@diagnostic disable-next-line: redefined-local
     public.reconnect_reactor = function (reactor)
         self.reactor = reactor
         self.status_cache = nil
