@@ -5,6 +5,19 @@
 ---@class types
 local types = {}
 
+---@class tank_fluid
+local tank_fluid = {
+    name = "mekanism:empty_gas",
+    amount = 0
+}
+
+---@class coordinate
+local coordinate = {
+    x = 0,
+    y = 0,
+    z = 0
+}
+
 ---@alias rtu_t string
 types.rtu_t = {
     redstone = "redstone",
