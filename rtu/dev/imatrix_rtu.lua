@@ -1,29 +1,28 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local imatrix_rtu = {}
 
+-- create new induction matrix (mek 10.1+) device
+---@param imatrix table
 imatrix_rtu.new = function (imatrix)
     local self = {
         rtu = rtu.init_unit(),
         imatrix = imatrix
     }
 
-    local rtu_interface = function ()
-        return self.rtu
-    end
-
     -- discrete inputs --
-    -- none
+    self.rtu.connect_di(self.boiler.isFormed)
 
     -- coils --
     -- none
 
     -- input registers --
     -- multiblock properties
-    self.rtu.connect_input_reg(self.boiler.isFormed)
     self.rtu.connect_input_reg(self.boiler.getLength)
     self.rtu.connect_input_reg(self.boiler.getWidth)
     self.rtu.connect_input_reg(self.boiler.getHeight)
+    self.rtu.connect_input_reg(self.boiler.getMinPos)
+    self.rtu.connect_input_reg(self.boiler.getMaxPos)
     -- build properties
     self.rtu.connect_input_reg(self.imatrix.getMaxEnergy)
     self.rtu.connect_input_reg(self.imatrix.getTransferCap)
@@ -40,9 +39,7 @@ imatrix_rtu.new = function (imatrix)
     -- holding registers --
     -- none
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return self.rtu.interface()
 end
 
 return imatrix_rtu

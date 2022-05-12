@@ -7,7 +7,7 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 -- new modbus comms handler object
----@param rtu_dev rtu RTU device
+---@param rtu_dev rtu_device|rtu_rs_device RTU device
 ---@param use_parallel_read boolean whether or not to use parallel calls when reading
 modbus.new = function (rtu_dev, use_parallel_read)
     local self = {

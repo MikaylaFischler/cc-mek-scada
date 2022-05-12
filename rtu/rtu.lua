@@ -29,16 +29,20 @@ rtu.init_unit = function ()
         io_count_cache = { 0, 0, 0, 0 }
     }
 
-    ---@class rtu
-    local public = {}
-
     local insert = table.insert
 
+    ---@class rtu_device
+    local public = {}
+
+    ---@class rtu
+    local protected = {}
+
+    -- refresh IO count
     local _count_io = function ()
         self.io_count_cache = { #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs }
     end
 
-    -- return IO counts
+    -- return IO count
     ---@return integer discrete_inputs, integer coils, integer input_regs, integer holding_regs
     public.io_count = function ()
         return self.io_count_cache[0], self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3]
@@ -49,7 +53,7 @@ rtu.init_unit = function ()
     -- connect discrete input
     ---@param f function
     ---@return integer count count of discrete inputs
-    public.connect_di = function (f)
+    protected.connect_di = function (f)
         insert(self.discrete_inputs, f)
         _count_io()
         return #self.discrete_inputs
@@ -70,7 +74,7 @@ rtu.init_unit = function ()
     ---@param f_read function
     ---@param f_write function
     ---@return integer count count of coils
-    public.connect_coil = function (f_read, f_write)
+    protected.connect_coil = function (f_read, f_write)
         insert(self.coils, { read = f_read, write = f_write })
         _count_io()
         return #self.coils
@@ -100,7 +104,7 @@ rtu.init_unit = function ()
     -- connect input register
     ---@param f function
     ---@return integer count count of input registers
-    public.connect_input_reg = function (f)
+    protected.connect_input_reg = function (f)
         insert(self.input_regs, f)
         _count_io()
         return #self.input_regs
@@ -121,7 +125,7 @@ rtu.init_unit = function ()
     ---@param f_read function
     ---@param f_write function
     ---@return integer count count of holding registers
-    public.connect_holding_reg = function (f_read, f_write)
+    protected.connect_holding_reg = function (f_read, f_write)
         insert(self.holding_regs, { read = f_read, write = f_write })
         _count_io()
         return #self.holding_regs
@@ -146,7 +150,14 @@ rtu.init_unit = function ()
         return ppm.is_faulted()
     end
 
-    return public
+    -- public RTU device access
+
+    -- get the public interface to this RTU
+    protected.interface = function ()
+        return public
+    end
+
+    return protected
 end
 
 -- RTU Communications

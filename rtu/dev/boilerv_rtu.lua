@@ -1,29 +1,28 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local boilerv_rtu = {}
 
+-- create new boiler (mek 10.1+) device
+---@param boiler table
 boilerv_rtu.new = function (boiler)
     local self = {
         rtu = rtu.init_unit(),
         boiler = boiler
     }
 
-    local rtu_interface = function ()
-        return self.rtu
-    end
-
     -- discrete inputs --
-    -- none
+    self.rtu.connect_di(self.boiler.isFormed)
 
     -- coils --
     -- none
 
     -- input registers --
     -- multiblock properties
-    self.rtu.connect_input_reg(self.boiler.isFormed)
     self.rtu.connect_input_reg(self.boiler.getLength)
     self.rtu.connect_input_reg(self.boiler.getWidth)
     self.rtu.connect_input_reg(self.boiler.getHeight)
+    self.rtu.connect_input_reg(self.boiler.getMinPos)
+    self.rtu.connect_input_reg(self.boiler.getMaxPos)
     -- build properties
     self.rtu.connect_input_reg(self.boiler.getBoilCapacity)
     self.rtu.connect_input_reg(self.boiler.getSteamCapacity)
@@ -32,6 +31,7 @@ boilerv_rtu.new = function (boiler)
     self.rtu.connect_input_reg(self.boiler.getCooledCoolantCapacity)
     self.rtu.connect_input_reg(self.boiler.getSuperheaters)
     self.rtu.connect_input_reg(self.boiler.getMaxBoilRate)
+    self.rtu.connect_input_reg(self.boiler.getEnvironmentalLoss)
     -- current state
     self.rtu.connect_input_reg(self.boiler.getTemperature)
     self.rtu.connect_input_reg(self.boiler.getBoilRate)
@@ -52,9 +52,7 @@ boilerv_rtu.new = function (boiler)
     -- holding registers --
     -- none
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return self.rtu.interface()
 end
 
 return boilerv_rtu

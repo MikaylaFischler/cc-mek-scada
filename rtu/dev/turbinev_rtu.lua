@@ -1,19 +1,17 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local turbinev_rtu = {}
 
+-- create new turbine (mek 10.1+) device
+---@param turbine table
 turbinev_rtu.new = function (turbine)
     local self = {
         rtu = rtu.init_unit(),
         turbine = turbine
     }
 
-    local rtu_interface = function ()
-        return self.rtu
-    end
-
     -- discrete inputs --
-    -- none
+    self.rtu.connect_di(self.boiler.isFormed)
 
     -- coils --
     self.rtu.connect_coil(function () self.turbine.incrementDumpingMode() end, function () end)
@@ -21,10 +19,11 @@ turbinev_rtu.new = function (turbine)
 
     -- input registers --
     -- multiblock properties
-    self.rtu.connect_input_reg(self.boiler.isFormed)
     self.rtu.connect_input_reg(self.boiler.getLength)
     self.rtu.connect_input_reg(self.boiler.getWidth)
     self.rtu.connect_input_reg(self.boiler.getHeight)
+    self.rtu.connect_input_reg(self.boiler.getMinPos)
+    self.rtu.connect_input_reg(self.boiler.getMaxPos)
     -- build properties
     self.rtu.connect_input_reg(self.turbine.getBlades)
     self.rtu.connect_input_reg(self.turbine.getCoils)
@@ -50,11 +49,9 @@ turbinev_rtu.new = function (turbine)
     self.rtu.connect_input_reg(self.turbine.getEnergyFilledPercentage)
 
     -- holding registers --
-    self.rtu.conenct_holding_reg(self.turbine.setDumpingMode, self.turbine.getDumpingMode)
+    self.rtu.connect_holding_reg(self.turbine.setDumpingMode, self.turbine.getDumpingMode)
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return self.rtu.interface()
 end
 
 return turbinev_rtu

@@ -1,16 +1,14 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local boiler_rtu = {}
 
+-- create new boiler (mek 10.0) device
+---@param boiler table
 boiler_rtu.new = function (boiler)
     local self = {
         rtu = rtu.init_unit(),
         boiler = boiler
     }
-
-    local rtu_interface = function ()
-        return self.rtu
-    end
 
     -- discrete inputs --
     -- none
@@ -47,9 +45,7 @@ boiler_rtu.new = function (boiler)
     -- holding registers --
     -- none
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return self.rtu.interface()
 end
 
 return boiler_rtu

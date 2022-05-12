@@ -1,16 +1,20 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local energymachine_rtu = {}
 
+-- create new energy machine device
+---@param machine table
 energymachine_rtu.new = function (machine)
     local self = {
         rtu = rtu.init_unit(),
         machine = machine
     }
 
-    local rtu_interface = function ()
-        return self.rtu
-    end
+    ---@class rtu_device
+    local public = {}
+
+    -- get the RTU interface
+    public.rtu_interface = function () return self.rtu end
 
     -- discrete inputs --
     -- none
@@ -29,9 +33,7 @@ energymachine_rtu.new = function (machine)
     -- holding registers --
     -- none
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return public
 end
 
 return energymachine_rtu

@@ -22,7 +22,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.3"
+local RTU_VERSION = "alpha-v0.6.4"
 
 local rtu_t = types.rtu_t
 
@@ -122,13 +122,13 @@ for reactor_idx = 1, #rtu_redstone do
             -- link redstone in RTU
             local mode = rsio.get_io_mode(conf.channel)
             if mode == rsio.IO_MODE.DIGITAL_IN then
-                rs_rtu.link_di(conf.channel, conf.side, conf.bundled_color)
+                rs_rtu.link_di(conf.side, conf.bundled_color)
             elseif mode == rsio.IO_MODE.DIGITAL_OUT then
                 rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
             elseif mode == rsio.IO_MODE.ANALOG_IN then
-                rs_rtu.link_ai(conf.channel, conf.side)
+                rs_rtu.link_ai(conf.side)
             elseif mode == rsio.IO_MODE.ANALOG_OUT then
-                rs_rtu.link_ao(conf.channel, conf.side)
+                rs_rtu.link_ao(conf.side)
             else
                 -- should be unreachable code, we already validated channels
                 log.error("init> fell through if chain attempting to identify IO mode", true)
@@ -171,7 +171,7 @@ for i = 1, #rtu_devices do
         log.warning(message)
     else
         local type = ppm.get_type(rtu_devices[i].name)
-        local rtu_iface = nil
+        local rtu_iface = nil   ---@type rtu_device
         local rtu_type = ""
 
         if type == "boiler" then

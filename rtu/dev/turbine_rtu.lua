@@ -1,16 +1,14 @@
-local rtu = require("rtu")
+local rtu = require("rtu.rtu")
 
 local turbine_rtu = {}
 
+-- create new turbine (mek 10.0) device
+---@param turbine table
 turbine_rtu.new = function (turbine)
     local self = {
         rtu = rtu.init_unit(),
         turbine = turbine
     }
-
-    local rtu_interface = function ()
-        return self.rtu
-    end
 
     -- discrete inputs --
     -- none
@@ -42,9 +40,7 @@ turbine_rtu.new = function (turbine)
     -- holding registers --
     -- none
 
-    return {
-        rtu_interface = rtu_interface
-    }
+    return self.rtu.interface()
 end
 
 return turbine_rtu
