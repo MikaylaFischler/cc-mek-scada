@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 
 local print = util.print
 local println = util.println
@@ -262,7 +262,7 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
                     unit.reactor
                 }
 
-                if type == RTU_ADVERT_TYPES.REDSTONE then
+                if type == RTU_UNIT_TYPES.REDSTONE then
                     insert(advert, unit.device)
                 end
 

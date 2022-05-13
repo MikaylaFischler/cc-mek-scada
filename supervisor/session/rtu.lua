@@ -12,7 +12,7 @@ local rtu = {}
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local RTU_ADVERT_TYPES = comms.RTU_ADVERT_TYPES
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 
 local print = util.print
 local println = util.println
@@ -65,19 +65,19 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
             local u_type = unit_advert.type
 
             -- create unit by type
-            if u_type == RTU_ADVERT_TYPES.REDSTONE then
+            if u_type == RTU_UNIT_TYPES.REDSTONE then
 
-            elseif u_type == RTU_ADVERT_TYPES.BOILER then
+            elseif u_type == RTU_UNIT_TYPES.BOILER then
                 unit = svrs_boiler.new(self.id, unit_advert, self.out_q)
-            elseif u_type == RTU_ADVERT_TYPES.BOILER_VALVE then
+            elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                 -- @todo Mekanism 10.1+
-            elseif u_type == RTU_ADVERT_TYPES.TURBINE then
+            elseif u_type == RTU_UNIT_TYPES.TURBINE then
                 unit = svrs_turbine.new(self.id, unit_advert, self.out_q)
-            elseif u_type == RTU_ADVERT_TYPES.TURBINE_VALVE then
+            elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                 -- @todo Mekanism 10.1+
-            elseif u_type == RTU_ADVERT_TYPES.EMACHINE then
+            elseif u_type == RTU_UNIT_TYPES.EMACHINE then
                 unit = svrs_emachine.new(self.id, unit_advert, self.out_q)
-            elseif u_type == RTU_ADVERT_TYPES.IMATRIX then
+            elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- @todo Mekanism 10.1+
             end
 

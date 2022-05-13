@@ -48,8 +48,8 @@ local SCADA_MGMT_TYPES = {
     REMOTE_LINKED = 3   -- remote device linked
 }
 
----@alias RTU_ADVERT_TYPES integer
-local RTU_ADVERT_TYPES = {
+---@alias RTU_UNIT_TYPES integer
+local RTU_UNIT_TYPES = {
     REDSTONE = 0,       -- redstone I/O
     BOILER = 1,         -- boiler
     BOILER_VALVE = 2,   -- boiler mekanism 10.1+
@@ -63,7 +63,7 @@ comms.PROTOCOLS = PROTOCOLS
 comms.RPLC_TYPES = RPLC_TYPES
 comms.RPLC_LINKING = RPLC_LINKING
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
-comms.RTU_ADVERT_TYPES = RTU_ADVERT_TYPES
+comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
 
 -- generic SCADA packet object
 comms.scada_packet = function ()
@@ -562,44 +562,44 @@ end
 
 -- convert rtu_t to RTU advertisement type
 ---@param type rtu_t
----@return RTU_ADVERT_TYPES|nil
+---@return RTU_UNIT_TYPES|nil
 comms.rtu_t_to_advert_type = function (type)
     if type == rtu_t.redstone then
-        return RTU_ADVERT_TYPES.REDSTONE
+        return RTU_UNIT_TYPES.REDSTONE
     elseif type == rtu_t.boiler then
-        return RTU_ADVERT_TYPES.BOILER
+        return RTU_UNIT_TYPES.BOILER
     elseif type == rtu_t.boiler_valve then
-        return RTU_ADVERT_TYPES.BOILER_VALVE
+        return RTU_UNIT_TYPES.BOILER_VALVE
     elseif type == rtu_t.turbine then
-        return RTU_ADVERT_TYPES.TURBINE
+        return RTU_UNIT_TYPES.TURBINE
     elseif type == rtu_t.turbine_valve then
-        return RTU_ADVERT_TYPES.TURBINE_VALVE
+        return RTU_UNIT_TYPES.TURBINE_VALVE
     elseif type == rtu_t.energy_machine then
-        return RTU_ADVERT_TYPES.EMACHINE
+        return RTU_UNIT_TYPES.EMACHINE
     elseif type == rtu_t.induction_matrix then
-        return RTU_ADVERT_TYPES.IMATRIX
+        return RTU_UNIT_TYPES.IMATRIX
     end
 
     return nil
 end
 
 -- convert RTU advertisement type to rtu_t
----@param atype RTU_ADVERT_TYPES
+---@param atype RTU_UNIT_TYPES
 ---@return rtu_t|nil
 comms.advert_type_to_rtu_t = function (atype)
-    if atype == RTU_ADVERT_TYPES.REDSTONE then
+    if atype == RTU_UNIT_TYPES.REDSTONE then
         return rtu_t.redstone
-    elseif atype == RTU_ADVERT_TYPES.BOILER then
+    elseif atype == RTU_UNIT_TYPES.BOILER then
         return rtu_t.boiler
-    elseif atype == RTU_ADVERT_TYPES.BOILER_VALVE then
+    elseif atype == RTU_UNIT_TYPES.BOILER_VALVE then
         return rtu_t.boiler_valve
-    elseif atype == RTU_ADVERT_TYPES.TURBINE then
+    elseif atype == RTU_UNIT_TYPES.TURBINE then
         return rtu_t.turbine
-    elseif atype == RTU_ADVERT_TYPES.TURBINE_VALVE then
+    elseif atype == RTU_UNIT_TYPES.TURBINE_VALVE then
         return rtu_t.turbine_valve
-    elseif atype == RTU_ADVERT_TYPES.EMACHINE then
+    elseif atype == RTU_UNIT_TYPES.EMACHINE then
         return rtu_t.energy_machine
-    elseif atype == RTU_ADVERT_TYPES.IMATRIX then
+    elseif atype == RTU_UNIT_TYPES.IMATRIX then
         return rtu_t.induction_matrix
     end
 
