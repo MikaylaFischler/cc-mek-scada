@@ -79,7 +79,7 @@ boiler.new = function (session_id, advert, out_queue)
         }
     }
 
-    ---@class rtu_session_unit
+    ---@class unit_session
     local public = {}
 
     -- PRIVATE FUNCTIONS --

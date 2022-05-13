@@ -52,7 +52,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     local _parse_advertisement = function ()
         self.units = {}
         for i = 1, #self.advert do
-            local unit = nil
+            local unit = nil    ---@type unit_session
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -133,7 +133,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
             if self.units[pkt.unit_id] ~= nil then
-                local unit = self.units[pkt.unit_id]    ---@type rtu_session_unit
+                local unit = self.units[pkt.unit_id]    ---@type unit_session
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
