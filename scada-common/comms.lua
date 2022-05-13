@@ -560,10 +560,10 @@ comms.capi_packet = function ()
     return public
 end
 
--- convert rtu_t to RTU advertisement type
+-- convert rtu_t to RTU unit type
 ---@param type rtu_t
 ---@return RTU_UNIT_TYPES|nil
-comms.rtu_t_to_advert_type = function (type)
+comms.rtu_t_to_unit_type = function (type)
     if type == rtu_t.redstone then
         return RTU_UNIT_TYPES.REDSTONE
     elseif type == rtu_t.boiler then
@@ -583,23 +583,23 @@ comms.rtu_t_to_advert_type = function (type)
     return nil
 end
 
--- convert RTU advertisement type to rtu_t
----@param atype RTU_UNIT_TYPES
+-- convert RTU unit type to rtu_t
+---@param utype RTU_UNIT_TYPES
 ---@return rtu_t|nil
-comms.advert_type_to_rtu_t = function (atype)
-    if atype == RTU_UNIT_TYPES.REDSTONE then
+comms.advert_type_to_rtu_t = function (utype)
+    if utype == RTU_UNIT_TYPES.REDSTONE then
         return rtu_t.redstone
-    elseif atype == RTU_UNIT_TYPES.BOILER then
+    elseif utype == RTU_UNIT_TYPES.BOILER then
         return rtu_t.boiler
-    elseif atype == RTU_UNIT_TYPES.BOILER_VALVE then
+    elseif utype == RTU_UNIT_TYPES.BOILER_VALVE then
         return rtu_t.boiler_valve
-    elseif atype == RTU_UNIT_TYPES.TURBINE then
+    elseif utype == RTU_UNIT_TYPES.TURBINE then
         return rtu_t.turbine
-    elseif atype == RTU_UNIT_TYPES.TURBINE_VALVE then
+    elseif utype == RTU_UNIT_TYPES.TURBINE_VALVE then
         return rtu_t.turbine_valve
-    elseif atype == RTU_UNIT_TYPES.EMACHINE then
+    elseif utype == RTU_UNIT_TYPES.EMACHINE then
         return rtu_t.energy_machine
-    elseif atype == RTU_UNIT_TYPES.IMATRIX then
+    elseif utype == RTU_UNIT_TYPES.IMATRIX then
         return rtu_t.induction_matrix
     end
 

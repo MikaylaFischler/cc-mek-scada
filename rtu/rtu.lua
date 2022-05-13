@@ -252,8 +252,8 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
         local advertisement = {}
 
         for i = 1, #units do
-            local unit = units[i]           ---@type rtu_unit_registry_entry
-            local type = comms.rtu_t_to_advert_type(unit.type)
+            local unit = units[i]   --@type rtu_unit_registry_entry
+            local type = comms.rtu_t_to_unit_type(unit.type)
 
             if type ~= nil then
                 local advert = {
