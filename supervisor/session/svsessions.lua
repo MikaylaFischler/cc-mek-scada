@@ -125,10 +125,38 @@ svsessions.link_modem = function (modem)
     self.modem = modem
 end
 
--- find a session by the remote port
+-- find an RTU session by the remote port
+---@param remote_port integer
+---@return rtu_session_struct|nil
+svsessions.find_rtu_session = function (remote_port)
+    -- check RTU sessions
+    for i = 1, #self.rtu_sessions do
+        if self.rtu_sessions[i].r_port == remote_port then
+            return self.rtu_sessions[i]
+        end
+    end
+
+    return nil
+end
+
+-- find a PLC session by the remote port
+---@param remote_port integer
+---@return plc_session_struct|nil
+svsessions.find_plc_session = function (remote_port)
+    -- check PLC sessions
+    for i = 1, #self.plc_sessions do
+        if self.plc_sessions[i].r_port == remote_port then
+            return self.plc_sessions[i]
+        end
+    end
+
+    return nil
+end
+
+-- find a PLC/RTU session by the remote port
 ---@param remote_port integer
 ---@return plc_session_struct|rtu_session_struct|nil
-svsessions.find_session = function (remote_port)
+svsessions.find_device_session = function (remote_port)
     -- check RTU sessions
     for i = 1, #self.rtu_sessions do
         if self.rtu_sessions[i].r_port == remote_port then
@@ -143,6 +171,13 @@ svsessions.find_session = function (remote_port)
         end
     end
 
+    return nil
+end
+
+-- find a coordinator session by the remote port
+---@param remote_port integer
+---@return nil
+svsessions.find_coord_session = function (remote_port)
     -- check coordinator sessions
     for i = 1, #self.coord_sessions do
         if self.coord_sessions[i].r_port == remote_port then
@@ -155,7 +190,7 @@ end
 
 -- get a session by reactor ID
 ---@param reactor integer
----@return plc_session_struct session
+---@return plc_session_struct|nil session
 svsessions.get_reactor_session = function (reactor)
     local session = nil
 

@@ -149,10 +149,10 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
 
             -- device (RTU/PLC) listening channel
             if l_port == self.dev_listen then
-                -- look for an associated session
-                local session = svsessions.find_session(r_port)
-
                 if protocol == PROTOCOLS.MODBUS_TCP then
+                    -- look for an associated session
+                    local session = svsessions.find_rtu_session(r_port)
+
                     -- MODBUS response
                     if session ~= nil then
                         -- pass the packet onto the session handler
@@ -162,6 +162,9 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                         log.debug("discarding MODBUS_TCP packet without a known session")
                     end
                 elseif protocol == PROTOCOLS.RPLC then
+                    -- look for an associated session
+                    local session = svsessions.find_plc_session(r_port)
+
                     -- reactor PLC packet
                     if session ~= nil then
                         if packet.type == RPLC_TYPES.LINK_REQ then
@@ -200,6 +203,9 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                         end
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
+                    -- look for an associated session
+                    local session = svsessions.find_device_session(r_port)
+
                     -- SCADA management packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
@@ -222,6 +228,9 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                 end
             -- coordinator listening channel
             elseif l_port == self.coord_listen then
+                -- look for an associated session
+                local session = svsessions.find_coord_session(r_port)
+
                 if protocol == PROTOCOLS.SCADA_MGMT then
                     -- SCADA management packet
                 elseif protocol == PROTOCOLS.COORD_DATA then
