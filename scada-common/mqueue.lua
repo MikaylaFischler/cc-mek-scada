@@ -24,6 +24,10 @@ mqueue.new = function ()
     ---@field qtype TYPE
     ---@field message any
 
+    ---@class queue_data
+    ---@field key any
+    ---@field val any
+
     ---@class mqueue
     local public = {}
 
