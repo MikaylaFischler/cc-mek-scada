@@ -7,6 +7,7 @@ local txnctrl = require("supervisor.session.rtu.txnctrl")
 local emachine = {}
 
 local PROTOCOLS = comms.PROTOCOLS
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local rtu_t = types.rtu_t
@@ -27,7 +28,7 @@ local PERIODICS = {
 ---@param out_queue mqueue
 emachine.new = function (session_id, advert, out_queue)
     -- type check
-    if advert.type ~= rtu_t.energy_machine then
+    if advert.type ~= RTU_UNIT_TYPES.EMACHINE then
         log.error("attempt to instantiate emachine RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end

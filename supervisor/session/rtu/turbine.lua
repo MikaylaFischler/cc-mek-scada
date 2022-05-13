@@ -7,6 +7,7 @@ local txnctrl = require("supervisor.session.rtu.txnctrl")
 local turbine = {}
 
 local PROTOCOLS = comms.PROTOCOLS
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
@@ -30,7 +31,7 @@ local PERIODICS = {
 ---@param out_queue mqueue
 turbine.new = function (session_id, advert, out_queue)
     -- type check
-    if advert.type ~= rtu_t.turbine then
+    if advert.type ~= RTU_UNIT_TYPES.TURBINE then
         log.error("attempt to instantiate turbine RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
