@@ -5,18 +5,24 @@
 ---@class types
 local types = {}
 
+-- CLASSES --
+
 ---@class tank_fluid
-local tank_fluid = {
-    name = "mekanism:empty_gas",
-    amount = 0
-}
+---@field name string
+---@field amount integer
 
 ---@class coordinate
-local coordinate = {
-    x = 0,
-    y = 0,
-    z = 0
-}
+---@field x integer
+---@field y integer
+---@field z integer
+
+---@class rtu_advertisement
+---@field type integer
+---@field index integer
+---@field reactor integer
+---@field rsio table|nil
+
+-- STRING TYPES --
 
 ---@alias rtu_t string
 types.rtu_t = {
@@ -41,6 +47,14 @@ types.rps_status_t = {
     fault = "fault",
     timeout = "timeout",
     manual = "manual"
+}
+
+-- turbine steam dumping modes
+---@alias DUMPING_MODE string
+types.DUMPING_MODE = {
+    IDLE = "IDLE",
+    DUMPING = "DUMPING",
+    DUMPING_EXCESS = "DUMPING_EXCESS"
 }
 
 -- MODBUS
