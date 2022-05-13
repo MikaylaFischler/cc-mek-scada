@@ -4,9 +4,10 @@ local types = require("scada-common.types")
 
 local txnctrl = require("supervisor.session.rtu.txnctrl")
 
-local boiler = {}
+local turbine = {}
 
 local PROTOCOLS = comms.PROTOCOLS
+local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local rtu_t = types.rtu_t
@@ -23,18 +24,18 @@ local PERIODICS = {
     TANKS = 1000
 }
 
--- create a new boiler rtu session runner
+-- create a new turbine rtu session runner
 ---@param session_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-boiler.new = function (session_id, advert, out_queue)
+turbine.new = function (session_id, advert, out_queue)
     -- type check
-    if advert.type ~= rtu_t.boiler then
-        log.error("attempt to instantiate boiler RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= rtu_t.turbine then
+        log.error("attempt to instantiate turbine RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").boiler(" .. advert.index .. "): "
+    local log_tag = "session.rtu(" .. session_id .. ").turbine(" .. advert.index .. "): "
 
     local self = {
         uid = advert.index,
@@ -47,34 +48,29 @@ boiler.new = function (session_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0,
         },
-        ---@class boiler_session_db
+        ---@class turbine_session_db
         db = {
             build = {
-                boil_cap = 0.0,
+                blades = 0,
+                coils = 0,
+                vents = 0,
+                dispersers = 0,
+                condensers = 0,
                 steam_cap = 0,
-                water_cap = 0,
-                hcoolant_cap = 0,
-                ccoolant_cap = 0,
-                superheaters = 0,
-                max_boil_rate = 0.0
+                max_flow_rate = 0,
+                max_production = 0,
+                max_water_output = 0
             },
             state = {
-                temperature = 0.0,
-                boil_rate = 0.0
+                flow_rate = 0.0,
+                prod_rate = 0.0,
+                steam_input_rate = 0.0,
+                dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
             },
             tanks = {
                 steam = 0,
                 steam_need = 0,
-                steam_fill = 0.0,
-                water = 0,
-                water_need = 0,
-                water_fill = 0.0,
-                hcool = {},         ---@type tank_fluid
-                hcool_need = 0,
-                hcool_fill = 0.0,
-                ccool = {},         ---@type tank_fluid
-                ccool_need = 0,
-                ccool_fill = 0.0
+                steam_fill = 0.0
             }
         }
     }
@@ -95,20 +91,20 @@ boiler.new = function (session_id, advert, out_queue)
 
     -- query the build of the device
     local _request_build = function ()
-        -- read input registers 1 through 7 (start = 1, count = 7)
-        _send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 })
+        -- read input registers 1 through 9 (start = 1, count = 9)
+        _send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
     end
 
     -- query the state of the device
     local _request_state = function ()
-        -- read input registers 8 through 9 (start = 8, count = 2)
-        _send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 8, 2 })
+        -- read input registers 10 through 13 (start = 10, count = 4)
+        _send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 4 })
     end
 
     -- query the tanks of the device
     local _request_tanks = function ()
-        -- read input registers 10 through 21 (start = 10, count = 12)
-        _send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 10, 12 })
+        -- read input registers 14 through 16 (start = 14, count = 3)
+        _send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 14, 3 })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -123,42 +119,37 @@ boiler.new = function (session_id, advert, out_queue)
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
                 if txn_type == TXN_TYPES.BUILD then
                     -- build response
-                    if m_pkt.length == 7 then
-                        self.db.build.boil_cap = m_pkt.data[1]
-                        self.db.build.steam_cap = m_pkt.data[2]
-                        self.db.build.water_cap = m_pkt.data[3]
-                        self.db.build.hcoolant_cap = m_pkt.data[4]
-                        self.db.build.ccoolant_cap = m_pkt.data[5]
-                        self.db.build.superheaters = m_pkt.data[6]
-                        self.db.build.max_boil_rate = m_pkt.data[7]
+                    if m_pkt.length == 9 then
+                        self.db.build.blades = m_pkt.data[1]
+                        self.db.build.coils = m_pkt.data[2]
+                        self.db.build.vents = m_pkt.data[3]
+                        self.db.build.dispersers = m_pkt.data[4]
+                        self.db.build.condensers = m_pkt.data[5]
+                        self.db.build.steam_cap = m_pkt.data[6]
+                        self.db.build.max_flow_rate = m_pkt.data[7]
+                        self.db.build.max_production = m_pkt.data[8]
+                        self.db.build.max_water_output = m_pkt.data[9]
                     else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.build)")
+                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.build)")
                     end
                 elseif txn_type == TXN_TYPES.STATE then
                     -- state response
-                    if m_pkt.length == 2 then
-                        self.db.state.temperature = m_pkt.data[1]
-                        self.db.state.boil_rate = m_pkt.data[2]
+                    if m_pkt.length == 4 then
+                        self.db.state.flow_rate = m_pkt.data[1]
+                        self.db.state.prod_rate = m_pkt.data[2]
+                        self.db.state.steam_input_rate = m_pkt.data[3]
+                        self.db.state.dumping_mode = m_pkt.data[4]
                     else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.state)")
+                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.state)")
                     end
                 elseif txn_type == TXN_TYPES.TANKS then
                     -- tanks response
-                    if m_pkt.length == 12 then
+                    if m_pkt.length == 3 then
                         self.db.tanks.steam = m_pkt.data[1]
                         self.db.tanks.steam_need = m_pkt.data[2]
                         self.db.tanks.steam_fill = m_pkt.data[3]
-                        self.db.tanks.water = m_pkt.data[4]
-                        self.db.tanks.water_need = m_pkt.data[5]
-                        self.db.tanks.water_fill = m_pkt.data[6]
-                        self.db.tanks.hcool = m_pkt.data[7]
-                        self.db.tanks.hcool_need = m_pkt.data[8]
-                        self.db.tanks.hcool_fill = m_pkt.data[9]
-                        self.db.tanks.ccool = m_pkt.data[10]
-                        self.db.tanks.ccool_need = m_pkt.data[11]
-                        self.db.tanks.ccool_fill = m_pkt.data[12]
                     else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.tanks)")
+                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.tanks)")
                     end
                 elseif txn_type == nil then
                     log.error(log_tag .. "unknown transaction reply")
@@ -201,4 +192,4 @@ boiler.new = function (session_id, advert, out_queue)
     return public
 end
 
-return boiler
+return turbine

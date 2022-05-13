@@ -26,7 +26,6 @@ local println_ts = util.println_ts
 ---@param coord_listen integer
 supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     local self = {
-        ln_seq_num = 0,
         num_reactors = num_reactors,
         modem = modem,
         dev_listen = dev_listen,
@@ -59,15 +58,27 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
     -- send PLC link request responses
     ---@param dest integer
     ---@param msg table
-    local _send_plc_linking = function (dest, msg)
+    local _send_plc_linking = function (seq_id, dest, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
         r_pkt.make(0, RPLC_TYPES.LINK_REQ, msg)
-        s_pkt.make(self.ln_seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+        s_pkt.make(seq_id, PROTOCOLS.RPLC, r_pkt.raw_sendable())
 
         self.modem.transmit(dest, self.dev_listen, s_pkt.raw_sendable())
-        self.ln_seq_num = self.ln_seq_num + 1
+    end
+
+    -- send RTU advertisement responses
+    ---@param seq_id integer
+    ---@param dest integer
+    local _send_remote_linked = function (seq_id, dest)
+        local s_pkt = comms.scada_packet()
+        local m_pkt = comms.mgmt_packet()
+
+        m_pkt.make(SCADA_MGMT_TYPES.REMOTE_LINKED, {})
+        s_pkt.make(seq_id, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+
+        self.modem.transmit(dest, self.dev_listen, s_pkt.raw_sendable())
     end
 
     -- PUBLIC FUNCTIONS --
@@ -143,18 +154,27 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
 
                 if protocol == PROTOCOLS.MODBUS_TCP then
                     -- MODBUS response
+                    if session ~= nil then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    else
+                        -- any other packet should be session related, discard it
+                        log.debug("discarding MODBUS_TCP packet without a known session")
+                    end
                 elseif protocol == PROTOCOLS.RPLC then
                     -- reactor PLC packet
                     if session ~= nil then
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             -- new device on this port? that's a collision
                             log.debug("PLC_LNK: request from existing connection received on " .. r_port .. ", responding with collision")
-                            _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
+                            _send_plc_linking(packet.scada_frame.seq_num() + 1, r_port, { RPLC_LINKING.COLLISION })
                         else
                             -- pass the packet onto the session handler
                             session.in_queue.push_packet(packet)
                         end
                     else
+                        local next_seq_id = packet.scada_frame.seq_num() + 1
+
                         -- unknown session, is this a linking request?
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             if packet.length == 1 then
@@ -163,12 +183,12 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                                 if plc_id == false then
                                     -- reactor already has a PLC assigned
                                     log.debug("PLC_LNK: assignment collision with reactor " .. packet.data[1])
-                                    _send_plc_linking(r_port, { RPLC_LINKING.COLLISION })
+                                    _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.COLLISION })
                                 else
                                     -- got an ID; assigned to a reactor successfully
                                     println("connected to reactor " .. packet.data[1] .. " PLC (port " .. r_port .. ")")
                                     log.debug("PLC_LNK: allowed for device at " .. r_port)
-                                    _send_plc_linking(r_port, { RPLC_LINKING.ALLOW })
+                                    _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.ALLOW })
                                 end
                             else
                                 log.debug("PLC_LNK: new linking packet length mismatch")
@@ -176,7 +196,7 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                         else
                             -- force a re-link
                             log.debug("PLC_LNK: no session but not a link, force relink")
-                            _send_plc_linking(r_port, { RPLC_LINKING.DENY })
+                            _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.DENY })
                         end
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
@@ -184,6 +204,18 @@ supervisor.comms = function (num_reactors, modem, dev_listen, coord_listen)
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
+                    else
+                        -- is this an RTU advertisement?
+                        if packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
+                            local rtu_id = svsessions.establish_rtu_session(l_port, r_port, packet.data)
+
+                            println("connected to RTU (port " .. r_port .. ")")
+                            log.debug("RTU_ADVERT: linked " .. r_port)
+                            _send_remote_linked(packet.scada_frame.seq_num() + 1, r_port)
+                        else
+                            -- any other packet should be session related, discard it
+                            log.debug("discarding SCADA_MGMT packet without a known session")
+                        end
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " on device listening channel")

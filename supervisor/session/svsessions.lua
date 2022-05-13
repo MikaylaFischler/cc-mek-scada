@@ -53,7 +53,7 @@ local function _iterate(sessions)
 end
 
 -- cleanly close a session
----@param session plc_session_struct
+---@param session plc_session_struct|rtu_session_struct
 local function _shutdown(session)
     session.open = false
     session.instance.close()
@@ -127,7 +127,7 @@ end
 
 -- find a session by the remote port
 ---@param remote_port integer
----@return plc_session_struct|nil
+---@return plc_session_struct|rtu_session_struct|nil
 svsessions.find_session = function (remote_port)
     -- check RTU sessions
     for i = 1, #self.rtu_sessions do
@@ -199,6 +199,33 @@ svsessions.establish_plc_session = function (local_port, remote_port, for_reacto
         -- reactor already assigned to a PLC
         return false
     end
+end
+
+-- establish a new RTU session
+---@param local_port integer
+---@param remote_port integer
+---@param advertisement table
+---@return integer session_id
+svsessions.establish_rtu_session = function (local_port, remote_port, advertisement)
+    ---@class rtu_session_struct
+    local rtu_s = {
+        open = true,
+        l_port = local_port,
+        r_port = remote_port,
+        in_queue = mqueue.new(),
+        out_queue = mqueue.new(),
+        instance = nil
+    }
+
+    rtu_s.instance = rtu.new_session(self.next_rtu_id, rtu_s.in_queue, rtu_s.out_queue, advertisement)
+    table.insert(self.rtu_sessions, rtu_s)
+
+    log.debug("established new RTU session to " .. remote_port .. " with ID " .. self.next_rtu_id)
+
+    self.next_rtu_id = self.next_rtu_id + 1
+
+    -- success
+    return rtu_s.instance.get_id()
 end
 
 -- attempt to identify which session's watchdog timer fired
