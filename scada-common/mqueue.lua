@@ -21,10 +21,8 @@ mqueue.new = function ()
     local remove = table.remove
 
     ---@class queue_item
-    local queue_item = {
-        qtype = 0,  ---@type TYPE
-        message = 0 ---@type any
-    }
+    ---@field qtype TYPE
+    ---@field message any
 
     ---@class mqueue
     local public = {}
