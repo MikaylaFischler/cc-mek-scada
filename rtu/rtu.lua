@@ -256,16 +256,14 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
             local type = comms.rtu_t_to_advert_type(unit.type)
 
             if type ~= nil then
-                ---@class rtu_advertisement
                 local advert = {
-                    type = type,            ---@type integer
-                    index = unit.index,     ---@type integer
-                    reactor = unit.reactor, ---@type integer
-                    rsio = nil              ---@type table|nil
+                    type,
+                    unit.index,
+                    unit.reactor
                 }
 
                 if type == RTU_ADVERT_TYPES.REDSTONE then
-                    advert.rsio = unit.device
+                    insert(advert, unit.device)
                 end
 
                 insert(advertisement, advert)
