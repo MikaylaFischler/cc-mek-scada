@@ -1,5 +1,5 @@
 --
--- Initialize the Boot Environment
+-- Initialize the Post-Boot Module Environment
 --
 
 -- initialize booted environment
