@@ -2,6 +2,8 @@
 -- Reactor Programmable Logic Controller
 --
 
+require("/initenv").init_env()
+
 local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
 local ppm = require("scada-common.ppm")

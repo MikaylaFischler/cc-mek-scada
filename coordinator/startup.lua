@@ -2,6 +2,8 @@
 -- Nuclear Generation Facility SCADA Coordinator
 --
 
+require("/initenv").init_env()
+
 local log = require("scada-common.log")
 local ppm = require("scada-common.ppm")
 local util = require("scada-common.util")

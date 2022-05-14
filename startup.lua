@@ -1,6 +1,6 @@
 local util = require("scada-common.util")
 
-local BOOTLOADER_VERSION = "0.1"
+local BOOTLOADER_VERSION = "0.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -43,9 +43,7 @@ else
     return false
 end
 
-if exit_code then
-    println_ts("BOOT> APPLICATION EXITED OK")
-else
+if not exit_code then
     println_ts("BOOT> APPLICATION CRASHED")
 end
 
