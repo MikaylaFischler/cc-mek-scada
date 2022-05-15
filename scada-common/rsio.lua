@@ -11,7 +11,8 @@ local rsio = {}
 ---@alias IO_LVL integer
 local IO_LVL = {
     LOW = 0,
-    HIGH = 1
+    HIGH = 1,
+    DISCONNECT = 2  -- use for RTU session to indicate this RTU is not connected to this channel
 }
 
 ---@alias IO_DIR integer

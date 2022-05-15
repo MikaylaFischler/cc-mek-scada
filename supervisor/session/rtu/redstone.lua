@@ -1,66 +1,97 @@
 local comms = require("scada-common.comms")
 local log = require("scada-common.log")
+local rsio = require("scada-common.rsio")
 local types = require("scada-common.types")
 
 local txnctrl = require("supervisor.session.rtu.txnctrl")
 
-local emachine = {}
+local redstone = {}
 
 local PROTOCOLS = comms.PROTOCOLS
 local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local MODBUS_FCODE = types.MODBUS_FCODE
 
+local RS_IO = rsio.IO
+local IO_LVL = rsio.IO_LVL
+local IO_DIR = rsio.IO_DIR
+local IO_MODE = rsio.IO_MODE
+
 local rtu_t = types.rtu_t
 
 local TXN_TYPES = {
-    BUILD = 0,
-    STORAGE = 1
+    DI_READ = 0,
+    INPUT_REG_READ = 1
 }
 
 local PERIODICS = {
-    BUILD = 1000,
-    STORAGE = 500
+    INPUT_READ = 200
 }
 
--- create a new energy machine rtu session runner
+-- create a new redstone rtu session runner
 ---@param session_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-emachine.new = function (session_id, advert, out_queue)
+redstone.new = function (session_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.EMACHINE then
-        log.error("attempt to instantiate emachine RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= RTU_UNIT_TYPES.REDSTONE then
+        log.error("attempt to instantiate redstone RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").emachine(" .. advert.index .. "): "
+    local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. advert.index .. "): "
 
     local self = {
         uid = advert.index,
-        -- reactor = advert.reactor,
-        reactor = 0,
+        reactor = advert.reactor,
         out_q = out_queue,
         transaction_controller = txnctrl.new(),
-        has_build = false,
+        has_di = false,
+        has_ai = false,
         periodics = {
-            next_build_req = 0,
-            next_storage_req = 0,
+            next_di_req = 0,
+            next_ir_req = 0,
         },
-        ---@class emachine_session_db
-        db = {
-            build = {
-                max_energy = 0
-            },
-            storage = {
-                energy = 0,
-                energy_need = 0,
-                energy_fill = 0.0
-            }
-        }
+        io_list = {
+            digital_in = {},    -- discrete inputs
+            digital_out = {},   -- coils
+            analog_in = {},     -- input registers
+            analog_out = {}     -- holding registers
+        },
+        db = {}
     }
 
     ---@class unit_session
     local public = {}
+
+    -- INITIALIZE --
+
+    for _ = 1, #RS_IO do
+        table.insert(self.db, IO_LVL.DISCONNECT)
+    end
+
+    for i = 1, #advert.rsio do
+        local channel = advert.rsio[i]
+        local mode = rsio.get_io_mode(channel)
+
+        if mode == IO_MODE.DIGITAL_IN then
+            self.has_di = true
+            table.insert(self.io_list.digital_in, channel)
+        elseif mode == IO_MODE.DIGITAL_OUT then
+            table.insert(self.io_list.digital_out, channel)
+        elseif mode == IO_MODE.ANALOG_IN then
+            self.has_ai = true
+            table.insert(self.io_list.analog_in, channel)
+        elseif mode == IO_MODE.ANALOG_OUT then
+            table.insert(self.io_list.analog_out, channel)
+        else
+            -- should be unreachable code, we already validated channels
+            log.error(log_tag .. "failed to identify advertisement channel IO mode (" .. channel .. ")", true)
+            return nil
+        end
+
+        self.db[channel] = IO_LVL.LOW
+    end
+
 
     -- PRIVATE FUNCTIONS --
 
@@ -73,16 +104,14 @@ emachine.new = function (session_id, advert, out_queue)
         self.out_q.push_packet(m_pkt)
     end
 
-    -- query the build of the device
-    local _request_build = function ()
-        -- read input register 1 (start = 1, count = 1)
-        _send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 1 })
+    -- query discrete inputs
+    local _request_discrete_inputs = function ()
+        _send_request(TXN_TYPES.DI_READ, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, #self.io_list.digital_in })
     end
 
-    -- query the state of the energy storage
-    local _request_storage = function ()
-        -- read input registers 2 through 4 (start = 2, count = 3)
-        _send_request(TXN_TYPES.STORAGE, MODBUS_FCODE.READ_INPUT_REGS, { 2, 3 })
+    -- query input registers
+    local _request_input_registers = function ()
+        _send_request(TXN_TYPES.INPUT_REG_READ, MODBUS_FCODE.READ_INPUT_REGS, { 1, #self.io_list.analog_in })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -95,14 +124,14 @@ emachine.new = function (session_id, advert, out_queue)
         if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
             if m_pkt.unit_id == self.uid then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
-                if txn_type == TXN_TYPES.BUILD then
+                if txn_type == TXN_TYPES.DI_READ then
                     -- build response
                     if m_pkt.length == 1 then
                         self.db.build.max_energy = m_pkt.data[1]
                     else
                         log.debug(log_tag .. "MODBUS transaction reply length mismatch (emachine.build)")
                     end
-                elseif txn_type == TXN_TYPES.STORAGE then
+                elseif txn_type == TXN_TYPES.INPUT_REG_READ then
                     -- storage response
                     if m_pkt.length == 3 then
                         self.db.storage.energy = m_pkt.data[1]
@@ -133,18 +162,22 @@ emachine.new = function (session_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     public.update = function (time_now)
-        if not self.has_build and self.periodics.next_build_req <= time_now then
-            _request_build()
-            self.periodics.next_build_req = time_now + PERIODICS.BUILD
+        if self.has_di then
+            if self.periodics.next_di_req <= time_now then
+                _request_discrete_inputs()
+                self.periodics.next_di_req = time_now + PERIODICS.BUILD
+            end
         end
 
-        if self.periodics.next_storage_req <= time_now then
-            _request_storage()
-            self.periodics.next_storage_req = time_now + PERIODICS.STORAGE
+        if self.has_ai then
+            if self.periodics.next_ir_req <= time_now then
+                _request_input_registers()
+                self.periodics.next_ir_req = time_now + PERIODICS.STORAGE
+            end
         end
     end
 
     return public
 end
 
-return emachine
+return redstone

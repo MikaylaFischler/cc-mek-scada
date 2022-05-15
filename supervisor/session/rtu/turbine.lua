@@ -174,19 +174,19 @@ turbine.new = function (session_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     public.update = function (time_now)
-        if not self.has_build and self.next_build_req <= time_now then
+        if not self.has_build and self.periodics.next_build_req <= time_now then
             _request_build()
-            self.next_build_req = time_now + PERIODICS.BUILD
+            self.periodics.next_build_req = time_now + PERIODICS.BUILD
         end
 
-        if self.next_state_req <= time_now then
+        if self.periodics.next_state_req <= time_now then
             _request_state()
-            self.next_state_req = time_now + PERIODICS.STATE
+            self.periodics.next_state_req = time_now + PERIODICS.STATE
         end
 
-        if self.next_tanks_req <= time_now then
+        if self.periodics.next_tanks_req <= time_now then
             _request_tanks()
-            self.next_tanks_req = time_now + PERIODICS.TANKS
+            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
         end
     end
 

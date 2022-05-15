@@ -6,6 +6,7 @@ local util = require("scada-common.util")
 -- supervisor rtu sessions (svrs)
 local svrs_boiler = require("supervisor.session.rtu.boiler")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
+local svrs_redstone = require("supervisor.session.rtu.redstone")
 local svrs_turbine = require("supervisor.session.rtu.turbine")
 
 local rtu = {}
@@ -19,9 +20,25 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
+local RTU_S_CMDS = {
+}
+
+local RTU_S_DATA = {
+    RS_COMMAND = 1,
+    UNIT_COMMAND = 2
+}
+
+rtu.RTU_S_CMDS = RTU_S_CMDS
+rtu.RTU_S_DATA = RTU_S_DATA
+
 local PERIODICS = {
     KEEP_ALIVE = 2.0
 }
+
+---@class rs_session_command
+---@field reactor integer
+---@field channel RS_IO
+---@field active boolean
 
 -- create a new RTU session
 ---@param id integer
@@ -42,31 +59,32 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
         connected = true,
         rtu_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
+        rs_io = {},
         units = {}
     }
 
     ---@class rtu_session
     local public = {}
 
-    -- parse the recorded advertisement
-    local _parse_advertisement = function ()
+    -- parse the recorded advertisement and create unit sub-sessions
+    local _handle_advertisement = function ()
         self.units = {}
         for i = 1, #self.advert do
-            local unit = nil    ---@type unit_session
+            local unit = nil    ---@type unit_session|nil
 
             ---@type rtu_advertisement
             local unit_advert = {
-                type = self.advert[i][0],
-                index = self.advert[i][1],
-                reactor = self.advert[i][2],
-                rsio = self.advert[i][3]
+                type = self.advert[i][1],
+                index = self.advert[i][2],
+                reactor = self.advert[i][3],
+                rsio = self.advert[i][4]
             }
 
             local u_type = unit_advert.type
 
             -- create unit by type
             if u_type == RTU_UNIT_TYPES.REDSTONE then
-
+                unit = svrs_redstone.new(self.id, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then
                 unit = svrs_boiler.new(self.id, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
@@ -79,25 +97,18 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                 unit = svrs_emachine.new(self.id, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- @todo Mekanism 10.1+
+            else
+                log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
             end
 
             if unit ~= nil then
                 table.insert(self.units, unit)
             else
                 self.units = {}
-                log.error(log_header .. "bad advertisement; encountered unsupported RTU type")
+                log.error(log_header .. "bad advertisement: error occured while creating a unit")
                 break
             end
         end
-    end
-
-    -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_packet
-    local _send_modbus = function (m_pkt)
-        local s_pkt = comms.scada_packet()
-        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
@@ -137,7 +148,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-
+            -- handle management packet
             if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
@@ -160,8 +171,9 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                 self.connected = false
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                 -- RTU unit advertisement
+                -- handle advertisement; this will re-create all unit sub-sessions
                 self.advert = pkt.data
-                _parse_advertisement()
+                _handle_advertisement()
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
@@ -193,14 +205,6 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     public.iterate = function ()
         if self.connected then
             ------------------
-            -- update units --
-            ------------------
-
-            for i = 1, #self.units do
-                self.units[i].update()
-            end
-
-            ------------------
             -- handle queue --
             ------------------
 
@@ -218,6 +222,11 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                         -- handle instruction
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
+                        local cmd = msg.message ---@type queue_data
+
+                        if cmd.key == RTU_S_DATA.RS_COMMAND then
+                            local rs_cmd = cmd.val  ---@type rs_session_command
+                        end
                     end
                 end
 
@@ -234,6 +243,14 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                 println(log_header .. "connection to RTU closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
+            end
+
+            ------------------
+            -- update units --
+            ------------------
+
+            for i = 1, #self.units do
+                self.units[i].update()
             end
 
             ----------------------
