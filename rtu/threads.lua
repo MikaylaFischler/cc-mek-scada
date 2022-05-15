@@ -23,7 +23,7 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
-local COMMS_SLEEP = 150 -- (150ms, 3 ticks)
+local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
 ---@param smem rtu_shared_memory

@@ -45,7 +45,7 @@ rtu.init_unit = function ()
     -- return IO count
     ---@return integer discrete_inputs, integer coils, integer input_regs, integer holding_regs
     public.io_count = function ()
-        return self.io_count_cache[0], self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3]
+        return self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3], self.io_count_cache[4]
     end
 
     -- discrete inputs: single bit read-only

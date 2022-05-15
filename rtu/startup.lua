@@ -24,7 +24,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.4"
+local RTU_VERSION = "alpha-v0.6.5"
 
 local rtu_t = types.rtu_t
 
@@ -94,13 +94,14 @@ local rtu_redstone = config.RTU_REDSTONE
 local rtu_devices = config.RTU_DEVICES
 
 -- redstone interfaces
-for reactor_idx = 1, #rtu_redstone do
+for entry_idx = 1, #rtu_redstone do
     local rs_rtu = redstone_rtu.new()
-    local io_table = rtu_redstone[reactor_idx].io
+    local io_table = rtu_redstone[entry_idx].io
+    local io_reactor = rtu_redstone[entry_idx].for_reactor
 
     local capabilities = {}
 
-    log.debug("init> starting redstone RTU I/O linking for reactor " .. rtu_redstone[reactor_idx].for_reactor .. "...")
+    log.debug("init> starting redstone RTU I/O linking for reactor " .. io_reactor .. "...")
 
     for i = 1, #io_table do
         local valid = false
@@ -116,8 +117,8 @@ for reactor_idx = 1, #rtu_redstone do
         end
 
         if not valid then
-            local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. reactor_idx ..
-                " (for reactor " .. rtu_redstone[reactor_idx].for_reactor .. ")"
+            local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. entry_idx ..
+                " (for reactor " .. io_reactor .. ")"
             println_ts(message)
             log.warning(message)
         else
@@ -140,7 +141,7 @@ for reactor_idx = 1, #rtu_redstone do
             table.insert(capabilities, conf.channel)
 
             log.debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
-                ") for reactor " .. rtu_redstone[reactor_idx].for_reactor)
+                ") for reactor " .. io_reactor)
         end
     end
 
@@ -148,8 +149,8 @@ for reactor_idx = 1, #rtu_redstone do
     local unit = {
         name = "redstone_io",
         type = rtu_t.redstone,
-        index = 1,
-        reactor = rtu_redstone[reactor_idx].for_reactor,
+        index = entry_idx,
+        reactor = io_reactor,
         device = capabilities,  -- use device field for redstone channels
         rtu = rs_rtu,
         modbus_io = modbus.new(rs_rtu, false),
@@ -160,7 +161,7 @@ for reactor_idx = 1, #rtu_redstone do
 
     table.insert(units, unit)
 
-    log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. rtu_redstone[reactor_idx].for_reactor)
+    log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. io_reactor)
 end
 
 -- mounted peripherals
