@@ -125,20 +125,26 @@ redstone.new = function (session_id, advert, out_queue)
             if m_pkt.unit_id == self.uid then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
                 if txn_type == TXN_TYPES.DI_READ then
-                    -- build response
-                    if m_pkt.length == 1 then
-                        self.db.build.max_energy = m_pkt.data[1]
+                    -- discrete input read response
+                    if m_pkt.length == #self.io_list.digital_in then
+                        for i = 1, m_pkt.length do
+                            local channel = self.io_list.digital_in[i]
+                            local value = m_pkt.data[i]
+                            self.db[channel] = value
+                        end
                     else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (emachine.build)")
+                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.discrete_input_read)")
                     end
                 elseif txn_type == TXN_TYPES.INPUT_REG_READ then
-                    -- storage response
-                    if m_pkt.length == 3 then
-                        self.db.storage.energy = m_pkt.data[1]
-                        self.db.storage.energy_need = m_pkt.data[2]
-                        self.db.storage.energy_fill = m_pkt.data[3]
+                    -- input register read response
+                    if m_pkt.length == #self.io_list.analog_in then
+                        for i = 1, m_pkt.length do
+                            local channel = self.io_list.analog_in[i]
+                            local value = m_pkt.data[i]
+                            self.db[channel] = value
+                        end
                     else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (emachine.storage)")
+                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.input_reg_read)")
                     end
                 elseif txn_type == nil then
                     log.error(log_tag .. "unknown transaction reply")
@@ -165,14 +171,14 @@ redstone.new = function (session_id, advert, out_queue)
         if self.has_di then
             if self.periodics.next_di_req <= time_now then
                 _request_discrete_inputs()
-                self.periodics.next_di_req = time_now + PERIODICS.BUILD
+                self.periodics.next_di_req = time_now + PERIODICS.INPUT_READ
             end
         end
 
         if self.has_ai then
             if self.periodics.next_ir_req <= time_now then
                 _request_input_registers()
-                self.periodics.next_ir_req = time_now + PERIODICS.STORAGE
+                self.periodics.next_ir_req = time_now + PERIODICS.INPUT_READ
             end
         end
     end
