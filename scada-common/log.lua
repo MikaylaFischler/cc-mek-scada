@@ -21,7 +21,8 @@ local LOG_DEBUG = true
 local _log_sys = {
     path = "/log.txt",
     mode = MODE.APPEND,
-    file = nil
+    file = nil,
+    dmesg_out = nil
 }
 
 ---@type function
@@ -30,7 +31,8 @@ local free_space = fs.getFreeSpace
 -- initialize logger
 ---@param path string file path
 ---@param write_mode MODE
-log.init = function (path, write_mode)
+---@param dmesg_redirect? table terminal/window to direct dmesg to
+log.init = function (path, write_mode, dmesg_redirect)
     _log_sys.path = path
     _log_sys.mode = write_mode
 
@@ -38,6 +40,12 @@ log.init = function (path, write_mode)
         _log_sys.file = fs.open(path, "a")
     else
         _log_sys.file = fs.open(path, "w+")
+    end
+
+    if dmesg_redirect then
+        _log_sys.dmesg_out = dmesg_redirect
+    else
+        _log_sys.dmesg_out = term.current()
     end
 end
 
@@ -74,6 +82,64 @@ local _log = function (msg)
         _log_sys.file.writeLine(stamped)
         _log_sys.file.flush()
     end
+end
+
+-- write a message to the dmesg output
+---@param msg string message to write
+local _write = function (msg)
+    local out = _log_sys.dmesg_out
+    local out_w, out_h = out.getSize()
+
+    local lines = { msg }
+
+    -- wrap if needed
+    if string.len(msg) > out_w then
+        local remaining = true
+        local s_start = 1
+        local s_end = out_w
+        local i = 1
+
+        lines = {}
+
+        while remaining do
+            local line = string.sub(msg, s_start, s_end)
+
+            if line == "" then
+                remaining = false
+            else
+                lines[i] = line
+
+                s_start = s_end + 1
+                s_end = s_end + out_w
+                i = i + 1
+            end
+        end
+    end
+
+    -- output message
+    for i = 1, #lines do
+        local cur_x, cur_y = out.getCursorPos()
+
+        if cur_x > 1 then
+            if cur_y == out_h then
+                out.scroll(1)
+                out.setCursorPos(1, cur_y)
+            else
+                out.setCursorPos(1, cur_y + 1)
+            end
+        end
+
+        out.write(lines[i])
+    end
+end
+
+-- dmesg style logging for boot because I like linux-y things
+---@param msg string message
+---@param show_term? boolean whether or not to show on terminal output
+log.dmesg = function (msg, show_term)
+    local message = string.format("[%10.3f] ", os.clock()) .. msg
+    if show_term then _write(message) end
+    _log(message)
 end
 
 -- log debug messages
