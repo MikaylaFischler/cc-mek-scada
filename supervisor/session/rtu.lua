@@ -1,6 +1,7 @@
 local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
+local rsio = require("scada-common.rsio")
 local util = require("scada-common.util")
 
 -- supervisor rtu sessions (svrs)
@@ -38,7 +39,7 @@ local PERIODICS = {
 ---@class rs_session_command
 ---@field reactor integer
 ---@field channel RS_IO
----@field active boolean
+---@field value integer|boolean
 
 -- create a new RTU session
 ---@param id integer
@@ -59,7 +60,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
         connected = true,
         rtu_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
-        rs_io = {},
+        rs_io_q = {},
         units = {}
     }
 
@@ -69,8 +70,11 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     -- parse the recorded advertisement and create unit sub-sessions
     local _handle_advertisement = function ()
         self.units = {}
+        self.rs_io_q = {}
+
         for i = 1, #self.advert do
             local unit = nil    ---@type unit_session|nil
+            local rs_in_q = nil ---@type mqueue|nil
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -84,7 +88,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
             -- create unit by type
             if u_type == RTU_UNIT_TYPES.REDSTONE then
-                unit = svrs_redstone.new(self.id, unit_advert, self.out_q)
+                unit, rs_in_q = svrs_redstone.new(self.id, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then
                 unit = svrs_boiler.new(self.id, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
@@ -103,9 +107,23 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
             if unit ~= nil then
                 table.insert(self.units, unit)
+
+                if self.rs_io_q[unit_advert.reactor] == nil then
+                    self.rs_io_q[unit_advert.reactor] = rs_in_q
+                else
+                    self.units = {}
+                    self.rs_io_q = {}
+                    log.error(log_header .. "bad advertisement: duplicate redstone RTU for reactor " .. unit_advert.reactor)
+                    break
+                end
             else
                 self.units = {}
-                log.error(log_header .. "bad advertisement: error occured while creating a unit")
+                self.rs_io_q = {}
+
+                local type_string = comms.advert_type_to_rtu_t(u_type)
+                if type_string == nil then type_string = "unknown" end
+
+                log.error(log_header .. "bad advertisement: error occured while creating a unit (type is " .. type_string .. ")")
                 break
             end
         end
@@ -226,6 +244,21 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
                         if cmd.key == RTU_S_DATA.RS_COMMAND then
                             local rs_cmd = cmd.val  ---@type rs_session_command
+
+                            if rsio.is_valid_channel(rs_cmd.channel) then
+                                cmd.key = svrs_redstone.RS_RTU_S_DATA.RS_COMMAND
+                                if rs_cmd.reactor == nil then
+                                    -- for all reactors (facility)
+                                    for i = 1, #self.rs_io_q do
+                                        local q = self.rs_io.q[i]   ---@type mqueue
+                                        q.push_data(msg)
+                                    end
+                                elseif self.rs_io_q[rs_cmd.reactor] ~= nil then
+                                    -- for just one reactor
+                                    local q = self.rs_io.q[rs_cmd.reactor]  ---@type mqueue
+                                    q.push_data(msg)
+                                end
+                            end
                         end
                     end
                 end
@@ -249,8 +282,10 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
             -- update units --
             ------------------
 
+            local time_now = util.time()
+
             for i = 1, #self.units do
-                self.units[i].update()
+                self.units[i].update(time_now)
             end
 
             ----------------------
