@@ -66,22 +66,7 @@ txnctrl.new = function ()
     -- close timed-out transactions
     public.cleanup = function ()
         local now = util.time()
-
-        local move_to = 1
-        for i = 1, public.length() do
-            local txn = self.list[i]
-            if txn ~= nil then
-                if txn.expiry <= now then
-                    self.list[i] = nil
-                else
-                    if self.list[move_to] == nil then
-                        self.list[move_to] = txn
-                        self.list[i] = nil
-                    end
-                    move_to = move_to + 1
-                end
-            end
-        end
+        util.filter_table(self.list, function (txn) return txn.expiry > now end)
     end
 
     -- clear the transaction list

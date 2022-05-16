@@ -1,5 +1,6 @@
 local log = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
+local util = require("scada-common.util")
 
 local coordinator = require("supervisor.session.coordinator")
 local plc = require("supervisor.session.plc")
@@ -99,22 +100,10 @@ end
 -- delete any closed sessions
 ---@param sessions table
 local function _free_closed(sessions)
-    local move_to = 1
-    for i = 1, #sessions do
-        local session = sessions[i] ---@type plc_session_struct
-        if session ~= nil then
-            if session.open then
-                if sessions[move_to] == nil then
-                    sessions[move_to] = session
-                    sessions[i] = nil
-                end
-                move_to = move_to + 1
-            else
-                log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
-                sessions[i] = nil
-            end
-        end
-    end
+    local f = function (session) return session.open end
+    local on_delete = function (session) log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port) end
+
+    util.filter_table(sessions, f, on_delete)
 end
 
 -- PUBLIC FUNCTIONS --

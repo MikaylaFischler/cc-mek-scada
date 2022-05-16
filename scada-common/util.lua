@@ -80,6 +80,33 @@ util.adaptive_delay = function (target_timing, last_update)
     return util.time()
 end
 
+-- TABLE UTILITIES --
+
+-- delete elements from a table if the passed function returns false when passed a table element
+--
+-- put briefly: deletes elements that return false, keeps elements that return true
+---@param t table table to remove elements from
+---@param f function should return false to delete an element when passed the element: f(elem) = true|false
+---@param on_delete? function optional function to execute on deletion, passed the table element to be deleted as the parameter
+util.filter_table = function (t, f, on_delete)
+    local move_to = 1
+    for i = 1, #t do
+        local element = t[i]
+        if element ~= nil then
+            if f(element) then
+                if t[move_to] == nil then
+                    t[move_to] = element
+                    t[i] = nil
+                end
+                move_to = move_to + 1
+            else
+                if on_delete then on_delete(element) end
+                t[i] = nil
+            end
+        end
+    end
+end
+
 -- MEKANISM POWER --
 
 -- function kFE(fe) return fe / 1000 end
