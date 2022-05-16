@@ -129,6 +129,17 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
         end
     end
 
+    -- mark this RTU session as closed, stop watchdog
+    local _close = function ()
+        self.rtu_conn_watchdog.cancel()
+        self.connected = false
+
+        -- mark all RTU unit sessions as closed so the reactor unit knows
+        for i = 1, #self.units do
+            self.units[i].close()
+        end
+    end
+
     -- send a SCADA management packet
     ---@param msg_type SCADA_MGMT_TYPES
     ---@param msg table
@@ -186,7 +197,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
                 end
             elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
                 -- close the session
-                self.connected = false
+                _close()
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                 -- RTU unit advertisement
                 -- handle advertisement; this will re-create all unit sub-sessions
@@ -206,13 +217,12 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     -- check if a timer matches this session's watchdog
     ---@param timer number
     public.check_wd = function (timer)
-        return self.rtu_conn_watchdog.is_timer(timer)
+        return self.rtu_conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
     public.close = function ()
-        self.rtu_conn_watchdog.cancel()
-        self.connected = false
+        _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
         println(log_header .. "connection to RTU closed by server")
         log.info(log_header .. "session closed by server")
@@ -272,7 +282,6 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
             -- exit if connection was closed
             if not self.connected then
-                self.rtu_conn_watchdog.cancel()
                 println(log_header .. "connection to RTU closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected

@@ -41,6 +41,7 @@ emachine.new = function (session_id, advert, out_queue)
         reactor = 0,
         out_q = out_queue,
         transaction_controller = txnctrl.new(),
+        connected = true,
         has_build = false,
         periodics = {
             next_build_req = 0,
@@ -129,6 +130,9 @@ emachine.new = function (session_id, advert, out_queue)
     public.get_uid = function () return self.uid end
     public.get_reactor = function () return self.reactor end
     public.get_db = function () return self.db end
+
+    public.close = function () self.connected = false end
+    public.is_connected = function () return self.connected end
 
     -- update this runner
     ---@param time_now integer milliseconds

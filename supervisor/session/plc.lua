@@ -202,6 +202,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         self.sDB.mek_struct.max_burn  = mek_data[8]
     end
 
+    -- mark this PLC session as closed, stop watchdog
+    local _close = function ()
+        self.rtu_conn_watchdog.cancel()
+        self.connected = false
+    end
+
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPES
     ---@param msg table
@@ -392,7 +398,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
                 -- close the session
-                self.connected = false
+                _close()
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
@@ -427,13 +433,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- check if a timer matches this session's watchdog
     public.check_wd = function (timer)
-        return self.plc_conn_watchdog.is_timer(timer)
+        return self.plc_conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
     public.close = function ()
-        self.plc_conn_watchdog.cancel()
-        self.connected = false
+        _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
         println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
         log.info(log_header .. "session closed by server")
@@ -506,7 +511,6 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
             -- exit if connection was closed
             if not self.connected then
-                self.plc_conn_watchdog.cancel()
                 println("connection to reactor " .. self.for_reactor .. " PLC closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
