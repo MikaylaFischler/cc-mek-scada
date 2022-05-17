@@ -236,10 +236,8 @@ threads.thread__unit_comms = function (smem, unit)
                         -- received data
                     elseif msg.qtype == mqueue.TYPE.PACKET then
                         -- received a packet
-                        unit.modbus_busy = true
                         local _, reply = unit.modbus_io.handle_packet(msg.message)
                         rtu_comms.send_modbus(reply)
-                        unit.modbus_busy = false
                     end
                 end
 

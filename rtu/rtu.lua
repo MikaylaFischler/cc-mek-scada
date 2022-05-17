@@ -336,30 +336,36 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
                 -- handle MODBUS instruction
                 if packet.unit_id <= #units then
                     local unit = units[packet.unit_id]  ---@type rtu_unit_registry_entry
+                    local unit_dbg_tag = " (unit " .. packet.unit_id .. ")"
+
                     if unit.name == "redstone_io" then
                         -- immediately execute redstone RTU requests
                         return_code, reply = unit.modbus_io.handle_packet(packet)
                         if not return_code then
-                            log.warning("requested MODBUS operation failed")
+                            log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
                         end
                     else
                         -- check validity then pass off to unit comms thread
                         return_code, reply = unit.modbus_io.check_request(packet)
                         if return_code then
-                            -- check if an operation is already in progress for this unit
-                            if unit.modbus_busy then
+                            -- check if there are more than 3 active transactions
+                            -- still queue the packet, but this may indicate a problem
+                            if unit.pkt_queue.length() > 3 then
                                 reply = unit.modbus_io.reply__srv_device_busy(packet)
-                            else
-                                unit.pkt_queue.push_packet(packet)
+                                log.debug("queueing new request with " .. unit.pkt_queue.length() ..
+                                    " transactions already in the queue" .. unit_dbg_tag)
                             end
+
+                            -- always queue the command even if busy
+                            unit.pkt_queue.push_packet(packet)
                         else
-                            log.warning("cannot perform requested MODBUS operation")
+                            log.warning("cannot perform requested MODBUS operation" .. unit_dbg_tag)
                         end
                     end
                 else
                     -- unit ID out of range?
                     reply = modbus.reply__gw_unavailable(packet)
-                    log.error("MODBUS packet requesting non-existent unit")
+                    log.error("received MODBUS packet for non-existent unit")
                 end
 
                 public.send_modbus(reply)

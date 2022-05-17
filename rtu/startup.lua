@@ -24,7 +24,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.5"
+local RTU_VERSION = "alpha-v0.6.6"
 
 local rtu_t = types.rtu_t
 
@@ -154,7 +154,6 @@ for entry_idx = 1, #rtu_redstone do
         device = capabilities,  -- use device field for redstone channels
         rtu = rs_rtu,
         modbus_io = modbus.new(rs_rtu, false),
-        modbus_busy = false,
         pkt_queue = nil,
         thread = nil
     }
@@ -218,7 +217,6 @@ for i = 1, #rtu_devices do
                 device = device,
                 rtu = rtu_iface,
                 modbus_io = modbus.new(rtu_iface, true),
-                modbus_busy = false,
                 pkt_queue = mqueue.new(),
                 thread = nil
             }
