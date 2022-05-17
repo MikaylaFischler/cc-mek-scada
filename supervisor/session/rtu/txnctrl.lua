@@ -6,7 +6,7 @@ local util = require("scada-common.util")
 
 local txnctrl = {}
 
-local TIMEOUT = 3000 -- 3000ms max wait
+local TIMEOUT = 2000 -- 2000ms max wait
 
 -- create a new transaction controller
 txnctrl.new = function ()
@@ -61,6 +61,17 @@ txnctrl.new = function ()
         end
 
         return txn_type
+    end
+
+    -- renew a transaction by re-inserting it with its ID and type
+    ---@param txn_id integer
+    ---@param txn_type integer
+    public.renew = function (txn_id, txn_type)
+        insert(self.list, {
+            txn_id = txn_id,
+            txn_type = txn_type,
+            expiry = util.time() + TIMEOUT
+        })
     end
 
     -- close timed-out transactions

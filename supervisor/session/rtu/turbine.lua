@@ -2,21 +2,24 @@ local comms = require("scada-common.comms")
 local log = require("scada-common.log")
 local types = require("scada-common.types")
 
-local txnctrl = require("supervisor.session.rtu.txnctrl")
+local unit_session = require("supervisor.session.rtu.unit_session")
 
 local turbine = {}
 
-local PROTOCOLS = comms.PROTOCOLS
 local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
-local rtu_t = types.rtu_t
-
 local TXN_TYPES = {
-    BUILD = 0,
-    STATE = 1,
-    TANKS = 2
+    BUILD = 1,
+    STATE = 2,
+    TANKS = 3
+}
+
+local TXN_TAGS = {
+    "turbine.build",
+    "turbine.state",
+    "turbine.tanks",
 }
 
 local PERIODICS = {
@@ -39,11 +42,7 @@ turbine.new = function (session_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").turbine(" .. advert.index .. "): "
 
     local self = {
-        uid = advert.index,
-        reactor = advert.reactor,
-        out_q = out_queue,
-        transaction_controller = txnctrl.new(),
-        connected = true,
+        session = unit_session.new(log_tag, advert, out_queue, TXN_TAGS),
         has_build = false,
         periodics = {
             next_build_req = 0,
@@ -77,36 +76,26 @@ turbine.new = function (session_id, advert, out_queue)
         }
     }
 
-    ---@class unit_session
-    local public = {}
+    local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --
-
-    local _send_request = function (txn_type, f_code, register_range)
-        local m_pkt = comms.modbus_packet()
-        local txn_id = self.transaction_controller.create(txn_type)
-
-        m_pkt.make(txn_id, self.uid, f_code, register_range)
-
-        self.out_q.push_packet(m_pkt)
-    end
 
     -- query the build of the device
     local _request_build = function ()
         -- read input registers 1 through 9 (start = 1, count = 9)
-        _send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
+        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
     end
 
     -- query the state of the device
     local _request_state = function ()
         -- read input registers 10 through 13 (start = 10, count = 4)
-        _send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 4 })
+        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 4 })
     end
 
     -- query the tanks of the device
     local _request_tanks = function ()
         -- read input registers 14 through 16 (start = 14, count = 3)
-        _send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 14, 3 })
+        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 14, 3 })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -114,66 +103,49 @@ turbine.new = function (session_id, advert, out_queue)
     -- handle a packet
     ---@param m_pkt modbus_frame
     public.handle_packet = function (m_pkt)
-        local success = false
-
-        if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
-            if m_pkt.unit_id == self.uid then
-                local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
-                if txn_type == TXN_TYPES.BUILD then
-                    -- build response
-                    if m_pkt.length == 9 then
-                        self.db.build.blades = m_pkt.data[1]
-                        self.db.build.coils = m_pkt.data[2]
-                        self.db.build.vents = m_pkt.data[3]
-                        self.db.build.dispersers = m_pkt.data[4]
-                        self.db.build.condensers = m_pkt.data[5]
-                        self.db.build.steam_cap = m_pkt.data[6]
-                        self.db.build.max_flow_rate = m_pkt.data[7]
-                        self.db.build.max_production = m_pkt.data[8]
-                        self.db.build.max_water_output = m_pkt.data[9]
-                    else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.build)")
-                    end
-                elseif txn_type == TXN_TYPES.STATE then
-                    -- state response
-                    if m_pkt.length == 4 then
-                        self.db.state.flow_rate = m_pkt.data[1]
-                        self.db.state.prod_rate = m_pkt.data[2]
-                        self.db.state.steam_input_rate = m_pkt.data[3]
-                        self.db.state.dumping_mode = m_pkt.data[4]
-                    else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.state)")
-                    end
-                elseif txn_type == TXN_TYPES.TANKS then
-                    -- tanks response
-                    if m_pkt.length == 3 then
-                        self.db.tanks.steam = m_pkt.data[1]
-                        self.db.tanks.steam_need = m_pkt.data[2]
-                        self.db.tanks.steam_fill = m_pkt.data[3]
-                    else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.tanks)")
-                    end
-                elseif txn_type == nil then
-                    log.error(log_tag .. "unknown transaction reply")
-                else
-                    log.error(log_tag .. "unknown transaction type " .. txn_type)
-                end
+        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        if txn_type == false then
+            -- nothing to do
+        elseif txn_type == TXN_TYPES.BUILD then
+            -- build response
+            if m_pkt.length == 9 then
+                self.db.build.blades = m_pkt.data[1]
+                self.db.build.coils = m_pkt.data[2]
+                self.db.build.vents = m_pkt.data[3]
+                self.db.build.dispersers = m_pkt.data[4]
+                self.db.build.condensers = m_pkt.data[5]
+                self.db.build.steam_cap = m_pkt.data[6]
+                self.db.build.max_flow_rate = m_pkt.data[7]
+                self.db.build.max_production = m_pkt.data[8]
+                self.db.build.max_water_output = m_pkt.data[9]
             else
-                log.error(log_tag .. "wrong unit ID: " .. m_pkt.unit_id, true)
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.build)")
             end
+        elseif txn_type == TXN_TYPES.STATE then
+            -- state response
+            if m_pkt.length == 4 then
+                self.db.state.flow_rate = m_pkt.data[1]
+                self.db.state.prod_rate = m_pkt.data[2]
+                self.db.state.steam_input_rate = m_pkt.data[3]
+                self.db.state.dumping_mode = m_pkt.data[4]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.state)")
+            end
+        elseif txn_type == TXN_TYPES.TANKS then
+            -- tanks response
+            if m_pkt.length == 3 then
+                self.db.tanks.steam = m_pkt.data[1]
+                self.db.tanks.steam_need = m_pkt.data[2]
+                self.db.tanks.steam_fill = m_pkt.data[3]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.tanks)")
+            end
+        elseif txn_type == nil then
+            log.error(log_tag .. "unknown transaction reply")
         else
-            log.error(log_tag .. "illegal packet type " .. m_pkt.scada_frame.protocol(), true)
+            log.error(log_tag .. "unknown transaction type " .. txn_type)
         end
-
-        return success
     end
-
-    public.get_uid = function () return self.uid end
-    public.get_reactor = function () return self.reactor end
-    public.get_db = function () return self.db end
-
-    public.close = function () self.connected = false end
-    public.is_connected = function () return self.connected end
 
     -- update this runner
     ---@param time_now integer milliseconds
@@ -193,6 +165,9 @@ turbine.new = function (session_id, advert, out_queue)
             self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
         end
     end
+
+    -- get the unit session database
+    public.get_db = function () return self.db end
 
     return public
 end

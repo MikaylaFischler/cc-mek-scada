@@ -5,11 +5,10 @@ local rsio = require("scada-common.rsio")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
-local txnctrl = require("supervisor.session.rtu.txnctrl")
+local unit_session = require("supervisor.session.rtu.unit_session")
 
 local redstone = {}
 
-local PROTOCOLS = comms.PROTOCOLS
 local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local MODBUS_FCODE = types.MODBUS_FCODE
 
@@ -17,8 +16,6 @@ local RS_IO = rsio.IO
 local IO_LVL = rsio.IO_LVL
 local IO_DIR = rsio.IO_DIR
 local IO_MODE = rsio.IO_MODE
-
-local rtu_t = types.rtu_t
 
 local RS_RTU_S_CMDS = {
 }
@@ -31,10 +28,17 @@ redstone.RS_RTU_S_CMDS = RS_RTU_S_CMDS
 redstone.RS_RTU_S_DATA = RS_RTU_S_DATA
 
 local TXN_TYPES = {
-    DI_READ = 0,
-    COIL_WRITE = 1,
-    INPUT_REG_READ = 2,
-    HOLD_REG_WRITE = 3
+    DI_READ = 1,
+    COIL_WRITE = 2,
+    INPUT_REG_READ = 3,
+    HOLD_REG_WRITE = 4
+}
+
+local TXN_TAGS = {
+    "redstone.di_read",
+    "redstone.coil_write",
+    "redstone.input_reg_write",
+    "redstone.hold_reg_write"
 }
 
 local PERIODICS = {
@@ -55,12 +59,7 @@ redstone.new = function (session_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. advert.index .. "): "
 
     local self = {
-        uid = advert.index,
-        reactor = advert.reactor,
-        in_q = mqueue.new(),
-        out_q = out_queue,
-        transaction_controller = txnctrl.new(),
-        connected = true,
+        session = unit_session.new(log_tag, advert, out_queue, TXN_TAGS),
         has_di = false,
         has_ai = false,
         periodics = {
@@ -76,8 +75,7 @@ redstone.new = function (session_id, advert, out_queue)
         db = {}
     }
 
-    ---@class unit_session
-    local public = {}
+    local public = self.session.get()
 
     -- INITIALIZE --
 
@@ -110,36 +108,26 @@ redstone.new = function (session_id, advert, out_queue)
         self.db[channel] = IO_LVL.LOW
     end
 
-
     -- PRIVATE FUNCTIONS --
-
-    local _send_request = function (txn_type, f_code, parameters)
-        local m_pkt = comms.modbus_packet()
-        local txn_id = self.transaction_controller.create(txn_type)
-
-        m_pkt.make(txn_id, self.uid, f_code, parameters)
-
-        self.out_q.push_packet(m_pkt)
-    end
 
     -- query discrete inputs
     local _request_discrete_inputs = function ()
-        _send_request(TXN_TYPES.DI_READ, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, #self.io_list.digital_in })
+        self.session.send_request(TXN_TYPES.DI_READ, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, #self.io_list.digital_in })
     end
 
     -- query input registers
     local _request_input_registers = function ()
-        _send_request(TXN_TYPES.INPUT_REG_READ, MODBUS_FCODE.READ_INPUT_REGS, { 1, #self.io_list.analog_in })
+        self.session.send_request(TXN_TYPES.INPUT_REG_READ, MODBUS_FCODE.READ_INPUT_REGS, { 1, #self.io_list.analog_in })
     end
 
     -- write coil output
     local _write_coil = function (coil, value)
-        _send_request(TXN_TYPES.COIL_WRITE, MODBUS_FCODE.WRITE_MUL_COILS, { coil, value })
+        self.session.send_request(TXN_TYPES.COIL_WRITE, MODBUS_FCODE.WRITE_MUL_COILS, { coil, value })
     end
 
     -- write holding register output
     local _write_holding_register = function (reg, value)
-        _send_request(TXN_TYPES.HOLD_REG_WRITE, MODBUS_FCODE.WRITE_MUL_HOLD_REGS, { reg, value })
+        self.session.send_request(TXN_TYPES.HOLD_REG_WRITE, MODBUS_FCODE.WRITE_MUL_HOLD_REGS, { reg, value })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -147,54 +135,39 @@ redstone.new = function (session_id, advert, out_queue)
     -- handle a packet
     ---@param m_pkt modbus_frame
     public.handle_packet = function (m_pkt)
-        local success = false
-
-        if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
-            if m_pkt.unit_id == self.uid then
-                local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
-                if txn_type == TXN_TYPES.DI_READ then
-                    -- discrete input read response
-                    if m_pkt.length == #self.io_list.digital_in then
-                        for i = 1, m_pkt.length do
-                            local channel = self.io_list.digital_in[i]
-                            local value = m_pkt.data[i]
-                            self.db[channel] = value
-                        end
-                    else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.discrete_input_read)")
-                    end
-                elseif txn_type == TXN_TYPES.INPUT_REG_READ then
-                    -- input register read response
-                    if m_pkt.length == #self.io_list.analog_in then
-                        for i = 1, m_pkt.length do
-                            local channel = self.io_list.analog_in[i]
-                            local value = m_pkt.data[i]
-                            self.db[channel] = value
-                        end
-                    else
-                        log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.input_reg_read)")
-                    end
-                elseif txn_type == nil then
-                    log.error(log_tag .. "unknown transaction reply")
-                else
-                    log.error(log_tag .. "unknown transaction type " .. txn_type)
+        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        if txn_type == false then
+            -- nothing to do
+        elseif txn_type == TXN_TYPES.DI_READ then
+            -- discrete input read response
+            if m_pkt.length == #self.io_list.digital_in then
+                for i = 1, m_pkt.length do
+                    local channel = self.io_list.digital_in[i]
+                    local value = m_pkt.data[i]
+                    self.db[channel] = value
                 end
             else
-                log.error(log_tag .. "wrong unit ID: " .. m_pkt.unit_id, true)
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.di_read)")
             end
+        elseif txn_type == TXN_TYPES.INPUT_REG_READ then
+            -- input register read response
+            if m_pkt.length == #self.io_list.analog_in then
+                for i = 1, m_pkt.length do
+                    local channel = self.io_list.analog_in[i]
+                    local value = m_pkt.data[i]
+                    self.db[channel] = value
+                end
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.input_reg_read)")
+            end
+        elseif txn_type == TXN_TYPES.COIL_WRITE or txn_type == TXN_TYPES.HOLD_REG_WRITE then
+            -- successful acknowledgement
+        elseif txn_type == nil then
+            log.error(log_tag .. "unknown transaction reply")
         else
-            log.error(log_tag .. "illegal packet type " .. m_pkt.scada_frame.protocol(), true)
+            log.error(log_tag .. "unknown transaction type " .. txn_type)
         end
-
-        return success
     end
-
-    public.get_uid = function () return self.uid end
-    public.get_reactor = function () return self.reactor end
-    public.get_db = function () return self.db end
-
-    public.close = function () self.connected = false end
-    public.is_connected = function () return self.connected end
 
     -- update this runner
     ---@param time_now integer milliseconds
@@ -269,6 +242,9 @@ redstone.new = function (session_id, advert, out_queue)
             end
         end
     end
+
+    -- get the unit session database
+    public.get_db = function () return self.db end
 
     return public, self.in_q
 end
