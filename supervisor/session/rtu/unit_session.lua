@@ -11,15 +11,17 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 -- create a new unit session runner
----@param log_tag string
----@param advert rtu_advertisement
----@param out_queue mqueue
----@param txn_tags table
-unit_session.new = function (log_tag, advert, out_queue, txn_tags)
+---@param unit_id integer MODBUS unit ID
+---@param advert rtu_advertisement RTU advertisement for this unit
+---@param out_queue mqueue send queue
+---@param log_tag string logging tag
+---@param txn_tags table transaction log tags
+unit_session.new = function (unit_id, advert, out_queue, log_tag, txn_tags)
     local self = {
         log_tag = log_tag,
         txn_tags = txn_tags,
-        uid = advert.index,
+        unit_id = unit_id,
+        device_index = advert.index,
         reactor = advert.reactor,
         out_q = out_queue,
         transaction_controller = txnctrl.new(),
@@ -43,7 +45,7 @@ unit_session.new = function (log_tag, advert, out_queue, txn_tags)
         local m_pkt = comms.modbus_packet()
         local txn_id = self.transaction_controller.create(txn_type)
 
-        m_pkt.make(txn_id, self.uid, f_code, register_param)
+        m_pkt.make(txn_id, self.unit_id, f_code, register_param)
 
         self.out_q.push_packet(m_pkt)
     end
@@ -53,7 +55,7 @@ unit_session.new = function (log_tag, advert, out_queue, txn_tags)
     ---@return integer|false txn_type transaction type or false on error/busy
     protected.try_resolve = function (m_pkt)
         if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
-            if m_pkt.unit_id == self.uid then
+            if m_pkt.unit_id == self.unit_id then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
                 local txn_tag = " (" .. self.txn_tags[txn_type] .. ")"
 
@@ -115,7 +117,9 @@ unit_session.new = function (log_tag, advert, out_queue, txn_tags)
     -- PUBLIC FUNCTIONS --
 
     -- get the unit ID
-    public.get_uid = function () return self.uid end
+    public.get_unit_id = function () return self.unit_id end
+    -- get the device index
+    public.get_device_idx = function () return self.device_index end
     -- get the reactor ID
     public.get_reactor = function () return self.reactor end
 
@@ -125,6 +129,22 @@ unit_session.new = function (log_tag, advert, out_queue, txn_tags)
     public.is_connected = function () return self.connected end
     -- check if this unit is faulted
     public.is_faulted = function () return self.device_fail end
+
+    -- PUBLIC TEMPLATE FUNCTIONS --
+
+    -- handle a packet
+    ---@param m_pkt modbus_frame
+---@diagnostic disable-next-line: unused-local
+    public.handle_packet = function (m_pkt)
+        log.debug("template unit_session.handle_packet() called", true)
+    end
+
+    -- update this runner
+    ---@param time_now integer milliseconds
+---@diagnostic disable-next-line: unused-local
+    public.update = function (time_now)
+        log.debug("template unit_session.update() called", true)
+    end
 
     return protected
 end

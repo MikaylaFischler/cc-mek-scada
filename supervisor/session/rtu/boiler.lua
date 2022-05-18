@@ -29,9 +29,10 @@ local PERIODICS = {
 
 -- create a new boiler rtu session runner
 ---@param session_id integer
+---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-boiler.new = function (session_id, advert, out_queue)
+boiler.new = function (session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.BOILER then
         log.error("attempt to instantiate boiler RTU for type '" .. advert.type .. "'. this is a bug.")
@@ -41,7 +42,7 @@ boiler.new = function (session_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").boiler(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(log_tag, advert, out_queue, TXN_TAGS),
+        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
         periodics = {
             next_build_req = 0,

@@ -26,9 +26,10 @@ local PERIODICS = {
 
 -- create a new energy machine rtu session runner
 ---@param session_id integer
+---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-emachine.new = function (session_id, advert, out_queue)
+emachine.new = function (session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.EMACHINE then
         log.error("attempt to instantiate emachine RTU for type '" .. advert.type .. "'. this is a bug.")
@@ -38,7 +39,7 @@ emachine.new = function (session_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").emachine(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(log_tag, advert, out_queue, TXN_TAGS),
+        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
         periodics = {
             next_build_req = 0,

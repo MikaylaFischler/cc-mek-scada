@@ -47,19 +47,21 @@ local PERIODICS = {
 
 -- create a new redstone rtu session runner
 ---@param session_id integer
+---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-redstone.new = function (session_id, advert, out_queue)
+redstone.new = function (session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.REDSTONE then
         log.error("attempt to instantiate redstone RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. advert.index .. "): "
+    -- for redstone, use unit ID not device index
+    local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. unit_id .. "): "
 
     local self = {
-        session = unit_session.new(log_tag, advert, out_queue, TXN_TAGS),
+        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_di = false,
         has_ai = false,
         periodics = {

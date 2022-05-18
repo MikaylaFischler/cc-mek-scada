@@ -88,17 +88,17 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
             -- create unit by type
             if u_type == RTU_UNIT_TYPES.REDSTONE then
-                unit, rs_in_q = svrs_redstone.new(self.id, unit_advert, self.out_q)
+                unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then
-                unit = svrs_boiler.new(self.id, unit_advert, self.out_q)
+                unit = svrs_boiler.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.TURBINE then
-                unit = svrs_turbine.new(self.id, unit_advert, self.out_q)
+                unit = svrs_turbine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.EMACHINE then
-                unit = svrs_emachine.new(self.id, unit_advert, self.out_q)
+                unit = svrs_emachine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- @todo Mekanism 10.1+
             else
