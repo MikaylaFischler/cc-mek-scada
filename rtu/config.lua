@@ -33,20 +33,17 @@ config.RTU_REDSTONE = {
             {
                 channel = rsio.IO.WASTE_PO,
                 side = "top",
-                bundled_color = colors.blue,
-                for_reactor = 1
+                bundled_color = colors.blue
             },
             {
                 channel = rsio.IO.WASTE_PU,
                 side = "top",
-                bundled_color = colors.cyan,
-                for_reactor = 1
+                bundled_color = colors.cyan
             },
             {
                 channel = rsio.IO.WASTE_AM,
                 side = "top",
-                bundled_color = colors.purple,
-                for_reactor = 1
+                bundled_color = colors.purple
             }
         }
     }
