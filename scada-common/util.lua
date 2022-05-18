@@ -107,6 +107,17 @@ util.filter_table = function (t, f, on_delete)
     end
 end
 
+-- check if a table contains the provided element
+---@param t table table to check
+---@param element any element to check for
+util.table_contains = function (t, element)
+    for i = 1, #t do
+        if t[i] == element then return true end
+    end
+
+    return false
+end
+
 -- MEKANISM POWER --
 
 -- function kFE(fe) return fe / 1000 end

@@ -103,64 +103,88 @@ for entry_idx = 1, #rtu_redstone do
 
     log.debug("init> starting redstone RTU I/O linking for reactor " .. io_reactor .. "...")
 
-    for i = 1, #io_table do
-        local valid = false
-        local conf = io_table[i]
+    local continue = true
 
-        -- verify configuration
-        if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
-            if conf.bundled_color then
-                valid = rsio.is_color(conf.bundled_color)
-            else
-                valid = true
-            end
-        end
-
-        if not valid then
-            local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. entry_idx ..
-                " (for reactor " .. io_reactor .. ")"
-            println_ts(message)
-            log.warning(message)
-        else
-            -- link redstone in RTU
-            local mode = rsio.get_io_mode(conf.channel)
-            if mode == rsio.IO_MODE.DIGITAL_IN then
-                rs_rtu.link_di(conf.side, conf.bundled_color)
-            elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
-            elseif mode == rsio.IO_MODE.ANALOG_IN then
-                rs_rtu.link_ai(conf.side)
-            elseif mode == rsio.IO_MODE.ANALOG_OUT then
-                rs_rtu.link_ao(conf.side)
-            else
-                -- should be unreachable code, we already validated channels
-                log.error("init> fell through if chain attempting to identify IO mode", true)
-                break
-            end
-
-            table.insert(capabilities, conf.channel)
-
-            log.debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
-                ") for reactor " .. io_reactor)
+    for i = 1, #units do
+        local unit = units[i]   ---@type rtu_unit_registry_entry
+        if unit.reactor == io_reactor and unit.type == rtu_t.redstone then
+            -- duplicate entry
+            log.warning("init> skipping definition block #" .. entry_idx .. " for reactor " .. io_reactor .. " with already defined redstone I/O")
+            continue = false
+            break
         end
     end
 
-    ---@class rtu_unit_registry_entry
-    local unit = {
-        name = "redstone_io",
-        type = rtu_t.redstone,
-        index = entry_idx,
-        reactor = io_reactor,
-        device = capabilities,  -- use device field for redstone channels
-        rtu = rs_rtu,
-        modbus_io = modbus.new(rs_rtu, false),
-        pkt_queue = nil,
-        thread = nil
-    }
+    if continue then
+        for i = 1, #io_table do
+            local valid = false
+            local conf = io_table[i]
 
-    table.insert(units, unit)
+            -- verify configuration
+            if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
+                if conf.bundled_color then
+                    valid = rsio.is_color(conf.bundled_color)
+                else
+                    valid = true
+                end
+            end
 
-    log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. io_reactor)
+            if not valid then
+                local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. entry_idx ..
+                    " (for reactor " .. io_reactor .. ")"
+                println_ts(message)
+                log.warning(message)
+            else
+                -- link redstone in RTU
+                local mode = rsio.get_io_mode(conf.channel)
+                if mode == rsio.IO_MODE.DIGITAL_IN then
+                    -- can't have duplicate inputs
+                    if util.table_contains(capabilities, conf.channel) then
+                        log.warning("init> skipping duplicate input for channel " .. rsio.to_string(conf.channel) .. " on side " .. conf.side)
+                    else
+                        rs_rtu.link_di(conf.side, conf.bundled_color)
+                    end
+                elseif mode == rsio.IO_MODE.DIGITAL_OUT then
+                    rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
+                elseif mode == rsio.IO_MODE.ANALOG_IN then
+                    -- can't have duplicate inputs
+                    if util.table_contains(capabilities, conf.channel) then
+                        log.warning("init> skipping duplicate input for channel " .. rsio.to_string(conf.channel) .. " on side " .. conf.side)
+                    else
+                        rs_rtu.link_ai(conf.side)
+                    end
+                elseif mode == rsio.IO_MODE.ANALOG_OUT then
+                    rs_rtu.link_ao(conf.side)
+                else
+                    -- should be unreachable code, we already validated channels
+                    log.error("init> fell through if chain attempting to identify IO mode", true)
+                    break
+                end
+
+                table.insert(capabilities, conf.channel)
+
+                log.debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
+                    ") for reactor " .. io_reactor)
+            end
+        end
+
+        ---@class rtu_unit_registry_entry
+        local unit = {
+            name = "redstone_io",
+            type = rtu_t.redstone,
+            index = entry_idx,
+            reactor = io_reactor,
+            device = capabilities,  -- use device field for redstone channels
+            rtu = rs_rtu,
+            modbus_io = modbus.new(rs_rtu, false),
+            pkt_queue = nil,
+            thread = nil
+        }
+
+        table.insert(units, unit)
+
+        log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. io_reactor)
+    end
 end
 
 -- mounted peripherals
