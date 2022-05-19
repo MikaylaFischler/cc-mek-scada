@@ -161,12 +161,14 @@ rtu.init_unit = function ()
 end
 
 -- RTU Communications
+---@param version string
 ---@param modem table
 ---@param local_port integer
 ---@param server_port integer
 ---@param conn_watchdog watchdog
-rtu.comms = function (modem, local_port, server_port, conn_watchdog)
+rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
     local self = {
+        version = version,
         seq_num = 0,
         r_seq_num = nil,
         txn_id = 0,
@@ -249,7 +251,7 @@ rtu.comms = function (modem, local_port, server_port, conn_watchdog)
     -- send capability advertisement
     ---@param units table
     public.send_advertisement = function (units)
-        local advertisement = {}
+        local advertisement = { self.version }
 
         for i = 1, #units do
             local unit = units[i]   --@type rtu_unit_registry_entry

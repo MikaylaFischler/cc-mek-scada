@@ -196,13 +196,15 @@ end
 ---@param local_port integer
 ---@param remote_port integer
 ---@param for_reactor integer
+---@param version string
 ---@return integer|false session_id
-svsessions.establish_plc_session = function (local_port, remote_port, for_reactor)
+svsessions.establish_plc_session = function (local_port, remote_port, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil then
         ---@class plc_session_struct
         local plc_s = {
             open = true,
             reactor = for_reactor,
+            version = version,
             l_port = local_port,
             r_port = remote_port,
             in_queue = mqueue.new(),
@@ -231,9 +233,13 @@ end
 ---@param advertisement table
 ---@return integer session_id
 svsessions.establish_rtu_session = function (local_port, remote_port, advertisement)
+    -- pull version from advertisement
+    local version = table.remove(advertisement, 1)
+
     ---@class rtu_session_struct
     local rtu_s = {
         open = true,
+        version = version,
         l_port = local_port,
         r_port = remote_port,
         in_queue = mqueue.new(),

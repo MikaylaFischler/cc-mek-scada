@@ -13,7 +13,7 @@ local config = require("reactor-plc.config")
 local plc = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "alpha-v0.6.7"
+local R_PLC_VERSION = "alpha-v0.6.8"
 
 local print = util.print
 local println = util.println
@@ -117,7 +117,8 @@ local init = function ()
             log.debug("init> conn watchdog started")
 
             -- start comms
-            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+            smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT,
+                smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
             log.debug("init> comms init")
         else
             println("boot> starting in offline mode");

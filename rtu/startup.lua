@@ -24,7 +24,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.6"
+local RTU_VERSION = "alpha-v0.6.7"
 
 local rtu_t = types.rtu_t
 
@@ -264,7 +264,7 @@ smem_sys.conn_watchdog = util.new_watchdog(5)
 log.debug("boot> conn watchdog started")
 
 -- setup comms
-smem_sys.rtu_comms = rtu.comms(smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
+smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
 log.debug("boot> comms init")
 
 -- init threads

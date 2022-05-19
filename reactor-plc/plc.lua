@@ -278,15 +278,17 @@ end
 
 -- Reactor PLC Communications
 ---@param id integer
+---@param version string
 ---@param modem table
 ---@param local_port integer
 ---@param server_port integer
 ---@param reactor table
 ---@param rps rps
 ---@param conn_watchdog watchdog
-plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_watchdog)
+plc.comms = function (id, version, modem, local_port, server_port, reactor, rps, conn_watchdog)
     local self = {
         id = id,
+        version = version,
         seq_num = 0,
         r_seq_num = nil,
         modem = modem,
@@ -499,7 +501,7 @@ plc.comms = function (id, modem, local_port, server_port, reactor, rps, conn_wat
 
     -- attempt to establish link with supervisor
     public.send_link_req = function ()
-        _send(RPLC_TYPES.LINK_REQ, { self.id })
+        _send(RPLC_TYPES.LINK_REQ, { self.id, self.version })
     end
 
     -- send live status information
