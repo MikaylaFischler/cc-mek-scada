@@ -54,3 +54,8 @@ TBD, I am planning on AES symmetric encryption for security + HMAC to prevent re
 This is somewhat important here as otherwise anyone can just control your setup, which is undeseriable. Unlike normal Minecraft PVP chaos, it would be very difficult to identify who is messing with your system, as with an Ender Modem they can do it from effectively anywhere and the server operators would have to check every computer's filesystem to find suspicious code. 
 
 The only other possible security mitigation for commanding (no effect on monitoring) is to enforce a maximum authorized transmission range (which I will probably also do, or maybe fall back to), as modem message events contain the transmission distance.
+
+## Known Issues
+
+GitHub issue \#29:
+It appears that with Mekanism 10.0, a boiler peripheral may rapidly disconnect/reconnect constantly while running. This will prevent that RTU from operating correctly while also filling up the log file. This may be due to a very specific version interaction of CC: Tweaked and Mekansim, so you are welcome to try this on Mekanism 10.0 servers, but do be aware it may not work.
