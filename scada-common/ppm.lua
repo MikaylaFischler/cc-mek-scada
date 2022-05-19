@@ -19,6 +19,7 @@ local _ppm_sys = {
     mounts = {},
     auto_cf = false,
     faulted = false,
+    last_fault = "",
     terminate = false,
     mute = false
 }
@@ -32,6 +33,7 @@ local _ppm_sys = {
 local peri_init = function (iface)
     local self = {
         faulted = false,
+        last_fault = "",
         auto_cf = true,
         type = peripheral.getType(iface),
         device = peripheral.wrap(iface)
@@ -51,7 +53,10 @@ local peri_init = function (iface)
             else
                 -- function failed
                 self.faulted = true
+                self.last_fault = result
+
                 _ppm_sys.faulted = true
+                _ppm_sys.last_fault = result
 
                 if not _ppm_sys.mute then
                     log.error("PPM: protected " .. key .. "() -> " .. result)
@@ -69,6 +74,7 @@ local peri_init = function (iface)
     -- fault management functions
 
     local clear_fault = function () self.faulted = false end
+    local get_last_fault = function () return self.last_fault end
     local is_faulted = function () return self.faulted end
     local is_ok = function () return not self.faulted end
 
@@ -78,6 +84,7 @@ local peri_init = function (iface)
     -- append to device functions
 
     self.device.__p_clear_fault = clear_fault
+    self.device.__p_last_fault  = get_last_fault
     self.device.__p_is_faulted  = is_faulted
     self.device.__p_is_ok       = is_ok
     self.device.__p_enable_afc  = enable_afc
@@ -117,14 +124,19 @@ ppm.disable_afc = function ()
     _ppm_sys.auto_cf = false
 end
 
+-- clear fault flag
+ppm.clear_fault = function ()
+    _ppm_sys.faulted = false
+end
+
 -- check fault flag
 ppm.is_faulted = function ()
     return _ppm_sys.faulted
 end
 
--- clear fault flag
-ppm.clear_fault = function ()
-    _ppm_sys.faulted = false
+-- get the last fault message
+ppm.get_last_fault = function ()
+    return _ppm_sys.last_fault
 end
 
 -- TERMINATION --

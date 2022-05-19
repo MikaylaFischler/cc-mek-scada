@@ -51,7 +51,9 @@ plc.rps_init = function (reactor)
 
     -- set reactor access fault flag
     local _set_fault = function ()
-        self.state[state_keys.fault] = true
+        if self.reactor.__p_last_fault() ~= "Terminated" then
+            self.state[state_keys.fault] = true
+        end
     end
 
     -- clear reactor access fault flag
