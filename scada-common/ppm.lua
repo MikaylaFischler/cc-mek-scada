@@ -15,6 +15,8 @@ ppm.ACCESS_FAULT = ACCESS_FAULT
 -- PRIVATE DATA/FUNCTIONS --
 ----------------------------
 
+local REPORT_FREQUENCY = 20 -- log every 20 faults per function
+
 local _ppm_sys = {
     mounts = {},
     auto_cf = false,
@@ -34,6 +36,7 @@ local peri_init = function (iface)
     local self = {
         faulted = false,
         last_fault = "",
+        fault_counts = {},
         auto_cf = true,
         type = peripheral.getType(iface),
         device = peripheral.wrap(iface)
@@ -42,6 +45,7 @@ local peri_init = function (iface)
     -- initialization process (re-map)
 
     for key, func in pairs(self.device) do
+        self.fault_counts[key] = 0
         self.device[key] = function (...)
             local status, result = pcall(func, ...)
 
@@ -49,6 +53,9 @@ local peri_init = function (iface)
                 -- auto fault clear
                 if self.auto_cf then self.faulted = false end
                 if _ppm_sys.auto_cf then _ppm_sys.faulted = false end
+
+                self.fault_counts[key] = 0
+
                 return result
             else
                 -- function failed
@@ -58,9 +65,16 @@ local peri_init = function (iface)
                 _ppm_sys.faulted = true
                 _ppm_sys.last_fault = result
 
-                if not _ppm_sys.mute then
-                    log.error("PPM: protected " .. key .. "() -> " .. result)
+                if not _ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                    local count_str = ""
+                    if self.fault_counts[key] > 0 then
+                        count_str = " [" .. self.fault_counts[key] .. " total faults]"
+                    end
+
+                    log.error("PPM: protected " .. key .. "() -> " .. result .. count_str)
                 end
+
+                self.fault_counts[key] = self.fault_counts[key] + 1
 
                 if result == "Terminated" then
                     _ppm_sys.terminate = true
