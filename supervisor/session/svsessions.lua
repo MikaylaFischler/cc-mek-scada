@@ -106,6 +106,17 @@ local function _free_closed(sessions)
     util.filter_table(sessions, f, on_delete)
 end
 
+-- find a session by remote port
+---@param list table
+---@param port integer
+---@return plc_session_struct|rtu_session_struct|nil
+local function _find_session(list, port)
+    for i = 1, #list do
+        if list[i].r_port == port then return list[i] end
+    end
+    return nil
+end
+
 -- PUBLIC FUNCTIONS --
 
 -- link the modem
@@ -119,13 +130,7 @@ end
 ---@return rtu_session_struct|nil
 svsessions.find_rtu_session = function (remote_port)
     -- check RTU sessions
-    for i = 1, #self.rtu_sessions do
-        if self.rtu_sessions[i].r_port == remote_port then
-            return self.rtu_sessions[i]
-        end
-    end
-
-    return nil
+    return _find_session(self.rtu_sessions, remote_port)
 end
 
 -- find a PLC session by the remote port
@@ -133,13 +138,7 @@ end
 ---@return plc_session_struct|nil
 svsessions.find_plc_session = function (remote_port)
     -- check PLC sessions
-    for i = 1, #self.plc_sessions do
-        if self.plc_sessions[i].r_port == remote_port then
-            return self.plc_sessions[i]
-        end
-    end
-
-    return nil
+    return _find_session(self.plc_sessions, remote_port)
 end
 
 -- find a PLC/RTU session by the remote port
@@ -147,20 +146,12 @@ end
 ---@return plc_session_struct|rtu_session_struct|nil
 svsessions.find_device_session = function (remote_port)
     -- check RTU sessions
-    for i = 1, #self.rtu_sessions do
-        if self.rtu_sessions[i].r_port == remote_port then
-            return self.rtu_sessions[i]
-        end
-    end
+    local s = _find_session(self.rtu_sessions, remote_port)
 
     -- check PLC sessions
-    for i = 1, #self.plc_sessions do
-        if self.plc_sessions[i].r_port == remote_port then
-            return self.plc_sessions[i]
-        end
-    end
+    if s == nil then s = _find_session(self.plc_sessions, remote_port) end
 
-    return nil
+    return s
 end
 
 -- find a coordinator session by the remote port
@@ -168,13 +159,7 @@ end
 ---@return nil
 svsessions.find_coord_session = function (remote_port)
     -- check coordinator sessions
-    for i = 1, #self.coord_sessions do
-        if self.coord_sessions[i].r_port == remote_port then
-            return self.coord_sessions[i]
-        end
-    end
-
-    return nil
+    return _find_session(self.coord_sessions, remote_port)
 end
 
 -- get a session by reactor ID
