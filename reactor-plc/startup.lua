@@ -13,7 +13,7 @@ local config = require("reactor-plc.config")
 local plc = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "alpha-v0.6.9"
+local R_PLC_VERSION = "alpha-v0.7.0"
 
 local print = util.print
 local println = util.println
@@ -156,7 +156,7 @@ if __shared_memory.networked then
     local sp_ctrl_thread = threads.thread__setpoint_control(__shared_memory)
 
     -- run threads
-    parallel.waitForAll(main_thread.exec, rps_thread.exec, comms_thread_tx.exec, comms_thread_rx.exec, sp_ctrl_thread.exec)
+    parallel.waitForAll(main_thread.p_exec, rps_thread.p_exec, comms_thread_tx.p_exec, comms_thread_rx.p_exec, sp_ctrl_thread.p_exec)
 
     if plc_state.init_ok then
         -- send status one last time after RPS shutdown
@@ -168,7 +168,7 @@ if __shared_memory.networked then
     end
 else
     -- run threads, excluding comms
-    parallel.waitForAll(main_thread.exec, rps_thread.exec)
+    parallel.waitForAll(main_thread.p_exec, rps_thread.p_exec)
 end
 
 println_ts("exited")

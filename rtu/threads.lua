@@ -28,8 +28,10 @@ local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 -- main thread
 ---@param smem rtu_shared_memory
 threads.thread__main = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("main thread start")
 
         -- main loop clock
@@ -152,14 +154,33 @@ threads.thread__main = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local rtu_state = smem.rtu_state
+
+        while not rtu_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not rtu_state.shutdown then
+                log.info("main thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 -- communications handler thread
 ---@param smem rtu_shared_memory
 threads.thread__comms = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("comms thread start")
 
         -- load in from shared memory
@@ -205,15 +226,34 @@ threads.thread__comms = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local rtu_state = smem.rtu_state
+
+        while not rtu_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not rtu_state.shutdown then
+                log.info("comms thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 -- per-unit communications handler thread
 ---@param smem rtu_shared_memory
 ---@param unit rtu_unit_registry_entry
 threads.thread__unit_comms = function (smem, unit)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
 
         -- load in from shared memory
@@ -256,7 +296,24 @@ threads.thread__unit_comms = function (smem, unit)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local rtu_state = smem.rtu_state
+
+        while not rtu_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not rtu_state.shutdown then
+                log.info("rtu unit thread " .. unit.name .. "(" .. unit.type .. ") restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 return threads

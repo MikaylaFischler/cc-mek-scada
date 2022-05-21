@@ -31,8 +31,10 @@ local MQ__COMM_CMD = {
 ---@param smem plc_shared_memory
 ---@param init function
 threads.thread__main = function (smem, init)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("main thread init, clock inactive")
 
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
@@ -183,14 +185,38 @@ threads.thread__main = function (smem, init)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local plc_state = smem.plc_state
+
+        while not plc_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            -- if status is true, then we are probably exiting, so this won't matter
+            -- if not, we need to restart the clock
+            -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
+            if not plc_state.shutdown then
+                log.info("main thread restarting now...")
+
+---@diagnostic disable-next-line: undefined-field
+                os.queueEvent("clock_start")
+            end
+        end
+    end
+
+    return public
 end
 
 -- RPS operation thread
 ---@param smem plc_shared_memory
 threads.thread__rps = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("rps thread start")
 
         -- load in from shared memory
@@ -301,14 +327,35 @@ threads.thread__rps = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local plc_state = smem.plc_state
+        local rps       = smem.plc_sys.rps
+
+        while not plc_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not plc_state.shutdown then
+                if plc_state.init_ok then rps.scram() end
+                log.info("rps thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 -- communications sender thread
 ---@param smem plc_shared_memory
 threads.thread__comms_tx = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("comms tx thread start")
 
         -- load in from shared memory
@@ -355,14 +402,33 @@ threads.thread__comms_tx = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local plc_state = smem.plc_state
+
+        while not plc_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not plc_state.shutdown then
+                log.info("comms tx thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 -- communications handler thread
 ---@param smem plc_shared_memory
 threads.thread__comms_rx = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("comms rx thread start")
 
         -- load in from shared memory
@@ -408,14 +474,33 @@ threads.thread__comms_rx = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local plc_state = smem.plc_state
+
+        while not plc_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not plc_state.shutdown then
+                log.info("comms rx thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 -- apply setpoints
 ---@param smem plc_shared_memory
 threads.thread__setpoint_control = function (smem)
+    local public = {}   ---@class thread
+
     -- execute thread
-    local exec = function ()
+    public.exec = function ()
         log.debug("setpoint control thread start")
 
         -- load in from shared memory
@@ -511,7 +596,24 @@ threads.thread__setpoint_control = function (smem)
         end
     end
 
-    return { exec = exec }
+    -- execute the thread in a protected mode, retrying it on return if not shutting down
+    public.p_exec = function ()
+        local plc_state = smem.plc_state
+
+        while not plc_state.shutdown do
+            local status, result = pcall(public.exec)
+            if status == false then
+                log.fatal(result)
+            end
+
+            if not plc_state.shutdown then
+                log.info("setpoint control thread restarting in 5 seconds...")
+                util.psleep(5)
+            end
+        end
+    end
+
+    return public
 end
 
 return threads

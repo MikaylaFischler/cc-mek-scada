@@ -24,7 +24,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.6.8"
+local RTU_VERSION = "alpha-v0.7.0"
 
 local rtu_t = types.rtu_t
 
@@ -272,10 +272,10 @@ local main_thread  = threads.thread__main(__shared_memory)
 local comms_thread = threads.thread__comms(__shared_memory)
 
 -- assemble thread list
-local _threads = { main_thread.exec, comms_thread.exec }
+local _threads = { main_thread.p_exec, comms_thread.p_exec }
 for i = 1, #units do
     if units[i].thread ~= nil then
-        table.insert(_threads, units[i].thread.exec)
+        table.insert(_threads, units[i].thread.p_exec)
     end
 end
 
