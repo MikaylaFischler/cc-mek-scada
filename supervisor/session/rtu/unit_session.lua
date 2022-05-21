@@ -146,6 +146,9 @@ unit_session.new = function (unit_id, advert, out_queue, log_tag, txn_tags)
         log.debug("template unit_session.update() called", true)
     end
 
+    -- get the unit session database
+    public.get_db = function () return {} end
+
     return protected
 end
 

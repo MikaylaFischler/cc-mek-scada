@@ -422,13 +422,30 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
         end
     end
 
-    -- get the reactor structure
+    -- get the reactor status
     public.get_status = function ()
         if self.received_status_cache then
             return self.sDB.mek_status
         else
             return nil
         end
+    end
+
+    -- get the reactor RPS status
+    public.get_rps = function ()
+        return self.sDB.rps_status
+    end
+
+    -- get the general status information
+    public.get_general_status = function ()
+        return {
+            last_status_update = self.sDB.last_status_update,
+            control_state = self.sDB.control_state,
+            overridden = self.sDB.overridden,
+            degraded = self.sDB.degraded,
+            rps_tripped = self.sDB.rps_tripped,
+            rps_trip_cause = self.sDB.rps_trip_cause
+        }
     end
 
     -- check if a timer matches this session's watchdog

@@ -22,6 +22,15 @@ local types = {}
 ---@field reactor integer
 ---@field rsio table|nil
 
+-- ENUMERATION TYPES --
+
+---@alias TRI_FAIL integer
+types.TRI_FAIL = {
+    OK = 0,
+    PARTIAL = 1,
+    FULL = 2
+}
+
 -- STRING TYPES --
 
 ---@alias rtu_t string
