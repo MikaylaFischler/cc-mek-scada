@@ -205,7 +205,7 @@ local RS_SIDES = rs.getSides()
 ---@param channel RS_IO
 ---@return boolean valid
 rsio.is_valid_channel = function (channel)
-    return (channel ~= nil) and (channel > 0) and (channel <= #RS_IO)
+    return (channel ~= nil) and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
 end
 
 -- check if a side is valid
