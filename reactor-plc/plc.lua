@@ -155,7 +155,7 @@ plc.rps_init = function (reactor)
 
     -- trip for a PLC comms timeout
     public.trip_timeout = function ()
-        self.state[state_keys.timed_out] = true
+        self.state[state_keys.timeout] = true
     end
 
     -- manually SCRAM the reactor

@@ -137,6 +137,7 @@ end
 ---@param msg string message
 ---@param show_term? boolean whether or not to show on terminal output
 log.dmesg = function (msg, show_term)
+    if msg == nil then return end
     local message = string.format("[%10.3f] ", os.clock()) .. msg
     if show_term then _write(message) end
     _log(message)
@@ -146,6 +147,7 @@ end
 ---@param msg string message
 ---@param trace? boolean include file trace
 log.debug = function (msg, trace)
+    if msg == nil then return end
     if LOG_DEBUG then
         local dbg_info = ""
 
@@ -167,12 +169,14 @@ end
 -- log info messages
 ---@param msg string message
 log.info = function (msg)
+    if msg == nil then return end
     _log("[INF] " .. msg)
 end
 
 -- log warning messages
 ---@param msg string message
 log.warning = function (msg)
+    if msg == nil then return end
     _log("[WRN] " .. msg)
 end
 
@@ -180,6 +184,7 @@ end
 ---@param msg string message
 ---@param trace? boolean include file trace
 log.error = function (msg, trace)
+    if msg == nil then return end
     local dbg_info = ""
 
     if trace then
@@ -199,6 +204,7 @@ end
 -- log fatal errors
 ---@param msg string message
 log.fatal = function (msg)
+    if msg == nil then return end
     _log("[FTL] " .. msg)
 end
 

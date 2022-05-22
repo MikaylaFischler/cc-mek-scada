@@ -189,12 +189,12 @@ ppm.mount = function (iface)
 
     for i = 1, #ifaces do
         if iface == ifaces[i] then
-            log.info("PPM: mount(" .. iface .. ") -> found a " .. peripheral.getType(iface))
-
             _ppm_sys.mounts[iface] = peri_init(iface)
 
             pm_type = _ppm_sys.mounts[iface].type
             pm_dev = _ppm_sys.mounts[iface].dev
+
+            log.info("PPM: mount(" .. iface .. ") -> found a " .. pm_type)
             break
         end
     end
@@ -262,7 +262,7 @@ end
 ppm.get_all_devices = function (name)
     local devices = {}
 
-    for side, data in pairs(_ppm_sys.mounts) do
+    for _, data in pairs(_ppm_sys.mounts) do
         if data.type == name then
             table.insert(devices, data.dev)
         end
@@ -300,7 +300,7 @@ end
 ppm.get_wireless_modem = function ()
     local w_modem = nil
 
-    for side, device in pairs(_ppm_sys.mounts) do
+    for _, device in pairs(_ppm_sys.mounts) do
         if device.type == "modem" and device.dev.isWireless() then
             w_modem = device.dev
             break

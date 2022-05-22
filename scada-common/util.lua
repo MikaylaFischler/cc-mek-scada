@@ -19,11 +19,13 @@ end
 
 -- timestamped print
 util.print_ts = function (message)
+    if message == nil then return end
     term.write(os.date("[%H:%M:%S] ") .. message)
 end
 
 -- timestamped print line
 util.println_ts = function (message)
+    if message == nil then return end
     print(os.date("[%H:%M:%S] ") .. message)
 end
 
@@ -37,10 +39,10 @@ util.time_ms = function ()
 end
 
 -- current time
----@return integer seconds
+---@return number seconds
 util.time_s = function ()
 ---@diagnostic disable-next-line: undefined-field
-    return os.epoch('local') / 1000
+    return os.epoch('local') / 1000.0
 end
 
 -- current time
