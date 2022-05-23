@@ -101,7 +101,7 @@ rsio.to_string = function (channel)
         "R_PLC_TIMEOUT"
     }
 
-    if channel > 0 and channel <= #names then
+    if type(channel) == "number" and channel > 0 and channel <= #names then
         return names[channel]
     else
         return ""
@@ -188,7 +188,7 @@ rsio.get_io_mode = function (channel)
         IO_MODE.DIGITAL_OUT     -- R_PLC_TIMEOUT
     }
 
-    if channel > 0 and channel <= #modes then
+    if type(channel) == "number" and channel > 0 and channel <= #modes then
         return modes[channel]
     else
         return IO_MODE.ANALOG_IN
@@ -205,7 +205,7 @@ local RS_SIDES = rs.getSides()
 ---@param channel RS_IO
 ---@return boolean valid
 rsio.is_valid_channel = function (channel)
-    return (channel ~= nil) and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
+    return (type(channel) == "number") and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
 end
 
 -- check if a side is valid
@@ -224,7 +224,7 @@ end
 ---@param color integer
 ---@return boolean valid
 rsio.is_color = function (color)
-    return (color > 0) and (_B_AND(color, (color - 1)) == 0);
+    return (type(color) == "number") and (color > 0) and (_B_AND(color, (color - 1)) == 0);
 end
 
 -----------------
@@ -247,7 +247,7 @@ end
 ---@param active boolean
 ---@return IO_LVL
 rsio.digital_write = function (channel, active)
-    if channel < RS_IO.WASTE_PO or channel > RS_IO.R_PLC_TIMEOUT then
+    if type(channel) ~= "number" or channel < RS_IO.F_ALARM or channel > RS_IO.R_PLC_TIMEOUT then
         return IO_LVL.LOW
     else
         return RS_DIO_MAP[channel]._f(active)
@@ -259,7 +259,7 @@ end
 ---@param level IO_LVL
 ---@return boolean
 rsio.digital_is_active = function (channel, level)
-    if channel > RS_IO.R_ENABLE or channel > RS_IO.R_PLC_TIMEOUT then
+    if type(channel) ~= "number" or channel > RS_IO.R_ENABLE then
         return false
     else
         return RS_DIO_MAP[channel]._f(level)
