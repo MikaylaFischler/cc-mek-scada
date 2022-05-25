@@ -204,7 +204,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- mark this PLC session as closed, stop watchdog
     local _close = function ()
-        self.rtu_conn_watchdog.cancel()
+        self.plc_conn_watchdog.cancel()
         self.connected = false
     end
 
