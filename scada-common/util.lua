@@ -156,10 +156,10 @@ end
 
 -- MEKANISM POWER --
 
--- function kFE(fe) return fe / 1000 end
--- function MFE(fe) return fe / 1000000 end
--- function GFE(fe) return fe / 1000000000 end
--- function TFE(fe) return fe / 1000000000000 end
+-- function util.kFE(fe) return fe / 1000.0 end
+-- function util.MFE(fe) return fe / 1000000.0 end
+-- function util.GFE(fe) return fe / 1000000000.0 end
+-- function util.TFE(fe) return fe / 1000000000000.0 end
 
 -- -- FLOATING POINT PRINTS --
 
@@ -177,7 +177,7 @@ end
 --     return number == math.round(number)
 -- end
 
--- function power_format(fe)
+-- function util.power_format(fe)
 --     if fe < 1000 then
 --         return string.format("%.2f FE", fe)
 --     elseif fe < 1000000 then
