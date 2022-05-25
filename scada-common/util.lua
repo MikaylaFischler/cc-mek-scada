@@ -8,25 +8,59 @@ local util = {}
 -- PRINT --
 
 -- print
+---@param message any
 util.print = function (message)
-    term.write(message)
+    term.write(tostring(message))
 end
 
 -- print line
+---@param message any
 util.println = function (message)
-    print(message)
+    print(tostring(message))
 end
 
 -- timestamped print
+---@param message any
 util.print_ts = function (message)
-    if message == nil then return end
-    term.write(os.date("[%H:%M:%S] ") .. message)
+    term.write(os.date("[%H:%M:%S] ") .. tostring(message))
 end
 
 -- timestamped print line
+---@param message any
 util.println_ts = function (message)
-    if message == nil then return end
-    print(os.date("[%H:%M:%S] ") .. message)
+    print(os.date("[%H:%M:%S] ") .. tostring(message))
+end
+
+-- STRING TOOLS --
+
+-- get a value as a string
+---@param val any
+---@return string
+util.strval = function (val)
+    local t = type(val)
+    if t == "table" or t == "function" then
+        return "[" .. tostring(val) .. "]"
+    else
+        return tostring(val)
+    end
+end
+
+-- concatenation with built-in to string
+---@vararg any
+---@return string
+util.concat = function (...)
+    local str = ""
+    for _, v in ipairs(arg) do
+        str = str .. util.strval(v)
+    end
+    return str
+end
+
+-- sprintf implementation
+---@param format string
+---@vararg any
+util.sprintf = function (format, ...)
+    return string.format(format, table.unpack(arg))
 end
 
 -- TIME --

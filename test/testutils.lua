@@ -5,27 +5,6 @@ local println = util.println
 
 local testutils = {}
 
--- get a value as a string
----@param val any
----@return string value value as string or "%VALSTR_UNKNOWN%"
-local function valstr(val)
-    local t = type(val)
-
-    if t == "nil" then
-        return "nil"
-    elseif t == "number" then
-        return "" .. val
-    elseif t == "boolean" then
-        if val then return "true" else return "false" end
-    elseif t == "string" then
-        return val
-    elseif t == "table" or t == "function" then
-        return val
-    else
-        return "%VALSTR_UNKNOWN%"
-    end
-end
-
 -- test a function
 ---@param name string function name
 ---@param f function function
@@ -46,7 +25,7 @@ function testutils.test_func(name, f, values, results)
     for i = 1, #values do
         local check = values[i]
         local expect = results[i]
-        print(name .. "(" .. valstr(check) .. ") => ")
+        print(name .. "(" .. util.strval(check) .. ") => ")
         assert(f(check) == expect, "FAIL")
         println("PASS")
     end
@@ -57,7 +36,7 @@ end
 ---@param f function function
 ---@param result any expected result
 function testutils.test_func_nil(name, f, result)
-    print(name .. "(" .. valstr(nil) .. ") => ")
+    print(name .. "(nil) => ")
     assert(f(nil) == result, "FAIL")
     println("PASS")
 end
