@@ -13,7 +13,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "alpha-v0.3.10"
+local SUPERVISOR_VERSION = "alpha-v0.4.0"
 
 local print = util.print
 local println = util.println
@@ -43,6 +43,9 @@ local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, m
 -- base loop clock (6.67Hz, 3 ticks)
 local MAIN_CLOCK = 0.15
 local loop_clock = util.new_clock(MAIN_CLOCK)
+
+-- start clock
+loop_clock.start()
 
 -- event loop
 while true do

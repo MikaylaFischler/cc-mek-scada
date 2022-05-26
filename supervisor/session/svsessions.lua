@@ -35,7 +35,7 @@ local self = {
 ---@param sessions table
 local function _iterate(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct
+        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
         if session.open then
             local ok = session.instance.iterate()
             if ok then

@@ -191,7 +191,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
                                     _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.COLLISION })
                                 else
                                     -- got an ID; assigned to a reactor successfully
-                                    println("connected to reactor " .. packet.data[1] .. " PLC (" .. packet.data[2] .. ") [port " .. r_port .. "]")
+                                    println("connected to reactor " .. packet.data[1] .. " PLC (" .. packet.data[2] .. ") [:" .. r_port .. "]")
                                     log.debug("PLC_LNK: allowed for device at " .. r_port)
                                     _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.ALLOW })
                                 end
@@ -215,7 +215,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
                     elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                         if packet.length >= 1 then
                             -- this is an RTU advertisement for a new session
-                            println("connected to RTU (" .. packet.data[1] .. ") [port " .. r_port .. "]")
+                            println("connected to RTU (" .. packet.data[1] .. ") [:" .. r_port .. "]")
 
                             svsessions.establish_rtu_session(l_port, r_port, packet.data)
 
