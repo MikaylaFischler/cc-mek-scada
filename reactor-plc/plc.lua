@@ -429,7 +429,7 @@ plc.comms = function (id, version, modem, local_port, server_port, reactor, rps,
     -- keep alive ack
     ---@param srv_time integer
     local _send_keep_alive_ack = function (srv_time)
-        _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+        _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
