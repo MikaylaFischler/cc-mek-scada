@@ -53,7 +53,7 @@ end
 ---@param msg string
 local _log = function (msg)
     local time_stamp = os.date("[%c] ")
-    local stamped = time_stamp .. msg
+    local stamped = time_stamp .. util.strval(msg)
 
     -- attempt to write log
     local status, result = pcall(function ()
@@ -137,8 +137,7 @@ end
 ---@param msg string message
 ---@param show_term? boolean whether or not to show on terminal output
 log.dmesg = function (msg, show_term)
-    if msg == nil then return end
-    local message = string.format("[%10.3f] ", os.clock()) .. msg
+    local message = string.format("[%10.3f] ", os.clock()) .. util.strval(msg)
     if show_term then _write(message) end
     _log(message)
 end
@@ -147,7 +146,6 @@ end
 ---@param msg string message
 ---@param trace? boolean include file trace
 log.debug = function (msg, trace)
-    if msg == nil then return end
     if LOG_DEBUG then
         local dbg_info = ""
 
@@ -162,29 +160,26 @@ log.debug = function (msg, trace)
             dbg_info = info.short_src .. ":" .. name .. info.currentline .. " > "
         end
 
-        _log("[DBG] " .. dbg_info .. msg)
+        _log("[DBG] " .. dbg_info .. util.strval(msg))
     end
 end
 
 -- log info messages
 ---@param msg string message
 log.info = function (msg)
-    if msg == nil then return end
-    _log("[INF] " .. msg)
+    _log("[INF] " .. util.strval(msg))
 end
 
 -- log warning messages
 ---@param msg string message
 log.warning = function (msg)
-    if msg == nil then return end
-    _log("[WRN] " .. msg)
+    _log("[WRN] " .. util.strval(msg))
 end
 
 -- log error messages
 ---@param msg string message
 ---@param trace? boolean include file trace
 log.error = function (msg, trace)
-    if msg == nil then return end
     local dbg_info = ""
 
     if trace then
@@ -198,14 +193,13 @@ log.error = function (msg, trace)
         dbg_info = info.short_src .. ":" .. name ..  info.currentline .. " > "
     end
 
-    _log("[ERR] " .. dbg_info .. msg)
+    _log("[ERR] " .. dbg_info .. util.strval(msg))
 end
 
 -- log fatal errors
 ---@param msg string message
 log.fatal = function (msg)
-    if msg == nil then return end
-    _log("[FTL] " .. msg)
+    _log("[FTL] " .. util.strval(msg))
 end
 
 return log
