@@ -205,7 +205,7 @@ comms.modbus_packet = function ()
     -- get raw to send
     public.raw_sendable = function () return self.raw end
 
-    -- get this packet
+    -- get this packet as a frame with an immutable relation to this object
     public.get = function ()
         ---@class modbus_frame
         local frame = {
@@ -298,7 +298,7 @@ comms.rplc_packet = function ()
     -- get raw to send
     public.raw_sendable = function () return self.raw end
 
-    -- get this packet
+    -- get this packet as a frame with an immutable relation to this object
     public.get = function ()
         ---@class rplc_frame
         local frame = {
@@ -382,7 +382,7 @@ comms.mgmt_packet = function ()
     -- get raw to send
     public.raw_sendable = function () return self.raw end
 
-    -- get this packet
+    -- get this packet as a frame with an immutable relation to this object
     public.get = function ()
         ---@class mgmt_frame
         local frame = {
@@ -463,7 +463,7 @@ comms.coord_packet = function ()
     -- get raw to send
     public.raw_sendable = function () return self.raw end
 
-    -- get this packet
+    -- get this packet as a frame with an immutable relation to this object
     public.get = function ()
         ---@class coord_frame
         local frame = {
@@ -544,7 +544,7 @@ comms.capi_packet = function ()
     -- get raw to send
     public.raw_sendable = function () return self.raw end
 
-    -- get this packet
+    -- get this packet as a frame with an immutable relation to this object
     public.get = function ()
         ---@class capi_frame
         local frame = {
