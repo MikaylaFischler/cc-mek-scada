@@ -39,7 +39,7 @@ log.init = function (path, write_mode, dmesg_redirect)
     if _log_sys.mode == MODE.APPEND then
         _log_sys.file = fs.open(path, "a")
     else
-        _log_sys.file = fs.open(path, "w+")
+        _log_sys.file = fs.open(path, "w")
     end
 
     if dmesg_redirect then
