@@ -110,55 +110,51 @@ end
 
 local _B_AND = bit.band
 
-local _TRINARY = function (cond, t, f) if cond then return t else return f end end
-
-local _DI_ACTIVE_HIGH = function (level) return level == IO_LVL.HIGH end
-local _DI_ACTIVE_LOW = function (level) return level == IO_LVL.LOW end
-local _DO_ACTIVE_HIGH = function (on) return _TRINARY(on, IO_LVL.HIGH, IO_LVL.LOW) end
-local _DO_ACTIVE_LOW = function (on) return _TRINARY(on, IO_LVL.LOW, IO_LVL.HIGH) end
+local function _ACTIVE_HIGH(level) return level == IO_LVL.HIGH end
+local function _ACTIVE_LOW(level) return level == IO_LVL.LOW end
 
 -- I/O mappings to I/O function and I/O mode
 local RS_DIO_MAP = {
     -- F_SCRAM
-    { _f = _DI_ACTIVE_LOW,  mode = IO_DIR.IN },
+    { _f = _ACTIVE_LOW,  mode = IO_DIR.IN },
     -- R_SCRAM
-    { _f = _DI_ACTIVE_LOW,  mode = IO_DIR.IN },
+    { _f = _ACTIVE_LOW,  mode = IO_DIR.IN },
     -- R_ENABLE
-    { _f = _DI_ACTIVE_HIGH, mode = IO_DIR.IN },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.IN },
     -- F_ALARM
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- WASTE_PO
-    { _f = _DO_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
     -- WASTE_PU
-    { _f = _DO_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
     -- WASTE_AM
-    { _f = _DO_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
     -- R_ALARM
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_SCRAMMED
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_AUTO_SCRAM
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_ACTIVE
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_AUTO_CTRL
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_DMG_CRIT
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_HIGH_TEMP
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_NO_COOLANT
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_EXCESS_HC
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_EXCESS_WS
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_INSUFF_FUEL
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_PLC_FAULT
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_PLC_TIMEOUT
-    { _f = _DO_ACTIVE_HIGH, mode = IO_DIR.OUT }
+    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT }
 }
 
 -- get the mode of a channel
@@ -244,13 +240,13 @@ end
 
 -- returns the level corresponding to active
 ---@param channel RS_IO
----@param active boolean
----@return IO_LVL
-rsio.digital_write = function (channel, active)
+---@param level IO_LVL
+---@return boolean
+rsio.digital_write = function (channel, level)
     if type(channel) ~= "number" or channel < RS_IO.F_ALARM or channel > RS_IO.R_PLC_TIMEOUT then
-        return IO_LVL.LOW
+        return false
     else
-        return RS_DIO_MAP[channel]._f(active)
+        return RS_DIO_MAP[channel]._f(level)
     end
 end
 

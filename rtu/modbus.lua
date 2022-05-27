@@ -28,7 +28,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local readings = {}
         local access_fault = false
         local _, coils, _, _ = self.rtu.io_count()
-        local return_ok = ((c_addr_start + count) <= coils) and (count > 0)
+        local return_ok = ((c_addr_start + count) <= (coils + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
@@ -74,7 +74,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local readings = {}
         local access_fault = false
         local discrete_inputs, _, _, _ = self.rtu.io_count()
-        local return_ok = ((di_addr_start + count) <= discrete_inputs) and (count > 0)
+        local return_ok = ((di_addr_start + count) <= (discrete_inputs + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
@@ -120,7 +120,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local readings = {}
         local access_fault = false
         local _, _, _, hold_regs = self.rtu.io_count()
-        local return_ok = ((hr_addr_start + count) <= hold_regs) and (count > 0)
+        local return_ok = ((hr_addr_start + count) <= (hold_regs + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
@@ -166,7 +166,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local readings = {}
         local access_fault = false
         local _, _, input_regs, _ = self.rtu.io_count()
-        local return_ok = ((ir_addr_start + count) <= input_regs) and (count > 0)
+        local return_ok = ((ir_addr_start + count) <= (input_regs + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
@@ -255,7 +255,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
         local count = #values
-        local return_ok = ((c_addr_start + count) <= coils) and (count > 0)
+        local return_ok = ((c_addr_start + count) <= (coils + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
@@ -282,12 +282,12 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
         local count = #values
-        local return_ok = ((hr_addr_start + count) <= hold_regs) and (count > 0)
+        local return_ok = ((hr_addr_start + count) <= (hold_regs + 1)) and (count > 0)
 
         if return_ok then
             for i = 1, count do
                 local addr = hr_addr_start + i - 1
-                local access_fault = self.rtu.write_coil(addr, values[i])
+                local access_fault = self.rtu.write_holding_reg(addr, values[i])
 
                 if access_fault then
                     return_ok = false
@@ -309,12 +309,12 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local return_code = true
         local response = { MODBUS_EXCODE.ACKNOWLEDGE }
 
-        if #packet.data == 2 then
+        if packet.length == 2 then
             -- handle  by function code
             if packet.func_code == MODBUS_FCODE.READ_COILS then
             elseif packet.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
             elseif packet.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
-            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGISTERS then
+            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGS then
             elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
             elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
             elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
@@ -351,7 +351,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
         local return_code = true
         local response = nil
 
-        if #packet.data == 2 then
+        if packet.length == 2 then
             -- handle  by function code
             if packet.func_code == MODBUS_FCODE.READ_COILS then
                 return_code, response = _1_read_coils(packet.data[1], packet.data[2])
@@ -359,7 +359,7 @@ modbus.new = function (rtu_dev, use_parallel_read)
                 return_code, response = _2_read_discrete_inputs(packet.data[1], packet.data[2])
             elseif packet.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
                 return_code, response = _3_read_multiple_holding_registers(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGISTERS then
+            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGS then
                 return_code, response = _4_read_input_registers(packet.data[1], packet.data[2])
             elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
                 return_code, response = _5_write_single_coil(packet.data[1], packet.data[2])
@@ -384,14 +384,13 @@ modbus.new = function (rtu_dev, use_parallel_read)
         if not return_code then
             -- echo back with error flag
             func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        end
 
-            if type(response) == "nil" then
-                response = { }
-            elseif type(response) == "number" then
-                response = { response }
-            elseif type(response) == "table" then
-                response = response
-            end
+        if type(response) == "table" then
+        elseif type(response) == "nil" then
+            response = {}
+        else
+            response = { response }
         end
 
         -- create reply

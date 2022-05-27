@@ -47,8 +47,7 @@ end
 
 assert(max_value == cid, "RS_IO last IDx out-of-sync with count: " .. max_value .. " (count " .. cid .. ")")
 
----@diagnostic disable-next-line: undefined-field
-os.sleep(1)
+testutils.pause()
 
 println(">>> checking invalid channels:")
 
@@ -57,8 +56,7 @@ testutils.test_func_nil("rsio.to_string", rsio.to_string, "")
 testutils.test_func("rsio.get_io_mode", rsio.get_io_mode, { -1, 100, false }, IO_MODE.ANALOG_IN)
 testutils.test_func_nil("rsio.get_io_mode", rsio.get_io_mode, IO_MODE.ANALOG_IN)
 
----@diagnostic disable-next-line: undefined-field
-os.sleep(1)
+testutils.pause()
 
 println(">>> checking validity checks:")
 
@@ -76,8 +74,7 @@ testutils.test_func("rsio.is_color", rsio.is_color, ic_t_list, true)
 testutils.test_func("rsio.is_color", rsio.is_color, { 0, 999999, colors.combine(colors.red, colors.blue, colors.black) }, false)
 testutils.test_func_nil("rsio.is_color", rsio.is_color, false)
 
----@diagnostic disable-next-line: undefined-field
-os.sleep(1)
+testutils.pause()
 
 println(">>> checking channel-independent I/O wrappers:")
 
@@ -98,8 +95,7 @@ assert(rsio.analog_write(4, 0, 15) == 4, "RS_WRITE_4_15")
 assert(rsio.analog_write(12, 0, 15) == 12, "RS_WRITE_12_15")
 println("PASS")
 
----@diagnostic disable-next-line: undefined-field
-os.sleep(1)
+testutils.pause()
 
 println(">>> checking channel I/O:")
 
@@ -124,25 +120,25 @@ println("PASS")
 print("rsio.digital_write(...): ")
 
 -- check output channels
-assert(rsio.digital_write(IO.F_ALARM, false) == IO_LVL.LOW, "IO_F_ALARM_FALSE")
-assert(rsio.digital_write(IO.F_ALARM, true) == IO_LVL.HIGH, "IO_F_ALARM_TRUE")
-assert(rsio.digital_write(IO.WASTE_PO, false) == IO_LVL.HIGH, "IO_WASTE_PO_FALSE")
-assert(rsio.digital_write(IO.WASTE_PO, true) == IO_LVL.LOW, "IO_WASTE_PO_TRUE")
-assert(rsio.digital_write(IO.WASTE_PU, false) == IO_LVL.HIGH, "IO_WASTE_PU_FALSE")
-assert(rsio.digital_write(IO.WASTE_PU, true) == IO_LVL.LOW, "IO_WASTE_PU_TRUE")
-assert(rsio.digital_write(IO.WASTE_AM, false) == IO_LVL.HIGH, "IO_WASTE_AM_FALSE")
-assert(rsio.digital_write(IO.WASTE_AM, true) == IO_LVL.LOW, "IO_WASTE_AM_TRUE")
+assert(rsio.digital_write(IO.F_ALARM, IO_LVL.LOW) == false, "IO_F_ALARM_FALSE")
+assert(rsio.digital_write(IO.F_ALARM, IO_LVL.HIGH) == true, "IO_F_ALARM_TRUE")
+assert(rsio.digital_write(IO.WASTE_PO, IO_LVL.HIGH) == false, "IO_WASTE_PO_FALSE")
+assert(rsio.digital_write(IO.WASTE_PO, IO_LVL.LOW) == true, "IO_WASTE_PO_TRUE")
+assert(rsio.digital_write(IO.WASTE_PU, IO_LVL.HIGH) == false, "IO_WASTE_PU_FALSE")
+assert(rsio.digital_write(IO.WASTE_PU, IO_LVL.LOW) == true, "IO_WASTE_PU_TRUE")
+assert(rsio.digital_write(IO.WASTE_AM, IO_LVL.HIGH) == false, "IO_WASTE_AM_FALSE")
+assert(rsio.digital_write(IO.WASTE_AM, IO_LVL.LOW) == true, "IO_WASTE_AM_TRUE")
 
 -- check all reactor output channels (all are active high)
 for i = IO.R_ALARM, (IO.R_PLC_TIMEOUT - IO.R_ALARM + 1) do
     assert(rsio.to_string(i) ~= "", "REACTOR_IO_BAD_CHANNEL")
-    assert(rsio.digital_write(i, false) == IO_LVL.LOW, "IO_" .. rsio.to_string(i) .. "_FALSE")
-    assert(rsio.digital_write(i, true) == IO_LVL.HIGH, "IO_" .. rsio.to_string(i) .. "_TRUE")
+    assert(rsio.digital_write(i, IO_LVL.LOW) == false, "IO_" .. rsio.to_string(i) .. "_FALSE")
+    assert(rsio.digital_write(i, IO_LVL.HIGH) == true, "IO_" .. rsio.to_string(i) .. "_TRUE")
 end
 
 -- non-outputs should always return false
-assert(rsio.digital_write(IO.F_SCRAM, true) == IO_LVL.LOW, "IO_IN_WRITE_LOW")
-assert(rsio.digital_write(IO.F_SCRAM, false) == IO_LVL.LOW, "IO_IN_WRITE_HIGH")
+assert(rsio.digital_write(IO.F_SCRAM, IO_LVL.LOW) == false, "IO_IN_WRITE_LOW")
+assert(rsio.digital_write(IO.F_SCRAM, IO_LVL.LOW) == false, "IO_IN_WRITE_HIGH")
 
 println("PASS")
 

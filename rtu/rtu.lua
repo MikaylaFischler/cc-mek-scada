@@ -54,7 +54,7 @@ rtu.init_unit = function ()
     ---@param f function
     ---@return integer count count of discrete inputs
     protected.connect_di = function (f)
-        insert(self.discrete_inputs, f)
+        insert(self.discrete_inputs, { read = f })
         _count_io()
         return #self.discrete_inputs
     end
@@ -64,7 +64,7 @@ rtu.init_unit = function ()
     ---@return any value, boolean access_fault
     public.read_di = function (di_addr)
         ppm.clear_fault()
-        local value = self.discrete_inputs[di_addr]()
+        local value = self.discrete_inputs[di_addr].read()
         return value, ppm.is_faulted()
     end
 
@@ -105,7 +105,7 @@ rtu.init_unit = function ()
     ---@param f function
     ---@return integer count count of input registers
     protected.connect_input_reg = function (f)
-        insert(self.input_regs, f)
+        insert(self.input_regs, { read = f })
         _count_io()
         return #self.input_regs
     end
@@ -115,7 +115,7 @@ rtu.init_unit = function ()
     ---@return any value, boolean access_fault
     public.read_input_reg = function (reg_addr)
         ppm.clear_fault()
-        local value = self.coils[reg_addr]()
+        local value = self.input_regs[reg_addr].read()
         return value, ppm.is_faulted()
     end
 
@@ -136,7 +136,7 @@ rtu.init_unit = function ()
     ---@return any value, boolean access_fault
     public.read_holding_reg = function (reg_addr)
         ppm.clear_fault()
-        local value = self.coils[reg_addr].read()
+        local value = self.holding_regs[reg_addr].read()
         return value, ppm.is_faulted()
     end
 
@@ -146,7 +146,7 @@ rtu.init_unit = function ()
     ---@return boolean access_fault
     public.write_holding_reg = function (reg_addr, value)
         ppm.clear_fault()
-        self.coils[reg_addr].write(value)
+        self.holding_regs[reg_addr].write(value)
         return ppm.is_faulted()
     end
 
