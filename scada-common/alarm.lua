@@ -1,3 +1,9 @@
+local util = require("scada-common.util")
+
+---@class alarm
+local alarm = {}
+
+---@alias SEVERITY integer
 SEVERITY = {
     INFO = 0,       -- basic info message
     WARNING = 1,    -- warning about some abnormal state
@@ -7,35 +13,11 @@ SEVERITY = {
     EMERGENCY = 5   -- critical safety alarm
 }
 
-function scada_alarm(severity, device, message)
-    local self = {
-        time = os.time(),
-        ts_string = os.date("[%H:%M:%S]"),
-        severity = severity,
-        device = device,
-        message = message
-    }
+alarm.SEVERITY = SEVERITY
 
-    local format = function ()
-        return self.ts_string .. " [" .. severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
-    end
-
-    local properties = function ()
-        return {
-            time = self.time,
-            severity = self.severity,
-            device = self.device,
-            message = self.message
-        }
-    end
-
-    return {
-        format = format,
-        properties = properties
-    }
-end
-
-function severity_to_string(severity)
+-- severity integer to string
+---@param severity SEVERITY
+alarm.severity_to_string = function (severity)
     if severity == SEVERITY.INFO then
         return "INFO"
     elseif severity == SEVERITY.WARNING then
@@ -52,3 +34,40 @@ function severity_to_string(severity)
         return "UNKNOWN"
     end
 end
+
+-- create a new scada alarm entry
+---@param severity SEVERITY
+---@param device string
+---@param message string
+alarm.scada_alarm = function (severity, device, message)
+    local self = {
+        time = util.time(),
+        ts_string = os.date("[%H:%M:%S]"),
+        severity = severity,
+        device = device,
+        message = message
+    }
+
+    ---@class scada_alarm
+    local public = {}
+
+    -- format the alarm as a string
+    ---@return string message
+    public.format = function ()
+        return self.ts_string .. " [" .. alarm.severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
+    end
+
+    -- get alarm properties
+    public.properties = function ()
+        return {
+            time = self.time,
+            severity = self.severity,
+            device = self.device,
+            message = self.message
+        }
+    end
+
+    return public
+end
+
+return alarm

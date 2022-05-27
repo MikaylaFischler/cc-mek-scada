@@ -1,0 +1,3 @@
+local coordinator = {}
+
+return coordinator

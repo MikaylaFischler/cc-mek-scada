@@ -1,16 +1,23 @@
--- type ('active','backup')
--- 'active' system carries through instructions and control
--- 'backup' system serves as a hot backup, still recieving data 
---      from all PLCs and coordinator(s) while in backup to allow 
---      instant failover if active goes offline without re-sync
-SYSTEM_TYPE = 'active'
+local config = {}
 
 -- scada network listen for PLC's and RTU's
-SCADA_DEV_LISTEN = 16000
--- failover synchronization
-SCADA_FO_CHANNEL = 16001
+config.SCADA_DEV_LISTEN = 16000
 -- listen port for SCADA supervisor access by coordinators
-SCADA_SV_CHANNEL = 16002
-
+config.SCADA_SV_LISTEN = 16100
 -- expected number of reactors
-NUM_REACTORS = 4
+config.NUM_REACTORS = 4
+-- expected number of boilers/turbines for each reactor
+config.REACTOR_COOLING = {
+    { BOILERS = 1, TURBINES = 1 },  -- reactor unit 1
+    { BOILERS = 1, TURBINES = 1 },  -- reactor unit 2
+    { BOILERS = 1, TURBINES = 1 },  -- reactor unit 3
+    { BOILERS = 1, TURBINES = 1 }   -- reactor unit 4
+}
+-- log path
+config.LOG_PATH = "/log.txt"
+-- log mode
+--  0 = APPEND (adds to existing file on start)
+--  1 = NEW (replaces existing file on start)
+config.LOG_MODE = 0
+
+return config

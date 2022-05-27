@@ -1,0 +1,13 @@
+{
+    "Lua.diagnostics.globals": [
+        "term",
+        "fs",
+        "peripheral",
+        "rs",
+        "bit",
+        "parallel",
+        "colors",
+        "textutils",
+        "shell"
+    ]
+}

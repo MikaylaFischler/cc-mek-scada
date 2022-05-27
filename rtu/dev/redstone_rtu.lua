@@ -1,20 +1,37 @@
--- #REQUIRES rtu.lua
--- #REQUIRES rsio.lua
--- note: this RTU makes extensive use of the programming concept of closures
+local rtu = require("rtu.rtu")
+local rsio = require("scada-common.rsio")
+
+local redstone_rtu = {}
 
 local digital_read = rsio.digital_read
+local digital_write = rsio.digital_write
 local digital_is_active = rsio.digital_is_active
 
-function new()
+-- create new redstone device
+redstone_rtu.new = function ()
     local self = {
-        rtu = rtu.rtu_init()
+        rtu = rtu.init_unit()
     }
 
-    local rtu_interface = function ()
-        return self.rtu
-    end
+    -- get RTU interface
+    local interface = self.rtu.interface()
 
-    local link_di = function (channel, side, color)
+    ---@class rtu_rs_device
+    --- extends rtu_device; fields added manually to please Lua diagnostics
+    local public = {
+        io_count = interface.io_count,
+        read_coil = interface.read_coil,
+        read_di = interface.read_di,
+        read_holding_reg = interface.read_holding_reg,
+        read_input_reg = interface.read_input_reg,
+        write_coil = interface.write_coil,
+        write_holding_reg = interface.write_holding_reg
+    }
+
+    -- link digital input
+    ---@param side string
+    ---@param color integer
+    public.link_di = function (side, color)
         local f_read = nil
 
         if color then
@@ -26,11 +43,15 @@ function new()
                 return digital_read(rs.getInput(side))
             end
         end
-            
+
         self.rtu.connect_di(f_read)
     end
 
-    local link_do = function (channel, side, color)
+    -- link digital output
+    ---@param channel RS_IO
+    ---@param side string
+    ---@param color integer
+    public.link_do = function (channel, side, color)
         local f_read = nil
         local f_write = nil
 
@@ -41,12 +62,11 @@ function new()
 
             f_write = function (level)
                 local output = rs.getBundledOutput(side)
-                local active = digital_is_active(channel, level)
 
-                if active then
-                    colors.combine(output, color)
+                if digital_write(channel, level) then
+                    output = colors.combine(output, color)
                 else
-                    colors.subtract(output, color)
+                    output = colors.subtract(output, color)
                 end
 
                 rs.setBundledOutput(side, output)
@@ -60,11 +80,13 @@ function new()
                 rs.setOutput(side, digital_is_active(channel, level))
             end
         end
-            
+
         self.rtu.connect_coil(f_read, f_write)
     end
 
-    local link_ai = function (channel, side)
+    -- link analog input
+    ---@param side string
+    public.link_ai = function (side)
         self.rtu.connect_input_reg(
             function ()
                 return rs.getAnalogInput(side)
@@ -72,7 +94,9 @@ function new()
         )
     end
 
-    local link_ao = function (channel, side)
+    -- link analog output
+    ---@param side string
+    public.link_ao = function (side)
         self.rtu.connect_holding_reg(
             function ()
                 return rs.getAnalogOutput(side)
@@ -83,11 +107,7 @@ function new()
         )
     end
 
-    return {
-        rtu_interface = rtu_interface,
-        link_di = link_di,
-        link_do = link_do,
-        link_ai = link_ai,
-        link_ao = link_ao
-    }
+    return public
 end
+
+return redstone_rtu
