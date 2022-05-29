@@ -8,6 +8,8 @@
         "parallel",
         "colors",
         "textutils",
-        "shell"
+        "shell",
+        "settings",
+        "window"
     ]
 }

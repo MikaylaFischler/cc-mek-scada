@@ -49,6 +49,12 @@ log.init = function (path, write_mode, dmesg_redirect)
     end
 end
 
+-- direct dmesg output to a monitor/window
+---@param window table window or terminal reference
+log.direct_dmesg = function (window)
+    _log_sys.dmesg_out = window
+end
+
 -- private log write function
 ---@param msg string
 local _log = function (msg)
@@ -84,9 +90,16 @@ local _log = function (msg)
     end
 end
 
--- write a message to the dmesg output
----@param msg string message to write
-local _write = function (msg)
+-- dmesg style logging for boot because I like linux-y things
+---@param msg string message
+---@param tag? string log tag
+---@param tag_color? integer log tag color
+log.dmesg = function (msg, tag, tag_color)
+    msg = util.strval(msg)
+    tag = tag or ""
+    tag = util.strval(tag)
+
+    local t_stamp = string.format("%12.2f", os.clock())
     local out = _log_sys.dmesg_out
     local out_w, out_h = out.getSize()
 
@@ -116,11 +129,43 @@ local _write = function (msg)
         end
     end
 
+    -- start output with tag and time, assuming we have enough width for this to be on one line
+    local cur_x, cur_y = out.getCursorPos()
+
+    if cur_x > 1 then
+        if cur_y == out_h then
+            out.scroll(1)
+            out.setCursorPos(1, cur_y)
+        else
+            out.setCursorPos(1, cur_y + 1)
+        end
+    end
+
+    -- colored time
+    local initial_color = out.getTextColor()
+    out.setTextColor(colors.white)
+    out.write("[")
+    out.setTextColor(colors.lightGray)
+    out.write(t_stamp)
+    out.setTextColor(colors.white)
+    out.write("] ")
+
+    -- colored tag
+    if tag ~= "" then
+        out.write("[")
+        out.setTextColor(tag_color)
+        out.write(tag)
+        out.setTextColor(colors.white)
+        out.write("] ")
+    end
+
+    out.setTextColor(initial_color)
+
     -- output message
     for i = 1, #lines do
-        local cur_x, cur_y = out.getCursorPos()
+        cur_x, cur_y = out.getCursorPos()
 
-        if cur_x > 1 then
+        if i > 1 and cur_x > 1 then
             if cur_y == out_h then
                 out.scroll(1)
                 out.setCursorPos(1, cur_y)
@@ -131,15 +176,8 @@ local _write = function (msg)
 
         out.write(lines[i])
     end
-end
 
--- dmesg style logging for boot because I like linux-y things
----@param msg string message
----@param show_term? boolean whether or not to show on terminal output
-log.dmesg = function (msg, show_term)
-    local message = string.format("[%10.3f] ", os.clock()) .. util.strval(msg)
-    if show_term then _write(message) end
-    _log(message)
+    _log("[" .. t_stamp .. "] " .. tag .. " " .. msg)
 end
 
 -- log debug messages

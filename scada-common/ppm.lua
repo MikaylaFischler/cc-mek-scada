@@ -317,8 +317,16 @@ end
 
 -- list all connected monitors
 ---@return table monitors
-ppm.list_monitors = function ()
-    return ppm.get_all_devices("monitor")
+ppm.get_monitor_list = function ()
+    local list = {}
+
+    for iface, device in pairs(_ppm_sys.mounts) do
+        if device.type == "monitor" then
+            list[iface] = device
+        end
+    end
+
+    return list
 end
 
 return ppm
