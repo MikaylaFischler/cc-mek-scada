@@ -24,7 +24,7 @@ local imatrix_rtu = require("rtu.dev.imatrix_rtu")
 local turbine_rtu = require("rtu.dev.turbine_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "alpha-v0.7.1"
+local RTU_VERSION = "beta-v0.7.2"
 
 local rtu_t = types.rtu_t
 
@@ -80,7 +80,7 @@ local smem_sys = __shared_memory.rtu_sys
 -- get modem
 if smem_dev.modem == nil then
     println("boot> wireless modem not found")
-    log.warning("no wireless modem on startup")
+    log.fatal("no wireless modem on startup")
     return
 end
 

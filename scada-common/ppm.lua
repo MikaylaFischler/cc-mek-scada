@@ -47,7 +47,10 @@ local peri_init = function (iface)
     for key, func in pairs(self.device) do
         self.fault_counts[key] = 0
         self.device[key] = function (...)
-            local status, result = pcall(func, ...)
+            local return_table = table.pack(pcall(func, ...))
+
+            local status = return_table[1]
+            table.remove(return_table, 1)
 
             if status then
                 -- auto fault clear
@@ -56,8 +59,10 @@ local peri_init = function (iface)
 
                 self.fault_counts[key] = 0
 
-                return result
+                return table.unpack(return_table)
             else
+                local result = return_table[1]
+
                 -- function failed
                 self.faulted = true
                 self.last_fault = result

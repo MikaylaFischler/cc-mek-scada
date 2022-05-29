@@ -13,7 +13,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "alpha-v0.4.0"
+local SUPERVISOR_VERSION = "beta-v0.4.1"
 
 local print = util.print
 local println = util.println
@@ -33,7 +33,7 @@ ppm.mount_all()
 local modem = ppm.get_wireless_modem()
 if modem == nil then
     println("boot> wireless modem not found")
-    log.warning("no wireless modem on startup")
+    log.fatal("no wireless modem on startup")
     return
 end
 
