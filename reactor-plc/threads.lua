@@ -1,7 +1,7 @@
-local log = require("scada-common.log")
+local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
-local ppm = require("scada-common.ppm")
-local util = require("scada-common.util")
+local ppm    = require("scada-common.ppm")
+local util   = require("scada-common.util")
 
 local threads = {}
 
@@ -30,11 +30,11 @@ local MQ__COMM_CMD = {
 -- main thread
 ---@param smem plc_shared_memory
 ---@param init function
-threads.thread__main = function (smem, init)
+function threads.thread__main(smem, init)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("main thread init, clock inactive")
 
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
@@ -189,7 +189,7 @@ threads.thread__main = function (smem, init)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local plc_state = smem.plc_state
 
         while not plc_state.shutdown do
@@ -215,11 +215,11 @@ end
 
 -- RPS operation thread
 ---@param smem plc_shared_memory
-threads.thread__rps = function (smem)
+function threads.thread__rps(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("rps thread start")
 
         -- load in from shared memory
@@ -332,7 +332,7 @@ threads.thread__rps = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local plc_state = smem.plc_state
 
         while not plc_state.shutdown do
@@ -354,11 +354,11 @@ end
 
 -- communications sender thread
 ---@param smem plc_shared_memory
-threads.thread__comms_tx = function (smem)
+function threads.thread__comms_tx(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("comms tx thread start")
 
         -- load in from shared memory
@@ -407,7 +407,7 @@ threads.thread__comms_tx = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local plc_state = smem.plc_state
 
         while not plc_state.shutdown do
@@ -428,11 +428,11 @@ end
 
 -- communications handler thread
 ---@param smem plc_shared_memory
-threads.thread__comms_rx = function (smem)
+function threads.thread__comms_rx(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("comms rx thread start")
 
         -- load in from shared memory
@@ -481,7 +481,7 @@ threads.thread__comms_rx = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local plc_state = smem.plc_state
 
         while not plc_state.shutdown do
@@ -502,11 +502,11 @@ end
 
 -- apply setpoints
 ---@param smem plc_shared_memory
-threads.thread__setpoint_control = function (smem)
+function threads.thread__setpoint_control(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("setpoint control thread start")
 
         -- load in from shared memory
@@ -605,7 +605,7 @@ threads.thread__setpoint_control = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local plc_state = smem.plc_state
 
         while not plc_state.shutdown do

@@ -4,16 +4,16 @@
 
 require("/initenv").init_env()
 
-local log = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local ppm = require("scada-common.ppm")
-local util = require("scada-common.util")
+local log     = require("scada-common.log")
+local mqueue  = require("scada-common.mqueue")
+local ppm     = require("scada-common.ppm")
+local util    = require("scada-common.util")
 
-local config = require("reactor-plc.config")
-local plc = require("reactor-plc.plc")
+local config  = require("reactor-plc.config")
+local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.7.3"
+local R_PLC_VERSION = "beta-v0.7.4"
 
 local print = util.print
 local println = util.println
@@ -102,7 +102,7 @@ if __shared_memory.networked and smem_dev.modem == nil then
 end
 
 -- PLC init
-local init = function ()
+local function init()
     if plc_state.init_ok then
         -- just booting up, no fission allowed (neutrons stay put thanks)
         smem_dev.reactor.scram()
