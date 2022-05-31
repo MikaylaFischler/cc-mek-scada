@@ -1,20 +1,19 @@
-local aes128 = require("lockbox.cipher.aes128")
-local ctr_mode = require("lockbox.cipher.mode.ctr");
+--
+-- Cryptographic Communications Engine
+--
 
-local sha1 = require("lockbox.digest.sha1");
+local aes128   = require("lockbox.cipher.aes128")
+local ctr_mode = require("lockbox.cipher.mode.ctr");
+local sha1     = require("lockbox.digest.sha1");
 local sha2_224 = require("lockbox.digest.sha2_224");
 local sha2_256 = require("lockbox.digest.sha2_256");
-
-local pbkdf2 = require("lockbox.kdf.pbkdf2")
-
-local hmac = require("lockbox.mac.hmac")
-
+local pbkdf2   = require("lockbox.kdf.pbkdf2")
+local hmac     = require("lockbox.mac.hmac")
 local zero_pad = require("lockbox.padding.zero");
+local stream   = require("lockbox.util.stream")
+local array    = require("lockbox.util.array")
 
-local stream = require("lockbox.util.stream")
-local array = require("lockbox.util.array")
-
-local log = require("scada-common.log")
+local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
 local crypto = {}

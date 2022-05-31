@@ -77,7 +77,7 @@ rsio.IO = RS_IO
 
 -- channel to string
 ---@param channel RS_IO
-rsio.to_string = function (channel)
+function rsio.to_string(channel)
     local names = {
         "F_SCRAM",
         "R_SCRAM",
@@ -160,7 +160,7 @@ local RS_DIO_MAP = {
 -- get the mode of a channel
 ---@param channel RS_IO
 ---@return IO_MODE
-rsio.get_io_mode = function (channel)
+function rsio.get_io_mode(channel)
     local modes = {
         IO_MODE.DIGITAL_IN,     -- F_SCRAM
         IO_MODE.DIGITAL_IN,     -- R_SCRAM
@@ -200,14 +200,14 @@ local RS_SIDES = rs.getSides()
 -- check if a channel is valid
 ---@param channel RS_IO
 ---@return boolean valid
-rsio.is_valid_channel = function (channel)
+function rsio.is_valid_channel(channel)
     return (type(channel) == "number") and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
 end
 
 -- check if a side is valid
 ---@param side string
 ---@return boolean valid
-rsio.is_valid_side = function (side)
+function rsio.is_valid_side(side)
     if side ~= nil then
         for i = 0, #RS_SIDES do
             if RS_SIDES[i] == side then return true end
@@ -219,7 +219,7 @@ end
 -- check if a color is a valid single color
 ---@param color integer
 ---@return boolean valid
-rsio.is_color = function (color)
+function rsio.is_color(color)
     return (type(color) == "number") and (color > 0) and (_B_AND(color, (color - 1)) == 0);
 end
 
@@ -230,7 +230,7 @@ end
 -- get digital IO level reading
 ---@param rs_value boolean
 ---@return IO_LVL
-rsio.digital_read = function (rs_value)
+function rsio.digital_read(rs_value)
     if rs_value then
         return IO_LVL.HIGH
     else
@@ -242,7 +242,7 @@ end
 ---@param channel RS_IO
 ---@param level IO_LVL
 ---@return boolean
-rsio.digital_write = function (channel, level)
+function rsio.digital_write(channel, level)
     if type(channel) ~= "number" or channel < RS_IO.F_ALARM or channel > RS_IO.R_PLC_TIMEOUT then
         return false
     else
@@ -254,7 +254,7 @@ end
 ---@param channel RS_IO
 ---@param level IO_LVL
 ---@return boolean
-rsio.digital_is_active = function (channel, level)
+function rsio.digital_is_active(channel, level)
     if type(channel) ~= "number" or channel > RS_IO.R_ENABLE then
         return false
     else
@@ -271,7 +271,7 @@ end
 ---@param min number minimum of range
 ---@param max number maximum of range
 ---@return number value scaled reading (min to max)
-rsio.analog_read = function (rs_value, min, max)
+function rsio.analog_read(rs_value, min, max)
     local value = rs_value / 15
     return (value * (max - min)) + min
 end
@@ -281,7 +281,7 @@ end
 ---@param min number minimum of range
 ---@param max number maximum of range
 ---@return number rs_value scaled redstone reading (0 to 15)
-rsio.analog_write = function (value, min, max)
+function rsio.analog_write(value, min, max)
     local scaled_value = (value - min) / (max - min)
     return scaled_value * 15
 end

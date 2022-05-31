@@ -14,7 +14,7 @@ local TYPE = {
 mqueue.TYPE = TYPE
 
 -- create a new message queue
-mqueue.new = function ()
+function mqueue.new()
     local queue = {}
 
     local insert = table.insert
@@ -32,44 +32,44 @@ mqueue.new = function ()
     local public = {}
 
     -- get queue length
-    public.length = function () return #queue end
+    function public.length() return #queue end
 
     -- check if queue is empty
     ---@return boolean is_empty
-    public.empty = function () return #queue == 0 end
+    function public.empty() return #queue == 0 end
 
     -- check if queue has contents
-    public.ready = function () return #queue ~= 0 end
+    function public.ready() return #queue ~= 0 end
 
     -- push a new item onto the queue
     ---@param qtype TYPE
     ---@param message string
-    local _push = function (qtype, message)
+    local function _push(qtype, message)
         insert(queue, { qtype = qtype, message = message })
     end
 
     -- push a command onto the queue
     ---@param message any
-    public.push_command = function (message)
+    function public.push_command(message)
         _push(TYPE.COMMAND, message)
     end
 
     -- push data onto the queue
     ---@param key any
     ---@param value any
-    public.push_data = function (key, value)
+    function public.push_data(key, value)
         _push(TYPE.DATA, { key = key, val = value })
     end
 
     -- push a packet onto the queue
     ---@param packet scada_packet|modbus_packet|rplc_packet|coord_packet|capi_packet
-    public.push_packet = function (packet)
+    function public.push_packet(packet)
         _push(TYPE.PACKET, packet)
     end
 
     -- get an item off the queue
     ---@return queue_item|nil
-    public.pop = function ()
+    function public.pop()
         if #queue > 0 then
             return remove(queue, 1)
         else

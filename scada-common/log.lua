@@ -1,8 +1,8 @@
-local util = require("scada-common.util")
-
 --
 -- File System Logger
 --
+
+local util = require("scada-common.util")
 
 ---@class log
 local log = {}
@@ -32,7 +32,7 @@ local free_space = fs.getFreeSpace
 ---@param path string file path
 ---@param write_mode MODE
 ---@param dmesg_redirect? table terminal/window to direct dmesg to
-log.init = function (path, write_mode, dmesg_redirect)
+function log.init(path, write_mode, dmesg_redirect)
     _log_sys.path = path
     _log_sys.mode = write_mode
 
@@ -51,13 +51,13 @@ end
 
 -- direct dmesg output to a monitor/window
 ---@param window table window or terminal reference
-log.direct_dmesg = function (window)
+function log.direct_dmesg(window)
     _log_sys.dmesg_out = window
 end
 
 -- private log write function
 ---@param msg string
-local _log = function (msg)
+local function _log(msg)
     local time_stamp = os.date("[%c] ")
     local stamped = time_stamp .. util.strval(msg)
 
@@ -94,7 +94,7 @@ end
 ---@param msg string message
 ---@param tag? string log tag
 ---@param tag_color? integer log tag color
-log.dmesg = function (msg, tag, tag_color)
+function log.dmesg(msg, tag, tag_color)
     msg = util.strval(msg)
     tag = tag or ""
     tag = util.strval(tag)
@@ -183,7 +183,7 @@ end
 -- log debug messages
 ---@param msg string message
 ---@param trace? boolean include file trace
-log.debug = function (msg, trace)
+function log.debug(msg, trace)
     if LOG_DEBUG then
         local dbg_info = ""
 
@@ -204,20 +204,20 @@ end
 
 -- log info messages
 ---@param msg string message
-log.info = function (msg)
+function log.info(msg)
     _log("[INF] " .. util.strval(msg))
 end
 
 -- log warning messages
 ---@param msg string message
-log.warning = function (msg)
+function log.warning(msg)
     _log("[WRN] " .. util.strval(msg))
 end
 
 -- log error messages
 ---@param msg string message
 ---@param trace? boolean include file trace
-log.error = function (msg, trace)
+function log.error(msg, trace)
     local dbg_info = ""
 
     if trace then
@@ -236,7 +236,7 @@ end
 
 -- log fatal errors
 ---@param msg string message
-log.fatal = function (msg)
+function log.fatal(msg)
     _log("[FTL] " .. util.strval(msg))
 end
 

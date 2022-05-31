@@ -17,7 +17,7 @@ alarm.SEVERITY = SEVERITY
 
 -- severity integer to string
 ---@param severity SEVERITY
-alarm.severity_to_string = function (severity)
+function alarm.severity_to_string(severity)
     if severity == SEVERITY.INFO then
         return "INFO"
     elseif severity == SEVERITY.WARNING then
@@ -39,7 +39,7 @@ end
 ---@param severity SEVERITY
 ---@param device string
 ---@param message string
-alarm.scada_alarm = function (severity, device, message)
+function alarm.scada_alarm(severity, device, message)
     local self = {
         time = util.time(),
         ts_string = os.date("[%H:%M:%S]"),
@@ -53,12 +53,12 @@ alarm.scada_alarm = function (severity, device, message)
 
     -- format the alarm as a string
     ---@return string message
-    public.format = function ()
-        return self.ts_string .. " [" .. alarm.severity_to_string(self.severity) .. "] (" .. self.device ") >> " .. self.message
+    function public.format()
+        return self.ts_string .. " [" .. alarm.severity_to_string(self.severity) .. "] (" .. self.device .. ") >> " .. self.message
     end
 
     -- get alarm properties
-    public.properties = function ()
+    function public.properties()
         return {
             time = self.time,
             severity = self.severity,

@@ -12,7 +12,7 @@ local util = {}
 ---@param a any return if true
 ---@param b any return if false
 ---@return any value
-util.trinary = function (cond, a, b)
+function util.trinary(cond, a, b)
     if cond then return a else return b end
 end
 
@@ -20,25 +20,25 @@ end
 
 -- print
 ---@param message any
-util.print = function (message)
+function util.print(message)
     term.write(tostring(message))
 end
 
 -- print line
 ---@param message any
-util.println = function (message)
+function util.println(message)
     print(tostring(message))
 end
 
 -- timestamped print
 ---@param message any
-util.print_ts = function (message)
+function util.print_ts(message)
     term.write(os.date("[%H:%M:%S] ") .. tostring(message))
 end
 
 -- timestamped print line
 ---@param message any
-util.println_ts = function (message)
+function util.println_ts(message)
     print(os.date("[%H:%M:%S] ") .. tostring(message))
 end
 
@@ -47,7 +47,7 @@ end
 -- get a value as a string
 ---@param val any
 ---@return string
-util.strval = function (val)
+function util.strval(val)
     local t = type(val)
     if t == "table" or t == "function" then
         return "[" .. tostring(val) .. "]"
@@ -59,7 +59,7 @@ end
 -- concatenation with built-in to string
 ---@vararg any
 ---@return string
-util.concat = function (...)
+function util.concat(...)
     local str = ""
     for _, v in ipairs(arg) do
         str = str .. util.strval(v)
@@ -73,7 +73,7 @@ util.c = util.concat
 -- sprintf implementation
 ---@param format string
 ---@vararg any
-util.sprintf = function (format, ...)
+function util.sprintf(format, ...)
     return string.format(format, table.unpack(arg))
 end
 
@@ -81,7 +81,7 @@ end
 
 -- round a number to an integer
 ---@return integer rounded
-util.round = function (x)
+function util.round(x)
     return math.floor(x + 0.5)
 end
 
@@ -89,21 +89,21 @@ end
 
 -- current time
 ---@return integer milliseconds
-util.time_ms = function ()
+function util.time_ms()
 ---@diagnostic disable-next-line: undefined-field
     return os.epoch('local')
 end
 
 -- current time
 ---@return number seconds
-util.time_s = function ()
+function util.time_s()
 ---@diagnostic disable-next-line: undefined-field
     return os.epoch('local') / 1000.0
 end
 
 -- current time
 ---@return integer milliseconds
-util.time = function ()
+function util.time()
     return util.time_ms()
 end
 
@@ -112,7 +112,7 @@ end
 -- protected sleep call so we still are in charge of catching termination
 ---@param t integer seconds
 --- EVENT_CONSUMER: this function consumes events
-util.psleep = function (t)
+function util.psleep(t)
 ---@diagnostic disable-next-line: undefined-field
     pcall(os.sleep, t)
 end
@@ -120,7 +120,7 @@ end
 -- no-op to provide a brief pause (1 tick) to yield
 ---
 --- EVENT_CONSUMER: this function consumes events
-util.nop = function ()
+function util.nop()
     util.psleep(0.05)
 end
 
@@ -129,7 +129,7 @@ end
 ---@param last_update integer millisecond time of last update
 ---@return integer time_now
 -- EVENT_CONSUMER: this function consumes events
-util.adaptive_delay = function (target_timing, last_update)
+function util.adaptive_delay(target_timing, last_update)
     local sleep_for = target_timing - (util.time() - last_update)
     -- only if >50ms since worker loops already yield 0.05s
     if sleep_for >= 50 then
@@ -146,7 +146,7 @@ end
 ---@param t table table to remove elements from
 ---@param f function should return false to delete an element when passed the element: f(elem) = true|false
 ---@param on_delete? function optional function to execute on deletion, passed the table element to be deleted as the parameter
-util.filter_table = function (t, f, on_delete)
+function util.filter_table(t, f, on_delete)
     local move_to = 1
     for i = 1, #t do
         local element = t[i]
@@ -168,7 +168,7 @@ end
 -- check if a table contains the provided element
 ---@param t table table to check
 ---@param element any element to check for
-util.table_contains = function (t, element)
+function util.table_contains(t, element)
     for i = 1, #t do
         if t[i] == element then return true end
     end
@@ -213,7 +213,7 @@ end
 ---@param timeout number timeout duration
 ---
 --- triggers a timer event if not fed within 'timeout' seconds
-util.new_watchdog = function (timeout)
+function util.new_watchdog(timeout)
 ---@diagnostic disable-next-line: undefined-field
     local start_timer = os.startTimer
 ---@diagnostic disable-next-line: undefined-field
@@ -228,12 +228,12 @@ util.new_watchdog = function (timeout)
     local public = {}
 
     ---@param timer number timer event timer ID
-    public.is_timer = function (timer)
+    function public.is_timer(timer)
         return self.wd_timer == timer
     end
 
     -- satiate the beast
-    public.feed = function ()
+    function public.feed()
         if self.wd_timer ~= nil then
             cancel_timer(self.wd_timer)
         end
@@ -241,7 +241,7 @@ util.new_watchdog = function (timeout)
     end
 
     -- cancel the watchdog
-    public.cancel = function ()
+    function public.cancel()
         if self.wd_timer ~= nil then
             cancel_timer(self.wd_timer)
         end
@@ -256,7 +256,7 @@ end
 ---@param period number clock period
 ---
 --- fires a timer event at the specified period, does not start at construct time
-util.new_clock = function (period)
+function util.new_clock(period)
 ---@diagnostic disable-next-line: undefined-field
     local start_timer = os.startTimer
 
@@ -269,12 +269,12 @@ util.new_clock = function (period)
     local public = {}
 
     ---@param timer number timer event timer ID
-    public.is_clock = function (timer)
+    function public.is_clock(timer)
         return self.timer == timer
     end
 
     -- start the clock
-    public.start = function ()
+    function public.start()
         self.timer = start_timer(self.period)
     end
 

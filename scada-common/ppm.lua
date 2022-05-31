@@ -1,8 +1,8 @@
-local log = require("scada-common.log")
-
 --
 -- Protected Peripheral Manager
 --
+
+local log = require("scada-common.log")
 
 ---@class ppm
 local ppm = {}
@@ -32,7 +32,7 @@ local _ppm_sys = {
 ---
 ---assumes iface is a valid peripheral
 ---@param iface string CC peripheral interface
-local peri_init = function (iface)
+local function peri_init(iface)
     local self = {
         faulted = false,
         last_fault = "",
@@ -92,13 +92,13 @@ local peri_init = function (iface)
 
     -- fault management functions
 
-    local clear_fault = function () self.faulted = false end
-    local get_last_fault = function () return self.last_fault end
-    local is_faulted = function () return self.faulted end
-    local is_ok = function () return not self.faulted end
+    local function clear_fault() self.faulted = false end
+    local function get_last_fault() return self.last_fault end
+    local function is_faulted() return self.faulted end
+    local function is_ok() return not self.faulted end
 
-    local enable_afc = function () self.auto_cf = true end
-    local disable_afc = function () self.auto_cf = false end
+    local function enable_afc() self.auto_cf = true end
+    local function disable_afc() self.auto_cf = false end
 
     -- append to device functions
 
@@ -122,53 +122,53 @@ end
 -- REPORTING --
 
 -- silence error prints
-ppm.disable_reporting = function ()
+function ppm.disable_reporting()
     _ppm_sys.mute = true
 end
 
 -- allow error prints
-ppm.enable_reporting = function ()
+function ppm.enable_reporting()
     _ppm_sys.mute = false
 end
 
 -- FAULT MEMORY --
 
 -- enable automatically clearing fault flag
-ppm.enable_afc = function ()
+function ppm.enable_afc()
     _ppm_sys.auto_cf = true
 end
 
 -- disable automatically clearing fault flag
-ppm.disable_afc = function ()
+function ppm.disable_afc()
     _ppm_sys.auto_cf = false
 end
 
 -- clear fault flag
-ppm.clear_fault = function ()
+function ppm.clear_fault()
     _ppm_sys.faulted = false
 end
 
 -- check fault flag
-ppm.is_faulted = function ()
+function ppm.is_faulted()
     return _ppm_sys.faulted
 end
 
 -- get the last fault message
-ppm.get_last_fault = function ()
+function ppm.get_last_fault()
     return _ppm_sys.last_fault
 end
 
 -- TERMINATION --
 
 -- if a caught error was a termination request
-ppm.should_terminate = function ()
+function ppm.should_terminate()
     return _ppm_sys.terminate
 end
 
 -- MOUNTING --
 
 -- mount all available peripherals (clears mounts first)
-ppm.mount_all = function ()
+function ppm.mount_all()
     local ifaces = peripheral.getNames()
 
     _ppm_sys.mounts = {}
@@ -187,7 +187,7 @@ end
 -- mount a particular device
 ---@param iface string CC peripheral interface
 ---@return string|nil type, table|nil device
-ppm.mount = function (iface)
+function ppm.mount(iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
     local pm_type = nil
@@ -210,7 +210,7 @@ end
 -- handle peripheral_detach event
 ---@param iface string CC peripheral interface
 ---@return string|nil type, table|nil device
-ppm.handle_unmount = function (iface)
+function ppm.handle_unmount(iface)
     local pm_dev = nil
     local pm_type = nil
 
@@ -233,20 +233,20 @@ end
 
 -- list all available peripherals
 ---@return table names
-ppm.list_avail = function ()
+function ppm.list_avail()
     return peripheral.getNames()
 end
 
 -- list mounted peripherals
 ---@return table mounts
-ppm.list_mounts = function ()
+function ppm.list_mounts()
     return _ppm_sys.mounts
 end
 
 -- get a mounted peripheral by side/interface
 ---@param iface string CC peripheral interface
 ---@return table|nil device function table
-ppm.get_periph = function (iface)
+function ppm.get_periph(iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].dev
     else return nil end
@@ -255,7 +255,7 @@ end
 -- get a mounted peripheral type by side/interface
 ---@param iface string CC peripheral interface
 ---@return string|nil type
-ppm.get_type = function (iface)
+function ppm.get_type(iface)
     if _ppm_sys.mounts[iface] then
         return _ppm_sys.mounts[iface].type
     else return nil end
@@ -264,7 +264,7 @@ end
 -- get all mounted peripherals by type
 ---@param name string type name
 ---@return table devices device function tables
-ppm.get_all_devices = function (name)
+function ppm.get_all_devices(name)
     local devices = {}
 
     for _, data in pairs(_ppm_sys.mounts) do
@@ -279,7 +279,7 @@ end
 -- get a mounted peripheral by type (if multiple, returns the first)
 ---@param name string type name
 ---@return table|nil device function table
-ppm.get_device = function (name)
+function ppm.get_device(name)
     local device = nil
 
     for side, data in pairs(_ppm_sys.mounts) do
@@ -296,13 +296,13 @@ end
 
 -- get the fission reactor (if multiple, returns the first)
 ---@return table|nil reactor function table
-ppm.get_fission_reactor = function ()
+function ppm.get_fission_reactor()
     return ppm.get_device("fissionReactor")
 end
 
 -- get the wireless modem (if multiple, returns the first)
 ---@return table|nil modem function table
-ppm.get_wireless_modem = function ()
+function ppm.get_wireless_modem()
     local w_modem = nil
 
     for _, device in pairs(_ppm_sys.mounts) do
@@ -317,7 +317,7 @@ end
 
 -- list all connected monitors
 ---@return table monitors
-ppm.get_monitor_list = function ()
+function ppm.get_monitor_list()
     local list = {}
 
     for iface, device in pairs(_ppm_sys.mounts) do
