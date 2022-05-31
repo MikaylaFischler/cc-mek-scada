@@ -177,6 +177,8 @@ function boiler.new(session_id, unit_id, advert, out_queue)
             _request_tanks()
             self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
         end
+
+        self.session.post_update()
     end
 
     -- get the unit session database

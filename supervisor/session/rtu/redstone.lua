@@ -243,6 +243,8 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                 self.periodics.next_ir_req = time_now + PERIODICS.INPUT_READ
             end
         end
+
+        self.session.post_update()
     end
 
     -- get the unit session database

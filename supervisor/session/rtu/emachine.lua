@@ -117,6 +117,8 @@ function emachine.new(session_id, unit_id, advert, out_queue)
             _request_storage()
             self.periodics.next_storage_req = time_now + PERIODICS.STORAGE
         end
+
+        self.session.post_update()
     end
 
     -- get the unit session database

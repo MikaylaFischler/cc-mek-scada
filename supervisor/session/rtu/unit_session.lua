@@ -111,6 +111,11 @@ function unit_session.new(unit_id, advert, out_queue, log_tag, txn_tags)
         return false
     end
 
+    -- post update tasks
+    function protected.post_update()
+        self.transaction_controller.cleanup()
+    end
+
     -- get the public interface
     function protected.get() return public end
 

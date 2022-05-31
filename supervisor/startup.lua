@@ -13,7 +13,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.4.2"
+local SUPERVISOR_VERSION = "beta-v0.4.3"
 
 local print = util.print
 local println = util.println
