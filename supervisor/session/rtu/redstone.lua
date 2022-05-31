@@ -1,9 +1,9 @@
-local comms = require("scada-common.comms")
-local log = require("scada-common.log")
-local mqueue= require("scada-common.mqueue")
-local rsio = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -50,7 +50,7 @@ local PERIODICS = {
 ---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-redstone.new = function (session_id, unit_id, advert, out_queue)
+function redstone.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.REDSTONE then
         log.error("attempt to instantiate redstone RTU for type '" .. advert.type .. "'. this is a bug.")
@@ -113,22 +113,22 @@ redstone.new = function (session_id, unit_id, advert, out_queue)
     -- PRIVATE FUNCTIONS --
 
     -- query discrete inputs
-    local _request_discrete_inputs = function ()
+    local function _request_discrete_inputs()
         self.session.send_request(TXN_TYPES.DI_READ, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, #self.io_list.digital_in })
     end
 
     -- query input registers
-    local _request_input_registers = function ()
+    local function _request_input_registers()
         self.session.send_request(TXN_TYPES.INPUT_REG_READ, MODBUS_FCODE.READ_INPUT_REGS, { 1, #self.io_list.analog_in })
     end
 
     -- write coil output
-    local _write_coil = function (coil, value)
+    local function _write_coil(coil, value)
         self.session.send_request(TXN_TYPES.COIL_WRITE, MODBUS_FCODE.WRITE_MUL_COILS, { coil, value })
     end
 
     -- write holding register output
-    local _write_holding_register = function (reg, value)
+    local function _write_holding_register(reg, value)
         self.session.send_request(TXN_TYPES.HOLD_REG_WRITE, MODBUS_FCODE.WRITE_MUL_HOLD_REGS, { reg, value })
     end
 
@@ -136,7 +136,7 @@ redstone.new = function (session_id, unit_id, advert, out_queue)
 
     -- handle a packet
     ---@param m_pkt modbus_frame
-    public.handle_packet = function (m_pkt)
+    function public.handle_packet(m_pkt)
         local txn_type = self.session.try_resolve(m_pkt.txn_id)
         if txn_type == false then
             -- nothing to do
@@ -173,7 +173,7 @@ redstone.new = function (session_id, unit_id, advert, out_queue)
 
     -- update this runner
     ---@param time_now integer milliseconds
-    public.update = function (time_now)
+    function public.update(time_now)
         -- check command queue
         while self.in_q.ready() do
             -- get a new message to process
@@ -246,7 +246,7 @@ redstone.new = function (session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
-    public.get_db = function () return self.db end
+    function public.get_db() return self.db end
 
     return public, self.in_q
 end

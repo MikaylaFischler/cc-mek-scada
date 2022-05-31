@@ -1,6 +1,6 @@
 local comms = require("scada-common.comms")
-local log = require("scada-common.log")
-local util = require("scada-common.util")
+local log   = require("scada-common.log")
+local util  = require("scada-common.util")
 
 local svsessions = require("supervisor.session.svsessions")
 
@@ -25,7 +25,7 @@ local println_ts = util.println_ts
 ---@param modem table
 ---@param dev_listen integer
 ---@param coord_listen integer
-supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_listen)
+function supervisor.comms(version, num_reactors, modem, dev_listen, coord_listen)
     local self = {
         version = version,
         num_reactors = num_reactors,
@@ -41,7 +41,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
     -- PRIVATE FUNCTIONS --
 
     -- open all channels
-    local _open_channels = function ()
+    local function _open_channels()
         if not self.modem.isOpen(self.dev_listen) then
             self.modem.open(self.dev_listen)
         end
@@ -60,7 +60,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
     -- send PLC link request responses
     ---@param dest integer
     ---@param msg table
-    local _send_plc_linking = function (seq_id, dest, msg)
+    local function _send_plc_linking(seq_id, dest, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
@@ -73,7 +73,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
     -- send RTU advertisement responses
     ---@param seq_id integer
     ---@param dest integer
-    local _send_remote_linked = function (seq_id, dest)
+    local function _send_remote_linked(seq_id, dest)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
@@ -88,7 +88,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
     -- reconnect a newly connected modem
     ---@param modem table
 ---@diagnostic disable-next-line: redefined-local
-    public.reconnect_modem = function (modem)
+    function public.reconnect_modem(modem)
         self.modem = modem
         svsessions.link_modem(self.modem)
         _open_channels()
@@ -101,7 +101,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
     ---@param message any
     ---@param distance integer
     ---@return modbus_frame|rplc_frame|mgmt_frame|coord_frame|nil packet
-    public.parse_packet = function(side, sender, reply_to, message, distance)
+    function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt = nil
         local s_pkt = comms.scada_packet()
 
@@ -143,7 +143,7 @@ supervisor.comms = function (version, num_reactors, modem, dev_listen, coord_lis
 
     -- handle a packet
     ---@param packet modbus_frame|rplc_frame|mgmt_frame|coord_frame
-    public.handle_packet = function(packet)
+    function public.handle_packet(packet)
         if packet ~= nil then
             local l_port = packet.scada_frame.local_port()
             local r_port = packet.scada_frame.remote_port()

@@ -1,5 +1,5 @@
 local comms = require("scada-common.comms")
-local log = require("scada-common.log")
+local log   = require("scada-common.log")
 local types = require("scada-common.types")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
@@ -33,7 +33,7 @@ local PERIODICS = {
 ---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-turbine.new = function (session_id, unit_id, advert, out_queue)
+function turbine.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.TURBINE then
         log.error("attempt to instantiate turbine RTU for type '" .. advert.type .. "'. this is a bug.")
@@ -82,19 +82,19 @@ turbine.new = function (session_id, unit_id, advert, out_queue)
     -- PRIVATE FUNCTIONS --
 
     -- query the build of the device
-    local _request_build = function ()
+    local function _request_build()
         -- read input registers 1 through 9 (start = 1, count = 9)
         self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
     end
 
     -- query the state of the device
-    local _request_state = function ()
+    local function _request_state()
         -- read input registers 10 through 13 (start = 10, count = 4)
         self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 4 })
     end
 
     -- query the tanks of the device
-    local _request_tanks = function ()
+    local function _request_tanks()
         -- read input registers 14 through 16 (start = 14, count = 3)
         self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 14, 3 })
     end
@@ -103,7 +103,7 @@ turbine.new = function (session_id, unit_id, advert, out_queue)
 
     -- handle a packet
     ---@param m_pkt modbus_frame
-    public.handle_packet = function (m_pkt)
+    function public.handle_packet(m_pkt)
         local txn_type = self.session.try_resolve(m_pkt.txn_id)
         if txn_type == false then
             -- nothing to do
@@ -150,7 +150,7 @@ turbine.new = function (session_id, unit_id, advert, out_queue)
 
     -- update this runner
     ---@param time_now integer milliseconds
-    public.update = function (time_now)
+    function public.update(time_now)
         if not self.has_build and self.periodics.next_build_req <= time_now then
             _request_build()
             self.periodics.next_build_req = time_now + PERIODICS.BUILD
@@ -168,7 +168,7 @@ turbine.new = function (session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
-    public.get_db = function () return self.db end
+    function public.get_db() return self.db end
 
     return public
 end

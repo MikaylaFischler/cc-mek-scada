@@ -23,7 +23,7 @@ local DT_KEYS = {
 ---@param for_reactor integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
-unit.new = function (for_reactor, num_boilers, num_turbines)
+function unit.new(for_reactor, num_boilers, num_turbines)
     local self = {
         r_id = for_reactor,
         plc_s = nil,    ---@class plc_session
@@ -82,7 +82,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     -- compute a change with respect to time of the given value
     ---@param key string value key
     ---@param value number value
-    local _compute_dt = function (key, value)
+    local function _compute_dt(key, value)
         if self.deltas[key] then
             local data = self.deltas[key]
 
@@ -101,14 +101,14 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
 
     -- clear a delta
     ---@param key string value key
-    local _reset_dt = function (key)
+    local function _reset_dt(key)
         self.deltas[key] = nil
     end
 
     -- get the delta t of a value
     ---@param key string value key
     ---@return number
-    local _get_dt = function (key)
+    local function _get_dt(key)
         if self.deltas[key] then
             return self.deltas[key].dt
         else
@@ -117,7 +117,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- update all delta computations
-    local _dt__compute_all = function ()
+    local function _dt__compute_all()
         if self.plc_s ~= nil then
             local plc_db = self.plc_s.get_db()
 
@@ -151,7 +151,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- update the annunciator
-    local _update_annunciator = function ()
+    local function _update_annunciator()
         -- update deltas
         _dt__compute_all()
 
@@ -312,7 +312,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
 
     -- unlink disconnected units
     ---@param sessions table
-    local _unlink_disconnected_units = function (sessions)
+    local function _unlink_disconnected_units(sessions)
         util.filter_table(sessions, function (u) return u.is_connected() end)
     end
 
@@ -320,7 +320,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
 
     -- link the PLC
     ---@param plc_session plc_session_struct
-    public.link_plc_session = function (plc_session)
+    function public.link_plc_session(plc_session)
         self.plc_s = plc_session
 
         -- reset deltas
@@ -333,7 +333,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
 
     -- link a turbine RTU session
     ---@param turbine unit_session
-    public.add_turbine = function (turbine)
+    function public.add_turbine(turbine)
         if #self.turbines < self.num_turbines and turbine.get_device_idx() <= self.num_turbines then
             table.insert(self.turbines, turbine)
 
@@ -349,7 +349,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
 
     -- link a boiler RTU session
     ---@param boiler unit_session
-    public.add_boiler = function (boiler)
+    function public.add_boiler(boiler)
         if #self.boilers < self.num_boilers and boiler.get_device_idx() <= self.num_boilers then
             table.insert(self.boilers, boiler)
 
@@ -366,7 +366,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- link a redstone RTU capability
-    public.add_redstone = function (field, accessor)
+    function public.add_redstone(field, accessor)
         -- ensure field exists
         if self.redstone[field] == nil then
             self.redstone[field] = {}
@@ -377,7 +377,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- update (iterate) this unit
-    public.update = function ()
+    function public.update()
         -- unlink PLC if session was closed
         if not self.plc_s.open then
             self.plc_s = nil
@@ -392,7 +392,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- get build properties of all machines
-    public.get_build = function ()
+    function public.get_build()
         local build = {}
 
         if self.plc_s ~= nil then
@@ -413,7 +413,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- get reactor status
-    public.get_reactor_status = function ()
+    function public.get_reactor_status()
         local status = {}
 
         if self.plc_s ~= nil then
@@ -427,7 +427,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- get RTU statuses
-    public.get_rtu_statuses = function ()
+    function public.get_rtu_statuses()
         local status = {}
 
         -- status of boilers (including tanks)
@@ -452,7 +452,7 @@ unit.new = function (for_reactor, num_boilers, num_turbines)
     end
 
     -- get the annunciator status
-    public.get_annunciator = function () return self.db.annunciator end
+    function public.get_annunciator() return self.db.annunciator end
 
     return public
 end

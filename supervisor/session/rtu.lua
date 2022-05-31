@@ -1,14 +1,14 @@
-local comms = require("scada-common.comms")
-local log = require("scada-common.log")
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
-local rsio = require("scada-common.rsio")
-local util = require("scada-common.util")
+local rsio   = require("scada-common.rsio")
+local util   = require("scada-common.util")
 
 -- supervisor rtu sessions (svrs)
-local svrs_boiler = require("supervisor.session.rtu.boiler")
+local svrs_boiler   = require("supervisor.session.rtu.boiler")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
-local svrs_turbine = require("supervisor.session.rtu.turbine")
+local svrs_turbine  = require("supervisor.session.rtu.turbine")
 
 local rtu = {}
 
@@ -46,7 +46,7 @@ local PERIODICS = {
 ---@param in_queue mqueue
 ---@param out_queue mqueue
 ---@param advertisement table
-rtu.new_session = function (id, in_queue, out_queue, advertisement)
+function rtu.new_session(id, in_queue, out_queue, advertisement)
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
@@ -68,7 +68,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     local public = {}
 
     -- parse the recorded advertisement and create unit sub-sessions
-    local _handle_advertisement = function ()
+    local function _handle_advertisement()
         self.units = {}
         self.rs_io_q = {}
 
@@ -130,7 +130,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     end
 
     -- mark this RTU session as closed, stop watchdog
-    local _close = function ()
+    local function _close()
         self.rtu_conn_watchdog.cancel()
         self.connected = false
 
@@ -143,7 +143,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     -- send a SCADA management packet
     ---@param msg_type SCADA_MGMT_TYPES
     ---@param msg table
-    local _send_mgmt = function (msg_type, msg)
+    local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
@@ -156,7 +156,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
     -- handle a packet
     ---@param pkt modbus_frame|mgmt_frame
-    local _handle_packet = function (pkt)
+    local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
@@ -212,16 +212,16 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
-    public.get_id = function () return self.id end
+    function public.get_id() return self.id end
 
     -- check if a timer matches this session's watchdog
     ---@param timer number
-    public.check_wd = function (timer)
+    function public.check_wd(timer)
         return self.rtu_conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
-    public.close = function ()
+    function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
         println(log_header .. "connection to RTU closed by server")
@@ -230,7 +230,7 @@ rtu.new_session = function (id, in_queue, out_queue, advertisement)
 
     -- iterate the session
     ---@return boolean connected
-    public.iterate = function ()
+    function public.iterate()
         if self.connected then
             ------------------
             -- handle queue --

@@ -9,7 +9,7 @@ local txnctrl = {}
 local TIMEOUT = 2000 -- 2000ms max wait
 
 -- create a new transaction controller
-txnctrl.new = function ()
+function txnctrl.new()
     local self = {
         list = {},
         next_id = 0
@@ -21,19 +21,19 @@ txnctrl.new = function ()
     local insert = table.insert
 
     -- get the length of the transaction list
-    public.length = function ()
+    function public.length()
         return #self.list
     end
 
     -- check if there are no active transactions
-    public.empty = function ()
+    function public.empty()
         return #self.list == 0
     end
 
     -- create a new transaction of the given type
     ---@param txn_type integer
     ---@return integer txn_id
-    public.create = function (txn_type)
+    function public.create(txn_type)
         local txn_id = self.next_id
 
         insert(self.list, {
@@ -50,7 +50,7 @@ txnctrl.new = function ()
     -- mark a transaction as resolved to get its transaction type
     ---@param txn_id integer
     ---@return integer txn_type
-    public.resolve = function (txn_id)
+    function public.resolve(txn_id)
         local txn_type = nil
 
         for i = 1, public.length() do
@@ -66,7 +66,7 @@ txnctrl.new = function ()
     -- renew a transaction by re-inserting it with its ID and type
     ---@param txn_id integer
     ---@param txn_type integer
-    public.renew = function (txn_id, txn_type)
+    function public.renew(txn_id, txn_type)
         insert(self.list, {
             txn_id = txn_id,
             txn_type = txn_type,
@@ -75,13 +75,13 @@ txnctrl.new = function ()
     end
 
     -- close timed-out transactions
-    public.cleanup = function ()
+    function public.cleanup()
         local now = util.time()
         util.filter_table(self.list, function (txn) return txn.expiry > now end)
     end
 
     -- clear the transaction list
-    public.clear = function ()
+    function public.clear()
         self.list = {}
     end
 

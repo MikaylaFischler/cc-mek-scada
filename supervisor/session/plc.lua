@@ -1,7 +1,7 @@
-local comms = require("scada-common.comms")
-local log = require("scada-common.log")
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
-local util = require("scada-common.util")
+local util   = require("scada-common.util")
 
 local plc = {}
 
@@ -41,7 +41,7 @@ local PERIODICS = {
 ---@param for_reactor integer
 ---@param in_queue mqueue
 ---@param out_queue mqueue
-plc.new_session = function (id, for_reactor, in_queue, out_queue)
+function plc.new_session(id, for_reactor, in_queue, out_queue)
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
@@ -146,7 +146,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- copy in the RPS status
     ---@param rps_status table
-    local _copy_rps_status = function (rps_status)
+    local function _copy_rps_status(rps_status)
         self.sDB.rps_status.dmg_crit  = rps_status[1]
         self.sDB.rps_status.ex_hcool  = rps_status[2]
         self.sDB.rps_status.ex_waste  = rps_status[3]
@@ -158,7 +158,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- copy in the reactor status
     ---@param mek_data table
-    local _copy_status = function (mek_data)
+    local function _copy_status(mek_data)
         -- copy status information
         self.sDB.mek_status.status        = mek_data[1]
         self.sDB.mek_status.burn_rate     = mek_data[2]
@@ -191,7 +191,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- copy in the reactor structure
     ---@param mek_data table
-    local _copy_struct = function (mek_data)
+    local function _copy_struct(mek_data)
         self.sDB.mek_struct.heat_cap  = mek_data[1]
         self.sDB.mek_struct.fuel_asm  = mek_data[2]
         self.sDB.mek_struct.fuel_sa   = mek_data[3]
@@ -203,7 +203,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- mark this PLC session as closed, stop watchdog
-    local _close = function ()
+    local function _close()
         self.plc_conn_watchdog.cancel()
         self.connected = false
     end
@@ -211,7 +211,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPES
     ---@param msg table
-    local _send = function (msg_type, msg)
+    local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
@@ -225,7 +225,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     -- send a SCADA management packet
     ---@param msg_type SCADA_MGMT_TYPES
     ---@param msg table
-    local _send_mgmt = function (msg_type, msg)
+    local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
@@ -239,7 +239,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     -- get an ACK status
     ---@param pkt rplc_frame
     ---@return boolean|nil ack
-    local _get_ack = function (pkt)
+    local function _get_ack(pkt)
         if pkt.length == 1 then
             return pkt.data[1]
         else
@@ -250,7 +250,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- handle a packet
     ---@param pkt rplc_frame
-    local _handle_packet = function (pkt)
+    local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
@@ -408,13 +408,13 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
-    public.get_id = function () return self.id end
+    function public.get_id() return self.id end
 
     -- get the session database
-    public.get_db = function () return self.sDB end
+    function public.get_db() return self.sDB end
 
     -- get the reactor structure
-    public.get_struct = function ()
+    function public.get_struct()
         if self.received_struct then
             return self.sDB.mek_struct
         else
@@ -423,7 +423,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- get the reactor status
-    public.get_status = function ()
+    function public.get_status()
         if self.received_status_cache then
             return self.sDB.mek_status
         else
@@ -432,12 +432,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- get the reactor RPS status
-    public.get_rps = function ()
+    function public.get_rps()
         return self.sDB.rps_status
     end
 
     -- get the general status information
-    public.get_general_status = function ()
+    function public.get_general_status()
         return {
             last_status_update = self.sDB.last_status_update,
             control_state = self.sDB.control_state,
@@ -449,12 +449,12 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
     end
 
     -- check if a timer matches this session's watchdog
-    public.check_wd = function (timer)
+    function public.check_wd(timer)
         return self.plc_conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
-    public.close = function ()
+    function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
         println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
@@ -463,7 +463,7 @@ plc.new_session = function (id, for_reactor, in_queue, out_queue)
 
     -- iterate the session
     ---@return boolean connected
-    public.iterate = function ()
+    function public.iterate()
         if self.connected then
             ------------------
             -- handle queue --

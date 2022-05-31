@@ -1,10 +1,10 @@
-local log = require("scada-common.log")
+local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
-local util = require("scada-common.util")
+local util   = require("scada-common.util")
 
 local coordinator = require("supervisor.session.coordinator")
-local plc = require("supervisor.session.plc")
-local rtu = require("supervisor.session.rtu")
+local plc         = require("supervisor.session.plc")
+local rtu         = require("supervisor.session.rtu")
 
 -- Supervisor Sessions Handler
 
@@ -121,14 +121,14 @@ end
 
 -- link the modem
 ---@param modem table
-svsessions.link_modem = function (modem)
+function svsessions.link_modem(modem)
     self.modem = modem
 end
 
 -- find an RTU session by the remote port
 ---@param remote_port integer
 ---@return rtu_session_struct|nil
-svsessions.find_rtu_session = function (remote_port)
+function svsessions.find_rtu_session(remote_port)
     -- check RTU sessions
     return _find_session(self.rtu_sessions, remote_port)
 end
@@ -136,7 +136,7 @@ end
 -- find a PLC session by the remote port
 ---@param remote_port integer
 ---@return plc_session_struct|nil
-svsessions.find_plc_session = function (remote_port)
+function svsessions.find_plc_session(remote_port)
     -- check PLC sessions
     return _find_session(self.plc_sessions, remote_port)
 end
@@ -144,7 +144,7 @@ end
 -- find a PLC/RTU session by the remote port
 ---@param remote_port integer
 ---@return plc_session_struct|rtu_session_struct|nil
-svsessions.find_device_session = function (remote_port)
+function svsessions.find_device_session(remote_port)
     -- check RTU sessions
     local s = _find_session(self.rtu_sessions, remote_port)
 
@@ -157,7 +157,7 @@ end
 -- find a coordinator session by the remote port
 ---@param remote_port integer
 ---@return nil
-svsessions.find_coord_session = function (remote_port)
+function svsessions.find_coord_session(remote_port)
     -- check coordinator sessions
     return _find_session(self.coord_sessions, remote_port)
 end
@@ -165,7 +165,7 @@ end
 -- get a session by reactor ID
 ---@param reactor integer
 ---@return plc_session_struct|nil session
-svsessions.get_reactor_session = function (reactor)
+function svsessions.get_reactor_session(reactor)
     local session = nil
 
     for i = 1, #self.plc_sessions do
@@ -183,7 +183,7 @@ end
 ---@param for_reactor integer
 ---@param version string
 ---@return integer|false session_id
-svsessions.establish_plc_session = function (local_port, remote_port, for_reactor, version)
+function svsessions.establish_plc_session(local_port, remote_port, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil then
         ---@class plc_session_struct
         local plc_s = {
@@ -217,7 +217,7 @@ end
 ---@param remote_port integer
 ---@param advertisement table
 ---@return integer session_id
-svsessions.establish_rtu_session = function (local_port, remote_port, advertisement)
+function svsessions.establish_rtu_session(local_port, remote_port, advertisement)
     -- pull version from advertisement
     local version = table.remove(advertisement, 1)
 
@@ -245,7 +245,7 @@ end
 
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
-svsessions.check_all_watchdogs = function (timer_event)
+function svsessions.check_all_watchdogs(timer_event)
     -- check RTU session watchdogs
     _check_watchdogs(self.rtu_sessions, timer_event)
 
@@ -257,7 +257,7 @@ svsessions.check_all_watchdogs = function (timer_event)
 end
 
 -- iterate all sessions
-svsessions.iterate_all = function ()
+function svsessions.iterate_all()
     -- iterate RTU sessions
     _iterate(self.rtu_sessions)
 
@@ -269,7 +269,7 @@ svsessions.iterate_all = function ()
 end
 
 -- delete all closed sessions
-svsessions.free_all_closed = function ()
+function svsessions.free_all_closed()
     -- free closed RTU sessions
     _free_closed(self.rtu_sessions)
 
@@ -281,7 +281,7 @@ svsessions.free_all_closed = function ()
 end
 
 -- close all open connections
-svsessions.close_all = function ()
+function svsessions.close_all()
     -- close sessions
     _close(self.rtu_sessions)
     _close(self.plc_sessions)
