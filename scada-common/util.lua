@@ -5,6 +5,17 @@
 ---@class util
 local util = {}
 
+-- OPERATORS --
+
+-- trinary operator
+---@param cond boolean condition
+---@param a any return if true
+---@param b any return if false
+---@return any value
+util.trinary = function (cond, a, b)
+    if cond then return a else return b end
+end
+
 -- PRINT --
 
 -- print
@@ -56,11 +67,22 @@ util.concat = function (...)
     return str
 end
 
+-- alias
+util.c = util.concat
+
 -- sprintf implementation
 ---@param format string
 ---@vararg any
 util.sprintf = function (format, ...)
     return string.format(format, table.unpack(arg))
+end
+
+-- MATH --
+
+-- round a number to an integer
+---@return integer rounded
+util.round = function (x)
+    return math.floor(x + 0.5)
 end
 
 -- TIME --
