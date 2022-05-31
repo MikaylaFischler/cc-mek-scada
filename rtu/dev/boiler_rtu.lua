@@ -4,11 +4,8 @@ local boiler_rtu = {}
 
 -- create new boiler (mek 10.0) device
 ---@param boiler table
-boiler_rtu.new = function (boiler)
-    local self = {
-        rtu = rtu.init_unit(),
-        boiler = boiler
-    }
+function boiler_rtu.new(boiler)
+    local unit = rtu.init_unit()
 
     -- discrete inputs --
     -- none
@@ -18,34 +15,34 @@ boiler_rtu.new = function (boiler)
 
     -- input registers --
     -- build properties
-    self.rtu.connect_input_reg(self.boiler.getBoilCapacity)
-    self.rtu.connect_input_reg(self.boiler.getSteamCapacity)
-    self.rtu.connect_input_reg(self.boiler.getWaterCapacity)
-    self.rtu.connect_input_reg(self.boiler.getHeatedCoolantCapacity)
-    self.rtu.connect_input_reg(self.boiler.getCooledCoolantCapacity)
-    self.rtu.connect_input_reg(self.boiler.getSuperheaters)
-    self.rtu.connect_input_reg(self.boiler.getMaxBoilRate)
+    unit.connect_input_reg(boiler.getBoilCapacity)
+    unit.connect_input_reg(boiler.getSteamCapacity)
+    unit.connect_input_reg(boiler.getWaterCapacity)
+    unit.connect_input_reg(boiler.getHeatedCoolantCapacity)
+    unit.connect_input_reg(boiler.getCooledCoolantCapacity)
+    unit.connect_input_reg(boiler.getSuperheaters)
+    unit.connect_input_reg(boiler.getMaxBoilRate)
     -- current state
-    self.rtu.connect_input_reg(self.boiler.getTemperature)
-    self.rtu.connect_input_reg(self.boiler.getBoilRate)
+    unit.connect_input_reg(boiler.getTemperature)
+    unit.connect_input_reg(boiler.getBoilRate)
     -- tanks
-    self.rtu.connect_input_reg(self.boiler.getSteam)
-    self.rtu.connect_input_reg(self.boiler.getSteamNeeded)
-    self.rtu.connect_input_reg(self.boiler.getSteamFilledPercentage)
-    self.rtu.connect_input_reg(self.boiler.getWater)
-    self.rtu.connect_input_reg(self.boiler.getWaterNeeded)
-    self.rtu.connect_input_reg(self.boiler.getWaterFilledPercentage)
-    self.rtu.connect_input_reg(self.boiler.getHeatedCoolant)
-    self.rtu.connect_input_reg(self.boiler.getHeatedCoolantNeeded)
-    self.rtu.connect_input_reg(self.boiler.getHeatedCoolantFilledPercentage)
-    self.rtu.connect_input_reg(self.boiler.getCooledCoolant)
-    self.rtu.connect_input_reg(self.boiler.getCooledCoolantNeeded)
-    self.rtu.connect_input_reg(self.boiler.getCooledCoolantFilledPercentage)
+    unit.connect_input_reg(boiler.getSteam)
+    unit.connect_input_reg(boiler.getSteamNeeded)
+    unit.connect_input_reg(boiler.getSteamFilledPercentage)
+    unit.connect_input_reg(boiler.getWater)
+    unit.connect_input_reg(boiler.getWaterNeeded)
+    unit.connect_input_reg(boiler.getWaterFilledPercentage)
+    unit.connect_input_reg(boiler.getHeatedCoolant)
+    unit.connect_input_reg(boiler.getHeatedCoolantNeeded)
+    unit.connect_input_reg(boiler.getHeatedCoolantFilledPercentage)
+    unit.connect_input_reg(boiler.getCooledCoolant)
+    unit.connect_input_reg(boiler.getCooledCoolantNeeded)
+    unit.connect_input_reg(boiler.getCooledCoolantFilledPercentage)
 
     -- holding registers --
     -- none
 
-    return self.rtu.interface()
+    return unit.interface()
 end
 
 return boiler_rtu

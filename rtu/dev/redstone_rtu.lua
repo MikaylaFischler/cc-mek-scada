@@ -1,4 +1,4 @@
-local rtu = require("rtu.rtu")
+local rtu  = require("rtu.rtu")
 local rsio = require("scada-common.rsio")
 
 local redstone_rtu = {}
@@ -8,13 +8,11 @@ local digital_write = rsio.digital_write
 local digital_is_active = rsio.digital_is_active
 
 -- create new redstone device
-redstone_rtu.new = function ()
-    local self = {
-        rtu = rtu.init_unit()
-    }
+function redstone_rtu.new()
+    local unit = rtu.init_unit()
 
     -- get RTU interface
-    local interface = self.rtu.interface()
+    local interface = unit.interface()
 
     ---@class rtu_rs_device
     --- extends rtu_device; fields added manually to please Lua diagnostics
@@ -31,7 +29,7 @@ redstone_rtu.new = function ()
     -- link digital input
     ---@param side string
     ---@param color integer
-    public.link_di = function (side, color)
+    function public.link_di(side, color)
         local f_read = nil
 
         if color then
@@ -44,14 +42,14 @@ redstone_rtu.new = function ()
             end
         end
 
-        self.rtu.connect_di(f_read)
+        unit.connect_di(f_read)
     end
 
     -- link digital output
     ---@param channel RS_IO
     ---@param side string
     ---@param color integer
-    public.link_do = function (channel, side, color)
+    function public.link_do(channel, side, color)
         local f_read = nil
         local f_write = nil
 
@@ -81,13 +79,13 @@ redstone_rtu.new = function ()
             end
         end
 
-        self.rtu.connect_coil(f_read, f_write)
+        unit.connect_coil(f_read, f_write)
     end
 
     -- link analog input
     ---@param side string
-    public.link_ai = function (side)
-        self.rtu.connect_input_reg(
+    function public.link_ai(side)
+        unit.connect_input_reg(
             function ()
                 return rs.getAnalogInput(side)
             end
@@ -96,8 +94,8 @@ redstone_rtu.new = function ()
 
     -- link analog output
     ---@param side string
-    public.link_ao = function (side)
-        self.rtu.connect_holding_reg(
+    function public.link_ao(side)
+        unit.connect_holding_reg(
             function ()
                 return rs.getAnalogOutput(side)
             end,

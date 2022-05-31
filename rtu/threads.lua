@@ -27,11 +27,11 @@ local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
 ---@param smem rtu_shared_memory
-threads.thread__main = function (smem)
+function threads.thread__main(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("main thread start")
 
         -- main loop clock
@@ -155,7 +155,7 @@ threads.thread__main = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local rtu_state = smem.rtu_state
 
         while not rtu_state.shutdown do
@@ -176,11 +176,11 @@ end
 
 -- communications handler thread
 ---@param smem rtu_shared_memory
-threads.thread__comms = function (smem)
+function threads.thread__comms(smem)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("comms thread start")
 
         -- load in from shared memory
@@ -227,7 +227,7 @@ threads.thread__comms = function (smem)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local rtu_state = smem.rtu_state
 
         while not rtu_state.shutdown do
@@ -249,11 +249,11 @@ end
 -- per-unit communications handler thread
 ---@param smem rtu_shared_memory
 ---@param unit rtu_unit_registry_entry
-threads.thread__unit_comms = function (smem, unit)
+function threads.thread__unit_comms(smem, unit)
     local public = {}   ---@class thread
 
     -- execute thread
-    public.exec = function ()
+    function public.exec()
         log.debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
 
         -- load in from shared memory
@@ -297,7 +297,7 @@ threads.thread__unit_comms = function (smem, unit)
     end
 
     -- execute the thread in a protected mode, retrying it on return if not shutting down
-    public.p_exec = function ()
+    function public.p_exec()
         local rtu_state = smem.rtu_state
 
         while not rtu_state.shutdown do

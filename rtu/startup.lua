@@ -4,27 +4,27 @@
 
 require("/initenv").init_env()
 
-local log = require("scada-common.log")
+local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
-local ppm = require("scada-common.ppm")
-local rsio = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util = require("scada-common.util")
+local ppm    = require("scada-common.ppm")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
-local config = require("rtu.config")
-local modbus = require("rtu.modbus")
-local rtu = require("rtu.rtu")
+local config  = require("rtu.config")
+local modbus  = require("rtu.modbus")
+local rtu     = require("rtu.rtu")
 local threads = require("rtu.threads")
 
-local redstone_rtu = require("rtu.dev.redstone_rtu")
-local boiler_rtu = require("rtu.dev.boiler_rtu")
-local boilerv_rtu = require("rtu.dev.boilerv_rtu")
+local redstone_rtu      = require("rtu.dev.redstone_rtu")
+local boiler_rtu        = require("rtu.dev.boiler_rtu")
+local boilerv_rtu       = require("rtu.dev.boilerv_rtu")
 local energymachine_rtu = require("rtu.dev.energymachine_rtu")
-local imatrix_rtu = require("rtu.dev.imatrix_rtu")
-local turbine_rtu = require("rtu.dev.turbine_rtu")
-local turbinev_rtu = require("rtu.dev.turbinev_rtu")
+local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
+local turbine_rtu       = require("rtu.dev.turbine_rtu")
+local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.2"
+local RTU_VERSION = "beta-v0.7.3"
 
 local rtu_t = types.rtu_t
 

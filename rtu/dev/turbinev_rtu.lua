@@ -4,54 +4,51 @@ local turbinev_rtu = {}
 
 -- create new turbine (mek 10.1+) device
 ---@param turbine table
-turbinev_rtu.new = function (turbine)
-    local self = {
-        rtu = rtu.init_unit(),
-        turbine = turbine
-    }
+function turbinev_rtu.new(turbine)
+    local unit = rtu.init_unit()
 
     -- discrete inputs --
-    self.rtu.connect_di(self.boiler.isFormed)
+    unit.connect_di(turbine.isFormed)
 
     -- coils --
-    self.rtu.connect_coil(function () self.turbine.incrementDumpingMode() end, function () end)
-    self.rtu.connect_coil(function () self.turbine.decrementDumpingMode() end, function () end)
+    unit.connect_coil(function () turbine.incrementDumpingMode() end, function () end)
+    unit.connect_coil(function () turbine.decrementDumpingMode() end, function () end)
 
     -- input registers --
     -- multiblock properties
-    self.rtu.connect_input_reg(self.boiler.getLength)
-    self.rtu.connect_input_reg(self.boiler.getWidth)
-    self.rtu.connect_input_reg(self.boiler.getHeight)
-    self.rtu.connect_input_reg(self.boiler.getMinPos)
-    self.rtu.connect_input_reg(self.boiler.getMaxPos)
+    unit.connect_input_reg(turbine.getLength)
+    unit.connect_input_reg(turbine.getWidth)
+    unit.connect_input_reg(turbine.getHeight)
+    unit.connect_input_reg(turbine.getMinPos)
+    unit.connect_input_reg(turbine.getMaxPos)
     -- build properties
-    self.rtu.connect_input_reg(self.turbine.getBlades)
-    self.rtu.connect_input_reg(self.turbine.getCoils)
-    self.rtu.connect_input_reg(self.turbine.getVents)
-    self.rtu.connect_input_reg(self.turbine.getDispersers)
-    self.rtu.connect_input_reg(self.turbine.getCondensers)
-    self.rtu.connect_input_reg(self.turbine.getDumpingMode)
-    self.rtu.connect_input_reg(self.turbine.getSteamCapacity)
-    self.rtu.connect_input_reg(self.turbine.getMaxEnergy)
-    self.rtu.connect_input_reg(self.turbine.getMaxFlowRate)
-    self.rtu.connect_input_reg(self.turbine.getMaxWaterOutput)
-    self.rtu.connect_input_reg(self.turbine.getMaxProduction)
+    unit.connect_input_reg(turbine.getBlades)
+    unit.connect_input_reg(turbine.getCoils)
+    unit.connect_input_reg(turbine.getVents)
+    unit.connect_input_reg(turbine.getDispersers)
+    unit.connect_input_reg(turbine.getCondensers)
+    unit.connect_input_reg(turbine.getDumpingMode)
+    unit.connect_input_reg(turbine.getSteamCapacity)
+    unit.connect_input_reg(turbine.getMaxEnergy)
+    unit.connect_input_reg(turbine.getMaxFlowRate)
+    unit.connect_input_reg(turbine.getMaxWaterOutput)
+    unit.connect_input_reg(turbine.getMaxProduction)
     -- current state
-    self.rtu.connect_input_reg(self.turbine.getFlowRate)
-    self.rtu.connect_input_reg(self.turbine.getProductionRate)
-    self.rtu.connect_input_reg(self.turbine.getLastSteamInputRate)
+    unit.connect_input_reg(turbine.getFlowRate)
+    unit.connect_input_reg(turbine.getProductionRate)
+    unit.connect_input_reg(turbine.getLastSteamInputRate)
     -- tanks/containers
-    self.rtu.connect_input_reg(self.turbine.getSteam)
-    self.rtu.connect_input_reg(self.turbine.getSteamNeeded)
-    self.rtu.connect_input_reg(self.turbine.getSteamFilledPercentage)
-    self.rtu.connect_input_reg(self.turbine.getEnergy)
-    self.rtu.connect_input_reg(self.turbine.getEnergyNeeded)
-    self.rtu.connect_input_reg(self.turbine.getEnergyFilledPercentage)
+    unit.connect_input_reg(turbine.getSteam)
+    unit.connect_input_reg(turbine.getSteamNeeded)
+    unit.connect_input_reg(turbine.getSteamFilledPercentage)
+    unit.connect_input_reg(turbine.getEnergy)
+    unit.connect_input_reg(turbine.getEnergyNeeded)
+    unit.connect_input_reg(turbine.getEnergyFilledPercentage)
 
     -- holding registers --
-    self.rtu.connect_holding_reg(self.turbine.setDumpingMode, self.turbine.getDumpingMode)
+    unit.connect_holding_reg(turbine.setDumpingMode, turbine.getDumpingMode)
 
-    return self.rtu.interface()
+    return unit.interface()
 end
 
 return turbinev_rtu

@@ -4,17 +4,8 @@ local energymachine_rtu = {}
 
 -- create new energy machine device
 ---@param machine table
-energymachine_rtu.new = function (machine)
-    local self = {
-        rtu = rtu.init_unit(),
-        machine = machine
-    }
-
-    ---@class rtu_device
-    local public = {}
-
-    -- get the RTU interface
-    public.rtu_interface = function () return self.rtu end
+function energymachine_rtu.new(machine)
+    local unit = rtu.init_unit()
 
     -- discrete inputs --
     -- none
@@ -24,16 +15,16 @@ energymachine_rtu.new = function (machine)
 
     -- input registers --
     -- build properties
-    self.rtu.connect_input_reg(self.machine.getTotalMaxEnergy)
+    unit.connect_input_reg(machine.getTotalMaxEnergy)
     -- containers
-    self.rtu.connect_input_reg(self.machine.getTotalEnergy)
-    self.rtu.connect_input_reg(self.machine.getTotalEnergyNeeded)
-    self.rtu.connect_input_reg(self.machine.getTotalEnergyFilledPercentage)
+    unit.connect_input_reg(machine.getTotalEnergy)
+    unit.connect_input_reg(machine.getTotalEnergyNeeded)
+    unit.connect_input_reg(machine.getTotalEnergyFilledPercentage)
 
     -- holding registers --
     -- none
 
-    return public
+    return unit.interface()
 end
 
 return energymachine_rtu

@@ -20,7 +20,7 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- create a new RTU
-rtu.init_unit = function ()
+function rtu.init_unit()
     local self = {
         discrete_inputs = {},
         coils = {},
@@ -38,13 +38,13 @@ rtu.init_unit = function ()
     local protected = {}
 
     -- refresh IO count
-    local _count_io = function ()
+    local function _count_io()
         self.io_count_cache = { #self.discrete_inputs, #self.coils, #self.input_regs, #self.holding_regs }
     end
 
     -- return IO count
     ---@return integer discrete_inputs, integer coils, integer input_regs, integer holding_regs
-    public.io_count = function ()
+    function public.io_count()
         return self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3], self.io_count_cache[4]
     end
 
@@ -53,7 +53,7 @@ rtu.init_unit = function ()
     -- connect discrete input
     ---@param f function
     ---@return integer count count of discrete inputs
-    protected.connect_di = function (f)
+    function protected.connect_di(f)
         insert(self.discrete_inputs, { read = f })
         _count_io()
         return #self.discrete_inputs
@@ -62,7 +62,7 @@ rtu.init_unit = function ()
     -- read discrete input
     ---@param di_addr integer
     ---@return any value, boolean access_fault
-    public.read_di = function (di_addr)
+    function public.read_di(di_addr)
         ppm.clear_fault()
         local value = self.discrete_inputs[di_addr].read()
         return value, ppm.is_faulted()
@@ -74,7 +74,7 @@ rtu.init_unit = function ()
     ---@param f_read function
     ---@param f_write function
     ---@return integer count count of coils
-    protected.connect_coil = function (f_read, f_write)
+    function protected.connect_coil(f_read, f_write)
         insert(self.coils, { read = f_read, write = f_write })
         _count_io()
         return #self.coils
@@ -83,7 +83,7 @@ rtu.init_unit = function ()
     -- read coil
     ---@param coil_addr integer
     ---@return any value, boolean access_fault
-    public.read_coil = function (coil_addr)
+    function public.read_coil(coil_addr)
         ppm.clear_fault()
         local value = self.coils[coil_addr].read()
         return value, ppm.is_faulted()
@@ -93,7 +93,7 @@ rtu.init_unit = function ()
     ---@param coil_addr integer
     ---@param value any
     ---@return boolean access_fault
-    public.write_coil = function (coil_addr, value)
+    function public.write_coil(coil_addr, value)
         ppm.clear_fault()
         self.coils[coil_addr].write(value)
         return ppm.is_faulted()
@@ -104,7 +104,7 @@ rtu.init_unit = function ()
     -- connect input register
     ---@param f function
     ---@return integer count count of input registers
-    protected.connect_input_reg = function (f)
+    function protected.connect_input_reg(f)
         insert(self.input_regs, { read = f })
         _count_io()
         return #self.input_regs
@@ -113,7 +113,7 @@ rtu.init_unit = function ()
     -- read input register
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
-    public.read_input_reg = function (reg_addr)
+    function public.read_input_reg(reg_addr)
         ppm.clear_fault()
         local value = self.input_regs[reg_addr].read()
         return value, ppm.is_faulted()
@@ -125,7 +125,7 @@ rtu.init_unit = function ()
     ---@param f_read function
     ---@param f_write function
     ---@return integer count count of holding registers
-    protected.connect_holding_reg = function (f_read, f_write)
+    function protected.connect_holding_reg(f_read, f_write)
         insert(self.holding_regs, { read = f_read, write = f_write })
         _count_io()
         return #self.holding_regs
@@ -134,7 +134,7 @@ rtu.init_unit = function ()
     -- read holding register
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
-    public.read_holding_reg = function (reg_addr)
+    function public.read_holding_reg(reg_addr)
         ppm.clear_fault()
         local value = self.holding_regs[reg_addr].read()
         return value, ppm.is_faulted()
@@ -144,7 +144,7 @@ rtu.init_unit = function ()
     ---@param reg_addr integer
     ---@param value any
     ---@return boolean access_fault
-    public.write_holding_reg = function (reg_addr, value)
+    function public.write_holding_reg(reg_addr, value)
         ppm.clear_fault()
         self.holding_regs[reg_addr].write(value)
         return ppm.is_faulted()
@@ -153,7 +153,7 @@ rtu.init_unit = function ()
     -- public RTU device access
 
     -- get the public interface to this RTU
-    protected.interface = function ()
+    function protected.interface()
         return public
     end
 
@@ -166,7 +166,7 @@ end
 ---@param local_port integer
 ---@param server_port integer
 ---@param conn_watchdog watchdog
-rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
+function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
     local self = {
         version = version,
         seq_num = 0,
@@ -193,7 +193,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
     -- send a scada management packet
     ---@param msg_type SCADA_MGMT_TYPES
     ---@param msg table
-    local _send = function (msg_type, msg)
+    local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
@@ -206,7 +206,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
 
     -- keep alive ack
     ---@param srv_time integer
-    local _send_keep_alive_ack = function (srv_time)
+    local function _send_keep_alive_ack(srv_time)
         _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
@@ -214,7 +214,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
 
     -- send a MODBUS TCP packet
     ---@param m_pkt modbus_packet
-    public.send_modbus = function (m_pkt)
+    function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
         s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
@@ -224,7 +224,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
     -- reconnect a newly connected modem
     ---@param modem table
 ---@diagnostic disable-next-line: redefined-local
-    public.reconnect_modem = function (modem)
+    function public.reconnect_modem(modem)
         self.modem = modem
 
         -- open modem
@@ -235,14 +235,14 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
 
     -- unlink from the server
     ---@param rtu_state rtu_state
-    public.unlink = function (rtu_state)
+    function public.unlink(rtu_state)
         rtu_state.linked = false
         self.r_seq_num = nil
     end
 
     -- close the connection to the server
     ---@param rtu_state rtu_state
-    public.close = function (rtu_state)
+    function public.close(rtu_state)
         self.conn_watchdog.cancel()
         public.unlink(rtu_state)
         _send(SCADA_MGMT_TYPES.CLOSE, {})
@@ -250,7 +250,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
 
     -- send capability advertisement
     ---@param units table
-    public.send_advertisement = function (units)
+    function public.send_advertisement(units)
         local advertisement = { self.version }
 
         for i = 1, #units do
@@ -282,7 +282,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
     ---@param message any
     ---@param distance integer
     ---@return modbus_frame|mgmt_frame|nil packet
-    public.parse_packet = function(side, sender, reply_to, message, distance)
+    function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt = nil
         local s_pkt = comms.scada_packet()
 
@@ -314,7 +314,7 @@ rtu.comms = function (version, modem, local_port, server_port, conn_watchdog)
     ---@param packet modbus_frame|mgmt_frame
     ---@param units table
     ---@param rtu_state rtu_state
-    public.handle_packet = function(packet, units, rtu_state)
+    function public.handle_packet(packet, units, rtu_state)
         if packet ~= nil then
             -- check sequence number
             if self.r_seq_num == nil then

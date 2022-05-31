@@ -4,42 +4,39 @@ local imatrix_rtu = {}
 
 -- create new induction matrix (mek 10.1+) device
 ---@param imatrix table
-imatrix_rtu.new = function (imatrix)
-    local self = {
-        rtu = rtu.init_unit(),
-        imatrix = imatrix
-    }
+function imatrix_rtu.new(imatrix)
+    local unit = rtu.init_unit()
 
     -- discrete inputs --
-    self.rtu.connect_di(self.boiler.isFormed)
+    unit.connect_di(imatrix.isFormed)
 
     -- coils --
     -- none
 
     -- input registers --
     -- multiblock properties
-    self.rtu.connect_input_reg(self.boiler.getLength)
-    self.rtu.connect_input_reg(self.boiler.getWidth)
-    self.rtu.connect_input_reg(self.boiler.getHeight)
-    self.rtu.connect_input_reg(self.boiler.getMinPos)
-    self.rtu.connect_input_reg(self.boiler.getMaxPos)
+    unit.connect_input_reg(imatrix.getLength)
+    unit.connect_input_reg(imatrix.getWidth)
+    unit.connect_input_reg(imatrix.getHeight)
+    unit.connect_input_reg(imatrix.getMinPos)
+    unit.connect_input_reg(imatrix.getMaxPos)
     -- build properties
-    self.rtu.connect_input_reg(self.imatrix.getMaxEnergy)
-    self.rtu.connect_input_reg(self.imatrix.getTransferCap)
-    self.rtu.connect_input_reg(self.imatrix.getInstalledCells)
-    self.rtu.connect_input_reg(self.imatrix.getInstalledProviders)
+    unit.connect_input_reg(imatrix.getMaxEnergy)
+    unit.connect_input_reg(imatrix.getTransferCap)
+    unit.connect_input_reg(imatrix.getInstalledCells)
+    unit.connect_input_reg(imatrix.getInstalledProviders)
     -- containers
-    self.rtu.connect_input_reg(self.imatrix.getEnergy)
-    self.rtu.connect_input_reg(self.imatrix.getEnergyNeeded)
-    self.rtu.connect_input_reg(self.imatrix.getEnergyFilledPercentage)
+    unit.connect_input_reg(imatrix.getEnergy)
+    unit.connect_input_reg(imatrix.getEnergyNeeded)
+    unit.connect_input_reg(imatrix.getEnergyFilledPercentage)
     -- I/O rates
-    self.rtu.connect_input_reg(self.imatrix.getLastInput)
-    self.rtu.connect_input_reg(self.imatrix.getLastOutput)
+    unit.connect_input_reg(imatrix.getLastInput)
+    unit.connect_input_reg(imatrix.getLastOutput)
 
     -- holding registers --
     -- none
 
-    return self.rtu.interface()
+    return unit.interface()
 end
 
 return imatrix_rtu

@@ -4,11 +4,8 @@ local turbine_rtu = {}
 
 -- create new turbine (mek 10.0) device
 ---@param turbine table
-turbine_rtu.new = function (turbine)
-    local self = {
-        rtu = rtu.init_unit(),
-        turbine = turbine
-    }
+function turbine_rtu.new(turbine)
+    local unit = rtu.init_unit()
 
     -- discrete inputs --
     -- none
@@ -18,29 +15,29 @@ turbine_rtu.new = function (turbine)
 
     -- input registers --
     -- build properties
-    self.rtu.connect_input_reg(self.turbine.getBlades)
-    self.rtu.connect_input_reg(self.turbine.getCoils)
-    self.rtu.connect_input_reg(self.turbine.getVents)
-    self.rtu.connect_input_reg(self.turbine.getDispersers)
-    self.rtu.connect_input_reg(self.turbine.getCondensers)
-    self.rtu.connect_input_reg(self.turbine.getSteamCapacity)
-    self.rtu.connect_input_reg(self.turbine.getMaxFlowRate)
-    self.rtu.connect_input_reg(self.turbine.getMaxProduction)
-    self.rtu.connect_input_reg(self.turbine.getMaxWaterOutput)
+    unit.connect_input_reg(turbine.getBlades)
+    unit.connect_input_reg(turbine.getCoils)
+    unit.connect_input_reg(turbine.getVents)
+    unit.connect_input_reg(turbine.getDispersers)
+    unit.connect_input_reg(turbine.getCondensers)
+    unit.connect_input_reg(turbine.getSteamCapacity)
+    unit.connect_input_reg(turbine.getMaxFlowRate)
+    unit.connect_input_reg(turbine.getMaxProduction)
+    unit.connect_input_reg(turbine.getMaxWaterOutput)
     -- current state
-    self.rtu.connect_input_reg(self.turbine.getFlowRate)
-    self.rtu.connect_input_reg(self.turbine.getProductionRate)
-    self.rtu.connect_input_reg(self.turbine.getLastSteamInputRate)
-    self.rtu.connect_input_reg(self.turbine.getDumpingMode)
+    unit.connect_input_reg(turbine.getFlowRate)
+    unit.connect_input_reg(turbine.getProductionRate)
+    unit.connect_input_reg(turbine.getLastSteamInputRate)
+    unit.connect_input_reg(turbine.getDumpingMode)
     -- tanks
-    self.rtu.connect_input_reg(self.turbine.getSteam)
-    self.rtu.connect_input_reg(self.turbine.getSteamNeeded)
-    self.rtu.connect_input_reg(self.turbine.getSteamFilledPercentage)
+    unit.connect_input_reg(turbine.getSteam)
+    unit.connect_input_reg(turbine.getSteamNeeded)
+    unit.connect_input_reg(turbine.getSteamFilledPercentage)
 
     -- holding registers --
     -- none
 
-    return self.rtu.interface()
+    return unit.interface()
 end
 
 return turbine_rtu
