@@ -9,6 +9,7 @@ local svrs_boiler   = require("supervisor.session.rtu.boiler")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
+local svrs_sps      = require("supervisor.session.rtu.sps")
 local svrs_turbine  = require("supervisor.session.rtu.turbine")
 
 local rtu = {}
@@ -103,7 +104,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.SPS then
-                -- @todo Mekanism 10.1+
+                unit = svrs_sps.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.SNA then
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
