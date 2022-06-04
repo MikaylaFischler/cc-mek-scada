@@ -110,32 +110,33 @@ function turbine.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             if m_pkt.length == 9 then
-                self.db.build.blades = m_pkt.data[1]
-                self.db.build.coils = m_pkt.data[2]
-                self.db.build.vents = m_pkt.data[3]
-                self.db.build.dispersers = m_pkt.data[4]
-                self.db.build.condensers = m_pkt.data[5]
-                self.db.build.steam_cap = m_pkt.data[6]
-                self.db.build.max_flow_rate = m_pkt.data[7]
-                self.db.build.max_production = m_pkt.data[8]
+                self.db.build.blades           = m_pkt.data[1]
+                self.db.build.coils            = m_pkt.data[2]
+                self.db.build.vents            = m_pkt.data[3]
+                self.db.build.dispersers       = m_pkt.data[4]
+                self.db.build.condensers       = m_pkt.data[5]
+                self.db.build.steam_cap        = m_pkt.data[6]
+                self.db.build.max_flow_rate    = m_pkt.data[7]
+                self.db.build.max_production   = m_pkt.data[8]
                 self.db.build.max_water_output = m_pkt.data[9]
+                self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             if m_pkt.length == 4 then
-                self.db.state.flow_rate = m_pkt.data[1]
-                self.db.state.prod_rate = m_pkt.data[2]
+                self.db.state.flow_rate        = m_pkt.data[1]
+                self.db.state.prod_rate        = m_pkt.data[2]
                 self.db.state.steam_input_rate = m_pkt.data[3]
-                self.db.state.dumping_mode = m_pkt.data[4]
+                self.db.state.dumping_mode     = m_pkt.data[4]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             if m_pkt.length == 3 then
-                self.db.tanks.steam = m_pkt.data[1]
+                self.db.tanks.steam      = m_pkt.data[1]
                 self.db.tanks.steam_need = m_pkt.data[2]
                 self.db.tanks.steam_fill = m_pkt.data[3]
             else

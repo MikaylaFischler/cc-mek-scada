@@ -83,7 +83,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if not self.has_build and self.periodics.next_rad_req <= time_now then
+        if self.periodics.next_rad_req <= time_now then
             _request_radiation()
             self.periodics.next_rad_req = time_now + PERIODICS.RAD
         end

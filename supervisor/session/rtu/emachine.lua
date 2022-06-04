@@ -86,13 +86,14 @@ function emachine.new(session_id, unit_id, advert, out_queue)
             -- build response
             if m_pkt.length == 1 then
                 self.db.build.max_energy = m_pkt.data[1]
+                self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.STORAGE then
             -- storage response
             if m_pkt.length == 3 then
-                self.db.storage.energy = m_pkt.data[1]
+                self.db.storage.energy      = m_pkt.data[1]
                 self.db.storage.energy_need = m_pkt.data[2]
                 self.db.storage.energy_fill = m_pkt.data[3]
             else

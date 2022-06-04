@@ -115,13 +115,14 @@ function boiler.new(session_id, unit_id, advert, out_queue)
             -- build response
             -- load in data if correct length
             if m_pkt.length == 7 then
-                self.db.build.boil_cap = m_pkt.data[1]
-                self.db.build.steam_cap = m_pkt.data[2]
-                self.db.build.water_cap = m_pkt.data[3]
-                self.db.build.hcoolant_cap = m_pkt.data[4]
-                self.db.build.ccoolant_cap = m_pkt.data[5]
-                self.db.build.superheaters = m_pkt.data[6]
+                self.db.build.boil_cap      = m_pkt.data[1]
+                self.db.build.steam_cap     = m_pkt.data[2]
+                self.db.build.water_cap     = m_pkt.data[3]
+                self.db.build.hcoolant_cap  = m_pkt.data[4]
+                self.db.build.ccoolant_cap  = m_pkt.data[5]
+                self.db.build.superheaters  = m_pkt.data[6]
                 self.db.build.max_boil_rate = m_pkt.data[7]
+                self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -130,7 +131,7 @@ function boiler.new(session_id, unit_id, advert, out_queue)
             -- load in data if correct length
             if m_pkt.length == 2 then
                 self.db.state.temperature = m_pkt.data[1]
-                self.db.state.boil_rate = m_pkt.data[2]
+                self.db.state.boil_rate   = m_pkt.data[2]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -138,16 +139,16 @@ function boiler.new(session_id, unit_id, advert, out_queue)
             -- tanks response
             -- load in data if correct length
             if m_pkt.length == 12 then
-                self.db.tanks.steam = m_pkt.data[1]
+                self.db.tanks.steam      = m_pkt.data[1]
                 self.db.tanks.steam_need = m_pkt.data[2]
                 self.db.tanks.steam_fill = m_pkt.data[3]
-                self.db.tanks.water = m_pkt.data[4]
+                self.db.tanks.water      = m_pkt.data[4]
                 self.db.tanks.water_need = m_pkt.data[5]
                 self.db.tanks.water_fill = m_pkt.data[6]
-                self.db.tanks.hcool = m_pkt.data[7]
+                self.db.tanks.hcool      = m_pkt.data[7]
                 self.db.tanks.hcool_need = m_pkt.data[8]
                 self.db.tanks.hcool_fill = m_pkt.data[9]
-                self.db.tanks.ccool = m_pkt.data[10]
+                self.db.tanks.ccool      = m_pkt.data[10]
                 self.db.tanks.ccool_need = m_pkt.data[11]
                 self.db.tanks.ccool_fill = m_pkt.data[12]
             else
@@ -163,7 +164,7 @@ function boiler.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if not self.periodics.has_build and self.periodics.next_build_req <= time_now then
+        if not self.has_build and self.periodics.next_build_req <= time_now then
             _request_build()
             self.periodics.next_build_req = time_now + PERIODICS.BUILD
         end
