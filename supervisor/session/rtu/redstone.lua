@@ -66,7 +66,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
         has_ai = false,
         periodics = {
             next_di_req = 0,
-            next_ir_req = 0,
+            next_ir_req = 0
         },
         io_list = {
             digital_in = {},    -- discrete inputs

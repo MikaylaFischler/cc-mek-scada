@@ -43,7 +43,7 @@ function emachine.new(session_id, unit_id, advert, out_queue)
         has_build = false,
         periodics = {
             next_build_req = 0,
-            next_storage_req = 0,
+            next_storage_req = 0
         },
         ---@class emachine_session_db
         db = {

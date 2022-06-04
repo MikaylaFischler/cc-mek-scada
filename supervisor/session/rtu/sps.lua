@@ -20,7 +20,7 @@ local TXN_TAGS = {
     "sps.formed",
     "sps.build",
     "sps.state",
-    "sps.tanks",
+    "sps.tanks"
 }
 
 local PERIODICS = {
@@ -51,7 +51,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
             next_formed_req = 0,
             next_build_req = 0,
             next_state_req = 0,
-            next_tanks_req = 0,
+            next_tanks_req = 0
         },
         ---@class sps_session_db
         db = {
@@ -88,7 +88,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
 
     -- PRIVATE FUNCTIONS --
 
-    -- query if the build is formed
+    -- query if the multiblock is formed
     local function _request_formed()
         -- read discrete input 1 (start = 1, count = 1)
         self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 })

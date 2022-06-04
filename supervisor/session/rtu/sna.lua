@@ -18,7 +18,7 @@ local TXN_TYPES = {
 local TXN_TAGS = {
     "sna.build",
     "sna.state",
-    "sna.tanks",
+    "sna.tanks"
 }
 
 local PERIODICS = {
@@ -47,7 +47,7 @@ function sna.new(session_id, unit_id, advert, out_queue)
         periodics = {
             next_build_req = 0,
             next_state_req = 0,
-            next_tanks_req = 0,
+            next_tanks_req = 0
         },
         ---@class sna_session_db
         db = {

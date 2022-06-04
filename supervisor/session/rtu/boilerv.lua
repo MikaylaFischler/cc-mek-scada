@@ -4,71 +4,82 @@ local types = require("scada-common.types")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
-local boiler = {}
+local boilerv = {}
 
 local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local TXN_TYPES = {
-    BUILD = 1,
-    STATE = 2,
-    TANKS = 3
+    FORMED = 1,
+    BUILD = 2,
+    STATE = 3,
+    TANKS = 4
 }
 
 local TXN_TAGS = {
-    "boiler.build",
-    "boiler.state",
-    "boiler.tanks"
+    "boilerv.formed",
+    "boilerv.build",
+    "boilerv.state",
+    "boilerv.tanks"
 }
 
 local PERIODICS = {
+    FORMED = 2000,
     BUILD = 1000,
     STATE = 500,
     TANKS = 1000
 }
 
--- create a new boiler rtu session runner
+-- create a new boilerv rtu session runner
 ---@param session_id integer
 ---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
-function boiler.new(session_id, unit_id, advert, out_queue)
+function boilerv.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.BOILER then
-        log.error("attempt to instantiate boiler RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= RTU_UNIT_TYPES.BOILER_VALVE then
+        log.error("attempt to instantiate boilerv RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").boiler(" .. advert.index .. "): "
+    local log_tag = "session.rtu(" .. session_id .. ").boilerv(" .. advert.index .. "): "
 
     local self = {
         session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
         periodics = {
+            next_formed_req = 0,
             next_build_req = 0,
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class boiler_session_db
+        ---@class boilerv_session_db
         db = {
+            formed = false,
             build = {
+                length = 0,
+                width = 0,
+                height = 0,
+                min_pos = 0,
+                max_pos = 0,
                 boil_cap = 0.0,
                 steam_cap = 0,
                 water_cap = 0,
                 hcoolant_cap = 0,
                 ccoolant_cap = 0,
                 superheaters = 0,
-                max_boil_rate = 0.0
+                max_boil_rate = 0.0,
+                env_loss = 0.0
             },
             state = {
                 temperature = 0.0,
                 boil_rate = 0.0
             },
             tanks = {
-                steam = 0,
+                steam = {},         ---@type tank_fluid
                 steam_need = 0,
                 steam_fill = 0.0,
-                water = 0,
+                water = {},         ---@type tank_fluid
                 water_need = 0,
                 water_fill = 0.0,
                 hcool = {},         ---@type tank_fluid
@@ -85,22 +96,28 @@ function boiler.new(session_id, unit_id, advert, out_queue)
 
     -- PRIVATE FUNCTIONS --
 
+    -- query if the multiblock is formed
+    local function _request_formed()
+        -- read discrete input 1 (start = 1, count = 1)
+        self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 })
+    end
+
     -- query the build of the device
     local function _request_build()
-        -- read input registers 1 through 7 (start = 1, count = 7)
+        -- read input registers 1 through 13 (start = 1, count = 13)
         self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 })
     end
 
     -- query the state of the device
     local function _request_state()
-        -- read input registers 8 through 9 (start = 8, count = 2)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 8, 2 })
+        -- read input registers 14 through 16 (start = 14, count = 2)
+        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 14, 2 })
     end
 
     -- query the tanks of the device
     local function _request_tanks()
-        -- read input registers 10 through 21 (start = 10, count = 12)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 10, 12 })
+        -- read input registers 17 through 29 (start = 17, count = 12)
+        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 17, 12 })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -111,17 +128,31 @@ function boiler.new(session_id, unit_id, advert, out_queue)
         local txn_type = self.session.try_resolve(m_pkt.txn_id)
         if txn_type == false then
             -- nothing to do
+        elseif txn_type == TXN_TYPES.FORMED then
+            -- formed response
+            -- load in data if correct length
+            if m_pkt.length == 1 then
+                self.db.formed = m_pkt.data[1]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
+            end
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if m_pkt.length == 7 then
-                self.db.build.boil_cap      = m_pkt.data[1]
-                self.db.build.steam_cap     = m_pkt.data[2]
-                self.db.build.water_cap     = m_pkt.data[3]
-                self.db.build.hcoolant_cap  = m_pkt.data[4]
-                self.db.build.ccoolant_cap  = m_pkt.data[5]
-                self.db.build.superheaters  = m_pkt.data[6]
-                self.db.build.max_boil_rate = m_pkt.data[7]
+            if m_pkt.length == 13 then
+                self.db.build.length        = m_pkt.data[1]
+                self.db.build.width         = m_pkt.data[2]
+                self.db.build.height        = m_pkt.data[3]
+                self.db.build.min_pos       = m_pkt.data[4]
+                self.db.build.max_pos       = m_pkt.data[5]
+                self.db.build.boil_cap      = m_pkt.data[6]
+                self.db.build.steam_cap     = m_pkt.data[7]
+                self.db.build.water_cap     = m_pkt.data[8]
+                self.db.build.hcoolant_cap  = m_pkt.data[9]
+                self.db.build.ccoolant_cap  = m_pkt.data[10]
+                self.db.build.superheaters  = m_pkt.data[11]
+                self.db.build.max_boil_rate = m_pkt.data[12]
+                self.db.build.env_loss      = m_pkt.data[13]
                 self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
@@ -164,19 +195,26 @@ function boiler.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if not self.has_build and self.periodics.next_build_req <= time_now then
-            _request_build()
-            self.periodics.next_build_req = time_now + PERIODICS.BUILD
+        if self.periodics.next_formed_req <= time_now then
+            _request_formed()
+            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
         end
 
-        if self.periodics.next_state_req <= time_now then
-            _request_state()
-            self.periodics.next_state_req = time_now + PERIODICS.STATE
-        end
+        if self.db.formed then
+            if not self.has_build and self.periodics.next_build_req <= time_now then
+                _request_build()
+                self.periodics.next_build_req = time_now + PERIODICS.BUILD
+            end
 
-        if self.periodics.next_tanks_req <= time_now then
-            _request_tanks()
-            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+            if self.periodics.next_state_req <= time_now then
+                _request_state()
+                self.periodics.next_state_req = time_now + PERIODICS.STATE
+            end
+
+            if self.periodics.next_tanks_req <= time_now then
+                _request_tanks()
+                self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+            end
         end
 
         self.session.post_update()
@@ -188,4 +226,4 @@ function boiler.new(session_id, unit_id, advert, out_queue)
     return public
 end
 
-return boiler
+return boilerv

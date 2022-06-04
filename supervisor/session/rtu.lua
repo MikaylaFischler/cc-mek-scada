@@ -6,6 +6,7 @@ local util   = require("scada-common.util")
 
 -- supervisor rtu sessions (svrs)
 local svrs_boiler   = require("supervisor.session.rtu.boiler")
+local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
@@ -99,7 +100,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
                 unit = svrs_boiler.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                 -- boiler (Mekanism 10.1+)
-                -- @todo Mekanism 10.1+
+                unit = svrs_boilerv.new(self.id, 1, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.TURBINE then
                 -- turbine
                 unit = svrs_turbine.new(self.id, i, unit_advert, self.out_q)

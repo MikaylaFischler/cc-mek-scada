@@ -19,7 +19,7 @@ local TXN_TYPES = {
 local TXN_TAGS = {
     "turbine.build",
     "turbine.state",
-    "turbine.tanks",
+    "turbine.tanks"
 }
 
 local PERIODICS = {
@@ -48,7 +48,7 @@ function turbine.new(session_id, unit_id, advert, out_queue)
         periodics = {
             next_build_req = 0,
             next_state_req = 0,
-            next_tanks_req = 0,
+            next_tanks_req = 0
         },
         ---@class turbine_session_db
         db = {
