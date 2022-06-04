@@ -56,7 +56,10 @@ local RTU_UNIT_TYPES = {
     TURBINE = 3,        -- turbine
     TURBINE_VALVE = 4,  -- turbine, mekanism 10.1+
     EMACHINE = 5,       -- energy machine
-    IMATRIX = 6         -- induction matrix
+    IMATRIX = 6,        -- induction matrix
+    SPS = 7,            -- SPS
+    SNA = 8,            -- SNA
+    ENV_DETECTOR = 9    -- environment detector
 }
 
 comms.PROTOCOLS = PROTOCOLS

@@ -41,7 +41,10 @@ types.rtu_t = {
     turbine = "turbine",
     turbine_valve = "turbine_valve",
     energy_machine = "emachine",
-    induction_matrix = "induction_matrix"
+    induction_matrix = "induction_matrix",
+    sps = "sps",
+    sna = "sna",
+    env_detector = "environment_detector"
 }
 
 ---@alias rps_status_t string

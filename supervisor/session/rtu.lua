@@ -101,6 +101,11 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
                 unit = svrs_emachine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- @todo Mekanism 10.1+
+            elseif u_type == RTU_UNIT_TYPES.SPS then
+                -- @todo Mekanism 10.1+
+            elseif u_type == RTU_UNIT_TYPES.SNA then
+                -- @todo Mekanism 10.1+
+            elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
             else
                 log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
             end
