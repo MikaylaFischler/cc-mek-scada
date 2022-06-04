@@ -20,11 +20,12 @@ local redstone_rtu      = require("rtu.dev.redstone_rtu")
 local boiler_rtu        = require("rtu.dev.boiler_rtu")
 local boilerv_rtu       = require("rtu.dev.boilerv_rtu")
 local energymachine_rtu = require("rtu.dev.energymachine_rtu")
+local envd_rtu          = require("rtu.dev.envd_rtu")
 local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
 local turbine_rtu       = require("rtu.dev.turbine_rtu")
 local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.4"
+local RTU_VERSION = "beta-v0.7.5"
 
 local rtu_t = types.rtu_t
 
@@ -225,6 +226,10 @@ for i = 1, #rtu_devices do
             -- induction matrix multiblock (10.1+)
             rtu_type = rtu_t.induction_matrix
             rtu_iface = imatrix_rtu.new(device)
+        elseif type == "environmentDetector" then
+            -- advanced peripherals environment detector
+            rtu_type = rtu_t.env_detector
+            rtu_iface = envd_rtu.new(device)
         else
             local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
             println_ts(message)

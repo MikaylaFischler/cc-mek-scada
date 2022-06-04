@@ -7,6 +7,7 @@ local util   = require("scada-common.util")
 -- supervisor rtu sessions (svrs)
 local svrs_boiler   = require("supervisor.session.rtu.boiler")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
+local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
 local svrs_turbine  = require("supervisor.session.rtu.turbine")
 
@@ -106,6 +107,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
             elseif u_type == RTU_UNIT_TYPES.SNA then
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                unit = svrs_envd.new(self.id, i, unit_advert, self.out_q)
             else
                 log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
             end
