@@ -151,7 +151,7 @@ function boiler.new(session_id, unit_id, advert, out_queue)
                 self.db.tanks.ccool_need = m_pkt.data[11]
                 self.db.tanks.ccool_fill = m_pkt.data[12]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.tanks)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == nil then
             log.error(log_tag .. "unknown transaction reply")
