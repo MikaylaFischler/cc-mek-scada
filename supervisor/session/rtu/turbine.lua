@@ -120,7 +120,7 @@ function turbine.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_production = m_pkt.data[8]
                 self.db.build.max_water_output = m_pkt.data[9]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.build)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
@@ -130,7 +130,7 @@ function turbine.new(session_id, unit_id, advert, out_queue)
                 self.db.state.steam_input_rate = m_pkt.data[3]
                 self.db.state.dumping_mode = m_pkt.data[4]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.state)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
@@ -139,7 +139,7 @@ function turbine.new(session_id, unit_id, advert, out_queue)
                 self.db.tanks.steam_need = m_pkt.data[2]
                 self.db.tanks.steam_fill = m_pkt.data[3]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (turbine.tanks)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == nil then
             log.error(log_tag .. "unknown transaction reply")

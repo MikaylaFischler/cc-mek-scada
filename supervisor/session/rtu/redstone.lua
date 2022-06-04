@@ -149,7 +149,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                     self.db[channel] = value
                 end
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.di_read)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.INPUT_REG_READ then
             -- input register read response
@@ -160,7 +160,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                     self.db[channel] = value
                 end
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (redstone.input_reg_read)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.COIL_WRITE or txn_type == TXN_TYPES.HOLD_REG_WRITE then
             -- successful acknowledgement

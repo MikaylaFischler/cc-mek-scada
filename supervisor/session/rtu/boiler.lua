@@ -123,7 +123,7 @@ function boiler.new(session_id, unit_id, advert, out_queue)
                 self.db.build.superheaters = m_pkt.data[6]
                 self.db.build.max_boil_rate = m_pkt.data[7]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.build)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
@@ -132,7 +132,7 @@ function boiler.new(session_id, unit_id, advert, out_queue)
                 self.db.state.temperature = m_pkt.data[1]
                 self.db.state.boil_rate = m_pkt.data[2]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (boiler.state)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response

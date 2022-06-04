@@ -87,7 +87,7 @@ function emachine.new(session_id, unit_id, advert, out_queue)
             if m_pkt.length == 1 then
                 self.db.build.max_energy = m_pkt.data[1]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (emachine.build)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.STORAGE then
             -- storage response
@@ -96,7 +96,7 @@ function emachine.new(session_id, unit_id, advert, out_queue)
                 self.db.storage.energy_need = m_pkt.data[2]
                 self.db.storage.energy_fill = m_pkt.data[3]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (emachine.storage)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == nil then
             log.error(log_tag .. "unknown transaction reply")

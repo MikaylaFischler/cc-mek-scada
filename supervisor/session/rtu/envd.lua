@@ -71,7 +71,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
                 self.db.radiation = m_pkt.data[1]
                 self.db.radiation_raw = m_pkt.data[2]
             else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (envd.radiation)")
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == nil then
             log.error(log_tag .. "unknown transaction reply")
