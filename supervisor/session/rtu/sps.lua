@@ -96,19 +96,19 @@ function sps.new(session_id, unit_id, advert, out_queue)
 
     -- query the build of the device
     local function _request_build()
-        -- read input registers 1 through 7 (start = 1, count = 7)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 })
+        -- read input registers 1 through 9 (start = 1, count = 9)
+        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
     end
 
     -- query the state of the device
     local function _request_state()
-        -- read input registers 8 through 9 (start = 8, count = 2)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 8, 2 })
+        -- read input register 10 (start = 10, count = 1)
+        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 1 })
     end
 
     -- query the tanks of the device
     local function _request_tanks()
-        -- read input registers 10 through 21 (start = 10, count = 12)
+        -- read input registers 11 through 19 (start = 11, count = 9)
         self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 10, 12 })
     end
 
