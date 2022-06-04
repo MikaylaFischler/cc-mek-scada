@@ -25,13 +25,13 @@ function imatrix_rtu.new(imatrix)
     unit.connect_input_reg(imatrix.getTransferCap)
     unit.connect_input_reg(imatrix.getInstalledCells)
     unit.connect_input_reg(imatrix.getInstalledProviders)
-    -- containers
-    unit.connect_input_reg(imatrix.getEnergy)
-    unit.connect_input_reg(imatrix.getEnergyNeeded)
-    unit.connect_input_reg(imatrix.getEnergyFilledPercentage)
     -- I/O rates
     unit.connect_input_reg(imatrix.getLastInput)
     unit.connect_input_reg(imatrix.getLastOutput)
+    -- tanks
+    unit.connect_input_reg(imatrix.getEnergy)
+    unit.connect_input_reg(imatrix.getEnergyNeeded)
+    unit.connect_input_reg(imatrix.getEnergyFilledPercentage)
 
     -- holding registers --
     -- none

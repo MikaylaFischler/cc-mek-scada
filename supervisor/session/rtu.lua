@@ -8,6 +8,7 @@ local util   = require("scada-common.util")
 local svrs_boiler   = require("supervisor.session.rtu.boiler")
 local svrs_emachine = require("supervisor.session.rtu.emachine")
 local svrs_envd     = require("supervisor.session.rtu.envd")
+local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
 local svrs_sna      = require("supervisor.session.rtu.sna")
 local svrs_sps      = require("supervisor.session.rtu.sps")
@@ -91,24 +92,34 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
 
             -- create unit by type
             if u_type == RTU_UNIT_TYPES.REDSTONE then
+                -- redstone
                 unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then
+                -- boiler
                 unit = svrs_boiler.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
+                -- boiler (Mekanism 10.1+)
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.TURBINE then
+                -- turbine
                 unit = svrs_turbine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
+                -- turbine (Mekanism 10.1+)
                 -- @todo Mekanism 10.1+
             elseif u_type == RTU_UNIT_TYPES.EMACHINE then
+                -- mekanism [energy] machine
                 unit = svrs_emachine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
-                -- @todo Mekanism 10.1+
+                -- induction matrix
+                unit = svrs_imatrix.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.SPS then
+                -- super-critical phase shifter
                 unit = svrs_sps.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.SNA then
+                -- solar neutron activator
                 unit = svrs_sna.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                -- environment detector
                 unit = svrs_envd.new(self.id, i, unit_advert, self.out_q)
             else
                 log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
