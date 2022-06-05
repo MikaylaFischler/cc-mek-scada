@@ -115,12 +115,15 @@ function comms.scada_packet()
 
         if type(self.raw) == "table" then
             if #self.raw >= 3 then
-                self.valid = true
                 self.seq_num = self.raw[1]
                 self.protocol = self.raw[2]
                 self.length = #self.raw[3]
                 self.payload = self.raw[3]
             end
+
+            self.valid = type(self.seq_num) == "number" and
+                         type(self.protocol) == "number" and
+                         type(self.payload) == "table"
         end
 
         return self.valid
@@ -166,16 +169,20 @@ function comms.modbus_packet()
     ---@param func_code MODBUS_FCODE
     ---@param data table
     function public.make(txn_id, unit_id, func_code, data)
-        self.txn_id = txn_id
-        self.length = #data
-        self.unit_id = unit_id
-        self.func_code = func_code
-        self.data = data
+        if type(data) == "table" then
+            self.txn_id = txn_id
+            self.length = #data
+            self.unit_id = unit_id
+            self.func_code = func_code
+            self.data = data
 
-        -- populate raw array
-        self.raw = { self.txn_id, self.unit_id, self.func_code }
-        for i = 1, self.length do
-            insert(self.raw, data[i])
+            -- populate raw array
+            self.raw = { self.txn_id, self.unit_id, self.func_code }
+            for i = 1, self.length do
+                insert(self.raw, data[i])
+            end
+        else
+            log.error("comms.modbus_packet.make(): data not table")
         end
     end
 
@@ -194,7 +201,11 @@ function comms.modbus_packet()
                     public.make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
                 end
 
-                return size_ok
+                local valid = type(self.txn_id) == "number" and
+                              type(self.unit_id) == "number" and
+                              type(self.func_code) == "number"
+
+                return size_ok and valid
             else
                 log.debug("attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
                 return false
@@ -258,16 +269,20 @@ function comms.rplc_packet()
     ---@param packet_type RPLC_TYPES
     ---@param data table
     function public.make(id, packet_type, data)
-        -- packet accessor properties
-        self.id = id
-        self.type = packet_type
-        self.length = #data
-        self.data = data
+        if type(data) == "table" then
+            -- packet accessor properties
+            self.id = id
+            self.type = packet_type
+            self.length = #data
+            self.data = data
 
-        -- populate raw array
-        self.raw = { self.id, self.type }
-        for i = 1, #data do
-            insert(self.raw, data[i])
+            -- populate raw array
+            self.raw = { self.id, self.type }
+            for i = 1, #data do
+                insert(self.raw, data[i])
+            end
+        else
+            log.error("comms.rplc_packet.make(): data not table")
         end
     end
 
@@ -286,6 +301,8 @@ function comms.rplc_packet()
                     public.make(data[1], data[2], { table.unpack(data, 3, #data) })
                     ok = _rplc_type_valid()
                 end
+
+                ok = ok and type(self.id) == "number"
 
                 return ok
             else
@@ -343,15 +360,19 @@ function comms.mgmt_packet()
     ---@param packet_type SCADA_MGMT_TYPES
     ---@param data table
     function public.make(packet_type, data)
-        -- packet accessor properties
-        self.type = packet_type
-        self.length = #data
-        self.data = data
+        if type(data) == "table" then
+            -- packet accessor properties
+            self.type = packet_type
+            self.length = #data
+            self.data = data
 
-        -- populate raw array
-        self.raw = { self.type }
-        for i = 1, #data do
-            insert(self.raw, data[i])
+            -- populate raw array
+            self.raw = { self.type }
+            for i = 1, #data do
+                insert(self.raw, data[i])
+            end
+        else
+            log.error("comms.mgmt_packet.make(): data not table")
         end
     end
 
@@ -374,7 +395,7 @@ function comms.mgmt_packet()
                 return ok
             else
                 log.debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
-                return false    
+                return false
             end
         else
             log.debug("nil frame encountered", true)
@@ -424,15 +445,19 @@ function comms.coord_packet()
     ---@param packet_type any
     ---@param data table
     function public.make(packet_type, data)
-        -- packet accessor properties
-        self.type = packet_type
-        self.length = #data
-        self.data = data
+        if type(data) == "table" then
+            -- packet accessor properties
+            self.type = packet_type
+            self.length = #data
+            self.data = data
 
-        -- populate raw array
-        self.raw = { self.type }
-        for i = 1, #data do
-            insert(self.raw, data[i])
+            -- populate raw array
+            self.raw = { self.type }
+            for i = 1, #data do
+                insert(self.raw, data[i])
+            end
+        else
+            log.error("comms.coord_packet.make(): data not table")
         end
     end
 
@@ -505,15 +530,19 @@ function comms.capi_packet()
     ---@param packet_type any
     ---@param data table
     function public.make(packet_type, data)
-        -- packet accessor properties
-        self.type = packet_type
-        self.length = #data
-        self.data = data
+        if type(data) == "table" then
+            -- packet accessor properties
+            self.type = packet_type
+            self.length = #data
+            self.data = data
 
-        -- populate raw array
-        self.raw = { self.type }
-        for i = 1, #data do
-            insert(self.raw, data[i])
+            -- populate raw array
+            self.raw = { self.type }
+            for i = 1, #data do
+                insert(self.raw, data[i])
+            end
+        else
+            log.error("comms.capi_packet.make(): data not table")
         end
     end
 
