@@ -102,7 +102,7 @@ for entry_idx = 1, #rtu_redstone do
 
     local capabilities = {}
 
-    log.debug("init> starting redstone RTU I/O linking for reactor " .. io_reactor .. "...")
+    log.debug(util.c("init> starting redstone RTU I/O linking for reactor ", io_reactor, "..."))
 
     local continue = true
 
@@ -110,7 +110,7 @@ for entry_idx = 1, #rtu_redstone do
         local unit = units[i]   ---@type rtu_unit_registry_entry
         if unit.reactor == io_reactor and unit.type == rtu_t.redstone then
             -- duplicate entry
-            log.warning("init> skipping definition block #" .. entry_idx .. " for reactor " .. io_reactor .. " with already defined redstone I/O")
+            log.warning(util.c("init> skipping definition block #", entry_idx, " for reactor ", io_reactor, " with already defined redstone I/O"))
             continue = false
             break
         end
@@ -131,8 +131,8 @@ for entry_idx = 1, #rtu_redstone do
             end
 
             if not valid then
-                local message = "init> invalid redstone definition at index " .. i .. " in definition block #" .. entry_idx ..
-                    " (for reactor " .. io_reactor .. ")"
+                local message = util.c("init> invalid redstone definition at index ", i, " in definition block #", entry_idx,
+                    " (for reactor ", io_reactor, ")")
                 println_ts(message)
                 log.warning(message)
             else
@@ -141,7 +141,7 @@ for entry_idx = 1, #rtu_redstone do
                 if mode == rsio.IO_MODE.DIGITAL_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(capabilities, conf.channel) then
-                        log.warning("init> skipping duplicate input for channel " .. rsio.to_string(conf.channel) .. " on side " .. conf.side)
+                        log.warning(util.c("init> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side))
                     else
                         rs_rtu.link_di(conf.side, conf.bundled_color)
                     end
@@ -150,7 +150,7 @@ for entry_idx = 1, #rtu_redstone do
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(capabilities, conf.channel) then
-                        log.warning("init> skipping duplicate input for channel " .. rsio.to_string(conf.channel) .. " on side " .. conf.side)
+                        log.warning(util.c("init> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side))
                     else
                         rs_rtu.link_ai(conf.side)
                     end
@@ -164,8 +164,8 @@ for entry_idx = 1, #rtu_redstone do
 
                 table.insert(capabilities, conf.channel)
 
-                log.debug("init> linked redstone " .. #capabilities .. ": " .. rsio.to_string(conf.channel) .. " (" .. conf.side ..
-                    ") for reactor " .. io_reactor)
+                log.debug(util.c("init> linked redstone ", #capabilities, ": ", rsio.to_string(conf.channel), " (", conf.side, ") for reactor ",
+                    io_reactor))
             end
         end
 
@@ -184,7 +184,7 @@ for entry_idx = 1, #rtu_redstone do
 
         table.insert(units, unit)
 
-        log.debug("init> initialized RTU unit #" .. #units .. ": redstone_io (redstone) [1] for reactor " .. io_reactor)
+        log.debug(util.c("init> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for reactor ", io_reactor))
     end
 end
 
@@ -193,7 +193,7 @@ for i = 1, #rtu_devices do
     local device = ppm.get_periph(rtu_devices[i].name)
 
     if device == nil then
-        local message = "init> '" .. rtu_devices[i].name .. "' not found"
+        local message = util.c("init> '", rtu_devices[i].name, "' not found")
         println_ts(message)
         log.warning(message)
     else
@@ -231,7 +231,7 @@ for i = 1, #rtu_devices do
             rtu_type = rtu_t.env_detector
             rtu_iface = envd_rtu.new(device)
         else
-            local message = "init> device '" .. rtu_devices[i].name .. "' is not a known type (" .. type .. ")"
+            local message = util.c("init> device '", rtu_devices[i].name, "' is not a known type (", type, ")")
             println_ts(message)
             log.warning(message)
         end
@@ -254,8 +254,8 @@ for i = 1, #rtu_devices do
 
             table.insert(units, rtu_unit)
 
-            log.debug("init> initialized RTU unit #" .. #units .. ": " .. rtu_devices[i].name .. " (" .. rtu_type .. ") [" ..
-                rtu_devices[i].index .. "] for reactor " .. rtu_devices[i].for_reactor)
+            log.debug(util.c("init> initialized RTU unit #", #units, ": ", rtu_devices[i].name, " (", rtu_type, ") [",
+                rtu_devices[i].index, "] for reactor ", rtu_devices[i].for_reactor))
         end
     end
 end

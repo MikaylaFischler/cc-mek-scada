@@ -307,7 +307,7 @@ function threads.thread__unit_comms(smem, unit)
             end
 
             if not rtu_state.shutdown then
-                log.info("rtu unit thread " .. unit.name .. "(" .. unit.type .. ") restarting in 5 seconds...")
+                log.info(util.c("rtu unit thread ", unit.name, "(", unit.type, ") restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end

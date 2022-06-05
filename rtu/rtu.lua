@@ -383,7 +383,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
                             log.warning("RTU KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
                         end
 
-                        -- log.debug("RTU RTT = ".. trip_time .. "ms")
+                        -- log.debug("RTU RTT = " .. trip_time .. "ms")
 
                         _send_keep_alive_ack(timestamp)
                     else

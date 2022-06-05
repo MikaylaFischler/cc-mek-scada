@@ -104,7 +104,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
             table.insert(self.io_list.analog_out, channel)
         else
             -- should be unreachable code, we already validated channels
-            log.error(log_tag .. "failed to identify advertisement channel IO mode (" .. channel .. ")", true)
+            log.error(util.c(log_tag, "failed to identify advertisement channel IO mode (", channel, ")"), true)
             return nil
         end
 
@@ -212,8 +212,8 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                                         break
                                     end
                                 end
-                            elseif mode ~= nil then
-                                log.debug(log_tag .. "attemted write to non D/O or A/O mode " .. mode)
+                            else
+                                log.debug(util.c(log_tag, "attemted write to non D/O or A/O mode ", mode))
                             end
                         end
                     end

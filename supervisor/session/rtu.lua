@@ -235,8 +235,8 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
                         log.warning(log_header .. "RTU KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "RTU RTT = ".. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "RTU TT  = ".. (srv_now - rtu_send) .. "ms")
+                    -- log.debug(log_header .. "RTU RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "RTU TT  = " .. (srv_now - rtu_send) .. "ms")
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

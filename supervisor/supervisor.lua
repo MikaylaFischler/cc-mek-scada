@@ -187,11 +187,11 @@ function supervisor.comms(version, num_reactors, modem, dev_listen, coord_listen
                                 local plc_id = svsessions.establish_plc_session(l_port, r_port, packet.data[1], packet.data[2])
                                 if plc_id == false then
                                     -- reactor already has a PLC assigned
-                                    log.debug("PLC_LNK: assignment collision with reactor " .. packet.data[1])
+                                    log.debug(util.c("PLC_LNK: assignment collision with reactor ", packet.data[1]))
                                     _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.COLLISION })
                                 else
                                     -- got an ID; assigned to a reactor successfully
-                                    println("connected to reactor " .. packet.data[1] .. " PLC (" .. packet.data[2] .. ") [:" .. r_port .. "]")
+                                    println(util.c("connected to reactor ", packet.data[1], " PLC (", packet.data[2], ") [:", r_port, "]"))
                                     log.debug("PLC_LNK: allowed for device at " .. r_port)
                                     _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.ALLOW })
                                 end
@@ -215,7 +215,7 @@ function supervisor.comms(version, num_reactors, modem, dev_listen, coord_listen
                     elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                         if packet.length >= 1 then
                             -- this is an RTU advertisement for a new session
-                            println("connected to RTU (" .. packet.data[1] .. ") [:" .. r_port .. "]")
+                            println(util.c("connected to RTU (", packet.data[1], ") [:", r_port, "]"))
 
                             svsessions.establish_rtu_session(l_port, r_port, packet.data)
 
@@ -244,7 +244,7 @@ function supervisor.comms(version, num_reactors, modem, dev_listen, coord_listen
                     log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")
                 end
             else
-                log.error("received packet on unused channel " .. l_port, true)
+                log.warning("received packet on unused channel " .. l_port)
             end
         end
     end

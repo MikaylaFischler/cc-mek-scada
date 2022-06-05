@@ -237,7 +237,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                     elseif cmd == TBV_RTU_S_CMDS.DEC_DUMP_MODE then
                         _dec_dump_mode()
                     else
-                        log.debug(log_tag .. "unrecognized in_q command " .. util.strval(cmd))
+                        log.debug(util.c(log_tag, "unrecognized in_q command ", cmd))
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
@@ -245,7 +245,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                     if cmd.key == TBV_RTU_S_DATA.SET_DUMP_MODE then
                         _set_dump_mode(cmd.val)
                     else
-                        log.debug(log_tag .. "unrecognized in_q data " .. util.strval(cmd.key))
+                        log.debug(util.c(log_tag, "unrecognized in_q data ", cmd.key))
                     end
                 end
             end

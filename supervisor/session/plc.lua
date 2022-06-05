@@ -391,8 +391,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         log.warning(log_header .. "PLC KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "PLC RTT = ".. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "PLC TT  = ".. (srv_now - plc_send) .. "ms")
+                    -- log.debug(log_header .. "PLC RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "PLC TT  = " .. (srv_now - plc_send) .. "ms")
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

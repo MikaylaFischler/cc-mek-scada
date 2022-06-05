@@ -2,7 +2,8 @@
 -- Protected Peripheral Manager
 --
 
-local log = require("scada-common.log")
+local log  = require("scada-common.log")
+local util = require("scada-common.util")
 
 ---@class ppm
 local ppm = {}
@@ -76,7 +77,7 @@ local function peri_init(iface)
                         count_str = " [" .. self.fault_counts[key] .. " total faults]"
                     end
 
-                    log.error("PPM: protected " .. key .. "() -> " .. result .. count_str)
+                    log.error(util.c("PPM: protected ", key, "() -> ", result, count_str))
                 end
 
                 self.fault_counts[key] = self.fault_counts[key] + 1
@@ -176,7 +177,7 @@ function ppm.mount_all()
     for i = 1, #ifaces do
         _ppm_sys.mounts[ifaces[i]] = peri_init(ifaces[i])
 
-        log.info("PPM: found a " .. _ppm_sys.mounts[ifaces[i]].type .. " (" .. ifaces[i] .. ")")
+        log.info(util.c("PPM: found a ", _ppm_sys.mounts[ifaces[i]].type, " (", ifaces[i], ")"))
     end
 
     if #ifaces == 0 then
@@ -199,7 +200,7 @@ function ppm.mount(iface)
             pm_type = _ppm_sys.mounts[iface].type
             pm_dev = _ppm_sys.mounts[iface].dev
 
-            log.info("PPM: mount(" .. iface .. ") -> found a " .. pm_type)
+            log.info(util.c("PPM: mount(", iface, ") -> found a ", pm_type))
             break
         end
     end
@@ -221,9 +222,9 @@ function ppm.handle_unmount(iface)
         pm_type = lost_dev.type
         pm_dev = lost_dev.dev
 
-        log.warning("PPM: lost device " .. pm_type .. " mounted to " .. iface)
+        log.warning(util.c("PPM: lost device ", pm_type, " mounted to ", iface))
     else
-        log.error("PPM: lost device unknown to the PPM mounted to " .. iface)
+        log.error(util.c("PPM: lost device unknown to the PPM mounted to ", iface))
     end
 
     return pm_type, pm_dev

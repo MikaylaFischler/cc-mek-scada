@@ -738,7 +738,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                             log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
                         end
 
-                        -- log.debug("RPLC RTT = ".. trip_time .. "ms")
+                        -- log.debug("RPLC RTT = " .. trip_time .. "ms")
 
                         _send_keep_alive_ack(timestamp)
                     else

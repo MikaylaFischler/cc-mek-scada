@@ -107,7 +107,7 @@ function crypto.encrypt(plaintext)
     local ciphertext = c_eng.cipher.asHex()    ---@type hex
 
     log.debug("crypto.encrypt: aes128-ctr-mode took " .. (util.time() - start) .. "ms")
-    log.debug("ciphertext: " .. ciphertext)
+    log.debug("ciphertext: " .. util.strval(ciphertext))
 
     return iv, ciphertext
 end
@@ -129,7 +129,7 @@ function crypto.decrypt(iv, ciphertext)
     local plaintext = stream.toString(stream.fromHex(plaintext_hex))
 
     log.debug("crypto.decrypt: aes128-ctr-mode took " .. (util.time() - start) .. "ms")
-    log.debug("plaintext: " .. plaintext)
+    log.debug("plaintext: " .. util.strval(plaintext))
 
     return plaintext
 end
@@ -146,7 +146,7 @@ function crypto.hmac(message_hex)
     local hash = c_eng.hmac.asHex()    ---@type hex
 
     log.debug("crypto.hmac: hmac-sha1 took " .. (util.time() - start) .. "ms")
-    log.debug("hmac: " .. hash)
+    log.debug("hmac: " .. util.strval(hash))
 
     return hash
 end

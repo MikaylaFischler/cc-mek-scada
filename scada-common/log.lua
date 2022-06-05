@@ -177,7 +177,7 @@ function log.dmesg(msg, tag, tag_color)
         out.write(lines[i])
     end
 
-    _log("[" .. t_stamp .. "] " .. tag .. " " .. msg)
+    _log(util.c("[", t_stamp, "] ", tag, " ", msg))
 end
 
 -- log debug messages
