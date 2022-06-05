@@ -299,7 +299,7 @@ function util.new_validator()
 
     function public.assert_type_bool(value) valid = valid and type(value) == "boolean" end
     function public.assert_type_num(value) valid = valid and type(value) == "number" end
-    function public.assert_type_int(value) valid = valid and type(value) == "number" and value == math.floor(value) end
+    function public.assert_type_int(value) valid = valid and util.is_int(value) end
     function public.assert_type_str(value) valid = valid and type(value) == "string" end
     function public.assert_type_table(value) valid = valid and type(value) == "table" end
 
