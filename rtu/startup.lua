@@ -25,7 +25,7 @@ local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
 local turbine_rtu       = require("rtu.dev.turbine_rtu")
 local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.6"
+local RTU_VERSION = "beta-v0.7.7"
 
 local rtu_t = types.rtu_t
 
@@ -39,7 +39,7 @@ log.init(config.LOG_PATH, config.LOG_MODE)
 log.info("========================================")
 log.info("BOOTING rtu.startup " .. RTU_VERSION)
 log.info("========================================")
-println(">> RTU " .. RTU_VERSION .. " <<")
+println(">> RTU GATEWAY " .. RTU_VERSION .. " <<")
 
 ----------------------------------------
 -- startup
@@ -94,198 +94,256 @@ local units = __shared_memory.rtu_sys.units
 local rtu_redstone = config.RTU_REDSTONE
 local rtu_devices = config.RTU_DEVICES
 
--- redstone interfaces
-for entry_idx = 1, #rtu_redstone do
-    local rs_rtu = redstone_rtu.new()
-    local io_table = rtu_redstone[entry_idx].io
-    local io_reactor = rtu_redstone[entry_idx].for_reactor
+-- configure RTU gateway based on config file definitions
+local function configure()
+    -- redstone interfaces
+    for entry_idx = 1, #rtu_redstone do
+        local rs_rtu = redstone_rtu.new()
+        local io_table = rtu_redstone[entry_idx].io
+        local io_reactor = rtu_redstone[entry_idx].for_reactor
 
-    local capabilities = {}
-
-    log.debug(util.c("init> starting redstone RTU I/O linking for reactor ", io_reactor, "..."))
-
-    local continue = true
-
-    for i = 1, #units do
-        local unit = units[i]   ---@type rtu_unit_registry_entry
-        if unit.reactor == io_reactor and unit.type == rtu_t.redstone then
-            -- duplicate entry
-            log.warning(util.c("init> skipping definition block #", entry_idx, " for reactor ", io_reactor, " with already defined redstone I/O"))
-            continue = false
-            break
+        -- CHECK: reactor ID must be >= to 1
+        if type(io_reactor) ~= "number" or io_reactor <= 0 or io_reactor ~= math.floor(io_reactor) then
+            println(util.c("configure> redstone entry #", entry_idx, " : ", io_reactor, " isn't an integer >= 1"))
+            return false
         end
-    end
 
-    if continue then
-        for i = 1, #io_table do
-            local valid = false
-            local conf = io_table[i]
+        -- CHECK: io table exists
+        if type(io_table) ~= "table" then
+            println(util.c("configure> redstone entry #", entry_idx, " no IO table found"))
+            return false
+        end
 
-            -- verify configuration
-            if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
-                if conf.bundled_color then
-                    valid = rsio.is_color(conf.bundled_color)
-                else
-                    valid = true
-                end
-            end
+        local capabilities = {}
 
-            if not valid then
-                local message = util.c("init> invalid redstone definition at index ", i, " in definition block #", entry_idx,
-                    " (for reactor ", io_reactor, ")")
-                println_ts(message)
+        log.debug(util.c("configure> starting redstone RTU I/O linking for reactor ", io_reactor, "..."))
+
+        local continue = true
+
+        -- check for duplicate entries
+        for i = 1, #units do
+            local unit = units[i]   ---@type rtu_unit_registry_entry
+            if unit.reactor == io_reactor and unit.type == rtu_t.redstone then
+                -- duplicate entry
+                local message = util.c("configure> skipping definition block #", entry_idx, " for reactor ", io_reactor,
+                    " with already defined redstone I/O")
+                println(message)
                 log.warning(message)
-            else
-                -- link redstone in RTU
-                local mode = rsio.get_io_mode(conf.channel)
-                if mode == rsio.IO_MODE.DIGITAL_IN then
-                    -- can't have duplicate inputs
-                    if util.table_contains(capabilities, conf.channel) then
-                        log.warning(util.c("init> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side))
-                    else
-                        rs_rtu.link_di(conf.side, conf.bundled_color)
-                    end
-                elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                    rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
-                elseif mode == rsio.IO_MODE.ANALOG_IN then
-                    -- can't have duplicate inputs
-                    if util.table_contains(capabilities, conf.channel) then
-                        log.warning(util.c("init> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side))
-                    else
-                        rs_rtu.link_ai(conf.side)
-                    end
-                elseif mode == rsio.IO_MODE.ANALOG_OUT then
-                    rs_rtu.link_ao(conf.side)
-                else
-                    -- should be unreachable code, we already validated channels
-                    log.error("init> fell through if chain attempting to identify IO mode", true)
-                    break
-                end
-
-                table.insert(capabilities, conf.channel)
-
-                log.debug(util.c("init> linked redstone ", #capabilities, ": ", rsio.to_string(conf.channel), " (", conf.side, ") for reactor ",
-                    io_reactor))
+                continue = false
+                break
             end
         end
 
-        ---@class rtu_unit_registry_entry
-        local unit = {
-            name = "redstone_io",
-            type = rtu_t.redstone,
-            index = entry_idx,
-            reactor = io_reactor,
-            device = capabilities,  -- use device field for redstone channels
-            rtu = rs_rtu,
-            modbus_io = modbus.new(rs_rtu, false),
-            pkt_queue = nil,
-            thread = nil
-        }
+        -- not a duplicate
+        if continue then
+            for i = 1, #io_table do
+                local valid = false
+                local conf = io_table[i]
 
-        table.insert(units, unit)
+                -- verify configuration
+                if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
+                    if conf.bundled_color then
+                        valid = rsio.is_color(conf.bundled_color)
+                    else
+                        valid = true
+                    end
+                end
 
-        log.debug(util.c("init> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for reactor ", io_reactor))
-    end
-end
+                if not valid then
+                    local message = util.c("configure> invalid redstone definition at index ", i, " in definition block #", entry_idx,
+                        " (for reactor ", io_reactor, ")")
+                    println(message)
+                    log.error(message)
+                    return false
+                else
+                    -- link redstone in RTU
+                    local mode = rsio.get_io_mode(conf.channel)
+                    if mode == rsio.IO_MODE.DIGITAL_IN then
+                        -- can't have duplicate inputs
+                        if util.table_contains(capabilities, conf.channel) then
+                            local message = util.c("configure> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side)
+                            println(message)
+                            log.warning(message)
+                        else
+                            rs_rtu.link_di(conf.side, conf.bundled_color)
+                        end
+                    elseif mode == rsio.IO_MODE.DIGITAL_OUT then
+                        rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
+                    elseif mode == rsio.IO_MODE.ANALOG_IN then
+                        -- can't have duplicate inputs
+                        if util.table_contains(capabilities, conf.channel) then
+                            local message = util.c("configure> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side)
+                            println(message)
+                            log.warning(message)
+                        else
+                            rs_rtu.link_ai(conf.side)
+                        end
+                    elseif mode == rsio.IO_MODE.ANALOG_OUT then
+                        rs_rtu.link_ao(conf.side)
+                    else
+                        -- should be unreachable code, we already validated channels
+                        log.error("configure> fell through if chain attempting to identify IO mode", true)
+                        println("configure> encountered a software error, check logs")
+                        return false
+                    end
 
--- mounted peripherals
-for i = 1, #rtu_devices do
-    local device = ppm.get_periph(rtu_devices[i].name)
+                    table.insert(capabilities, conf.channel)
 
-    if device == nil then
-        local message = util.c("init> '", rtu_devices[i].name, "' not found")
-        println_ts(message)
-        log.warning(message)
-    else
-        local type = ppm.get_type(rtu_devices[i].name)
-        local rtu_iface = nil   ---@type rtu_device
-        local rtu_type = ""
+                    log.debug(util.c("configure> linked redstone ", #capabilities, ": ", rsio.to_string(conf.channel),
+                        " (", conf.side, ") for reactor ", io_reactor))
+                end
+            end
 
-        if type == "boiler" then
-            -- boiler multiblock
-            rtu_type = rtu_t.boiler
-            rtu_iface = boiler_rtu.new(device)
-        elseif type == "boilerValve" then
-            -- boiler multiblock (10.1+)
-            rtu_type = rtu_t.boiler_valve
-            rtu_iface = boilerv_rtu.new(device)
-        elseif type == "turbine" then
-            -- turbine multiblock
-            rtu_type = rtu_t.turbine
-            rtu_iface = turbine_rtu.new(device)
-        elseif type == "turbineValve" then
-            -- turbine multiblock (10.1+)
-            rtu_type = rtu_t.turbine_valve
-            rtu_iface = turbinev_rtu.new(device)
-        elseif type == "mekanismMachine" then
-            -- assumed to be an induction matrix multiblock, pre Mekanism 10.1
-            -- also works with energy cubes
-            rtu_type = rtu_t.energy_machine
-            rtu_iface = energymachine_rtu.new(device)
-        elseif type == "inductionPort" then
-            -- induction matrix multiblock (10.1+)
-            rtu_type = rtu_t.induction_matrix
-            rtu_iface = imatrix_rtu.new(device)
-        elseif type == "environmentDetector" then
-            -- advanced peripherals environment detector
-            rtu_type = rtu_t.env_detector
-            rtu_iface = envd_rtu.new(device)
-        else
-            local message = util.c("init> device '", rtu_devices[i].name, "' is not a known type (", type, ")")
-            println_ts(message)
-            log.warning(message)
-        end
-
-        if rtu_iface ~= nil then
             ---@class rtu_unit_registry_entry
-            local rtu_unit = {
-                name = rtu_devices[i].name,
-                type = rtu_type,
-                index = rtu_devices[i].index,
-                reactor = rtu_devices[i].for_reactor,
-                device = device,
-                rtu = rtu_iface,
-                modbus_io = modbus.new(rtu_iface, true),
-                pkt_queue = mqueue.new(),
+            local unit = {
+                name = "redstone_io",
+                type = rtu_t.redstone,
+                index = entry_idx,
+                reactor = io_reactor,
+                device = capabilities,  -- use device field for redstone channels
+                rtu = rs_rtu,
+                modbus_io = modbus.new(rs_rtu, false),
+                pkt_queue = nil,
                 thread = nil
             }
 
-            rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
+            table.insert(units, unit)
 
-            table.insert(units, rtu_unit)
-
-            log.debug(util.c("init> initialized RTU unit #", #units, ": ", rtu_devices[i].name, " (", rtu_type, ") [",
-                rtu_devices[i].index, "] for reactor ", rtu_devices[i].for_reactor))
+            log.debug(util.c("init> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for reactor ", io_reactor))
         end
     end
+
+    -- mounted peripherals
+    for i = 1, #rtu_devices do
+        local name = rtu_devices[i].name
+        local index = rtu_devices[i].index
+        local for_reactor = rtu_devices[i].for_reactor
+
+        -- CHECK: name is a string
+        if type(name) ~= "string" then
+            println(util.c("configure> device entry #", i, ": device ", name, " isn't a string"))
+            return false
+        end
+
+        -- CHECK: index is an integer >= 1
+        if type(index) ~= "number" or index <= 0 or index ~= math.floor(index) then
+            println(util.c("configure> device entry #", i, ": index ", index, " isn't an integer >= 1"))
+            return false
+        end
+
+        -- CHECK: reactor is an integer >= 1
+        if type(for_reactor) ~= "number" or for_reactor <= 0 or for_reactor ~= math.floor(for_reactor) then
+            println(util.c("configure> device entry #", i, ": reactor ", for_reactor, " isn't an integer >= 1"))
+            return false
+        end
+
+        local device = ppm.get_periph(name)
+
+        if device == nil then
+            local message = util.c("configure> '", name, "' not found")
+            println(message)
+            log.fatal(message)
+            return false
+        else
+            local type = ppm.get_type(name)
+            local rtu_iface = nil   ---@type rtu_device
+            local rtu_type = ""
+
+            if type == "boiler" then
+                -- boiler multiblock
+                rtu_type = rtu_t.boiler
+                rtu_iface = boiler_rtu.new(device)
+            elseif type == "boilerValve" then
+                -- boiler multiblock (10.1+)
+                rtu_type = rtu_t.boiler_valve
+                rtu_iface = boilerv_rtu.new(device)
+            elseif type == "turbine" then
+                -- turbine multiblock
+                rtu_type = rtu_t.turbine
+                rtu_iface = turbine_rtu.new(device)
+            elseif type == "turbineValve" then
+                -- turbine multiblock (10.1+)
+                rtu_type = rtu_t.turbine_valve
+                rtu_iface = turbinev_rtu.new(device)
+            elseif type == "mekanismMachine" then
+                -- assumed to be an induction matrix multiblock, pre Mekanism 10.1
+                -- also works with energy cubes
+                rtu_type = rtu_t.energy_machine
+                rtu_iface = energymachine_rtu.new(device)
+            elseif type == "inductionPort" then
+                -- induction matrix multiblock (10.1+)
+                rtu_type = rtu_t.induction_matrix
+                rtu_iface = imatrix_rtu.new(device)
+            elseif type == "environmentDetector" then
+                -- advanced peripherals environment detector
+                rtu_type = rtu_t.env_detector
+                rtu_iface = envd_rtu.new(device)
+            else
+                local message = util.c("configure> device '", name, "' is not a known type (", type, ")")
+                println_ts(message)
+                log.fatal(message)
+                return false
+            end
+
+            if rtu_iface ~= nil then
+                ---@class rtu_unit_registry_entry
+                local rtu_unit = {
+                    name = name,
+                    type = rtu_type,
+                    index = index,
+                    reactor = for_reactor,
+                    device = device,
+                    rtu = rtu_iface,
+                    modbus_io = modbus.new(rtu_iface, true),
+                    pkt_queue = mqueue.new(),
+                    thread = nil
+                }
+
+                rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
+
+                table.insert(units, rtu_unit)
+
+                log.debug(util.c("configure> initialized RTU unit #", #units, ": ", name, " (", rtu_type, ") [", index, "] for reactor ", for_reactor))
+            end
+        end
+    end
+
+    -- we made it through all that trusting-user-to-write-a-config-file chaos
+    return true
 end
 
 ----------------------------------------
 -- start system
 ----------------------------------------
 
--- start connection watchdog
-smem_sys.conn_watchdog = util.new_watchdog(5)
-log.debug("boot> conn watchdog started")
+log.debug("boot> running configure()")
 
--- setup comms
-smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
-log.debug("boot> comms init")
+if configure() then
+    -- start connection watchdog
+    smem_sys.conn_watchdog = util.new_watchdog(5)
+    log.debug("boot> conn watchdog started")
 
--- init threads
-local main_thread  = threads.thread__main(__shared_memory)
-local comms_thread = threads.thread__comms(__shared_memory)
+    -- setup comms
+    smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
+    log.debug("boot> comms init")
 
--- assemble thread list
-local _threads = { main_thread.p_exec, comms_thread.p_exec }
-for i = 1, #units do
-    if units[i].thread ~= nil then
-        table.insert(_threads, units[i].thread.p_exec)
+    -- init threads
+    local main_thread  = threads.thread__main(__shared_memory)
+    local comms_thread = threads.thread__comms(__shared_memory)
+
+    -- assemble thread list
+    local _threads = { main_thread.p_exec, comms_thread.p_exec }
+    for i = 1, #units do
+        if units[i].thread ~= nil then
+            table.insert(_threads, units[i].thread.p_exec)
+        end
     end
-end
 
--- run threads
-parallel.waitForAll(table.unpack(_threads))
+    -- run threads
+    parallel.waitForAll(table.unpack(_threads))
+else
+    println("configuration failed, exiting...")
+end
 
 println_ts("exited")
 log.info("exited")
