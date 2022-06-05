@@ -25,7 +25,7 @@ local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
 local turbine_rtu       = require("rtu.dev.turbine_rtu")
 local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.7"
+local RTU_VERSION = "beta-v0.7.8"
 
 local rtu_t = types.rtu_t
 
@@ -33,6 +33,24 @@ local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+----------------------------------------
+-- config validation
+----------------------------------------
+
+local cfv = util.new_validator()
+
+cfv.assert_port(config.SERVER_PORT)
+cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_type_str(config.LOG_PATH)
+cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_table(config.RTU_DEVICES)
+cfv.assert_type_table(config.RTU_REDSTONE)
+assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+----------------------------------------
+-- log init
+----------------------------------------
 
 log.init(config.LOG_PATH, config.LOG_MODE)
 

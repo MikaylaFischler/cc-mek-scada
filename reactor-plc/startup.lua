@@ -13,12 +13,30 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.7.6"
+local R_PLC_VERSION = "beta-v0.7.7"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+----------------------------------------
+-- config validation
+----------------------------------------
+
+local cfv = util.new_validator()
+
+cfv.assert_type_bool(config.NETWORKED)
+cfv.assert_type_int(config.REACTOR_ID)
+cfv.assert_port(config.SERVER_PORT)
+cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_type_str(config.LOG_PATH)
+cfv.assert_type_int(config.LOG_MODE)
+assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+----------------------------------------
+-- log init
+----------------------------------------
 
 log.init(config.LOG_PATH, config.LOG_MODE)
 
@@ -26,6 +44,10 @@ log.info("========================================")
 log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)
 log.info("========================================")
 println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
+
+----------------------------------------
+-- startup
+----------------------------------------
 
 -- mount connected devices
 ppm.mount_all()

@@ -281,4 +281,34 @@ function util.new_clock(period)
     return public
 end
 
+-- create a new type validator
+--
+-- can execute sequential checks and check valid() to see if it is still valid
+function util.new_validator()
+    local valid = true
+
+    ---@class validator
+    local public = {}
+
+    function public.assert_type_bool(value) valid = valid and type(value) == "boolean" end
+    function public.assert_type_num(value) valid = valid and type(value) == "number" end
+    function public.assert_type_int(value) valid = valid and type(value) == "number" and value == math.floor(value) end
+    function public.assert_type_str(value) valid = valid and type(value) == "string" end
+    function public.assert_type_table(value) valid = valid and type(value) == "table" end
+
+    function public.assert_eq(check, expect) valid = valid and check == expect end
+    function public.assert_min(check, min) valid = valid and check >= min end
+    function public.assert_min_ex(check, min) valid = valid and check > min end
+    function public.assert_max(check, max) valid = valid and check <= max end
+    function public.assert_max_ex(check, max) valid = valid and check < max end
+    function public.assert_range(check, min, max) valid = valid and check >= min and check <= max end
+    function public.assert_range_ex(check, min, max) valid = valid and check > min and check < max end
+
+    function public.assert_port(port) valid = valid and type(port) == "number" and port >= 0 and port <= 65535 end
+
+    function public.valid() return valid end
+
+    return public
+end
+
 return util

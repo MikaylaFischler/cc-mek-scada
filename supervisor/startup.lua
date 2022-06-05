@@ -13,12 +13,42 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.4.12"
+local SUPERVISOR_VERSION = "beta-v0.4.13"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+----------------------------------------
+-- config validation
+----------------------------------------
+
+local cfv = util.new_validator()
+
+cfv.assert_port(config.SCADA_DEV_LISTEN)
+cfv.assert_port(config.SCADA_SV_LISTEN)
+cfv.assert_type_int(config.NUM_REACTORS)
+cfv.assert_type_table(config.REACTOR_COOLING)
+cfv.assert_type_str(config.LOG_PATH)
+cfv.assert_type_int(config.LOG_MODE)
+
+assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+for i = 1, config.NUM_REACTORS do
+    cfv.assert_type_table(config.REACTOR_COOLING[i])
+    assert(cfv.valid(), "missing cooling entry for reactor " .. i)
+    cfv.assert_type_int(config.REACTOR_COOLING[i].BOILERS)
+    cfv.assert_type_int(config.REACTOR_COOLING[i].TURBINES)
+    assert(cfv.valid(), "missing boilers/turbines for reactor " .. i)
+    cfv.assert_min(config.REACTOR_COOLING[i].BOILERS, 0)
+    cfv.assert_min(config.REACTOR_COOLING[i].TURBINES, 1)
+    assert(cfv.valid(), "bad number of boilers/turbines for reactor " .. i)
+end
+
+----------------------------------------
+-- log init
+----------------------------------------
 
 log.init(config.LOG_PATH, config.LOG_MODE)
 
@@ -26,6 +56,10 @@ log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)
 log.info("========================================")
 println(">> SCADA Supervisor " .. SUPERVISOR_VERSION .. " <<")
+
+----------------------------------------
+-- startup
+----------------------------------------
 
 -- mount connected devices
 ppm.mount_all()
