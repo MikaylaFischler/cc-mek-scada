@@ -25,7 +25,7 @@ local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
 local turbine_rtu       = require("rtu.dev.turbine_rtu")
 local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.8"
+local RTU_VERSION = "beta-v0.7.9"
 
 local rtu_t = types.rtu_t
 
@@ -121,7 +121,7 @@ local function configure()
         local io_reactor = rtu_redstone[entry_idx].for_reactor
 
         -- CHECK: reactor ID must be >= to 1
-        if type(io_reactor) ~= "number" or io_reactor <= 0 or io_reactor ~= math.floor(io_reactor) then
+        if (not util.is_int(io_reactor)) or (io_reactor <= 0) then
             println(util.c("configure> redstone entry #", entry_idx, " : ", io_reactor, " isn't an integer >= 1"))
             return false
         end
@@ -244,13 +244,13 @@ local function configure()
         end
 
         -- CHECK: index is an integer >= 1
-        if type(index) ~= "number" or index <= 0 or index ~= math.floor(index) then
+        if (not util.is_int(index)) or (index <= 0) then
             println(util.c("configure> device entry #", i, ": index ", index, " isn't an integer >= 1"))
             return false
         end
 
         -- CHECK: reactor is an integer >= 1
-        if type(for_reactor) ~= "number" or for_reactor <= 0 or for_reactor ~= math.floor(for_reactor) then
+        if (not util.is_int(for_reactor)) or (for_reactor <= 0) then
             println(util.c("configure> device entry #", i, ": reactor ", for_reactor, " isn't an integer >= 1"))
             return false
         end

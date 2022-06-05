@@ -2,6 +2,8 @@
 -- Redstone I/O
 --
 
+local util = require("scada-common.util")
+
 local rsio = {}
 
 ----------------------
@@ -101,7 +103,7 @@ function rsio.to_string(channel)
         "R_PLC_TIMEOUT"
     }
 
-    if type(channel) == "number" and channel > 0 and channel <= #names then
+    if util.is_int(channel) and channel > 0 and channel <= #names then
         return names[channel]
     else
         return ""
@@ -184,7 +186,7 @@ function rsio.get_io_mode(channel)
         IO_MODE.DIGITAL_OUT     -- R_PLC_TIMEOUT
     }
 
-    if type(channel) == "number" and channel > 0 and channel <= #modes then
+    if util.is_int(channel) and channel > 0 and channel <= #modes then
         return modes[channel]
     else
         return IO_MODE.ANALOG_IN
@@ -201,7 +203,7 @@ local RS_SIDES = rs.getSides()
 ---@param channel RS_IO
 ---@return boolean valid
 function rsio.is_valid_channel(channel)
-    return (type(channel) == "number") and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
+    return util.is_int(channel) and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
 end
 
 -- check if a side is valid
@@ -220,7 +222,7 @@ end
 ---@param color integer
 ---@return boolean valid
 function rsio.is_color(color)
-    return (type(color) == "number") and (color > 0) and (_B_AND(color, (color - 1)) == 0);
+    return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0);
 end
 
 -----------------
@@ -243,7 +245,7 @@ end
 ---@param level IO_LVL
 ---@return boolean
 function rsio.digital_write(channel, level)
-    if type(channel) ~= "number" or channel < RS_IO.F_ALARM or channel > RS_IO.R_PLC_TIMEOUT then
+    if (not util.is_int(channel)) or (channel < RS_IO.F_ALARM) or (channel > RS_IO.R_PLC_TIMEOUT) then
         return false
     else
         return RS_DIO_MAP[channel]._f(level)
@@ -255,7 +257,7 @@ end
 ---@param level IO_LVL
 ---@return boolean
 function rsio.digital_is_active(channel, level)
-    if type(channel) ~= "number" or channel > RS_IO.R_ENABLE then
+    if (not util.is_int(channel)) or (channel > RS_IO.R_ENABLE) then
         return false
     else
         return RS_DIO_MAP[channel]._f(level)
