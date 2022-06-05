@@ -1,0 +1,295 @@
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
+
+local unit_session = require("supervisor.session.rtu.unit_session")
+
+local turbinev = {}
+
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local DUMPING_MODE = types.DUMPING_MODE
+local MODBUS_FCODE = types.MODBUS_FCODE
+
+local TBV_RTU_S_CMDS = {
+    INC_DUMP_MODE = 1,
+    DEC_DUMP_MODE = 2
+}
+
+local TBV_RTU_S_DATA = {
+    SET_DUMP_MODE = 1
+}
+
+turbinev.RS_RTU_S_CMDS = TBV_RTU_S_CMDS
+turbinev.RS_RTU_S_DATA = TBV_RTU_S_DATA
+
+local TXN_TYPES = {
+    FORMED = 1,
+    BUILD = 2,
+    STATE = 3,
+    TANKS = 4,
+    INC_DUMP = 5,
+    DEC_DUMP = 6,
+    SET_DUMP = 7
+}
+
+local TXN_TAGS = {
+    "turbinev.formed",
+    "turbinev.build",
+    "turbinev.state",
+    "turbinev.tanks",
+    "turbinev.inc_dump",
+    "turbinev.dec_dump",
+    "turbinev.set_dump"
+}
+
+local PERIODICS = {
+    FORMED = 2000,
+    BUILD = 1000,
+    STATE = 500,
+    TANKS = 1000
+}
+
+-- create a new turbinev rtu session runner
+---@param session_id integer
+---@param unit_id integer
+---@param advert rtu_advertisement
+---@param out_queue mqueue
+function turbinev.new(session_id, unit_id, advert, out_queue)
+    -- type check
+    if advert.type ~= RTU_UNIT_TYPES.TURBINE_VALVE then
+        log.error("attempt to instantiate turbinev RTU for type '" .. advert.type .. "'. this is a bug.")
+        return nil
+    end
+
+    local log_tag = "session.rtu(" .. session_id .. ").turbinev(" .. advert.index .. "): "
+
+    local self = {
+        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        in_q = mqueue.new(),
+        has_build = false,
+        periodics = {
+            next_build_req = 0,
+            next_state_req = 0,
+            next_tanks_req = 0
+        },
+        ---@class turbinev_session_db
+        db = {
+            formed = false,
+            build = {
+                length = 0,
+                width = 0,
+                height = 0,
+                min_pos = 0,
+                max_pos = 0,
+                blades = 0,
+                coils = 0,
+                vents = 0,
+                dispersers = 0,
+                condensers = 0,
+                steam_cap = 0,
+                max_energy = 0,
+                max_flow_rate = 0,
+                max_production = 0,
+                max_water_output = 0
+            },
+            state = {
+                flow_rate = 0,
+                prod_rate = 0,
+                steam_input_rate = 0,
+                dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
+            },
+            tanks = {
+                steam = 0,
+                steam_need = 0,
+                steam_fill = 0.0,
+                energy = 0,
+                energy_need = 0,
+                energy_fill = 0.0
+            }
+        }
+    }
+
+    local public = self.session.get()
+
+    -- PRIVATE FUNCTIONS --
+
+    -- increment the dumping mode
+    local function _inc_dump_mode()
+        -- write coil 1 with unused value 0
+        self.session.send_request(TXN_TYPES.INC_DUMP, MODBUS_FCODE.WRITE_SINGLE_COIL, { 1, 0 })
+    end
+
+    -- decrement the dumping mode
+    local function _dec_dump_mode()
+        -- write coil 2 with unused value 0
+        self.session.send_request(TXN_TYPES.DEC_DUMP, MODBUS_FCODE.WRITE_SINGLE_COIL, { 2, 0 })
+    end
+
+    -- set the dumping mode
+    ---@param mode DUMPING_MODE
+    local function _set_dump_mode(mode)
+        -- write holding register 1
+        self.session.send_request(TXN_TYPES.SET_DUMP, MODBUS_FCODE.WRITE_SINGLE_HOLD_REG, { 1, mode })
+    end
+
+    -- query if the multiblock is formed
+    local function _request_formed()
+        -- read discrete input 1 (start = 1, count = 1)
+        self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 })
+    end
+
+    -- query the build of the device
+    local function _request_build()
+        -- read input registers 1 through 15 (start = 1, count = 15)
+        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 15 })
+    end
+
+    -- query the state of the device
+    local function _request_state()
+        -- read input registers 16 through 19 (start = 16, count = 4)
+        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 16, 4 })
+    end
+
+    -- query the tanks of the device
+    local function _request_tanks()
+        -- read input registers 20 through 25 (start = 20, count = 6)
+        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 20, 6 })
+    end
+
+    -- PUBLIC FUNCTIONS --
+
+    -- handle a packet
+    ---@param m_pkt modbus_frame
+    function public.handle_packet(m_pkt)
+        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        if txn_type == false then
+            -- nothing to do
+        elseif txn_type == TXN_TYPES.BUILD then
+            -- build response
+            if m_pkt.length == 15 then
+                self.db.build.length           = m_pkt.data[1]
+                self.db.build.width            = m_pkt.data[2]
+                self.db.build.height           = m_pkt.data[3]
+                self.db.build.min_pos          = m_pkt.data[4]
+                self.db.build.max_pos          = m_pkt.data[5]
+                self.db.build.blades           = m_pkt.data[6]
+                self.db.build.coils            = m_pkt.data[7]
+                self.db.build.vents            = m_pkt.data[8]
+                self.db.build.dispersers       = m_pkt.data[9]
+                self.db.build.condensers       = m_pkt.data[10]
+                self.db.build.steam_cap        = m_pkt.data[11]
+                self.db.build.max_energy       = m_pkt.data[12]
+                self.db.build.max_flow_rate    = m_pkt.data[13]
+                self.db.build.max_production   = m_pkt.data[14]
+                self.db.build.max_water_output = m_pkt.data[15]
+                self.has_build = true
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
+            end
+        elseif txn_type == TXN_TYPES.STATE then
+            -- state response
+            if m_pkt.length == 4 then
+                self.db.state.flow_rate        = m_pkt.data[1]
+                self.db.state.prod_rate        = m_pkt.data[2]
+                self.db.state.steam_input_rate = m_pkt.data[3]
+                self.db.state.dumping_mode     = m_pkt.data[4]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
+            end
+        elseif txn_type == TXN_TYPES.TANKS then
+            -- tanks response
+            if m_pkt.length == 6 then
+                self.db.tanks.steam       = m_pkt.data[1]
+                self.db.tanks.steam_need  = m_pkt.data[2]
+                self.db.tanks.steam_fill  = m_pkt.data[3]
+                self.db.tanks.energy      = m_pkt.data[4]
+                self.db.tanks.energy_need = m_pkt.data[5]
+                self.db.tanks.energy_fill = m_pkt.data[6]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
+            end
+        elseif txn_type == TXN_TYPES.INC_DUMP or txn_type == TXN_TYPES.DEC_DUMP or txn_type == TXN_TYPES.SET_DUMP then
+            -- successful acknowledgement
+        elseif txn_type == nil then
+            log.error(log_tag .. "unknown transaction reply")
+        else
+            log.error(log_tag .. "unknown transaction type " .. txn_type)
+        end
+    end
+
+    -- update this runner
+    ---@param time_now integer milliseconds
+    function public.update(time_now)
+        -- check command queue
+        while self.in_q.ready() do
+            -- get a new message to process
+            local msg = self.in_q.pop()
+
+            if msg ~= nil then
+                if msg.qtype == mqueue.TYPE.COMMAND then
+                    -- instruction
+                    local cmd = msg.message
+
+                    if cmd == TBV_RTU_S_CMDS.INC_DUMP_MODE then
+                        _inc_dump_mode()
+                    elseif cmd == TBV_RTU_S_CMDS.DEC_DUMP_MODE then
+                        _dec_dump_mode()
+                    else
+                        log.debug(log_tag .. "unrecognized in_q command " .. util.strval(cmd))
+                    end
+                elseif msg.qtype == mqueue.TYPE.DATA then
+                    -- instruction with body
+                    local cmd = msg.message     ---@type queue_data
+                    if cmd.key == TBV_RTU_S_DATA.SET_DUMP_MODE then
+                        _set_dump_mode(cmd.val)
+                    else
+                        log.debug(log_tag .. "unrecognized in_q data " .. util.strval(cmd.key))
+                    end
+                end
+            end
+
+            -- max 100ms spent processing queue
+            if util.time() - time_now > 100 then
+                log.warning(log_tag .. "exceeded 100ms queue process limit")
+                break
+            end
+        end
+
+        time_now = util.time()
+
+        -- handle periodics
+
+        if self.periodics.next_formed_req <= time_now then
+            _request_formed()
+            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
+        end
+
+        if self.db.formed then
+            if not self.has_build and self.periodics.next_build_req <= time_now then
+                _request_build()
+                self.periodics.next_build_req = time_now + PERIODICS.BUILD
+            end
+
+            if self.periodics.next_state_req <= time_now then
+                _request_state()
+                self.periodics.next_state_req = time_now + PERIODICS.STATE
+            end
+
+            if self.periodics.next_tanks_req <= time_now then
+                _request_tanks()
+                self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+            end
+        end
+
+        self.session.post_update()
+    end
+
+    -- get the unit session database
+    function public.get_db() return self.db end
+
+    return public, self.in_q
+end
+
+return turbinev

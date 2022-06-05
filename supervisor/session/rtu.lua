@@ -14,6 +14,7 @@ local svrs_redstone = require("supervisor.session.rtu.redstone")
 local svrs_sna      = require("supervisor.session.rtu.sna")
 local svrs_sps      = require("supervisor.session.rtu.sps")
 local svrs_turbine  = require("supervisor.session.rtu.turbine")
+local svrs_turbinev = require("supervisor.session.rtu.turbinev")
 
 local rtu = {}
 
@@ -66,11 +67,20 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
         rtu_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
         rs_io_q = {},
+        turbine_cmd_q = {},
+        turbine_cmd_capable = false,
         units = {}
     }
 
     ---@class rtu_session
     local public = {}
+
+    local function _reset_config()
+        self.units = {}
+        self.rs_io_q = {}
+        self.turbine_cmd_q = {}
+        self.turbine_cmd_capable = false
+    end
 
     -- parse the recorded advertisement and create unit sub-sessions
     local function _handle_advertisement()
@@ -78,8 +88,9 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
         self.rs_io_q = {}
 
         for i = 1, #self.advert do
-            local unit = nil    ---@type unit_session|nil
-            local rs_in_q = nil ---@type mqueue|nil
+            local unit     = nil ---@type unit_session|nil
+            local rs_in_q  = nil ---@type mqueue|nil
+            local tbv_in_q = nil ---@type mqueue|nil
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -106,7 +117,8 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
                 unit = svrs_turbine.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                 -- turbine (Mekanism 10.1+)
-                -- @todo Mekanism 10.1+
+                unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.out_q)
+                self.turbine_cmd_capable = true
             elseif u_type == RTU_UNIT_TYPES.EMACHINE then
                 -- mekanism [energy] machine
                 unit = svrs_emachine.new(self.id, i, unit_advert, self.out_q)
@@ -129,21 +141,33 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
             if unit ~= nil then
                 table.insert(self.units, unit)
 
-                if self.rs_io_q[unit_advert.reactor] == nil then
-                    self.rs_io_q[unit_advert.reactor] = rs_in_q
-                else
-                    self.units = {}
-                    self.rs_io_q = {}
-                    log.error(log_header .. "bad advertisement: duplicate redstone RTU for reactor " .. unit_advert.reactor)
-                    break
+                if u_type == RTU_UNIT_TYPES.REDSTONE then
+                    if self.rs_io_q[unit_advert.reactor] == nil then
+                        self.rs_io_q[unit_advert.reactor] = rs_in_q
+                    else
+                        _reset_config()
+                        log.error(log_header .. util.c("bad advertisement: duplicate redstone RTU for reactor " .. unit_advert.reactor))
+                        break
+                    end
+                elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
+                    if self.turbine_cmd_q[unit_advert.reactor] == nil then
+                        self.turbine_cmd_q[unit_advert.reactor] = {}
+                    end
+
+                    local queues = self.turbine_cmd_q[unit_advert.reactor]
+
+                    if queues[unit_advert.index] == nil then
+                        queues[unit_advert.index] = tbv_in_q
+                    else
+                        _reset_config()
+                        log.error(log_header .. util.c("bad advertisement: duplicate turbine RTU (same index of ",
+                            unit_advert.index, ") for reactor ", unit_advert.reactor))
+                        break
+                    end
                 end
             else
-                self.units = {}
-                self.rs_io_q = {}
-
-                local type_string = comms.advert_type_to_rtu_t(u_type)
-                if type_string == nil then type_string = "unknown" end
-
+                _reset_config()
+                local type_string = util.strval(comms.advert_type_to_rtu_t(u_type))
                 log.error(log_header .. "bad advertisement: error occured while creating a unit (type is " .. type_string .. ")")
                 break
             end

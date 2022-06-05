@@ -64,9 +64,9 @@ function turbine.new(session_id, unit_id, advert, out_queue)
                 max_water_output = 0
             },
             state = {
-                flow_rate = 0.0,
-                prod_rate = 0.0,
-                steam_input_rate = 0.0,
+                flow_rate = 0,
+                prod_rate = 0,
+                steam_input_rate = 0,
                 dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
             },
             tanks = {

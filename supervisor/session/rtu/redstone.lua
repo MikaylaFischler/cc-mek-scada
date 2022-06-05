@@ -62,6 +62,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
     local self = {
         session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        in_q = mqueue.new(),
         has_di = false,
         has_ai = false,
         periodics = {
