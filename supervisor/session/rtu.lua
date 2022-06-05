@@ -102,8 +102,29 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
 
             local u_type = unit_advert.type
 
-            -- create unit by type
+            -- validate unit advertisement
+
+            local advert_validator = util.new_validator()
+            advert_validator.assert_type_int(unit_advert.index)
+            advert_validator.assert_type_int(unit_advert.reactor)
+
             if u_type == RTU_UNIT_TYPES.REDSTONE then
+                advert_validator.assert_type_table(unit_advert.rsio)
+            end
+
+            if advert_validator.valid() then
+                advert_validator.assert_min(unit_advert.index, 1)
+                advert_validator.assert_min(unit_advert.reactor, 1)
+                if not advert_validator.valid() then u_type = false end
+            else
+                u_type = false
+            end
+
+            -- create unit by type
+
+            if u_type == false then
+                -- validation fail
+            elseif u_type == RTU_UNIT_TYPES.REDSTONE then
                 -- redstone
                 unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.out_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then

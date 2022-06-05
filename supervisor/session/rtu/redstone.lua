@@ -90,25 +90,31 @@ function redstone.new(session_id, unit_id, advert, out_queue)
     -- setup I/O
     for i = 1, #advert.rsio do
         local channel = advert.rsio[i]
-        local mode = rsio.get_io_mode(channel)
 
-        if mode == IO_MODE.DIGITAL_IN then
-            self.has_di = true
-            table.insert(self.io_list.digital_in, channel)
-        elseif mode == IO_MODE.DIGITAL_OUT then
-            table.insert(self.io_list.digital_out, channel)
-        elseif mode == IO_MODE.ANALOG_IN then
-            self.has_ai = true
-            table.insert(self.io_list.analog_in, channel)
-        elseif mode == IO_MODE.ANALOG_OUT then
-            table.insert(self.io_list.analog_out, channel)
+        if rsio.is_valid_channel(channel) then
+            local mode = rsio.get_io_mode(channel)
+
+            if mode == IO_MODE.DIGITAL_IN then
+                self.has_di = true
+                table.insert(self.io_list.digital_in, channel)
+            elseif mode == IO_MODE.DIGITAL_OUT then
+                table.insert(self.io_list.digital_out, channel)
+            elseif mode == IO_MODE.ANALOG_IN then
+                self.has_ai = true
+                table.insert(self.io_list.analog_in, channel)
+            elseif mode == IO_MODE.ANALOG_OUT then
+                table.insert(self.io_list.analog_out, channel)
+            else
+                -- should be unreachable code, we already validated channels
+                log.error(util.c(log_tag, "failed to identify advertisement channel IO mode (", channel, ")"), true)
+                return nil
+            end
+
+            self.db[channel] = IO_LVL.LOW
         else
-            -- should be unreachable code, we already validated channels
-            log.error(util.c(log_tag, "failed to identify advertisement channel IO mode (", channel, ")"), true)
+            log.error(util.c(log_tag, "invalid advertisement channel (", channel, ")"), true)
             return nil
         end
-
-        self.db[channel] = IO_LVL.LOW
     end
 
     -- PRIVATE FUNCTIONS --
