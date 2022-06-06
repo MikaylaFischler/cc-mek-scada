@@ -81,7 +81,7 @@ end
 
 -- is a value an integer
 ---@param x any value
----@return boolean if the number is an integer
+---@return boolean is_integer if the number is an integer
 function util.is_int(x)
     return type(x) == "number" and x == math.floor(x)
 end
