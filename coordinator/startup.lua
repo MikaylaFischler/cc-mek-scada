@@ -12,7 +12,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.1.4"
+local COORDINATOR_VERSION = "alpha-v0.1.5"
 
 local print = util.print
 local println = util.println
@@ -81,3 +81,12 @@ if modem == nil then
 end
 
 log.dmesg("wireless modem connected", "COMMS", colors.purple)
+
+log.dmesg("starting UI...", "GRAPHICS", colors.green)
+util.psleep(3)
+
+local ui_ok = pcall(renderer.start_ui)
+if not ui_ok then
+    renderer.close_ui()
+    log.dmesg("UI draw failed", "GRAPHICS", colors.green)
+end
