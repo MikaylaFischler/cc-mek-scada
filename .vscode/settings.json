@@ -10,6 +10,7 @@
         "textutils",
         "shell",
         "settings",
-        "window"
+        "window",
+        "read"
     ]
 }

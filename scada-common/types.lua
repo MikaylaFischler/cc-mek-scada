@@ -22,6 +22,10 @@ local types = {}
 ---@field reactor integer
 ---@field rsio table|nil
 
+-- ALIASES --
+
+---@alias color integer
+
 -- ENUMERATION TYPES --
 
 ---@alias TRI_FAIL integer
