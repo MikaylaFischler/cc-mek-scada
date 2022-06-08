@@ -1,10 +1,16 @@
 -- Text Box Graphics Element
 
+local util    = require("scada-common.util")
+
+local core    = require("graphics.core")
 local element = require("graphics.element")
+
+local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 ---@class textbox_args
 ---@field text string text to show
 ---@field parent graphics_element
+---@field alignment? TEXT_ALIGN text alignment, left by default
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -20,49 +26,25 @@ local function textbox(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- write text
+    local alignment = args.alignment or TEXT_ALIGN.LEFT
+
+    -- draw textbox
 
     local text = args.text
-    local lines = { text }
+    local lines = util.strwrap(text, e.frame.w)
 
-    local w = e.frame.w
-    local h = e.frame.h
-
-    -- wrap if needed
-    if string.len(text) > w then
-        local remaining = true
-        local s_start = 1
-        local s_end = w
-        local i = 1
-
-        lines = {}
-
-        while remaining do
-            local line = string.sub(text, s_start, s_end)
-
-            if line == "" then
-                remaining = false
-            else
-                lines[i] = line
-
-                s_start = s_end + 1
-                s_end = s_end + w
-                i = i + 1
-            end
-        end
-    end
-
-    -- output message
     for i = 1, #lines do
-        local cur_x, cur_y = e.window.getCursorPos()
+        if i > e.frame.h then break end
 
-        if i > 1 and cur_x > 1 then
-            if cur_y == h then
-                e.window.scroll(1)
-                e.window.setCursorPos(1, cur_y)
-            else
-                e.window.setCursorPos(1, cur_y + 1)
-            end
+        local len = string.len(lines[i])
+
+        -- use cursor position to align this line
+        if alignment == TEXT_ALIGN.CENTER then
+            e.window.setCursorPos(math.floor((e.frame.w - len) / 2), i)
+        elseif alignment == TEXT_ALIGN.RIGHT then
+            e.window.setCursorPos(e.frame.w - len, i)
+        else
+            e.window.setCursorPos(1, i)
         end
 
         e.window.write(lines[i])
