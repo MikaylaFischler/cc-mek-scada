@@ -1,7 +1,8 @@
 -- Rectangle Graphics Element
 
-local element = require("graphics.element")
 local util    = require("scada-common.util")
+
+local element = require("graphics.element")
 
 ---@class rectangle_args
 ---@field border? graphics_border
@@ -32,6 +33,7 @@ local function rectangle(args)
         local blit_bg_top_bot = ""
         local blit_bg_sides = ""
 
+        -- check dimensions
         assert(border_width_v * 2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
         assert(border_width_h * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
 
@@ -54,7 +56,7 @@ local function rectangle(args)
 
         -- draw rectangle with borders
         for y = 1, e.frame.h do
-            e.setCursorPos(y, 1)
+            e.setCursorPos(1, y)
             if y <= border_width_v or y > (e.frame.h - border_width_v) then
                 e.blit(spaces, blit_fg, blit_bg_top_bot)
             else
