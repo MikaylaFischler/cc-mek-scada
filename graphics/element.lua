@@ -23,6 +23,7 @@ function element.new(args)
 
     local protected = {
         window = nil,   ---@type table
+        fg_bg = core.graphics.cpair(colors.white, colors.black),
         frame = core.graphics.gframe(1, 1, 1, 1)
     }
 
@@ -56,6 +57,7 @@ function element.new(args)
         protected.window.setBackgroundColor(args.fg_bg.bkg)
         protected.window.setTextColor(args.fg_bg.fgd)
         protected.window.clear()
+        protected.fg_bg = args.fg_bg
     end
 
     -- record position

@@ -30,6 +30,20 @@ graphics.TEXT_ALIGN = {
     RIGHT = 3
 }
 
+---@class graphics_border
+---@field width integer
+---@field color color
+
+---@param width integer
+---@param color color
+---@return graphics_border
+function graphics.border(width, color)
+    return {
+        width = width,
+        color = color
+    }
+end
+
 ---@class graphics_frame
 ---@field x integer
 ---@field y integer
