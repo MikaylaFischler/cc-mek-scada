@@ -38,11 +38,9 @@ local function rectangle(args)
         assert(border_width_h * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
 
         -- form the basic and top/bottom blit strings
-        for _ = 1, e.frame.w do
-            spaces = spaces .. " "
-            blit_fg = blit_fg .. e.fg_bg.blit_fgd
-            blit_bg_top_bot = blit_bg_top_bot .. border_blit
-        end
+        spaces = util.strrep(" ", e.frame.w)
+        blit_fg = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
+        blit_bg_top_bot = util.strrep(border_blit, e.frame.w)
 
         -- form the body blit strings (sides are border, inside is normal)
         for x = 1, e.frame.w do

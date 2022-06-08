@@ -28,9 +28,7 @@ local function hbar(args)
     assert(bar_width > 0, "graphics.elements.hbar: too small for bar")
 
     -- set background blit string
-    for _ = 1, bar_width do
-        bkg = bkg .. args.bar_fg_bg.blit_bkg
-    end
+    bkg = util.strrep(args.bar_fg_bg.blit_bkg, bar_width)
 
     -- handle data changes
     function e.on_update(fraction)
