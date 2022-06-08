@@ -68,6 +68,47 @@ function util.strrep(str, n)
     return repeated
 end
 
+-- wrap a string into a table of lines, supporting single dash splits
+---@param str string
+---@param limit integer line limit
+---@return table lines
+function util.strwrap(str, limit)
+    local lines = {}
+    local ln_start = 1
+
+    lines[1] = string.sub(str, 1, str:find("([%-%s]+)") - 1)
+
+---@diagnostic disable-next-line: discard-returns
+    str:gsub("(%s+)()(%S+)()",
+        function(space, start, word, stop)
+            -- support splitting SINGLE DASH words
+            word:gsub("(%S+)(%-)()(%S+)()",
+                function (pre, dash, d_start, post, d_stop)
+                    if (stop + d_stop) - ln_start <= limit then
+                        -- do nothing, it will entirely fit
+                    elseif ((start + d_start) + 1) - ln_start <= limit then
+                        -- we can fit including the dash
+                        lines[#lines] = lines[#lines] .. space .. pre .. dash
+                        -- drop the space and replace the word with the post
+                        space = ""
+                        word = post
+                        -- force a wrap
+                        stop = limit + 1 + ln_start
+                        -- change start position for new line start
+                        start = start + d_start - 1
+                    end
+                end)
+            -- can we append this or do we have to start a new line?
+            if stop - ln_start > limit then
+                -- starting new line
+                ln_start = start
+                lines[#lines + 1] = word
+            else lines[#lines] = lines[#lines] .. space .. word end
+        end)
+
+    return lines
+end
+
 -- concatenation with built-in to string
 ---@vararg any
 ---@return string
