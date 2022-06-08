@@ -56,6 +56,18 @@ function util.strval(val)
     end
 end
 
+-- repeat a string n times
+---@param str string
+---@param n integer
+---@return string
+function util.strrep(str, n)
+    local repeated = ""
+    for _ = 1, n do
+        repeated = repeated .. str
+    end
+    return repeated
+end
+
 -- concatenation with built-in to string
 ---@vararg any
 ---@return string
