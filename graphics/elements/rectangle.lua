@@ -21,6 +21,9 @@ local function rectangle(args)
     -- draw bordered box if requested
     -- element constructor will have drawn basic colored rectangle regardless
     if args.border ~= nil then
+        assert(args.border.width * 2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
+        assert(args.border.width * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
+
         e.setCursorPos(1, 1)
 
         local border_width = args.border.width
