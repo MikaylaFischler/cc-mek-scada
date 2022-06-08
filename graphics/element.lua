@@ -106,7 +106,7 @@ function element.new(args)
     end
 
     -- draw the element given new data
-    function public.draw(...)
+    function public.update(...)
         protected.on_update(...)
     end
 
@@ -118,6 +118,11 @@ function element.new(args)
     -- hide the element
     function public.hide()
         protected.window.setVisible(false)
+    end
+
+    -- re-draw the element
+    function public.redraw()
+        protected.window.redraw()
     end
 
     return protected
