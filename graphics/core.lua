@@ -7,6 +7,7 @@ local events = {}
 ---@field x integer
 ---@field y integer
 
+-- create a new touch event definition
 ---@param monitor string
 ---@param x integer
 ---@param y integer
@@ -33,14 +34,18 @@ graphics.TEXT_ALIGN = {
 ---@class graphics_border
 ---@field width integer
 ---@field color color
+---@field even boolean
 
----@param width integer
----@param color color
+-- create a new border definition
+---@param width integer border width
+---@param color color border color
+---@param even boolean whether to pad width extra to account for rectangular pixels
 ---@return graphics_border
-function graphics.border(width, color)
+function graphics.border(width, color, even)
     return {
         width = width,
-        color = color
+        color = color,
+        even = even
     }
 end
 
@@ -50,6 +55,7 @@ end
 ---@field w integer
 ---@field h integer
 
+-- create a new graphics frame definition
 ---@param x integer
 ---@param y integer
 ---@param w integer
@@ -65,20 +71,31 @@ function graphics.gframe(x, y, w, h)
 end
 
 ---@class cpair
+---@field color_a color
+---@field color_b color
+---@field blit_a string
+---@field blit_b string
 ---@field fgd color
 ---@field bkg color
 ---@field blit_fgd string
 ---@field blit_bkg string
 
----@param foreground color
----@param background color
+-- create a new color pair definition
+---@param a color
+---@param b color
 ---@return cpair
-function graphics.cpair(foreground, background)
+function graphics.cpair(a, b)
     return {
-        fgd = foreground,
-        bkg = background,
-        blit_fgd = colors.toBlit(foreground),
-        blit_bkg = colors.toBlit(background)
+        -- color pairs
+        color_a = a,
+        color_b = b,
+        blit_a = a,
+        blit_b = b,
+        -- aliases
+        fgd = a,
+        bkg = b,
+        blit_fgd = colors.toBlit(a),
+        blit_bkg = colors.toBlit(b)
     }
 end
 

@@ -1,6 +1,7 @@
 -- Rectangle Graphics Element
 
 local element = require("graphics.element")
+local util    = require("scada-common.util")
 
 ---@class rectangle_args
 ---@field border? graphics_border
@@ -15,23 +16,24 @@ local element = require("graphics.element")
 -- new rectangle
 ---@param args rectangle_args
 local function rectangle(args)
-    -- create new graphics element rectangle object
+    -- create new graphics element base object
     local e = element.new(args)
 
     -- draw bordered box if requested
     -- element constructor will have drawn basic colored rectangle regardless
     if args.border ~= nil then
-        assert(args.border.width * 2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
-        assert(args.border.width * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
-
         e.setCursorPos(1, 1)
 
-        local border_width = args.border.width
+        local border_width_v = args.border.width
+        local border_width_h = util.trinary(args.border.even, args.border.width * 2, args.border.width)
         local border_blit = colors.toBlit(args.border.color)
         local spaces = ""
         local blit_fg = ""
         local blit_bg_top_bot = ""
         local blit_bg_sides = ""
+
+        assert(border_width_v * 2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
+        assert(border_width_h * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
 
         -- form the basic and top/bottom blit strings
         for _ = 1, e.frame.w do
@@ -43,7 +45,7 @@ local function rectangle(args)
         -- form the body blit strings (sides are border, inside is normal)
         for x = 1, e.frame.w do
             -- edges get border color, center gets normal
-            if x <= border_width or x > (e.frame.w - border_width) then
+            if x <= border_width_h or x > (e.frame.w - border_width_h) then
                 blit_bg_sides = blit_bg_sides .. border_blit
             else
                 blit_bg_sides = blit_bg_sides .. e.fg_bg.blit_bkg
@@ -53,7 +55,7 @@ local function rectangle(args)
         -- draw rectangle with borders
         for y = 1, e.frame.h do
             e.setCursorPos(y, 1)
-            if y <= border_width or y > (e.frame.h - border_width) then
+            if y <= border_width_v or y > (e.frame.h - border_width_v) then
                 e.blit(spaces, blit_fg, blit_bg_top_bot)
             else
                 e.blit(spaces, blit_fg, blit_bg_sides)
