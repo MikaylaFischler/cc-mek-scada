@@ -13,7 +13,6 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
----@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg cpair foreground/background colors
 
 -- new push button
