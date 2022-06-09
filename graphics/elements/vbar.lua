@@ -1,4 +1,4 @@
--- Horizontal Bar Graphics Element
+-- Vertical Bar Graphics Element
 
 local util    = require("scada-common.util")
 
@@ -16,7 +16,7 @@ local element = require("graphics.element")
 -- new vertical bar
 ---@param args vbar_args
 local function vbar(args)
-    -- last state
+    -- properties/state
     local last_num_bars = -1
 
     -- create new graphics element base object
