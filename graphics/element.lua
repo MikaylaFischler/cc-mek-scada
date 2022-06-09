@@ -32,6 +32,7 @@ function element.new(args)
     -- get the parent window
     self.p_window = args.window or args.parent.window()
 
+    -- check window
     assert(self.p_window, "graphics.element: no parent window provided")
 
     -- get frame coordinates/size
@@ -47,6 +48,12 @@ function element.new(args)
         protected.frame.w = args.width or w
         protected.frame.h = args.height or h
     end
+
+    -- check frame
+    assert(protected.frame.x >= 1, "graphics.element: frame x not >= 1")
+    assert(protected.frame.y >= 1, "graphics.element: frame y not >= 1")
+    assert(protected.frame.w >= 1, "graphics.element: frame width not >= 1")
+    assert(protected.frame.h >= 1, "graphics.element: frame height not >= 1")
 
     -- create window
     local f = protected.frame

@@ -6,7 +6,6 @@ local element = require("graphics.element")
 
 ---@class hbar_args
 ---@field bar_fg_bg cpair bar foreground/background colors
----@field border? graphics_border
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
