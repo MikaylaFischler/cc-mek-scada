@@ -24,7 +24,7 @@ local function data_indicator(args)
 
     -- label color
     if args.label_unit_colors ~= nil then
-        e.window.setForegroundColor(args.label_unit_colors.color_a)
+        e.window.setTextColor(args.label_unit_colors.color_a)
     end
 
     -- write label
@@ -40,13 +40,13 @@ local function data_indicator(args)
 
         -- write data
         e.window.setCursorPos(data_start, 1)
-        e.window.setForegroundColor(e.fg_bg.fgd)
+        e.window.setTextColor(e.fg_bg.fgd)
         e.window.write(data_str)
 
         -- write label
         if args.unit ~= nil then
             if args.label_unit_colors ~= nil then
-                e.window.setForegroundColor(args.label_unit_colors.color_b)
+                e.window.setTextColor(args.label_unit_colors.color_b)
             end
             e.window.write(" " .. args.unit)
         end

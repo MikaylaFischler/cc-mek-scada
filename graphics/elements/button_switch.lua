@@ -32,7 +32,7 @@ local function switch_button(args)
 
     -- write the button text
     e.window.setCursorPos(h_pad, v_pad)
-    e.write(args.text)
+    e.window.write(args.text)
 
     -- show the button state
     local function draw_state()
@@ -53,6 +53,8 @@ local function switch_button(args)
     draw_state()
 
     -- handle touch
+    ---@param event monitor_touch monitor touch event
+---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
         -- toggle state
         state = not state

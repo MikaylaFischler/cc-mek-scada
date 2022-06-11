@@ -29,9 +29,11 @@ local function push_button(args)
 
     -- write the button text
     e.window.setCursorPos(h_pad, v_pad)
-    e.write(args.text)
+    e.window.write(args.text)
 
     -- handle touch
+    ---@param event monitor_touch monitor touch event
+---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
         if args.active_fg_bg ~= nil then
             -- show as pressed
