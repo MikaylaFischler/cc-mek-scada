@@ -11,11 +11,14 @@ local element = require("graphics.element")
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new indicator light
 ---@param args indicator_light_args
 local function indicator_light(args)
+    assert(type(args.label) == "string", "graphics.elements.indicator_light: label is a required field")
+    assert(type(args.colors) == "table", "graphics.elements.indicator_light: colors is a required field")
+
     -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 3
 
@@ -27,7 +30,7 @@ local function indicator_light(args)
     local off_blit = util.strrep(args.colors.blit_b, 2)
 
     -- write label and initial indicator light
-    e.setCursorPos(1, 1)
+    e.window.setCursorPos(1, 1)
     e.window.blit("   ", "000", off_blit .. e.fg_bg.blit_bkg)
     e.window.write(args.label)
 

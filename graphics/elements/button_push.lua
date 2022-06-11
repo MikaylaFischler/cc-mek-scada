@@ -13,11 +13,14 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new push button
 ---@param args push_button_args
 local function push_button(args)
+    assert(type(args.text) == "string", "graphics.elements.button_push: text is a required field")
+    assert(type(args.callback) == "function", "graphics.elements.button_push: callback is a required field")
+
     local text_width = string.len(args.text)
     args.width = math.max(text_width + 2, args.min_width)
 

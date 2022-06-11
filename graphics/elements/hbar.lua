@@ -13,7 +13,7 @@ local element = require("graphics.element")
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new horizontal bar
 ---@param args hbar_args

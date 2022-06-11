@@ -12,7 +12,7 @@ local element = require("graphics.element")
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new rectangle
 ---@param args rectangle_args
@@ -23,7 +23,7 @@ local function rectangle(args)
     -- draw bordered box if requested
     -- element constructor will have drawn basic colored rectangle regardless
     if args.border ~= nil then
-        e.setCursorPos(1, 1)
+        e.window.setCursorPos(1, 1)
 
         local border_width_v = args.border.width
         local border_width_h = util.trinary(args.border.even, args.border.width * 2, args.border.width)
@@ -54,11 +54,11 @@ local function rectangle(args)
 
         -- draw rectangle with borders
         for y = 1, e.frame.h do
-            e.setCursorPos(1, y)
+            e.window.setCursorPos(1, y)
             if y <= border_width_v or y > (e.frame.h - border_width_v) then
-                e.blit(spaces, blit_fg, blit_bg_top_bot)
+                e.window.blit(spaces, blit_fg, blit_bg_top_bot)
             else
-                e.blit(spaces, blit_fg, blit_bg_sides)
+                e.window.blit(spaces, blit_fg, blit_bg_sides)
             end
         end
     end

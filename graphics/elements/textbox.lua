@@ -21,7 +21,7 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 -- new text box
 ---@param args textbox_args
 local function textbox(args)
-    assert(args.text ~= nil, "graphics.elements.textbox: empty text box")
+    assert(type(args.text) == "string", "graphics.elements.textbox: text is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)

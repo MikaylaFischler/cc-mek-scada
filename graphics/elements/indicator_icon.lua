@@ -16,11 +16,14 @@ local element = require("graphics.element")
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new icon indicator
 ---@param args icon_indicator_args
 local function icon_indicator(args)
+    assert(type(args.label) == "string", "graphics.elements.indicator_icon: label is a required field")
+    assert(type(args.states) == "table", "graphics.elements.indicator_icon: states is a required field")
+
     -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4
 
@@ -40,7 +43,7 @@ local function icon_indicator(args)
     end
 
     -- write label and initial indicator light
-    e.setCursorPos(5, 1)
+    e.window.setCursorPos(5, 1)
     e.window.write(args.label)
 
     -- on state change

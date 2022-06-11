@@ -16,11 +16,13 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer 1 if omitted, must be an odd number
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new state indicator
 ---@param args state_indicator_args
 local function state_indicator(args)
+    assert(type(args.states) == "table", "graphics.elements.indicator_state: states is a required field")
+
     -- determine height
     if util.is_int(args.height) then
         assert(args.height % 2 == 1, "graphics.elements.indicator_state: height should be an odd number")

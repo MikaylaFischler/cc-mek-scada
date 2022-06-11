@@ -14,11 +14,13 @@ local element = require("graphics.element")
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new tiling box
 ---@param args tiling_args
 local function tiling(args)
+    assert(type(args.fill_c) == "table", "graphics.elements.tiling: fill_c is a required field")
+
     -- create new graphics element base object
     local e = element.new(args)
 

@@ -12,11 +12,15 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new switch button (latch high/low)
 ---@param args switch_button_args
 local function switch_button(args)
+    assert(type(args.text) == "string", "graphics.elements.button_switch: text is a required field")
+    assert(type(args.callback) == "function", "graphics.elements.button_switch: callback is a required field")
+    assert(type(args.active_fg_bg) == "table", "graphics.elements.button_switch: active_fg_bg is a required field")
+
     -- button state (convert nil to false if missing)
     local state = args.default or false
 

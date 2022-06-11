@@ -9,16 +9,21 @@ local element = require("graphics.element")
 ---@field unit? string indicator unit
 ---@field format string data format (lua string format)
 ---@field label_unit_colors? cpair label foreground color (a), unit foreground color (b)
----@field default any default value
+---@field initial_value any default value
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width integer length
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new data indicator
 ---@param args data_indicator_args
 local function data_indicator(args)
+    assert(type(args.label) == "string", "graphics.elements.indicator_data: label is a required field")
+    assert(type(args.format) == "string", "graphics.elements.indicator_data: format is a required field")
+    assert(args.initial_value ~= nil, "graphics.elements.indicator_data: initial_value is a required field")
+    assert(util.is_int(args.width), "graphics.elements.indicator_data: width is a required field")
+
     -- create new graphics element base object
     local e = element.new(args)
 
@@ -28,7 +33,7 @@ local function data_indicator(args)
     end
 
     -- write label
-    e.setCursorPos(1, 1)
+    e.window.setCursorPos(1, 1)
     e.window.write(args.label)
 
     local data_start = string.len(args.label) + 2
@@ -53,7 +58,7 @@ local function data_indicator(args)
     end
 
     -- initial value draw
-    e.on_update(args.default)
+    e.on_update(args.initial_value)
 
     return e.get()
 end

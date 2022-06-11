@@ -11,7 +11,7 @@ local util    = require("scada-common.util")
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field fg_bg cpair foreground/background colors
+---@field fg_bg? cpair foreground/background colors
 
 -- new spinbox control
 ---@param args spinbox_args
@@ -25,6 +25,8 @@ local function spinbox(args)
 
     assert(util.is_int(wn_prec), "graphics.element.spinbox_numeric: whole number precision must be an integer")
     assert(util.is_int(fr_prec), "graphics.element.spinbox_numeric: fractional precision must be an integer")
+
+    assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
 
     local initial_str = util.sprintf("%" .. wn_prec .. "." .. fr_prec .. "f", value)
 
@@ -69,11 +71,10 @@ local function spinbox(args)
             -- update value
             value = 0
             for i = 1, #digits do
+                local pow = math.abs(wn_prec - i)
                 if i <= wn_prec then
-                    local pow = wn_prec - i
                     value = value + (digits[i] * (10 ^ pow))
                 else
-                    local pow = i - wn_prec
                     value = value + (digits[i] * (10 ^ -pow))
                 end
             end
