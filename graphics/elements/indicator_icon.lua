@@ -9,21 +9,20 @@ local element = require("graphics.element")
 ---@field symbol string
 
 ---@class icon_indicator_args
----@field text string indicator text
+---@field label string indicator label
 ---@field states table state color and symbol table
 ---@field default? integer default state, defaults to 1
----@field min_text_width? integer text length if omitted
+---@field min_label_width? integer label length if omitted
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field height? integer parent height if omitted
 ---@field fg_bg cpair foreground/background colors
 
 -- new icon indicator
 ---@param args icon_indicator_args
 local function icon_indicator(args)
     -- determine width
-    args.width = (args.min_text_width or string.len(args.text)) + 4
+    args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -40,9 +39,9 @@ local function icon_indicator(args)
         })
     end
 
-    -- write text and initial indicator light
+    -- write label and initial indicator light
     e.setCursorPos(5, 1)
-    e.window.write(args.text)
+    e.window.write(args.label)
 
     -- on state change
     ---@param new_state integer indicator state
