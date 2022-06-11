@@ -87,6 +87,11 @@ function element.new(args)
     function protected.on_update(...)
     end
 
+    -- get control value
+    function protected.get_value()
+        return nil
+    end
+
     ---@class graphics_element
     local public = {}
 
@@ -115,6 +120,11 @@ function element.new(args)
     -- draw the element given new data
     function public.update(...)
         protected.on_update(...)
+    end
+
+    -- get the control value reading
+    function public.get_value()
+        return protected.get_value()
     end
 
     -- show the element
