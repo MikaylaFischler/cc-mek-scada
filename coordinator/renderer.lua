@@ -1,8 +1,10 @@
 local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
+local core = require("graphics.core")
+
 local displaybox = require("graphics.elements.displaybox")
-local structs    = require("graphics.structs")
+local textbox = require("graphics.elements.textbox")
 
 local renderer = {}
 
@@ -62,12 +64,14 @@ end
 
 -- start the coordinator GUI
 function renderer.start_ui()
-    local palette = structs.graphics.cpair(gconf.root.fgd, gconf.root.bkg)
+    local palette = core.graphics.cpair(gconf.root.fgd, gconf.root.bkg)
 
-    ui.main_box = displaybox{window = engine.monitors.primary, fg_bg = palette}
+    ui.main_box = displaybox{window=engine.monitors.primary,fg_bg=palette}
+
+    textbox{parent=ui.main_box,text="Nuclear Generation Facility SCADA Coordinator",alignment=core.graphics.TEXT_ALIGN.CENTER,height=1,fg_bg=core.graphics.cpair(colors.white,colors.gray)}
 
     for _, monitor in pairs(engine.monitors.unit_displays) do
-        table.insert(ui.unit_boxes, displaybox{window = engine.monitors.primary, fg_bg = palette})
+        table.insert(ui.unit_boxes, displaybox{window=monitor,fg_bg=palette})
     end
 end
 
@@ -76,6 +80,12 @@ function renderer.close_ui()
     -- clear root UI elements
     ui.main_box = nil
     ui.unit_boxes = {}
+
+    -- reset displays
+    renderer.reset()
+
+    -- re-draw dmesg
+    engine.dmesg_window.redraw()
 end
 
 return renderer
