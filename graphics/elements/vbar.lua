@@ -25,7 +25,7 @@ local function vbar(args)
     -- blit strings
     local fgd = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
     local bkg = util.strrep(e.fg_bg.blit_bkg, e.frame.w)
-    local spaces = util.strrep(" ", e.frame.w)
+    local spaces = util.spaces(e.frame.w)
     local one_third = util.strrep("\x8f", e.frame.w)
     local two_thirds = util.strrep("\x83", e.frame.w)
 

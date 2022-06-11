@@ -68,6 +68,13 @@ function util.strrep(str, n)
     return repeated
 end
 
+-- repeat a space n times
+---@param n integer
+---@return string
+function util.spaces(n)
+    return util.strrep(" ", n)
+end
+
 -- wrap a string into a table of lines, supporting single dash splits
 ---@param str string
 ---@param limit integer line limit
