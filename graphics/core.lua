@@ -1,3 +1,7 @@
+--
+-- Graphics Core Functions and Objects
+--
+
 local core = {}
 
 local events = {}
