@@ -1,3 +1,7 @@
+--
+-- Generic Graphics Element
+--
+
 local core = require("graphics.core")
 
 local element = {}

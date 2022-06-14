@@ -1,3 +1,7 @@
+--
+-- Graphics View Layout
+--
+
 local core = require("graphics.core")
 local util = require("scada-common.util")
 
