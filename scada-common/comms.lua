@@ -48,6 +48,15 @@ local SCADA_MGMT_TYPES = {
     REMOTE_LINKED = 3   -- remote device linked
 }
 
+---@alias COORD_TYPES integer
+local COORD_TYPES = {
+    ESTABLISH = 0,      -- initial greeting
+    QUERY_UNIT = 1,     -- query the state of a unit
+    QUERY_FACILITY = 2, -- query general facility status
+    COMMAND_UNIT = 3,   -- command a reactor unit
+    ALARM = 4           -- alarm signaling
+}
+
 ---@alias RTU_UNIT_TYPES integer
 local RTU_UNIT_TYPES = {
     REDSTONE = 0,       -- redstone I/O
@@ -66,6 +75,7 @@ comms.PROTOCOLS = PROTOCOLS
 comms.RPLC_TYPES = RPLC_TYPES
 comms.RPLC_LINKING = RPLC_LINKING
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
+comms.COORD_TYPES = COORD_TYPES
 comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
 
 -- generic SCADA packet object
@@ -436,9 +446,13 @@ function comms.coord_packet()
     ---@class coord_packet
     local public = {}
 
+    -- check that type is known
     local function _coord_type_valid()
-        -- @todo
-        return false
+        return self.type == COORD_TYPES.ESTABLISH or
+                self.type == COORD_TYPES.QUERY_UNIT or
+                self.type == COORD_TYPES.QUERY_FACILITY or
+                self.type == COORD_TYPES.COMMAND_UNIT or
+                self.type == COORD_TYPES.ALARM
     end
 
     -- make a coordinator packet
