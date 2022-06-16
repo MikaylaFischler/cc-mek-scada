@@ -3,8 +3,8 @@ local util = require("scada-common.util")
 
 local core = require("graphics.core")
 
-local main_layout = require("coordinator.ui.main_layout")
-local unit_layout = require("coordinator.ui.unit_layout")
+local main_view = require("coordinator.ui.layout.main_view")
+local unit_view = require("coordinator.ui.layout.unit_view")
 
 local renderer = {}
 
@@ -56,10 +56,15 @@ end
 
 -- start the coordinator GUI
 function renderer.start_ui()
-    ui.main_layout = main_layout(engine.monitors.primary)
+    -- hide dmesg
+    engine.dmesg_window.setVisible(false)
 
+    -- show main view on main monitor
+    ui.main_layout = main_view(engine.monitors.primary)
+
+    -- show unit views on unit displays
     for id, monitor in pairs(engine.monitors.unit_displays) do
-        table.insert(ui.unit_layouts, unit_layout(monitor, id))
+        table.insert(ui.unit_layouts, unit_view(monitor, id))
     end
 end
 
@@ -73,6 +78,7 @@ function renderer.close_ui()
     renderer.reset()
 
     -- re-draw dmesg
+    engine.dmesg_window.setVisible(true)
     engine.dmesg_window.redraw()
 end
 
