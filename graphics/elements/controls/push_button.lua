@@ -18,8 +18,11 @@ local element = require("graphics.element")
 -- new push button
 ---@param args push_button_args
 local function push_button(args)
-    assert(type(args.text) == "string", "graphics.elements.button_push: text is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.button_push: callback is a required field")
+    assert(type(args.text) == "string", "graphics.elements.controls.push_button: text is a required field")
+    assert(type(args.callback) == "function", "graphics.elements.controls.push_button: callback is a required field")
+
+    -- single line
+    args.height = 1
 
     local text_width = string.len(args.text)
     args.width = math.max(text_width + 2, args.min_width)

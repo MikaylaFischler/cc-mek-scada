@@ -23,8 +23,8 @@ local function spinbox(args)
     local fr_prec = args.fractional_precision
     local dec_point_x = args.whole_num_precision + 1
 
-    assert(util.is_int(wn_prec), "graphics.element.spinbox_numeric: whole number precision must be an integer")
-    assert(util.is_int(fr_prec), "graphics.element.spinbox_numeric: fractional precision must be an integer")
+    assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
+    assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
 
     assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
 

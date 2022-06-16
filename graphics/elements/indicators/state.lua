@@ -10,7 +10,7 @@ local element = require("graphics.element")
 
 ---@class state_indicator_args
 ---@field states table state color and text table
----@field default? integer default state, defaults to 1
+---@field value? integer default state, defaults to 1
 ---@field min_width? integer max state text length if omitted
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
@@ -21,11 +21,11 @@ local element = require("graphics.element")
 -- new state indicator
 ---@param args state_indicator_args
 local function state_indicator(args)
-    assert(type(args.states) == "table", "graphics.elements.indicator_state: states is a required field")
+    assert(type(args.states) == "table", "graphics.elements.indicators.state: states is a required field")
 
     -- determine height
     if util.is_int(args.height) then
-        assert(args.height % 2 == 1, "graphics.elements.indicator_state: height should be an odd number")
+        assert(args.height % 2 == 1, "graphics.elements.indicators.state: height should be an odd number")
     else
         args.height = 1
     end
@@ -45,12 +45,14 @@ local function state_indicator(args)
 
         local len = string.len(state_def.text)
         local lpad = math.floor((args.width - len) / 2)
-        local rpad = len - lpad
+        local rpad = args.width - lpad
+
+        local text = util.spaces(lpad) .. state_def.text .. util.spaces(rpad)
 
         table.insert(state_blit_cmds, {
-            text = util.spaces(lpad) .. state_def.text .. util.spaces(rpad),
-            fgd = util.strrep(state_def.color.blit_fgd, 3),
-            bkg = util.strrep(state_def.color.blit_bkg, 3)
+            text = text,
+            fgd = util.strrep(state_def.color.blit_fgd, string.len(text)),
+            bkg = util.strrep(state_def.color.blit_bkg, string.len(text))
         })
     end
 
@@ -66,7 +68,7 @@ local function state_indicator(args)
     end
 
     -- initial draw
-    e.on_update(args.default or 1)
+    e.on_update(args.value or 1)
 
     return e.get()
 end

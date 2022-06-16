@@ -3,6 +3,8 @@
 --
 
 local core = require("graphics.core")
+local log  = require("scada-common.log")
+local util = require("scada-common.util")
 
 local element = {}
 
@@ -20,10 +22,14 @@ local element = {}
 ---@param args graphics_args_generic arguments
 function element.new(args)
     local self = {
+        elem_type = debug.getinfo(2).name,
         p_window = nil, ---@type table
         position = { x = 1, y = 1 },
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1}
     }
+
+    ---@fixme remove debug
+    log.dmesg("new " .. self.elem_type)
 
     local protected = {
         window = nil,   ---@type table
@@ -34,7 +40,10 @@ function element.new(args)
     -- SETUP --
 
     -- get the parent window
-    self.p_window = args.window or args.parent.window()
+    self.p_window = args.window
+    if self.p_window == nil and args.parent ~= nil then
+        self.p_window = args.parent.window()
+    end
 
     -- check window
     assert(self.p_window, "graphics.element: no parent window provided")
@@ -63,13 +72,17 @@ function element.new(args)
     local f = protected.frame
     protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, true)
 
-    -- init display box
+    -- init colors
     if args.fg_bg ~= nil then
-        protected.window.setBackgroundColor(args.fg_bg.bkg)
-        protected.window.setTextColor(args.fg_bg.fgd)
-        protected.window.clear()
         protected.fg_bg = args.fg_bg
+    elseif args.parent ~= nil then
+        protected.fg_bg = args.parent.get_fg_bg()
     end
+
+    -- set colors
+    protected.window.setBackgroundColor(protected.fg_bg.bkg)
+    protected.window.setTextColor(protected.fg_bg.fgd)
+    protected.window.clear()
 
     -- record position
     self.position.x, self.position.y = protected.window.getPosition()
@@ -106,6 +119,9 @@ function element.new(args)
 
     -- get the window object
     function public.window() return protected.window end
+
+    -- get the foreground/background colors
+    function public.get_fg_bg() return protected.fg_bg end
 
     -- handle a monitor touch
     ---@param event monitor_touch monitor touch event

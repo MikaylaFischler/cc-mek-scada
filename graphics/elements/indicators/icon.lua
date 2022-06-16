@@ -11,7 +11,7 @@ local element = require("graphics.element")
 ---@class icon_indicator_args
 ---@field label string indicator label
 ---@field states table state color and symbol table
----@field default? integer default state, defaults to 1
+---@field value? integer default state, defaults to 1
 ---@field min_label_width? integer label length if omitted
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
@@ -20,9 +20,12 @@ local element = require("graphics.element")
 
 -- new icon indicator
 ---@param args icon_indicator_args
-local function icon_indicator(args)
-    assert(type(args.label) == "string", "graphics.elements.indicator_icon: label is a required field")
-    assert(type(args.states) == "table", "graphics.elements.indicator_icon: states is a required field")
+local function icon(args)
+    assert(type(args.label) == "string", "graphics.elements.indicators.icon: label is a required field")
+    assert(type(args.states) == "table", "graphics.elements.indicators.icon: states is a required field")
+
+    -- single line
+    args.height = 1
 
     -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4
@@ -55,9 +58,9 @@ local function icon_indicator(args)
     end
 
     -- initial icon draw
-    e.on_update(args.default or 1)
+    e.on_update(args.value or 1)
 
     return e.get()
 end
 
-return icon_indicator
+return icon

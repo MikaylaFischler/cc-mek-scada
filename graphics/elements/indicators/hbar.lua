@@ -19,7 +19,6 @@ local element = require("graphics.element")
 ---@param args hbar_args
 local function hbar(args)
     -- properties/state
-    local bkg = ""
     local last_num_bars = -1
 
     -- create new graphics element base object
@@ -31,11 +30,9 @@ local function hbar(args)
     assert(bar_width > 0, "graphics.elements.hbar: too small for bar")
 
     -- determine bar colors
+    ---@fixme this doesnt work as intended
     local bar_bkg = util.trinary(args.bar_fg_bg == nil, e.fg_bg.blit_bkg, args.bar_fg_bg.blit_bkg)
     local bar_fgd = util.trinary(args.bar_fg_bg == nil, e.fg_bg.blit_fgd, args.bar_fg_bg.blit_fgd)
-
-    -- set background blit string
-    bkg = util.strrep(args.bar_fg_bg.blit_bkg, bar_width)
 
     -- handle data changes
     function e.on_update(fraction)
@@ -47,37 +44,43 @@ local function hbar(args)
         end
 
         -- compute number of bars
-        local num_bars = util.round((fraction * 100) / (bar_width * 2))
+        local num_bars = util.round(fraction * (bar_width * 2))
+        util.print(num_bars)
 
         -- redraw bar if changed
         if num_bars ~= last_num_bars then
             last_num_bars = num_bars
 
             local fgd = ""
+            local bkg = ""
             local spaces = ""
 
             -- fill percentage
             for _ = 1, num_bars / 2 do
                 spaces = spaces .. " "
                 fgd = fgd .. bar_fgd
+                bkg = bkg .. bar_bkg
             end
 
             -- add fractional bar if needed
             if num_bars % 2 == 1 then
                 spaces = spaces .. "\x95"
-                fgd = fgd .. bar_fgd
+                fgd = fgd .. bar_bkg
+                bkg = bkg .. bar_fgd
             end
 
             -- pad background
-            for _ = 1, bar_width - ((num_bars / 2) + num_bars % 2) do
+            for _ = 1, ((bar_width * 2) - num_bars) / 2 do
                 spaces = spaces .. " "
                 fgd = fgd .. bar_bkg
+                bkg = bkg .. bar_bkg
             end
 
             -- draw bar
             for y = 1, e.frame.h do
                 e.window.setCursorPos(1, y)
-                e.window.blit(spaces, fgd, bkg)
+                -- intentionally swapped fgd/bkg since we use spaces as fill, but they are the opposite
+                e.window.blit(spaces, bkg, fgd)
             end
         end
 

@@ -8,8 +8,8 @@ local element = require("graphics.element")
 ---@field label string indicator label
 ---@field unit? string indicator unit
 ---@field format string data format (lua string format)
----@field label_unit_colors? cpair label foreground color (a), unit foreground color (b)
----@field initial_value any default value
+---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
+---@field value any default value
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
@@ -18,18 +18,21 @@ local element = require("graphics.element")
 
 -- new data indicator
 ---@param args data_indicator_args
-local function data_indicator(args)
-    assert(type(args.label) == "string", "graphics.elements.indicator_data: label is a required field")
-    assert(type(args.format) == "string", "graphics.elements.indicator_data: format is a required field")
-    assert(args.initial_value ~= nil, "graphics.elements.indicator_data: initial_value is a required field")
-    assert(util.is_int(args.width), "graphics.elements.indicator_data: width is a required field")
+local function data(args)
+    assert(type(args.label) == "string", "graphics.elements.indicators.data: label is a required field")
+    assert(type(args.format) == "string", "graphics.elements.indicators.data: format is a required field")
+    assert(args.value ~= nil, "graphics.elements.indicators.data: value is a required field")
+    assert(util.is_int(args.width), "graphics.elements.indicators.data: width is a required field")
+
+    -- single line
+    args.height = 1
 
     -- create new graphics element base object
     local e = element.new(args)
 
     -- label color
-    if args.label_unit_colors ~= nil then
-        e.window.setTextColor(args.label_unit_colors.color_a)
+    if args.lu_colors ~= nil then
+        e.window.setTextColor(args.lu_colors.color_a)
     end
 
     -- write label
@@ -50,17 +53,17 @@ local function data_indicator(args)
 
         -- write label
         if args.unit ~= nil then
-            if args.label_unit_colors ~= nil then
-                e.window.setTextColor(args.label_unit_colors.color_b)
+            if args.lu_colors ~= nil then
+                e.window.setTextColor(args.lu_colors.color_b)
             end
             e.window.write(" " .. args.unit)
         end
     end
 
     -- initial value draw
-    e.on_update(args.initial_value)
+    e.on_update(args.value)
 
     return e.get()
 end
 
-return data_indicator
+return data

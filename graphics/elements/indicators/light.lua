@@ -16,8 +16,11 @@ local element = require("graphics.element")
 -- new indicator light
 ---@param args indicator_light_args
 local function indicator_light(args)
-    assert(type(args.label) == "string", "graphics.elements.indicator_light: label is a required field")
-    assert(type(args.colors) == "table", "graphics.elements.indicator_light: colors is a required field")
+    assert(type(args.label) == "string", "graphics.elements.indicators.light: label is a required field")
+    assert(type(args.colors) == "table", "graphics.elements.indicators.light: colors is a required field")
+
+    -- single line
+    args.height = 1
 
     -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 3

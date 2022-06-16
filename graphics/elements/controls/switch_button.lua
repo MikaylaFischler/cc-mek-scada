@@ -17,9 +17,12 @@ local element = require("graphics.element")
 -- new switch button (latch high/low)
 ---@param args switch_button_args
 local function switch_button(args)
-    assert(type(args.text) == "string", "graphics.elements.button_switch: text is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.button_switch: callback is a required field")
-    assert(type(args.active_fg_bg) == "table", "graphics.elements.button_switch: active_fg_bg is a required field")
+    assert(type(args.text) == "string", "graphics.elements.controls.switch_button: text is a required field")
+    assert(type(args.callback) == "function", "graphics.elements.controls.switch_button: callback is a required field")
+    assert(type(args.active_fg_bg) == "table", "graphics.elements.controls.switch_button: active_fg_bg is a required field")
+
+    -- single line
+    args.height = 1
 
     -- button state (convert nil to false if missing)
     local state = args.default or false
