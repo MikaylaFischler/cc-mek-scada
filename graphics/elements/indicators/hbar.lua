@@ -27,12 +27,15 @@ local function hbar(args)
     -- bar width is width - 5 characters for " 100%" if showing percent
     local bar_width = util.trinary(args.show_percent, e.frame.w - 5, e.frame.w)
 
-    assert(bar_width > 0, "graphics.elements.hbar: too small for bar")
+    assert(bar_width > 0, "graphics.elements.indicators.hbar: too small for bar")
 
     -- determine bar colors
-    ---@fixme this doesnt work as intended
-    local bar_bkg = util.trinary(args.bar_fg_bg == nil, e.fg_bg.blit_bkg, args.bar_fg_bg.blit_bkg)
-    local bar_fgd = util.trinary(args.bar_fg_bg == nil, e.fg_bg.blit_fgd, args.bar_fg_bg.blit_fgd)
+    local bar_bkg = e.fg_bg.blit_bkg
+    local bar_fgd = e.fg_bg.blit_fgd
+    if args.show_percent and args.bar_fg_bg ~= nil then
+        bar_bkg = args.bar_fg_bg.blit_bkg
+        bar_fgd = args.bar_fg_bg.blit_fgd
+    end
 
     -- handle data changes
     function e.on_update(fraction)
