@@ -23,7 +23,7 @@ local function make(parent, x, y, unit_id)
     TextBox{parent=root,text="Unit #" .. unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -- reactor
-    local reactor = Rectangle{parent=root,border=border(1, colors.gray, false),width=30,height=10,x=1,y=3}
+    local reactor = Rectangle{parent=root,border=border(1, colors.gray),width=30,height=10,x=1,y=3}
 
     local text_fg_bg = cpair(colors.black, colors.lightGray)
     local lu_col = cpair(colors.gray, colors.gray)

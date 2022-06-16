@@ -43,13 +43,13 @@ graphics.TEXT_ALIGN = {
 -- create a new border definition
 ---@param width integer border width
 ---@param color color border color
----@param even boolean whether to pad width extra to account for rectangular pixels
+---@param even? boolean whether to pad width extra to account for rectangular pixels, defaults to false
 ---@return graphics_border
 function graphics.border(width, color, even)
     return {
         width = width,
         color = color,
-        even = even
+        even = even or false    -- convert nil to false
     }
 end
 

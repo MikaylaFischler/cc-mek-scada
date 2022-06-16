@@ -12,7 +12,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.2.0"
+local COORDINATOR_VERSION = "alpha-v0.2.1"
 
 local print = util.print
 local println = util.println
