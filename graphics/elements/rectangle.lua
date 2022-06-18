@@ -25,27 +25,33 @@ local function rectangle(args)
     if args.border ~= nil then
         e.window.setCursorPos(1, 1)
 
-        local border_width_v = args.border.width
-        local border_width_h = util.trinary(args.border.even, args.border.width * 2, args.border.width)
+        local border_width = args.border.width
         local border_blit = colors.toBlit(args.border.color)
-        local spaces = ""
-        local blit_fg = ""
-        local blit_bg_top_bot = ""
-        local blit_bg_sides = ""
+        local width_x2 = border_width * 2
+        local inner_width = e.frame.w - width_x2
 
         -- check dimensions
-        assert(border_width_v * 2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
-        assert(border_width_h * 2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
+        assert(width_x2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
+        assert(width_x2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
 
-        -- form the basic and top/bottom blit strings
-        spaces = util.spaces(e.frame.w)
-        blit_fg = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
-        blit_bg_top_bot = util.strrep(border_blit, e.frame.w)
+        -- form the basic line strings and top/bottom blit strings
+        local spaces = util.spaces(e.frame.w)
+        local blit_fg = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
+        local blit_bg_sides = ""
+        local blit_bg_top_bot = util.strrep(border_blit, e.frame.w)
+
+        -- partial bars
+        local p_a = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
+        local p_b = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
+        local p_inv_fg = util.strrep(border_blit, border_width) .. util.strrep(e.fg_bg.blit_bkg, inner_width) ..
+                            util.strrep(border_blit, border_width)
+        local p_inv_bg = util.strrep(e.fg_bg.blit_bkg, border_width) .. util.strrep(border_blit, inner_width) ..
+                            util.strrep(e.fg_bg.blit_bkg, border_width)
 
         -- form the body blit strings (sides are border, inside is normal)
         for x = 1, e.frame.w do
             -- edges get border color, center gets normal
-            if x <= border_width_h or x > (e.frame.w - border_width_h) then
+            if x <= border_width or x > (e.frame.w - border_width) then
                 blit_bg_sides = blit_bg_sides .. border_blit
             else
                 blit_bg_sides = blit_bg_sides .. e.fg_bg.blit_bkg
@@ -55,8 +61,34 @@ local function rectangle(args)
         -- draw rectangle with borders
         for y = 1, e.frame.h do
             e.window.setCursorPos(1, y)
-            if y <= border_width_v or y > (e.frame.h - border_width_v) then
-                e.window.blit(spaces, blit_fg, blit_bg_top_bot)
+            if y <= border_width then
+                -- partial pixel fill
+                if args.border.even and y == border_width then
+                    if width_x2 % 3 == 1 then
+                        e.window.blit(p_b, p_inv_bg, p_inv_fg)
+                    elseif width_x2 % 3 == 2 then
+                        e.window.blit(p_a, p_inv_bg, p_inv_fg)
+                    else
+                        -- skip line
+                        e.window.blit(spaces, blit_fg, blit_bg_sides)
+                    end
+                else
+                    e.window.blit(spaces, blit_fg, blit_bg_top_bot)
+                end
+            elseif y > (e.frame.h - border_width) then
+                -- partial pixel fill
+                if args.border.even and y == ((e.frame.h - border_width) + 1) then
+                    if width_x2 % 3 == 1 then
+                        e.window.blit(p_a, p_inv_fg, blit_bg_top_bot)
+                    elseif width_x2 % 3 == 2 then
+                        e.window.blit(p_b, p_inv_fg, blit_bg_top_bot)
+                    else
+                        -- skip line
+                        e.window.blit(spaces, blit_fg, blit_bg_sides)
+                    end
+                else
+                    e.window.blit(spaces, blit_fg, blit_bg_top_bot)
+                end
             else
                 e.window.blit(spaces, blit_fg, blit_bg_sides)
             end

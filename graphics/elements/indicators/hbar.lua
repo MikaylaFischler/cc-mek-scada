@@ -48,7 +48,6 @@ local function hbar(args)
 
         -- compute number of bars
         local num_bars = util.round(fraction * (bar_width * 2))
-        util.print(num_bars)
 
         -- redraw bar if changed
         if num_bars ~= last_num_bars then
