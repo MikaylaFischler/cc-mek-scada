@@ -83,7 +83,13 @@ function util.strwrap(str, limit)
     local lines = {}
     local ln_start = 1
 
-    lines[1] = string.sub(str, 1, str:find("([%-%s]+)") - 1)
+    local first_break = str:find("([%-%s]+)")
+
+    if first_break ~= nil then
+        lines[1] = string.sub(str, 1, first_break - 1)
+    else
+        lines[1] = str
+    end
 
 ---@diagnostic disable-next-line: discard-returns
     str:gsub("(%s+)()(%S+)()",
