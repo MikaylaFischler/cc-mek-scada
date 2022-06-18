@@ -4,10 +4,34 @@ local util    = require("scada-common.util")
 
 local element = require("graphics.element")
 
+-- format a number string with commas as the thousands separator
+--
+-- subtracts from spaces at the start if present for each comma used
+---@param num string number string
+---@return string
+local function comma_format(num)
+    local formatted = num
+    local commas = 0
+    local i = 1
+
+    while i > 0 do
+        formatted, i = formatted:gsub("^(%s-%d+)(%d%d%d)", '%1,%2')
+        if i > 0 then commas = commas + 1 end
+    end
+
+    local _, num_spaces = formatted:gsub(" %s-", "")
+    local remove = math.min(num_spaces, commas)
+
+    formatted = string.sub(formatted, remove + 1)
+
+    return formatted
+end
+
 ---@class data_indicator_args
 ---@field label string indicator label
 ---@field unit? string indicator unit
 ---@field format string data format (lua string format)
+---@field commas boolean whether to use commas if a number is given (default to false)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
 ---@field value any default value
 ---@field parent graphics_element
@@ -49,7 +73,11 @@ local function data(args)
         -- write data
         e.window.setCursorPos(data_start, 1)
         e.window.setTextColor(e.fg_bg.fgd)
-        e.window.write(data_str)
+        if args.commas then
+            e.window.write(comma_format(data_str))
+        else
+            e.window.write(data_str)
+        end
 
         -- write label
         if args.unit ~= nil then
