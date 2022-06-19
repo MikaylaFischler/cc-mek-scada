@@ -13,8 +13,8 @@ local element = {}
 ---@field parent? graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field inner_x? integer 0 if omitted
----@field inner_y? integer 0 if omitted
+---@field offset_x? integer 0 if omitted
+---@field offset_y? integer 0 if omitted
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
@@ -66,8 +66,8 @@ function element.new(args)
     end
 
     -- inner offsets
-    if args.inner_x ~= nil then self.child_offset.x = args.inner_x end
-    if args.inner_y ~= nil then self.child_offset.y = args.inner_y end
+    if args.offset_x ~= nil then self.child_offset.x = args.offset_x end
+    if args.offset_y ~= nil then self.child_offset.y = args.offset_y end
 
     -- check frame
     assert(protected.frame.x >= 1, "graphics.element: frame x not >= 1")

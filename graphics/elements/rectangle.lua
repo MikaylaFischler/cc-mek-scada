@@ -19,13 +19,13 @@ local element = require("graphics.element")
 local function rectangle(args)
     -- offset children
     if args.border ~= nil then
-        args.inner_x = args.border.width
-        args.inner_y = args.border.width
+        args.offsetx = args.border.width
+        args.offsety = args.border.width
 
         -- slightly different y offset if the border is set to even
         if args.border.even then
             local width_x2 = (2 * args.border.width)
-            args.inner_y = (width_x2 // 3) + util.trinary(width_x2 % 3 > 0, 1, 0)
+            args.offsety = (width_x2 // 3) + util.trinary(width_x2 % 3 > 0, 1, 0)
         end
     end
 
@@ -37,7 +37,8 @@ local function rectangle(args)
     if args.border ~= nil then
         e.window.setCursorPos(1, 1)
 
-        local border_width = args.border.width
+        local border_width = args.offsetx
+        local border_height = args.offsety
         local border_blit = colors.toBlit(args.border.color)
         local width_x2 = border_width * 2
         local inner_width = e.frame.w - width_x2
@@ -73,9 +74,9 @@ local function rectangle(args)
         -- draw rectangle with borders
         for y = 1, e.frame.h do
             e.window.setCursorPos(1, y)
-            if y <= border_width then
+            if y <= border_height then
                 -- partial pixel fill
-                if args.border.even and y == border_width then
+                if args.border.even and y == border_height then
                     if width_x2 % 3 == 1 then
                         e.window.blit(p_b, p_inv_bg, p_inv_fg)
                     elseif width_x2 % 3 == 2 then
