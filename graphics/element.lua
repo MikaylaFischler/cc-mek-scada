@@ -13,6 +13,8 @@ local element = {}
 ---@field parent? graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
+---@field inner_x? integer 0 if omitted
+---@field inner_y? integer 0 if omitted
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
@@ -25,6 +27,7 @@ function element.new(args)
         elem_type = debug.getinfo(2).name,
         p_window = nil, ---@type table
         position = { x = 1, y = 1 },
+        child_offset = { x = 0, y = 0 },
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1}
     }
 
@@ -62,6 +65,10 @@ function element.new(args)
         protected.frame.h = args.height or h
     end
 
+    -- inner offsets
+    if args.inner_x ~= nil then self.child_offset.x = args.inner_x end
+    if args.inner_y ~= nil then self.child_offset.y = args.inner_y end
+
     -- check frame
     assert(protected.frame.x >= 1, "graphics.element: frame x not >= 1")
     assert(protected.frame.y >= 1, "graphics.element: frame y not >= 1")
@@ -70,7 +77,16 @@ function element.new(args)
 
     -- create window
     local f = protected.frame
-    protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, true)
+    local x = f.x
+    local y = f.y
+
+    if args.parent ~= nil then
+        local offset_x, offset_y = args.parent.get_offset()
+        x = x + offset_x
+        y = y + offset_y
+    end
+
+    protected.window = window.create(self.p_window, x, y, f.w, f.h, true)
 
     -- init colors
     if args.fg_bg ~= nil then
@@ -122,6 +138,12 @@ function element.new(args)
 
     -- get the foreground/background colors
     function public.get_fg_bg() return protected.fg_bg end
+
+    -- get offset from this element's frame
+    ---@return integer x, integer y
+    function public.get_offset()
+        return self.child_offset.x, self.child_offset.y
+    end
 
     -- handle a monitor touch
     ---@param event monitor_touch monitor touch event

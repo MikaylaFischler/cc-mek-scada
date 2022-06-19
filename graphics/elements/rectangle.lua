@@ -17,6 +17,18 @@ local element = require("graphics.element")
 -- new rectangle
 ---@param args rectangle_args
 local function rectangle(args)
+    -- offset children
+    if args.border ~= nil then
+        args.inner_x = args.border.width
+        args.inner_y = args.border.width
+
+        -- slightly different y offset if the border is set to even
+        if args.border.even then
+            local width_x2 = (2 * args.border.width)
+            args.inner_y = (width_x2 // 3) + util.trinary(width_x2 % 3 > 0, 1, 0)
+        end
+    end
+
     -- create new graphics element base object
     local e = element.new(args)
 
