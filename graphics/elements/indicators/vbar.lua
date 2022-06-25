@@ -39,14 +39,14 @@ local function vbar(args)
         end
 
         -- compute number of bars
-        local num_bars = util.round((fraction * 100) / (e.frame.h * 3))
+        local num_bars = util.round(fraction * (e.frame.h * 3))
 
         -- redraw only if number of bars has changed
         if num_bars ~= last_num_bars then
             last_num_bars = num_bars
 
             -- start bottom up
-            local y = e.window.h
+            local y = e.frame.h
 
             -- start at base of vertical bar
             e.window.setCursorPos(1, y)
