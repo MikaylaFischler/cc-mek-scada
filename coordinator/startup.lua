@@ -82,11 +82,21 @@ end
 
 log.dmesg("wireless modem connected", "COMMS", colors.purple)
 
+-- start the UI
+
 log.dmesg("starting UI...", "GRAPHICS", colors.green)
-util.psleep(3)
+-- util.psleep(3)
 
 local ui_ok, message = pcall(renderer.start_ui)
 if not ui_ok then
     renderer.close_ui()
-    log.dmesg("UI draw failed: " .. message, "GRAPHICS", colors.green)
+    println_ts("UI crashed")
+    log.dmesg(util.c("UI crashed: ", message), "GRAPHICS", colors.green)
+    log.fatal(util.c("ui crashed with error ", message))
 end
+
+-- renderer.close_ui()
+-- log.dmesg("system shutdown", "SYSTEM", colors.cyan)
+
+println_ts("exited")
+log.info("exited")

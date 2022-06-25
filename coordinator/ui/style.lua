@@ -32,4 +32,22 @@ style.reactor = {
     }
 }
 
+style.boiler = {
+    -- boiler states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.white, colors.gray),
+            text = "IDLE"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ACTIVE"
+        }
+    }
+}
+
 return style
