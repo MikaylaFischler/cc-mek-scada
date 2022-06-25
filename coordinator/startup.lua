@@ -12,7 +12,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.2.1"
+local COORDINATOR_VERSION = "alpha-v0.2.2"
 
 local print = util.print
 local println = util.println
@@ -61,7 +61,7 @@ if not configured then
     return
 end
 
-log.info("monitors ready, dmesg input incoming...")
+log.info("monitors ready, dmesg output incoming...")
 
 -- init renderer
 renderer.set_displays(monitors)
