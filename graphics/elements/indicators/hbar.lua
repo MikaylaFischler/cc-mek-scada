@@ -93,6 +93,9 @@ local function hbar(args)
         end
     end
 
+    -- initialize to 0
+    e.on_update(0)
+
     return e.get()
 end
 

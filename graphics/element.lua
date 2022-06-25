@@ -69,23 +69,31 @@ function element.new(args)
     if args.offset_x ~= nil then self.child_offset.x = args.offset_x end
     if args.offset_y ~= nil then self.child_offset.y = args.offset_y end
 
-    -- check frame
-    assert(protected.frame.x >= 1, "graphics.element: frame x not >= 1")
-    assert(protected.frame.y >= 1, "graphics.element: frame y not >= 1")
-    assert(protected.frame.w >= 1, "graphics.element: frame width not >= 1")
-    assert(protected.frame.h >= 1, "graphics.element: frame height not >= 1")
-
-    -- create window
+    -- adjust window frame if applicable
     local f = protected.frame
     local x = f.x
     local y = f.y
 
+    -- apply offsets
     if args.parent ~= nil then
+        -- offset x/y
         local offset_x, offset_y = args.parent.get_offset()
         x = x + offset_x
         y = y + offset_y
+
+        -- constrain to parent inner width/height
+        local w, h = self.p_window.getSize()
+        f.w = math.min(f.w, w - (2 * offset_x) - f.x)
+        f.y = math.min(f.h, h - (2 * offset_y) - f.y)
     end
 
+    -- check frame
+    assert(f.x >= 1, "graphics.element: frame x not >= 1")
+    assert(f.y >= 1, "graphics.element: frame y not >= 1")
+    assert(f.w >= 1, "graphics.element: frame width not >= 1")
+    assert(f.h >= 1, "graphics.element: frame height not >= 1")
+
+    -- create window
     protected.window = window.create(self.p_window, x, y, f.w, f.h, true)
 
     -- init colors
