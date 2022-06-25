@@ -88,7 +88,7 @@ local function hbar(args)
 
         -- update percentage
         if args.show_percent then
-            e.window.setCursorPos(bar_width + 1, math.max(1, math.ceil(e.frame.h / 2)))
+            e.window.setCursorPos(bar_width + 2, math.max(1, math.ceil(e.frame.h / 2)))
             e.window.write(util.sprintf("%3.0f%%", fraction * 100))
         end
     end
