@@ -1,12 +1,18 @@
 
 local comms = require("scada-common.comms")
-local log = require("scada-common.log")
-local ppm = require("scada-common.ppm")
-local util = require("scada-common.util")
+local log   = require("scada-common.log")
+local ppm   = require("scada-common.ppm")
+local psil  = require("scada-common.psil")
+local util  = require("scada-common.util")
+
+local apisessions = require("coordinator.apisessions")
 
 local dialog = require("coordinator.util.dialog")
 
 local coordinator = {}
+
+---@class coord_db
+local db = {}
 
 local print = util.print
 local println = util.println
@@ -142,12 +148,43 @@ function coordinator.configure_monitors(num_units)
     return true, monitors
 end
 
+-- initialize the coordinator database
+---@param num_units integer number of units expected
+function coordinator.init_database(num_units)
+    db.facility = {
+        num_units = num_units,
+        ps = psil.create()
+    }
+
+    db.units = {}
+    for i = 1, num_units do
+        table.insert(db.units, {
+            uint_id = i,
+            initialized = false,
+
+            reactor_ps = psil.create(),
+            reactor_data = {},
+
+            boiler_ps_tbl = {},
+            boiler_data_tbl = {},
+
+            turbine_ps_tbl = {},
+            turbine_data_tbl = {}
+        })
+    end
+end
+
 -- coordinator communications
----@param conn_watchdog watchdog
-function coordinator.coord_comms(version, num_reactors, modem, sv_port, sv_listen, api_listen, conn_watchdog)
+---@param version string
+---@param modem table
+---@param sv_port integer
+---@param sv_listen integer
+---@param api_listen integer
+---@param sv_watchdog watchdog
+function coordinator.coord_comms(version, modem, sv_port, sv_listen, api_listen, sv_watchdog)
     local self = {
-        seq_num = 0,
-        r_seq_num = nil,
+        sv_seq_num = 0,
+        sv_r_seq_num = nil,
         modem = modem,
         connected = false
     }
@@ -171,32 +208,26 @@ function coordinator.coord_comms(version, num_reactors, modem, sv_port, sv_liste
     -- open at construct time
     _open_channels()
 
-    -- send a coordinator packet
-    ---@param msg_type COORD_TYPES
-    ---@param msg string
-    local function _send(msg_type, msg)
+    -- send a packet to the supervisor
+    ---@param msg_type SCADA_MGMT_TYPES|COORD_TYPES
+    ---@param msg table
+    local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
-        local c_pkt = comms.coord_packet()
+        local pkt = nil ---@type mgmt_packet|coord_packet
 
-        c_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.COORD_DATA, c_pkt.raw_sendable())
+        if protocol == PROTOCOLS.SCADA_MGMT then
+            pkt = comms.mgmt_packet()
+        elseif protocol == PROTOCOLS.COORD_DATA then
+            pkt = comms.coord_packet()
+        else
+            return
+        end
+
+        pkt.make(msg_type, msg)
+        s_pkt.make(self.sv_seq_num, protocol, pkt.raw_sendable())
 
         self.modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
-    end
-
-    -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPES
-    ---@param msg string
-    local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
-
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
-
-        self.modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
-        self.seq_num = self.seq_num + 1
+        self.sv_seq_num = self.sv_seq_num + 1
     end
 
     -- PUBLIC FUNCTIONS --
@@ -254,46 +285,49 @@ function coordinator.coord_comms(version, num_reactors, modem, sv_port, sv_liste
     ---@param packet mgmt_frame|coord_frame|capi_frame
     function public.handle_packet(packet)
         if packet ~= nil then
-            -- check sequence number
-            if self.r_seq_num == nil then
-                self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.connected and self.r_seq_num >= packet.scada_frame.seq_num() then
-                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
-                return
-            else
-                self.r_seq_num = packet.scada_frame.seq_num()
-            end
-
-            -- feed watchdog on valid sequence number
-            conn_watchdog.feed()
-
             local protocol = packet.scada_frame.protocol()
 
-            -- handle packet
-            if protocol == PROTOCOLS.COORD_DATA then
-                if packet.type == COORD_TYPES.ESTABLISH then
-                elseif packet.type == COORD_TYPES.QUERY_UNIT then
-                elseif packet.type == COORD_TYPES.QUERY_FACILITY then
-                elseif packet.type == COORD_TYPES.COMMAND_UNIT then
-                elseif packet.type == COORD_TYPES.ALARM then
-                else
-                    log.warning("received unknown coordinator data packet type " .. packet.type)
-                end
-            elseif protocol == PROTOCOLS.COORD_API then
-            elseif protocol == PROTOCOLS.SCADA_MGMT then
-                if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
-                    -- keep alive response received
-                elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
-                    -- handle session close
-                    conn_watchdog.cancel()
-                    println_ts("server connection closed by remote host")
-                    log.warning("server connection closed by remote host")
-                else
-                    log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
-                end
+            if protocol == PROTOCOLS.COORD_API then
+                apisessions.handle_packet(packet)
             else
-                -- should be unreachable assuming packet is from parse_packet()
-                log.error("illegal packet type " .. protocol, true)
+                -- check sequence number
+                if self.sv_r_seq_num == nil then
+                    self.sv_r_seq_num = packet.scada_frame.seq_num()
+                elseif self.connected and self.sv_r_seq_num >= packet.scada_frame.seq_num() then
+                    log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    return
+                else
+                    self.sv_r_seq_num = packet.scada_frame.seq_num()
+                end
+
+                -- feed watchdog on valid sequence number
+                sv_watchdog.feed()
+
+                -- handle packet
+                if protocol == PROTOCOLS.COORD_DATA then
+                    if packet.type == COORD_TYPES.ESTABLISH then
+                    elseif packet.type == COORD_TYPES.QUERY_UNIT then
+                    elseif packet.type == COORD_TYPES.QUERY_FACILITY then
+                    elseif packet.type == COORD_TYPES.COMMAND_UNIT then
+                    elseif packet.type == COORD_TYPES.ALARM then
+                    else
+                        log.warning("received unknown COORD_DATA packet type " .. packet.type)
+                    end
+                elseif protocol == PROTOCOLS.SCADA_MGMT then
+                    if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                        -- keep alive response received
+                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                        -- handle session close
+                        sv_watchdog.cancel()
+                        println_ts("server connection closed by remote host")
+                        log.warning("server connection closed by remote host")
+                    else
+                        log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                    end
+                else
+                    -- should be unreachable assuming packet is from parse_packet()
+                    log.error("illegal packet type " .. protocol, true)
+                end
             end
         end
     end

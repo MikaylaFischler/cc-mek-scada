@@ -57,6 +57,11 @@ local COORD_TYPES = {
     ALARM = 4           -- alarm signaling
 }
 
+---@alias CAPI_TYPES integer
+local CAPI_TYPES = {
+    ESTABLISH = 0       -- initial greeting
+}
+
 ---@alias RTU_UNIT_TYPES integer
 local RTU_UNIT_TYPES = {
     REDSTONE = 0,       -- redstone I/O
@@ -433,7 +438,6 @@ function comms.mgmt_packet()
 end
 
 -- SCADA coordinator packet
--- @todo
 function comms.coord_packet()
     local self = {
         frame = nil,
@@ -456,7 +460,7 @@ function comms.coord_packet()
     end
 
     -- make a coordinator packet
-    ---@param packet_type any
+    ---@param packet_type COORD_TYPES
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -541,7 +545,7 @@ function comms.capi_packet()
     end
 
     -- make a coordinator API packet
-    ---@param packet_type any
+    ---@param packet_type CAPI_TYPES
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
