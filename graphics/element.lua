@@ -49,7 +49,7 @@ function element.new(args)
     end
 
     -- check window
-    assert(self.p_window, "graphics.element: no parent window provided")
+    assert(self.p_window, "graphics.element{" .. self.elem_type .. "}: no parent window provided")
 
     -- get frame coordinates/size
     if args.gframe ~= nil then
@@ -83,15 +83,15 @@ function element.new(args)
 
         -- constrain to parent inner width/height
         local w, h = self.p_window.getSize()
-        f.w = math.min(f.w, w - (2 * offset_x) - f.x)
-        f.y = math.min(f.h, h - (2 * offset_y) - f.y)
+        f.w = math.min(f.w, w - ((2 * offset_x) + (f.x - 1)))
+        f.h = math.min(f.h, h - ((2 * offset_y) + (f.y - 1)))
     end
 
     -- check frame
-    assert(f.x >= 1, "graphics.element: frame x not >= 1")
-    assert(f.y >= 1, "graphics.element: frame y not >= 1")
-    assert(f.w >= 1, "graphics.element: frame width not >= 1")
-    assert(f.h >= 1, "graphics.element: frame height not >= 1")
+    assert(f.x >= 1, "graphics.element{" .. self.elem_type .. "}: frame x not >= 1")
+    assert(f.y >= 1, "graphics.element{" .. self.elem_type .. "}: frame y not >= 1")
+    assert(f.w >= 1, "graphics.element{" .. self.elem_type .. "}: frame width not >= 1")
+    assert(f.h >= 1, "graphics.element{" .. self.elem_type .. "}: frame height not >= 1")
 
     -- create window
     protected.window = window.create(self.p_window, x, y, f.w, f.h, true)
