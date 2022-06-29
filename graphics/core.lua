@@ -103,6 +103,42 @@ function graphics.cpair(a, b)
     }
 end
 
+---@class pipe
+---@field x1 integer starting x, origin is 0
+---@field y1 integer starting y, origin is 0
+---@field x2 integer ending x, origin is 0
+---@field y2 integer ending y, origin is 0
+---@field w integer width
+---@field h integer height
+---@field color color pipe color
+---@field thin boolean true for 1 subpixels, false (default) for 2
+---@field align_tr boolean false to align bottom left (default), true to align top right
+
+-- create a new pipe
+--
+-- note: pipe coordinate origin is (0, 0)
+---@param x1 integer starting x, origin is 0
+---@param y1 integer starting y, origin is 0
+---@param x2 integer ending x, origin is 0
+---@param y2 integer ending y, origin is 0
+---@param color color pipe color
+---@param thin? boolean true for 1 subpixels, false (default) for 2
+---@param align_tr? boolean false to align bottom left (default), true to align top right
+---@return pipe
+function graphics.pipe(x1, y1, x2, y2, color, thin, align_tr)
+    return {
+        x1 = x1,
+        y1 = y1,
+        x2 = x2,
+        y2 = y2,
+        w = x2 - x1,
+        h = y2 - y1,
+        color = color,
+        thin = thin or false,
+        align_tr = align_tr or false
+    }
+end
+
 core.graphics = graphics
 
 return core
