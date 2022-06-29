@@ -21,8 +21,8 @@ local function new_view(root, x, y)
     local lu_col = cpair(colors.gray, colors.gray)
 
     local status    = StateIndicator{parent=reactor,x=8,y=1,states=style.reactor.states,value=3,min_width=14}
-    local core_temp = DataIndicator{parent=reactor,x=2,y=3,lu_colors=lu_col,label="Core:   ",unit="K",format="%12.2f",value=451.12,width=26,fg_bg=text_fg_bg}
-    local burn_r    = DataIndicator{parent=reactor,x=2,y=4,lu_colors=lu_col,label="Burn:   ",unit="mB/t",format="%12.1f",value=40.1,width=26,fg_bg=text_fg_bg}
+    local core_temp = DataIndicator{parent=reactor,x=2,y=3,lu_colors=lu_col,label="Core Temp:",unit="K",format="%10.2f",value=451.12,width=26,fg_bg=text_fg_bg}
+    local burn_r    = DataIndicator{parent=reactor,x=2,y=4,lu_colors=lu_col,label="Burn Rate:",unit="mB/t",format="%10.1f",value=40.1,width=26,fg_bg=text_fg_bg}
     local heating_r = DataIndicator{parent=reactor,x=2,y=5,lu_colors=lu_col,label="Heating:",unit="mB/t",format="%12.0f",value=8015342,commas=true,width=26,fg_bg=text_fg_bg}
 
     local reactor_fills = Rectangle{parent=root,border=border(1, colors.gray, true),width=24,height=7,x=(x + 29),y=y}
