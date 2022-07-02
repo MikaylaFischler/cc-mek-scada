@@ -24,8 +24,8 @@ local function pipenet(args)
     for i = 1, #args.pipes do
         local pipe = args.pipes[i]  ---@type pipe
 
-        local true_w = pipe.w + pipe.x1
-        local true_h = pipe.h + pipe.y1
+        local true_w = pipe.w + math.min(pipe.x1, pipe.x2)
+        local true_h = pipe.h + math.min(pipe.y1, pipe.y2)
 
         if true_w > args.width  then args.width  = true_w end
         if true_h > args.height then args.height = true_h end
@@ -48,6 +48,9 @@ local function pipenet(args)
         local x = 1 + pipe.x1
         local y = 1 + pipe.y1
 
+        local x_step = util.trinary(pipe.x1 >= pipe.x2, -1, 1)
+        local y_step = util.trinary(pipe.y1 >= pipe.y2, -1, 1)
+
         e.window.setCursorPos(x, y)
 
         local c = core.graphics.cpair(pipe.color, e.fg_bg.bkg)
@@ -58,12 +61,16 @@ local function pipenet(args)
                 if pipe.thin then
                     if i == pipe.w then
                         -- corner
-                        e.window.blit("\x93", c.blit_bkg, c.blit_fgd)
+                        if y_step > 0 then
+                            e.window.blit("\x93", c.blit_bkg, c.blit_fgd)
+                        else
+                            e.window.blit("\x8e", c.blit_fgd, c.blit_bkg)
+                        end
                     else
                         e.window.blit("\x8c", c.blit_fgd, c.blit_bkg)
                     end
                 else
-                    if i == pipe.w then
+                    if i == pipe.w and y_step > 0 then
                         -- corner
                         e.window.blit(" ", c.blit_bkg, c.blit_fgd)
                     else
@@ -71,15 +78,15 @@ local function pipenet(args)
                     end
                 end
 
-                x = x + 1
+                x = x + x_step
                 e.window.setCursorPos(x, y)
             end
 
             -- back up one
-            x = x - 1
+            x = x - x_step
 
-            for _ = 1, pipe.h do
-                y = y + 1
+            for _ = 1, pipe.h - 1 do
+                y = y + y_step
                 e.window.setCursorPos(x, y)
 
                 if pipe.thin then
@@ -94,23 +101,32 @@ local function pipenet(args)
                 if pipe.thin then
                     if i == pipe.h then
                         -- corner
-                        e.window.blit("\x8d", c.blit_fgd, c.blit_bkg)
+                        if y_step < 0 then
+                            e.window.blit("\x97", c.blit_bkg, c.blit_fgd)
+                        else
+                            e.window.blit("\x8d", c.blit_fgd, c.blit_bkg)
+                        end
                     else
                         e.window.blit("\x95", c.blit_fgd, c.blit_bkg)
                     end
                 else
-                    e.window.blit(" ", c.blit_bkg, c.blit_fgd)
+                    if i == pipe.h and y_step < 0 then
+                        -- corner
+                        e.window.blit("\x83", c.blit_bkg, c.blit_fgd)
+                    else
+                        e.window.blit(" ", c.blit_bkg, c.blit_fgd)
+                    end
                 end
 
-                y = y + 1
+                y = y + y_step
                 e.window.setCursorPos(x, y)
             end
 
             -- back up one
-            y = y - 1
+            y = y - y_step
 
-            for _ = 1, pipe.w do
-                x = x + 1
+            for _ = 1, pipe.w - 1 do
+                x = x + x_step
                 e.window.setCursorPos(x, y)
 
                 if pipe.thin then

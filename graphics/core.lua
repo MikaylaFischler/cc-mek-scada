@@ -131,8 +131,8 @@ function graphics.pipe(x1, y1, x2, y2, color, thin, align_tr)
         y1 = y1,
         x2 = x2,
         y2 = y2,
-        w = x2 - x1,
-        h = y2 - y1,
+        w = math.abs(x2 - x1) + 1,
+        h = math.abs(y2 - y1) + 1,
         color = color,
         thin = thin or false,
         align_tr = align_tr or false
