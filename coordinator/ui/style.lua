@@ -50,4 +50,26 @@ style.boiler = {
     }
 }
 
+style.turbine = {
+    -- turbine states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.white, colors.gray),
+            text = "IDLE"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ACTIVE"
+        },
+        {
+            color = cpair(colors.black, colors.red),
+            text = "TRIP"
+        }
+    }
+}
+
 return style

@@ -21,7 +21,10 @@ local function init(monitor)
     TextBox{parent=main,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -- unit overviews
-    unit_overview(main, 3, 3, 1)
+    unit_overview(main, 2, 3, 1)
+    unit_overview(main, 84, 3, 2)
+    unit_overview(main, 2, 32, 3)
+    unit_overview(main, 84, 32, 4)
 
     return main
 end
