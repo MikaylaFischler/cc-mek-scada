@@ -6,12 +6,12 @@ local reactor_view = require("coordinator.ui.components.reactor")
 local boiler_view  = require("coordinator.ui.components.boiler")
 
 local Div            = require("graphics.elements.div")
+local PipeNetwork    = require("graphics.elements.pipenet")
 local Rectangle      = require("graphics.elements.rectangle")
 local TextBox        = require("graphics.elements.textbox")
 
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
 local DataIndicator  = require("graphics.elements.indicators.data")
-local PipeNetwork    = require("graphics.elements.indicators.pipenet")
 local StateIndicator = require("graphics.elements.indicators.state")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
