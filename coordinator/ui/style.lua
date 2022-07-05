@@ -5,10 +5,23 @@ local style = {}
 
 local cpair = core.graphics.cpair
 
--- MAIN LAYOUT --
+-- GLOBAL --
 
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
+
+style.colors = {
+    {
+        c = colors.green,
+        hex = 0x7ed788
+    },
+    {
+        c = colors.lightGray,
+        hex = 0xcacaca
+    }
+}
+
+-- MAIN LAYOUT --
 
 style.reactor = {
     -- reactor states

@@ -5,6 +5,7 @@ local core = require("graphics.core")
 
 local main_view = require("coordinator.ui.layout.main_view")
 local unit_view = require("coordinator.ui.layout.unit_view")
+local style     = require("coordinator.ui.style")
 
 local renderer = {}
 
@@ -21,12 +22,29 @@ local ui = {
 }
 
 -- reset a display to the "default", but set text scale to 0.5
-local function _reset_display(monitor)
+---@param monitor table monitor
+---@param recolor? boolean override default color palette
+local function _reset_display(monitor, recolor)
     monitor.setTextScale(0.5)
     monitor.setTextColor(colors.white)
     monitor.setBackgroundColor(colors.black)
     monitor.clear()
     monitor.setCursorPos(1, 1)
+
+    if recolor then
+        -- set overridden colors
+        for i = 1, #style.colors do
+            monitor.setPaletteColor(style.colors[i].c, style.colors[i].hex)
+        end
+    else
+        -- reset all colors
+        for _, val in colors do
+            -- colors api has constants and functions, just get color constants
+            if type(val) == "number" then
+                monitor.setPaletteColor(val, term.nativePaletteColor(val))
+            end
+        end
+    end
 end
 
 -- link to the monitor peripherals
@@ -36,13 +54,14 @@ function renderer.set_displays(monitors)
 end
 
 -- reset all displays in use by the renderer
-function renderer.reset()
+---@param recolor? boolean true to use color palette from style
+function renderer.reset(recolor)
     -- reset primary monitor
-    _reset_display(engine.monitors.primary)
+    _reset_display(engine.monitors.primary, recolor)
 
     -- reset unit displays
     for _, monitor in pairs(engine.monitors.unit_displays) do
-        _reset_display(monitor)
+        _reset_display(monitor, recolor)
     end
 end
 
@@ -69,13 +88,14 @@ function renderer.start_ui()
 end
 
 -- close out the UI
-function renderer.close_ui()
+---@param recolor? boolean true to restore to color palette from style
+function renderer.close_ui(recolor)
     -- clear root UI elements
     ui.main_layout = nil
     ui.unit_layouts = {}
 
     -- reset displays
-    renderer.reset()
+    renderer.reset(recolor)
 
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)
