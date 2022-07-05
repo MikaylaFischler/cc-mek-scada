@@ -8,6 +8,8 @@ config.SCADA_SV_LISTEN = 16101
 config.SCADA_API_LISTEN = 16200
 -- expected number of reactor units
 config.NUM_UNITS = 4
+-- graphics color
+config.RECOLOR = true
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode

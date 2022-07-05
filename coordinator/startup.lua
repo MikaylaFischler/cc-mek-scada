@@ -8,16 +8,22 @@ local log  = require("scada-common.log")
 local ppm  = require("scada-common.ppm")
 local util = require("scada-common.util")
 
+local apisessions = require("coordinator.apisessions")
 local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.2.3"
+local COORDINATOR_VERSION = "alpha-v0.2.4"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
+
+local log_graphics = coordinator.log_graphics
+local log_sys = coordinator.log_sys
+local log_boot = coordinator.log_boot
+local log_comms = coordinator.log_comms
 
 ----------------------------------------
 -- config validation
@@ -29,6 +35,7 @@ cfv.assert_port(config.SCADA_SV_PORT)
 cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.NUM_UNITS)
+cfv.assert_type_bool(config.RECOLOR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 cfv.assert_type_bool(config.SECURE)
@@ -65,38 +72,148 @@ log.info("monitors ready, dmesg output incoming...")
 
 -- init renderer
 renderer.set_displays(monitors)
-renderer.reset()
+renderer.reset(config.RECOLOR)
 renderer.init_dmesg()
 
-log.dmesg("displays connected and reset", "GRAPHICS", colors.green)
-log.dmesg("system start on " .. os.date("%c"), "SYSTEM", colors.cyan)
-log.dmesg("starting " .. COORDINATOR_VERSION, "BOOT", colors.blue)
+log_graphics("displays connected and reset")
+log_sys("system start on " .. os.date("%c"))
+log_boot("starting " .. COORDINATOR_VERSION)
 
 -- get the communications modem
 local modem = ppm.get_wireless_modem()
 if modem == nil then
+    log_comms("wireless modem not found")
     println("boot> wireless modem not found")
     log.fatal("no wireless modem on startup")
     return
+else
+    log_comms("wireless modem connected")
 end
 
-log.dmesg("wireless modem connected", "COMMS", colors.purple)
+-- create connection watchdog
+local conn_watchdog = util.new_watchdog(5)
+conn_watchdog.cancel()
+log.debug("boot> conn watchdog created")
 
+-- start comms, open all channels
+local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_LISTEN, config.SCADA_API_LISTEN, conn_watchdog)
+log.debug("boot> comms init")
+log_comms("comms initialized")
+
+-- base loop clock (6.67Hz, 3 ticks)
+local MAIN_CLOCK = 0.15
+local loop_clock = util.new_clock(MAIN_CLOCK)
+
+----------------------------------------
 -- start the UI
+----------------------------------------
 
-log.dmesg("starting UI...", "GRAPHICS", colors.green)
+log_graphics("starting UI...")
 -- util.psleep(3)
+
+local draw_start = util.time_ms()
 
 local ui_ok, message = pcall(renderer.start_ui)
 if not ui_ok then
-    renderer.close_ui()
+    renderer.close_ui(config.RECOLOR)
+    log_graphics(util.c("UI crashed: ", message))
     println_ts("UI crashed")
-    log.dmesg(util.c("UI crashed: ", message), "GRAPHICS", colors.green)
     log.fatal(util.c("ui crashed with error ", message))
+else
+    log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
+
+    -- start clock
+    loop_clock.start()
 end
 
--- renderer.close_ui()
--- log.dmesg("system shutdown", "SYSTEM", colors.cyan)
+----------------------------------------
+-- main event loop
+----------------------------------------
+
+-- start connection watchdog
+conn_watchdog.feed()
+log.debug("boot> conn watchdog started")
+
+-- event loop
+-- ui_ok will never change in this loop, same as while true or exit if UI start failed
+while ui_ok do
+---@diagnostic disable-next-line: undefined-field
+    local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
+
+    -- handle event
+    if event == "peripheral_detach" then
+        local type, device = ppm.handle_unmount(param1)
+
+        if type ~= nil and device ~= nil then
+            if type == "modem" then
+                -- we only really care if this is our wireless modem
+                if device == modem then
+                    log_sys("comms modem disconnected")
+                    println_ts("wireless modem disconnected!")
+                    log.error("comms modem disconnected!")
+                else
+                    log_sys("non-comms modem disconnected")
+                    log.warning("non-comms modem disconnected")
+                end
+            elseif type == "monitor" then
+                -- @todo: handle monitor loss
+            end
+        end
+    elseif event == "peripheral" then
+        local type, device = ppm.mount(param1)
+
+        if type ~= nil and device ~= nil then
+            if type == "modem" then
+                if device.isWireless() then
+                    -- reconnected modem
+                    modem = device
+                    coord_comms.reconnect_modem(modem)
+
+                    log_sys("comms modem reconnected")
+                    println_ts("wireless modem reconnected.")
+                else
+                    log_sys("wired modem reconnected")
+                end
+            elseif type == "monitor" then
+                -- @todo: handle monitor reconnect
+            end
+        end
+    elseif event == "timer" then
+        if loop_clock.is_clock(param1) then
+            -- main loop tick
+
+            -- free any closed sessions
+            --apisessions.free_all_closed()
+
+            loop_clock.start()
+        elseif conn_watchdog.is_timer(param1) then
+            -- supervisor watchdog timeout
+            local msg = "supervisor server timeout"
+            log_comms(msg)
+            println_ts(msg)
+            log.warning(msg)
+        else
+            -- a non-clock/main watchdog timer event, check API watchdogs
+            --apisessions.check_all_watchdogs(param1)
+        end
+    elseif event == "modem_message" then
+        -- got a packet
+        local packet = coord_comms.parse_packet(param1, param2, param3, param4, param5)
+        coord_comms.handle_packet(packet)
+    end
+
+    -- check for termination request
+    if event == "terminate" or ppm.should_terminate() then
+        log_comms("terminate requested, closing sessions...")
+        println_ts("closing sessions...")
+        apisessions.close_all()
+        log_comms("api sessions closed")
+        break
+    end
+end
+
+renderer.close_ui(config.RECOLOR)
+log_sys("system shutdown")
 
 println_ts("exited")
 log.info("exited")
