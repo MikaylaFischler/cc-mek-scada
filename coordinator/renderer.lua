@@ -1,7 +1,4 @@
 local log  = require("scada-common.log")
-local util = require("scada-common.util")
-
-local core = require("graphics.core")
 
 local main_view = require("coordinator.ui.layout.main_view")
 local unit_view = require("coordinator.ui.layout.unit_view")
