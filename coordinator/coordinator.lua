@@ -174,6 +174,25 @@ function coordinator.init_database(num_units)
     end
 end
 
+-- dmesg print wrapper
+---@param message string message
+---@param dmesg_tag string tag
+local function log_dmesg(message, dmesg_tag)
+    local colors = {
+        GRAPHICS = colors.green,
+        SYSTEM = colors.cyan,
+        BOOT = colors.blue,
+        COMMS = colors.purple
+    }
+
+    log.dmesg(message, dmesg_tag, colors[dmesg_tag])
+end
+
+function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
+function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
+function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
+function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
+
 -- coordinator communications
 ---@param version string
 ---@param modem table
@@ -181,7 +200,7 @@ end
 ---@param sv_listen integer
 ---@param api_listen integer
 ---@param sv_watchdog watchdog
-function coordinator.coord_comms(version, modem, sv_port, sv_listen, api_listen, sv_watchdog)
+function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_watchdog)
     local self = {
         sv_seq_num = 0,
         sv_r_seq_num = nil,
