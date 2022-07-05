@@ -150,10 +150,10 @@ function log.dmesg(msg, tag, tag_color)
     out.setTextColor(colors.white)
     out.write("] ")
 
-    -- colored tag
+    -- print optionally colored tag
     if tag ~= "" then
         out.write("[")
-        out.setTextColor(tag_color)
+        if tag_color then out.setTextColor(tag_color) end
         out.write(tag)
         out.setTextColor(colors.white)
         out.write("] ")
