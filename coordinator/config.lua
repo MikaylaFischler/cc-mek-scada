@@ -6,7 +6,7 @@ config.SCADA_SV_PORT = 16100
 config.SCADA_SV_LISTEN = 16101
 -- listen port for SCADA coordinator API access
 config.SCADA_API_LISTEN = 16200
--- expected number of reactor units
+-- expected number of reactor units, used only to require that number of unit monitors
 config.NUM_UNITS = 4
 -- graphics color
 config.RECOLOR = true

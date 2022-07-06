@@ -1,18 +1,14 @@
-
 local comms = require("scada-common.comms")
 local log   = require("scada-common.log")
 local ppm   = require("scada-common.ppm")
-local psil  = require("scada-common.psil")
 local util  = require("scada-common.util")
 
 local apisessions = require("coordinator.apisessions")
+local database    = require("coordinator.database")
 
 local dialog = require("coordinator.util.dialog")
 
 local coordinator = {}
-
----@class coord_db
-local db = {}
 
 local print = util.print
 local println = util.println
@@ -148,36 +144,12 @@ function coordinator.configure_monitors(num_units)
     return true, monitors
 end
 
--- initialize the coordinator database
----@param num_units integer number of units expected
-function coordinator.init_database(num_units)
-    db.facility = {
-        num_units = num_units,
-        ps = psil.create()
-    }
-
-    db.units = {}
-    for i = 1, num_units do
-        table.insert(db.units, {
-            uint_id = i,
-            initialized = false,
-
-            reactor_ps = psil.create(),
-            reactor_data = {},
-
-            boiler_ps_tbl = {},
-            boiler_data_tbl = {},
-
-            turbine_ps_tbl = {},
-            turbine_data_tbl = {}
-        })
-    end
-end
-
 -- dmesg print wrapper
 ---@param message string message
 ---@param dmesg_tag string tag
-local function log_dmesg(message, dmesg_tag)
+---@param working? boolean to use dmesg_working
+---@return function? update, function? done
+local function log_dmesg(message, dmesg_tag, working)
     local colors = {
         GRAPHICS = colors.green,
         SYSTEM = colors.cyan,
@@ -185,13 +157,21 @@ local function log_dmesg(message, dmesg_tag)
         COMMS = colors.purple
     }
 
-    log.dmesg(message, dmesg_tag, colors[dmesg_tag])
+    if working then
+        return log.dmesg_working(message, dmesg_tag, colors[dmesg_tag])
+    else
+        log.dmesg(message, dmesg_tag, colors[dmesg_tag])
+    end
 end
 
 function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
 function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
+
+---@param message string
+---@return function update, function done
+function coordinator.log_comms_connecting(message) return log_dmesg(message, "COMMS", true) end
 
 -- coordinator communications
 ---@param version string
@@ -202,6 +182,7 @@ function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
 ---@param sv_watchdog watchdog
 function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_watchdog)
     local self = {
+        sv_linked = false,
         sv_seq_num = 0,
         sv_r_seq_num = nil,
         modem = modem,
@@ -257,6 +238,51 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     function public.reconnect_modem(modem)
         self.modem = modem
         _open_channels()
+    end
+
+    -- attempt to connect to the subervisor
+    ---@param timeout_s number timeout in seconds
+    ---@param tick_dmesg_waiting function callback to tick dmesg waiting
+    ---@param task_done function callback to show done on dmesg
+    ---@return boolean sv_linked true if connected, false otherwise
+    --- EVENT_CONSUMER: this function consumes events
+    function public.sv_connect(timeout_s, tick_dmesg_waiting, task_done)
+        local clock = util.new_clock(1)
+        local start = util.time_s()
+        local terminated = false
+
+        _send_sv(PROTOCOLS.COORD_DATA, COORD_TYPES.ESTABLISH, {})
+
+        clock.start()
+
+        while (util.time_s() - start) < timeout_s and not self.sv_linked do
+---@diagnostic disable-next-line: undefined-field
+            local event, p1, p2, p3, p4, p5 = os.pullEventRaw()
+
+            if event == "timer" and clock.is_clock(p1) then
+                -- timed out attempt, try again
+                tick_dmesg_waiting(math.max(0, timeout_s - (util.time_s() - start)))
+                _send_sv(PROTOCOLS.COORD_DATA, COORD_TYPES.ESTABLISH, {})
+                clock.start()
+            elseif event == "modem_message" then
+                -- handle message
+                local packet = public.parse_packet(p1, p2, p3, p4, p5)
+                if packet ~= nil and packet.type == COORD_TYPES.ESTABLISH then
+                    public.handle_packet(packet)
+                end
+            elseif event == "terminate" then
+                terminated = true
+                task_done(false)
+                coordinator.log_comms("supervisor connection attempt cancelled by user")
+                break
+            end
+        end
+
+        if not terminated then
+            task_done(self.sv_linked)
+        end
+
+        return self.sv_linked
     end
 
     -- parse a packet
@@ -325,6 +351,30 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                 -- handle packet
                 if protocol == PROTOCOLS.COORD_DATA then
                     if packet.type == COORD_TYPES.ESTABLISH then
+                        -- connection with supervisor established
+                        if packet.length > 1 then
+                            -- get configuration
+
+                            ---@class facility_conf
+                            local conf = {
+                                num_units = packet.data[1],
+                                defs = {}   -- boilers and turbines
+                            }
+
+                            if (packet.length - 1) == (conf.num_units * 2) then
+                                -- record sequence of pairs of [#boilers, #turbines] per unit
+                                for i = 2, packet.length do
+                                    table.insert(conf.defs, packet.data[i])
+                                end
+
+                                -- init database structure
+                                database.init(conf)
+                            else
+                                log.debug("supervisor conn establish packet length mismatch")
+                            end
+                        else
+                            log.debug("supervisor conn establish packet length mismatch")
+                        end
                     elseif packet.type == COORD_TYPES.QUERY_UNIT then
                     elseif packet.type == COORD_TYPES.QUERY_FACILITY then
                     elseif packet.type == COORD_TYPES.COMMAND_UNIT then

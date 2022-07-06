@@ -201,7 +201,7 @@ end
 ---@param target_timing integer minimum amount of milliseconds to wait for
 ---@param last_update integer millisecond time of last update
 ---@return integer time_now
--- EVENT_CONSUMER: this function consumes events
+--- EVENT_CONSUMER: this function consumes events
 function util.adaptive_delay(target_timing, last_update)
     local sleep_for = target_timing - (util.time() - last_update)
     -- only if >50ms since worker loops already yield 0.05s

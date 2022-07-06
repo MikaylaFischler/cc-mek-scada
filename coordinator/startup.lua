@@ -13,7 +13,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.2.4"
+local COORDINATOR_VERSION = "alpha-v0.3.0"
 
 local print = util.print
 local println = util.println
@@ -24,6 +24,7 @@ local log_graphics = coordinator.log_graphics
 local log_sys = coordinator.log_sys
 local log_boot = coordinator.log_boot
 local log_comms = coordinator.log_comms
+local log_comms_connecting = coordinator.log_comms_connecting
 
 ----------------------------------------
 -- config validation
@@ -100,9 +101,20 @@ local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_S
 log.debug("boot> comms init")
 log_comms("comms initialized")
 
--- base loop clock (6.67Hz, 3 ticks)
-local MAIN_CLOCK = 0.15
+-- base loop clock (2Hz, 10 ticks)
+local MAIN_CLOCK = 0.5
 local loop_clock = util.new_clock(MAIN_CLOCK)
+
+local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SCADA_SV_PORT)
+
+-- attempt to establish a connection with the supervisory computer
+if not coord_comms.sv_connect(60, tick_waiting, task_done) then
+    log_comms("supervisor connection failed")
+    println("boot> failed to connect to supervisor")
+    log.fatal("failed to connect to supervisor")
+    log_sys("system shutdown")
+    return
+end
 
 ----------------------------------------
 -- start the UI
