@@ -94,7 +94,11 @@ end
 ---@param msg string message
 ---@param tag? string log tag
 ---@param tag_color? integer log tag color
+---@return dmesg_ts_coord coordinates line area to place working indicator
 function log.dmesg(msg, tag, tag_color)
+    ---@class dmesg_ts_coord
+    local ts_coord = { x1 = 2, x2 = 3, y = 1 }
+
     msg = util.strval(msg)
     tag = tag or ""
     tag = util.strval(tag)
@@ -147,6 +151,8 @@ function log.dmesg(msg, tag, tag_color)
     out.write("[")
     out.setTextColor(colors.lightGray)
     out.write(t_stamp)
+    ts_coord.x2, ts_coord.y = out.getCursorPos()
+    ts_coord.x2 = ts_coord.x2 - 1
     out.setTextColor(colors.white)
     out.write("] ")
 
@@ -178,6 +184,70 @@ function log.dmesg(msg, tag, tag_color)
     end
 
     _log(util.c("[", t_stamp, "] ", tag, " ", msg))
+
+    return ts_coord
+end
+
+-- print a dmesg message, but then show remaining seconds instead of timestamp
+---@param msg string message
+---@param tag? string log tag
+---@param tag_color? integer log tag color
+---@return function update, function done
+function log.dmesg_working(msg, tag, tag_color)
+    local ts_coord = log.dmesg(msg, tag, tag_color)
+
+    local out = _log_sys.dmesg_out
+    local width = (ts_coord.x2 - ts_coord.x1) + 1
+
+    local initial_color = out.getTextColor()
+
+    local counter = 0
+
+    local function update(sec_remaining)
+        local time = util.sprintf("%ds", sec_remaining)
+        local available = width - (string.len(time) + 2)
+        local progress = ""
+
+        out.setCursorPos(ts_coord.x1, ts_coord.y)
+        out.write(" ")
+
+        if counter % 4 == 0 then
+            progress = "|"
+        elseif counter % 4 == 1 then
+            progress = "/"
+        elseif counter % 4 == 2 then
+            progress = "-"
+        elseif counter % 4 == 3 then
+            progress = "\\"
+        end
+
+        out.setTextColor(colors.blue)
+        out.write(progress)
+        out.setTextColor(colors.lightGray)
+        out.write(util.spaces(available) .. time)
+        out.setTextColor(initial_color)
+
+        counter = counter + 1
+    end
+
+    local function done(ok)
+        local lpad = math.max(math.floor((width - 4) / 2), 0)
+        local rpad = (width - 4) - lpad
+
+        out.setCursorPos(ts_coord.x1, ts_coord.y)
+
+        if ok or ok == nil then
+            out.setTextColor(colors.green)
+            out.write(util.spaces(lpad) .. "DONE" .. util.spaces(rpad))
+        else
+            out.setTextColor(colors.red)
+            out.write(util.spaces(lpad) .. "FAIL" .. util.spaces(rpad))
+        end
+
+        out.setTextColor(initial_color)
+    end
+
+    return update, done
 end
 
 -- log debug messages
