@@ -272,14 +272,14 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                 end
             elseif event == "terminate" then
                 terminated = true
-                task_done(false)
-                coordinator.log_comms("supervisor connection attempt cancelled by user")
                 break
             end
         end
 
-        if not terminated then
-            task_done(self.sv_linked)
+        task_done(self.sv_linked)
+
+        if terminated then
+            coordinator.log_comms("supervisor connection attempt cancelled by user")
         end
 
         return self.sv_linked
