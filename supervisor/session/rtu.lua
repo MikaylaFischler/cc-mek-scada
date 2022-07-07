@@ -39,7 +39,7 @@ rtu.RTU_S_CMDS = RTU_S_CMDS
 rtu.RTU_S_DATA = RTU_S_DATA
 
 local PERIODICS = {
-    KEEP_ALIVE = 2.0
+    KEEP_ALIVE = 2000
 }
 
 ---@class rs_session_command

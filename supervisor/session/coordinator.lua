@@ -15,7 +15,7 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local PERIODICS = {
-    KEEP_ALIVE = 2.0
+    KEEP_ALIVE = 2000
 }
 
 -- coordinator supervisor session

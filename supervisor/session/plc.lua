@@ -33,7 +33,7 @@ plc.PLC_S_CMDS = PLC_S_CMDS
 plc.PLC_S_DATA = PLC_S_DATA
 
 local PERIODICS = {
-    KEEP_ALIVE = 2.0
+    KEEP_ALIVE = 2000
 }
 
 -- PLC supervisor session
