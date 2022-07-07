@@ -62,7 +62,7 @@ function mqueue.new()
     end
 
     -- push a packet onto the queue
-    ---@param packet scada_packet|modbus_packet|rplc_packet|coord_packet|capi_packet
+    ---@param packet scada_packet|modbus_packet|rplc_packet|crdn_packet|capi_packet
     function public.push_packet(packet)
         _push(TYPE.PACKET, packet)
     end

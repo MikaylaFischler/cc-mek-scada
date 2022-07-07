@@ -3,8 +3,6 @@
 --
 
 local core = require("graphics.core")
-local log  = require("scada-common.log")
-local util = require("scada-common.util")
 
 local element = {}
 
@@ -30,9 +28,6 @@ function element.new(args)
         child_offset = { x = 0, y = 0 },
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1}
     }
-
-    ---@fixme remove debug
-    log.dmesg("new " .. self.elem_type)
 
     local protected = {
         window = nil,   ---@type table

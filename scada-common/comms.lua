@@ -16,7 +16,7 @@ local PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
     SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
-    COORD_DATA = 3,     -- data/control packets for coordinators to/from supervisory controllers
+    SCADA_CRDN = 3,     -- data/control packets for coordinators to/from supervisory controllers
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
@@ -48,8 +48,8 @@ local SCADA_MGMT_TYPES = {
     REMOTE_LINKED = 3   -- remote device linked
 }
 
----@alias COORD_TYPES integer
-local COORD_TYPES = {
+---@alias SCADA_CRDN_TYPES integer
+local SCADA_CRDN_TYPES = {
     ESTABLISH = 0,      -- initial greeting
     QUERY_UNIT = 1,     -- query the state of a unit
     QUERY_FACILITY = 2, -- query general facility status
@@ -80,7 +80,7 @@ comms.PROTOCOLS = PROTOCOLS
 comms.RPLC_TYPES = RPLC_TYPES
 comms.RPLC_LINKING = RPLC_LINKING
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
-comms.COORD_TYPES = COORD_TYPES
+comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
 comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
 
 -- generic SCADA packet object
@@ -438,7 +438,7 @@ function comms.mgmt_packet()
 end
 
 -- SCADA coordinator packet
-function comms.coord_packet()
+function comms.crdn_packet()
     local self = {
         frame = nil,
         raw = nil,
@@ -447,20 +447,20 @@ function comms.coord_packet()
         data = nil
     }
 
-    ---@class coord_packet
+    ---@class crdn_packet
     local public = {}
 
     -- check that type is known
-    local function _coord_type_valid()
-        return self.type == COORD_TYPES.ESTABLISH or
-                self.type == COORD_TYPES.QUERY_UNIT or
-                self.type == COORD_TYPES.QUERY_FACILITY or
-                self.type == COORD_TYPES.COMMAND_UNIT or
-                self.type == COORD_TYPES.ALARM
+    local function _crdn_type_valid()
+        return self.type == SCADA_CRDN_TYPES.ESTABLISH or
+                self.type == SCADA_CRDN_TYPES.QUERY_UNIT or
+                self.type == SCADA_CRDN_TYPES.QUERY_FACILITY or
+                self.type == SCADA_CRDN_TYPES.COMMAND_UNIT or
+                self.type == SCADA_CRDN_TYPES.ALARM
     end
 
     -- make a coordinator packet
-    ---@param packet_type COORD_TYPES
+    ---@param packet_type SCADA_CRDN_TYPES
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -475,7 +475,7 @@ function comms.coord_packet()
                 insert(self.raw, data[i])
             end
         else
-            log.error("comms.coord_packet.make(): data not table")
+            log.error("comms.crdn_packet.make(): data not table")
         end
     end
 
@@ -486,18 +486,18 @@ function comms.coord_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.COORD_DATA then
+            if frame.protocol() == PROTOCOLS.SCADA_CRDN then
                 local ok = frame.length() >= 1
 
                 if ok then
                     local data = frame.data()
                     public.make(data[1], { table.unpack(data, 2, #data) })
-                    ok = _coord_type_valid()
+                    ok = _crdn_type_valid()
                 end
 
                 return ok
             else
-                log.debug("attempted COORD_DATA parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("attempted SCADA_CRDN parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
@@ -511,7 +511,7 @@ function comms.coord_packet()
 
     -- get this packet as a frame with an immutable relation to this object
     function public.get()
-        ---@class coord_frame
+        ---@class crdn_frame
         local frame = {
             scada_frame = self.frame,
             type = self.type,
@@ -539,7 +539,7 @@ function comms.capi_packet()
     ---@class capi_packet
     local public = {}
 
-    local function _coord_type_valid()
+    local function _capi_type_valid()
         -- @todo
         return false
     end
@@ -577,7 +577,7 @@ function comms.capi_packet()
                 if ok then
                     local data = frame.data()
                     public.make(data[1], { table.unpack(data, 2, #data) })
-                    ok = _coord_type_valid()
+                    ok = _capi_type_valid()
                 end
 
                 return ok

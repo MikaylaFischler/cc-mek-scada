@@ -17,7 +17,7 @@ local println_ts = util.println_ts
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local COORD_TYPES = comms.COORD_TYPES
+local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 
 -- request the user to select a monitor
 ---@param names table available monitors
@@ -209,16 +209,16 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     _open_channels()
 
     -- send a packet to the supervisor
-    ---@param msg_type SCADA_MGMT_TYPES|COORD_TYPES
+    ---@param msg_type SCADA_MGMT_TYPES|SCADA_CRDN_TYPES
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
-        local pkt = nil ---@type mgmt_packet|coord_packet
+        local pkt = nil ---@type mgmt_packet|crdn_packet
 
         if protocol == PROTOCOLS.SCADA_MGMT then
             pkt = comms.mgmt_packet()
-        elseif protocol == PROTOCOLS.COORD_DATA then
-            pkt = comms.coord_packet()
+        elseif protocol == PROTOCOLS.SCADA_CRDN then
+            pkt = comms.crdn_packet()
         else
             return
         end
@@ -228,6 +228,17 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
         self.modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
         self.sv_seq_num = self.sv_seq_num + 1
+    end
+
+    -- attempt connection establishment
+    local function _send_establish()
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.ESTABLISH, { version })
+    end
+
+    -- keep alive ack
+    ---@param srv_time integer
+    local function _send_keep_alive_ack(srv_time)
+        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -251,7 +262,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
         local start = util.time_s()
         local terminated = false
 
-        _send_sv(PROTOCOLS.COORD_DATA, COORD_TYPES.ESTABLISH, {})
+        _send_establish()
 
         clock.start()
 
@@ -262,12 +273,12 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
             if event == "timer" and clock.is_clock(p1) then
                 -- timed out attempt, try again
                 tick_dmesg_waiting(math.max(0, timeout_s - (util.time_s() - start)))
-                _send_sv(PROTOCOLS.COORD_DATA, COORD_TYPES.ESTABLISH, {})
+                _send_establish()
                 clock.start()
             elseif event == "modem_message" then
                 -- handle message
                 local packet = public.parse_packet(p1, p2, p3, p4, p5)
-                if packet ~= nil and packet.type == COORD_TYPES.ESTABLISH then
+                if packet ~= nil and packet.type == SCADA_CRDN_TYPES.ESTABLISH then
                     public.handle_packet(packet)
                 end
             elseif event == "terminate" then
@@ -291,7 +302,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return mgmt_frame|coord_frame|capi_frame|nil packet
+    ---@return mgmt_frame|crdn_frame|capi_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt = nil
         local s_pkt = comms.scada_packet()
@@ -307,10 +318,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                     pkt = mgmt_pkt.get()
                 end
             -- get as coordinator packet
-            elseif s_pkt.protocol() == PROTOCOLS.COORD_DATA then
-                local coord_pkt = comms.coord_packet()
-                if coord_pkt.decode(s_pkt) then
-                    pkt = coord_pkt.get()
+            elseif s_pkt.protocol() == PROTOCOLS.SCADA_CRDN then
+                local crdn_pkt = comms.crdn_packet()
+                if crdn_pkt.decode(s_pkt) then
+                    pkt = crdn_pkt.get()
                 end
             -- get as coordinator API packet
             elseif s_pkt.protocol() == PROTOCOLS.COORD_API then
@@ -327,7 +338,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     end
 
     -- handle a packet
-    ---@param packet mgmt_frame|coord_frame|capi_frame
+    ---@param packet mgmt_frame|crdn_frame|capi_frame
     function public.handle_packet(packet)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
@@ -349,8 +360,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                 sv_watchdog.feed()
 
                 -- handle packet
-                if protocol == PROTOCOLS.COORD_DATA then
-                    if packet.type == COORD_TYPES.ESTABLISH then
+                if protocol == PROTOCOLS.SCADA_CRDN then
+                    if packet.type == SCADA_CRDN_TYPES.ESTABLISH then
                         -- connection with supervisor established
                         if packet.length > 1 then
                             -- get configuration
@@ -369,22 +380,38 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
                                 -- init database structure
                                 database.init(conf)
+
+                                self.sv_linked = true
                             else
                                 log.debug("supervisor conn establish packet length mismatch")
                             end
                         else
                             log.debug("supervisor conn establish packet length mismatch")
                         end
-                    elseif packet.type == COORD_TYPES.QUERY_UNIT then
-                    elseif packet.type == COORD_TYPES.QUERY_FACILITY then
-                    elseif packet.type == COORD_TYPES.COMMAND_UNIT then
-                    elseif packet.type == COORD_TYPES.ALARM then
+                    elseif packet.type == SCADA_CRDN_TYPES.QUERY_UNIT then
+                    elseif packet.type == SCADA_CRDN_TYPES.QUERY_FACILITY then
+                    elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                    elseif packet.type == SCADA_CRDN_TYPES.ALARM then
                     else
-                        log.warning("received unknown COORD_DATA packet type " .. packet.type)
+                        log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
                     if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
-                        -- keep alive response received
+                        -- keep alive request received, echo back
+                        if packet.length == 1 then
+                            local timestamp = packet.data[1]
+                            local trip_time = util.time() - timestamp
+
+                            if trip_time > 500 then
+                                log.warning("coord KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                            end
+
+                            -- log.debug("coord RTT = " .. trip_time .. "ms")
+
+                            _send_keep_alive_ack(timestamp)
+                        else
+                            log.debug("SCADA keep alive packet length mismatch")
+                        end
                     elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
                         -- handle session close
                         sv_watchdog.cancel()

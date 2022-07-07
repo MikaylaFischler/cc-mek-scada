@@ -243,6 +243,34 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
     return rtu_s.instance.get_id()
 end
 
+-- establish a new coordinator session
+---@param local_port integer
+---@param remote_port integer
+---@param version string
+---@return integer|false session_id
+function svsessions.establish_coord_session(local_port, remote_port, version)
+    ---@class coord_session_struct
+    local coord_s = {
+        open = true,
+        version = version,
+        l_port = local_port,
+        r_port = remote_port,
+        in_queue = mqueue.new(),
+        out_queue = mqueue.new(),
+        instance = nil
+    }
+
+    coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue)
+    table.insert(self.coord_sessions, coord_s)
+
+    log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_coord_id)
+
+    self.next_coord_id = self.next_coord_id + 1
+
+    -- success
+    return coord_s.instance.get_id()
+end
+
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
 function svsessions.check_all_watchdogs(timer_event)

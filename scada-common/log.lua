@@ -183,7 +183,7 @@ function log.dmesg(msg, tag, tag_color)
         out.write(lines[i])
     end
 
-    _log(util.c("[", t_stamp, "] ", tag, " ", msg))
+    _log(util.c("[", t_stamp, "] [", tag, "] ", msg))
 
     return ts_coord
 end

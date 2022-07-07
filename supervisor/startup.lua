@@ -13,7 +13,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.4.14"
+local SUPERVISOR_VERSION = "beta-v0.5.1"
 
 local print = util.print
 local println = util.println
@@ -72,7 +72,8 @@ if modem == nil then
 end
 
 -- start comms, open all channels
-local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, modem, config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
+local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem,
+                                        config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
 
 -- base loop clock (6.67Hz, 3 ticks)
 local MAIN_CLOCK = 0.15
