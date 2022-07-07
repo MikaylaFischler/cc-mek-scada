@@ -106,8 +106,8 @@ function coordinator.new_session(id, in_queue, out_queue)
                         log.warning(log_header .. "COORD KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
-                    log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
+                    -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
