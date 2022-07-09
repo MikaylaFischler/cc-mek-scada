@@ -23,8 +23,8 @@ local function init(monitor)
     -- unit overviews
     unit_overview(main, 2, 3, 1)
     unit_overview(main, 84, 3, 2)
-    unit_overview(main, 2, 32, 3)
-    unit_overview(main, 84, 32, 4)
+    unit_overview(main, 2, 29, 3)
+    unit_overview(main, 84, 29, 4)
 
     return main
 end

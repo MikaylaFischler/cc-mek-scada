@@ -11,14 +11,22 @@ style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
 
 style.colors = {
-    {
-        c = colors.green,
-        hex = 0x7ed788
-    },
-    {
-        c = colors.lightGray,
-        hex = 0xcacaca
-    }
+    { c = colors.red,       hex = 0xdf4949 },
+    { c = colors.orange,    hex = 0xffb659 },
+    { c = colors.yellow,    hex = 0xfffc79 },
+    { c = colors.lime,      hex = 0x64dd20 },
+    { c = colors.green,     hex = 0x4aee8a },
+    { c = colors.cyan,      hex = 0x34bac8 },
+    { c = colors.lightBlue, hex = 0x6cc0f2 },
+    { c = colors.blue,      hex = 0x0096ff },
+    { c = colors.purple,    hex = 0xb156ee },
+    { c = colors.pink,      hex = 0xf26ba2 },
+    { c = colors.magenta,   hex = 0xf9488a },
+    -- { c = colors.white,     hex = 0xf0f0f0 },
+    { c = colors.lightGray, hex = 0xcacaca },
+    { c = colors.gray,      hex = 0x575757 },
+    -- { c = colors.black,     hex = 0x191919 },
+    -- { c = colors.brown,     hex = 0x7f664c }
 }
 
 -- MAIN LAYOUT --

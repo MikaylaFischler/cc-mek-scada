@@ -6,14 +6,9 @@ local reactor_view = require("coordinator.ui.components.reactor")
 local boiler_view  = require("coordinator.ui.components.boiler")
 local turbine_view = require("coordinator.ui.components.turbine")
 
-local Div            = require("graphics.elements.div")
-local PipeNetwork    = require("graphics.elements.pipenet")
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
-
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local DataIndicator  = require("graphics.elements.indicators.data")
-local StateIndicator = require("graphics.elements.indicators.state")
+local Div         = require("graphics.elements.div")
+local PipeNetwork = require("graphics.elements.pipenet")
+local TextBox     = require("graphics.elements.textbox")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
@@ -24,7 +19,7 @@ local pipe = core.graphics.pipe
 ---@param parent graphics_element
 local function make(parent, x, y, unit_id)
     -- bounding box div
-    local root = Div{parent=parent,x=x,y=y,width=80,height=27}--,fg_bg=cpair(colors.white,colors.black)}
+    local root = Div{parent=parent,x=x,y=y,width=80,height=25}
 
     -- unit header message
     TextBox{parent=root,text="Unit #" .. unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
@@ -36,8 +31,8 @@ local function make(parent, x, y, unit_id)
     reactor_view(root, 1, 3)
 
     local coolant_pipes = {
-        pipe(0, 0, 12, 12, colors.lightBlue),
-        pipe(0, 0, 12, 3, colors.lightBlue),
+        pipe(0, 0, 11, 12, colors.lightBlue),
+        pipe(0, 0, 11, 3, colors.lightBlue),
         pipe(2, 0, 11, 2, colors.orange),
         pipe(2, 0, 11, 11, colors.orange)
     }
@@ -49,7 +44,7 @@ local function make(parent, x, y, unit_id)
     -------------
 
     boiler_view(root, 16, 11)
-    boiler_view(root, 16, 20)
+    boiler_view(root, 16, 19)
 
     --------------
     -- TURBINES --
@@ -57,15 +52,15 @@ local function make(parent, x, y, unit_id)
 
     turbine_view(root, 58, 3)
     turbine_view(root, 58, 11)
-    turbine_view(root, 58, 20)
+    turbine_view(root, 58, 19)
 
     local steam_pipes_a = {
         -- boiler 1
         pipe(0, 1, 6, 1, colors.white, false, true),
         pipe(0, 2, 6, 2, colors.blue, false, true),
         -- boiler 2
-        pipe(0, 10, 6, 10, colors.white, false, true),
-        pipe(0, 11, 6, 11, colors.blue, false, true)
+        pipe(0, 9, 6, 9, colors.white, false, true),
+        pipe(0, 10, 6, 10, colors.blue, false, true)
     }
 
     local steam_pipes_b = {
@@ -79,9 +74,9 @@ local function make(parent, x, y, unit_id)
         -- turbine 3, pipes from boiler 2
         pipe(0, 18, 1, 9, colors.white, false, true),
         pipe(1, 1, 3, 1, colors.white, false, false),
-        pipe(0, 18, 3, 18, colors.white, false, true),
-        pipe(0, 19, 2, 10, colors.blue, false, true),
-        pipe(0, 19, 3, 19, colors.blue, false, true),
+        pipe(0, 17, 3, 17, colors.white, false, true),
+        pipe(0, 18, 2, 10, colors.blue, false, true),
+        pipe(0, 18, 3, 18, colors.blue, false, true),
     }
 
     PipeNetwork{parent=root,x=47,y=11,pipes=steam_pipes_a,bg=colors.lightGray}
