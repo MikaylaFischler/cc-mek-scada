@@ -17,25 +17,37 @@ local border = core.graphics.border
 local pipe = core.graphics.pipe
 
 ---@param parent graphics_element
-local function make(parent, x, y, unit_id)
+---@param x integer
+---@param y integer
+---@param unit coord_db_entry
+local function make(parent, x, y, unit)
     -- bounding box div
     local root = Div{parent=parent,x=x,y=y,width=80,height=25}
 
     -- unit header message
-    TextBox{parent=root,text="Unit #" .. unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=root,text="Unit #" .. unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+
+    local num_boilers = #unit.boiler_data_tbl
+    local num_turbines = #unit.turbine_data_tbl
 
     -------------
     -- REACTOR --
     -------------
 
-    reactor_view(root, 1, 3)
+    reactor_view(root, 1, 3, unit.reactor_ps)
 
-    local coolant_pipes = {
-        pipe(0, 0, 11, 12, colors.lightBlue),
-        pipe(0, 0, 11, 3, colors.lightBlue),
-        pipe(2, 0, 11, 2, colors.orange),
-        pipe(2, 0, 11, 11, colors.orange)
-    }
+    local coolant_pipes = {}
+
+    if num_boilers == 2 then
+        table.insert(coolant_pipes, pipe(0, 0, 11, 12, colors.lightBlue))
+    end
+
+    table.insert(coolant_pipes, pipe(0, 0, 11, 3, colors.lightBlue))
+    table.insert(coolant_pipes, pipe(2, 0, 11, 2, colors.orange))
+
+    if num_boilers == 2 then
+        table.insert(coolant_pipes, pipe(2, 0, 11, 11, colors.orange))
+    end
 
     PipeNetwork{parent=root,x=4,y=10,pipes=coolant_pipes,bg=colors.lightGray}
 
@@ -43,41 +55,78 @@ local function make(parent, x, y, unit_id)
     -- BOILERS --
     -------------
 
-    boiler_view(root, 16, 11)
-    boiler_view(root, 16, 19)
+    boiler_view(root, 16, 11, unit.boiler_ps_tbl[1])
+    if num_boilers == 2 then boiler_view(root, 16, 19, unit.boiler_ps_tbl[2]) end
 
     --------------
     -- TURBINES --
     --------------
 
-    turbine_view(root, 58, 3)
-    turbine_view(root, 58, 11)
-    turbine_view(root, 58, 19)
+    local t_idx = 1
+
+    if num_turbines == 3 then
+        turbine_view(root, 58, 3, unit.turbine_ps_tbl[t_idx])
+        t_idx = t_idx + 1
+    end
+
+    if num_turbines >= 1 then
+        turbine_view(root, 58, 11, unit.turbine_ps_tbl[t_idx])
+        t_idx = t_idx + 1
+    end
+
+    if num_turbines >= 2 then turbine_view(root, 58, 19, unit.turbine_ps_tbl[t_idx]) end
 
     local steam_pipes_a = {
-        -- boiler 1
-        pipe(0, 1, 6, 1, colors.white, false, true),
-        pipe(0, 2, 6, 2, colors.blue, false, true),
-        -- boiler 2
-        pipe(0, 9, 6, 9, colors.white, false, true),
-        pipe(0, 10, 6, 10, colors.blue, false, true)
+        -- boiler 1 steam/water pipes
+        pipe(0, 1, 6, 1, colors.white, false, true),    -- steam boiler 1 to turbine junction
+        pipe(0, 2, 6, 2, colors.blue, false, true)      -- water boiler 1 to turbine junction
     }
 
-    local steam_pipes_b = {
-        -- turbines 1 & 2, pipes from boiler 1
-        pipe(0, 9, 1, 2, colors.white, false, true),
-        pipe(1, 1, 3, 1, colors.white, false, false),
-        pipe(0, 9, 3, 9, colors.white, false, true),
-        pipe(0, 10, 2, 3, colors.blue, false, true),
-        pipe(2, 2, 3, 2, colors.blue, false, false),
-        pipe(0, 10, 3, 10, colors.blue, false, true),
-        -- turbine 3, pipes from boiler 2
-        pipe(0, 18, 1, 9, colors.white, false, true),
-        pipe(1, 1, 3, 1, colors.white, false, false),
-        pipe(0, 17, 3, 17, colors.white, false, true),
-        pipe(0, 18, 2, 10, colors.blue, false, true),
-        pipe(0, 18, 3, 18, colors.blue, false, true),
-    }
+    if num_boilers == 2 then
+        -- boiler 2 steam/water pipes
+        table.insert(steam_pipes_a, pipe(0, 9, 6, 9, colors.white, false, true))    -- steam boiler 2 to turbine junction
+        table.insert(steam_pipes_a, pipe(0, 10, 6, 10, colors.blue, false, true))   -- water boiler 2 to turbine junction
+    end
+
+    local steam_pipes_b = {}
+
+    if num_turbines == 3 then
+        table.insert(steam_pipes_b, pipe(0, 9, 1, 2, colors.white, false, true))    -- steam boiler 1 to turbine 1 junction start
+        table.insert(steam_pipes_b, pipe(1, 1, 3, 1, colors.white, false, false))   -- steam boiler 1 to turbine 1 junction end
+    end
+
+    table.insert(steam_pipes_b, pipe(0, 9, 3, 9, colors.white, false, true))        -- steam boiler 1 to turbine 2
+
+    if num_turbines == 3 then
+        table.insert(steam_pipes_b, pipe(0, 10, 2, 3, colors.blue, false, true))    -- water boiler 1 to turbine 1 junction start
+        table.insert(steam_pipes_b, pipe(2, 2, 3, 2, colors.blue, false, false))    -- water boiler 1 to turbine 1 junction end
+    end
+
+    table.insert(steam_pipes_b, pipe(0, 10, 3, 10, colors.blue, false, true))       -- water boiler 1 to turbine 2
+
+    if num_turbines >= 2 then
+        if num_boilers == 2 then
+            table.insert(steam_pipes_b, pipe(0, 17, 1, 9, colors.white, false, true))     -- steam boiler 2 to turbine 2 junction
+            table.insert(steam_pipes_b, pipe(0, 17, 3, 17, colors.white, false, true))  -- steam boiler 2 to turbine 3
+        else
+            table.insert(steam_pipes_b, pipe(1, 17, 1, 9, colors.white, false, true))   -- steam boiler 2 to turbine 2 junction
+            table.insert(steam_pipes_b, pipe(1, 17, 3, 17, colors.white, false, true))  -- steam boiler 2 to turbine 3
+        end
+
+        if num_boilers == 2 then
+            table.insert(steam_pipes_b, pipe(0, 18, 2, 10, colors.blue, false, true))   -- water boiler 2 to turbine 3
+            table.insert(steam_pipes_b, pipe(0, 18, 3, 18, colors.blue, false, true))   -- water boiler 2 to turbine 2 junction
+        else
+            table.insert(steam_pipes_b, pipe(2, 18, 2, 10, colors.blue, false, true))   -- water boiler 2 to turbine 3
+            table.insert(steam_pipes_b, pipe(2, 18, 3, 18, colors.blue, false, true))   -- water boiler 2 to turbine 2 junction
+        end
+    elseif num_turbines == 1 and num_boilers == 2 then
+        table.insert(steam_pipes_b, pipe(0, 17, 1, 9, colors.white, false, true))       -- steam boiler 2 to turbine 2 junction
+        table.insert(steam_pipes_b, pipe(0, 17, 1, 17, colors.white, false, true))      -- steam boiler 2 to turbine 3
+
+        table.insert(steam_pipes_b, pipe(0, 18, 2, 10, colors.blue, false, true))       -- water boiler 2 to turbine 3
+        table.insert(steam_pipes_b, pipe(0, 18, 2, 18, colors.blue, false, true))       -- water boiler 2 to turbine 2 junction
+    end
 
     PipeNetwork{parent=root,x=47,y=11,pipes=steam_pipes_a,bg=colors.lightGray}
     PipeNetwork{parent=root,x=54,y=3,pipes=steam_pipes_b,bg=colors.lightGray}

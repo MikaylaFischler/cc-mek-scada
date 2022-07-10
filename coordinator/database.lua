@@ -51,4 +51,7 @@ function database.init(conf)
     end
 end
 
+-- get the database
+function database.get() return db end
+
 return database
