@@ -93,8 +93,8 @@ function graphics.cpair(a, b)
         -- color pairs
         color_a = a,
         color_b = b,
-        blit_a = a,
-        blit_b = b,
+        blit_a = colors.toBlit(a),
+        blit_b = colors.toBlit(b),
         -- aliases
         fgd = a,
         bkg = b,
