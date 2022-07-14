@@ -2,7 +2,6 @@ local core = require("graphics.core")
 
 local style = require("coordinator.ui.style")
 
-local Div            = require("graphics.elements.div")
 local DataIndicator  = require("graphics.elements.indicators.data")
 local StateIndicator = require("graphics.elements.indicators.state")
 local Rectangle      = require("graphics.elements.rectangle")

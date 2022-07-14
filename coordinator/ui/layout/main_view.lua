@@ -2,8 +2,6 @@
 -- Main SCADA Coordinator GUI
 --
 
-local log = require("scada-common.log")
-
 local database = require("coordinator.database")
 local style    = require("coordinator.ui.style")
 
@@ -24,11 +22,21 @@ local function init(monitor)
 
     local db = database.get()
 
+    local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
+
     -- unit overviews
-    if db.facility.num_units >= 1 then unit_overview(main, 2, 3, db.units[1]) end
-    if db.facility.num_units >= 2 then unit_overview(main, 84, 3, db.units[2]) end
-    if db.facility.num_units >= 3 then unit_overview(main, 2, 29, db.units[3]) end
-    if db.facility.num_units == 4 then unit_overview(main, 84, 29, db.units[4]) end
+    if db.facility.num_units >= 1 then uo_1 = unit_overview(main, 2, 3, db.units[1]) end
+    if db.facility.num_units >= 2 then uo_2 = unit_overview(main, 84, 3, db.units[2]) end
+
+    if db.facility.num_units >= 3 then
+        -- base offset 3, spacing 1, max height of units 1 and 2
+        local row_2_offset = 3 + 1 + math.max(uo_1.height(), uo_2.height())
+
+        uo_3 = unit_overview(main, 2, row_2_offset, db.units[3])
+        if db.facility.num_units == 4 then uo_4 = unit_overview(main, 84, row_2_offset, db.units[4]) end
+    end
+
+    -- command & control
 
     return main
 end

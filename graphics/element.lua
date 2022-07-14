@@ -148,6 +148,16 @@ function element.new(args)
         return self.child_offset.x, self.child_offset.y
     end
 
+    -- get element width
+    function public.width()
+        return protected.frame.w
+    end
+
+    -- get element height
+    function public.height()
+        return protected.frame.h
+    end
+
     -- handle a monitor touch
     ---@param event monitor_touch monitor touch event
     function public.handle_touch(event)
