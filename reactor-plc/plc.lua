@@ -344,6 +344,8 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     -- variable reactor status information, excluding heating rate
     ---@return table data_table, boolean faulted
     local function _reactor_status()
+        local fuel = nil
+        local waste = nil
         local coolant = nil
         local hcoolant = nil
 
@@ -375,9 +377,9 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             function () data_table[5]  = self.reactor.getDamagePercent() end,
             function () data_table[6]  = self.reactor.getBoilEfficiency() end,
             function () data_table[7]  = self.reactor.getEnvironmentalLoss() end,
-            function () data_table[8]  = self.reactor.getFuel() end,
+            function () fuel           = self.reactor.getFuel() end,
             function () data_table[9]  = self.reactor.getFuelFilledPercentage() end,
-            function () data_table[10] = self.reactor.getWaste() end,
+            function () waste          = self.reactor.getWaste() end,
             function () data_table[11] = self.reactor.getWasteFilledPercentage() end,
             function () coolant        = self.reactor.getCoolant() end,
             function () data_table[14] = self.reactor.getCoolantFilledPercentage() end,
@@ -386,6 +388,18 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         }
 
         parallel.waitForAll(table.unpack(tasks))
+
+        if type(fuel) == "table" then
+            data_table[8] = fuel.amount
+        elseif type(fuel) == "number" then
+            data_table[8] = fuel
+        end
+
+        if type(waste) == "table" then
+            data_table[10] = waste.amount
+        elseif type(waste) == "number" then
+            data_table[10] = waste
+        end
 
         if coolant ~= nil then
             data_table[12] = coolant.name
