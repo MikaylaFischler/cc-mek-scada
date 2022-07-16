@@ -23,30 +23,25 @@ local function indicator_light(args)
     args.height = 1
 
     -- determine width
-    args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 3
+    args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- on/off blit strings
-    local on_blit = util.strrep(args.colors.blit_a, 2)
-    local off_blit = util.strrep(args.colors.blit_b, 2)
-
-    -- write label and initial indicator light
-    e.window.setCursorPos(1, 1)
-    e.window.blit("   ", "000", off_blit .. e.fg_bg.blit_bkg)
-    e.window.write(args.label)
 
     -- on state change
     ---@param new_state boolean indicator state
     function e.on_update(new_state)
         e.window.setCursorPos(1, 1)
         if new_state then
-            e.window.blit("  ", "00", on_blit)
+            e.window.blit(" \x95", "0" .. args.colors.blit_a, args.colors.blit_a .. e.fg_bg.blit_bkg)
         else
-            e.window.blit("  ", "00", off_blit)
+            e.window.blit(" \x95", "0" .. args.colors.blit_b, args.colors.blit_b .. e.fg_bg.blit_bkg)
         end
     end
+
+    -- write label and initial indicator light
+    e.on_update(false)
+    e.window.write(args.label)
 
     return e.get()
 end

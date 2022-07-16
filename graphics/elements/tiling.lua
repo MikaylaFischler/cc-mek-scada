@@ -7,7 +7,7 @@ local element = require("graphics.element")
 ---@class tiling_args
 ---@field fill_c cpair colors to fill with
 ---@field even? boolean whether to account for rectangular pixels
----@field border? graphics_border
+---@field border_c? color optional frame color
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
@@ -33,37 +33,37 @@ local function tiling(args)
 
     local start_x = 1
     local start_y = 1
-    local width = e.frame.w
-    local height = e.frame.h
+    local inner_width = math.floor(e.frame.w / util.trinary(even, 2, 1))
+    local inner_height = e.frame.h
     local alternator = true
 
     -- border
-    if args.border ~= nil then
-        e.window.setBackgroundColor(args.border.color)
+    if args.border_c ~= nil then
+        e.window.setBackgroundColor(args.border_c)
         e.window.clear()
 
-        start_x = 1 + util.trinary(args.border.even, args.border.width * 2, args.border.width)
-        start_y = 1 + args.border.width
+        start_x = 1 + util.trinary(even, 2, 1)
+        start_y = 2
 
-        width = width - (2 * util.trinary(args.border.even, args.border.width * 2, args.border.width))
-        height = height - (2 * args.border.width)
+        inner_width = math.floor((e.frame.w - 2 * util.trinary(even, 2, 1)) / 2)
+        inner_height = e.frame.h - 2
     end
 
     -- check dimensions
-    assert(start_x <= width, "graphics.elements.tiling: start_x > width")
-    assert(start_y <= height, "graphics.elements.tiling: start_y > height")
-    assert(width > 0, "graphics.elements.tiling: width <= 0")
-    assert(height > 0, "graphics.elements.tiling: height <= 0")
+    assert(inner_width > 0, "graphics.elements.tiling: inner_width <= 0")
+    assert(inner_height > 0, "graphics.elements.tiling: inner_height <= 0")
+    assert(start_x <= inner_width, "graphics.elements.tiling: start_x > inner_width")
+    assert(start_y <= inner_height, "graphics.elements.tiling: start_y > inner_height")
 
     -- create pattern
-    for y = start_y, height do
-        e.window.setCursorPos(1, y)
-        for _ = start_x, width do
+    for y = start_y, inner_height + (start_y - 1) do
+        e.window.setCursorPos(start_x, y)
+        for x = 1, inner_width do
             if alternator then
                 if even then
-                    e.window.blit("  ", "00", fill_a .. fill_a)
+                    e.window.blit("NF", "00", fill_a .. fill_a)
                 else
-                    e.window.blit(" ", "0", fill_a)
+                    e.window.blit("F", "0", fill_a)
                 end
             else
                 if even then
@@ -73,7 +73,7 @@ local function tiling(args)
                 end
             end
 
-            alternator = not alternator
+            if x ~= inner_width then alternator = not alternator end
         end
     end
 

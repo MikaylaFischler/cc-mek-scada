@@ -11,6 +11,7 @@ local element = require("graphics.element")
 ---@field parent graphics_element
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
+---@field fg_bg? cpair foreground/background colors
 
 -- new scram button
 ---@param args scram_button_args
@@ -20,9 +21,6 @@ local function scram_button(args)
     -- static dimensions
     args.height = 3
     args.width = 9
-
-    -- static colors
-    args.fg_bg = core.graphics.cpair(colors.white, colors.black)
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -35,25 +33,25 @@ local function scram_button(args)
 
     -- top
     e.window.setTextColor(colors.yellow)
-    e.window.setBackgroundColor(colors.black)
+    e.window.setBackgroundColor(args.fg_bg.bkg)
     e.window.setCursorPos(1, 1)
     e.window.write("\x99\x89\x89\x89\x89\x89\x89\x89\x99")
 
     -- center left
     e.window.setCursorPos(1, 2)
-    e.window.setTextColor(colors.black)
+    e.window.setTextColor(args.fg_bg.bkg)
     e.window.setBackgroundColor(colors.yellow)
     e.window.write("\x99")
 
     -- center right
-    e.window.setTextColor(colors.black)
+    e.window.setTextColor(args.fg_bg.bkg)
     e.window.setBackgroundColor(colors.yellow)
     e.window.setCursorPos(9, 2)
     e.window.write("\x99")
 
     -- bottom
     e.window.setTextColor(colors.yellow)
-    e.window.setBackgroundColor(colors.black)
+    e.window.setBackgroundColor(args.fg_bg.bkg)
     e.window.setCursorPos(1, 3)
     e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
 

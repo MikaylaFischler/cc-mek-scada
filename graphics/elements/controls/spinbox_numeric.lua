@@ -21,10 +21,11 @@ local function spinbox(args)
     local digits = {}
     local wn_prec = args.whole_num_precision
     local fr_prec = args.fractional_precision
-    local dec_point_x = args.whole_num_precision + 1
 
     assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
     assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
+
+    local dec_point_x = args.whole_num_precision + 1
 
     assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
 
@@ -48,11 +49,22 @@ local function spinbox(args)
     e.window.setCursorPos(1, 3)
     e.window.write(util.strrep("\x1f", wn_prec))
     if fr_prec > 0 then
-        e.window.setCursorPos(1, 1)
+        e.window.setCursorPos(1 + wn_prec, 1)
         e.window.write(" " .. util.strrep("\x1e", fr_prec))
-        e.window.setCursorPos(1, 3)
+        e.window.setCursorPos(1 + wn_prec, 3)
         e.window.write(" " .. util.strrep("\x1f", fr_prec))
     end
+
+    -- print out the current value
+    local function show_num()
+        e.window.setBackgroundColor(e.fg_bg.bkg)
+        e.window.setTextColor(e.fg_bg.fgd)
+        e.window.setCursorPos(1, 2)
+        e.window.write(util.sprintf("%" .. wn_prec + fr_prec + 1 .. "." .. fr_prec .. "f", value))
+    end
+
+    -- init with the default value
+    show_num()
 
     -- handle touch
     ---@param event monitor_touch monitor touch event
@@ -78,6 +90,8 @@ local function spinbox(args)
                     value = value + (digits[i] * (10 ^ -pow))
                 end
             end
+
+            show_num()
         end
     end
 
