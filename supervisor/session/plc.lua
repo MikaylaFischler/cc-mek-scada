@@ -98,7 +98,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 high_temp = false,
                 no_fuel = false,
                 no_cool = false,
-                timed_out = false
+                fault = false,
+                timeout = false,
+                manual = false
             },
             ---@class mek_status
             mek_status = {
@@ -153,7 +155,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.rps_status.high_temp = rps_status[4]
         self.sDB.rps_status.no_fuel   = rps_status[5]
         self.sDB.rps_status.no_cool   = rps_status[6]
-        self.sDB.rps_status.timed_out = rps_status[7]
+        self.sDB.rps_status.fault     = rps_status[7]
+        self.sDB.rps_status.timeout   = rps_status[8]
+        self.sDB.rps_status.manual    = rps_status[9]
     end
 
     -- copy in the reactor status
