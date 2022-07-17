@@ -298,7 +298,7 @@ end
 -- get the fission reactor (if multiple, returns the first)
 ---@return table|nil reactor function table
 function ppm.get_fission_reactor()
-    return ppm.get_device("fissionReactor")
+    return ppm.get_device("fissionReactor") or ppm.get_device("fissionReactorLogicAdapter")
 end
 
 -- get the wireless modem (if multiple, returns the first)
