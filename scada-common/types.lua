@@ -37,6 +37,40 @@ types.TRI_FAIL = {
 
 -- STRING TYPES --
 
+---@alias os_event
+---| "alarm"
+---| "char"
+---| "computer_command"
+---| "disk"
+---| "disk_eject"
+---| "http_check"
+---| "http_failure"
+---| "http_success"
+---| "key"
+---| "key_up"
+---| "modem_message"
+---| "monitor_resize"
+---| "monitor_touch"
+---| "mouse_click"
+---| "mouse_drag"
+---| "mouse_scroll"
+---| "mouse_up"
+---| "paste"
+---| "peripheral"
+---| "peripheral_detach"
+---| "rednet_message"
+---| "redstone"
+---| "speaker_audio_empty"
+---| "task_complete"
+---| "term_resize"
+---| "terminate"
+---| "timer"
+---| "turtle_inventory"
+---| "websocket_closed"
+---| "websocket_failure"
+---| "websocket_message"
+---| "websocket_success"
+
 ---@alias rtu_t string
 types.rtu_t = {
     redstone = "redstone",

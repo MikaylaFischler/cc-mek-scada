@@ -13,7 +13,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.8.1"
+local R_PLC_VERSION = "beta-v0.8.2"
 
 local print = util.print
 local println = util.println

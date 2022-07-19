@@ -180,6 +180,16 @@ function util.time()
     return util.time_ms()
 end
 
+-- OS --
+
+-- OS pull event raw wrapper with types
+---@param target_event? string event to wait for
+---@return os_event event, any param1, any param2, any param3, any param4, any param5
+function util.pull_event(target_event)
+---@diagnostic disable-next-line: undefined-field
+    return os.pullEventRaw(target_event)
+end
+
 -- PARALLELIZATION --
 
 -- protected sleep call so we still are in charge of catching termination

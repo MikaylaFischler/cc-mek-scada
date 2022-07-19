@@ -13,7 +13,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.5.3"
+local SUPERVISOR_VERSION = "beta-v0.5.4"
 
 local print = util.print
 local println = util.println
@@ -84,8 +84,7 @@ loop_clock.start()
 
 -- event loop
 while true do
----@diagnostic disable-next-line: undefined-field
-    local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
+    local event, param1, param2, param3, param4, param5 = util.pull_event()
 
     -- handle event
     if event == "peripheral_detach" then

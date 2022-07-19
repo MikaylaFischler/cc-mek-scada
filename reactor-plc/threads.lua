@@ -55,8 +55,7 @@ function threads.thread__main(smem, init)
             local plc_comms     = smem.plc_sys.plc_comms
             local conn_watchdog = smem.plc_sys.conn_watchdog
 
----@diagnostic disable-next-line: undefined-field
-            local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
             if event == "timer" and loop_clock.is_clock(param1) then

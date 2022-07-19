@@ -267,8 +267,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
         clock.start()
 
         while (util.time_s() - start) < timeout_s and not self.sv_linked do
----@diagnostic disable-next-line: undefined-field
-            local event, p1, p2, p3, p4, p5 = os.pullEventRaw()
+            local event, p1, p2, p3, p4, p5 = util.pull_event()
 
             if event == "timer" and clock.is_clock(p1) then
                 -- timed out attempt, try again

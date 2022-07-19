@@ -13,7 +13,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.3.4"
+local COORDINATOR_VERSION = "alpha-v0.3.5"
 
 local print = util.print
 local println = util.println
@@ -149,8 +149,7 @@ log.debug("boot> conn watchdog started")
 -- event loop
 -- ui_ok will never change in this loop, same as while true or exit if UI start failed
 while ui_ok do
----@diagnostic disable-next-line: undefined-field
-    local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
+    local event, param1, param2, param3, param4, param5 = util.pull_event()
 
     -- handle event
     if event == "peripheral_detach" then

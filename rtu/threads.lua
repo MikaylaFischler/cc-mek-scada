@@ -49,8 +49,7 @@ function threads.thread__main(smem)
 
         -- event loop
         while true do
----@diagnostic disable-next-line: undefined-field
-            local event, param1, param2, param3, param4, param5 = os.pullEventRaw()
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             if event == "timer" and loop_clock.is_clock(param1) then
                 -- start next clock timer
