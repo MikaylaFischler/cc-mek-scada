@@ -6,7 +6,7 @@ local util  = require("scada-common.util")
 local apisessions = require("coordinator.apisessions")
 local database    = require("coordinator.database")
 
-local dialog = require("coordinator.util.dialog")
+local dialog = require("coordinator.ui.dialog")
 
 local coordinator = {}
 
