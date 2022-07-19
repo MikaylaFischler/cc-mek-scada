@@ -11,6 +11,7 @@
         "shell",
         "settings",
         "window",
-        "read"
+        "read",
+        "periphemu"
     ]
 }

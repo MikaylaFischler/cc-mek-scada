@@ -302,12 +302,15 @@ function ppm.get_fission_reactor()
 end
 
 -- get the wireless modem (if multiple, returns the first)
+--
+-- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@return table|nil modem function table
 function ppm.get_wireless_modem()
     local w_modem = nil
+    local emulated_env = periphemu ~= nil
 
     for _, device in pairs(_ppm_sys.mounts) do
-        if device.type == "modem" and device.dev.isWireless() then
+        if device.type == "modem" and (emulated_env or device.dev.isWireless()) then
             w_modem = device.dev
             break
         end
