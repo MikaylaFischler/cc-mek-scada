@@ -8,12 +8,14 @@ local log  = require("scada-common.log")
 local ppm  = require("scada-common.ppm")
 local util = require("scada-common.util")
 
+local core = require("graphics.core")
+
 local apisessions = require("coordinator.apisessions")
 local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.3.5"
+local COORDINATOR_VERSION = "alpha-v0.3.6"
 
 local print = util.print
 local println = util.println
@@ -211,12 +213,17 @@ while ui_ok do
         -- got a packet
         local packet = coord_comms.parse_packet(param1, param2, param3, param4, param5)
         coord_comms.handle_packet(packet)
+    elseif event == "monitor_touch" then
+        -- handle a monitor touch event
+        renderer.handle_touch(core.events.touch(param1, param2, param3))
     end
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
-        log_comms("terminate requested, closing sessions...")
-        println_ts("closing sessions...")
+        log_comms("terminate requested, closing supervisor connection")
+        coord_comms.close()
+        log_comms("closing api sessions...")
+        println_ts("closing api sessions...")
         apisessions.close_all()
         log_comms("api sessions closed")
         break

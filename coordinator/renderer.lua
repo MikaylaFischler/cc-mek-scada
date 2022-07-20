@@ -1,4 +1,4 @@
-local log  = require("scada-common.log")
+local log = require("scada-common.log")
 
 local main_view = require("coordinator.ui.layout.main_view")
 local unit_view = require("coordinator.ui.layout.unit_view")
@@ -97,6 +97,21 @@ function renderer.close_ui(recolor)
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)
     engine.dmesg_window.redraw()
+end
+
+-- handle a touch event
+---@param event monitor_touch
+function renderer.handle_touch(event)
+    if event.monitor == engine.monitors.primary_name then
+        ui.main_layout.handle_touch(event)
+    else
+        for id, monitor in pairs(engine.monitors.unit_name_map) do
+            if event.monitor == monitor then
+                local layout = ui.unit_layouts[id]  ---@type graphics_element
+                layout.handle_touch(event)
+            end
+        end
+    end
 end
 
 return renderer

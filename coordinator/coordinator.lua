@@ -44,7 +44,9 @@ function coordinator.configure_monitors(num_units)
     ---@class monitors_struct
     local monitors = {
         primary = nil,
-        unit_displays = {}
+        primary_name = "",
+        unit_displays = {},
+        unit_name_map = {}
     }
 
     local monitors_avail = ppm.get_monitor_list()
@@ -89,6 +91,7 @@ function coordinator.configure_monitors(num_units)
     util.filter_table(names, function (x) return x ~= iface_primary_display end)
 
     monitors.primary = ppm.get_periph(iface_primary_display)
+    monitors.primary_name = iface_primary_display
 
     -------------------
     -- UNIT DISPLAYS --
@@ -139,6 +142,7 @@ function coordinator.configure_monitors(num_units)
 
     for i = 1, #unit_displays do
         monitors.unit_displays[i] = ppm.get_periph(unit_displays[i])
+        monitors.unit_name_map[i] = unit_displays[i]
     end
 
     return true, monitors
@@ -249,6 +253,12 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     function public.reconnect_modem(modem)
         self.modem = modem
         _open_channels()
+    end
+
+    -- close the connection to the server
+    function public.close()
+        sv_watchdog.cancel()
+        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.CLOSE, {})
     end
 
     -- attempt to connect to the subervisor
