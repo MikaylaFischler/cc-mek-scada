@@ -13,7 +13,7 @@ local util    = require("scada-common.util")
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
--- new spinbox control
+-- new spinbox control (minimum value is 0)
 ---@param args spinbox_args
 local function spinbox(args)
     -- properties
@@ -25,11 +25,13 @@ local function spinbox(args)
     assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
     assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
 
+    local fmt = "%" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
+    local fmt_init = "%0" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
     local dec_point_x = args.whole_num_precision + 1
 
     assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
 
-    local initial_str = util.sprintf("%" .. wn_prec .. "." .. fr_prec .. "f", value)
+    local initial_str = util.sprintf(fmt_init, value)
 
 ---@diagnostic disable-next-line: discard-returns
     initial_str:gsub("%d", function(char) table.insert(digits, char) end)
@@ -55,12 +57,18 @@ local function spinbox(args)
         e.window.write(" " .. util.strrep("\x1f", fr_prec))
     end
 
+    -- zero the value
+    local function zero()
+        for i = 1, #digits do digits[i] = 0 end
+        value = 0
+    end
+
     -- print out the current value
     local function show_num()
         e.window.setBackgroundColor(e.fg_bg.bkg)
         e.window.setTextColor(e.fg_bg.fgd)
         e.window.setCursorPos(1, 2)
-        e.window.write(util.sprintf("%" .. wn_prec + fr_prec + 1 .. "." .. fr_prec .. "f", value))
+        e.window.write(util.sprintf(fmt, value))
     end
 
     -- init with the default value
@@ -90,6 +98,9 @@ local function spinbox(args)
                     value = value + (digits[i] * (10 ^ -pow))
                 end
             end
+
+            -- min 0
+            if value < 0 then zero() end
 
             show_num()
         end
