@@ -26,7 +26,9 @@ function element.new(args)
         p_window = nil, ---@type table
         position = { x = 1, y = 1 },
         child_offset = { x = 0, y = 0 },
-        bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1}
+        bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1},
+        children = {},
+        mt = {}
     }
 
     local protected = {
@@ -34,6 +36,38 @@ function element.new(args)
         fg_bg = core.graphics.cpair(colors.white, colors.black),
         frame = core.graphics.gframe(1, 1, 1, 1)
     }
+
+    -- append a child element without a tag
+    local function add_child(child)
+        table.insert(self.children, child)
+        return #self.children
+    end
+
+    -- add a child element without a tag
+    function self.mt.__add(_, child) return add_child(child) end
+    function self.mt.__lt(_, child)  return add_child(child) end
+    function self.mt.__le(_, child)  return add_child(child) end
+
+    -- add a child element without a tag
+    ---@param _ table ignored (self)
+    ---@vararg table children
+    ---@return integer|table id/ids
+    function self.mt.__call(_, ...)
+        local children = { ... }
+
+        if #children == 1 then
+            return add_child(children[1])
+        else
+            local ids = {}
+            for _, v in ipairs(children) do table.insert(ids, add_child(v)) end
+            return ids
+        end
+    end
+
+    -- element as string
+    function self.mt.__tostring()
+        return "graphics.element{" .. self.elem_type .. "}"-- @ " .. tostring(self)
+    end
 
     -- SETUP --
 
@@ -131,6 +165,8 @@ function element.new(args)
     ---@class graphics_element
     local public = {}
 
+    setmetatable(public, self.mt)
+
     -- get public interface
     function protected.get() return public end
 
@@ -138,6 +174,19 @@ function element.new(args)
 
     -- get the window object
     function public.window() return protected.window end
+
+    -- add a child element
+    ---@param key string id
+    ---@param child graphics_element
+    function public.add_child(key, child) self.children[key] = child end
+
+    -- get a child element
+    ---@return graphics_element
+    function public.get_child(key) return self.children[key] end
+
+    -- remove child
+    ---@param key string|integer
+    function public.remove(key) self.children[key] = nil end
 
     -- get the foreground/background colors
     function public.get_fg_bg() return protected.fg_bg end
@@ -165,10 +214,13 @@ function element.new(args)
         local in_y = event.y >= self.bounds.y1 and event.y <= self.bounds.y2
 
         if in_x and in_y then
+            local event_T = core.events.touch(event.monitor, (event.x - self.position.x) + 1, (event.y - self.position.y) + 1)
+
             -- handle the touch event, transformed into the window frame
-            protected.handle_touch(core.events.touch(event.monitor,
-                (event.x - self.position.x) + 1,
-                (event.y - self.position.y) + 1))
+            protected.handle_touch(event_T)
+
+            -- pass on touch event to children
+            for _, val in pairs(self.children) do val.handle_touch(event_T) end
         end
     end
 

@@ -114,7 +114,6 @@ local function make(parent, x, y, unit)
         end
     else
         -- boiler side pipes
-
         local steam_pipes_a = {
             -- boiler 1 steam/water pipes
             pipe(0, 1, 6, 1, colors.white, false, true),    -- steam boiler 1 to turbine junction

@@ -43,11 +43,15 @@ local function init(monitor, id)
 
     local burn_control = Div{parent=main,x=13,y=core_height+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
 
+    main(scram, burn_control)
+
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
 
+    burn_control(burn_rate)
+
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
-    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),callback=set_burn}
+    burn_control(PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),callback=set_burn})
 
     local annunciator = Div{parent=main,x=34,y=core_height+4}
 
