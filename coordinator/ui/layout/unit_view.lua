@@ -3,6 +3,7 @@
 --
 
 local core   = require("graphics.core")
+local tcallbackdsp = require("scada-common.tcallbackdsp")
 
 local style = require("coordinator.ui.style")
 
@@ -47,7 +48,7 @@ local function init(monitor, id)
     local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
 
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
-    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),callback=set_burn}
+    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
 
     local annunciator = Div{parent=main,x=34,y=core_height+4}
 
@@ -55,7 +56,7 @@ local function init(monitor, id)
 
     -- connectivity/basic state
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
-    local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.red)}
+    local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
     local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
     local r_auto     = IndicatorLight{parent=annunciator,label="Auto Control",colors=cpair(colors.blue,colors.gray)}
 
@@ -91,6 +92,23 @@ local function init(monitor, id)
     r_mtrp.update(true)
     rps_trp.update(true)
     rps_nof.update(true)
+
+    local heartbeat = true
+    local function _test_toggle()
+        plc_hbeat.update(heartbeat)
+        heartbeat = not heartbeat
+        tcallbackdsp.dispatch(1, _test_toggle)
+    end
+
+    local rps = true
+    local function _test_toggle1()
+        rps_nof.update(rps)
+        rps = not rps
+        tcallbackdsp.dispatch(0.25, _test_toggle1)
+    end
+
+    tcallbackdsp.dispatch(1, _test_toggle)
+    tcallbackdsp.dispatch(0.25, _test_toggle1)
 
     return main
 end

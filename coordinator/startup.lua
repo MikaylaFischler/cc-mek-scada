@@ -3,6 +3,7 @@
 --
 
 require("/initenv").init_env()
+local tcallbackdsp = require("scada-common.tcallbackdsp")
 
 local log  = require("scada-common.log")
 local ppm  = require("scada-common.ppm")
@@ -15,7 +16,7 @@ local config      = require("coordinator.config")
 local coordinator = require("coordinator.coordinator")
 local renderer    = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.3.7"
+local COORDINATOR_VERSION = "alpha-v0.3.8"
 
 local print = util.print
 local println = util.println
@@ -206,8 +207,13 @@ while ui_ok do
             println_ts(msg)
             log.warning(msg)
         else
-            -- a non-clock/main watchdog timer event, check API watchdogs
+            -- a non-clock/main watchdog timer event
+
+            --check API watchdogs
             --apisessions.check_all_watchdogs(param1)
+
+            -- notify timer callback dispatcher
+            tcallbackdsp.handle(param1)
         end
     elseif event == "modem_message" then
         -- got a packet
