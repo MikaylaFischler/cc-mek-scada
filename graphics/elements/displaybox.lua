@@ -15,7 +15,7 @@ local element = require("graphics.element")
 ---@param args displaybox_args
 local function displaybox(args)
     -- create new graphics element base object
-    return element.new(args).complete()
+    return element.new(args).get()
 end
 
 return displaybox

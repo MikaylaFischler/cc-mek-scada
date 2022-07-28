@@ -65,7 +65,7 @@ local function scram_button(args)
         args.callback()
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return scram_button

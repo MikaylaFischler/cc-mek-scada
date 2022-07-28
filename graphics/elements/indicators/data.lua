@@ -93,7 +93,7 @@ local function data(args)
     -- initial value draw
     e.on_update(args.value)
 
-    return e.complete()
+    return e.get()
 end
 
 return data

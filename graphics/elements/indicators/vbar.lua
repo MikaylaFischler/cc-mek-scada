@@ -78,7 +78,7 @@ local function vbar(args)
         end
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return vbar

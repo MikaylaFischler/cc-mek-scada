@@ -141,7 +141,7 @@ local function pipenet(args)
 
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return pipenet

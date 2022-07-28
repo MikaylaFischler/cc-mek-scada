@@ -52,7 +52,7 @@ local function textbox(args)
         e.window.write(lines[i])
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return textbox

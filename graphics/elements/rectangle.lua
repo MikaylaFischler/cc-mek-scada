@@ -110,7 +110,7 @@ local function rectangle(args)
         end
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return rectangle

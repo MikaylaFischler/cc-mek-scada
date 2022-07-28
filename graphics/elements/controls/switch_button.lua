@@ -73,7 +73,7 @@ local function switch_button(args)
         args.callback(state)
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return switch_button

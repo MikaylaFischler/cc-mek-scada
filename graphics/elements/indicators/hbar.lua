@@ -99,7 +99,7 @@ local function hbar(args)
     -- initialize to 0
     e.on_update(0)
 
-    return e.complete()
+    return e.get()
 end
 
 return hbar

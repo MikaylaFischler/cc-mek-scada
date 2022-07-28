@@ -112,7 +112,7 @@ local function spinbox(args)
     ---@return number|integer
     function e.get_value() return value end
 
-    return e.complete()
+    return e.get()
 end
 
 return spinbox

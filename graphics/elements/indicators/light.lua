@@ -45,7 +45,7 @@ local function indicator_light(args)
     e.on_update(false)
     e.window.write(args.label)
 
-    return e.complete()
+    return e.get()
 end
 
 return indicator_light

@@ -63,7 +63,7 @@ local function push_button(args)
         args.callback()
     end
 
-    return e.complete()
+    return e.get()
 end
 
 return push_button
