@@ -4,6 +4,7 @@ local element = require("graphics.element")
 
 ---@class div_args
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -13,9 +14,10 @@ local element = require("graphics.element")
 
 -- new div element
 ---@param args div_args
+---@return graphics_element element, element_id id
 local function div(args)
     -- create new graphics element base object
-    return element.new(args).get()
+    return element.new(args).complete()
 end
 
 return div

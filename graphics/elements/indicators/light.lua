@@ -9,12 +9,14 @@ local element = require("graphics.element")
 ---@field colors cpair on/off colors (a/b respectively)
 ---@field min_label_width? integer label length if omitted
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
 -- new indicator light
 ---@param args indicator_light_args
+---@return graphics_element element, element_id id
 local function indicator_light(args)
     assert(type(args.label) == "string", "graphics.elements.indicators.light: label is a required field")
     assert(type(args.colors) == "table", "graphics.elements.indicators.light: colors is a required field")
@@ -43,7 +45,7 @@ local function indicator_light(args)
     e.on_update(false)
     e.window.write(args.label)
 
-    return e.get()
+    return e.complete()
 end
 
 return indicator_light

@@ -9,6 +9,7 @@ local element = {}
 ---@class graphics_args_generic
 ---@field window? table
 ---@field parent? graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field offset_x? integer 0 if omitted
@@ -22,7 +23,9 @@ local element = {}
 ---@param args graphics_args_generic arguments
 function element.new(args)
     local self = {
+        id = -1,
         elem_type = debug.getinfo(2).name,
+        define_completed = false,
         p_window = nil, ---@type table
         position = { x = 1, y = 1 },
         child_offset = { x = 0, y = 0 },
@@ -31,42 +34,16 @@ function element.new(args)
         mt = {}
     }
 
+    ---@class graphics_template
     local protected = {
         window = nil,   ---@type table
         fg_bg = core.graphics.cpair(colors.white, colors.black),
         frame = core.graphics.gframe(1, 1, 1, 1)
     }
 
-    -- append a child element without a tag
-    local function add_child(child)
-        table.insert(self.children, child)
-        return #self.children
-    end
-
-    -- add a child element without a tag
-    function self.mt.__add(_, child) return add_child(child) end
-    function self.mt.__lt(_, child)  return add_child(child) end
-    function self.mt.__le(_, child)  return add_child(child) end
-
-    -- add a child element without a tag
-    ---@param _ table ignored (self)
-    ---@vararg table children
-    ---@return integer|table id/ids
-    function self.mt.__call(_, ...)
-        local children = { ... }
-
-        if #children == 1 then
-            return add_child(children[1])
-        else
-            local ids = {}
-            for _, v in ipairs(children) do table.insert(ids, add_child(v)) end
-            return ids
-        end
-    end
-
     -- element as string
     function self.mt.__tostring()
-        return "graphics.element{" .. self.elem_type .. "}"-- @ " .. tostring(self)
+        return "graphics.element{" .. self.elem_type .. "} @ " .. tostring(self)
     end
 
     -- SETUP --
@@ -167,8 +144,21 @@ function element.new(args)
 
     setmetatable(public, self.mt)
 
-    -- get public interface
-    function protected.get() return public end
+    -- get public interface and wrap up element creation
+    ---@return graphics_element element, element_id id
+    function protected.complete()
+        if not self.define_completed then
+            self.define_completed = true
+
+            if args.parent then
+                self.id = args.parent.__add_child(args.id, public)
+            end
+
+            return public, self.id
+        else
+            assert("graphics.element{" .. self.elem_type .. "}: illegal duplicate call to complete()")
+        end
+    end
 
     -- PUBLIC FUNCTIONS --
 
@@ -176,9 +166,18 @@ function element.new(args)
     function public.window() return protected.window end
 
     -- add a child element
-    ---@param key string id
+    ---@param key string|nil id
     ---@param child graphics_element
-    function public.add_child(key, child) self.children[key] = child end
+    ---@return graphics_element element, integer|string key
+    function public.__add_child(key, child)
+        if key == nil then
+            table.insert(self.children, child)
+            return child, #self.children
+        else
+            self.children[key] = child
+            return child, key
+        end
+    end
 
     -- get a child element
     ---@return graphics_element
@@ -187,6 +186,10 @@ function element.new(args)
     -- remove child
     ---@param key string|integer
     function public.remove(key) self.children[key] = nil end
+
+    ---@param id element_id
+    function public.get_element_by_id(id)
+    end
 
     -- get the foreground/background colors
     function public.get_fg_bg() return protected.fg_bg end

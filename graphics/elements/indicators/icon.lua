@@ -14,12 +14,14 @@ local element = require("graphics.element")
 ---@field value? integer default state, defaults to 1
 ---@field min_label_width? integer label length if omitted
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
 -- new icon indicator
 ---@param args icon_indicator_args
+---@return graphics_element element, element_id id
 local function icon(args)
     assert(type(args.label) == "string", "graphics.elements.indicators.icon: label is a required field")
     assert(type(args.states) == "table", "graphics.elements.indicators.icon: states is a required field")
@@ -60,7 +62,7 @@ local function icon(args)
     -- initial icon draw
     e.on_update(args.value or 1)
 
-    return e.get()
+    return e.complete()
 end
 
 return icon

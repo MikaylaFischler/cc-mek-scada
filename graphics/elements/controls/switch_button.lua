@@ -9,6 +9,7 @@ local element = require("graphics.element")
 ---@field min_width? integer text length + 2 if omitted
 ---@field active_fg_bg cpair foreground/background colors when pressed
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
@@ -16,6 +17,7 @@ local element = require("graphics.element")
 
 -- new switch button (latch high/low)
 ---@param args switch_button_args
+---@return graphics_element element, element_id id
 local function switch_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.switch_button: text is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.switch_button: callback is a required field")
@@ -71,7 +73,7 @@ local function switch_button(args)
         args.callback(state)
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return switch_button

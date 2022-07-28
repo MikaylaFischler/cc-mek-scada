@@ -7,6 +7,7 @@ local element = require("graphics.element")
 ---@class rectangle_args
 ---@field border? graphics_border
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -16,6 +17,7 @@ local element = require("graphics.element")
 
 -- new rectangle
 ---@param args rectangle_args
+---@return graphics_element element, element_id id
 local function rectangle(args)
     -- offset children
     if args.border ~= nil then
@@ -108,7 +110,7 @@ local function rectangle(args)
         end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return rectangle

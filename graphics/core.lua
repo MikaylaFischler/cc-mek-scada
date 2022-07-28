@@ -40,6 +40,8 @@ graphics.TEXT_ALIGN = {
 ---@field color color
 ---@field even boolean
 
+---@alias element_id string|integer
+
 -- create a new border definition
 ---@param width integer border width
 ---@param color color border color
@@ -111,7 +113,7 @@ end
 ---@field w integer width
 ---@field h integer height
 ---@field color color pipe color
----@field thin boolean true for 1 subpixels, false (default) for 2
+---@field thin boolean true for 1 subpixel, false (default) for 2
 ---@field align_tr boolean false to align bottom left (default), true to align top right
 
 -- create a new pipe
@@ -122,7 +124,7 @@ end
 ---@param x2 integer ending x, origin is 0
 ---@param y2 integer ending y, origin is 0
 ---@param color color pipe color
----@param thin? boolean true for 1 subpixels, false (default) for 2
+---@param thin? boolean true for 1 subpixel, false (default) for 2
 ---@param align_tr? boolean false to align bottom left (default), true to align top right
 ---@return pipe
 function graphics.pipe(x1, y1, x2, y2, color, thin, align_tr)

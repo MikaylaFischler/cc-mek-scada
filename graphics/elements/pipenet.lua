@@ -6,14 +6,16 @@ local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class pipenet_args
----@field parent graphics_element
----@field x? integer 1 if omitted
----@field y? integer 1 if omitted
 ---@field pipes table pipe list
 ---@field bg? color background color
+---@field parent graphics_element
+---@field id? string element id
+---@field x? integer 1 if omitted
+---@field y? integer 1 if omitted
 
 -- new pipe network
 ---@param args pipenet_args
+---@return graphics_element element, element_id id
 local function pipenet(args)
     assert(type(args.pipes) == "table", "graphics.elements.indicators.pipenet: pipes is a required field")
 
@@ -139,7 +141,7 @@ local function pipenet(args)
 
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return pipenet

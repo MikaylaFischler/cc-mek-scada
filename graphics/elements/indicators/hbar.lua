@@ -8,6 +8,7 @@ local element = require("graphics.element")
 ---@field show_percent? boolean whether or not to show the percent
 ---@field bar_fg_bg? cpair bar foreground/background colors if showing percent
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -17,6 +18,8 @@ local element = require("graphics.element")
 
 -- new horizontal bar
 ---@param args hbar_args
+---@return graphics_element element, element_id id
+---@return graphics_element element, element_id id
 local function hbar(args)
     -- properties/state
     local last_num_bars = -1
@@ -96,7 +99,7 @@ local function hbar(args)
     -- initialize to 0
     e.on_update(0)
 
-    return e.get()
+    return e.complete()
 end
 
 return hbar

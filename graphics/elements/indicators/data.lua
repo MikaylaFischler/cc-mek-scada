@@ -35,6 +35,7 @@ end
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
 ---@field value any default value
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width integer length
@@ -42,6 +43,7 @@ end
 
 -- new data indicator
 ---@param args data_indicator_args
+---@return graphics_element element, element_id id
 local function data(args)
     assert(type(args.label) == "string", "graphics.elements.indicators.data: label is a required field")
     assert(type(args.format) == "string", "graphics.elements.indicators.data: format is a required field")
@@ -91,7 +93,7 @@ local function data(args)
     -- initial value draw
     e.on_update(args.value)
 
-    return e.get()
+    return e.complete()
 end
 
 return data

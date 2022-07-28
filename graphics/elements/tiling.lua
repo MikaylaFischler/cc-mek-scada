@@ -9,6 +9,7 @@ local element = require("graphics.element")
 ---@field even? boolean whether to account for rectangular pixels
 ---@field border_c? color optional frame color
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -18,6 +19,7 @@ local element = require("graphics.element")
 
 -- new tiling box
 ---@param args tiling_args
+---@return graphics_element element, element_id id
 local function tiling(args)
     assert(type(args.fill_c) == "table", "graphics.elements.tiling: fill_c is a required field")
 
@@ -77,7 +79,7 @@ local function tiling(args)
         end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return tiling

@@ -9,8 +9,9 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 ---@class textbox_args
 ---@field text string text to show
----@field parent graphics_element
 ---@field alignment? TEXT_ALIGN text alignment, left by default
+---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -20,6 +21,7 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 -- new text box
 ---@param args textbox_args
+---@return graphics_element element, element_id id
 local function textbox(args)
     assert(type(args.text) == "string", "graphics.elements.textbox: text is a required field")
 
@@ -50,7 +52,7 @@ local function textbox(args)
         e.window.write(lines[i])
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return textbox

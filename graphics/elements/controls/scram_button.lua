@@ -9,12 +9,14 @@ local element = require("graphics.element")
 ---@class scram_button_args
 ---@field callback function function to call on touch
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
 -- new scram button
 ---@param args scram_button_args
+---@return graphics_element element, element_id id
 local function scram_button(args)
     assert(type(args.callback) == "function", "graphics.elements.controls.scram_button: callback is a required field")
 
@@ -63,7 +65,7 @@ local function scram_button(args)
         args.callback()
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return scram_button

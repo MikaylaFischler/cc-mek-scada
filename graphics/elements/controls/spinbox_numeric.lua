@@ -9,12 +9,14 @@ local util    = require("scada-common.util")
 ---@field fractional_precision integer number of fractional digits
 ---@field arrow_fg_bg cpair arrow foreground/background colors
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
 -- new spinbox control (minimum value is 0)
 ---@param args spinbox_args
+---@return graphics_element element, element_id id
 local function spinbox(args)
     -- properties
     local value = args.default or 0.0
@@ -110,7 +112,7 @@ local function spinbox(args)
     ---@return number|integer
     function e.get_value() return value end
 
-    return e.get()
+    return e.complete()
 end
 
 return spinbox

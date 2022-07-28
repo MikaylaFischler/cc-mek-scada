@@ -13,6 +13,7 @@ local element = require("graphics.element")
 ---@field value? integer default state, defaults to 1
 ---@field min_width? integer max state text length if omitted
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field height? integer 1 if omitted, must be an odd number
@@ -20,6 +21,7 @@ local element = require("graphics.element")
 
 -- new state indicator
 ---@param args state_indicator_args
+---@return graphics_element element, element_id id
 local function state_indicator(args)
     assert(type(args.states) == "table", "graphics.elements.indicators.state: states is a required field")
 
@@ -70,7 +72,7 @@ local function state_indicator(args)
     -- initial draw
     e.on_update(args.value or 1)
 
-    return e.get()
+    return e.complete()
 end
 
 return state_indicator

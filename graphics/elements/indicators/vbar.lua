@@ -6,6 +6,7 @@ local element = require("graphics.element")
 
 ---@class vbar_args
 ---@field parent graphics_element
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -15,6 +16,7 @@ local element = require("graphics.element")
 
 -- new vertical bar
 ---@param args vbar_args
+---@return graphics_element element, element_id id
 local function vbar(args)
     -- properties/state
     local last_num_bars = -1
@@ -76,7 +78,7 @@ local function vbar(args)
         end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return vbar
