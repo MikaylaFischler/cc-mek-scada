@@ -187,8 +187,20 @@ function element.new(args)
     ---@param key string|integer
     function public.remove(key) self.children[key] = nil end
 
+    -- attempt to get a child element by ID (does not include this element itself)
     ---@param id element_id
+    ---@return graphics_element|nil element
     function public.get_element_by_id(id)
+        if self.children[id] == nil then
+            for _, child in pairs(self.children) do
+                local elem = child.get_element_by_id(id)
+                if elem ~= nil then return elem end
+            end
+        else
+            return self.children[id]
+        end
+
+        return nil
     end
 
     -- get the foreground/background colors
