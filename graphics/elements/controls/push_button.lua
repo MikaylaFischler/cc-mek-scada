@@ -37,9 +37,14 @@ local function push_button(args)
     local h_pad = math.floor((e.frame.w - text_width) / 2) + 1
     local v_pad = math.floor(e.frame.h / 2) + 1
 
-    -- write the button text
-    e.window.setCursorPos(h_pad, v_pad)
-    e.window.write(args.text)
+    -- draw the button
+    local function draw()
+        e.window.clear()
+
+        -- write the button text
+        e.window.setCursorPos(h_pad, v_pad)
+        e.window.write(args.text)
+    end
 
     -- handle touch
     ---@param event monitor_touch monitor touch event
@@ -49,19 +54,22 @@ local function push_button(args)
             -- show as pressed
             e.window.setTextColor(args.active_fg_bg.fgd)
             e.window.setBackgroundColor(args.active_fg_bg.bkg)
-            e.window.redraw()
+            draw()
 
-            -- show as unpressed in 0.5 seconds
-            tcd.dispatch(0.5, function ()
+            -- show as unpressed in 0.25 seconds
+            tcd.dispatch(0.25, function ()
                 e.window.setTextColor(e.fg_bg.fgd)
                 e.window.setBackgroundColor(e.fg_bg.bkg)
-                e.window.redraw()
+                draw()
             end)
         end
 
         -- call the touch callback
         args.callback()
     end
+
+    -- initial draw
+    draw()
 
     return e.get()
 end
