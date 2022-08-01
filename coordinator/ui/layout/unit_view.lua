@@ -46,9 +46,9 @@ local function init(monitor, id)
         t = 300
     end
 
-    local core_view = CoreMap{parent=main,x=2,y=3}
-    core_view.update(t)
-    local core_shift = core_view.height()
+    local core_map = CoreMap{parent=main,x=2,y=3}
+    core_map.update(t)
+    local core_shift = core_map.height()
 
     local f = function () print("scram!") end
     local scram = SCRAMButton{parent=main,x=2,y=core_shift+4,callback=f,fg_bg=scram_fg_bg}
