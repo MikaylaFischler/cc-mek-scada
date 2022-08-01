@@ -47,7 +47,7 @@ local function tiling(args)
         start_x = 1 + util.trinary(even, 2, 1)
         start_y = 2
 
-        inner_width = math.floor((e.frame.w - 2 * util.trinary(even, 2, 1)) / 2)
+        inner_width = math.floor((e.frame.w - 2 * util.trinary(even, 2, 1)) / util.trinary(even, 2, 1))
         inner_height = e.frame.h - 2
     end
 
@@ -63,9 +63,9 @@ local function tiling(args)
         for x = 1, inner_width do
             if alternator then
                 if even then
-                    e.window.blit("NF", "00", fill_a .. fill_a)
+                    e.window.blit("  ", "00", fill_a .. fill_a)
                 else
-                    e.window.blit("F", "0", fill_a)
+                    e.window.blit(" ", "0", fill_a)
                 end
             else
                 if even then
@@ -75,8 +75,10 @@ local function tiling(args)
                 end
             end
 
-            if x ~= inner_width then alternator = not alternator end
+            alternator = not alternator
         end
+
+        if inner_width % 2 == 0 then alternator = not alternator end
     end
 
     return e.get()
