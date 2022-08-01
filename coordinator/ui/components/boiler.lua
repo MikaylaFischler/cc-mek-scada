@@ -47,6 +47,7 @@ local function new_view(root, x, y, ps)
     ps.subscribe("steam", steam.update)
     ps.subscribe("ccool", ccool.update)
 
+    ---@fixme test code
     hcool.update(0.22)
     water.update(1)
     steam.update(0.05)

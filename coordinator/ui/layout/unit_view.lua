@@ -10,8 +10,9 @@ local style = require("coordinator.ui.style")
 local DisplayBox = require("graphics.elements.displaybox")
 local Div        = require("graphics.elements.div")
 local TextBox    = require("graphics.elements.textbox")
-local Tiling     = require("graphics.elements.tiling")
+local ColorMap   = require("graphics.elements.colormap")
 
+local CoreMap       = require("graphics.elements.indicators.coremap")
 local DataIndicator  = require("graphics.elements.indicators.data")
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
 local IndicatorLight = require("graphics.elements.indicators.light")
@@ -31,18 +32,28 @@ local function init(monitor, id)
 
     TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
-    local reactor_width = 18
-    local core_width = ((reactor_width - 2) * 2) + 4
-    local core_height = reactor_width
-
     local scram_fg_bg = core.graphics.cpair(colors.white, colors.gray)
 
-    local reactor_top_view = Tiling{parent=main,x=2,y=3,width=core_width,height=core_height,fill_c=cpair(colors.lightGray,colors.lightBlue),even=true,border_c=colors.gray}
+    ---@fixme test code
+    local t = 300
+    if id == 1 then
+        t = 340
+    elseif id == 2 then
+        t = 340
+    elseif id == 3 then
+        t = 300
+    elseif id == 4 then
+        t = 300
+    end
+
+    local core_view = CoreMap{parent=main,x=2,y=3}
+    core_view.update(t)
+    local core_shift = core_view.height()
 
     local f = function () print("scram!") end
-    local scram = SCRAMButton{parent=main,x=2,y=core_height+4,callback=f,fg_bg=scram_fg_bg}
+    local scram = SCRAMButton{parent=main,x=2,y=core_shift+4,callback=f,fg_bg=scram_fg_bg}
 
-    local burn_control = Div{parent=main,x=13,y=core_height+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_control = Div{parent=main,x=13,y=core_shift+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
 
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
@@ -50,7 +61,11 @@ local function init(monitor, id)
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
 
-    local annunciator = Div{parent=main,x=34,y=core_height+4}
+    ---@fixme test code
+    main.line_break()
+    ColorMap{parent=main}
+
+    local annunciator = Div{parent=main,x=34,y=3}
 
     -- annunciator colors per IAEA-TECDOC-812 recommendations
 
@@ -63,8 +78,8 @@ local function init(monitor, id)
     annunciator.line_break()
 
     -- annunciator fields
-    local r_trip = IndicatorLight{parent=annunciator,label="Reactor Trip",colors=cpair(colors.red,colors.gray)}
-    local r_mtrp = IndicatorLight{parent=annunciator,label="Manual Reactor Trip",colors=cpair(colors.red,colors.gray)}
+    local r_trip = IndicatorLight{parent=annunciator,label="Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
+    local r_mtrp = IndicatorLight{parent=annunciator,label="Manual Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
     local r_rtrp = IndicatorLight{parent=annunciator,label="RCP Trip",colors=cpair(colors.red,colors.gray)}
     local r_cflo = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=cpair(colors.yellow,colors.gray)}
     local r_temp = IndicatorLight{parent=annunciator,label="Reactor Temp. High",colors=cpair(colors.red,colors.gray)}
@@ -86,6 +101,16 @@ local function init(monitor, id)
     local rps_flt = IndicatorLight{parent=annunciator,label="PPM Fault",colors=cpair(colors.yellow,colors.gray)}
     local rps_tmo = IndicatorLight{parent=annunciator,label="Timeout",colors=cpair(colors.yellow,colors.gray)}
 
+    annunciator.line_break()
+
+    -- cooling
+    local c_brm  = IndicatorLight{parent=annunciator,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_cfm  = IndicatorLight{parent=annunciator,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_sfm  = IndicatorLight{parent=annunciator,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_mwrf = IndicatorLight{parent=annunciator,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
+    local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+
+    ---@fixme test code
     plc_hbeat.update(true)
     r_auto.update(true)
     r_trip.update(true)
@@ -93,6 +118,7 @@ local function init(monitor, id)
     rps_trp.update(true)
     rps_nof.update(true)
 
+    ---@fixme test code
     local heartbeat = true
     local function _test_toggle()
         plc_hbeat.update(heartbeat)
@@ -100,6 +126,7 @@ local function init(monitor, id)
         tcallbackdsp.dispatch(1, _test_toggle)
     end
 
+    ---@fixme test code
     local rps = true
     local function _test_toggle1()
         rps_nof.update(rps)
@@ -107,6 +134,7 @@ local function init(monitor, id)
         tcallbackdsp.dispatch(0.25, _test_toggle1)
     end
 
+    ---@fixme test code
     tcallbackdsp.dispatch(1, _test_toggle)
     tcallbackdsp.dispatch(0.25, _test_toggle1)
 

@@ -50,6 +50,7 @@ local function new_view(root, x, y, ps)
     ps.subscribe("hcool", hcool.update)
     ps.subscribe("waste", waste.update)
 
+    ---@fixme test code
     fuel.update(1)
     ccool.update(0.85)
     hcool.update(0.08)

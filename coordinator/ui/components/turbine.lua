@@ -36,6 +36,7 @@ local function new_view(root, x, y, ps)
 
     ps.subscribe("steam", steam.update)
 
+    ---@fixme test code
     steam.update(0.12)
 end
 
