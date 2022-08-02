@@ -6,31 +6,33 @@ local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class core_map_args
+---@field reactor_l integer reactor length
+---@field reactor_w integer reactor width
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
----@field fg_bg? cpair foreground/background colors
 
 -- new core map box
 ---@param args core_map_args
 ---@return graphics_element element, element_id id
 local function core_map(args)
-    args.width = 30
-    args.height = 18
+    assert(util.is_int(args.reactor_l), "graphics.elements.indicators.coremap: reactor_l is a required field")
+    assert(util.is_int(args.reactor_w), "graphics.elements.indicators.coremap: reactor_w is a required field")
 
-    -- arbitrary foreground color, gray reactor frame background
-    args.fg_bg = core.graphics.cpair(colors.white, colors.gray)
+    args.width = args.reactor_l
+    args.height = args.reactor_w
+
+    -- inherit only foreground color
+    args.fg_bg = core.graphics.cpair(args.parent.get_fg_bg().fgd, colors.gray)
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- draw core map box
-
     local start_x = 2
     local start_y = 2
 
-    local inner_width = math.floor((e.frame.w - 2) / 2)
+    local inner_width = e.frame.w - 2
     local inner_height = e.frame.h - 2
     local alternator = true
 
@@ -40,36 +42,58 @@ local function core_map(args)
     assert(start_x <= inner_width, "graphics.elements.indicators.coremap: start_x > inner_width")
     assert(start_y <= inner_height, "graphics.elements.indicators.coremap: start_y > inner_height")
 
+    -- label coordinates
+
+    e.window.setTextColor(colors.white)
+
+    for x = 0, (inner_width - 1) do
+        e.window.setCursorPos(x + start_x, 1)
+        e.window.write(util.sprintf("%X", x))
+    end
+
+    for y = 0, (inner_height - 1) do
+        e.window.setCursorPos(1, y + start_y)
+        e.window.write(util.sprintf("%X", y))
+    end
+
+    -- even out bottom edge
+    e.window.setTextColor(e.fg_bg.bkg)
+    e.window.setBackgroundColor(args.parent.get_fg_bg().bkg)
+    e.window.setCursorPos(1, e.frame.h)
+    e.window.write(util.strrep("\x8f", e.frame.w))
+    e.window.setTextColor(e.fg_bg.fgd)
+    e.window.setBackgroundColor(e.fg_bg.bkg)
+
     -- draw the core
+    ---@param t number temperature in K
     local function draw(t)
         local i = 1
-        local back_c = "FF"
-        local text_c = "FF"
+        local back_c = "F"
+        local text_c = "8"
 
         -- determine fuel assembly coloring
         if t <= 300 then
             -- gray
-            back_c = "88"
+            text_c = "8"
         elseif t <= 350 then
             -- blue
-            back_c = "33"
+            text_c = "3"
         elseif t < 600 then
             -- green
-            back_c = "DD"
+            text_c = "D"
         elseif t < 1000 then
             -- yellow
-            back_c = "44"
+            text_c = "4"
+            -- back_c = "8"
         elseif t < 1200 then
             -- orange
-            back_c = "11"
+            text_c = "1"
         elseif t < 1300 then
             -- red
-            back_c = "EE"
-            text_c = "00"
+            text_c = "E"
         else
             -- pink
-            back_c = "22"
-            text_c = "00"
+            text_c = "2"
         end
 
         -- draw pattern
@@ -80,9 +104,9 @@ local function core_map(args)
 
                 if alternator then
                     i = i + 1
-                    e.window.blit(str, text_c, back_c)
+                    e.window.blit("\x07", text_c, back_c)
                 else
-                    e.window.blit("  ", "00", "00")
+                    e.window.blit("\x07", "7", "8")
                 end
 
                 alternator = not alternator
@@ -92,10 +116,11 @@ local function core_map(args)
         end
     end
 
+    -- initial draw at base temp
     draw(300)
 
     -- on state change
-    ---@param temperature integer temperature in Kelvin
+    ---@param temperature number temperature in Kelvin
     function e.on_update(temperature)
         draw(temperature)
     end

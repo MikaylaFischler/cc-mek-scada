@@ -46,7 +46,7 @@ local function init(monitor, id)
         t = 300
     end
 
-    local core_map = CoreMap{parent=main,x=2,y=3}
+    local core_map = CoreMap{parent=main,x=2,y=3,reactor_l=18,reactor_w=18}
     core_map.update(t)
     local core_shift = core_map.height()
 
