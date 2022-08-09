@@ -3,20 +3,20 @@
 --
 
 require("/initenv").init_env()
+
+local log          = require("scada-common.log")
+local ppm          = require("scada-common.ppm")
 local tcallbackdsp = require("scada-common.tcallbackdsp")
+local util         = require("scada-common.util")
 
-local log  = require("scada-common.log")
-local ppm  = require("scada-common.ppm")
-local util = require("scada-common.util")
+local core         = require("graphics.core")
 
-local core = require("graphics.core")
+local apisessions  = require("coordinator.apisessions")
+local config       = require("coordinator.config")
+local coordinator  = require("coordinator.coordinator")
+local renderer     = require("coordinator.renderer")
 
-local apisessions = require("coordinator.apisessions")
-local config      = require("coordinator.config")
-local coordinator = require("coordinator.coordinator")
-local renderer    = require("coordinator.renderer")
-
-local COORDINATOR_VERSION = "alpha-v0.3.10"
+local COORDINATOR_VERSION = "alpha-v0.3.11"
 
 local print = util.print
 local println = util.println

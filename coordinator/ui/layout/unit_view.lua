@@ -12,11 +12,12 @@ local Div        = require("graphics.elements.div")
 local TextBox    = require("graphics.elements.textbox")
 local ColorMap   = require("graphics.elements.colormap")
 
-local CoreMap       = require("graphics.elements.indicators.coremap")
+local CoreMap        = require("graphics.elements.indicators.coremap")
 local DataIndicator  = require("graphics.elements.indicators.data")
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
 local IndicatorLight = require("graphics.elements.indicators.light")
 local StateIndicator = require("graphics.elements.indicators.state")
+local VerticalBar    = require("graphics.elements.indicators.vbar")
 
 local PushButton     = require("graphics.elements.controls.push_button")
 local SCRAMButton    = require("graphics.elements.controls.scram_button")
@@ -32,7 +33,8 @@ local function init(monitor, id)
 
     TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
-    local scram_fg_bg = core.graphics.cpair(colors.white, colors.gray)
+    local scram_fg_bg = cpair(colors.white, colors.gray)
+    local lu_cpair    = cpair(colors.gray, colors.gray)
 
     ---@fixme test code
     local t = 300
@@ -50,6 +52,40 @@ local function init(monitor, id)
     core_map.update(t)
     local core_shift = core_map.height()
 
+    local stat_fg_bg = cpair(colors.black,colors.white)
+
+    TextBox{parent=main,x=21,y=3,text="Core Temp",height=1,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%9.2f",value=300,unit="K",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    main.line_break()
+
+    TextBox{parent=main,x=21,text="Burn Rate",height=1,width=12,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%6.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    main.line_break()
+
+    TextBox{parent=main,x=21,text="Heating Rate",height=1,width=12,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%11.0f",value=0,unit="",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    main.line_break()
+
+    TextBox{parent=main,text="CR",x=21,y=12,height=1,width=3,fg_bg=style.label}
+    local ctrl_rods = HorizontalBar{parent=main,x=24,y=12,show_percent=false,bar_fg_bg=cpair(colors.black,colors.gray),height=1,width=9}
+    ctrl_rods.update(0.75)
+
+    TextBox{parent=main,text="FL",x=21,y=20,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="WS",x=24,y=20,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="CL",x=28,y=20,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="HC",x=31,y=20,height=1,width=2,fg_bg=style.label}
+
+    local fuel  = VerticalBar{parent=main,x=21,y=14,fg_bg=cpair(colors.black,colors.gray),height=5,width=2}
+    local waste = VerticalBar{parent=main,x=24,y=14,fg_bg=cpair(colors.brown,colors.gray),height=5,width=2}
+    local ccool = VerticalBar{parent=main,x=28,y=14,fg_bg=cpair(colors.lightBlue,colors.gray),height=5,width=2}
+    local hcool = VerticalBar{parent=main,x=31,y=14,fg_bg=cpair(colors.orange,colors.gray),height=5,width=2}
+
+    ---@fixme test code
+    fuel.update(1)
+    ccool.update(0.85)
+    hcool.update(0.08)
+    waste.update(0.32)
+
     local f = function () print("scram!") end
     local scram = SCRAMButton{parent=main,x=2,y=core_shift+4,callback=f,fg_bg=scram_fg_bg}
 
@@ -63,7 +99,7 @@ local function init(monitor, id)
 
     ---@fixme test code
     main.line_break()
-    ColorMap{parent=main}
+    ColorMap{parent=main,x=2,y=51}
 
     local annunciator = Div{parent=main,x=34,y=3}
 

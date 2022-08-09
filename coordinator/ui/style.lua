@@ -9,6 +9,7 @@ local cpair = core.graphics.cpair
 
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
+style.label = cpair(colors.gray, colors.lightGray)
 
 style.colors = {
     { c = colors.red,       hex = 0xdf4949 },

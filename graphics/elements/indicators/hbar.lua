@@ -35,7 +35,7 @@ local function hbar(args)
     -- determine bar colors
     local bar_bkg = e.fg_bg.blit_bkg
     local bar_fgd = e.fg_bg.blit_fgd
-    if args.show_percent and args.bar_fg_bg ~= nil then
+    if args.bar_fg_bg ~= nil then
         bar_bkg = args.bar_fg_bg.blit_bkg
         bar_fgd = args.bar_fg_bg.blit_fgd
     end
