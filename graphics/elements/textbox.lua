@@ -42,9 +42,9 @@ local function textbox(args)
 
         -- use cursor position to align this line
         if alignment == TEXT_ALIGN.CENTER then
-            e.window.setCursorPos(math.floor((e.frame.w - len) / 2), i)
+            e.window.setCursorPos(math.floor((e.frame.w - len) / 2) + 1, i)
         elseif alignment == TEXT_ALIGN.RIGHT then
-            e.window.setCursorPos(e.frame.w - len, i)
+            e.window.setCursorPos((e.frame.w - len) + 1, i)
         else
             e.window.setCursorPos(1, i)
         end
