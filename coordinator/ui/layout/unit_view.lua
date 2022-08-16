@@ -51,7 +51,6 @@ local function init(monitor, id)
 
     local core_map = CoreMap{parent=main,x=2,y=3,reactor_l=18,reactor_w=18}
     core_map.update(t)
-    local core_shift = core_map.height()
 
     local stat_fg_bg = cpair(colors.black,colors.white)
 
@@ -63,30 +62,38 @@ local function init(monitor, id)
     DataIndicator{parent=main,x=21,label="",format="%6.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
+    TextBox{parent=main,x=21,text="Commanded Burn Rate",height=2,width=12,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%6.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    main.line_break()
+
     TextBox{parent=main,x=21,text="Heating Rate",height=1,width=12,fg_bg=style.label}
     DataIndicator{parent=main,x=21,label="",format="%11.0f",value=0,unit="",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
-    TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="WS",x=24,y=19,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="CL",x=28,y=19,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="HC",x=31,y=19,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,x=21,text="Containment Integrity",height=2,width=12,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%9.0f",value=100,unit="%",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    main.line_break()
 
-    local fuel  = VerticalBar{parent=main,x=21,y=12,fg_bg=cpair(colors.black,colors.gray),height=6,width=2}
-    local waste = VerticalBar{parent=main,x=24,y=12,fg_bg=cpair(colors.brown,colors.gray),height=6,width=2}
-    local ccool = VerticalBar{parent=main,x=28,y=12,fg_bg=cpair(colors.lightBlue,colors.gray),height=6,width=2}
-    local hcool = VerticalBar{parent=main,x=31,y=12,fg_bg=cpair(colors.orange,colors.gray),height=6,width=2}
+    -- TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
+    -- TextBox{parent=main,text="WS",x=24,y=19,height=1,width=2,fg_bg=style.label}
+    -- TextBox{parent=main,text="CL",x=28,y=19,height=1,width=2,fg_bg=style.label}
+    -- TextBox{parent=main,text="HC",x=31,y=19,height=1,width=2,fg_bg=style.label}
 
-    ---@fixme test code
-    fuel.update(1)
-    ccool.update(0.85)
-    hcool.update(0.08)
-    waste.update(0.32)
+    -- local fuel  = VerticalBar{parent=main,x=21,y=12,fg_bg=cpair(colors.black,colors.gray),height=6,width=2}
+    -- local waste = VerticalBar{parent=main,x=24,y=12,fg_bg=cpair(colors.brown,colors.gray),height=6,width=2}
+    -- local ccool = VerticalBar{parent=main,x=28,y=12,fg_bg=cpair(colors.lightBlue,colors.gray),height=6,width=2}
+    -- local hcool = VerticalBar{parent=main,x=31,y=12,fg_bg=cpair(colors.orange,colors.gray),height=6,width=2}
+
+    -- ---@fixme test code
+    -- fuel.update(1)
+    -- ccool.update(0.85)
+    -- hcool.update(0.08)
+    -- waste.update(0.32)
 
     local f = function () print("scram!") end
-    local scram = SCRAMButton{parent=main,x=2,y=core_shift+4,callback=f,fg_bg=scram_fg_bg}
+    local scram = SCRAMButton{parent=main,x=2,y=22,callback=f,fg_bg=scram_fg_bg}
 
-    local burn_control = Div{parent=main,x=14,y=core_shift+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_control = Div{parent=main,x=14,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
 
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
@@ -118,7 +125,7 @@ local function init(monitor, id)
     }
 
     local waste_sel_f = function (s) print("waste: " .. s) end
-    local waste_sel = Div{parent=main,x=2,y=core_shift+8,width=31,height=3,fg_bg=cpair(colors.black, colors.white)}
+    local waste_sel = Div{parent=main,x=2,y=26,width=31,height=3,fg_bg=cpair(colors.black, colors.white)}
     MultiButton{parent=waste_sel,x=2,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
 
     ---@fixme test code
@@ -169,6 +176,44 @@ local function init(monitor, id)
     local c_sfm  = IndicatorLight{parent=annunciator,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_mwrf = IndicatorLight{parent=annunciator,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
     local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+
+    annunciator.line_break()
+
+    -- machine-specific indicators
+    TextBox{parent=main,x=32,y=34,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+    TextBox{parent=main,x=32,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+    main.line_break()
+    annunciator.line_break()
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    main.line_break()
+    annunciator.line_break()
+    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
+    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    main.line_break()
+    annunciator.line_break()
+    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
+    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+
+    annunciator.line_break()
+    IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
+    IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray)}
+
+    DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
 
     ---@fixme test code
     plc_hbeat.update(true)
