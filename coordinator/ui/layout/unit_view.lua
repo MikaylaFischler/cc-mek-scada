@@ -19,6 +19,7 @@ local IndicatorLight = require("graphics.elements.indicators.light")
 local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
+local MultiButton    = require("graphics.elements.controls.multi_button")
 local PushButton     = require("graphics.elements.controls.push_button")
 local SCRAMButton    = require("graphics.elements.controls.scram_button")
 local SpinboxNumeric = require("graphics.elements.controls.spinbox_numeric")
@@ -66,19 +67,15 @@ local function init(monitor, id)
     DataIndicator{parent=main,x=21,label="",format="%11.0f",value=0,unit="",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
-    TextBox{parent=main,text="CR",x=21,y=12,height=1,width=3,fg_bg=style.label}
-    local ctrl_rods = HorizontalBar{parent=main,x=24,y=12,show_percent=false,bar_fg_bg=cpair(colors.black,colors.gray),height=1,width=9}
-    ctrl_rods.update(0.75)
+    TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="WS",x=24,y=19,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="CL",x=28,y=19,height=1,width=2,fg_bg=style.label}
+    TextBox{parent=main,text="HC",x=31,y=19,height=1,width=2,fg_bg=style.label}
 
-    TextBox{parent=main,text="FL",x=21,y=20,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="WS",x=24,y=20,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="CL",x=28,y=20,height=1,width=2,fg_bg=style.label}
-    TextBox{parent=main,text="HC",x=31,y=20,height=1,width=2,fg_bg=style.label}
-
-    local fuel  = VerticalBar{parent=main,x=21,y=14,fg_bg=cpair(colors.black,colors.gray),height=5,width=2}
-    local waste = VerticalBar{parent=main,x=24,y=14,fg_bg=cpair(colors.brown,colors.gray),height=5,width=2}
-    local ccool = VerticalBar{parent=main,x=28,y=14,fg_bg=cpair(colors.lightBlue,colors.gray),height=5,width=2}
-    local hcool = VerticalBar{parent=main,x=31,y=14,fg_bg=cpair(colors.orange,colors.gray),height=5,width=2}
+    local fuel  = VerticalBar{parent=main,x=21,y=12,fg_bg=cpair(colors.black,colors.gray),height=6,width=2}
+    local waste = VerticalBar{parent=main,x=24,y=12,fg_bg=cpair(colors.brown,colors.gray),height=6,width=2}
+    local ccool = VerticalBar{parent=main,x=28,y=12,fg_bg=cpair(colors.lightBlue,colors.gray),height=6,width=2}
+    local hcool = VerticalBar{parent=main,x=31,y=12,fg_bg=cpair(colors.orange,colors.gray),height=6,width=2}
 
     ---@fixme test code
     fuel.update(1)
@@ -89,13 +86,40 @@ local function init(monitor, id)
     local f = function () print("scram!") end
     local scram = SCRAMButton{parent=main,x=2,y=core_shift+4,callback=f,fg_bg=scram_fg_bg}
 
-    local burn_control = Div{parent=main,x=13,y=core_shift+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_control = Div{parent=main,x=14,y=core_shift+4,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
 
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
 
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
+
+    local opts = {
+        {
+            text = "Auto",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.white, colors.gray)
+        },
+        {
+            text = "Pu",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.lime)
+        },
+        {
+            text = "Po",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.cyan)
+        },
+        {
+            text = "AM",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.purple)
+        }
+    }
+
+    local waste_sel_f = function (s) print("waste: " .. s) end
+    local waste_sel = Div{parent=main,x=2,y=core_shift+8,width=31,height=3,fg_bg=cpair(colors.black, colors.white)}
+    MultiButton{parent=waste_sel,x=2,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
 
     ---@fixme test code
     main.line_break()

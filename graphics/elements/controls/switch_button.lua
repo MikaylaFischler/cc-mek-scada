@@ -39,10 +39,6 @@ local function switch_button(args)
     local h_pad = math.floor((e.frame.w - text_width) / 2)
     local v_pad = math.floor(e.frame.h / 2) + 1
 
-    -- write the button text
-    e.window.setCursorPos(h_pad, v_pad)
-    e.window.write(args.text)
-
     -- show the button state
     local function draw_state()
         if state then
@@ -55,7 +51,9 @@ local function switch_button(args)
             e.window.setBackgroundColor(e.fg_bg.bkg)
         end
 
-        e.window.redraw()
+        -- write the button text
+        e.window.setCursorPos(h_pad, v_pad)
+        e.window.write(args.text)
     end
 
     -- initial draw
