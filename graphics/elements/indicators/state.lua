@@ -45,11 +45,7 @@ local function state_indicator(args)
             args.width = string.len(state_def.text)
         end
 
-        local len = string.len(state_def.text)
-        local lpad = math.floor((args.width - len) / 2)
-        local rpad = args.width - lpad
-
-        local text = util.spaces(lpad) .. state_def.text .. util.spaces(rpad)
+        local text = util.pad(state_def.text, args.width)
 
         table.insert(state_blit_cmds, {
             text = text,

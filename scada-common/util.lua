@@ -75,6 +75,18 @@ function util.spaces(n)
     return util.strrep(" ", n)
 end
 
+-- pad text to a minimum width
+---@param str string text
+---@param n integer minimum width
+---@return string
+function util.pad(str, n)
+    local len = string.len(str)
+    local lpad = math.floor((n - len) / 2)
+    local rpad = (n - len) - lpad
+
+    return util.spaces(lpad) .. str .. util.spaces(rpad)
+end
+
 -- wrap a string into a table of lines, supporting single dash splits
 ---@param str string
 ---@param limit integer line limit

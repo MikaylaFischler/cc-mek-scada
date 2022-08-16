@@ -231,17 +231,14 @@ function log.dmesg_working(msg, tag, tag_color)
     end
 
     local function done(ok)
-        local lpad = math.max(math.floor((width - 4) / 2), 0)
-        local rpad = (width - 4) - lpad
-
         out.setCursorPos(ts_coord.x1, ts_coord.y)
 
         if ok or ok == nil then
             out.setTextColor(colors.green)
-            out.write(util.spaces(lpad) .. "DONE" .. util.spaces(rpad))
+            out.write(util.pad("DONE", width))
         else
             out.setTextColor(colors.red)
-            out.write(util.spaces(lpad) .. "FAIL" .. util.spaces(rpad))
+            out.write(util.pad("FAIL", width))
         end
 
         out.setTextColor(initial_color)
