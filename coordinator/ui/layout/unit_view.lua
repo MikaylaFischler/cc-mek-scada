@@ -90,48 +90,6 @@ local function init(monitor, id)
     -- hcool.update(0.08)
     -- waste.update(0.32)
 
-    local f = function () print("scram!") end
-    local scram = SCRAMButton{parent=main,x=2,y=22,callback=f,fg_bg=scram_fg_bg}
-
-    local burn_control = Div{parent=main,x=14,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
-    local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
-
-    TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
-    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
-
-    local opts = {
-        {
-            text = "Auto",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.white, colors.gray)
-        },
-        {
-            text = "Pu",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.lime)
-        },
-        {
-            text = "Po",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.cyan)
-        },
-        {
-            text = "AM",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.purple)
-        }
-    }
-
-    local waste_sel_f = function (s) print("waste: " .. s) end
-    local waste_sel = Div{parent=main,x=2,y=26,width=31,height=3,fg_bg=cpair(colors.black, colors.white)}
-    MultiButton{parent=waste_sel,x=2,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
-
-    ---@fixme test code
-    main.line_break()
-    ColorMap{parent=main,x=2,y=51}
-
     local annunciator = Div{parent=main,x=34,y=3}
 
     -- annunciator colors per IAEA-TECDOC-812 recommendations
@@ -214,6 +172,50 @@ local function init(monitor, id)
     IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray)}
 
     DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
+
+    local f = function () print("scram!") end
+    local scram = SCRAMButton{parent=main,x=12,y=44,callback=f,fg_bg=scram_fg_bg}
+    local start = SCRAMButton{parent=main,x=22,y=44,callback=f,fg_bg=scram_fg_bg}
+
+    local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
+    local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
+
+    TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
+    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
+
+    local opts = {
+        {
+            text = "Auto",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.white, colors.gray)
+        },
+        {
+            text = "Pu",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.lime)
+        },
+        {
+            text = "Po",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.cyan)
+        },
+        {
+            text = "AM",
+            fg_bg = cpair(colors.black, colors.lightGray),
+            active_fg_bg = cpair(colors.black, colors.purple)
+        }
+    }
+
+    local waste_sel_f = function (s) print("waste: " .. s) end
+    local waste_sel = Div{parent=main,x=2,y=48,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
+    MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
+    TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
+
+    ---@fixme test code
+    main.line_break()
+    ColorMap{parent=main,x=2,y=51}
 
     ---@fixme test code
     plc_hbeat.update(true)
