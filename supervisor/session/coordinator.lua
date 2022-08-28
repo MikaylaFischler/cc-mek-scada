@@ -14,8 +14,13 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
+-- retry time constants in ms
+local INITIAL_WAIT = 1500
+local RETRY_PERIOD = 1000
+
 local PERIODICS = {
-    KEEP_ALIVE = 2000
+    KEEP_ALIVE = 2000,
+    STATUS = 500
 }
 
 -- coordinator supervisor session
@@ -40,7 +45,16 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
         -- periodic messages
         periodics = {
             last_update = 0,
-            keep_alive = 0
+            keep_alive = 0,
+            status_packet = 0
+        },
+        -- when to next retry one of these messages
+        retry_times = {
+            builds_packet = (util.time() + 500)
+        },
+        -- message acknowledgements
+        acks = {
+            builds = true
         }
     }
 
@@ -76,6 +90,34 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
         self.out_q.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
+    end
+
+    -- send unit builds
+    local function _send_builds()
+        self.acks.builds = false
+
+        local builds = {}
+
+        for i = 1, #self.units do
+            local unit = self.units[i]  ---@type reactor_unit
+            builds[unit.get_id()] = unit.get_build()
+        end
+
+        _send(SCADA_CRDN_TYPES.STRUCT_BUILDS, builds)
+    end
+
+    -- send unit statuses
+    local function _send_status()
+        self.acks.builds = false
+
+        local status = {}
+
+        for i = 1, #self.units do
+            local unit = self.units[i]  ---@type reactor_unit
+            status[unit.get_id()] = { unit.get_reactor_status(), unit.get_rtu_statuses() }
+        end
+
+        _send(SCADA_CRDN_TYPES.UNIT_STATUSES, status)
     end
 
     -- handle a packet
@@ -120,10 +162,11 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_CRDN then
-            if pkt.type == SCADA_CRDN_TYPES.QUERY_UNIT then
-                -- return unit statuses
-                
+            if pkt.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
+                -- acknowledgement to coordinator receiving builds
+                self.acks.builds = true
             else
+                log.debug(log_header .. "handler received unexpected SCADA_CRDN packet type " .. pkt.type)
             end
         end
     end
@@ -202,7 +245,30 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                 periodics.keep_alive = 0
             end
 
+            -- unit statuses to coordinator
+
+            periodics.status_packet = periodics.status_packet + elapsed
+            if periodics.status_packet >= PERIODICS.STATUS then
+                _send_status()
+                periodics.status_packet = 0
+            end
+
             self.periodics.last_update = util.time()
+
+            ---------------------
+            -- attempt retries --
+            ---------------------
+
+            local rtimes = self.retry_times
+
+            -- builds packet retry
+
+            if not self.acks.builds then
+                if rtimes.builds_packet - util.time() <= 0 then
+                    _send_builds()
+                    rtimes.builds_packet = util.time() + RETRY_PERIOD
+                end
+            end
         end
 
         return self.connected

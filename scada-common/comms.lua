@@ -51,8 +51,8 @@ local SCADA_MGMT_TYPES = {
 ---@alias SCADA_CRDN_TYPES integer
 local SCADA_CRDN_TYPES = {
     ESTABLISH = 0,      -- initial greeting
-    QUERY_UNIT = 1,     -- query the state of a unit
-    QUERY_FACILITY = 2, -- query general facility status
+    STRUCT_BUILDS = 1,  -- mekanism structure builds
+    UNIT_STATUSES = 2,  -- state of reactor units
     COMMAND_UNIT = 3,   -- command a reactor unit
     ALARM = 4           -- alarm signaling
 }
@@ -453,8 +453,8 @@ function comms.crdn_packet()
     -- check that type is known
     local function _crdn_type_valid()
         return self.type == SCADA_CRDN_TYPES.ESTABLISH or
-                self.type == SCADA_CRDN_TYPES.QUERY_UNIT or
-                self.type == SCADA_CRDN_TYPES.QUERY_FACILITY or
+                self.type == SCADA_CRDN_TYPES.STRUCT_BUILDS or
+                self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
                 self.type == SCADA_CRDN_TYPES.COMMAND_UNIT or
                 self.type == SCADA_CRDN_TYPES.ALARM
     end

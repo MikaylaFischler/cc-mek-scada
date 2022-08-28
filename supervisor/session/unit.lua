@@ -404,13 +404,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         build.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            build.boilers[boiler.get_device_idx()] = { formed = boiler.get_db().formed, build = boiler.get_db().build }
+            build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
         end
 
         build.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]  ---@type unit_session
-            build.turbines[turbine.get_device_idx()] = { formed = turbine.get_db().formed, build = turbine.get_db().build }
+            build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
         end
 
         return build
@@ -438,14 +438,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         status.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            status.boilers[boiler.get_device_idx()] = { state = boiler.get_db().state, tanks = boiler.get_db().tanks }
+            status.boilers[boiler.get_device_idx()] = { boiler.get_db().state, boiler.get_db().tanks }
         end
 
         -- status of turbines (including tanks)
         status.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]  ---@type unit_session
-            status.turbines[turbine.get_device_idx()] = { state = turbine.get_db().state, tanks = turbine.get_db().tanks }
+            status.turbines[turbine.get_device_idx()] = { turbine.get_db().state, turbine.get_db().tanks }
         end
 
         return status
@@ -453,6 +453,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- get the annunciator status
     function public.get_annunciator() return self.db.annunciator end
+
+    -- get the reactor ID
+    function public.get_id() return self.r_id end
 
     return public
 end
