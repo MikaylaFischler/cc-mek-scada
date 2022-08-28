@@ -2,15 +2,15 @@
 -- Reactor Unit SCADA Coordinator GUI
 --
 
-local core   = require("graphics.core")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
+local core           = require("graphics.core")
+local tcallbackdsp   = require("scada-common.tcallbackdsp")
 
-local style = require("coordinator.ui.style")
+local style          = require("coordinator.ui.style")
 
-local DisplayBox = require("graphics.elements.displaybox")
-local Div        = require("graphics.elements.div")
-local TextBox    = require("graphics.elements.textbox")
-local ColorMap   = require("graphics.elements.colormap")
+local DisplayBox     = require("graphics.elements.displaybox")
+local Div            = require("graphics.elements.div")
+local TextBox        = require("graphics.elements.textbox")
+local ColorMap       = require("graphics.elements.colormap")
 
 local CoreMap        = require("graphics.elements.indicators.coremap")
 local DataIndicator  = require("graphics.elements.indicators.data")
@@ -22,6 +22,7 @@ local VerticalBar    = require("graphics.elements.indicators.vbar")
 local MultiButton    = require("graphics.elements.controls.multi_button")
 local PushButton     = require("graphics.elements.controls.push_button")
 local SCRAMButton    = require("graphics.elements.controls.scram_button")
+local StartButton    = require("graphics.elements.controls.start_button")
 local SpinboxNumeric = require("graphics.elements.controls.spinbox_numeric")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
@@ -173,14 +174,17 @@ local function init(monitor, id)
 
     DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
 
-    local f = function () print("scram!") end
-    local scram = SCRAMButton{parent=main,x=12,y=44,callback=f,fg_bg=scram_fg_bg}
-    local start = SCRAMButton{parent=main,x=22,y=44,callback=f,fg_bg=scram_fg_bg}
+    ---@fixme debug code
+    local f = function () print("unit " .. id  .. " scram!") end
+    local fs = function () print("unit " .. id  .. " start!") end
+
+    local start = StartButton{parent=main,x=12,y=44,callback=fs,fg_bg=scram_fg_bg}
+    local scram = SCRAMButton{parent=main,x=22,y=44,callback=f,fg_bg=scram_fg_bg}
 
     local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
 
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
-    local set_burn = function () print("set burn to " .. burn_rate.get_value()) end
+    local set_burn = function () print("unit " .. id  .. " set burn to " .. burn_rate.get_value()) end
 
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
@@ -208,8 +212,11 @@ local function init(monitor, id)
         }
     }
 
+    ---@fixme debug code
     local waste_sel_f = function (s) print("waste: " .. s) end
+
     local waste_sel = Div{parent=main,x=2,y=48,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
+
     MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
     TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
 
