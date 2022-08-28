@@ -1,6 +1,6 @@
-local comms = require("scada-common.comms")
-local log   = require("scada-common.log")
-local util  = require("scada-common.util")
+local comms      = require("scada-common.comms")
+local log        = require("scada-common.log")
+local util       = require("scada-common.util")
 
 local svsessions = require("supervisor.session.svsessions")
 
@@ -57,7 +57,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
     _open_channels()
 
     -- link modem to svsessions
-    svsessions.link_modem(self.modem)
+    svsessions.init(self.modem, num_reactors, cooling_conf)
 
     -- send PLC link request response
     ---@param dest integer
@@ -112,7 +112,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 ---@diagnostic disable-next-line: redefined-local
     function public.reconnect_modem(modem)
         self.modem = modem
-        svsessions.link_modem(self.modem)
+        svsessions.relink_modem(self.modem)
         _open_channels()
     end
 

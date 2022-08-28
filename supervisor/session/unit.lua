@@ -7,15 +7,15 @@ local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
 
 local DT_KEYS = {
-    ReactorTemp = "RTP",
-    ReactorFuel = "RFL",
+    ReactorTemp  = "RTP",
+    ReactorFuel  = "RFL",
     ReactorWaste = "RWS",
     ReactorCCool = "RCC",
     ReactorHCool = "RHC",
-    BoilerWater = "BWR",
-    BoilerSteam = "BST",
-    BoilerCCool = "BCC",
-    BoilerHCool = "BHC",
+    BoilerWater  = "BWR",
+    BoilerSteam  = "BST",
+    BoilerCCool  = "BCC",
+    BoilerHCool  = "BHC",
     TurbineSteam = "TST"
 }
 
@@ -37,6 +37,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             annunciator = {
                 -- reactor
                 PLCOnline = false,
+                PLCHeartbeat = false,   -- alternate true/false to blink, each time there is a keep_alive
                 ReactorTrip = false,
                 ManualReactorTrip = false,
                 RCPTrip = false,
@@ -47,12 +48,12 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 WasteLineOcclusion = false,
                 HighStartupRate = false,
                 -- boiler
-                BoilerOnline = TRI_FAIL.OK,
+                BoilerOnline = {},
                 HeatingRateLow = {},
                 BoilRateMismatch = false,
                 CoolantFeedMismatch = false,
                 -- turbine
-                TurbineOnline = TRI_FAIL.OK,
+                TurbineOnline = {},
                 SteamFeedMismatch = false,
                 MaxWaterReturnFeed = false,
                 SteamDumpOpen = {},
@@ -63,12 +64,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     }
 
     -- init boiler table fields
-    for _ = 1, self.num_boilers do
+    for _ = 1, num_boilers do
+        table.insert(self.db.annunciator.BoilerOnline, false)
         table.insert(self.db.annunciator.HeatingRateLow, false)
     end
 
     -- init turbine table fields
-    for _ = 1, self.num_turbines do
+    for _ = 1, num_turbines do
+        table.insert(self.db.annunciator.TurbineOnline, false)
         table.insert(self.db.annunciator.SteamDumpOpen, TRI_FAIL.OK)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
@@ -173,6 +176,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
             self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
             self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < 0.0 or plc_db.mek_status.fuel_fill <= 0.01
+            -- @todo this is catagorized as not urgent, but the >= 0.99 is extremely urgent, revist this (RPS will kick in though)
             self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 0.0 or plc_db.mek_status.waste_fill >= 0.99
             -- @todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
             self.db.annunciator.HighStartupRate = not plc_db.control_state and plc_db.mek_status.burn_rate > 40
@@ -182,25 +186,24 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- BOILERS --
         -------------
 
-        -- check boiler online status
-        local connected_boilers = #self.boilers
-        if connected_boilers == 0 and self.num_boilers > 0 then
-            self.db.annunciator.BoilerOnline = TRI_FAIL.FULL
-        elseif connected_boilers > 0 and connected_boilers ~= self.num_boilers then
-            self.db.annunciator.BoilerOnline = TRI_FAIL.PARTIAL
-        else
-            self.db.annunciator.BoilerOnline = TRI_FAIL.OK
-        end
+        -- clear boiler online flags
+        for i = 1, self.counts.boilers do self.db.annunciator.BoilerOnline[i] = false end
 
-        -- compute aggregated statistics
+        -- aggregated statistics
         local total_boil_rate = 0.0
         local boiler_steam_dt_sum = 0.0
         local boiler_water_dt_sum = 0.0
+
+        -- go through boilers for stats and online
         for i = 1, #self.boilers do
-            local boiler = self.boilers[i].get_db() ---@type boiler_session_db
+            local session = self.boilers[i] ---@type unit_session
+            local boiler = session.get_db() ---@type boiler_session_db
+
             total_boil_rate = total_boil_rate + boiler.state.boil_rate
             boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
             boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. self.boilers[i].get_device_idx())
+
+            self.db.annunciator.BoilerOnline[session.get_device_idx()] = true
         end
 
         -- check heating rate low
@@ -242,25 +245,24 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- TURBINES --
         --------------
 
-        -- check turbine online status
-        local connected_turbines = #self.turbines
-        if connected_turbines == 0 and self.num_turbines > 0 then
-            self.db.annunciator.TurbineOnline = TRI_FAIL.FULL
-        elseif connected_turbines > 0 and connected_turbines ~= self.num_turbines then
-            self.db.annunciator.TurbineOnline = TRI_FAIL.PARTIAL
-        else
-            self.db.annunciator.TurbineOnline = TRI_FAIL.OK
-        end
+        -- clear turbine online flags
+        for i = 1, self.counts.turbines do self.db.annunciator.TurbineOnline[i] = false end
 
-        -- compute aggregated statistics
+        -- aggregated statistics
         local total_flow_rate = 0
         local total_input_rate = 0
         local max_water_return_rate = 0
+
+        -- go through turbines for stats and online
         for i = 1, #self.turbines do
-            local turbine = self.turbines[i].get_db() ---@type turbine_session_db
+            local session = self.turbine[i]     ---@type unit_session
+            local turbine = session.get_db()    ---@type turbine_session_db
+
             total_flow_rate = total_flow_rate + turbine.state.flow_rate
             total_input_rate = total_input_rate + turbine.state.steam_input_rate
             max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
+
+            self.db.annunciator.TurbineOnline[session.get_device_idx()] = true
         end
 
         -- check for steam feed mismatch and max return rate
@@ -334,7 +336,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- link a turbine RTU session
     ---@param turbine unit_session
     function public.add_turbine(turbine)
-        if #self.turbines < self.num_turbines and turbine.get_device_idx() <= self.num_turbines then
+        if #self.turbines < num_turbines and turbine.get_device_idx() <= num_turbines then
             table.insert(self.turbines, turbine)
 
             -- reset deltas
@@ -350,7 +352,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- link a boiler RTU session
     ---@param boiler unit_session
     function public.add_boiler(boiler)
-        if #self.boilers < self.num_boilers and boiler.get_device_idx() <= self.num_boilers then
+        if #self.boilers < num_boilers and boiler.get_device_idx() <= num_boilers then
             table.insert(self.boilers, boiler)
 
             -- reset deltas
@@ -379,7 +381,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- update (iterate) this unit
     function public.update()
         -- unlink PLC if session was closed
-        if not self.plc_s.open then
+        if self.plc_s ~= nil and not self.plc_s.open then
             self.plc_s = nil
         end
 
@@ -401,12 +403,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         build.boilers = {}
         for i = 1, #self.boilers do
-            table.insert(build.boilers, self.boilers[i].get_db().build)
+            local boiler = self.boilers[i]  ---@type unit_session
+            build.boilers[boiler.get_device_idx()] = { formed = boiler.get_db().formed, build = boiler.get_db().build }
         end
 
         build.turbines = {}
         for i = 1, #self.turbines do
-            table.insert(build.turbines, self.turbines[i].get_db().build)
+            local turbine = self.turbines[i]  ---@type unit_session
+            build.turbines[turbine.get_device_idx()] = { formed = turbine.get_db().formed, build = turbine.get_db().build }
         end
 
         return build
@@ -433,19 +437,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- status of boilers (including tanks)
         status.boilers = {}
         for i = 1, #self.boilers do
-            table.insert(status.boilers, {
-                state = self.boilers[i].get_db().state,
-                tanks = self.boilers[i].get_db().tanks,
-            })
+            local boiler = self.boilers[i]  ---@type unit_session
+            status.boilers[boiler.get_device_idx()] = { state = boiler.get_db().state, tanks = boiler.get_db().tanks }
         end
 
         -- status of turbines (including tanks)
         status.turbines = {}
         for i = 1, #self.turbines do
-            table.insert(status.turbines, {
-                state = self.turbines[i].get_db().state,
-                tanks = self.turbines[i].get_db().tanks,
-            })
+            local turbine = self.turbines[i]  ---@type unit_session
+            status.turbines[turbine.get_device_idx()] = { state = turbine.get_db().state, tanks = turbine.get_db().tanks }
         end
 
         return status

@@ -1,6 +1,6 @@
-local comms = require("scada-common.comms")
-local log   = require("scada-common.log")
-local types = require("scada-common.types")
+local comms        = require("scada-common.comms")
+local log          = require("scada-common.log")
+local types        = require("scada-common.types")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 

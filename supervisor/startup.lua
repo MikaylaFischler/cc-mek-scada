@@ -4,16 +4,16 @@
 
 require("/initenv").init_env()
 
-local log  = require("scada-common.log")
-local ppm  = require("scada-common.ppm")
-local util = require("scada-common.util")
+local log        = require("scada-common.log")
+local ppm        = require("scada-common.ppm")
+local util       = require("scada-common.util")
 
 local svsessions = require("supervisor.session.svsessions")
 
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.5.4"
+local SUPERVISOR_VERSION = "beta-v0.5.5"
 
 local print = util.print
 local println = util.println

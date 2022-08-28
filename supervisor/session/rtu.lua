@@ -1,8 +1,8 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local rsio   = require("scada-common.rsio")
-local util   = require("scada-common.util")
+local comms         = require("scada-common.comms")
+local log           = require("scada-common.log")
+local mqueue        = require("scada-common.mqueue")
+local rsio          = require("scada-common.rsio")
+local util          = require("scada-common.util")
 
 -- supervisor rtu sessions (svrs)
 local svrs_boiler   = require("supervisor.session.rtu.boiler")
@@ -52,13 +52,15 @@ local PERIODICS = {
 ---@param in_queue mqueue
 ---@param out_queue mqueue
 ---@param advertisement table
-function rtu.new_session(id, in_queue, out_queue, advertisement)
+---@param facility_units table
+function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
         id = id,
         in_q = in_queue,
         out_q = out_queue,
+        f_units = facility_units,
         advert = advertisement,
         -- connection properties
         seq_num = 0,
@@ -66,6 +68,11 @@ function rtu.new_session(id, in_queue, out_queue, advertisement)
         connected = true,
         rtu_conn_watchdog = util.new_watchdog(3),
         last_rtt = 0,
+        -- periodic messages
+        periodics = {
+            last_update = 0,
+            keep_alive = 0
+        },
         rs_io_q = {},
         turbine_cmd_q = {},
         turbine_cmd_capable = false,

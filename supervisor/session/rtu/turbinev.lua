@@ -1,8 +1,8 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local comms        = require("scada-common.comms")
+local log          = require("scada-common.log")
+local mqueue       = require("scada-common.mqueue")
+local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 

@@ -22,13 +22,15 @@ local PERIODICS = {
 ---@param id integer
 ---@param in_queue mqueue
 ---@param out_queue mqueue
-function coordinator.new_session(id, in_queue, out_queue)
+---@param facility_units table
+function coordinator.new_session(id, in_queue, out_queue, facility_units)
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
         id = id,
         in_q = in_queue,
         out_q = out_queue,
+        units = facility_units,
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -118,7 +120,9 @@ function coordinator.new_session(id, in_queue, out_queue)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_CRDN then
-            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+            if pkt.type == SCADA_CRDN_TYPES.QUERY_UNIT then
+                -- return unit statuses
+                
             else
             end
         end
@@ -139,7 +143,7 @@ function coordinator.new_session(id, in_queue, out_queue)
     function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
-        println("connection to coordinator #" .. self.id .. " closed by server")
+        println("connection to coordinator " .. self.id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
 
