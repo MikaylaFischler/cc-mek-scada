@@ -93,9 +93,6 @@ end
 -- close out the UI
 ---@param recolor? boolean true to restore to color palette from style
 function renderer.close_ui(recolor)
-    -- delete all subscribers
-    database.purge_subscribers()
-
     -- report ui as not ready
     engine.ui_ready = false
 

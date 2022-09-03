@@ -108,38 +108,51 @@ log_comms("comms initialized")
 local MAIN_CLOCK = 0.5
 local loop_clock = util.new_clock(MAIN_CLOCK)
 
-local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SCADA_SV_PORT)
+-- attempt to connect to the supervisor or exit
+local function init_connect_sv()
+    local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SCADA_SV_PORT)
 
--- attempt to establish a connection with the supervisory computer
-if not coord_comms.sv_connect(60, tick_waiting, task_done) then
-    log_comms("supervisor connection failed")
-    println("boot> failed to connect to supervisor")
-    log.fatal("failed to connect to supervisor")
-    log_sys("system shutdown")
-    return
+    -- attempt to establish a connection with the supervisory computer
+    if not coord_comms.sv_connect(60, tick_waiting, task_done) then
+        log_comms("supervisor connection failed")
+        println("boot> failed to connect to supervisor")
+        log.fatal("failed to connect to supervisor")
+        log_sys("system shutdown")
+        return
+    end
 end
+
+init_connect_sv()
 
 ----------------------------------------
 -- start the UI
 ----------------------------------------
 
-log_graphics("starting UI...")
--- util.psleep(3)
+-- start up the UI
+---@return boolean ui_ok started ok
+local function init_start_ui()
+    log_graphics("starting UI...")
+    -- util.psleep(3)
 
-local draw_start = util.time_ms()
+    local draw_start = util.time_ms()
 
-local ui_ok, message = pcall(renderer.start_ui)
-if not ui_ok then
-    renderer.close_ui(config.RECOLOR)
-    log_graphics(util.c("UI crashed: ", message))
-    println_ts("UI crashed")
-    log.fatal(util.c("ui crashed with error ", message))
-else
-    log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
+    local ui_ok, message = pcall(renderer.start_ui)
+    if not ui_ok then
+        renderer.close_ui(config.RECOLOR)
+        log_graphics(util.c("UI crashed: ", message))
+        println_ts("UI crashed")
+        log.fatal(util.c("ui crashed with error ", message))
+    else
+        log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
 
-    -- start clock
-    loop_clock.start()
+        -- start clock
+        loop_clock.start()
+    end
+
+    return ui_ok
 end
+
+local ui_ok = init_start_ui()
 
 ----------------------------------------
 -- main event loop
@@ -165,6 +178,9 @@ while ui_ok do
                     log_sys("comms modem disconnected")
                     println_ts("wireless modem disconnected!")
                     log.error("comms modem disconnected!")
+
+                    -- close out UI
+                    renderer.close_ui()
                 else
                     log_sys("non-comms modem disconnected")
                     log.warning("non-comms modem disconnected")
@@ -185,6 +201,10 @@ while ui_ok do
 
                     log_sys("comms modem reconnected")
                     println_ts("wireless modem reconnected.")
+
+                    -- re-init system
+                    init_connect_sv()
+                    ui_ok = init_start_ui()
                 else
                     log_sys("wired modem reconnected")
                 end
@@ -206,6 +226,14 @@ while ui_ok do
             log_comms(msg)
             println_ts(msg)
             log.warning(msg)
+
+            -- close connection and UI
+            coord_comms.close()
+            renderer.close_ui()
+
+            -- try to re-connect to the supervisor
+            init_connect_sv()
+            ui_ok = init_start_ui()
         else
             -- a non-clock/main watchdog timer event
 

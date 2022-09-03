@@ -403,12 +403,12 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             -- acknowledge receipt of builds
                             _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
                         else
-                            log.error("supervisor build packet invalid")
+                            log.error("received invalid build packet")
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
                         -- update statuses
                         if not database.update_statuses(packet.data) then
-                            log.error("supervisor unit status packet invalid")
+                            log.error("received invalid unit statuses packet")
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
                     elseif packet.type == SCADA_CRDN_TYPES.ALARM then
@@ -435,6 +435,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                     elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
                         -- handle session close
                         sv_watchdog.cancel()
+                        self.sv_linked = false
                         println_ts("server connection closed by remote host")
                         log.warning("server connection closed by remote host")
                     else
@@ -447,6 +448,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
             end
         end
     end
+
+    -- check if the coordinator is still linked to the supervisor
+    function public.is_linked() return self.sv_linked end
 
     return public
 end

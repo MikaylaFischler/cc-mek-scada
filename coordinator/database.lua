@@ -8,10 +8,6 @@ database.WASTE = { Pu = 0, Po = 1, AntiMatter = 2 }
 ---@class coord_db
 local db = {}
 
--- @todo
-function database.purge_subscribers()
-end
-
 -- initialize the coordinator database
 ---@param conf facility_conf configuration
 function database.init(conf)
