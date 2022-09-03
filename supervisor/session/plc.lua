@@ -89,7 +89,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             overridden = false,
             degraded = false,
             rps_tripped = false,
-            rps_trip_cause = "ok",
+            rps_trip_cause = "ok",  ---@type rps_trip_cause
             ---@class rps_status
             rps_status = {
                 dmg_crit = false,

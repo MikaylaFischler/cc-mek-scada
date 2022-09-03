@@ -71,6 +71,18 @@ types.TRI_FAIL = {
 ---| "websocket_message"
 ---| "websocket_success"
 
+---@alias rps_trip_cause
+---| "ok"
+---| "dmg_crit"
+---| "high_temp"
+---| "no_coolant"
+---| "full_waste"
+---| "heated_coolant_backup"
+---| "no_fuel"
+---| "fault"
+---| "timeout"
+---| "manual"
+
 ---@alias rtu_t string
 types.rtu_t = {
     redstone = "redstone",

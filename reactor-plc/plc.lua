@@ -41,7 +41,7 @@ function plc.rps_init(reactor)
         state = { false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
         tripped = false,
-        trip_cause = ""
+        trip_cause = "" ---@type rps_trip_cause
     }
 
     ---@class rps
