@@ -404,13 +404,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         build.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
+            build.boilers[boiler.get_device_idx()] = { boiler.get_db().build, boiler.get_db().formed }
         end
 
         build.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]  ---@type unit_session
-            build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
+            build.turbines[turbine.get_device_idx()] = { turbine.get_db().build, turbine.get_db().formed }
         end
 
         return build
@@ -422,9 +422,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         if self.plc_s ~= nil then
             local reactor = self.plc_s
-            status.mek = reactor.get_status()
-            status.rps = reactor.get_rps()
-            status.general = reactor.get_general_status()
+            status = { reactor.get_status(), reactor.get_rps(), reactor.get_general_status() }
         end
 
         return status
@@ -447,6 +445,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             local turbine = self.turbines[i]  ---@type unit_session
             status.turbines[turbine.get_device_idx()] = { turbine.get_db().state, turbine.get_db().tanks }
         end
+
+        ---@todo other RTU statuses
 
         return status
     end

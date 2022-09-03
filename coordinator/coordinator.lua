@@ -397,8 +397,19 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         else
                             log.debug("supervisor conn establish packet length mismatch")
                         end
-                    elseif packet.type == SCADA_CRDN_TYPES.QUERY_UNIT then
-                    elseif packet.type == SCADA_CRDN_TYPES.QUERY_FACILITY then
+                    elseif packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
+                        -- record builds
+                        if database.populate_builds(packet.data) then
+                            -- acknowledge receipt of builds
+                            _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
+                        else
+                            log.error("supervisor build packet invalid")
+                        end
+                    elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
+                        -- update statuses
+                        if not database.update_statuses(packet.data) then
+                            log.error("supervisor unit status packet invalid")
+                        end
                     elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
                     elseif packet.type == SCADA_CRDN_TYPES.ALARM then
                     else

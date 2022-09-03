@@ -443,12 +443,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     -- get the general status information
     function public.get_general_status()
         return {
-            last_status_update = self.sDB.last_status_update,
-            control_state = self.sDB.control_state,
-            overridden = self.sDB.overridden,
-            degraded = self.sDB.degraded,
-            rps_tripped = self.sDB.rps_tripped,
-            rps_trip_cause = self.sDB.rps_trip_cause
+            self.sDB.last_status_update,
+            self.sDB.control_state,
+            self.sDB.overridden,
+            self.sDB.degraded,
+            self.sDB.rps_tripped,
+            self.sDB.rps_trip_cause
         }
     end
 

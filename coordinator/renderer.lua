@@ -1,4 +1,6 @@
-local log = require("scada-common.log")
+local log       = require("scada-common.log")
+
+local database  = require("coordinator.database")
 
 local main_view = require("coordinator.ui.layout.main_view")
 local unit_view = require("coordinator.ui.layout.unit_view")
@@ -9,7 +11,8 @@ local renderer = {}
 -- render engine
 local engine = {
     monitors = nil,
-    dmesg_window = nil
+    dmesg_window = nil,
+    ui_ready = false
 }
 
 -- UI layouts
@@ -82,11 +85,20 @@ function renderer.start_ui()
     for id, monitor in pairs(engine.monitors.unit_displays) do
         table.insert(ui.unit_layouts, unit_view(monitor, id))
     end
+
+    -- report ui as ready
+    engine.ui_ready = true
 end
 
 -- close out the UI
 ---@param recolor? boolean true to restore to color palette from style
 function renderer.close_ui(recolor)
+    -- delete all subscribers
+    database.purge_subscribers()
+
+    -- report ui as not ready
+    engine.ui_ready = false
+
     -- clear root UI elements
     ui.main_layout = nil
     ui.unit_layouts = {}
@@ -98,6 +110,10 @@ function renderer.close_ui(recolor)
     engine.dmesg_window.setVisible(true)
     engine.dmesg_window.redraw()
 end
+
+-- is the UI ready?
+---@return boolean ready
+function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a touch event
 ---@param event monitor_touch
