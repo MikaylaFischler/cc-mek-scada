@@ -50,6 +50,10 @@ style.reactor = {
         {
             color = cpair(colors.black, colors.red),
             text = "SCRAM!"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "PLC FAULT!"
         }
     }
 }
