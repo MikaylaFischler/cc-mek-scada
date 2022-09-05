@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.4.3"
+local COORDINATOR_VERSION = "alpha-v0.4.4"
 
 local print = util.print
 local println = util.println
@@ -247,6 +247,17 @@ while ui_ok do
         -- got a packet
         local packet = coord_comms.parse_packet(param1, param2, param3, param4, param5)
         coord_comms.handle_packet(packet)
+
+        -- check if it was a disconnect
+        if not coord_comms.is_linked() then
+            -- close connection and UI
+            coord_comms.close()
+            renderer.close_ui()
+
+            -- try to re-connect to the supervisor
+            init_connect_sv()
+            ui_ok = init_start_ui()
+        end
     elseif event == "monitor_touch" then
         -- handle a monitor touch event
         renderer.handle_touch(core.events.touch(param1, param2, param3))

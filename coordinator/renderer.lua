@@ -38,7 +38,7 @@ local function _reset_display(monitor, recolor)
         end
     else
         -- reset all colors
-        for _, val in colors do
+        for _, val in pairs(colors) do
             -- colors api has constants and functions, just get color constants
             if type(val) == "number" then
                 monitor.setPaletteColor(val, term.nativePaletteColor(val))
