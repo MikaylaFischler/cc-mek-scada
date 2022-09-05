@@ -342,7 +342,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == RPLC_TYPES.RPS_STATUS then
                 -- RPS status packet received, copy data
-                if pkt.length == 7 then
+                if pkt.length == 9 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK

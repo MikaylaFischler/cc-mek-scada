@@ -108,8 +108,6 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
     -- send unit statuses
     local function _send_status()
-        self.acks.builds = false
-
         local status = {}
 
         for i = 1, #self.units do
