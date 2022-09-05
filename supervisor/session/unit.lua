@@ -26,7 +26,8 @@ local DT_KEYS = {
 function unit.new(for_reactor, num_boilers, num_turbines)
     local self = {
         r_id = for_reactor,
-        plc_s = nil,    ---@class plc_session
+        plc_s = nil,    ---@class plc_session_struct
+        plc_i = nil,    ---@class plc_session
         counts = { boilers = num_boilers, turbines = num_turbines },
         turbines = {},
         boilers = {},
@@ -104,9 +105,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- clear a delta
     ---@param key string value key
-    local function _reset_dt(key)
-        self.deltas[key] = nil
-    end
+    local function _reset_dt(key) self.deltas[key] = nil end
 
     -- get the delta t of a value
     ---@param key string value key
@@ -122,7 +121,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- update all delta computations
     local function _dt__compute_all()
         if self.plc_s ~= nil then
-            local plc_db = self.plc_s.get_db()
+            local plc_db = self.plc_i.get_db()
 
             -- @todo Meknaism 10.1+ will change fuel/waste to need _amnt
             _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp)
@@ -166,7 +165,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         self.db.annunciator.PLCOnline = (self.plc_s ~= nil) and (self.plc_s.open)
 
         if self.plc_s ~= nil then
-            local plc_db = self.plc_s.get_db()
+            local plc_db = self.plc_i.get_db()
 
             -- update annunciator
             self.db.annunciator.ReactorTrip = plc_db.rps_tripped
@@ -208,13 +207,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- check heating rate low
         if self.plc_s ~= nil then
+            local r_db = self.plc_i.get_db()
+
             -- check for inactive boilers while reactor is active
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]  ---@type unit_session
                 local idx = boiler.get_device_idx()
                 local db = boiler.get_db()      ---@type boiler_session_db
 
-                if self.plc_s.get_db().mek_status.status then
+                if r_db.mek_status.status then
                     self.db.annunciator.HeatingRateLow[idx] = db.state.boil_rate == 0
                 else
                     self.db.annunciator.HeatingRateLow[idx] = false
@@ -222,7 +223,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             end
 
             -- check for rate mismatch
-            local expected_boil_rate = self.plc_s.get_db().mek_status.heating_rate / 10.0
+            local expected_boil_rate = r_db.mek_status.heating_rate / 10.0
             self.db.annunciator.BoilRateMismatch = math.abs(expected_boil_rate - total_boil_rate) > 25.0
         end
 
@@ -324,6 +325,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@param plc_session plc_session_struct
     function public.link_plc_session(plc_session)
         self.plc_s = plc_session
+        self.plc_i = plc_session.instance
 
         -- reset deltas
         _reset_dt(DT_KEYS.ReactorTemp)
@@ -398,7 +400,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local build = {}
 
         if self.plc_s ~= nil then
-            build.reactor = self.plc_s.get_struct()
+            build.reactor = self.plc_i.get_struct()
         end
 
         build.boilers = {}
@@ -421,7 +423,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local status = {}
 
         if self.plc_s ~= nil then
-            local reactor = self.plc_s
+            local reactor = self.plc_i
             status = { reactor.get_status(), reactor.get_rps(), reactor.get_general_status() }
         end
 
