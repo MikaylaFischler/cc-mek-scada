@@ -153,9 +153,17 @@ function database.update_statuses(statuses)
                 end
 
                 for key, val in pairs(unit.reactor_data) do
-                    if key ~= "mek_struct" then
+                    if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
                         unit.reactor_ps.publish(key, val)
                     end
+                end
+
+                for key, val in pairs(unit.reactor_data.rps_status) do
+                    unit.reactor_ps.publish(key, val)
+                end
+
+                for key, val in pairs(unit.reactor_data.mek_status) do
+                    unit.reactor_ps.publish(key, val)
                 end
             end
 
