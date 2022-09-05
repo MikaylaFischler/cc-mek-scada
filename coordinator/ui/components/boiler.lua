@@ -18,9 +18,8 @@ local border = core.graphics.border
 ---@param x integer
 ---@param y integer
 ---@param id integer
----@param data boiler_session_db|boilerv_session_db
 ---@param ps psil
-local function new_view(root, x, y, id, data, ps)
+local function new_view(root, x, y, id, ps)
     local tag = id .. "_"
 
     local boiler = Rectangle{parent=root,border=border(1, colors.gray, true),width=31,height=7,x=x,y=y}
@@ -29,8 +28,8 @@ local function new_view(root, x, y, id, data, ps)
     local lu_col = cpair(colors.gray, colors.gray)
 
     local status = StateIndicator{parent=boiler,x=10,y=1,states=style.boiler.states,value=1,min_width=10}
-    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=data.state.temperature,width=22,fg_bg=text_fg_bg}
-    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=data.state.boil_rate,commas=true,width=22,fg_bg=text_fg_bg}
+    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
+    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 
     ps.subscribe(tag .. "computed_status", status.update)
     ps.subscribe(tag .. "temperature", temp.update)
@@ -50,11 +49,6 @@ local function new_view(root, x, y, id, data, ps)
     ps.subscribe(tag .. "water_fill", water.update)
     ps.subscribe(tag .. "steam_fill", steam.update)
     ps.subscribe(tag .. "ccool_fill", ccool.update)
-
-    hcool.update(data.tanks.hcool_fill)
-    water.update(data.tanks.water_fill)
-    steam.update(data.tanks.steam_fill)
-    ccool.update(data.tanks.ccool_fill)
 end
 
 return new_view

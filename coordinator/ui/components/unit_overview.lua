@@ -73,8 +73,8 @@ local function make(parent, x, y, unit)
     -- BOILERS --
     -------------
 
-    if num_boilers >= 1 then boiler_view(root, 16, 11, 1, unit.boiler_data_tbl[1], unit.boiler_ps_tbl[1]) end
-    if num_boilers >= 2 then boiler_view(root, 16, 19, 2, unit.boiler_data_tbl[2], unit.boiler_ps_tbl[2]) end
+    if num_boilers >= 1 then boiler_view(root, 16, 11, 1, unit.boiler_ps_tbl[1]) end
+    if num_boilers >= 2 then boiler_view(root, 16, 19, 2, unit.boiler_ps_tbl[2]) end
 
     --------------
     -- TURBINES --
@@ -84,17 +84,17 @@ local function make(parent, x, y, unit)
     local no_boilers = num_boilers == 0
 
     if (num_turbines >= 3) or no_boilers or (num_boilers == 1 and num_turbines >= 2) then
-        turbine_view(root, 58, 3, t_idx, unit.turbine_data_tbl[t_idx], unit.turbine_ps_tbl[t_idx])
+        turbine_view(root, 58, 3, t_idx, unit.turbine_ps_tbl[t_idx])
         t_idx = t_idx + 1
     end
 
     if (num_turbines >= 1 and not no_boilers) or num_turbines >= 2 then
-        turbine_view(root, 58, 11, t_idx, unit.turbine_data_tbl[t_idx], unit.turbine_ps_tbl[t_idx])
+        turbine_view(root, 58, 11, t_idx, unit.turbine_ps_tbl[t_idx])
         t_idx = t_idx + 1
     end
 
     if (num_turbines >= 2 and num_boilers >= 2) or num_turbines >= 3 then
-        turbine_view(root, 58, 19, t_idx, unit.turbine_data_tbl[t_idx], unit.turbine_ps_tbl[t_idx])
+        turbine_view(root, 58, 19, t_idx, unit.turbine_ps_tbl[t_idx])
     end
 
     local steam_pipes_b = {}

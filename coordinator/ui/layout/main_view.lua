@@ -2,15 +2,16 @@
 -- Main SCADA Coordinator GUI
 --
 
-local database = require("coordinator.database")
-local style    = require("coordinator.ui.style")
+local database      = require("coordinator.database")
 
-local core = require("graphics.core")
-
-local DisplayBox = require("graphics.elements.displaybox")
-local TextBox    = require("graphics.elements.textbox")
+local style         = require("coordinator.ui.style")
 
 local unit_overview = require("coordinator.ui.components.unit_overview")
+
+local core          = require("graphics.core")
+
+local DisplayBox    = require("graphics.elements.displaybox")
+local TextBox       = require("graphics.elements.textbox")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
