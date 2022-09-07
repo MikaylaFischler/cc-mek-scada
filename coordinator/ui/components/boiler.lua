@@ -8,8 +8,6 @@ local Rectangle      = require("graphics.elements.rectangle")
 local TextBox        = require("graphics.elements.textbox")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
-
 local cpair = core.graphics.cpair
 local border = core.graphics.border
 
@@ -17,11 +15,8 @@ local border = core.graphics.border
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
----@param id integer device index
 ---@param ps psil ps interface
-local function new_view(root, x, y, id, ps)
-    local tag = id .. "_"
-
+local function new_view(root, x, y, ps)
     local boiler = Rectangle{parent=root,border=border(1, colors.gray, true),width=31,height=7,x=x,y=y}
 
     local text_fg_bg = cpair(colors.black, colors.lightGray)
@@ -31,9 +26,9 @@ local function new_view(root, x, y, id, ps)
     local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
     local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 
-    ps.subscribe(tag .. "computed_status", status.update)
-    ps.subscribe(tag .. "temperature", temp.update)
-    ps.subscribe(tag .. "boil_rate", boil_r.update)
+    ps.subscribe("computed_status", status.update)
+    ps.subscribe("temperature", temp.update)
+    ps.subscribe("boil_rate", boil_r.update)
 
     TextBox{parent=boiler,text="H",x=2,y=5,height=1,width=1,fg_bg=text_fg_bg}
     TextBox{parent=boiler,text="W",x=3,y=5,height=1,width=1,fg_bg=text_fg_bg}
@@ -45,10 +40,10 @@ local function new_view(root, x, y, id, ps)
     local steam = VerticalBar{parent=boiler,x=27,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local ccool = VerticalBar{parent=boiler,x=28,y=1,fg_bg=cpair(colors.lightBlue,colors.gray),height=4,width=1}
 
-    ps.subscribe(tag .. "hcool_fill", hcool.update)
-    ps.subscribe(tag .. "water_fill", water.update)
-    ps.subscribe(tag .. "steam_fill", steam.update)
-    ps.subscribe(tag .. "ccool_fill", ccool.update)
+    ps.subscribe("hcool_fill", hcool.update)
+    ps.subscribe("water_fill", water.update)
+    ps.subscribe("steam_fill", steam.update)
+    ps.subscribe("ccool_fill", ccool.update)
 end
 
 return new_view

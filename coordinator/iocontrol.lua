@@ -60,7 +60,7 @@ end
 -- populate structure builds
 ---@param builds table
 ---@return boolean valid
-function iocontrol.populate_builds(builds)
+function iocontrol.record_builds(builds)
     if #builds ~= #io.units then
         log.error("number of provided unit builds does not match expected number of units")
         return false
@@ -84,10 +84,8 @@ function iocontrol.populate_builds(builds)
 
                 unit.boiler_ps_tbl[id].publish("formed", boiler[2])
 
-                local key_prefix = "unit_" .. i .. "_boiler_" .. id .. "_"
-
                 for key, val in pairs(unit.boiler_data_tbl[id].build) do
-                    unit.boiler_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.boiler_ps_tbl[id].publish(key, val)
                 end
             end
 
@@ -100,10 +98,8 @@ function iocontrol.populate_builds(builds)
 
                 unit.turbine_ps_tbl[id].publish("formed", turbine[2])
 
-                local key_prefix = "unit_" .. i .. "_turbine_" .. id .. "_"
-
                 for key, val in pairs(unit.turbine_data_tbl[id].build) do
-                    unit.turbine_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.turbine_ps_tbl[id].publish(key, val)
                 end
             end
         end
@@ -129,11 +125,8 @@ function iocontrol.update_statuses(statuses)
             local reactor_status = status[1]
 
             if #reactor_status == 0 then
-                unit.reactor_ps.publish("online", false)
                 unit.reactor_ps.publish("computed_status", 1)   -- disconnected
             else
-                unit.reactor_ps.publish("online", true)
-
                 local mek_status = reactor_status[1]
                 local rps_status = reactor_status[2]
                 local gen_status = reactor_status[3]
@@ -181,16 +174,31 @@ function iocontrol.update_statuses(statuses)
 
             for key, val in pairs(annunciator) do
                 if key == "TurbineTrip" then
+                    -- split up turbine trip table for all turbines and a general OR combination
                     local trips = val
                     local any = false
 
-                    for x = 1, #trips do
-                        any = any or trips[x]
-                        unit.turbine_ps_tbl[x].publish(x .. "_TurbineTrip", trips[x])
+                    for id = 1, #trips do
+                        any = any or trips[id]
+                        unit.turbine_ps_tbl[id].publish(key, trips[id])
                     end
 
                     unit.reactor_ps.publish("TurbineTrip", any)
+                elseif key == "BoilerOnline" or key == "HeatingRateLow" then
+                    -- split up array for all boilers
+                    for id = 1, #val do
+                        unit.boiler_ps_tbl[id].publish(key, val[id])
+                    end
+                elseif key == "TurbineOnline" or key == "SteamDumpOpen" or key == "TurbineOverSpeed" then
+                    -- split up array for all turbines
+                    for id = 1, #val do
+                        unit.turbine_ps_tbl[id].publish(key, val[id])
+                    end
+                elseif type(val) == "table" then
+                    -- we missed one of the tables?
+                    log.error("unrecognized table found in annunciator list, this is a bug", true)
                 else
+                    -- non-table fields
                     unit.reactor_ps.publish(key, val)
                 end
             end
@@ -204,33 +212,28 @@ function iocontrol.update_statuses(statuses)
             for id = 1, #unit.boiler_data_tbl do
                 if rtu_statuses.boilers[i] == nil then
                     -- disconnected
-                    unit.boiler_ps_tbl[id].publish(id .. "_online", false)
-                    unit.boiler_ps_tbl[id].publish(id .. "_computed_status", 1)
+                    unit.boiler_ps_tbl[id].publish("computed_status", 1)
                 end
             end
 
             for id, boiler in pairs(rtu_statuses.boilers) do
-                unit.boiler_ps_tbl[id].publish(id .. "_online", true)
-
                 unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
                 unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
-
-                local key_prefix = id .. "_"
 
                 local data = unit.boiler_data_tbl[id]  ---@type boiler_session_db|boilerv_session_db
 
                 if data.state.boil_rate > 0 then
-                    unit.boiler_ps_tbl[id].publish(id .. "_computed_status", 3)    -- active
+                    unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
                 else
-                    unit.boiler_ps_tbl[id].publish(id .. "_computed_status", 2)    -- idle
+                    unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- idle
                 end
 
                 for key, val in pairs(unit.boiler_data_tbl[id].state) do
-                    unit.boiler_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.boiler_ps_tbl[id].publish(key, val)
                 end
 
                 for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
-                    unit.boiler_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.boiler_ps_tbl[id].publish(key, val)
                 end
             end
 
@@ -239,35 +242,30 @@ function iocontrol.update_statuses(statuses)
             for id = 1, #unit.turbine_ps_tbl do
                 if rtu_statuses.turbines[i] == nil then
                     -- disconnected
-                    unit.turbine_ps_tbl[id].publish(id .. "_online", false)
-                    unit.turbine_ps_tbl[id].publish(id .. "_computed_status", 1)
+                    unit.turbine_ps_tbl[id].publish("computed_status", 1)
                 end
             end
 
             for id, turbine in pairs(rtu_statuses.turbines) do
-                unit.turbine_ps_tbl[id].publish(id .. "_online", true)
-
                 unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
                 unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
-
-                local key_prefix = id .. "_"
 
                 local data = unit.turbine_data_tbl[id]  ---@type turbine_session_db|turbinev_session_db
 
                 if data.tanks.steam_fill >= 0.99 then
-                    unit.turbine_ps_tbl[id].publish(id .. "_computed_status", 4)    -- trip
+                    unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip
                 elseif data.state.flow_rate < 100 then
-                    unit.turbine_ps_tbl[id].publish(id .. "_computed_status", 2)    -- idle
+                    unit.turbine_ps_tbl[id].publish("computed_status", 2)   -- idle
                 else
-                    unit.turbine_ps_tbl[id].publish(id .. "_computed_status", 3)    -- active
+                    unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- active
                 end
 
                 for key, val in pairs(unit.turbine_data_tbl[id].state) do
-                    unit.turbine_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.turbine_ps_tbl[id].publish(key, val)
                 end
 
                 for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
-                    unit.turbine_ps_tbl[id].publish(key_prefix .. key, val)
+                    unit.turbine_ps_tbl[id].publish(key, val)
                 end
             end
         end

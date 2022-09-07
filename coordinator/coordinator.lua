@@ -399,7 +399,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
                         -- record builds
-                        if iocontrol.populate_builds(packet.data) then
+                        if iocontrol.record_builds(packet.data) then
                             -- acknowledge receipt of builds
                             _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
                         else
