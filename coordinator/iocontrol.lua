@@ -1,30 +1,35 @@
 local psil = require("scada-common.psil")
 local log  = require("scada-common.log")
 
-local database = {}
+local iocontrol = {}
 
-database.WASTE = { Pu = 0, Po = 1, AntiMatter = 2 }
+---@class ioctl
+local io = {}
 
----@class coord_db
-local db = {}
-
--- initialize the coordinator database
+-- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
-function database.init(conf)
-    db.facility = {
+function iocontrol.init(conf)
+    io.facility = {
         scram = false,
         num_units = conf.num_units,
         ps = psil.create()
     }
 
-    db.units = {}
+    io.units = {}
     for i = 1, conf.num_units do
-        ---@class coord_db_entry
+        ---@class ioctl_entry
         local entry = {
             unit_id = i,        ---@type integer
             initialized = false,
 
-            waste_mode = 0,
+            control_state = false,
+            burn_rate_cmd = 0.0,
+            waste_control = 0,
+
+            ---@fixme debug stubs to be linked into comms later?
+            start = function () print("UNIT " .. i  .. ": start") end,
+            scram = function () print("UNIT " .. i  .. ": SCRAM") end,
+            set_burn = function (rate) print("UNIT " .. i  .. ": set burn rate to " .. rate) end,
 
             reactor_ps = psil.create(),
             reactor_data = {},  ---@type reactor_db
@@ -48,20 +53,20 @@ function database.init(conf)
             table.insert(entry.turbine_data_tbl, data)
         end
 
-        table.insert(db.units, entry)
+        table.insert(io.units, entry)
     end
 end
 
 -- populate structure builds
 ---@param builds table
 ---@return boolean valid
-function database.populate_builds(builds)
-    if #builds ~= #db.units then
+function iocontrol.populate_builds(builds)
+    if #builds ~= #io.units then
         log.error("number of provided unit builds does not match expected number of units")
         return false
     else
         for i = 1, #builds do
-            local unit = db.units[i]    ---@type coord_db_entry
+            local unit = io.units[i]    ---@type ioctl_entry
             local build = builds[i]
 
             -- reactor build
@@ -110,13 +115,13 @@ end
 -- update unit statuses
 ---@param statuses table
 ---@return boolean valid
-function database.update_statuses(statuses)
-    if #statuses ~= #db.units then
+function iocontrol.update_statuses(statuses)
+    if #statuses ~= #io.units then
         log.error("number of provided unit statuses does not match expected number of units")
         return false
     else
         for i = 1, #statuses do
-            local unit = db.units[i]    ---@type coord_db_entry
+            local unit = io.units[i]    ---@type ioctl_entry
             local status = statuses[i]
 
             -- reactor PLC status
@@ -124,8 +129,11 @@ function database.update_statuses(statuses)
             local reactor_status = status[1]
 
             if #reactor_status == 0 then
+                unit.reactor_ps.publish("online", false)
                 unit.reactor_ps.publish("computed_status", 1)   -- disconnected
             else
+                unit.reactor_ps.publish("online", true)
+
                 local mek_status = reactor_status[1]
                 local rps_status = reactor_status[2]
                 local gen_status = reactor_status[3]
@@ -167,20 +175,43 @@ function database.update_statuses(statuses)
                 end
             end
 
+            -- annunciator
+
+            local annunciator = status[2]   ---@type annunciator
+
+            for key, val in pairs(annunciator) do
+                if key == "TurbineTrip" then
+                    local trips = val
+                    local any = false
+
+                    for x = 1, #trips do
+                        any = any or trips[x]
+                        unit.turbine_ps_tbl[x].publish(x .. "_TurbineTrip", trips[x])
+                    end
+
+                    unit.reactor_ps.publish("TurbineTrip", any)
+                else
+                    unit.reactor_ps.publish(key, val)
+                end
+            end
+
             -- RTU statuses
 
-            local rtu_statuses = status[2]
+            local rtu_statuses = status[3]
 
             -- boiler statuses
 
             for id = 1, #unit.boiler_data_tbl do
                 if rtu_statuses.boilers[i] == nil then
                     -- disconnected
+                    unit.boiler_ps_tbl[id].publish(id .. "_online", false)
                     unit.boiler_ps_tbl[id].publish(id .. "_computed_status", 1)
                 end
             end
 
             for id, boiler in pairs(rtu_statuses.boilers) do
+                unit.boiler_ps_tbl[id].publish(id .. "_online", true)
+
                 unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
                 unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
 
@@ -208,11 +239,14 @@ function database.update_statuses(statuses)
             for id = 1, #unit.turbine_ps_tbl do
                 if rtu_statuses.turbines[i] == nil then
                     -- disconnected
+                    unit.turbine_ps_tbl[id].publish(id .. "_online", false)
                     unit.turbine_ps_tbl[id].publish(id .. "_computed_status", 1)
                 end
             end
 
             for id, turbine in pairs(rtu_statuses.turbines) do
+                unit.turbine_ps_tbl[id].publish(id .. "_online", true)
+
                 unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
                 unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
 
@@ -242,7 +276,7 @@ function database.update_statuses(statuses)
     return true
 end
 
--- get the database
-function database.get() return db end
+-- get the IO controller database
+function iocontrol.get_db() return io end
 
-return database
+return iocontrol

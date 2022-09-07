@@ -20,10 +20,11 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 local pipe = core.graphics.pipe
 
----@param parent graphics_element
----@param x integer
----@param y integer
----@param unit coord_db_entry
+-- make a new unit overview window
+---@param parent graphics_element parent
+---@param x integer top left x
+---@param y integer top left y
+---@param unit ioctl_entry unit database entry
 local function make(parent, x, y, unit)
     local height = 0
     local num_boilers = #unit.boiler_data_tbl

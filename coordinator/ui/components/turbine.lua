@@ -14,11 +14,11 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 
 -- new turbine view
----@param root graphics_element
----@param x integer
----@param y integer
----@param id integer
----@param ps psil
+---@param root graphics_element parent
+---@param x integer top left x
+---@param y integer top left y
+---@param id integer device index
+---@param ps psil ps interface
 local function new_view(root, x, y, id, ps)
     local tag = id .. "_"
 

@@ -2,7 +2,7 @@
 -- Main SCADA Coordinator GUI
 --
 
-local database      = require("coordinator.database")
+local iocontrol     = require("coordinator.iocontrol")
 
 local style         = require("coordinator.ui.style")
 
@@ -15,13 +15,15 @@ local TextBox       = require("graphics.elements.textbox")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
+-- create new main view
+---@param monitor table main viewscreen
 local function init(monitor)
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
     -- window header message
     TextBox{parent=main,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
-    local db = database.get()
+    local db = iocontrol.get_db()
 
     local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
 

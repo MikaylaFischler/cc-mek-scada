@@ -4,7 +4,7 @@ local ppm   = require("scada-common.ppm")
 local util  = require("scada-common.util")
 
 local apisessions = require("coordinator.apisessions")
-local database    = require("coordinator.database")
+local iocontrol   = require("coordinator.iocontrol")
 
 local dialog = require("coordinator.ui.dialog")
 
@@ -387,8 +387,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                     table.insert(conf.defs, packet.data[i])
                                 end
 
-                                -- init database structure
-                                database.init(conf)
+                                -- init io controller
+                                iocontrol.init(conf)
 
                                 self.sv_linked = true
                             else
@@ -399,7 +399,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
                         -- record builds
-                        if database.populate_builds(packet.data) then
+                        if iocontrol.populate_builds(packet.data) then
                             -- acknowledge receipt of builds
                             _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
                         else
@@ -407,7 +407,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
                         -- update statuses
-                        if not database.update_statuses(packet.data) then
+                        if not iocontrol.update_statuses(packet.data) then
                             log.error("received invalid unit statuses packet")
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
