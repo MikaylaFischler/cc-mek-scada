@@ -37,7 +37,7 @@ function threads.thread__main(smem, init)
     function public.exec()
         log.debug("main thread init, clock inactive")
 
-        -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
+        -- send status updates at 1Hz (every 20 server ticks) (every loop tick)
         -- send link requests at 0.5Hz (every 40 server ticks) (every 4 loop ticks)
         local LINK_TICKS = 4
         local ticks_to_update = 0
