@@ -1,7 +1,5 @@
 -- Indicator Light Graphics Element
 
-local util    = require("scada-common.util")
-
 local element = require("graphics.element")
 
 ---@class indicator_light_args
