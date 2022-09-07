@@ -22,6 +22,9 @@ function iocontrol.init(conf)
             unit_id = i,        ---@type integer
             initialized = false,
 
+            num_boilers = 0,
+            num_turbines = 0,
+
             control_state = false,
             burn_rate_cmd = 0.0,
             waste_control = 0,
@@ -52,6 +55,9 @@ function iocontrol.init(conf)
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, data)
         end
+
+        entry.num_boilers = #entry.boiler_data_tbl
+        entry.num_turbines = #entry.turbine_data_tbl
 
         table.insert(io.units, entry)
     end

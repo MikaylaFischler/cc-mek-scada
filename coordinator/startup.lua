@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.4.6"
+local COORDINATOR_VERSION = "alpha-v0.4.7"
 
 local print = util.print
 local println = util.println
@@ -186,7 +186,7 @@ while ui_ok do
                     log.warning("non-comms modem disconnected")
                 end
             elseif type == "monitor" then
-                -- @todo: handle monitor loss
+                ---@todo: handle monitor loss
             end
         end
     elseif event == "peripheral" then
@@ -209,7 +209,7 @@ while ui_ok do
                     log_sys("wired modem reconnected")
                 end
             elseif type == "monitor" then
-                -- @todo: handle monitor reconnect
+                ---@todo: handle monitor reconnect
             end
         end
     elseif event == "timer" then

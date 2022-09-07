@@ -2,31 +2,32 @@
 -- Reactor Unit SCADA Coordinator GUI
 --
 
-local tcallbackdsp   = require("scada-common.tcallbackdsp")
+local tcallbackdsp      = require("scada-common.tcallbackdsp")
 
-local iocontrol      = require("coordinator.iocontrol")
+local iocontrol         = require("coordinator.iocontrol")
 
-local style          = require("coordinator.ui.style")
+local style             = require("coordinator.ui.style")
 
-local core           = require("graphics.core")
+local core              = require("graphics.core")
 
-local DisplayBox     = require("graphics.elements.displaybox")
-local Div            = require("graphics.elements.div")
-local TextBox        = require("graphics.elements.textbox")
-local ColorMap       = require("graphics.elements.colormap")
+local DisplayBox        = require("graphics.elements.displaybox")
+local Div               = require("graphics.elements.div")
+local TextBox           = require("graphics.elements.textbox")
+local ColorMap          = require("graphics.elements.colormap")
 
-local CoreMap        = require("graphics.elements.indicators.coremap")
-local DataIndicator  = require("graphics.elements.indicators.data")
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local IndicatorLight = require("graphics.elements.indicators.light")
-local StateIndicator = require("graphics.elements.indicators.state")
-local VerticalBar    = require("graphics.elements.indicators.vbar")
+local CoreMap           = require("graphics.elements.indicators.coremap")
+local DataIndicator     = require("graphics.elements.indicators.data")
+local HorizontalBar     = require("graphics.elements.indicators.hbar")
+local IndicatorLight    = require("graphics.elements.indicators.light")
+local StateIndicator    = require("graphics.elements.indicators.state")
+local TriIndicatorLight = require("graphics.elements.indicators.trilight")
+local VerticalBar       = require("graphics.elements.indicators.vbar")
 
-local MultiButton    = require("graphics.elements.controls.multi_button")
-local PushButton     = require("graphics.elements.controls.push_button")
-local SCRAMButton    = require("graphics.elements.controls.scram_button")
-local StartButton    = require("graphics.elements.controls.start_button")
-local SpinboxNumeric = require("graphics.elements.controls.spinbox_numeric")
+local MultiButton       = require("graphics.elements.controls.multi_button")
+local PushButton        = require("graphics.elements.controls.push_button")
+local SCRAMButton       = require("graphics.elements.controls.scram_button")
+local StartButton       = require("graphics.elements.controls.start_button")
+local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
@@ -39,7 +40,8 @@ local border = core.graphics.border
 local function init(monitor, id)
     local unit = iocontrol.get_db().units[id]   ---@type ioctl_entry
     local r_ps = unit.reactor_ps
-    local r_data = unit.reactor_data
+    local b_ps = unit.boiler_ps_tbl
+    local t_ps = unit.turbine_ps_tbl
 
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
@@ -50,7 +52,7 @@ local function init(monitor, id)
 
     -- main stats and core map --
 
-    --@todo need to be checking actual reactor dimensions somehow
+    ---@todo need to be checking actual reactor dimensions somehow
     local core_map = CoreMap{parent=main,x=2,y=3,reactor_l=18,reactor_w=18}
     r_ps.subscribe("temp", core_map.update)
 
@@ -101,7 +103,7 @@ local function init(monitor, id)
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
     local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
     local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
-    --@todo auto control as info sent here
+    ---@todo auto control as info sent here
     local r_auto     = IndicatorLight{parent=annunciator,label="Auto Control",colors=cpair(colors.blue,colors.gray)}
 
     r_ps.subscribe("PLCOnline", plc_online.update)
@@ -172,39 +174,73 @@ local function init(monitor, id)
     annunciator.line_break()
 
     -- machine-specific indicators
-    TextBox{parent=main,x=32,y=34,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
-    TextBox{parent=main,x=32,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
-    main.line_break()
-    annunciator.line_break()
-    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
-    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
-    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
-    main.line_break()
-    annunciator.line_break()
-    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
-    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
-    TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
-    main.line_break()
-    annunciator.line_break()
-    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Steam Dump Open",colors=cpair(colors.yellow,colors.gray)}
-    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
-    TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    if unit.num_boilers > 0 then
+        TextBox{parent=main,x=32,y=34,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b1_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
+    end
+    if unit.num_boilers > 1 then
+        TextBox{parent=main,x=32,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b2_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        b_ps[2].subscribe("HeatingRateLow", b2_hr.update)
+    end
 
+    if unit.num_boilers > 0 then
+        main.line_break()
+        annunciator.line_break()
+    end
+
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    local t1_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    t_ps[1].subscribe("SteamDumpOpen", t1_sdo.update)
+
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    local t1_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    t_ps[1].subscribe("TurbineOverSpeed", t1_tos.update)
+
+    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    local t1_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    t_ps[1].subscribe("TurbineTrip", t1_trp.update)
+
+    main.line_break()
     annunciator.line_break()
+
+    if unit.num_turbines > 1 then
+        TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        t_ps[2].subscribe("SteamDumpOpen", t2_sdo.update)
+
+        TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        t_ps[2].subscribe("TurbineOverSpeed", t2_tos.update)
+
+        TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+        t_ps[2].subscribe("TurbineTrip", t2_trp.update)
+
+        main.line_break()
+        annunciator.line_break()
+    end
+
+    if unit.num_turbines > 2 then
+        TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        t_ps[3].subscribe("SteamDumpOpen", t3_sdo.update)
+
+        TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        t_ps[3].subscribe("TurbineOverSpeed", t3_tos.update)
+
+        TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+        t_ps[3].subscribe("TurbineTrip", t3_trp.update)
+
+        annunciator.line_break()
+    end
+
+    ---@todo radiation monitor
     IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
     IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray)}
-
     DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
 
     -- reactor controls --
@@ -213,10 +249,8 @@ local function init(monitor, id)
     SCRAMButton{parent=main,x=22,y=44,callback=unit.scram,fg_bg=scram_fg_bg}
 
     local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
-
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
 
@@ -243,9 +277,8 @@ local function init(monitor, id)
         }
     }
 
-    ---@fixme debug code
+    ---@todo waste selection
     local waste_sel_f = function (s) print("waste: " .. s) end
-
     local waste_sel = Div{parent=main,x=2,y=48,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
 
     MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
