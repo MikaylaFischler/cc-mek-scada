@@ -1,5 +1,6 @@
 local types = require "scada-common.types"
 local util  = require "scada-common.util"
+local log   = require "scada-common.log"
 
 local unit = {}
 
@@ -33,14 +34,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         boilers = {},
         redstone = {},
         deltas = {},
+        last_heartbeat = 0,
         db = {
             ---@class annunciator
             annunciator = {
                 -- reactor
                 PLCOnline = false,
                 PLCHeartbeat = false,   -- alternate true/false to blink, each time there is a keep_alive
-                ReactorTrip = false,
-                ManualReactorTrip = false,
+                ReactorSCRAM = false,
+                ManualReactorSCRAM = false,
                 RCPTrip = false,
                 RCSFlowLow = false,
                 ReactorTempHigh = false,
@@ -167,9 +169,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil then
             local plc_db = self.plc_i.get_db()
 
-            -- update annunciator
-            self.db.annunciator.ReactorTrip = plc_db.rps_tripped
-            self.db.annunciator.ManualReactorTrip = plc_db.rps_trip_cause == types.rps_status_t.manual
+            -- heartbeat blink about every second
+            if self.last_heartbeat + 1000 < plc_db.last_status_update then
+                self.db.annunciator.PLCHeartbeat = not self.db.annunciator.PLCHeartbeat
+                self.last_heartbeat = plc_db.last_status_update
+            end
+
+            -- update other annunciator fields
+            self.db.annunciator.ReactorSCRAM = plc_db.overridden
+            self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
             self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
             self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
@@ -270,7 +278,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local sfmismatch = math.abs(total_flow_rate - total_input_rate) > 10
         sfmismatch = sfmismatch or boiler_steam_dt_sum > 0 or boiler_water_dt_sum < 0
         self.db.annunciator.SteamFeedMismatch = sfmismatch
-        self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate
+        self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
 
         -- check if steam dumps are open
         for i = 1, #self.turbines do

@@ -285,6 +285,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     self.sDB.overridden = pkt.data[3]
                     self.sDB.degraded = pkt.data[4]
                     self.sDB.mek_status.heating_rate = pkt.data[5]
+                    ---@todo rps_tripped is redundant with overridden, rename overridden to rps_tripped globally
+                    self.sDB.rps_tripped = pkt.data[4]
 
                     -- attempt to read mek_data table
                     if pkt.data[6] ~= nil then
