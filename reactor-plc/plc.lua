@@ -531,7 +531,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             local sys_status = {
                 util.time(),                    -- timestamp
                 (not self.scrammed),            -- requested control state
-                rps.is_tripped(),               -- overridden
+                rps.is_tripped(),               -- rps_tripped
                 degraded,                       -- degraded
                 self.reactor.getHeatingRate(),  -- heating rate
                 mek_data                        -- mekanism status data

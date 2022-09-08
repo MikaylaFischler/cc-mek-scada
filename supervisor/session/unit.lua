@@ -125,7 +125,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil then
             local plc_db = self.plc_i.get_db()
 
-            -- @todo Meknaism 10.1+ will change fuel/waste to need _amnt
+            ---@todo Mekanism 10.1+ will change fuel/waste to need _amnt
             _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp)
             _compute_dt(DT_KEYS.ReactorFuel, plc_db.mek_status.fuel)
             _compute_dt(DT_KEYS.ReactorWaste, plc_db.mek_status.waste)
@@ -137,7 +137,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             local boiler = self.boilers[i]  ---@type unit_session
             local db = boiler.get_db()      ---@type boiler_session_db
 
-            -- @todo Meknaism 10.1+ will change water/steam to need .amount
+            ---@todo Mekanism 10.1+ will change water/steam to need .amount
             _compute_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx(), db.tanks.water)
             _compute_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx(), db.tanks.steam)
             _compute_dt(DT_KEYS.BoilerCCool .. boiler.get_device_idx(), db.tanks.ccool.amount)
@@ -149,7 +149,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             local db = turbine.get_db()         ---@type turbine_session_db
 
             _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam)
-            -- @todo Mekanism 10.1+ needed
+            ---@todo Mekanism 10.1+ needed
             -- _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.?)
         end
     end
@@ -176,16 +176,16 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             end
 
             -- update other annunciator fields
-            self.db.annunciator.ReactorSCRAM = plc_db.overridden
+            self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
             self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
             self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
             self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
             self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
             self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < 0.0 or plc_db.mek_status.fuel_fill <= 0.01
-            -- @todo this is catagorized as not urgent, but the >= 0.99 is extremely urgent, revist this (RPS will kick in though)
+            ---@todo this is catagorized as not urgent, but the >= 0.99 is extremely urgent, revist this (RPS will kick in though)
             self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 0.0 or plc_db.mek_status.waste_fill >= 0.99
-            -- @todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
+            ---@todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
             self.db.annunciator.HighStartupRate = not plc_db.control_state and plc_db.mek_status.burn_rate > 40
         end
 

@@ -139,10 +139,9 @@ function iocontrol.update_statuses(statuses)
 
                 unit.reactor_data.last_status_update = gen_status[1]
                 unit.reactor_data.control_state      = gen_status[2]
-                unit.reactor_data.overridden         = gen_status[3]
-                unit.reactor_data.degraded           = gen_status[4]
-                unit.reactor_data.rps_tripped        = gen_status[5]
-                unit.reactor_data.rps_trip_cause     = gen_status[6]
+                unit.reactor_data.rps_tripped        = gen_status[3]
+                unit.reactor_data.rps_trip_cause     = gen_status[4]
+                unit.reactor_data.degraded           = gen_status[5]
 
                 unit.reactor_data.rps_status = rps_status   ---@type rps_status
                 unit.reactor_data.mek_status = mek_status   ---@type mek_status

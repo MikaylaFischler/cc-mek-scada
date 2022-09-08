@@ -86,7 +86,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         sDB = {
             last_status_update = 0,
             control_state = false,
-            overridden = false,
             degraded = false,
             rps_tripped = false,
             rps_trip_cause = "ok",  ---@type rps_trip_cause
@@ -282,11 +281,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 if pkt.length >= 5 then
                     self.sDB.last_status_update = pkt.data[1]
                     self.sDB.control_state = pkt.data[2]
-                    self.sDB.overridden = pkt.data[3]
+                    self.sDB.rps_tripped = pkt.data[3]
                     self.sDB.degraded = pkt.data[4]
                     self.sDB.mek_status.heating_rate = pkt.data[5]
-                    ---@todo rps_tripped is redundant with overridden, rename overridden to rps_tripped globally
-                    self.sDB.rps_tripped = pkt.data[4]
 
                     -- attempt to read mek_data table
                     if pkt.data[6] ~= nil then
@@ -357,8 +354,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == RPLC_TYPES.RPS_ALARM then
                 -- RPS alarm
-                self.sDB.overridden = true
-                if pkt.length == 8 then
+                if pkt.length == 10 then
                     self.sDB.rps_tripped = true
                     self.sDB.rps_trip_cause = pkt.data[1]
                     local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, #pkt.length) })
@@ -447,10 +443,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         return {
             self.sDB.last_status_update,
             self.sDB.control_state,
-            self.sDB.overridden,
-            self.sDB.degraded,
             self.sDB.rps_tripped,
-            self.sDB.rps_trip_cause
+            self.sDB.rps_trip_cause,
+            self.sDB.degraded
         }
     end
 
