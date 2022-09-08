@@ -13,17 +13,26 @@ function psil.create()
     -- allocate a new interconnect field
     ---@key string data key
     local function alloc(key)
-        self.ic[key] = { subscribers = {}, value = 0 }
+        self.ic[key] = { subscribers = {}, value = nil }
     end
 
     ---@class psil
     local public = {}
 
     -- subscribe to a data object in the interconnect
+    --
+    -- will call func() right away if a value is already avaliable
     ---@param key string data key
     ---@param func function function to call on change
     function public.subscribe(key, func)
-        if self.ic[key] == nil then alloc(key) end
+        -- allocate new key if not found or notify if value is found
+        if self.ic[key] == nil then
+            alloc(key)
+        elseif self.ic[key].value ~= nil then
+            func(self.ic[key].value)
+        end
+
+        -- subscribe to key
         table.insert(self.ic[key].subscribers, { notify = func })
     end
 
