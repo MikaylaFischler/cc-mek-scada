@@ -291,7 +291,7 @@ local function init(monitor, id)
     ---@fixme test code
     local rps = true
     local function _test_toggle()
-        rps_nof.update(rps)
+        rps_trp.update(rps)
         rps = not rps
         tcallbackdsp.dispatch(0.25, _test_toggle)
     end

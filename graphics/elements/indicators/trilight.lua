@@ -19,9 +19,9 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function tristate_indicator_light(args)
     assert(type(args.label) == "string", "graphics.elements.indicators.trilight: label is a required field")
-    assert(type(args.c1) == "integer", "graphics.elements.indicators.trilight: c1 is a required field")
-    assert(type(args.c2) == "integer", "graphics.elements.indicators.trilight: c2 is a required field")
-    assert(type(args.c3) == "integer", "graphics.elements.indicators.trilight: c3 is a required field")
+    assert(type(args.c1) == "number", "graphics.elements.indicators.trilight: c1 is a required field")
+    assert(type(args.c2) == "number", "graphics.elements.indicators.trilight: c2 is a required field")
+    assert(type(args.c3) == "number", "graphics.elements.indicators.trilight: c3 is a required field")
 
     -- single line
     args.height = 1
@@ -30,9 +30,9 @@ local function tristate_indicator_light(args)
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
     -- blit translations
-    local c1 colors.toBlit(args.c1)
-    local c2 colors.toBlit(args.c2)
-    local c3 colors.toBlit(args.c3)
+    local c1 = colors.toBlit(args.c1)
+    local c2 = colors.toBlit(args.c2)
+    local c3 = colors.toBlit(args.c3)
 
     -- create new graphics element base object
     local e = element.new(args)
