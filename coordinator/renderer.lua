@@ -2,9 +2,10 @@ local log       = require("scada-common.log")
 
 local iocontrol = require("coordinator.iocontrol")
 
+local style     = require("coordinator.ui.style")
+
 local main_view = require("coordinator.ui.layout.main_view")
 local unit_view = require("coordinator.ui.layout.unit_view")
-local style     = require("coordinator.ui.style")
 
 local renderer = {}
 
