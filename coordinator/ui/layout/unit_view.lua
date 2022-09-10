@@ -24,12 +24,13 @@ local border = core.graphics.border
 local function init(monitor, id)
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
-    unit_wait(main, 20)
+    local waiting = unit_wait(main, 20)
 
     -- block waiting for initial status
     local function show_view()
         local unit = iocontrol.get_db().units[id]   ---@type ioctl_entry
         if unit.reactor_data.last_status_update ~= nil then
+            waiting.hide()
             unit_detail(main, id)
         else
             tcallbackdsp.dispatch(1, show_view)
