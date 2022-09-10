@@ -141,6 +141,14 @@ function element.new(args)
         return nil
     end
 
+    -- start animations
+    function protected.start_anim()
+    end
+
+    -- stop animations
+    function protected.stop_anim()
+    end
+
     -- get public interface
     ---@return graphics_element element, element_id id
     function protected.get() return public, self.id end
@@ -272,10 +280,20 @@ function element.new(args)
     -- show the element
     function public.show()
         protected.window.setVisible(true)
+        protected.start_anim()
+
+        for i = 1, #self.children do
+            self.children[i].show()
+        end
     end
 
     -- hide the element
     function public.hide()
+        protected.stop_anim()
+        for i = 1, #self.children do
+            self.children[i].hide()
+        end
+
         protected.window.setVisible(false)
     end
 

@@ -16,6 +16,7 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function waiting(args)
     local state = 0
+    local run_animation = false
 
     args.width = 4
     args.height = 3
@@ -28,7 +29,8 @@ local function waiting(args)
     local blit_fg_2x = e.fg_bg.blit_fgd .. e.fg_bg.blit_fgd
     local blit_bg_2x = e.fg_bg.blit_bkg .. e.fg_bg.blit_bkg
 
-    local function update()
+    -- tick the animation
+    local function animate()
         e.window.clear()
 
         if state >= 0 and state < 7 then
@@ -82,10 +84,23 @@ local function waiting(args)
         state = state + 1
         if state >= 12 then state = 0 end
 
-        tcd.dispatch(0.5, update)
+        if run_animation then
+            tcd.dispatch(0.5, animate)
+        end
     end
 
-    update()
+    -- start the animation
+    function e.start_anim()
+        run_animation = true
+        animate()
+    end
+
+    -- stop the animation
+    function e.stop_anim()
+        run_animation = false
+    end
+
+    e.start_anim()
 
     return e.get()
 end
