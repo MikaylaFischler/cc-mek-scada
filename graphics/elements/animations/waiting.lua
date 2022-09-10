@@ -29,7 +29,6 @@ local function waiting(args)
     local blit_bg_2x = e.fg_bg.blit_bkg .. e.fg_bg.blit_bkg
 
     local function update()
-        print("updated waiting")
         e.window.clear()
 
         if state >= 0 and state < 7 then
