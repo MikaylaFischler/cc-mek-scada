@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.4.8"
+local COORDINATOR_VERSION = "alpha-v0.4.9"
 
 local print = util.print
 local println = util.println
@@ -138,7 +138,7 @@ local function init_start_ui()
 
     local ui_ok, message = pcall(renderer.start_ui)
     if not ui_ok then
-        renderer.close_ui(config.RECOLOR)
+        renderer.close_ui()
         log_graphics(util.c("UI crashed: ", message))
         println_ts("UI crashed")
         log.fatal(util.c("ui crashed with error ", message))
@@ -275,7 +275,7 @@ while ui_ok do
     end
 end
 
-renderer.close_ui(config.RECOLOR)
+renderer.close_ui()
 log_sys("system shutdown")
 
 println_ts("exited")

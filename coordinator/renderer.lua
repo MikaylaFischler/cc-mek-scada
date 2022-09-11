@@ -92,17 +92,20 @@ function renderer.start_ui()
 end
 
 -- close out the UI
----@param recolor? boolean true to restore to color palette from style
-function renderer.close_ui(recolor)
+function renderer.close_ui()
     -- report ui as not ready
     engine.ui_ready = false
+
+    -- hide to stop animation callbacks
+    ui.main_layout.hide()
+    for i = 1, #ui.unit_layouts do
+        ui.unit_layouts[i].hide()
+        engine.monitors.unit_displays[i].clear()
+    end
 
     -- clear root UI elements
     ui.main_layout = nil
     ui.unit_layouts = {}
-
-    -- reset displays
-    renderer.reset(recolor)
 
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)
