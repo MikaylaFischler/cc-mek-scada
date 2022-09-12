@@ -98,6 +98,7 @@ local function hbar(args)
         end
     end
 
+    -- change bar color
     ---@param bar_fg_bg cpair new bar colors
     function e.recolor(bar_fg_bg)
         bar_bkg = bar_fg_bg.blit_bkg

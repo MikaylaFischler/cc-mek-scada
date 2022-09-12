@@ -80,6 +80,17 @@ local function vbar(args)
         end
     end
 
+    -- change bar color
+    ---@param fg_bg cpair new bar colors
+    function e.recolor(fg_bg)
+        fgd = util.strrep(fg_bg.blit_fgd, e.frame.w)
+        bkg = util.strrep(fg_bg.blit_bkg, e.frame.w)
+
+        -- re-draw
+        last_num_bars = 0
+        e.on_update(e.value)
+    end
+
     function e.set_value(val) e.on_update(val) end
 
     return e.get()
