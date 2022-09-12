@@ -92,6 +92,8 @@ local function data(args)
         end
     end
 
+    -- set the value
+    ---@param val any new value
     function e.set_value(val) e.on_update(val) end
 
     -- initial value draw

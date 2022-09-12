@@ -40,6 +40,8 @@ local function indicator_light(args)
         end
     end
 
+    -- set indicator state
+    ---@param val boolean indicator state
     function e.set_value(val) e.on_update(val) end
 
     -- write label and initial indicator light

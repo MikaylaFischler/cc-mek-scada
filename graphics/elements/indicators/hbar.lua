@@ -41,6 +41,7 @@ local function hbar(args)
     end
 
     -- handle data changes
+    ---@param fraction number 0.0 to 1.0
     function e.on_update(fraction)
         e.value = fraction
 
@@ -109,6 +110,8 @@ local function hbar(args)
         e.on_update(e.value)
     end
 
+    -- set the percentage value
+    ---@param val number 0.0 to 1.0
     function e.set_value(val) e.on_update(val) end
 
     -- initialize to 0

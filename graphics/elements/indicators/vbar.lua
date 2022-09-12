@@ -32,6 +32,7 @@ local function vbar(args)
     local two_thirds = util.strrep("\x83", e.frame.w)
 
     -- handle data changes
+    ---@param fraction number 0.0 to 1.0
     function e.on_update(fraction)
         e.value = fraction
 
@@ -91,6 +92,8 @@ local function vbar(args)
         e.on_update(e.value)
     end
 
+    -- set the percentage value
+    ---@param val number 0.0 to 1.0
     function e.set_value(val) e.on_update(val) end
 
     return e.get()

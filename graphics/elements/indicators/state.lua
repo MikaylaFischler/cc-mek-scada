@@ -66,6 +66,8 @@ local function state_indicator(args)
         e.window.blit(blit_cmd.text, blit_cmd.fgd, blit_cmd.bkg)
     end
 
+    -- set indicator state
+    ---@param val integer indicator state
     function e.set_value(val) e.on_update(val) end
 
     -- initial draw
