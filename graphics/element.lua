@@ -251,21 +251,37 @@ function element.new(args)
     -- PROPERTIES --
 
     -- get the foreground/background colors
+    ---@return cpair fg_bg
     function public.get_fg_bg() return protected.fg_bg end
 
     -- get element width
+    ---@return integer width
     function public.width()
         return protected.frame.w
     end
 
     -- get element height
+    ---@return integer height
     function public.height()
         return protected.frame.h
     end
 
-    -- get the control value reading
+    -- get the element value
+    ---@return any value
     function public.get_value()
         return protected.get_value()
+    end
+
+    -- set the element value
+    ---@param value any new value
+    function public.set_value(value)
+        protected.set_value(value)
+    end
+
+    -- resize attributes of the element value if supported
+    ---@vararg number dimensions (element specific)
+    function public.resize(...)
+        protected.resize(...)
     end
 
     -- FUNCTION CALLBACKS --
@@ -288,6 +304,7 @@ function element.new(args)
     end
 
     -- draw the element given new data
+    ---@vararg any new data
     function public.update(...)
         protected.on_update(...)
     end

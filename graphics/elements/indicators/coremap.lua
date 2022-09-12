@@ -20,8 +20,9 @@ local function core_map(args)
     assert(util.is_int(args.reactor_l), "graphics.elements.indicators.coremap: reactor_l is a required field")
     assert(util.is_int(args.reactor_w), "graphics.elements.indicators.coremap: reactor_w is a required field")
 
-    args.width = args.reactor_l
-    args.height = args.reactor_w
+    -- require max dimensions
+    args.width = 18
+    args.height = 18
 
     -- inherit only foreground color
     args.fg_bg = core.graphics.cpair(args.parent.get_fg_bg().fgd, colors.gray)
@@ -29,44 +30,43 @@ local function core_map(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    local start_x = 2
-    local start_y = 2
-
-    local inner_width = e.frame.w - 2
-    local inner_height = e.frame.h - 2
     local alternator = true
 
-    -- check dimensions
-    assert(inner_width > 0, "graphics.elements.indicators.coremap: inner_width <= 0")
-    assert(inner_height > 0, "graphics.elements.indicators.coremap: inner_height <= 0")
-    assert(start_x <= inner_width, "graphics.elements.indicators.coremap: start_x > inner_width")
-    assert(start_y <= inner_height, "graphics.elements.indicators.coremap: start_y > inner_height")
+    local shift_x = 0
+    local shift_y = 0
 
-    -- label coordinates
+    local start_x = 2 + shift_x
+    local start_y = 2 + shift_y
 
-    e.window.setTextColor(colors.white)
+    local inner_width = e.frame.w - start_x
+    local inner_height = e.frame.h - start_y
 
-    for x = 0, (inner_width - 1) do
-        e.window.setCursorPos(x + start_x, 1)
-        e.window.write(util.sprintf("%X", x))
+    -- create coordinate grid and frame
+    local function draw_frame()
+        e.window.setTextColor(colors.white)
+
+        for x = 0, (inner_width - 1) do
+            e.window.setCursorPos(x + start_x, 1)
+            e.window.write(util.sprintf("%X", x))
+        end
+
+        for y = 0, (inner_height - 1) do
+            e.window.setCursorPos(1, y + start_y)
+            e.window.write(util.sprintf("%X", y))
+        end
+
+        -- even out bottom edge
+        e.window.setTextColor(e.fg_bg.bkg)
+        e.window.setBackgroundColor(args.parent.get_fg_bg().bkg)
+        e.window.setCursorPos(1, e.frame.h)
+        e.window.write(util.strrep("\x8f", e.frame.w))
+        e.window.setTextColor(e.fg_bg.fgd)
+        e.window.setBackgroundColor(e.fg_bg.bkg)
     end
-
-    for y = 0, (inner_height - 1) do
-        e.window.setCursorPos(1, y + start_y)
-        e.window.write(util.sprintf("%X", y))
-    end
-
-    -- even out bottom edge
-    e.window.setTextColor(e.fg_bg.bkg)
-    e.window.setBackgroundColor(args.parent.get_fg_bg().bkg)
-    e.window.setCursorPos(1, e.frame.h)
-    e.window.write(util.strrep("\x8f", e.frame.w))
-    e.window.setTextColor(e.fg_bg.fgd)
-    e.window.setBackgroundColor(e.fg_bg.bkg)
 
     -- draw the core
     ---@param t number temperature in K
-    local function draw(t)
+    local function draw_core(t)
         local i = 1
         local back_c = "F"
         local text_c = "8"
@@ -99,9 +99,7 @@ local function core_map(args)
         -- draw pattern
         for y = start_y, inner_height + (start_y - 1) do
             e.window.setCursorPos(start_x, y)
-            for x = 1, inner_width do
-                local str = util.sprintf("%02X", i)
-
+            for _ = 1, inner_width do
                 if alternator then
                     i = i + 1
                     e.window.blit("\x07", text_c, back_c)
@@ -120,13 +118,41 @@ local function core_map(args)
     ---@param temperature number temperature in Kelvin
     function e.on_update(temperature)
         e.value = temperature
-        draw(temperature)
+        draw_core(e.value)
     end
 
+    -- set temperature to display
+    ---@param val number degrees K
     function e.set_value(val) e.on_update(val) end
 
-    -- initial draw at base temp
-    e.on_update(300)
+    -- resize reactor dimensions
+    ---@param reactor_l integer reactor length (rendered in 2D top-down as width)
+    ---@param reactor_w integer reactor width (rendered in 2D top-down as height)
+    function e.resize(reactor_l, reactor_w)
+        -- enforce possible dimensions
+        if reactor_l > 16 then reactor_l = 16 elseif reactor_l < 3 then reactor_l = 3 end
+        if reactor_w > 16 then reactor_w = 16 elseif reactor_w < 3 then reactor_w = 3 end
+
+        -- update dimensions
+        shift_x = 8 - math.floor(reactor_l / 2)
+        shift_y = 8 - math.floor(reactor_w / 2)
+        start_x = 2 + shift_x
+        start_y = 2 + shift_y
+        inner_width = reactor_l
+        inner_height = reactor_w
+
+        e.window.clear()
+
+        -- re-draw
+        draw_frame()
+        e.on_update(e.value)
+    end
+
+    -- initial (one-time except for resize()) frame draw
+    draw_frame()
+
+    -- initial draw
+    e.on_update(0)
 
     return e.get()
 end
