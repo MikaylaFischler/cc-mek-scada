@@ -32,14 +32,17 @@ local function core_map(args)
 
     local alternator = true
 
-    local shift_x = 0
-    local shift_y = 0
+    local core_l = args.reactor_l - 2
+    local core_w = args.reactor_w - 2
+
+    local shift_x = 8 - math.floor(core_l / 2)
+    local shift_y = 8 - math.floor(core_w / 2)
 
     local start_x = 2 + shift_x
     local start_y = 2 + shift_y
 
-    local inner_width = e.frame.w - start_x
-    local inner_height = e.frame.h - start_y
+    local inner_width = core_l
+    local inner_height = core_w
 
     -- create coordinate grid and frame
     local function draw_frame()
@@ -130,16 +133,18 @@ local function core_map(args)
     ---@param reactor_w integer reactor width (rendered in 2D top-down as height)
     function e.resize(reactor_l, reactor_w)
         -- enforce possible dimensions
-        if reactor_l > 16 then reactor_l = 16 elseif reactor_l < 3 then reactor_l = 3 end
-        if reactor_w > 16 then reactor_w = 16 elseif reactor_w < 3 then reactor_w = 3 end
+        if reactor_l > 18 then reactor_l = 18 elseif reactor_l < 3 then reactor_l = 3 end
+        if reactor_w > 18 then reactor_w = 18 elseif reactor_w < 3 then reactor_w = 3 end
 
         -- update dimensions
-        shift_x = 8 - math.floor(reactor_l / 2)
-        shift_y = 8 - math.floor(reactor_w / 2)
+        core_l = reactor_l - 2
+        core_w = reactor_w - 2
+        shift_x = 8 - math.floor(core_l / 2)
+        shift_y = 8 - math.floor(core_w / 2)
         start_x = 2 + shift_x
         start_y = 2 + shift_y
-        inner_width = reactor_l
-        inner_height = reactor_w
+        inner_width = core_l
+        inner_height = core_w
 
         e.window.clear()
 
