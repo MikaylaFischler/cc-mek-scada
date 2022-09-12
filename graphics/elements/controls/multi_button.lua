@@ -1,6 +1,7 @@
 -- Button Graphics Element
 
 local element = require("graphics.element")
+
 local util    = require("scada-common.util")
 
 ---@class button_option
@@ -33,9 +34,6 @@ local function multi_button(args)
     -- single line
     args.height = 3
 
-    -- button state (convert nil to 1 if missing)
-    local state = args.default or 1
-
     -- determine widths
     local max_width = 1
     for i = 1, #args.options do
@@ -51,6 +49,9 @@ local function multi_button(args)
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    -- button state (convert nil to 1 if missing)
+    e.value = args.default or 1
 
     -- calculate required button information
     local next_x = 2
@@ -72,7 +73,7 @@ local function multi_button(args)
 
             e.window.setCursorPos(opt._start_x, 2)
 
-            if state == i then
+            if e.value == i then
                 -- show as pressed
                 e.window.setTextColor(opt.active_fg_bg.fgd)
                 e.window.setBackgroundColor(opt.active_fg_bg.bkg)
@@ -86,9 +87,6 @@ local function multi_button(args)
         end
     end
 
-    -- initial draw
-    draw()
-
     -- handle touch
     ---@param event monitor_touch monitor touch event
     function e.handle_touch(event)
@@ -98,13 +96,24 @@ local function multi_button(args)
                 local opt = args.options[i] ---@type button_option
 
                 if event.x >= opt._start_x and event.x <= opt._end_x then
-                    state = i
+                    e.value = i
                     draw()
-                    args.callback(state)
+                    args.callback(e.value)
                 end
             end
         end
     end
+
+    -- set the value
+    ---@param val integer new value
+    function e.set_value(val)
+        e.value = val
+        draw()
+        args.callback(e.value)
+    end
+
+    -- initial draw
+    draw()
 
     return e.get()
 end

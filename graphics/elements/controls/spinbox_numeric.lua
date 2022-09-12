@@ -1,6 +1,7 @@
 -- Spinbox Numeric Graphics Element
 
 local element = require("graphics.element")
+
 local util    = require("scada-common.util")
 
 ---@class spinbox_args
@@ -19,7 +20,6 @@ local util    = require("scada-common.util")
 ---@return graphics_element element, element_id id
 local function spinbox(args)
     -- properties
-    local value = args.default or 0.0
     local digits = {}
     local wn_prec = args.whole_num_precision
     local fr_prec = args.fractional_precision
@@ -33,17 +33,20 @@ local function spinbox(args)
 
     assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
 
-    local initial_str = util.sprintf(fmt_init, value)
-
----@diagnostic disable-next-line: discard-returns
-    initial_str:gsub("%d", function(char) table.insert(digits, char) end)
-
     -- determine widths
     args.width = wn_prec + fr_prec + util.trinary(fr_prec > 0, 1, 0)
     args.height = 3
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    -- set initial value
+    e.value = args.default or 0.0
+
+    local initial_str = util.sprintf(fmt_init, e.value)
+
+---@diagnostic disable-next-line: discard-returns
+    initial_str:gsub("%d", function (char) table.insert(digits, char) end)
 
     -- draw the arrows
     e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
@@ -62,7 +65,7 @@ local function spinbox(args)
     -- zero the value
     local function zero()
         for i = 1, #digits do digits[i] = 0 end
-        value = 0
+        e.value = 0
     end
 
     -- print out the current value
@@ -70,7 +73,42 @@ local function spinbox(args)
         e.window.setBackgroundColor(e.fg_bg.bkg)
         e.window.setTextColor(e.fg_bg.fgd)
         e.window.setCursorPos(1, 2)
-        e.window.write(util.sprintf(fmt, value))
+        e.window.write(util.sprintf(fmt, e.value))
+    end
+
+    -- update the value per digits table
+    local function update_value()
+        e.value = 0
+        for i = 1, #digits do
+            local pow = math.abs(wn_prec - i)
+            if i <= wn_prec then
+                e.value = e.value + (digits[i] * (10 ^ pow))
+            else
+                e.value = e.value + (digits[i] * (10 ^ -pow))
+            end
+        end
+    end
+
+    -- enforce numeric limits
+    local function enforce_limits()
+        -- min 0
+        if e.value < 0 then
+            zero()
+        -- max printable
+        elseif string.len(util.sprintf(fmt, e.value)) > args.width then
+            -- max out
+            for i = 1, #digits do digits[i] = 9 end
+
+            -- re-update value
+            update_value()
+        end
+    end
+
+    -- update value and show
+    local function parse_and_show()
+        update_value()
+        enforce_limits()
+        show_num()
     end
 
     -- init with the default value
@@ -90,27 +128,16 @@ local function spinbox(args)
                 digits[idx] = digits[idx] - 1
             end
 
-            -- update value
-            value = 0
-            for i = 1, #digits do
-                local pow = math.abs(wn_prec - i)
-                if i <= wn_prec then
-                    value = value + (digits[i] * (10 ^ pow))
-                else
-                    value = value + (digits[i] * (10 ^ -pow))
-                end
-            end
-
-            -- min 0
-            if value < 0 then zero() end
-
-            show_num()
+            parse_and_show()
         end
     end
 
-    -- get current value
-    ---@return number|integer
-    function e.get_value() return value end
+    -- set the value
+    ---@param val number number to show
+    function e.set_value(val)
+        e.value = val
+        parse_and_show()
+    end
 
     return e.get()
 end

@@ -42,6 +42,8 @@ local function hbar(args)
 
     -- handle data changes
     function e.on_update(fraction)
+        e.value = fraction
+
         -- enforce minimum and maximum
         if fraction < 0 then
             fraction = 0.0
@@ -95,6 +97,18 @@ local function hbar(args)
             e.window.write(util.sprintf("%3.0f%%", fraction * 100))
         end
     end
+
+    ---@param bar_fg_bg cpair new bar colors
+    function e.recolor(bar_fg_bg)
+        bar_bkg = bar_fg_bg.blit_bkg
+        bar_fgd = bar_fg_bg.blit_fgd
+
+        -- re-draw
+        last_num_bars = 0
+        e.on_update(e.value)
+    end
+
+    function e.set_value(val) e.on_update(val) end
 
     -- initialize to 0
     e.on_update(0)

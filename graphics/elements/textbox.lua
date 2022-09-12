@@ -32,24 +32,36 @@ local function textbox(args)
 
     -- draw textbox
 
-    local text = args.text
-    local lines = util.strwrap(text, e.frame.w)
+    local function display_text(text)
+        e.value = text
 
-    for i = 1, #lines do
-        if i > e.frame.h then break end
+        local lines = util.strwrap(text, e.frame.w)
 
-        local len = string.len(lines[i])
+        for i = 1, #lines do
+            if i > e.frame.h then break end
 
-        -- use cursor position to align this line
-        if alignment == TEXT_ALIGN.CENTER then
-            e.window.setCursorPos(math.floor((e.frame.w - len) / 2) + 1, i)
-        elseif alignment == TEXT_ALIGN.RIGHT then
-            e.window.setCursorPos((e.frame.w - len) + 1, i)
-        else
-            e.window.setCursorPos(1, i)
+            local len = string.len(lines[i])
+
+            -- use cursor position to align this line
+            if alignment == TEXT_ALIGN.CENTER then
+                e.window.setCursorPos(math.floor((e.frame.w - len) / 2) + 1, i)
+            elseif alignment == TEXT_ALIGN.RIGHT then
+                e.window.setCursorPos((e.frame.w - len) + 1, i)
+            else
+                e.window.setCursorPos(1, i)
+            end
+
+            e.window.write(lines[i])
         end
+    end
 
-        e.window.write(lines[i])
+    display_text(args.text)
+
+    -- set the string value and re-draw the text
+    ---@param val string value
+    function e.set_value(val)
+        e.window.clear()
+        display_text(val)
     end
 
     return e.get()

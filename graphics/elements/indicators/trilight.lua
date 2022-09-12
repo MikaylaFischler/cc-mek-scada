@@ -40,6 +40,7 @@ local function tristate_indicator_light(args)
     -- on state change
     ---@param new_state integer indicator state
     function e.on_update(new_state)
+        e.value = new_state
         e.window.setCursorPos(1, 1)
         if new_state == 2 then
             e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
@@ -49,6 +50,8 @@ local function tristate_indicator_light(args)
             e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
     end
+
+    function e.set_value(val) e.on_update(val) end
 
     -- write label and initial indicator light
     e.on_update(0)

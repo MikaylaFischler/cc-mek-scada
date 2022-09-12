@@ -2,6 +2,7 @@
 
 local tcd     = require("scada-common.tcallbackdsp")
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class push_button_args
@@ -52,12 +53,14 @@ local function push_button(args)
     function e.handle_touch(event)
         if args.active_fg_bg ~= nil then
             -- show as pressed
+            e.value = true
             e.window.setTextColor(args.active_fg_bg.fgd)
             e.window.setBackgroundColor(args.active_fg_bg.bkg)
             draw()
 
             -- show as unpressed in 0.25 seconds
             tcd.dispatch(0.25, function ()
+                e.value = false
                 e.window.setTextColor(e.fg_bg.fgd)
                 e.window.setBackgroundColor(e.fg_bg.bkg)
                 draw()
@@ -66,6 +69,12 @@ local function push_button(args)
 
         -- call the touch callback
         args.callback()
+    end
+
+    -- set the value
+    ---@param val boolean new value
+    function e.set_value(val)
+        if val then e.handle_touch(core.events.touch("", 1, 1)) end
     end
 
     -- initial draw

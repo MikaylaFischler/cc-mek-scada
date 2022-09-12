@@ -33,6 +33,8 @@ local function vbar(args)
 
     -- handle data changes
     function e.on_update(fraction)
+        e.value = fraction
+
         -- enforce minimum and maximum
         if fraction < 0 then
             fraction = 0.0
@@ -77,6 +79,8 @@ local function vbar(args)
             end
         end
     end
+
+    function e.set_value(val) e.on_update(val) end
 
     return e.get()
 end

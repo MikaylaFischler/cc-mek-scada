@@ -70,6 +70,8 @@ local function data(args)
     -- on state change
     ---@param value any new value
     function e.on_update(value)
+        e.value = value
+
         local data_str = util.sprintf(args.format, value)
 
         -- write data
@@ -89,6 +91,8 @@ local function data(args)
             e.window.write(" " .. args.unit)
         end
     end
+
+    function e.set_value(val) e.on_update(val) end
 
     -- initial value draw
     e.on_update(args.value)

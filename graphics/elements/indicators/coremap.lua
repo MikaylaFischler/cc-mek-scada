@@ -116,14 +116,17 @@ local function core_map(args)
         end
     end
 
-    -- initial draw at base temp
-    draw(300)
-
     -- on state change
     ---@param temperature number temperature in Kelvin
     function e.on_update(temperature)
+        e.value = temperature
         draw(temperature)
     end
+
+    function e.set_value(val) e.on_update(val) end
+
+    -- initial draw at base temp
+    e.on_update(300)
 
     return e.get()
 end

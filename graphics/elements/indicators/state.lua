@@ -61,9 +61,12 @@ local function state_indicator(args)
     ---@param new_state integer indicator state
     function e.on_update(new_state)
         local blit_cmd = state_blit_cmds[new_state]
+        e.value = new_state
         e.window.setCursorPos(1, 1)
         e.window.blit(blit_cmd.text, blit_cmd.fgd, blit_cmd.bkg)
     end
+
+    function e.set_value(val) e.on_update(val) end
 
     -- initial draw
     e.on_update(args.value or 1)

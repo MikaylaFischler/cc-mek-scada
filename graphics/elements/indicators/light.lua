@@ -31,6 +31,7 @@ local function indicator_light(args)
     -- on state change
     ---@param new_state boolean indicator state
     function e.on_update(new_state)
+        e.value = new_state
         e.window.setCursorPos(1, 1)
         if new_state then
             e.window.blit(" \x95", "0" .. args.colors.blit_a, args.colors.blit_a .. e.fg_bg.blit_bkg)
@@ -38,6 +39,8 @@ local function indicator_light(args)
             e.window.blit(" \x95", "0" .. args.colors.blit_b, args.colors.blit_b .. e.fg_bg.blit_bkg)
         end
     end
+
+    function e.set_value(val) e.on_update(val) end
 
     -- write label and initial indicator light
     e.on_update(false)

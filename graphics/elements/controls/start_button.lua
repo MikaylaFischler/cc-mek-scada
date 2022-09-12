@@ -3,7 +3,6 @@
 local tcd     = require("scada-common.tcallbackdsp")
 
 local core    = require("graphics.core")
-
 local element = require("graphics.element")
 
 ---@class start_button_args
@@ -63,6 +62,12 @@ local function start_button(args)
     function e.handle_touch(event)
         -- call the touch callback
         args.callback()
+    end
+
+    -- set the value
+    ---@param val boolean new value
+    function e.set_value(val)
+        if val then e.handle_touch(core.events.touch("", 1, 1)) end
     end
 
     return e.get()

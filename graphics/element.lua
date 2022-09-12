@@ -37,6 +37,7 @@ function element.new(args)
 
     ---@class graphics_template
     local protected = {
+        value = nil,    ---@type any
         window = nil,   ---@type table
         fg_bg = core.graphics.cpair(colors.white, colors.black),
         frame = core.graphics.gframe(1, 1, 1, 1)
@@ -136,9 +137,25 @@ function element.new(args)
     function protected.on_update(...)
     end
 
-    -- get control value
+    -- get value
     function protected.get_value()
+        return protected.value
+    end
+
+    -- set value
+    ---@param value any value to set
+    function protected.set_value(value)
         return nil
+    end
+
+    -- custom recolor command, varies by element if implemented
+    ---@vararg cpair|color color(s)
+    function protected.recolor(...)
+    end
+
+    -- custom resize command, varies by element if implemented
+    ---@vararg integer sizing
+    function protected.resize(...)
     end
 
     -- start animations
