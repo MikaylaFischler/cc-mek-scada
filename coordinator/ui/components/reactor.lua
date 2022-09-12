@@ -34,7 +34,7 @@ local function new_view(root, x, y, data, ps)
 
     ps.subscribe("computed_status", status.update)
     ps.subscribe("temp", core_temp.update)
-    ps.subscribe("burn_rate", burn_r.update)
+    ps.subscribe("act_burn_rate", burn_r.update)
     ps.subscribe("heating_rate", heating_r.update)
 
     local reactor_fills = Rectangle{parent=root,border=border(1, colors.gray, true),width=24,height=7,x=(x + 29),y=y}

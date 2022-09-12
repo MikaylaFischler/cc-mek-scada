@@ -75,7 +75,7 @@ local function init(parent, id)
 
     TextBox{parent=main,x=21,text="Containment Integrity",height=2,width=12,fg_bg=style.label}
     local integ = DataIndicator{parent=main,x=21,label="",format="%9.0f",value=100,unit="%",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    r_ps.subscribe("damage", function (x) integ.update(1.0 - (x / 100.0)) end)
+    r_ps.subscribe("damage", function (x) integ.update(100.0 - x) end)
     main.line_break()
 
     -- TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
@@ -282,17 +282,6 @@ local function init(parent, id)
     ---@fixme test code
     main.line_break()
     ColorMap{parent=main,x=2,y=51}
-
-    ---@fixme test code
-    local rps = true
-    local function _test_toggle()
-        rps_trp.update(rps)
-        rps = not rps
-        tcallbackdsp.dispatch(0.25, _test_toggle)
-    end
-
-    ---@fixme test code
-    tcallbackdsp.dispatch(0.25, _test_toggle)
 
     return main
 end
