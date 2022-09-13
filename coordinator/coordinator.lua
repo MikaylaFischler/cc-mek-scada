@@ -58,7 +58,7 @@ function coordinator.configure_monitors(num_units)
     end
 
     -- we need a certain number of monitors (1 per unit + 1 primary display)
-    if #names ~= num_units + 1 then
+    if #names < num_units + 1 then
         println("not enough monitors connected (need " .. num_units + 1 .. ")")
         log.warning("insufficient monitors present (need " .. num_units + 1 .. ")")
         return false
@@ -258,6 +258,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     -- close the connection to the server
     function public.close()
         sv_watchdog.cancel()
+        self.sv_linked = false
         _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.CLOSE, {})
     end
 

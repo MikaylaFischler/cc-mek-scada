@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.4.10"
+local COORDINATOR_VERSION = "alpha-v0.4.11"
 
 local print = util.print
 local println = util.println
@@ -58,7 +58,7 @@ log.info("========================================")
 println(">> SCADA Coordinator " .. COORDINATOR_VERSION .. " <<")
 
 ----------------------------------------
--- startup
+-- system startup
 ----------------------------------------
 
 -- mount connected devices
@@ -82,6 +82,10 @@ renderer.init_dmesg()
 log_graphics("displays connected and reset")
 log_sys("system start on " .. os.date("%c"))
 log_boot("starting " .. COORDINATOR_VERSION)
+
+----------------------------------------
+-- setup communications
+----------------------------------------
 
 -- get the communications modem
 local modem = ppm.get_wireless_modem()
@@ -108,6 +112,10 @@ log_comms("comms initialized")
 local MAIN_CLOCK = 0.5
 local loop_clock = util.new_clock(MAIN_CLOCK)
 
+----------------------------------------
+-- connect to the supervisor
+----------------------------------------
+
 -- attempt to connect to the supervisor or exit
 local function init_connect_sv()
     local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SCADA_SV_PORT)
@@ -115,14 +123,20 @@ local function init_connect_sv()
     -- attempt to establish a connection with the supervisory computer
     if not coord_comms.sv_connect(60, tick_waiting, task_done) then
         log_comms("supervisor connection failed")
-        println("boot> failed to connect to supervisor")
         log.fatal("failed to connect to supervisor")
-        log_sys("system shutdown")
-        return
+        return false
     end
+
+    return true
 end
 
-init_connect_sv()
+if not init_connect_sv() then
+    println("boot> failed to connect to supervisor")
+    log_sys("system shutdown")
+    return
+else
+    log_sys("supervisor connected, proceeding to UI start")
+end
 
 ----------------------------------------
 -- start the UI
@@ -158,9 +172,13 @@ local ui_ok = init_start_ui()
 -- main event loop
 ----------------------------------------
 
+local no_modem = false
+
 -- start connection watchdog
 conn_watchdog.feed()
 log.debug("boot> conn watchdog started")
+
+log_sys("system started successfully")
 
 -- event loop
 -- ui_ok will never change in this loop, same as while true or exit if UI start failed
@@ -175,18 +193,28 @@ while ui_ok do
             if type == "modem" then
                 -- we only really care if this is our wireless modem
                 if device == modem then
+                    no_modem = true
                     log_sys("comms modem disconnected")
                     println_ts("wireless modem disconnected!")
                     log.error("comms modem disconnected!")
 
                     -- close out UI
                     renderer.close_ui()
+
+                    -- alert user to status
+                    log_sys("awaiting comms modem reconnect...")
                 else
                     log_sys("non-comms modem disconnected")
                     log.warning("non-comms modem disconnected")
                 end
             elseif type == "monitor" then
-                ---@todo: handle monitor loss
+                if renderer.is_monitor_used(device) then
+                    -- "halt and catch fire" style handling
+                    log_sys("lost a configured monitor, system will now exit")
+                    break
+                else
+                    log_sys("lost unused monitor, ignoring")
+                end
             end
         end
     elseif event == "peripheral" then
@@ -196,6 +224,7 @@ while ui_ok do
             if type == "modem" then
                 if device.isWireless() then
                     -- reconnected modem
+                    no_modem = false
                     modem = device
                     coord_comms.reconnect_modem(modem)
 
@@ -203,13 +232,13 @@ while ui_ok do
                     println_ts("wireless modem reconnected.")
 
                     -- re-init system
-                    init_connect_sv()
+                    if not init_connect_sv() then break end
                     ui_ok = init_start_ui()
                 else
                     log_sys("wired modem reconnected")
                 end
             elseif type == "monitor" then
-                ---@todo: handle monitor reconnect
+                -- not supported, system will exit on loss of in-use monitors
             end
         end
     elseif event == "timer" then
@@ -231,9 +260,11 @@ while ui_ok do
             coord_comms.close()
             renderer.close_ui()
 
-            -- try to re-connect to the supervisor
-            init_connect_sv()
-            ui_ok = init_start_ui()
+            if not no_modem then
+                -- try to re-connect to the supervisor
+                if not init_connect_sv() then break end
+                ui_ok = init_start_ui()
+            end
         else
             -- a non-clock/main watchdog timer event
 
@@ -250,13 +281,17 @@ while ui_ok do
 
         -- check if it was a disconnect
         if not coord_comms.is_linked() then
+            log_comms("supervisor closed connection")
+
             -- close connection and UI
             coord_comms.close()
             renderer.close_ui()
 
-            -- try to re-connect to the supervisor
-            init_connect_sv()
-            ui_ok = init_start_ui()
+            if not no_modem then
+                -- try to re-connect to the supervisor
+                if not init_connect_sv() then break end
+                ui_ok = init_start_ui()
+            end
         end
     elseif event == "monitor_touch" then
         -- handle a monitor touch event
@@ -265,10 +300,11 @@ while ui_ok do
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then
-        log_comms("terminate requested, closing supervisor connection")
+        println_ts("terminate requested, closing connections...")
+        log_comms("terminate requested, closing supervisor connection...")
         coord_comms.close()
+        log_comms("supervisor connection closed")
         log_comms("closing api sessions...")
-        println_ts("closing api sessions...")
         apisessions.close_all()
         log_comms("api sessions closed")
         break

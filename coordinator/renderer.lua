@@ -54,6 +54,25 @@ function renderer.set_displays(monitors)
     engine.monitors = monitors
 end
 
+-- check if the renderer is configured to use a given monitor peripheral
+---@param periph table peripheral
+---@return boolean is_used
+function renderer.is_monitor_used(periph)
+    if engine.monitors ~= nil then
+        if engine.monitors.primary == periph then
+            return true
+        else
+            for i = 1, #engine.monitors.unit_displays do
+                if engine.monitors.unit_displays[i] == periph then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 -- reset all displays in use by the renderer
 ---@param recolor? boolean true to use color palette from style
 function renderer.reset(recolor)
@@ -76,40 +95,44 @@ end
 
 -- start the coordinator GUI
 function renderer.start_ui()
-    -- hide dmesg
-    engine.dmesg_window.setVisible(false)
+    if not engine.ui_ready then
+        -- hide dmesg
+        engine.dmesg_window.setVisible(false)
 
-    -- show main view on main monitor
-    ui.main_layout = main_view(engine.monitors.primary)
+        -- show main view on main monitor
+        ui.main_layout = main_view(engine.monitors.primary)
 
-    -- show unit views on unit displays
-    for id, monitor in pairs(engine.monitors.unit_displays) do
-        table.insert(ui.unit_layouts, unit_view(monitor, id))
+        -- show unit views on unit displays
+        for id, monitor in pairs(engine.monitors.unit_displays) do
+            table.insert(ui.unit_layouts, unit_view(monitor, id))
+        end
+
+        -- report ui as ready
+        engine.ui_ready = true
     end
-
-    -- report ui as ready
-    engine.ui_ready = true
 end
 
 -- close out the UI
 function renderer.close_ui()
-    -- report ui as not ready
-    engine.ui_ready = false
+    if engine.ui_ready then
+        -- report ui as not ready
+        engine.ui_ready = false
 
-    -- hide to stop animation callbacks
-    ui.main_layout.hide()
-    for i = 1, #ui.unit_layouts do
-        ui.unit_layouts[i].hide()
-        engine.monitors.unit_displays[i].clear()
+        -- hide to stop animation callbacks
+        ui.main_layout.hide()
+        for i = 1, #ui.unit_layouts do
+            ui.unit_layouts[i].hide()
+            engine.monitors.unit_displays[i].clear()
+        end
+
+        -- clear root UI elements
+        ui.main_layout = nil
+        ui.unit_layouts = {}
+
+        -- re-draw dmesg
+        engine.dmesg_window.setVisible(true)
+        engine.dmesg_window.redraw()
     end
-
-    -- clear root UI elements
-    ui.main_layout = nil
-    ui.unit_layouts = {}
-
-    -- re-draw dmesg
-    engine.dmesg_window.setVisible(true)
-    engine.dmesg_window.redraw()
 end
 
 -- is the UI ready?
