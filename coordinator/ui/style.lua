@@ -37,7 +37,7 @@ style.reactor = {
     states = {
         {
             color = cpair(colors.black, colors.yellow),
-            text = "DISCONNECTED"
+            text = "PLC OFF-LINE"
         },
         {
             color = cpair(colors.white, colors.gray),
@@ -49,11 +49,11 @@ style.reactor = {
         },
         {
             color = cpair(colors.black, colors.red),
-            text = "SCRAM!"
+            text = "SCRAMMED"
         },
         {
             color = cpair(colors.black, colors.orange),
-            text = "PLC FAULT!"
+            text = "PLC  FAULT"
         }
     }
 }
