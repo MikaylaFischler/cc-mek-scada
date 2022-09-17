@@ -15,12 +15,12 @@ config.LOG_MODE = 0
 -- RTU peripheral devices (named: side/network device name)
 config.RTU_DEVICES = {
     {
-        name = "boiler_1",
+        name = "boilerValve_0",
         index = 1,
         for_reactor = 1
     },
     {
-        name = "turbine_1",
+        name = "turbineValve_0",
         index = 1,
         for_reactor = 1
     }

@@ -44,6 +44,9 @@ function threads.thread__main(smem)
         local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
 
+        -- start unlinked (in case of restart)
+        rtu_comms.unlink(rtu_state)
+
         -- start clock
         loop_clock.start()
 
