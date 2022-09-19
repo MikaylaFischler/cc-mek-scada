@@ -70,6 +70,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         in_q = mqueue.new(),
         has_build = false,
         periodics = {
+            next_formed_req = 0,
             next_build_req = 0,
             next_state_req = 0,
             next_tanks_req = 0
@@ -81,8 +82,8 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = 0,
-                max_pos = 0,
+                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
                 blades = 0,
                 coils = 0,
                 vents = 0,
@@ -101,7 +102,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
             },
             tanks = {
-                steam = 0,
+                steam = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 steam_need = 0,
                 steam_fill = 0.0,
                 energy = 0,
@@ -163,9 +164,17 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     -- handle a packet
     ---@param m_pkt modbus_frame
     function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        local txn_type = self.session.try_resolve(m_pkt)
         if txn_type == false then
             -- nothing to do
+        elseif txn_type == TXN_TYPES.FORMED then
+            -- formed response
+            -- load in data if correct length
+            if m_pkt.length == 1 then
+                self.db.formed = m_pkt.data[1]
+            else
+                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
+            end
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             if m_pkt.length == 15 then

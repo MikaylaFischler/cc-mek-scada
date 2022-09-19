@@ -1,6 +1,7 @@
 local comms   = require("scada-common.comms")
 local log     = require("scada-common.log")
 local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
 local txnctrl = require("supervisor.session.rtu.txnctrl")
 
@@ -57,7 +58,7 @@ function unit_session.new(unit_id, advert, out_queue, log_tag, txn_tags)
         if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
             if m_pkt.unit_id == self.unit_id then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
-                local txn_tag = " (" .. self.txn_tags[txn_type] .. ")"
+                local txn_tag = " (" .. util.strval(self.txn_tags[txn_type]) ..  ")"
 
                 if bit.band(m_pkt.func_code, MODBUS_FCODE.ERROR_FLAG) ~= 0 then
                     -- transaction incomplete or failed

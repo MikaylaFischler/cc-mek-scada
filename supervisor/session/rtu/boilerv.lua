@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -60,8 +61,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = 0,
-                max_pos = 0,
+                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
                 boil_cap = 0.0,
                 steam_cap = 0,
                 water_cap = 0,
@@ -76,16 +77,16 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 boil_rate = 0.0
             },
             tanks = {
-                steam = {},         ---@type tank_fluid
+                steam = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 steam_need = 0,
                 steam_fill = 0.0,
-                water = {},         ---@type tank_fluid
+                water = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 water_need = 0,
                 water_fill = 0.0,
-                hcool = {},         ---@type tank_fluid
+                hcool = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 hcool_need = 0,
                 hcool_fill = 0.0,
-                ccool = {},         ---@type tank_fluid
+                ccool = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 ccool_need = 0,
                 ccool_fill = 0.0
             }
@@ -105,19 +106,19 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     -- query the build of the device
     local function _request_build()
         -- read input registers 1 through 13 (start = 1, count = 13)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 })
+        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 13 })
     end
 
     -- query the state of the device
     local function _request_state()
-        -- read input registers 14 through 16 (start = 14, count = 2)
+        -- read input registers 14 through 15 (start = 14, count = 2)
         self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 14, 2 })
     end
 
     -- query the tanks of the device
     local function _request_tanks()
-        -- read input registers 17 through 29 (start = 17, count = 12)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 17, 12 })
+        -- read input registers 16 through 27 (start = 16, count = 12)
+        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 16, 12 })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -125,7 +126,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     -- handle a packet
     ---@param m_pkt modbus_frame
     function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        local txn_type = self.session.try_resolve(m_pkt)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.FORMED then

@@ -144,7 +144,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
     -- handle a packet
     ---@param m_pkt modbus_frame
     function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt.txn_id)
+        local txn_type = self.session.try_resolve(m_pkt)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.DI_READ then

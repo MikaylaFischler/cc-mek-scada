@@ -19,6 +19,7 @@ function txnctrl.new()
     local public = {}
 
     local insert = table.insert
+    local remove = table.remove
 
     -- get the length of the transaction list
     function public.length()
@@ -55,8 +56,9 @@ function txnctrl.new()
 
         for i = 1, public.length() do
             if self.list[i].txn_id == txn_id then
-                txn_type = self.list[i].txn_type
-                self.list[i] = nil
+                local entry = remove(self.list, i)
+                txn_type = entry.txn_type
+                break
             end
         end
 

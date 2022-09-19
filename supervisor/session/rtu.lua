@@ -60,6 +60,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
         id = id,
         in_q = in_queue,
         out_q = out_queue,
+        modbus_q = mqueue.new(),
         f_units = facility_units,
         advert = advertisement,
         -- connection properties
@@ -107,6 +108,8 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 rsio = self.advert[i][4]
             }
 
+            local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
+
             local u_type = unit_advert.type
 
             -- validate unit advertisement
@@ -133,35 +136,39 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 -- validation fail
             elseif u_type == RTU_UNIT_TYPES.REDSTONE then
                 -- redstone
-                unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.out_q)
+                unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
             elseif u_type == RTU_UNIT_TYPES.BOILER then
                 -- boiler
-                unit = svrs_boiler.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_boiler.new(self.id, i, unit_advert, self.modbus_q)
+                target_unit.add_boiler(unit)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                 -- boiler (Mekanism 10.1+)
-                unit = svrs_boilerv.new(self.id, 1, unit_advert, self.out_q)
+                unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
+                target_unit.add_boiler(unit)
             elseif u_type == RTU_UNIT_TYPES.TURBINE then
                 -- turbine
-                unit = svrs_turbine.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_turbine.new(self.id, i, unit_advert, self.modbus_q)
+                target_unit.add_turbine(unit)
             elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                 -- turbine (Mekanism 10.1+)
-                unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.out_q)
+                unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
+                target_unit.add_turbine(unit)
                 self.turbine_cmd_capable = true
             elseif u_type == RTU_UNIT_TYPES.EMACHINE then
                 -- mekanism [energy] machine
-                unit = svrs_emachine.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_emachine.new(self.id, i, unit_advert, self.modbus_q)
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- induction matrix
-                unit = svrs_imatrix.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_imatrix.new(self.id, i, unit_advert, self.modbus_q)
             elseif u_type == RTU_UNIT_TYPES.SPS then
                 -- super-critical phase shifter
-                unit = svrs_sps.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_sps.new(self.id, i, unit_advert, self.modbus_q)
             elseif u_type == RTU_UNIT_TYPES.SNA then
                 -- solar neutron activator
-                unit = svrs_sna.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_sna.new(self.id, i, unit_advert, self.modbus_q)
             elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
                 -- environment detector
-                unit = svrs_envd.new(self.id, i, unit_advert, self.out_q)
+                unit = svrs_envd.new(self.id, i, unit_advert, self.modbus_q)
             else
                 log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
             end
@@ -211,6 +218,17 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
         for i = 1, #self.units do
             self.units[i].close()
         end
+    end
+
+    -- send a MODBUS packet
+    ---@param m_pkt modbus_packet MODBUS packet
+    local function _send_modbus(m_pkt)
+        local s_pkt = comms.scada_packet()
+
+        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+
+        self.out_q.push_packet(s_pkt)
+        self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
@@ -387,10 +405,28 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
             end
 
             self.periodics.last_update = util.time()
+
+            ----------------------------------------------
+            -- pass MODBUS packets on to main out queue --
+            ----------------------------------------------
+
+            for _ = 1, self.modbus_q.length() do
+                -- get the next message
+                local msg = self.modbus_q.pop()
+
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.PACKET then
+                        _send_modbus(msg.message)
+                    end
+                end
+            end
         end
 
         return self.connected
     end
+
+    -- handle initial advertisement
+    _handle_advertisement()
 
     return public
 end

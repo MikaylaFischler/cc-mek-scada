@@ -17,7 +17,8 @@ local DT_KEYS = {
     BoilerSteam  = "BST",
     BoilerCCool  = "BCC",
     BoilerHCool  = "BHC",
-    TurbineSteam = "TST"
+    TurbineSteam = "TST",
+    TurbinePower = "TPR"
 }
 
 -- create a new reactor unit
@@ -135,22 +136,21 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            local db = boiler.get_db()      ---@type boiler_session_db
+            local db = boiler.get_db()      ---@type boilerv_session_db
 
-            ---@todo Mekanism 10.1+ will change water/steam to need .amount
-            _compute_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx(), db.tanks.water)
-            _compute_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx(), db.tanks.steam)
+            _compute_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx(), db.tanks.water.amount)
+            _compute_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx(), db.tanks.steam.amount)
             _compute_dt(DT_KEYS.BoilerCCool .. boiler.get_device_idx(), db.tanks.ccool.amount)
             _compute_dt(DT_KEYS.BoilerHCool .. boiler.get_device_idx(), db.tanks.hcool.amount)
         end
 
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]    ---@type unit_session
-            local db = turbine.get_db()         ---@type turbine_session_db
+            local db = turbine.get_db()         ---@type turbinev_session_db
 
-            _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam)
-            ---@todo Mekanism 10.1+ needed
-            -- _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.?)
+            _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam.amount)
+            ---@todo unused currently?
+            _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.tanks.energy)
         end
     end
 
@@ -242,10 +242,12 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             local idx = boiler.get_device_idx()
             local db = boiler.get_db()      ---@type boiler_session_db
 
+            local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 0 or db.tanks.hcool_fill == 1
+
             -- gaining heated coolant
-            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerHCool .. idx) > 0 or db.tanks.hcool_fill == 1
+            cfmismatch = cfmismatch or gaining_hc
             -- losing cooled coolant
-            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < 0 or db.tanks.ccool_fill == 0
+            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < 0 or (gaining_hc and db.tanks.ccool_fill == 0)
         end
 
         self.db.annunciator.CoolantFeedMismatch = cfmismatch
@@ -264,7 +266,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- go through turbines for stats and online
         for i = 1, #self.turbines do
-            local session = self.turbine[i]     ---@type unit_session
+            local session = self.turbines[i]    ---@type unit_session
             local turbine = session.get_db()    ---@type turbine_session_db
 
             total_flow_rate = total_flow_rate + turbine.state.flow_rate
@@ -329,6 +331,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- PUBLIC FUNCTIONS --
 
+    -- ADD/LINK DEVICES --
+
     -- link the PLC
     ---@param plc_session plc_session_struct
     function public.link_plc_session(plc_session)
@@ -388,6 +392,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         table.insert(self.redstone[field], accessor)
     end
 
+    -- UPDATE SESSION --
+
     -- update (iterate) this unit
     function public.update()
         -- unlink PLC if session was closed
@@ -402,6 +408,16 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- update annunciator logic
         _update_annunciator()
     end
+
+    -- COMMAND UNIT --
+
+    -- SCRAM reactor
+    function public.scram()
+        if self.plc_s ~= nil then
+        end
+    end
+
+    -- READ STATES/PROPERTIES --
 
     -- get build properties of all machines
     function public.get_build()
