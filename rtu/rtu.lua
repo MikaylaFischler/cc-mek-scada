@@ -353,7 +353,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
                             -- check if there are more than 3 active transactions
                             -- still queue the packet, but this may indicate a problem
                             if unit.pkt_queue.length() > 3 then
-                                reply = unit.modbus_io.reply__srv_device_busy(packet)
+                                reply = modbus.reply__srv_device_busy(packet)
                                 log.debug("queueing new request with " .. unit.pkt_queue.length() ..
                                     " transactions already in the queue" .. unit_dbg_tag)
                             end

@@ -256,7 +256,7 @@ function threads.thread__unit_comms(smem, unit)
 
     -- execute thread
     function public.exec()
-        log.debug("rtu unit thread start -> " .. unit.name .. "(" .. unit.type .. ")")
+        log.debug("rtu unit thread start -> " .. unit.type .. "(" .. unit.name .. ")")
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
@@ -289,7 +289,7 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log.info("rtu unit thread exiting -> " .. unit.name .. "(" .. unit.type .. ")")
+                log.info("rtu unit thread exiting -> " .. unit.type .. "(" .. unit.name .. ")")
                 break
             end
 
@@ -309,7 +309,7 @@ function threads.thread__unit_comms(smem, unit)
             end
 
             if not rtu_state.shutdown then
-                log.info(util.c("rtu unit thread ", unit.name, "(", unit.type, ") restarting in 5 seconds..."))
+                log.info(util.c("rtu unit thread ", unit.type, "(", unit.name, ") restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end

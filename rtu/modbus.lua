@@ -332,10 +332,9 @@ function modbus.new(rtu_dev, use_parallel_read)
 
         -- default is to echo back
         local func_code = packet.func_code
-        if not return_code then
-            -- echo back with error flag
-            func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-        end
+
+        -- echo back with error flag, on success the "error" will be acknowledgement
+        func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
 
         -- create reply
         local reply = comms.modbus_packet()
@@ -400,40 +399,40 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_code, reply
     end
 
-    -- return a SERVER_DEVICE_BUSY error reply
-    ---@return modbus_packet reply
-    function public.reply__srv_device_busy(packet)
-        -- reply back with error flag and exception code
-        local reply = comms.modbus_packet()
-        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-        local data = { MODBUS_EXCODE.SERVER_DEVICE_BUSY }
-        reply.make(packet.txn_id, packet.unit_id, fcode, data)
-        return reply
-    end
-
-    -- return a NEG_ACKNOWLEDGE error reply
-    ---@return modbus_packet reply
-    function public.reply__neg_ack(packet)
-        -- reply back with error flag and exception code
-        local reply = comms.modbus_packet()
-        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-        local data = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
-        reply.make(packet.txn_id, packet.unit_id, fcode, data)
-        return reply
-    end
-
-    -- return a GATEWAY_PATH_UNAVAILABLE error reply
-    ---@return modbus_packet reply
-    function public.reply__gw_unavailable(packet)
-        -- reply back with error flag and exception code
-        local reply = comms.modbus_packet()
-        local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-        local data = { MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE }
-        reply.make(packet.txn_id, packet.unit_id, fcode, data)
-        return reply
-    end
-
     return public
+end
+
+-- return a SERVER_DEVICE_BUSY error reply
+---@return modbus_packet reply
+function modbus.reply__srv_device_busy(packet)
+    -- reply back with error flag and exception code
+    local reply = comms.modbus_packet()
+    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+    local data = { MODBUS_EXCODE.SERVER_DEVICE_BUSY }
+    reply.make(packet.txn_id, packet.unit_id, fcode, data)
+    return reply
+end
+
+-- return a NEG_ACKNOWLEDGE error reply
+---@return modbus_packet reply
+function modbus.reply__neg_ack(packet)
+    -- reply back with error flag and exception code
+    local reply = comms.modbus_packet()
+    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+    local data = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
+    reply.make(packet.txn_id, packet.unit_id, fcode, data)
+    return reply
+end
+
+-- return a GATEWAY_PATH_UNAVAILABLE error reply
+---@return modbus_packet reply
+function modbus.reply__gw_unavailable(packet)
+    -- reply back with error flag and exception code
+    local reply = comms.modbus_packet()
+    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+    local data = { MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE }
+    reply.make(packet.txn_id, packet.unit_id, fcode, data)
+    return reply
 end
 
 return modbus
