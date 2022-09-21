@@ -1,13 +1,22 @@
 # cc-mek-scada
 Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fission reactors with a GUI, automatic safety features, waste processing control, and more! 
 
-This requires CC: Tweaked and Mekanism v10.0+ (10.1 recommended for full feature set).
+Mod Requirements:
+- CC: Tweaked
+- Mekanism v10.1+
+
+Mod Recommendations:
+- Advanced Peripherals (adds the capability to detect environmental radiation levels)
+
+v10.1+ is required due the complete support of CC:Tweaked added in Mekanism v10.1
+
+There was also an apparent bug with boilers disconnecting and reconnecting when active in my test world on 10.0.24, so it may not even have been an option to fully implement this with support for 10.0.
 
 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
 
-This project implements concepts of a SCADA system in ComputerCraft (because why not? ..okay don't answer that). I recommend reviewing that linked wikipedia page on SCADA if you want to understand the concepts used here.
+This project implements concepts of a SCADA system in ComputerCraft (because why not? ..okay don't answer that). I recommend reviewing that linked wikipedia page on SCADA if you *want* to understand the concepts used here.
 
 ![Architecture](https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Functional_levels_of_a_Distributed_Control_System.svg/1000px-Functional_levels_of_a_Distributed_Control_System.svg.png)
 
@@ -35,7 +44,7 @@ The RTU control code is relatively unique, as instead of having instructions be 
 
 ### PLCs
 
-PLCs are advanced devices that allow for both reporting and control to/from the SCADA system in addition to programed behaviors independent of the SCADA system. Currently there is only one type of PLC, and that is the reactor PLC. This is responsible for reporting on and controlling the reactor as a part of the SCADA system, and independently regulating the safety of the reactor. It checks the status for multiple hazard scenarios and shuts down the reactor if any condition is satisfied.
+PLCs are advanced devices that allow for both reporting and control to/from the SCADA system in addition to programed behaviors independent of the SCADA system. Currently there is only one type of PLC, and that is the reactor PLC. This is responsible for reporting on and controlling the reactor as a part of the SCADA system, and independently regulating the safety of the reactor. It checks the status for multiple hazard scenarios and shuts down the reactor if any condition is met.
 
 There can and should only be one of these per reactor. A single Advanced Computer will act as the PLC, with either a direct connection (physical contact) or a wired modem connection to the reactor logic port.
 
@@ -57,5 +66,4 @@ The only other possible security mitigation for commanding (no effect on monitor
 
 ## Known Issues
 
-GitHub issue \#29:
-It appears that with Mekanism 10.0, a boiler peripheral may rapidly disconnect/reconnect constantly while running. This will prevent that RTU from operating correctly while also filling up the log file. This may be due to a very specific version interaction of CC: Tweaked and Mekansim, so you are welcome to try this on Mekanism 10.0 servers, but do be aware it may not work.
+None yet since the switch to requiring 10.1+!
