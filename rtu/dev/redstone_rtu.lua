@@ -1,4 +1,5 @@
 local rtu  = require("rtu.rtu")
+
 local rsio = require("scada-common.rsio")
 
 local redstone_rtu = {}

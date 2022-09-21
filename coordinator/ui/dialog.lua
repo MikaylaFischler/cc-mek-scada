@@ -1,6 +1,6 @@
 local completion = require("cc.completion")
 
-local util = require("scada-common.util")
+local util       = require("scada-common.util")
 
 local print = util.print
 local println = util.println
@@ -9,6 +9,10 @@ local println_ts = util.println_ts
 
 local dialog = {}
 
+-- ask the user yes or no
+---@param question string
+---@param default boolean
+---@return boolean|nil
 function dialog.ask_y_n(question, default)
     print(question)
 
@@ -31,6 +35,10 @@ function dialog.ask_y_n(question, default)
     end
 end
 
+-- ask the user for an input within a set of options
+---@param options table
+---@param cancel string
+---@return boolean|string|nil
 function dialog.ask_options(options, cancel)
     print("> ")
     local response = read(nil, nil, function(text) return completion.choice(text, options) end)

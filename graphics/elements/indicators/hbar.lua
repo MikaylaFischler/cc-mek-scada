@@ -19,7 +19,6 @@ local element = require("graphics.element")
 -- new horizontal bar
 ---@param args hbar_args
 ---@return graphics_element element, element_id id
----@return graphics_element element, element_id id
 local function hbar(args)
     -- properties/state
     local last_num_bars = -1

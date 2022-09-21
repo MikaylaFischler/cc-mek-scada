@@ -57,6 +57,15 @@ local SCADA_CRDN_TYPES = {
     ALARM = 4           -- alarm signaling
 }
 
+---@alias CRDN_COMMANDS integer
+local CRDN_COMMANDS = {
+    SCRAM = 0,          -- SCRAM the reactor
+    START = 1,          -- start the reactor
+    RESET_RPS = 2,      -- reset the RPS
+    SET_BURN = 3,       -- set the burn rate
+    SET_WASTE = 4       -- set the waste processing mode
+}
+
 ---@alias CAPI_TYPES integer
 local CAPI_TYPES = {
     ESTABLISH = 0       -- initial greeting
@@ -65,15 +74,12 @@ local CAPI_TYPES = {
 ---@alias RTU_UNIT_TYPES integer
 local RTU_UNIT_TYPES = {
     REDSTONE = 0,       -- redstone I/O
-    BOILER = 1,         -- boiler
-    BOILER_VALVE = 2,   -- boiler mekanism 10.1+
-    TURBINE = 3,        -- turbine
-    TURBINE_VALVE = 4,  -- turbine, mekanism 10.1+
-    EMACHINE = 5,       -- energy machine
-    IMATRIX = 6,        -- induction matrix
-    SPS = 7,            -- SPS
-    SNA = 8,            -- SNA
-    ENV_DETECTOR = 9    -- environment detector
+    BOILER_VALVE = 1,   -- boiler mekanism 10.1+
+    TURBINE_VALVE = 2,  -- turbine, mekanism 10.1+
+    IMATRIX = 3,        -- induction matrix
+    SPS = 4,            -- SPS
+    SNA = 5,            -- SNA
+    ENV_DETECTOR = 6    -- environment detector
 }
 
 comms.PROTOCOLS = PROTOCOLS
@@ -81,7 +87,12 @@ comms.RPLC_TYPES = RPLC_TYPES
 comms.RPLC_LINKING = RPLC_LINKING
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
 comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
+comms.CRDN_COMMANDS = CRDN_COMMANDS
+comms.CAPI_TYPES = CAPI_TYPES
 comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
+
+---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
+---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
 
 -- generic SCADA packet object
 function comms.scada_packet()
@@ -616,16 +627,10 @@ end
 function comms.rtu_t_to_unit_type(type)
     if type == rtu_t.redstone then
         return RTU_UNIT_TYPES.REDSTONE
-    elseif type == rtu_t.boiler then
-        return RTU_UNIT_TYPES.BOILER
     elseif type == rtu_t.boiler_valve then
         return RTU_UNIT_TYPES.BOILER_VALVE
-    elseif type == rtu_t.turbine then
-        return RTU_UNIT_TYPES.TURBINE
     elseif type == rtu_t.turbine_valve then
         return RTU_UNIT_TYPES.TURBINE_VALVE
-    elseif type == rtu_t.energy_machine then
-        return RTU_UNIT_TYPES.EMACHINE
     elseif type == rtu_t.induction_matrix then
         return RTU_UNIT_TYPES.IMATRIX
     end
@@ -639,16 +644,10 @@ end
 function comms.advert_type_to_rtu_t(utype)
     if utype == RTU_UNIT_TYPES.REDSTONE then
         return rtu_t.redstone
-    elseif utype == RTU_UNIT_TYPES.BOILER then
-        return rtu_t.boiler
     elseif utype == RTU_UNIT_TYPES.BOILER_VALVE then
         return rtu_t.boiler_valve
-    elseif utype == RTU_UNIT_TYPES.TURBINE then
-        return rtu_t.turbine
     elseif utype == RTU_UNIT_TYPES.TURBINE_VALVE then
         return rtu_t.turbine_valve
-    elseif utype == RTU_UNIT_TYPES.EMACHINE then
-        return rtu_t.energy_machine
     elseif utype == RTU_UNIT_TYPES.IMATRIX then
         return rtu_t.induction_matrix
     end

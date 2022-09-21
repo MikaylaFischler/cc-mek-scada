@@ -1,15 +1,12 @@
-local log = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local ppm = require("scada-common.ppm")
-local types = require("scada-common.types")
-local util = require("scada-common.util")
+local log           = require("scada-common.log")
+local mqueue        = require("scada-common.mqueue")
+local ppm           = require("scada-common.ppm")
+local types         = require("scada-common.types")
+local util          = require("scada-common.util")
 
-local boiler_rtu = require("rtu.dev.boiler_rtu")
-local boilerv_rtu = require("rtu.dev.boilerv_rtu")
-local energymachine_rtu = require("rtu.dev.energymachine_rtu")
-local imatrix_rtu = require("rtu.dev.imatrix_rtu")
-local turbine_rtu = require("rtu.dev.turbine_rtu")
-local turbinev_rtu = require("rtu.dev.turbinev_rtu")
+local boilerv_rtu   = require("rtu.dev.boilerv_rtu")
+local imatrix_rtu   = require("rtu.dev.imatrix_rtu")
+local turbinev_rtu  = require("rtu.dev.turbinev_rtu")
 
 local modbus = require("rtu.modbus")
 
@@ -124,16 +121,10 @@ function threads.thread__main(smem)
                                 -- found, re-link
                                 unit.device = device
 
-                                if unit.type == rtu_t.boiler then
-                                    unit.rtu = boiler_rtu.new(device)
-                                elseif unit.type == rtu_t.boiler_valve then
+                                if unit.type == rtu_t.boiler_valve then
                                     unit.rtu = boilerv_rtu.new(device)
-                                elseif unit.type == rtu_t.turbine then
-                                    unit.rtu = turbine_rtu.new(device)
                                 elseif unit.type == rtu_t.turbine_valve then
                                     unit.rtu = turbinev_rtu.new(device)
-                                elseif unit.type == rtu_t.energy_machine then
-                                    unit.rtu = energymachine_rtu.new(device)
                                 elseif unit.type == rtu_t.induction_matrix then
                                     unit.rtu = imatrix_rtu.new(device)
                                 end
@@ -163,7 +154,7 @@ function threads.thread__main(smem)
         while not rtu_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not rtu_state.shutdown then
@@ -235,7 +226,7 @@ function threads.thread__comms(smem)
         while not rtu_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not rtu_state.shutdown then
@@ -264,6 +255,11 @@ function threads.thread__unit_comms(smem, unit)
         local packet_queue = unit.pkt_queue
 
         local last_update  = util.time()
+
+        if packet_queue == nil then
+            log.error("rtu unit thread created without a message queue, exiting...", true)
+            return
+        end
 
         -- thread loop
         while true do
@@ -305,7 +301,7 @@ function threads.thread__unit_comms(smem, unit)
         while not rtu_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not rtu_state.shutdown then

@@ -1,6 +1,6 @@
-local types = require "scada-common.types"
-local util  = require "scada-common.util"
-local log   = require "scada-common.log"
+local types = require("scada-common.types")
+local util  = require("scada-common.util")
+local log   = require("scada-common.log")
 
 local unit = {}
 
@@ -204,7 +204,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- go through boilers for stats and online
         for i = 1, #self.boilers do
             local session = self.boilers[i] ---@type unit_session
-            local boiler = session.get_db() ---@type boiler_session_db
+            local boiler = session.get_db() ---@type boilerv_session_db
 
             total_boil_rate = total_boil_rate + boiler.state.boil_rate
             boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
@@ -221,7 +221,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]  ---@type unit_session
                 local idx = boiler.get_device_idx()
-                local db = boiler.get_db()      ---@type boiler_session_db
+                local db = boiler.get_db()      ---@type boilerv_session_db
 
                 if r_db.mek_status.status then
                     self.db.annunciator.HeatingRateLow[idx] = db.state.boil_rate == 0
@@ -240,7 +240,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
             local idx = boiler.get_device_idx()
-            local db = boiler.get_db()      ---@type boiler_session_db
+            local db = boiler.get_db()      ---@type boilerv_session_db
 
             local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 0 or db.tanks.hcool_fill == 1
 
@@ -267,7 +267,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- go through turbines for stats and online
         for i = 1, #self.turbines do
             local session = self.turbines[i]    ---@type unit_session
-            local turbine = session.get_db()    ---@type turbine_session_db
+            local turbine = session.get_db()    ---@type turbinev_session_db
 
             total_flow_rate = total_flow_rate + turbine.state.flow_rate
             total_input_rate = total_input_rate + turbine.state.steam_input_rate
@@ -285,7 +285,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- check if steam dumps are open
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]    ---@type unit_session
-            local db = turbine.get_db()         ---@type turbine_session_db
+            local db = turbine.get_db()         ---@type turbinev_session_db
             local idx = turbine.get_device_idx()
 
             if db.state.dumping_mode == DUMPING_MODE.IDLE then
@@ -300,7 +300,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- check if turbines are at max speed but not keeping up
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]    ---@type unit_session
-            local db = turbine.get_db()         ---@type turbine_session_db
+            local db = turbine.get_db()         ---@type turbinev_session_db
             local idx = turbine.get_device_idx()
 
             self.db.annunciator.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0)
@@ -316,7 +316,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         ]]--
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]    ---@type unit_session
-            local db = turbine.get_db()         ---@type turbine_session_db
+            local db = turbine.get_db()         ---@type turbinev_session_db
 
             local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
             self.db.annunciator.TurbineTrip[turbine.get_device_idx()] = has_steam and db.state.flow_rate == 0

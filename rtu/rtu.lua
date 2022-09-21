@@ -1,14 +1,11 @@
-local comms = require("scada-common.comms")
-local ppm = require("scada-common.ppm")
-local log = require("scada-common.log")
-local types = require("scada-common.types")
-local util = require("scada-common.util")
+local comms  = require("scada-common.comms")
+local ppm    = require("scada-common.ppm")
+local log    = require("scada-common.log")
+local util   = require("scada-common.util")
 
 local modbus = require("rtu.modbus")
 
 local rtu = {}
-
-local rtu_t = types.rtu_t
 
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
@@ -333,6 +330,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
 
             if protocol == PROTOCOLS.MODBUS_TCP then
                 local return_code = false
+---@diagnostic disable-next-line: param-type-mismatch
                 local reply = modbus.reply__neg_ack(packet)
 
                 -- handle MODBUS instruction
@@ -342,17 +340,20 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
 
                     if unit.name == "redstone_io" then
                         -- immediately execute redstone RTU requests
+---@diagnostic disable-next-line: param-type-mismatch
                         return_code, reply = unit.modbus_io.handle_packet(packet)
                         if not return_code then
                             log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
                         end
                     else
                         -- check validity then pass off to unit comms thread
+---@diagnostic disable-next-line: param-type-mismatch
                         return_code, reply = unit.modbus_io.check_request(packet)
                         if return_code then
                             -- check if there are more than 3 active transactions
                             -- still queue the packet, but this may indicate a problem
                             if unit.pkt_queue.length() > 3 then
+---@diagnostic disable-next-line: param-type-mismatch
                                 reply = modbus.reply__srv_device_busy(packet)
                                 log.debug("queueing new request with " .. unit.pkt_queue.length() ..
                                     " transactions already in the queue" .. unit_dbg_tag)
@@ -366,6 +367,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
                     end
                 else
                     -- unit ID out of range?
+---@diagnostic disable-next-line: param-type-mismatch
                     reply = modbus.reply__gw_unavailable(packet)
                     log.error("received MODBUS packet for non-existent unit")
                 end

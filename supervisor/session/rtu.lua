@@ -5,15 +5,12 @@ local rsio          = require("scada-common.rsio")
 local util          = require("scada-common.util")
 
 -- supervisor rtu sessions (svrs)
-local svrs_boiler   = require("supervisor.session.rtu.boiler")
 local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
-local svrs_emachine = require("supervisor.session.rtu.emachine")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
 local svrs_sna      = require("supervisor.session.rtu.sna")
 local svrs_sps      = require("supervisor.session.rtu.sps")
-local svrs_turbine  = require("supervisor.session.rtu.turbine")
 local svrs_turbinev = require("supervisor.session.rtu.turbinev")
 
 local rtu = {}
@@ -76,7 +73,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
         },
         rs_io_q = {},
         turbine_cmd_q = {},
-        turbine_cmd_capable = false,
         units = {}
     }
 
@@ -87,7 +83,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
         self.units = {}
         self.rs_io_q = {}
         self.turbine_cmd_q = {}
-        self.turbine_cmd_capable = false
     end
 
     -- parse the recorded advertisement and create unit sub-sessions
@@ -110,7 +105,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
 
-            local u_type = unit_advert.type
+            local u_type = unit_advert.type ---@type integer|boolean
 
             -- validate unit advertisement
 
@@ -137,26 +132,14 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
             elseif u_type == RTU_UNIT_TYPES.REDSTONE then
                 -- redstone
                 unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
-            elseif u_type == RTU_UNIT_TYPES.BOILER then
-                -- boiler
-                unit = svrs_boiler.new(self.id, i, unit_advert, self.modbus_q)
-                target_unit.add_boiler(unit)
             elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                 -- boiler (Mekanism 10.1+)
                 unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
-                target_unit.add_boiler(unit)
-            elseif u_type == RTU_UNIT_TYPES.TURBINE then
-                -- turbine
-                unit = svrs_turbine.new(self.id, i, unit_advert, self.modbus_q)
-                target_unit.add_turbine(unit)
+                if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
             elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                 -- turbine (Mekanism 10.1+)
                 unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
-                target_unit.add_turbine(unit)
-                self.turbine_cmd_capable = true
-            elseif u_type == RTU_UNIT_TYPES.EMACHINE then
-                -- mekanism [energy] machine
-                unit = svrs_emachine.new(self.id, i, unit_advert, self.modbus_q)
+                if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
             elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                 -- induction matrix
                 unit = svrs_imatrix.new(self.id, i, unit_advert, self.modbus_q)
@@ -202,8 +185,10 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 end
             else
                 _reset_config()
-                local type_string = util.strval(comms.advert_type_to_rtu_t(u_type))
-                log.error(log_header .. "bad advertisement: error occured while creating a unit (type is " .. type_string .. ")")
+                if type(u_type) == "number" then
+                    local type_string = util.strval(comms.advert_type_to_rtu_t(u_type))
+                    log.error(log_header .. "bad advertisement: error occured while creating a unit (type is " .. type_string .. ")")
+                end
                 break
             end
         end
@@ -265,6 +250,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
         if pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
             if self.units[pkt.unit_id] ~= nil then
                 local unit = self.units[pkt.unit_id]    ---@type unit_session
+---@diagnostic disable-next-line: param-type-mismatch
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then

@@ -4,28 +4,27 @@
 
 require("/initenv").init_env()
 
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local ppm    = require("scada-common.ppm")
-local rsio   = require("scada-common.rsio")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local log          = require("scada-common.log")
+local mqueue       = require("scada-common.mqueue")
+local ppm          = require("scada-common.ppm")
+local rsio         = require("scada-common.rsio")
+local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
-local config  = require("rtu.config")
-local modbus  = require("rtu.modbus")
-local rtu     = require("rtu.rtu")
-local threads = require("rtu.threads")
+local config       = require("rtu.config")
+local modbus       = require("rtu.modbus")
+local rtu          = require("rtu.rtu")
+local threads      = require("rtu.threads")
 
-local redstone_rtu      = require("rtu.dev.redstone_rtu")
-local boiler_rtu        = require("rtu.dev.boiler_rtu")
-local boilerv_rtu       = require("rtu.dev.boilerv_rtu")
-local energymachine_rtu = require("rtu.dev.energymachine_rtu")
-local envd_rtu          = require("rtu.dev.envd_rtu")
-local imatrix_rtu       = require("rtu.dev.imatrix_rtu")
-local turbine_rtu       = require("rtu.dev.turbine_rtu")
-local turbinev_rtu      = require("rtu.dev.turbinev_rtu")
+local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
+local envd_rtu     = require("rtu.dev.envd_rtu")
+local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
+local redstone_rtu = require("rtu.dev.redstone_rtu")
+local sna_rtu      = require("rtu.dev.sna_rtu")
+local sps_rtu      = require("rtu.dev.sps_rtu")
+local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.7.12"
+local RTU_VERSION = "beta-v0.8.0"
 
 local rtu_t = types.rtu_t
 
@@ -219,9 +218,9 @@ local function configure()
                 index = entry_idx,
                 reactor = io_reactor,
                 device = capabilities,  -- use device field for redstone channels
-                rtu = rs_rtu,
+                rtu = rs_rtu,       ---@type rtu_device|rtu_rs_device
                 modbus_io = modbus.new(rs_rtu, false),
-                pkt_queue = nil,
+                pkt_queue = nil,    ---@type mqueue|nil
                 thread = nil
             }
 
@@ -267,31 +266,26 @@ local function configure()
             local rtu_iface = nil   ---@type rtu_device
             local rtu_type = ""
 
-            if type == "boiler" then
+            if type == "boilerValve" then
                 -- boiler multiblock
-                rtu_type = rtu_t.boiler
-                rtu_iface = boiler_rtu.new(device)
-            elseif type == "boilerValve" then
-                -- boiler multiblock (10.1+)
                 rtu_type = rtu_t.boiler_valve
                 rtu_iface = boilerv_rtu.new(device)
-            elseif type == "turbine" then
-                -- turbine multiblock
-                rtu_type = rtu_t.turbine
-                rtu_iface = turbine_rtu.new(device)
             elseif type == "turbineValve" then
-                -- turbine multiblock (10.1+)
+                -- turbine multiblock
                 rtu_type = rtu_t.turbine_valve
                 rtu_iface = turbinev_rtu.new(device)
-            elseif type == "mekanismMachine" then
-                -- assumed to be an induction matrix multiblock, pre Mekanism 10.1
-                -- also works with energy cubes
-                rtu_type = rtu_t.energy_machine
-                rtu_iface = energymachine_rtu.new(device)
             elseif type == "inductionPort" then
-                -- induction matrix multiblock (10.1+)
+                -- induction matrix multiblock
                 rtu_type = rtu_t.induction_matrix
                 rtu_iface = imatrix_rtu.new(device)
+            elseif type == "spsPort" then
+                -- SPS multiblock
+                rtu_type = rtu_t.sps
+                rtu_iface = sps_rtu.new(device)
+            elseif type == "solarNeutronActivator" then
+                -- SNA
+                rtu_type = rtu_t.sps
+                rtu_iface = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
                 rtu_type = rtu_t.env_detector
@@ -311,9 +305,9 @@ local function configure()
                     index = index,
                     reactor = for_reactor,
                     device = device,
-                    rtu = rtu_iface,
+                    rtu = rtu_iface,            ---@type rtu_device|rtu_rs_device
                     modbus_io = modbus.new(rtu_iface, true),
-                    pkt_queue = mqueue.new(),
+                    pkt_queue = mqueue.new(),   ---@type mqueue|nil
                     thread = nil
                 }
 

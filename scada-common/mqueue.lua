@@ -4,7 +4,7 @@
 
 local mqueue = {}
 
----@alias TYPE integer
+---@alias MQ_TYPE integer
 local TYPE = {
     COMMAND = 0,
     DATA = 1,
@@ -21,7 +21,7 @@ function mqueue.new()
     local remove = table.remove
 
     ---@class queue_item
-    ---@field qtype TYPE
+    ---@field qtype MQ_TYPE
     ---@field message any
 
     ---@class queue_data
@@ -42,8 +42,8 @@ function mqueue.new()
     function public.ready() return #queue ~= 0 end
 
     -- push a new item onto the queue
-    ---@param qtype TYPE
-    ---@param message string
+    ---@param qtype MQ_TYPE
+    ---@param message any
     local function _push(qtype, message)
         insert(queue, { qtype = qtype, message = message })
     end
@@ -62,7 +62,7 @@ function mqueue.new()
     end
 
     -- push a packet onto the queue
-    ---@param packet scada_packet|modbus_packet|rplc_packet|crdn_packet|capi_packet
+    ---@param packet packet|frame
     function public.push_packet(packet)
         _push(TYPE.PACKET, packet)
     end

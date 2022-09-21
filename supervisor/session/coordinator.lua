@@ -8,6 +8,7 @@ local coordinator = {}
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
+local CRDN_COMMANDS = comms.CRDN_COMMANDS
 
 local print = util.print
 local println = util.println
@@ -163,6 +164,24 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
             if pkt.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
+            elseif pkt.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                if pkt.length > 2 then
+                    -- get command and unit id
+                    local cmd = pkt.data[1]
+                    local uid = pkt.data[2]
+
+                    -- continue if valid unit id
+                    if util.is_int(uid) and uid > 0 and uid <= #self.units then
+                        local unit = self.units[pkt.data[2]]    ---@type reactor_unit
+                        if cmd == CRDN_COMMANDS.SCRAM then
+                            unit.scram()
+                        end
+                    else
+                        log.debug(log_header .. "CRDN command unit invalid")
+                    end
+                else
+                    log.debug(log_header .. "CRDN command unit packet length mismatch")
+                end
             else
                 log.debug(log_header .. "handler received unexpected SCADA_CRDN packet type " .. pkt.type)
             end

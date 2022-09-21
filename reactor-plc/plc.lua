@@ -315,7 +315,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPES
-    ---@param msg string
+    ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
@@ -329,7 +329,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- send a SCADA management packet
     ---@param msg_type SCADA_MGMT_TYPES
-    ---@param msg string
+    ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()

@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.4.12"
+local COORDINATOR_VERSION = "alpha-v0.4.13"
 
 local print = util.print
 local println = util.println
@@ -66,7 +66,7 @@ ppm.mount_all()
 
 -- setup monitors
 local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
-if not configured then
+if not configured or monitors == nil then
     println("boot> monitor setup failed")
     log.fatal("monitor configuration failed")
     return

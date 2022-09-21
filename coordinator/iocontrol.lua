@@ -1,5 +1,9 @@
-local psil = require("scada-common.psil")
-local log  = require("scada-common.log")
+local comms = require("scada-common.comms")
+local log   = require("scada-common.log")
+local psil  = require("scada-common.psil")
+local util  = require("scada-common.util")
+
+local CRDN_COMMANDS = comms.CRDN_COMMANDS
 
 local iocontrol = {}
 
@@ -8,7 +12,8 @@ local io = {}
 
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
-function iocontrol.init(conf)
+---@param comms coord_comms comms reference
+function iocontrol.init(conf, comms)
     io.facility = {
         scram = false,
         num_units = conf.num_units,
@@ -29,10 +34,20 @@ function iocontrol.init(conf)
             burn_rate_cmd = 0.0,
             waste_control = 0,
 
-            ---@fixme debug stubs to be linked into comms later?
-            start = function () print("UNIT " .. i  .. ": start") end,
-            scram = function () print("UNIT " .. i  .. ": SCRAM") end,
-            set_burn = function (rate) print("UNIT " .. i  .. ": set burn rate to " .. rate) end,
+            start = function ()
+                comms.send_command(i, CRDN_COMMANDS.START)
+                log.debug(util.c("sent unit ", i, ": START"))
+            end,
+
+            scram = function ()
+                comms.send_command(i, CRDN_COMMANDS.SCRAM)
+                log.debug(util.c("sent unit ", i, ": SCRAM"))
+            end,
+
+            set_burn = function (rate)
+                comms.send_command(i, CRDN_COMMANDS.SET_BURN, rate)
+                log.debug(util.c("sent unit ", i, ": SET_BURN = ", rate))
+            end,
 
             reactor_ps = psil.create(),
             reactor_data = {},  ---@type reactor_db
@@ -45,13 +60,13 @@ function iocontrol.init(conf)
         }
 
         for _ = 1, conf.defs[(i * 2) - 1] do
-            local data = {} ---@type boiler_session_db|boilerv_session_db
+            local data = {} ---@type boilerv_session_db
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, data)
         end
 
         for _ = 1, conf.defs[i * 2] do
-            local data = {} ---@type turbine_session_db|turbinev_session_db
+            local data = {} ---@type turbinev_session_db
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, data)
         end
@@ -225,7 +240,7 @@ function iocontrol.update_statuses(statuses)
                 unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
                 unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
 
-                local data = unit.boiler_data_tbl[id]  ---@type boiler_session_db|boilerv_session_db
+                local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
 
                 if data.state.boil_rate > 0 then
                     unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
@@ -255,7 +270,7 @@ function iocontrol.update_statuses(statuses)
                 unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
                 unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
 
-                local data = unit.turbine_data_tbl[id]  ---@type turbine_session_db|turbinev_session_db
+                local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
 
                 if data.tanks.steam_fill >= 0.99 then
                     unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip

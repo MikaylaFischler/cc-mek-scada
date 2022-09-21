@@ -164,7 +164,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
     end
 
     -- handle a packet
-    ---@param packet modbus_frame|rplc_frame|mgmt_frame|crdn_frame
+    ---@param packet modbus_frame|rplc_frame|mgmt_frame|crdn_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
             local l_port = packet.scada_frame.local_port()

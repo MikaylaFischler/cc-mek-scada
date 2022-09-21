@@ -21,6 +21,7 @@ local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 
 -- request the user to select a monitor
 ---@param names table available monitors
+---@return boolean|string|nil
 local function ask_monitor(names)
     println("available monitors:")
     for i = 1, #names do
@@ -71,7 +72,7 @@ function coordinator.configure_monitors(num_units)
     -- PRIMARY DISPLAY --
     ---------------------
 
-    local iface_primary_display = settings.get("PRIMARY_DISPLAY")
+    local iface_primary_display = settings.get("PRIMARY_DISPLAY")   ---@type boolean|string|nil
 
     if not util.table_contains(names, iface_primary_display) then
         println("primary display is not connected")
@@ -85,7 +86,7 @@ function coordinator.configure_monitors(num_units)
         iface_primary_display = ask_monitor(names)
     end
 
-    if iface_primary_display == false then return false end
+    if type(iface_primary_display) ~= "string" then return false end
 
     settings.set("PRIMARY_DISPLAY", iface_primary_display)
     util.filter_table(names, function (x) return x ~= iface_primary_display end)
@@ -175,7 +176,10 @@ function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
 
 ---@param message string
 ---@return function update, function done
-function coordinator.log_comms_connecting(message) return log_dmesg(message, "COMMS", true) end
+function coordinator.log_comms_connecting(message)
+---@diagnostic disable-next-line: return-type-mismatch
+    return log_dmesg(message, "COMMS", true)
+end
 
 -- coordinator communications
 ---@param version string
@@ -306,6 +310,14 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
         return self.sv_linked
     end
 
+    -- send a unit command
+    ---@param unit integer unit ID
+    ---@param cmd CRDN_COMMANDS command
+    ---@param option any? optional options (like burn rate)
+    function public.send_command(unit, cmd, option)
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.COMMAND_UNIT, { unit, cmd, option })
+    end
+
     -- parse a packet
     ---@param side string
     ---@param sender integer
@@ -348,12 +360,13 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     end
 
     -- handle a packet
-    ---@param packet mgmt_frame|crdn_frame|capi_frame
+    ---@param packet mgmt_frame|crdn_frame|capi_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
 
             if protocol == PROTOCOLS.COORD_API then
+---@diagnostic disable-next-line: param-type-mismatch
                 apisessions.handle_packet(packet)
             else
                 -- check sequence number
@@ -389,7 +402,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                 end
 
                                 -- init io controller
-                                iocontrol.init(conf)
+                                iocontrol.init(conf, public)
 
                                 self.sv_linked = true
                             else

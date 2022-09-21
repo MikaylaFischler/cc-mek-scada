@@ -86,11 +86,8 @@ types.TRI_FAIL = {
 ---@alias rtu_t string
 types.rtu_t = {
     redstone = "redstone",
-    boiler = "boiler",
     boiler_valve = "boiler_valve",
-    turbine = "turbine",
     turbine_valve = "turbine_valve",
-    energy_machine = "emachine",
     induction_matrix = "induction_matrix",
     sps = "sps",
     sna = "sna",

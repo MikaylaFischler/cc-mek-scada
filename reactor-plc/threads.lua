@@ -194,7 +194,7 @@ function threads.thread__main(smem, init)
         while not plc_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             -- if status is true, then we are probably exiting, so this won't matter
@@ -337,7 +337,7 @@ function threads.thread__rps(smem)
         while not plc_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not plc_state.shutdown then
@@ -412,7 +412,7 @@ function threads.thread__comms_tx(smem)
         while not plc_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not plc_state.shutdown then
@@ -460,7 +460,7 @@ function threads.thread__comms_rx(smem)
                         -- received a packet
                         -- handle the packet (setpoints passed to update burn rate setpoint)
                         --                   (plc_state passed to check if degraded)
-                        plc_comms.handle_packet(msg.message, setpoints, plc_state)
+                        plc_comms.handle_packet(msg.message, plc_state, setpoints)
                     end
                 end
 
@@ -486,7 +486,7 @@ function threads.thread__comms_rx(smem)
         while not plc_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not plc_state.shutdown then
@@ -610,7 +610,7 @@ function threads.thread__setpoint_control(smem)
         while not plc_state.shutdown do
             local status, result = pcall(public.exec)
             if status == false then
-                log.fatal(result)
+                log.fatal(util.strval(result))
             end
 
             if not plc_state.shutdown then

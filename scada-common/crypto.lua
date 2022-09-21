@@ -13,8 +13,8 @@ local zero_pad = require("lockbox.padding.zero");
 local stream   = require("lockbox.util.stream")
 local array    = require("lockbox.util.array")
 
-local log  = require("scada-common.log")
-local util = require("scada-common.util")
+local log      = require("scada-common.log")
+local util     = require("scada-common.util")
 
 local crypto = {}
 
@@ -71,7 +71,7 @@ end
 
 -- encrypt plaintext
 ---@param plaintext string
----@return string initial_value, string ciphertext
+---@return table initial_value, string ciphertext
 function crypto.encrypt(plaintext)
     local start = util.time()
 

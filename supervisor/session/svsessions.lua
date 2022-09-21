@@ -147,6 +147,7 @@ end
 ---@return rtu_session_struct|nil
 function svsessions.find_rtu_session(remote_port)
     -- check RTU sessions
+---@diagnostic disable-next-line: return-type-mismatch
     return _find_session(self.rtu_sessions, remote_port)
 end
 
@@ -155,6 +156,7 @@ end
 ---@return plc_session_struct|nil
 function svsessions.find_plc_session(remote_port)
     -- check PLC sessions
+---@diagnostic disable-next-line: return-type-mismatch
     return _find_session(self.plc_sessions, remote_port)
 end
 
@@ -176,6 +178,7 @@ end
 ---@return nil
 function svsessions.find_coord_session(remote_port)
     -- check coordinator sessions
+---@diagnostic disable-next-line: return-type-mismatch
     return _find_session(self.coord_sessions, remote_port)
 end
 

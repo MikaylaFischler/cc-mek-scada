@@ -20,12 +20,15 @@ function modbus.new(rtu_dev, use_parallel_read)
 
     local insert = table.insert
 
+    -- read a span of coils (digital outputs)
+    --
+    -- returns a table of readings or a MODBUS_EXCODE error code
     ---@param c_addr_start integer
     ---@param count integer
-    ---@return boolean ok, table readings
+    ---@return boolean ok, table|MODBUS_EXCODE readings
     local function _1_read_coils(c_addr_start, count)
         local tasks = {}
-        local readings = {}
+        local readings = {} ---@type table|MODBUS_EXCODE
         local access_fault = false
         local _, coils, _, _ = self.rtu.io_count()
         local return_ok = ((c_addr_start + count) <= (coils + 1)) and (count > 0)
@@ -66,12 +69,15 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    -- read a span of discrete inputs (digital inputs)
+    --
+    -- returns a table of readings or a MODBUS_EXCODE error code
     ---@param di_addr_start integer
     ---@param count integer
-    ---@return boolean ok, table readings
+    ---@return boolean ok, table|MODBUS_EXCODE readings
     local function _2_read_discrete_inputs(di_addr_start, count)
         local tasks = {}
-        local readings = {}
+        local readings = {} ---@type table|MODBUS_EXCODE
         local access_fault = false
         local discrete_inputs, _, _, _ = self.rtu.io_count()
         local return_ok = ((di_addr_start + count) <= (discrete_inputs + 1)) and (count > 0)
@@ -112,12 +118,15 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    -- read a span of holding registers (analog outputs)
+    --
+    -- returns a table of readings or a MODBUS_EXCODE error code
     ---@param hr_addr_start integer
     ---@param count integer
-    ---@return boolean ok, table readings
+    ---@return boolean ok, table|MODBUS_EXCODE readings
     local function _3_read_multiple_holding_registers(hr_addr_start, count)
         local tasks = {}
-        local readings = {}
+        local readings = {} ---@type table|MODBUS_EXCODE
         local access_fault = false
         local _, _, _, hold_regs = self.rtu.io_count()
         local return_ok = ((hr_addr_start + count) <= (hold_regs + 1)) and (count > 0)
@@ -158,12 +167,15 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    -- read a span of input registers (analog inputs)
+    --
+    -- returns a table of readings or a MODBUS_EXCODE error code
     ---@param ir_addr_start integer
     ---@param count integer
-    ---@return boolean ok, table readings
+    ---@return boolean ok, table|MODBUS_EXCODE readings
     local function _4_read_input_registers(ir_addr_start, count)
         local tasks = {}
-        local readings = {}
+        local readings = {} ---@type table|MODBUS_EXCODE
         local access_fault = false
         local _, _, input_regs, _ = self.rtu.io_count()
         local return_ok = ((ir_addr_start + count) <= (input_regs + 1)) and (count > 0)
@@ -204,9 +216,10 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, readings
     end
 
+    -- write a single coil (digital output)
     ---@param c_addr integer
     ---@param value any
-    ---@return boolean ok, MODBUS_EXCODE|nil
+    ---@return boolean ok, MODBUS_EXCODE
     local function _5_write_single_coil(c_addr, value)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
@@ -226,9 +239,10 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, response
     end
 
+    -- write a single holding register (analog output)
     ---@param hr_addr integer
     ---@param value any
-    ---@return boolean ok, MODBUS_EXCODE|nil
+    ---@return boolean ok, MODBUS_EXCODE
     local function _6_write_single_holding_register(hr_addr, value)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
@@ -248,9 +262,10 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, response
     end
 
+    -- write multiple coils (digital outputs)
     ---@param c_addr_start integer
     ---@param values any
-    ---@return boolean ok, MODBUS_EXCODE|nil
+    ---@return boolean ok, MODBUS_EXCODE
     local function _15_write_multiple_coils(c_addr_start, values)
         local response = nil
         local _, coils, _, _ = self.rtu.io_count()
@@ -275,9 +290,10 @@ function modbus.new(rtu_dev, use_parallel_read)
         return return_ok, response
     end
 
+    -- write multiple holding registers (analog outputs)
     ---@param hr_addr_start integer
     ---@param values any
-    ---@return boolean ok, MODBUS_EXCODE|nil
+    ---@return boolean ok, MODBUS_EXCODE
     local function _16_write_multiple_holding_registers(hr_addr_start, values)
         local response = nil
         local _, _, _, hold_regs = self.rtu.io_count()
@@ -403,6 +419,7 @@ function modbus.new(rtu_dev, use_parallel_read)
 end
 
 -- return a SERVER_DEVICE_BUSY error reply
+---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
 function modbus.reply__srv_device_busy(packet)
     -- reply back with error flag and exception code
@@ -414,6 +431,7 @@ function modbus.reply__srv_device_busy(packet)
 end
 
 -- return a NEG_ACKNOWLEDGE error reply
+---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
 function modbus.reply__neg_ack(packet)
     -- reply back with error flag and exception code
@@ -425,6 +443,7 @@ function modbus.reply__neg_ack(packet)
 end
 
 -- return a GATEWAY_PATH_UNAVAILABLE error reply
+---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
 function modbus.reply__gw_unavailable(packet)
     -- reply back with error flag and exception code

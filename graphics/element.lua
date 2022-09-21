@@ -19,8 +19,32 @@ local element = {}
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
 
+---@alias graphics_args graphics_args_generic
+---|waiting_args
+---|multi_button_args
+---|push_button_args
+---|scram_button_args
+---|spinbox_args
+---|start_button_args
+---|switch_button_args
+---|core_map_args
+---|data_indicator_args
+---|hbar_args
+---|icon_indicator_args
+---|indicator_light_args
+---|state_indicator_args
+---|tristate_indicator_light_args
+---|vbar_args
+---|colormap_args
+---|displaybox_args
+---|div_args
+---|pipenet_args
+---|rectangle_args
+---|textbox_args
+---|tiling_args
+
 -- a base graphics element, should not be created on its own
----@param args graphics_args_generic arguments
+---@param args graphics_args arguments
 function element.new(args)
     local self = {
         id = -1,
