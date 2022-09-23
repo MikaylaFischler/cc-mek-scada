@@ -1,4 +1,5 @@
 local core           = require("graphics.core")
+local util           = require("scada-common.util")
 
 local style          = require("coordinator.ui.style")
 
@@ -22,11 +23,11 @@ local function new_view(root, x, y, ps)
     local lu_col = cpair(colors.gray, colors.gray)
 
     local status    = StateIndicator{parent=turbine,x=8,y=1,states=style.turbine.states,value=1,min_width=10}
-    local prod_rate = DataIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",unit="MFE",format="%10.2f",value=0,width=16,fg_bg=text_fg_bg}
+    local prod_rate = DataIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",unit="FE",format="%10.2f",value=0,width=16,fg_bg=text_fg_bg}
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg_bg}
 
     ps.subscribe("computed_status", status.update)
-    ps.subscribe("prod_rate", prod_rate.update)
+    ps.subscribe("prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
     ps.subscribe("flow_rate", flow_rate.update)
 
     local steam = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=5,width=2}

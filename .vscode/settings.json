@@ -12,6 +12,7 @@
         "settings",
         "window",
         "read",
-        "periphemu"
+        "periphemu",
+        "mekanismEnergyHelper"
     ]
 }

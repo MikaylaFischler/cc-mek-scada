@@ -143,8 +143,12 @@ function comms.scada_packet()
             if #self.raw >= 3 then
                 self.seq_num = self.raw[1]
                 self.protocol = self.raw[2]
-                self.length = #self.raw[3]
-                self.payload = self.raw[3]
+
+                -- element 3 must be a table
+                if type(self.raw[3]) == "table" then
+                    self.length = #self.raw[3]
+                    self.payload = self.raw[3]
+                end
             end
 
             self.valid = type(self.seq_num) == "number" and

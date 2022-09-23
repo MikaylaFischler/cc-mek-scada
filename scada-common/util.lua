@@ -273,34 +273,37 @@ end
 
 -- MEKANISM POWER --
 
--- function util.kFE(fe) return fe / 1000.0 end
--- function util.MFE(fe) return fe / 1000000.0 end
--- function util.GFE(fe) return fe / 1000000000.0 end
--- function util.TFE(fe) return fe / 1000000000000.0 end
+-- convert Joules to FE
+---@param J number Joules
+---@return number FE Forge Energy
+function util.joules_to_fe(J) return mekanismEnergyHelper.joulesToFE(J) end
 
--- -- FLOATING POINT PRINTS --
+-- convert FE to Joules
+---@param FE number Forge Energy
+---@return number J Joules
+function util.fe_to_joules(FE) return mekanismEnergyHelper.feToJoules(FE) end
 
--- local function fractional_1s(number)
---     return number == math.round(number)
--- end
+local function kFE(fe) return fe / 1000.0 end
+local function MFE(fe) return fe / 1000000.0 end
+local function GFE(fe) return fe / 1000000000.0 end
+local function TFE(fe) return fe / 1000000000000.0 end
 
--- local function fractional_10ths(number)
---     number = number * 10
---     return number == math.round(number)
--- end
-
--- local function fractional_100ths(number)
---     number = number * 100
---     return number == math.round(number)
--- end
-
--- function util.power_format(fe)
---     if fe < 1000 then
---         return string.format("%.2f FE", fe)
---     elseif fe < 1000000 then
---         return string.format("%.3f kFE", kFE(fe))
---     end
--- end
+-- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE)
+---@param fe number forge energy value
+---@return string str formatted string
+function util.power_format(fe)
+    if fe < 1000 then
+        return string.format("%.2f FE", fe)
+    elseif fe < 1000000 then
+        return string.format("%.2f kFE", kFE(fe))
+    elseif fe < 1000000000 then
+        return string.format("%.2f MFE", MFE(fe))
+    elseif fe < 1000000000000 then
+        return string.format("%.2f GFE", GFE(fe))
+    else
+        return string.format("%.2f TFE", TFE(fe))
+    end
+end
 
 -- WATCHDOG --
 
