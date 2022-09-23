@@ -303,13 +303,16 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         max_burn_rate = nil
     }
 
-    ---@class plc_comms
-    local public = {}
-
-    -- open modem
-    if not self.modem.isOpen(self.l_port) then
+    -- configure modem channels
+    local function _conf_channels()
+        self.modem.closeAll()
         self.modem.open(self.l_port)
     end
+
+    _conf_channels()
+
+    ---@class plc_comms
+    local public = {}
 
     -- PRIVATE FUNCTIONS --
 
@@ -484,11 +487,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 ---@diagnostic disable-next-line: redefined-local
     function public.reconnect_modem(modem)
         self.modem = modem
-
-        -- open modem
-        if not self.modem.isOpen(self.l_port) then
-            self.modem.open(self.l_port)
-        end
+        _conf_channels()
     end
 
     -- reconnect a newly connected reactor
@@ -605,7 +604,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     ---@param plc_state plc_state
     ---@param setpoints setpoints
     function public.handle_packet(packet, plc_state, setpoints)
-        if packet ~= nil then
+        if packet ~= nil and packet.scada_frame.local_port() == self.l_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()

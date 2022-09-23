@@ -9,11 +9,8 @@ local supervisor = {}
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local RPLC_LINKING = comms.RPLC_LINKING
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
-
-local SESSION_TYPE = svsessions.SESSION_TYPE
 
 local print = util.print
 local println = util.println
@@ -42,19 +39,14 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 
     -- PRIVATE FUNCTIONS --
 
-    -- open all channels
-    local function _open_channels()
-        if not self.modem.isOpen(self.dev_listen) then
-            self.modem.open(self.dev_listen)
-        end
-
-        if not self.modem.isOpen(self.coord_listen) then
-            self.modem.open(self.coord_listen)
-        end
+    -- configure modem channels
+    local function _conf_channels()
+        self.modem.closeAll()
+        self.modem.open(self.dev_listen)
+        self.modem.open(self.coord_listen)
     end
 
-    -- open at construct time
-    _open_channels()
+    _conf_channels()
 
     -- link modem to svsessions
     svsessions.init(self.modem, num_reactors, cooling_conf)
@@ -113,7 +105,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
     function public.reconnect_modem(modem)
         self.modem = modem
         svsessions.relink_modem(self.modem)
-        _open_channels()
+        _conf_channels()
     end
 
     -- parse a packet
@@ -292,7 +284,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")
                 end
             else
-                log.warning("received packet on unused channel " .. l_port)
+                log.warning("received packet on unconfigured channel " .. l_port)
             end
         end
     end

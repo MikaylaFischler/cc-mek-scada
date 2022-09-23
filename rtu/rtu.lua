@@ -175,15 +175,18 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
         conn_watchdog = conn_watchdog
     }
 
+    -- configure modem channels
+    local function _conf_channels()
+        self.modem.closeAll()
+        self.modem.open(self.l_port)
+    end
+
+    _conf_channels()
+
     ---@class rtu_comms
     local public = {}
 
     local insert = table.insert
-
-    -- open modem
-    if not self.modem.isOpen(self.l_port) then
-        self.modem.open(self.l_port)
-    end
 
     -- PRIVATE FUNCTIONS --
 
@@ -223,11 +226,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
 ---@diagnostic disable-next-line: redefined-local
     function public.reconnect_modem(modem)
         self.modem = modem
-
-        -- open modem
-        if not self.modem.isOpen(self.l_port) then
-            self.modem.open(self.l_port)
-        end
+        _conf_channels()
     end
 
     -- unlink from the server
@@ -312,7 +311,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
     ---@param units table
     ---@param rtu_state rtu_state
     function public.handle_packet(packet, units, rtu_state)
-        if packet ~= nil then
+        if packet ~= nil and packet.scada_frame.local_port() == self.l_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()

@@ -202,19 +202,14 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
     -- PRIVATE FUNCTIONS --
 
-    -- open all channels
-    local function _open_channels()
-        if not self.modem.isOpen(sv_listen) then
-            self.modem.open(sv_listen)
-        end
-
-        if not self.modem.isOpen(api_listen) then
-            self.modem.open(api_listen)
-        end
+    -- configure modem channels
+    local function _conf_channels()
+        self.modem.closeAll()
+        self.modem.open(sv_listen)
+        self.modem.open(api_listen)
     end
 
-    -- open at construct time
-    _open_channels()
+    _conf_channels()
 
     -- send a packet to the supervisor
     ---@param msg_type SCADA_MGMT_TYPES|SCADA_CRDN_TYPES
@@ -256,7 +251,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 ---@diagnostic disable-next-line: redefined-local
     function public.reconnect_modem(modem)
         self.modem = modem
-        _open_channels()
+        _conf_channels()
     end
 
     -- close the connection to the server
@@ -364,11 +359,16 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     function public.handle_packet(packet)
         if packet ~= nil then
             local protocol = packet.scada_frame.protocol()
+            local l_port = packet.scada_frame.local_port()
 
-            if protocol == PROTOCOLS.COORD_API then
+            if l_port == api_listen then
+                if protocol == PROTOCOLS.COORD_API then
 ---@diagnostic disable-next-line: param-type-mismatch
-                apisessions.handle_packet(packet)
-            else
+                    apisessions.handle_packet(packet)
+                else
+                    log.debug("illegal packet type " .. protocol .. " on api listening channel", true)
+                end
+            elseif l_port == sv_listen then
                 -- check sequence number
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
@@ -456,9 +456,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
                     end
                 else
-                    -- should be unreachable assuming packet is from parse_packet()
-                    log.error("illegal packet type " .. protocol, true)
+                    log.debug("illegal packet type " .. protocol .. " on supervisor listening channel", true)
                 end
+            else
+                log.debug("received packet on unconfigured channel " .. l_port, true)
             end
         end
     end
