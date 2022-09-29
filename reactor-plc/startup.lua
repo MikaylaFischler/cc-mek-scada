@@ -13,7 +13,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.8.5"
+local R_PLC_VERSION = "beta-v0.8.6"
 
 local print = util.print
 local println = util.println
@@ -114,7 +114,7 @@ if __shared_memory.networked and smem_dev.modem == nil then
     println("boot> wireless modem not found")
     log.warning("no wireless modem on startup")
 
-    if smem_dev.reactor ~= nil then
+    if smem_dev.reactor ~= nil and smem_dev.reactor.getStatus() then
         smem_dev.reactor.scram()
     end
 
@@ -127,7 +127,7 @@ end
 local function init()
     if plc_state.init_ok then
         -- just booting up, no fission allowed (neutrons stay put thanks)
-        smem_dev.reactor.scram()
+        if smem_dev.reactor.getStatus() then smem_dev.reactor.scram() end
 
         -- init reactor protection system
         smem_sys.rps = plc.rps_init(smem_dev.reactor)
