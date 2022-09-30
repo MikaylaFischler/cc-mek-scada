@@ -130,6 +130,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             },
             ---@class mek_struct
             mek_struct = {
+                formed = false,
+                length = 0,
+                width = 0,
+                height = 0,
+                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
                 heat_cap = 0,
                 fuel_asm = 0,
                 fuel_sa = 0,
@@ -195,14 +201,20 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     -- copy in the reactor structure
     ---@param mek_data table
     local function _copy_struct(mek_data)
-        self.sDB.mek_struct.heat_cap  = mek_data[1]
-        self.sDB.mek_struct.fuel_asm  = mek_data[2]
-        self.sDB.mek_struct.fuel_sa   = mek_data[3]
-        self.sDB.mek_struct.fuel_cap  = mek_data[4]
-        self.sDB.mek_struct.waste_cap = mek_data[5]
-        self.sDB.mek_struct.ccool_cap = mek_data[6]
-        self.sDB.mek_struct.hcool_cap = mek_data[7]
-        self.sDB.mek_struct.max_burn  = mek_data[8]
+        self.sDB.mek_struct.formed    = mek_data[1]
+        self.sDB.mek_struct.length    = mek_data[2]
+        self.sDB.mek_struct.width     = mek_data[3]
+        self.sDB.mek_struct.height    = mek_data[4]
+        self.sDB.mek_struct.min_pos   = mek_data[5]
+        self.sDB.mek_struct.max_pos   = mek_data[6]
+        self.sDB.mek_struct.heat_cap  = mek_data[7]
+        self.sDB.mek_struct.fuel_asm  = mek_data[8]
+        self.sDB.mek_struct.fuel_sa   = mek_data[9]
+        self.sDB.mek_struct.fuel_cap  = mek_data[10]
+        self.sDB.mek_struct.waste_cap = mek_data[11]
+        self.sDB.mek_struct.ccool_cap = mek_data[12]
+        self.sDB.mek_struct.hcool_cap = mek_data[13]
+        self.sDB.mek_struct.max_burn  = mek_data[14]
     end
 
     -- mark this PLC session as closed, stop watchdog
@@ -301,7 +313,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == RPLC_TYPES.MEK_STRUCT then
                 -- received reactor structure, record it
-                if pkt.length == 8 then
+                if pkt.length == 14 then
                     local status = pcall(_copy_struct, pkt.data)
                     if status then
                         -- copied in structure data OK
@@ -357,7 +369,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 if pkt.length == 10 then
                     self.sDB.rps_tripped = true
                     self.sDB.rps_trip_cause = pkt.data[1]
-                    local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, #pkt.length) })
+                    local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, pkt.length) })
                     if status then
                         -- copied in RPS status data OK
                     else

@@ -22,6 +22,16 @@ local println_ts = util.println_ts
 -- I wish they didn't change it to error on SCRAM calls if the reactor was already inactive
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 
+-- RPS SAFETY CONSTANTS
+
+local MAX_DAMAGE_PERCENT      = 90
+local MAX_DAMAGE_TEMPERATURE  = 1200
+local MIN_COOLANT_FILL        = 0.02
+local MAX_WASTE_FILL          = 0.8
+local MAX_HEATED_COLLANT_FILL = 0.95
+
+-- END RPS SAFETY CONSTANTS
+
 --- RPS: Reactor Protection System
 ---
 --- identifies dangerous states and SCRAMs reactor if warranted
@@ -70,11 +80,10 @@ function plc.rps_init(reactor)
         local damage_percent = self.reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor damage")
             _set_fault()
             self.state[state_keys.dmg_crit] = false
         else
-            self.state[state_keys.dmg_crit] = damage_percent >= 100
+            self.state[state_keys.dmg_crit] = damage_percent >= MAX_DAMAGE_PERCENT
         end
     end
 
@@ -84,11 +93,10 @@ function plc.rps_init(reactor)
         local temp = self.reactor.getTemperature()
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor temperature")
             _set_fault()
             self.state[state_keys.high_temp] = false
         else
-            self.state[state_keys.high_temp] = temp >= 1200
+            self.state[state_keys.high_temp] = temp >= MAX_DAMAGE_TEMPERATURE
         end
     end
 
@@ -97,11 +105,10 @@ function plc.rps_init(reactor)
         local coolant_filled = self.reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor coolant level")
             _set_fault()
             self.state[state_keys.no_coolant] = false
         else
-            self.state[state_keys.no_coolant] = coolant_filled < 0.02
+            self.state[state_keys.no_coolant] = coolant_filled < MIN_COOLANT_FILL
         end
     end
 
@@ -110,11 +117,10 @@ function plc.rps_init(reactor)
         local w_filled = self.reactor.getWasteFilledPercentage()
         if w_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor waste level")
             _set_fault()
             self.state[state_keys.ex_waste] = false
         else
-            self.state[state_keys.ex_waste] = w_filled > 0.8
+            self.state[state_keys.ex_waste] = w_filled > MAX_WASTE_FILL
         end
     end
 
@@ -123,11 +129,10 @@ function plc.rps_init(reactor)
         local hc_filled = self.reactor.getHeatedCoolantFilledPercentage()
         if hc_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor heated coolant level")
             _set_fault()
             self.state[state_keys.ex_hcoolant] = false
         else
-            self.state[state_keys.ex_hcoolant] = hc_filled > 0.95
+            self.state[state_keys.ex_hcoolant] = hc_filled > MAX_HEATED_COLLANT_FILL
         end
     end
 
@@ -136,7 +141,6 @@ function plc.rps_init(reactor)
         local fuel = self.reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
-            log.error("RPS: failed to check reactor fuel")
             _set_fault()
             self.state[state_keys.no_fuel] = false
         else
@@ -364,9 +368,9 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             0,     -- getDamagePercent
             0,     -- getBoilEfficiency
             0,     -- getEnvironmentalLoss
-            0,     -- getFuel
+            0,     -- fuel_amnt
             0,     -- getFuelFilledPercentage
-            0,     -- getWaste
+            0,     -- waste_amnt
             0,     -- getWasteFilledPercentage
             "",    -- coolant_name
             0,     -- coolant_amnt
@@ -396,16 +400,12 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
         parallel.waitForAll(table.unpack(tasks))
 
-        if type(fuel) == "table" then
+        if fuel ~= nil then
             data_table[8] = fuel.amount
-        elseif type(fuel) == "number" then
-            data_table[8] = fuel
         end
 
-        if type(waste) == "table" then
+        if waste ~= nil then
             data_table[10] = waste.amount
-        elseif type(waste) == "number" then
-            data_table[10] = waste
         end
 
         if coolant ~= nil then
@@ -462,17 +462,26 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- send structure properties (these should not change, server will cache these)
     local function _send_struct()
-        local mek_data = { 0, 0, 0, 0, 0, 0, 0, 0 }
+        local min_pos = { x = 0, y = 0, z = 0 }
+        local max_pos = { x = 0, y = 0, z = 0 }
+
+        local mek_data = { false, 0, 0, 0, min_pos, max_pos, 0, 0, 0, 0, 0, 0, 0, 0 }
 
         local tasks = {
-            function () mek_data[1] = self.reactor.getHeatCapacity() end,
-            function () mek_data[2] = self.reactor.getFuelAssemblies() end,
-            function () mek_data[3] = self.reactor.getFuelSurfaceArea() end,
-            function () mek_data[4] = self.reactor.getFuelCapacity() end,
-            function () mek_data[5] = self.reactor.getWasteCapacity() end,
-            function () mek_data[6] = self.reactor.getCoolantCapacity() end,
-            function () mek_data[7] = self.reactor.getHeatedCoolantCapacity() end,
-            function () mek_data[8] = self.reactor.getMaxBurnRate() end
+            function () mek_data[1]  = self.reactor.isFormed() end,
+            function () mek_data[2]  = self.reactor.getLength() end,
+            function () mek_data[3]  = self.reactor.getWidth() end,
+            function () mek_data[4]  = self.reactor.getHeight() end,
+            function () mek_data[5]  = self.reactor.getMinPos() end,
+            function () mek_data[6]  = self.reactor.getMaxPos() end,
+            function () mek_data[7]  = self.reactor.getHeatCapacity() end,
+            function () mek_data[8]  = self.reactor.getFuelAssemblies() end,
+            function () mek_data[9]  = self.reactor.getFuelSurfaceArea() end,
+            function () mek_data[10] = self.reactor.getFuelCapacity() end,
+            function () mek_data[11] = self.reactor.getWasteCapacity() end,
+            function () mek_data[12] = self.reactor.getCoolantCapacity() end,
+            function () mek_data[13] = self.reactor.getHeatedCoolantCapacity() end,
+            function () mek_data[14] = self.reactor.getMaxBurnRate() end
         }
 
         parallel.waitForAll(table.unpack(tasks))
