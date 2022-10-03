@@ -2,6 +2,7 @@ local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
+local svqtypes    = require("supervisor.session.svqtypes")
 local unit        = require("supervisor.session.unit")
 
 local coordinator = require("supervisor.session.coordinator")
@@ -9,6 +10,9 @@ local plc         = require("supervisor.session.plc")
 local rtu         = require("supervisor.session.rtu")
 
 -- Supervisor Sessions Handler
+
+local SV_Q_CMDS = svqtypes.SV_Q_CMDS
+local CRD_S_CMDS = coordinator.CRD_S_CMDS
 
 local svsessions = {}
 
@@ -38,20 +42,30 @@ local self = {
 ---@param sessions table
 local function _iterate(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
-        if session.open then
-            local ok = session.instance.iterate()
-            if ok then
-                -- send packets in out queue
-                while session.out_queue.ready() do
-                    local msg = session.out_queue.pop()
-                    if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
+        local session = sessions[i] ---@type plc_session_struct|rtu_session_struct|coord_session_struct
+        if session.open and session.instance.iterate() then
+            -- process output queues
+            while session.out_queue.ready() do
+                local msg = session.out_queue.pop()
+                if msg ~= nil then
+                    if msg.qtype == mqueue.TYPE.PACKET then
+                        -- packet to be sent
                         self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+                    elseif msg.qtype == mqueue.TYPE.COMMAND then
+                        -- notification
+                        local cmd = msg.message
+                        if cmd == SV_Q_CMDS.BUILD_CHANGED then
+                            -- notify coordinator(s) that a build has changed
+                            for j = 1, #self.coord_sessions do
+                                local s = self.coord_sessions[j]    ---@type coord_session_struct
+                                s.in_queue.push_command(CRD_S_CMDS.RESEND_BUILDS)
+                            end
+                        end
                     end
                 end
-            else
-                session.open = false
             end
+        else
+            session.open = false
         end
     end
 end
@@ -104,7 +118,10 @@ end
 ---@param sessions table
 local function _free_closed(sessions)
     local f = function (session) return session.open end
-    local on_delete = function (session) log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port) end
+
+    local on_delete = function (session)
+        log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+    end
 
     util.filter_table(sessions, f, on_delete)
 end

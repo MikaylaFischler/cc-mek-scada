@@ -47,9 +47,9 @@ local function init(parent, id)
 
     -- main stats and core map --
 
-    ---@todo need to be checking actual reactor dimensions somehow
     local core_map = CoreMap{parent=main,x=2,y=3,reactor_l=18,reactor_w=18}
     r_ps.subscribe("temp", core_map.update)
+    r_ps.subscribe("size", function (s) core_map.resize(s[1], s[2]) end)
 
     local stat_fg_bg = cpair(colors.black,colors.white)
 

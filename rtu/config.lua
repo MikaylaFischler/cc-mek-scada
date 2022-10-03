@@ -27,26 +27,26 @@ config.RTU_DEVICES = {
 }
 -- RTU redstone interface definitions
 config.RTU_REDSTONE = {
-    {
-        for_reactor = 1,
-        io = {
-            {
-                channel = rsio.IO.WASTE_PO,
-                side = "top",
-                bundled_color = colors.blue
-            },
-            {
-                channel = rsio.IO.WASTE_PU,
-                side = "top",
-                bundled_color = colors.cyan
-            },
-            {
-                channel = rsio.IO.WASTE_AM,
-                side = "top",
-                bundled_color = colors.purple
-            }
-        }
-    }
+    -- {
+    --     for_reactor = 1,
+    --     io = {
+    --         {
+    --             channel = rsio.IO.WASTE_PO,
+    --             side = "top",
+    --             bundled_color = colors.blue
+    --         },
+    --         {
+    --             channel = rsio.IO.WASTE_PU,
+    --             side = "top",
+    --             bundled_color = colors.cyan
+    --         },
+    --         {
+    --             channel = rsio.IO.WASTE_AM,
+    --             side = "top",
+    --             bundled_color = colors.purple
+    --         }
+    --     }
+    -- }
 }
 
 return config

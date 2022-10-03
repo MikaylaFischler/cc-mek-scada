@@ -1,7 +1,9 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local util   = require("scada-common.util")
+local comms    = require("scada-common.comms")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local util     = require("scada-common.util")
+
+local svqtypes = require("supervisor.session.svqtypes")
 
 local plc = {}
 
@@ -19,9 +21,9 @@ local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
 
 local PLC_S_CMDS = {
-    SCRAM = 0,
-    ENABLE = 1,
-    RPS_RESET = 2
+    SCRAM = 1,
+    ENABLE = 2,
+    RPS_RESET = 3
 }
 
 local PLC_S_DATA = {
@@ -193,7 +195,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         if self.received_struct then
             self.sDB.mek_status.fuel_need  = self.sDB.mek_struct.fuel_cap  - self.sDB.mek_status.fuel_fill
             self.sDB.mek_status.waste_need = self.sDB.mek_struct.waste_cap - self.sDB.mek_status.waste_fill
-            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.ccool_cap  - self.sDB.mek_status.ccool_fill
+            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.ccool_cap - self.sDB.mek_status.ccool_fill
             self.sDB.mek_status.hcool_need = self.sDB.mek_struct.hcool_cap - self.sDB.mek_status.hcool_fill
         end
     end
@@ -318,6 +320,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     if status then
                         -- copied in structure data OK
                         self.received_struct = true
+                        self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
                     else
                         -- error copying structure data
                         log.error(log_header .. "failed to parse struct packet data")

@@ -60,8 +60,8 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = 0,
-                max_pos = 0,
+                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
                 coils = 0,
                 input_cap = 0,
                 output_cap = 0,

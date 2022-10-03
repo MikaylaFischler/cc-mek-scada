@@ -4,6 +4,8 @@ local mqueue        = require("scada-common.mqueue")
 local rsio          = require("scada-common.rsio")
 local util          = require("scada-common.util")
 
+local svqtypes      = require("supervisor.session.svqtypes")
+
 -- supervisor rtu sessions (svrs)
 local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
 local svrs_envd     = require("supervisor.session.rtu.envd")
@@ -192,6 +194,9 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 break
             end
         end
+
+        -- report build changed
+        self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
     end
 
     -- mark this RTU session as closed, stop watchdog

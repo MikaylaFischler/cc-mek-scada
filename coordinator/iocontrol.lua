@@ -86,41 +86,52 @@ function iocontrol.record_builds(builds)
         log.error("number of provided unit builds does not match expected number of units")
         return false
     else
+        -- note: if not all units and RTUs are connected, some will be nil
         for i = 1, #builds do
             local unit = io.units[i]    ---@type ioctl_entry
             local build = builds[i]
 
             -- reactor build
-            unit.reactor_data.mek_struct = build.reactor
-            for key, val in pairs(unit.reactor_data.mek_struct) do
-                unit.reactor_ps.publish(key, val)
+            if type(build.reactor) == "table" then
+                unit.reactor_data.mek_struct = build.reactor
+                for key, val in pairs(unit.reactor_data.mek_struct) do
+                    unit.reactor_ps.publish(key, val)
+                end
+
+                if unit.reactor_data.mek_struct.length ~= 0 and unit.reactor_data.mek_struct.width ~= 0 then
+                    unit.reactor_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
+                end
             end
 
             -- boiler builds
-            for id, boiler in pairs(build.boilers) do
-                unit.boiler_data_tbl[id] = {
-                    formed = boiler[2], ---@type boolean|nil
-                    build = boiler[1]   ---@type table
-                }
+            if type(build.boilers) == "table" then
+                for id, boiler in pairs(build.boilers) do
+                    unit.boiler_data_tbl[id] = {
+                        formed = boiler[2], ---@type boolean|nil
+                        build = boiler[1]   ---@type table
+                    }
 
-                unit.boiler_ps_tbl[id].publish("formed", boiler[2])
+                    unit.boiler_ps_tbl[id].publish("formed", boiler[2])
 
-                for key, val in pairs(unit.boiler_data_tbl[id].build) do
-                    unit.boiler_ps_tbl[id].publish(key, val)
+                    for key, val in pairs(unit.boiler_data_tbl[id].build) do
+                        unit.boiler_ps_tbl[id].publish(key, val)
+                    end
                 end
             end
 
             -- turbine builds
-            for id, turbine in pairs(build.turbines) do
-                unit.turbine_data_tbl[id] = {
-                    formed = turbine[2],    ---@type boolean|nil
-                    build = turbine[1]      ---@type table
-                }
+            if type(build.turbines) == "table" then
+                for id, turbine in pairs(build.turbines) do
+                    unit.turbine_data_tbl[id] = {
+                        formed = turbine[2],    ---@type boolean|nil
+                        build = turbine[1]      ---@type table
+                    }
 
-                unit.turbine_ps_tbl[id].publish("formed", turbine[2])
+                    unit.turbine_ps_tbl[id].publish("formed", turbine[2])
 
-                for key, val in pairs(unit.turbine_data_tbl[id].build) do
-                    unit.turbine_ps_tbl[id].publish(key, val)
+                    for key, val in pairs(unit.turbine_data_tbl[id].build) do
+                        unit.turbine_ps_tbl[id].publish(key, val)
+                    end
                 end
             end
         end

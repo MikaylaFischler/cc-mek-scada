@@ -19,6 +19,16 @@ local println_ts = util.println_ts
 local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
 
+local CRD_S_CMDS = {
+    RESEND_BUILDS = 1
+}
+
+local CRD_S_DATA = {
+}
+
+coordinator.CRD_S_CMDS = CRD_S_CMDS
+coordinator.CRD_S_DATA = CRD_S_DATA
+
 local PERIODICS = {
     KEEP_ALIVE = 2000,
     STATUS = 500
@@ -51,11 +61,11 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
         },
         -- when to next retry one of these messages
         retry_times = {
-            builds_packet = (util.time() + 500)
+            builds_packet = 0
         },
         -- message acknowledgements
         acks = {
-            builds = true
+            builds = false
         }
     }
 
@@ -227,6 +237,13 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                         _handle_packet(message.message)
                     elseif message.qtype == mqueue.TYPE.COMMAND then
                         -- handle instruction
+                        local cmd = message.message
+                        if cmd == CRD_S_CMDS.RESEND_BUILDS then
+                            -- re-send builds
+                            self.acks.builds = false
+                            self.retry_times.builds_packet = util.time() + RETRY_PERIOD
+                            _send_builds()
+                        end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
                     end

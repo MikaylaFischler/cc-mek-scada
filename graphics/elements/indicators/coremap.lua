@@ -115,6 +115,9 @@ local function core_map(args)
 
             if inner_width % 2 == 0 then alternator = not alternator end
         end
+
+        -- reset alternator
+        alternator = true
     end
 
     -- on state change
