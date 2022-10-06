@@ -516,7 +516,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
-                        local cmd = message.message
+                        local cmd = message.message ---@type queue_data
                         if cmd.key == PLC_S_DATA.BURN_RATE then
                             -- update burn rate
                             self.commanded_burn_rate = cmd.val

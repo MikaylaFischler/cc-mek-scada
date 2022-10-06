@@ -1,7 +1,9 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local util   = require("scada-common.util")
+local comms    = require("scada-common.comms")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local util     = require("scada-common.util")
+
+local svqtypes = require("supervisor.session.svqtypes")
 
 local coordinator = {}
 
@@ -9,6 +11,9 @@ local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local CRDN_COMMANDS = comms.CRDN_COMMANDS
+
+local SV_Q_CMDS = svqtypes.SV_Q_CMDS
+local SV_Q_DATA = svqtypes.SV_Q_DATA
 
 local print = util.print
 local println = util.println
@@ -175,16 +180,33 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
             elseif pkt.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
-                if pkt.length > 2 then
+                if pkt.length >= 2 then
                     -- get command and unit id
                     local cmd = pkt.data[1]
                     local uid = pkt.data[2]
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
-                        local unit = self.units[pkt.data[2]]    ---@type reactor_unit
-                        if cmd == CRDN_COMMANDS.SCRAM then
-                            unit.scram()
+                        if cmd == CRDN_COMMANDS.START then
+                            self.out_q.push_data(SV_Q_DATA.START, uid)
+                        elseif cmd == CRDN_COMMANDS.SCRAM then
+                            self.out_q.push_data(SV_Q_DATA.SCRAM, uid)
+                        elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                            self.out_q.push_data(SV_Q_DATA.RESET_RPS, uid)
+                        elseif cmd == CRDN_COMMANDS.SET_BURN then
+                            if pkt.length == 3 then
+                                self.out_q.push_data(SV_Q_DATA.SET_BURN, { uid, pkt.data[3] })
+                            else
+                                log.debug(log_header .. "CRDN command unit burn rate missing option")
+                            end
+                        elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                            if pkt.length == 3 then
+                                self.out_q.push_data(SV_Q_DATA.SET_WASTE, { uid, pkt.data[3] })
+                            else
+                                log.debug(log_header .. "CRDN command unit set waste missing option")
+                            end
+                        else
+                            log.debug(log_header .. "CRDN command unknown")
                         end
                     else
                         log.debug(log_header .. "CRDN command unit invalid")

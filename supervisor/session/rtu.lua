@@ -105,8 +105,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 rsio = self.advert[i][4]
             }
 
-            local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
-
             local u_type = unit_advert.type ---@type integer|boolean
 
             -- validate unit advertisement
@@ -122,6 +120,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
             if advert_validator.valid() then
                 advert_validator.assert_min(unit_advert.index, 1)
                 advert_validator.assert_min(unit_advert.reactor, 1)
+                advert_validator.assert_max(unit_advert.reactor, #self.f_units)
                 if not advert_validator.valid() then u_type = false end
             else
                 u_type = false
@@ -131,31 +130,35 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             if u_type == false then
                 -- validation fail
-            elseif u_type == RTU_UNIT_TYPES.REDSTONE then
-                -- redstone
-                unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
-            elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
-                -- boiler (Mekanism 10.1+)
-                unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
-                if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
-            elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
-                -- turbine (Mekanism 10.1+)
-                unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
-                if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
-            elseif u_type == RTU_UNIT_TYPES.IMATRIX then
-                -- induction matrix
-                unit = svrs_imatrix.new(self.id, i, unit_advert, self.modbus_q)
-            elseif u_type == RTU_UNIT_TYPES.SPS then
-                -- super-critical phase shifter
-                unit = svrs_sps.new(self.id, i, unit_advert, self.modbus_q)
-            elseif u_type == RTU_UNIT_TYPES.SNA then
-                -- solar neutron activator
-                unit = svrs_sna.new(self.id, i, unit_advert, self.modbus_q)
-            elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
-                -- environment detector
-                unit = svrs_envd.new(self.id, i, unit_advert, self.modbus_q)
             else
-                log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
+                local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
+
+                if u_type == RTU_UNIT_TYPES.REDSTONE then
+                    -- redstone
+                    unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
+                elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
+                    -- boiler (Mekanism 10.1+)
+                    unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
+                    if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
+                elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
+                    -- turbine (Mekanism 10.1+)
+                    unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
+                    if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
+                elseif u_type == RTU_UNIT_TYPES.IMATRIX then
+                    -- induction matrix
+                    unit = svrs_imatrix.new(self.id, i, unit_advert, self.modbus_q)
+                elseif u_type == RTU_UNIT_TYPES.SPS then
+                    -- super-critical phase shifter
+                    unit = svrs_sps.new(self.id, i, unit_advert, self.modbus_q)
+                elseif u_type == RTU_UNIT_TYPES.SNA then
+                    -- solar neutron activator
+                    unit = svrs_sna.new(self.id, i, unit_advert, self.modbus_q)
+                elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                    -- environment detector
+                    unit = svrs_envd.new(self.id, i, unit_advert, self.modbus_q)
+                else
+                    log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
+                end
             end
 
             if unit ~= nil then
@@ -333,7 +336,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data
-
                         if cmd.key == RTU_S_DATA.RS_COMMAND then
                             local rs_cmd = cmd.val  ---@type rs_session_command
 

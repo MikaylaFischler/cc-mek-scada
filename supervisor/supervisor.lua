@@ -198,19 +198,25 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         if packet.type == RPLC_TYPES.LINK_REQ then
                             if packet.length == 2 then
                                 -- this is a linking request
-                                local plc_id = svsessions.establish_plc_session(l_port, r_port, packet.data[1], packet.data[2])
-                                if plc_id == false then
-                                    -- reactor already has a PLC assigned
-                                    log.debug(util.c("PLC_LNK: assignment collision with reactor ", packet.data[1]))
-                                    _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.COLLISION })
+                                if type(packet.data[1]) == "number" and type(packet.data[2]) == "string" then
+                                    local plc_id = svsessions.establish_plc_session(l_port, r_port, packet.data[1], packet.data[2])
+                                    if plc_id == false then
+                                        -- reactor already has a PLC assigned
+                                        log.debug(util.c("PLC_LNK: assignment collision with reactor ", packet.data[1]))
+                                        _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.COLLISION })
+                                    else
+                                        -- got an ID; assigned to a reactor successfully
+                                        println(util.c("connected to reactor ", packet.data[1], " PLC (", packet.data[2], ") [:", r_port, "]"))
+                                        log.debug("PLC_LNK: allowed for device at " .. r_port)
+                                        _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.ALLOW })
+                                    end
                                 else
-                                    -- got an ID; assigned to a reactor successfully
-                                    println(util.c("connected to reactor ", packet.data[1], " PLC (", packet.data[2], ") [:", r_port, "]"))
-                                    log.debug("PLC_LNK: allowed for device at " .. r_port)
-                                    _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.ALLOW })
+                                    log.debug("PLC_LNK: bad parameter types")
+                                    _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.DENY })
                                 end
                             else
                                 log.debug("PLC_LNK: new linking packet length mismatch")
+                                _send_plc_linking(next_seq_id, r_port, { RPLC_LINKING.DENY })
                             end
                         else
                             -- force a re-link
@@ -267,7 +273,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     elseif packet.type == SCADA_CRDN_TYPES.ESTABLISH then
                         if packet.length == 1 then
                             -- this is an attempt to establish a new session
-                            println(util.c("connected to coordinator [:", r_port, "]"))
+                            println(util.c("connected to coordinator (", packet.data[1], ") [:", r_port, "]"))
 
                             svsessions.establish_coord_session(l_port, r_port, packet.data[1])
 

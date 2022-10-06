@@ -126,7 +126,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil then
             local plc_db = self.plc_i.get_db()
 
-            ---@todo Mekanism 10.1+ will change fuel/waste to need _amnt
             _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp)
             _compute_dt(DT_KEYS.ReactorFuel, plc_db.mek_status.fuel)
             _compute_dt(DT_KEYS.ReactorWaste, plc_db.mek_status.waste)
@@ -407,14 +406,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- update annunciator logic
         _update_annunciator()
-    end
-
-    -- COMMAND UNIT --
-
-    -- SCRAM reactor
-    function public.scram()
-        if self.plc_s ~= nil then
-        end
     end
 
     -- READ STATES/PROPERTIES --
