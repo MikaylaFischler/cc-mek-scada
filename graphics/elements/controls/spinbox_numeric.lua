@@ -43,11 +43,6 @@ local function spinbox(args)
     -- set initial value
     e.value = args.default or 0.0
 
-    local initial_str = util.sprintf(fmt_init, e.value)
-
----@diagnostic disable-next-line: discard-returns
-    initial_str:gsub("%d", function (char) table.insert(digits, char) end)
-
     -- draw the arrows
     e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
     e.window.setTextColor(args.arrow_fg_bg.fgd)
@@ -62,18 +57,12 @@ local function spinbox(args)
         e.window.write(" " .. util.strrep("\x1f", fr_prec))
     end
 
-    -- zero the value
-    local function zero()
-        for i = 1, #digits do digits[i] = 0 end
-        e.value = 0
-    end
+    -- populate digits from current value
+    local function set_digits()
+        local initial_str = util.sprintf(fmt_init, e.value)
 
-    -- print out the current value
-    local function show_num()
-        e.window.setBackgroundColor(e.fg_bg.bkg)
-        e.window.setTextColor(e.fg_bg.fgd)
-        e.window.setCursorPos(1, 2)
-        e.window.write(util.sprintf(fmt, e.value))
+---@diagnostic disable-next-line: discard-returns
+        initial_str:gsub("%d", function (char) table.insert(digits, char) end)
     end
 
     -- update the value per digits table
@@ -89,11 +78,13 @@ local function spinbox(args)
         end
     end
 
-    -- enforce numeric limits
-    local function enforce_limits()
+    -- print out the current value
+    local function show_num()
+        -- enforce limits
         -- min 0
         if e.value < 0 then
-            zero()
+            for i = 1, #digits do digits[i] = 0 end
+            e.value = 0
         -- max printable
         elseif string.len(util.sprintf(fmt, e.value)) > args.width then
             -- max out
@@ -102,13 +93,12 @@ local function spinbox(args)
             -- re-update value
             update_value()
         end
-    end
 
-    -- update value and show
-    local function parse_and_show()
-        update_value()
-        enforce_limits()
-        show_num()
+        -- draw
+        e.window.setBackgroundColor(e.fg_bg.bkg)
+        e.window.setTextColor(e.fg_bg.fgd)
+        e.window.setCursorPos(1, 2)
+        e.window.write(util.sprintf(fmt, e.value))
     end
 
     -- init with the default value
@@ -128,7 +118,8 @@ local function spinbox(args)
                 digits[idx] = digits[idx] - 1
             end
 
-            parse_and_show()
+            update_value()
+            show_num()
         end
     end
 
@@ -136,7 +127,9 @@ local function spinbox(args)
     ---@param val number number to show
     function e.set_value(val)
         e.value = val
-        parse_and_show()
+
+        set_digits()
+        show_num()
     end
 
     return e.get()

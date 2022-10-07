@@ -246,8 +246,11 @@ local function init(parent, id)
     local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
+
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
+
+    r_ps.subscribe("burn_rate", function (v) burn_rate.set_value(v) end)
 
     local opts = {
         {
