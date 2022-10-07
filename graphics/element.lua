@@ -21,11 +21,10 @@ local element = {}
 
 ---@alias graphics_args graphics_args_generic
 ---|waiting_args
+---|hazard_button_args
 ---|multi_button_args
 ---|push_button_args
----|scram_button_args
 ---|spinbox_args
----|start_button_args
 ---|switch_button_args
 ---|core_map_args
 ---|data_indicator_args

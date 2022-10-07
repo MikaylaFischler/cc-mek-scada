@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcallbackdsp")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
----@class scram_button_args
+---@class hazard_button_args
 ---@field text string text to show on button
 ---@field accent color accent color for hazard border
 ---@field callback function function to call on touch
@@ -15,10 +15,10 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
--- new scram button
----@param args scram_button_args
+-- new hazard button
+---@param args hazard_button_args
 ---@return graphics_element element, element_id id
-local function scram_button(args)
+local function hazard_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.hazard_button: text is a required field")
     assert(type(args.accent) == "number", "graphics.elements.controls.hazard_button: accent is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.hazard_button: callback is a required field")
@@ -77,4 +77,4 @@ local function scram_button(args)
     return e.get()
 end
 
-return scram_button
+return hazard_button
