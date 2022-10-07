@@ -182,8 +182,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
             elseif pkt.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
                 if pkt.length >= 2 then
                     -- get command and unit id
-                    local cmd = pkt.data[1]
-                    local uid = pkt.data[2]
+                    local uid = pkt.data[1]
+                    local cmd = pkt.data[2]
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then

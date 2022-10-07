@@ -519,18 +519,24 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         local cmd = message.message ---@type queue_data
                         if cmd.key == PLC_S_DATA.BURN_RATE then
                             -- update burn rate
-                            self.commanded_burn_rate = cmd.val
-                            self.ramping_rate = false
-                            self.acks.burn_rate = false
-                            self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                            if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                self.commanded_burn_rate = cmd.val
+                                self.ramping_rate = false
+                                self.acks.burn_rate = false
+                                self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                                _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            end
                         elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
                             -- ramp to burn rate
-                            self.commanded_burn_rate = cmd.val
-                            self.ramping_rate = true
-                            self.acks.burn_rate = false
-                            self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                            if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                self.commanded_burn_rate = cmd.val
+                                self.ramping_rate = true
+                                self.acks.burn_rate = false
+                                self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                                _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            end
                         end
                     end
                 end
