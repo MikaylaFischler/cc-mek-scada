@@ -19,8 +19,9 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- I sure hope the devs don't change this error message, not that it would have safety implications
--- I wish they didn't change it to error on SCRAM calls if the reactor was already inactive
+-- I wish they didn't change it to be like this
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
+local PCALL_START_MSG = "pcall: Reactor is already active."
 
 -- RPS SAFETY CONSTANTS
 
@@ -193,7 +194,7 @@ function plc.rps_init(reactor)
             log.info("RPS: reactor start")
 
             self.reactor.activate()
-            if self.reactor.__p_is_faulted() then
+            if self.reactor.__p_is_faulted() and (self.reactor.__p_last_fault() ~= PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
             else
                 self.reactor_enabled = true
