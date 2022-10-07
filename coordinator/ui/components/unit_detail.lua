@@ -19,10 +19,9 @@ local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 
+local HazardButton      = require("graphics.elements.controls.hazard_button")
 local MultiButton       = require("graphics.elements.controls.multi_button")
 local PushButton        = require("graphics.elements.controls.push_button")
-local SCRAMButton       = require("graphics.elements.controls.scram_button")
-local StartButton       = require("graphics.elements.controls.start_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
@@ -240,8 +239,9 @@ local function init(parent, id)
 
     -- reactor controls --
 
-    StartButton{parent=main,x=12,y=44,callback=unit.start,fg_bg=scram_fg_bg}
-    SCRAMButton{parent=main,x=22,y=44,callback=unit.scram,fg_bg=scram_fg_bg}
+    HazardButton{parent=main,x=2,y=44,text="START",accent=colors.lightBlue,callback=unit.start,fg_bg=scram_fg_bg}
+    HazardButton{parent=main,x=12,y=44,text="SCRAM",accent=colors.yellow,callback=unit.scram,fg_bg=scram_fg_bg}
+    HazardButton{parent=main,x=22,y=44,text="RESET",accent=colors.red,callback=unit.reset_rps,fg_bg=scram_fg_bg}
 
     local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}

@@ -44,6 +44,11 @@ function iocontrol.init(conf, comms)
                 log.debug(util.c("sent unit ", i, ": SCRAM"))
             end,
 
+            reset_rps = function ()
+                comms.send_command(i, CRDN_COMMANDS.RESET_RPS)
+                log.debug(util.c("sent unit ", i, ": RESET_RPS"))
+            end,
+
             set_burn = function (rate)
                 comms.send_command(i, CRDN_COMMANDS.SET_BURN, rate)
                 log.debug(util.c("sent unit ", i, ": SET_BURN = ", rate))
