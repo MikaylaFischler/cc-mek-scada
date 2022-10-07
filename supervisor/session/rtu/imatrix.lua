@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -57,6 +58,7 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
         db = {
             formed = false,
             build = {
+                last_update = 0,
                 length = 0,
                 width = 0,
                 height = 0,
@@ -68,10 +70,12 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
                 providers = 0
             },
             state = {
+                last_update = 0,
                 last_input = 0,
                 last_output = 0
             },
             tanks = {
+                last_update = 0,
                 energy = 0,
                 energy_need = 0,
                 energy_fill = 0.0
@@ -127,6 +131,7 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
             -- build response
             -- load in data if correct length
             if m_pkt.length == 9 then
+                self.db.build.last_update  = util.time_ms()
                 self.db.build.length       = m_pkt.data[1]
                 self.db.build.width        = m_pkt.data[2]
                 self.db.build.height       = m_pkt.data[3]
@@ -144,6 +149,7 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
             -- state response
             -- load in data if correct length
             if m_pkt.length == 2 then
+                self.db.state.last_update = util.time_ms()
                 self.db.state.last_input  = m_pkt.data[1]
                 self.db.state.last_output = m_pkt.data[2]
             else
@@ -153,6 +159,7 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
             -- tanks response
             -- load in data if correct length
             if m_pkt.length == 3 then
+                self.db.tanks.last_update = util.time_ms()
                 self.db.tanks.energy      = m_pkt.data[1]
                 self.db.tanks.energy_need = m_pkt.data[2]
                 self.db.tanks.energy_fill = m_pkt.data[3]

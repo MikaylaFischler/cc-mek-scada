@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -42,6 +43,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
         },
         ---@class envd_session_db
         db = {
+            last_update = 0,
             radiation = {},
             radiation_raw = 0
         }
@@ -68,7 +70,8 @@ function envd.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.RAD then
             -- radiation status response
             if m_pkt.length == 2 then
-                self.db.radiation = m_pkt.data[1]
+                self.db.last_update   = util.time_ms()
+                self.db.radiation     = m_pkt.data[1]
                 self.db.radiation_raw = m_pkt.data[2]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")

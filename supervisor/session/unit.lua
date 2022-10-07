@@ -89,17 +89,20 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- compute a change with respect to time of the given value
     ---@param key string value key
     ---@param value number value
-    local function _compute_dt(key, value)
+    ---@param time number timestamp for value
+    local function _compute_dt(key, value, time)
         if self.deltas[key] then
             local data = self.deltas[key]
 
-            data.dt = (value - data.last_v) / (util.time_s() - data.last_t)
+            if time ~= data.last_t then
+                data.dt = (value - data.last_v) / (time - data.last_t)
 
-            data.last_v = value
-            data.last_t = util.time_s()
+                data.last_v = value
+                data.last_t = time
+            end
         else
             self.deltas[key] = {
-                last_t = util.time_s(),
+                last_t = time,
                 last_v = value,
                 dt = 0.0
             }
@@ -126,30 +129,36 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil then
             local plc_db = self.plc_i.get_db()
 
-            _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp)
-            _compute_dt(DT_KEYS.ReactorFuel, plc_db.mek_status.fuel)
-            _compute_dt(DT_KEYS.ReactorWaste, plc_db.mek_status.waste)
-            _compute_dt(DT_KEYS.ReactorCCool, plc_db.mek_status.ccool_amnt)
-            _compute_dt(DT_KEYS.ReactorHCool, plc_db.mek_status.hcool_amnt)
+            local last_update_s = plc_db.last_status_update / 1000.0
+
+            _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp, last_update_s)
+            _compute_dt(DT_KEYS.ReactorFuel, plc_db.mek_status.fuel, last_update_s)
+            _compute_dt(DT_KEYS.ReactorWaste, plc_db.mek_status.waste, last_update_s)
+            _compute_dt(DT_KEYS.ReactorCCool, plc_db.mek_status.ccool_amnt, last_update_s)
+            _compute_dt(DT_KEYS.ReactorHCool, plc_db.mek_status.hcool_amnt, last_update_s)
         end
 
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
             local db = boiler.get_db()      ---@type boilerv_session_db
 
-            _compute_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx(), db.tanks.water.amount)
-            _compute_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx(), db.tanks.steam.amount)
-            _compute_dt(DT_KEYS.BoilerCCool .. boiler.get_device_idx(), db.tanks.ccool.amount)
-            _compute_dt(DT_KEYS.BoilerHCool .. boiler.get_device_idx(), db.tanks.hcool.amount)
+            local last_update_s = db.tanks.last_update / 1000.0
+
+            _compute_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx(), db.tanks.water.amount, last_update_s)
+            _compute_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx(), db.tanks.steam.amount, last_update_s)
+            _compute_dt(DT_KEYS.BoilerCCool .. boiler.get_device_idx(), db.tanks.ccool.amount, last_update_s)
+            _compute_dt(DT_KEYS.BoilerHCool .. boiler.get_device_idx(), db.tanks.hcool.amount, last_update_s)
         end
 
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]    ---@type unit_session
             local db = turbine.get_db()         ---@type turbinev_session_db
 
-            _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam.amount)
+            local last_update_s = db.tanks.last_update / 1000.0
+
+            _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam.amount, last_update_s)
             ---@todo unused currently?
-            _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.tanks.energy)
+            _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.tanks.energy, last_update_s)
         end
     end
 
@@ -182,10 +191,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
             self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
             self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < 0.0 or plc_db.mek_status.fuel_fill <= 0.01
-            ---@todo this is catagorized as not urgent, but the >= 0.99 is extremely urgent, revist this (RPS will kick in though)
-            self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 0.0 or plc_db.mek_status.waste_fill >= 0.99
+            self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 0.0 or plc_db.mek_status.waste_fill >= 0.85
             ---@todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
-            self.db.annunciator.HighStartupRate = not plc_db.control_state and plc_db.mek_status.burn_rate > 40
+            self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and plc_db.mek_status.burn_rate > 40
         end
 
         -------------

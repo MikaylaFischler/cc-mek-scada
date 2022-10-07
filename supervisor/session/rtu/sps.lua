@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -57,6 +58,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
         db = {
             formed = false,
             build = {
+                last_update = 0,
                 length = 0,
                 width = 0,
                 height = 0,
@@ -68,9 +70,11 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 max_energy = 0
             },
             state = {
+                last_update = 0,
                 process_rate = 0.0
             },
             tanks = {
+                last_update = 0,
                 input = {},         ---@type tank_fluid
                 input_need = 0,
                 input_fill = 0.0,
@@ -132,15 +136,16 @@ function sps.new(session_id, unit_id, advert, out_queue)
             -- build response
             -- load in data if correct length
             if m_pkt.length == 9 then
-                self.db.build.length     = m_pkt.data[1]
-                self.db.build.width      = m_pkt.data[2]
-                self.db.build.height     = m_pkt.data[3]
-                self.db.build.min_pos    = m_pkt.data[4]
-                self.db.build.max_pos    = m_pkt.data[5]
-                self.db.build.coils      = m_pkt.data[6]
-                self.db.build.input_cap  = m_pkt.data[7]
-                self.db.build.output_cap = m_pkt.data[8]
-                self.db.build.max_energy = m_pkt.data[9]
+                self.db.build.last_update = util.time_ms()
+                self.db.build.length      = m_pkt.data[1]
+                self.db.build.width       = m_pkt.data[2]
+                self.db.build.height      = m_pkt.data[3]
+                self.db.build.min_pos     = m_pkt.data[4]
+                self.db.build.max_pos     = m_pkt.data[5]
+                self.db.build.coils       = m_pkt.data[6]
+                self.db.build.input_cap   = m_pkt.data[7]
+                self.db.build.output_cap  = m_pkt.data[8]
+                self.db.build.max_energy  = m_pkt.data[9]
                 self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
@@ -149,6 +154,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
             -- state response
             -- load in data if correct length
             if m_pkt.length == 1 then
+                self.db.state.last_update  = util.time_ms()
                 self.db.state.process_rate = m_pkt.data[1]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
@@ -157,6 +163,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
             -- tanks response
             -- load in data if correct length
             if m_pkt.length == 9 then
+                self.db.tanks.last_update = util.time_ms()
                 self.db.tanks.input       = m_pkt.data[1]
                 self.db.tanks.input_need  = m_pkt.data[2]
                 self.db.tanks.input_fill  = m_pkt.data[3]

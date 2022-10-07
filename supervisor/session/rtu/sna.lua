@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -52,14 +53,17 @@ function sna.new(session_id, unit_id, advert, out_queue)
         ---@class sna_session_db
         db = {
             build = {
+                last_update = 0,
                 input_cap = 0,
                 output_cap = 0
             },
             state = {
+                last_update = 0,
                 production_rate = 0.0,
                 peak_production = 0.0
             },
             tanks = {
+                last_update = 0,
                 input = {},         ---@type tank_fluid
                 input_need = 0,
                 input_fill = 0.0,
@@ -104,8 +108,9 @@ function sna.new(session_id, unit_id, advert, out_queue)
             -- build response
             -- load in data if correct length
             if m_pkt.length == 2 then
-                self.db.build.input_cap  = m_pkt.data[1]
-                self.db.build.output_cap = m_pkt.data[2]
+                self.db.build.last_update = util.time_ms()
+                self.db.build.input_cap   = m_pkt.data[1]
+                self.db.build.output_cap  = m_pkt.data[2]
                 self.has_build = true
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
@@ -114,6 +119,7 @@ function sna.new(session_id, unit_id, advert, out_queue)
             -- state response
             -- load in data if correct length
             if m_pkt.length == 2 then
+                self.db.state.last_update     = util.time_ms()
                 self.db.state.production_rate = m_pkt.data[1]
                 self.db.state.peak_production = m_pkt.data[2]
             else
@@ -123,6 +129,7 @@ function sna.new(session_id, unit_id, advert, out_queue)
             -- tanks response
             -- load in data if correct length
             if m_pkt.length == 6 then
+                self.db.tanks.last_update = util.time_ms()
                 self.db.tanks.input       = m_pkt.data[1]
                 self.db.tanks.input_need  = m_pkt.data[2]
                 self.db.tanks.input_fill  = m_pkt.data[3]

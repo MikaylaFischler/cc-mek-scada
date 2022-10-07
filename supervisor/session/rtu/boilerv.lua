@@ -1,6 +1,7 @@
 local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
 local unit_session = require("supervisor.session.rtu.unit_session")
 
@@ -57,6 +58,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         db = {
             formed = false,
             build = {
+                last_update = 0,
                 length = 0,
                 width = 0,
                 height = 0,
@@ -72,10 +74,12 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 env_loss = 0.0
             },
             state = {
+                last_update = 0,
                 temperature = 0.0,
                 boil_rate = 0.0
             },
             tanks = {
+                last_update = 0,
                 steam = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 steam_need = 0,
                 steam_fill = 0.0,
@@ -140,6 +144,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
             -- build response
             -- load in data if correct length
             if m_pkt.length == 13 then
+                self.db.build.last_update   = util.time_ms()
                 self.db.build.length        = m_pkt.data[1]
                 self.db.build.width         = m_pkt.data[2]
                 self.db.build.height        = m_pkt.data[3]
@@ -161,6 +166,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
             -- state response
             -- load in data if correct length
             if m_pkt.length == 2 then
+                self.db.state.last_update = util.time_ms()
                 self.db.state.temperature = m_pkt.data[1]
                 self.db.state.boil_rate   = m_pkt.data[2]
             else
@@ -170,18 +176,19 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
             -- tanks response
             -- load in data if correct length
             if m_pkt.length == 12 then
-                self.db.tanks.steam      = m_pkt.data[1]
-                self.db.tanks.steam_need = m_pkt.data[2]
-                self.db.tanks.steam_fill = m_pkt.data[3]
-                self.db.tanks.water      = m_pkt.data[4]
-                self.db.tanks.water_need = m_pkt.data[5]
-                self.db.tanks.water_fill = m_pkt.data[6]
-                self.db.tanks.hcool      = m_pkt.data[7]
-                self.db.tanks.hcool_need = m_pkt.data[8]
-                self.db.tanks.hcool_fill = m_pkt.data[9]
-                self.db.tanks.ccool      = m_pkt.data[10]
-                self.db.tanks.ccool_need = m_pkt.data[11]
-                self.db.tanks.ccool_fill = m_pkt.data[12]
+                self.db.tanks.last_update = util.time_ms()
+                self.db.tanks.steam       = m_pkt.data[1]
+                self.db.tanks.steam_need  = m_pkt.data[2]
+                self.db.tanks.steam_fill  = m_pkt.data[3]
+                self.db.tanks.water       = m_pkt.data[4]
+                self.db.tanks.water_need  = m_pkt.data[5]
+                self.db.tanks.water_fill  = m_pkt.data[6]
+                self.db.tanks.hcool       = m_pkt.data[7]
+                self.db.tanks.hcool_need  = m_pkt.data[8]
+                self.db.tanks.hcool_fill  = m_pkt.data[9]
+                self.db.tanks.ccool       = m_pkt.data[10]
+                self.db.tanks.ccool_need  = m_pkt.data[11]
+                self.db.tanks.ccool_fill  = m_pkt.data[12]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

@@ -79,6 +79,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         db = {
             formed = false,
             build = {
+                last_update = 0,
                 length = 0,
                 width = 0,
                 height = 0,
@@ -96,12 +97,14 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 max_water_output = 0
             },
             state = {
+                last_update = 0,
                 flow_rate = 0,
                 prod_rate = 0,
                 steam_input_rate = 0,
                 dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
             },
             tanks = {
+                last_update = 0,
                 steam = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
                 steam_need = 0,
                 steam_fill = 0.0,
@@ -178,6 +181,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             if m_pkt.length == 15 then
+                self.db.build.last_update      = util.time_ms()
                 self.db.build.length           = m_pkt.data[1]
                 self.db.build.width            = m_pkt.data[2]
                 self.db.build.height           = m_pkt.data[3]
@@ -200,6 +204,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             if m_pkt.length == 4 then
+                self.db.state.last_update      = util.time_ms()
                 self.db.state.flow_rate        = m_pkt.data[1]
                 self.db.state.prod_rate        = m_pkt.data[2]
                 self.db.state.steam_input_rate = m_pkt.data[3]
@@ -210,6 +215,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             if m_pkt.length == 6 then
+                self.db.tanks.last_update = util.time_ms()
                 self.db.tanks.steam       = m_pkt.data[1]
                 self.db.tanks.steam_need  = m_pkt.data[2]
                 self.db.tanks.steam_fill  = m_pkt.data[3]

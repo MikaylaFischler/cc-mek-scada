@@ -386,7 +386,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- RPS reset acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.rps_tripped = true
+                    self.acks.rps_reset = true
                     self.sDB.rps_tripped = false
                     self.sDB.rps_trip_cause = "ok"
                 elseif ack == false then
