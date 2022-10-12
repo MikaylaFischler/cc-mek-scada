@@ -28,6 +28,8 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 local cpair = core.graphics.cpair
 
+local period = core.flasher.PERIOD
+
 -- create a unit view
 ---@param parent graphics_element parent
 ---@param id integer
@@ -130,15 +132,15 @@ local function init(parent, id)
     annunciator.line_break()
 
     -- RPS
-    local rps_trp = IndicatorLight{parent=annunciator,label="RPS Trip",colors=cpair(colors.red,colors.gray)}
-    local rps_dmg = IndicatorLight{parent=annunciator,label="Damage Critical",colors=cpair(colors.yellow,colors.gray)}
+    local rps_trp = IndicatorLight{parent=annunciator,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_dmg = IndicatorLight{parent=annunciator,label="Damage Critical",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_exh = IndicatorLight{parent=annunciator,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
     local rps_exw = IndicatorLight{parent=annunciator,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
-    local rps_tmp = IndicatorLight{parent=annunciator,label="High Core Temp",colors=cpair(colors.yellow,colors.gray)}
+    local rps_tmp = IndicatorLight{parent=annunciator,label="High Core Temp",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_nof = IndicatorLight{parent=annunciator,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
     local rps_noc = IndicatorLight{parent=annunciator,label="No Coolant",colors=cpair(colors.yellow,colors.gray)}
-    local rps_flt = IndicatorLight{parent=annunciator,label="PPM Fault",colors=cpair(colors.yellow,colors.gray)}
-    local rps_tmo = IndicatorLight{parent=annunciator,label="Timeout",colors=cpair(colors.yellow,colors.gray)}
+    local rps_flt = IndicatorLight{parent=annunciator,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_tmo = IndicatorLight{parent=annunciator,label="Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     r_ps.subscribe("rps_tripped", rps_trp.update)
     r_ps.subscribe("dmg_crit", rps_dmg.update)
@@ -157,7 +159,7 @@ local function init(parent, id)
     local c_cfm  = IndicatorLight{parent=annunciator,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_sfm  = IndicatorLight{parent=annunciator,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_mwrf = IndicatorLight{parent=annunciator,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
-    local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     r_ps.subscribe("BoilRateMismatch", c_brm.update)
     r_ps.subscribe("CoolantFeedMismatch", c_cfm.update)
@@ -193,7 +195,7 @@ local function init(parent, id)
     t_ps[1].subscribe("TurbineOverSpeed", t1_tos.update)
 
     TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    local t1_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+    local t1_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     t_ps[1].subscribe("TurbineTrip", t1_trp.update)
 
     main.line_break()
@@ -209,7 +211,7 @@ local function init(parent, id)
         t_ps[2].subscribe("TurbineOverSpeed", t2_tos.update)
 
         TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t2_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+        local t2_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[2].subscribe("TurbineTrip", t2_trp.update)
 
         main.line_break()
@@ -226,7 +228,7 @@ local function init(parent, id)
         t_ps[3].subscribe("TurbineOverSpeed", t3_tos.update)
 
         TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t3_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray)}
+        local t3_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[3].subscribe("TurbineTrip", t3_trp.update)
 
         annunciator.line_break()
@@ -234,7 +236,7 @@ local function init(parent, id)
 
     ---@todo radiation monitor
     IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
-    IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray)}
+    IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
 
     -- reactor controls --

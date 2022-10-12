@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.5.3"
+local COORDINATOR_VERSION = "alpha-v0.5.4"
 
 local print = util.print
 local println = util.println
@@ -174,11 +174,13 @@ local ui_ok = init_start_ui()
 
 local no_modem = false
 
--- start connection watchdog
-conn_watchdog.feed()
-log.debug("boot> conn watchdog started")
+if ui_ok then
+    -- start connection watchdog
+    conn_watchdog.feed()
+    log.debug("boot> conn watchdog started")
 
-log_sys("system started successfully")
+    log_sys("system started successfully")
+end
 
 -- event loop
 -- ui_ok will never change in this loop, same as while true or exit if UI start failed

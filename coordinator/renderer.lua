@@ -1,4 +1,5 @@
 local log       = require("scada-common.log")
+local flasher   = require("graphics.flasher")
 
 local iocontrol = require("coordinator.iocontrol")
 
@@ -107,6 +108,9 @@ function renderer.start_ui()
             table.insert(ui.unit_layouts, unit_view(monitor, id))
         end
 
+        -- start flasher callback task
+        flasher.init()
+
         -- report ui as ready
         engine.ui_ready = true
     end
@@ -114,25 +118,33 @@ end
 
 -- close out the UI
 function renderer.close_ui()
-    if engine.ui_ready then
-        -- report ui as not ready
-        engine.ui_ready = false
+    -- report ui as not ready
+    engine.ui_ready = false
 
+    -- stop blinking indicators
+    flasher.clear()
+
+    if engine.ui_ready then
         -- hide to stop animation callbacks
         ui.main_layout.hide()
         for i = 1, #ui.unit_layouts do
             ui.unit_layouts[i].hide()
             engine.monitors.unit_displays[i].clear()
         end
-
-        -- clear root UI elements
-        ui.main_layout = nil
-        ui.unit_layouts = {}
-
-        -- re-draw dmesg
-        engine.dmesg_window.setVisible(true)
-        engine.dmesg_window.redraw()
+    else
+        -- clear unit displays
+        for i = 1, #ui.unit_layouts do
+            engine.monitors.unit_displays[i].clear()
+        end
     end
+
+    -- clear root UI elements
+    ui.main_layout = nil
+    ui.unit_layouts = {}
+
+    -- re-draw dmesg
+    engine.dmesg_window.setVisible(true)
+    engine.dmesg_window.redraw()
 end
 
 -- is the UI ready?

@@ -4,6 +4,10 @@
 
 local core = {}
 
+local flasher = require("graphics.flasher")
+
+core.flasher = flasher
+
 local events = {}
 
 ---@class monitor_touch
