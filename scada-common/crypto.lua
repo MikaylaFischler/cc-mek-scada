@@ -3,13 +3,13 @@
 --
 
 local aes128   = require("lockbox.cipher.aes128")
-local ctr_mode = require("lockbox.cipher.mode.ctr");
-local sha1     = require("lockbox.digest.sha1");
-local sha2_224 = require("lockbox.digest.sha2_224");
-local sha2_256 = require("lockbox.digest.sha2_256");
+local ctr_mode = require("lockbox.cipher.mode.ctr")
+local sha1     = require("lockbox.digest.sha1")
+local sha2_224 = require("lockbox.digest.sha2_224")
+local sha2_256 = require("lockbox.digest.sha2_256")
 local pbkdf2   = require("lockbox.kdf.pbkdf2")
 local hmac     = require("lockbox.mac.hmac")
-local zero_pad = require("lockbox.padding.zero");
+local zero_pad = require("lockbox.padding.zero")
 local stream   = require("lockbox.util.stream")
 local array    = require("lockbox.util.array")
 
@@ -52,13 +52,13 @@ function crypto.init(password, server_port)
     c_eng.cipher = ctr_mode.Cipher()
     c_eng.cipher.setKey(c_eng.key)
     c_eng.cipher.setBlockCipher(aes128)
-    c_eng.cipher.setPadding(zero_pad);
+    c_eng.cipher.setPadding(zero_pad)
 
     -- initialize decipher
     c_eng.decipher = ctr_mode.Decipher()
     c_eng.decipher.setKey(c_eng.key)
     c_eng.decipher.setBlockCipher(aes128)
-    c_eng.decipher.setPadding(zero_pad);
+    c_eng.decipher.setPadding(zero_pad)
 
     -- initialize HMAC
     c_eng.hmac = hmac()
@@ -222,7 +222,7 @@ function crypto.secure_modem(modem)
                 if hmac == computed_hmac then
                     -- message intact
                     local plaintext = crypto.decrypt(iv, ciphertext)
-                    body = textutils.deserialize(plaintext)
+                    body = textutils.unserialize(plaintext)
 
                     if body == nil then
                         -- failed decryption

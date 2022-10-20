@@ -3,18 +3,18 @@ require("/initenv").init_env()
 local pbkdf2 = require("lockbox.kdf.pbkdf2")
 local AES128Cipher = require("lockbox.cipher.aes128")
 local HMAC = require("lockbox.mac.hmac")
-local SHA1 = require("lockbox.digest.sha1");
-local SHA2_224 = require("lockbox.digest.sha2_224");
-local SHA2_256 = require("lockbox.digest.sha2_256");
+local SHA1 = require("lockbox.digest.sha1")
+local SHA2_224 = require("lockbox.digest.sha2_224")
+local SHA2_256 = require("lockbox.digest.sha2_256")
 local Stream = require("lockbox.util.stream")
 local Array = require("lockbox.util.array")
 
-local CBCMode = require("lockbox.cipher.mode.cbc");
-local CFBMode = require("lockbox.cipher.mode.cfb");
-local OFBMode = require("lockbox.cipher.mode.ofb");
-local CTRMode = require("lockbox.cipher.mode.ctr");
+local CBCMode = require("lockbox.cipher.mode.cbc")
+local CFBMode = require("lockbox.cipher.mode.cfb")
+local OFBMode = require("lockbox.cipher.mode.ofb")
+local CTRMode = require("lockbox.cipher.mode.ctr")
 
-local ZeroPadding = require("lockbox.padding.zero");
+local ZeroPadding = require("lockbox.padding.zero")
 
 local comms = require("scada-common.comms")
 local util = require("scada-common.util")

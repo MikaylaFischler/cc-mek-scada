@@ -222,7 +222,7 @@ end
 ---@param color integer
 ---@return boolean valid
 function rsio.is_color(color)
-    return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0);
+    return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0)
 end
 
 -----------------
