@@ -70,25 +70,30 @@ local function _sv_handle_outq(session)
             elseif msg.qtype == mqueue.TYPE.DATA then
                 -- instruction/notification with body
                 local cmd = msg.message ---@type queue_data
-                local plc_s = nil
 
-                if type(cmd.val) == "table" then
-                    plc_s = svsessions.get_reactor_session(cmd.val[1])
-                elseif type(cmd.val) == "number" then
-                    plc_s = svsessions.get_reactor_session(cmd.val)
-                end
+                if cmd.key < SV_Q_DATA.__END_PLC_CMDS__ then
+                    -- PLC commands from coordinator
+                    local crdn_sid = session.instance.get_id()
+                    local plc_s = svsessions.get_reactor_session(cmd.val[1])
 
-                if plc_s ~= nil then
-                    if cmd.key == SV_Q_DATA.START then
-                        plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
-                    elseif cmd.key == SV_Q_DATA.SCRAM then
-                        plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
-                    elseif cmd.key == SV_Q_DATA.RESET_RPS then
-                        plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
-                    elseif cmd.key == SV_Q_DATA.SET_BURN and type(cmd.val) == "table" and #cmd.val == 2 then
-                        plc_s.in_queue.push_data(PLC_S_DATA.BURN_RATE, cmd.val[2])
-                    elseif cmd.key == SV_Q_DATA.SET_WASTE and type(cmd.val) == "table" and #cmd.val == 2 then
-                        ---@todo set waste
+                    if plc_s ~= nil then
+                        if cmd.key == SV_Q_DATA.START then
+                            plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
+                        elseif cmd.key == SV_Q_DATA.SCRAM then
+                            plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
+                        elseif cmd.key == SV_Q_DATA.RESET_RPS then
+                            plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
+                        elseif cmd.key == SV_Q_DATA.SET_BURN and type(cmd.val) == "table" and #cmd.val == 2 then
+                            plc_s.in_queue.push_data(PLC_S_DATA.BURN_RATE, cmd.val[2])
+                        elseif cmd.key == SV_Q_DATA.SET_WASTE and type(cmd.val) == "table" and #cmd.val == 2 then
+                            ---@todo set waste
+                        else
+                            log.debug(util.c("unknown PLC SV queue command ", cmd.key))
+                        end
+                    end
+                else
+                    if cmd.key == SV_Q_DATA.CRDN_ACK then
+                        ---@todo ack to be sent to coordinator
                     end
                 end
             end
@@ -279,7 +284,7 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
             r_port = remote_port,
             in_queue = mqueue.new(),
             out_queue = mqueue.new(),
-            instance = nil
+            instance = nil  ---@type plc_session
         }
 
         plc_s.instance = plc.new_session(self.next_plc_id, for_reactor, plc_s.in_queue, plc_s.out_queue)
@@ -317,7 +322,7 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
         r_port = remote_port,
         in_queue = mqueue.new(),
         out_queue = mqueue.new(),
-        instance = nil
+        instance = nil  ---@type rtu_session
     }
 
     rtu_s.instance = rtu.new_session(self.next_rtu_id, rtu_s.in_queue, rtu_s.out_queue, advertisement, self.facility_units)
@@ -346,7 +351,7 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
         r_port = remote_port,
         in_queue = mqueue.new(),
         out_queue = mqueue.new(),
-        instance = nil
+        instance = nil  ---@type coord_session
     }
 
     coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, self.facility_units)

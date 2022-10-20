@@ -9,7 +9,9 @@ local SV_Q_DATA = {
     SCRAM = 2,
     RESET_RPS = 3,
     SET_BURN = 4,
-    SET_WASTE = 5
+    SET_WASTE = 5,
+    __END_PLC_CMDS__ = 6,
+    CRDN_ACK = 7
 }
 
 svqtypes.SV_Q_CMDS = SV_Q_CMDS

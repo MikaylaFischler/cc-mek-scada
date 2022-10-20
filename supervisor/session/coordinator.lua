@@ -182,26 +182,29 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
             elseif pkt.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
                 if pkt.length >= 2 then
                     -- get command and unit id
-                    local uid = pkt.data[1]
-                    local cmd = pkt.data[2]
+                    local cmd = pkt.data[1]
+                    local uid = pkt.data[2]
+
+                    -- pkt.data[3] will be nil except for some commands
+                    local data = { uid, pkt.data[3] }
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
                         if cmd == CRDN_COMMANDS.START then
-                            self.out_q.push_data(SV_Q_DATA.START, uid)
+                            self.out_q.push_data(SV_Q_DATA.START, data)
                         elseif cmd == CRDN_COMMANDS.SCRAM then
-                            self.out_q.push_data(SV_Q_DATA.SCRAM, uid)
+                            self.out_q.push_data(SV_Q_DATA.SCRAM, data)
                         elseif cmd == CRDN_COMMANDS.RESET_RPS then
-                            self.out_q.push_data(SV_Q_DATA.RESET_RPS, uid)
+                            self.out_q.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == CRDN_COMMANDS.SET_BURN then
                             if pkt.length == 3 then
-                                self.out_q.push_data(SV_Q_DATA.SET_BURN, { uid, pkt.data[3] })
+                                self.out_q.push_data(SV_Q_DATA.SET_BURN, data)
                             else
                                 log.debug(log_header .. "CRDN command unit burn rate missing option")
                             end
                         elseif cmd == CRDN_COMMANDS.SET_WASTE then
                             if pkt.length == 3 then
-                                self.out_q.push_data(SV_Q_DATA.SET_WASTE, { uid, pkt.data[3] })
+                                self.out_q.push_data(SV_Q_DATA.SET_WASTE, data)
                             else
                                 log.debug(log_header .. "CRDN command unit set waste missing option")
                             end

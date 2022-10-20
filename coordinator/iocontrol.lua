@@ -34,25 +34,10 @@ function iocontrol.init(conf, comms)
             burn_rate_cmd = 0.0,
             waste_control = 0,
 
-            start = function ()
-                comms.send_command(i, CRDN_COMMANDS.START)
-                log.debug(util.c("sent unit ", i, ": START"))
-            end,
-
-            scram = function ()
-                comms.send_command(i, CRDN_COMMANDS.SCRAM)
-                log.debug(util.c("sent unit ", i, ": SCRAM"))
-            end,
-
-            reset_rps = function ()
-                comms.send_command(i, CRDN_COMMANDS.RESET_RPS)
-                log.debug(util.c("sent unit ", i, ": RESET_RPS"))
-            end,
-
-            set_burn = function (rate)
-                comms.send_command(i, CRDN_COMMANDS.SET_BURN, rate)
-                log.debug(util.c("sent unit ", i, ": SET_BURN = ", rate))
-            end,
+            start = function () end,
+            scram = function () end,
+            reset_rps = function () end,
+            set_burn = function (rate) end,
 
             reactor_ps = psil.create(),
             reactor_data = {},  ---@type reactor_db
@@ -64,12 +49,36 @@ function iocontrol.init(conf, comms)
             turbine_data_tbl = {}
         }
 
+        function entry.start()
+            entry.control_state = true
+            comms.send_command(CRDN_COMMANDS.START, i)
+            log.debug(util.c("UNIT[", i, "]: START"))
+        end
+
+        function entry.scram()
+            entry.control_state = false
+            comms.send_command(CRDN_COMMANDS.SCRAM, i)
+            log.debug(util.c("UNIT[", i, "]: SCRAM"))
+        end
+
+        function entry.reset_rps()
+            comms.send_command(CRDN_COMMANDS.RESET_RPS, i)
+            log.debug(util.c("UNIT[", i, "]: RESET_RPS"))
+        end
+
+        function entry.set_burn(rate)
+            comms.send_command(CRDN_COMMANDS.SET_BURN, i, rate)
+            log.debug(util.c("UNIT[", i, "]: SET_BURN = ", rate))
+        end
+
+        -- create boiler tables
         for _ = 1, conf.defs[(i * 2) - 1] do
             local data = {} ---@type boilerv_session_db
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, data)
         end
 
+        -- create turbine tables
         for _ = 1, conf.defs[i * 2] do
             local data = {} ---@type turbinev_session_db
             table.insert(entry.turbine_ps_tbl, psil.create())

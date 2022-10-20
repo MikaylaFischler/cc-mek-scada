@@ -11,6 +11,8 @@ local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
+local CRDN_COMMANDS = comms.CRDN_COMMANDS
+
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
@@ -336,6 +338,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "burn rate update failed!")
                 end
+
+                -- send acknowledgement to coordinator
+                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = self.for_reactor,
+                    cmd = CRDN_COMMANDS.SET_BURN,
+                    ack = ack
+                })
             elseif pkt.type == RPLC_TYPES.RPS_ENABLE then
                 -- enable acknowledgement
                 local ack = _get_ack(pkt)
@@ -345,6 +354,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "enable failed!")
                 end
+
+                -- send acknowledgement to coordinator
+                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = self.for_reactor,
+                    cmd = CRDN_COMMANDS.START,
+                    ack = ack
+                })
             elseif pkt.type == RPLC_TYPES.RPS_SCRAM then
                 -- SCRAM acknowledgement
                 local ack = _get_ack(pkt)
@@ -354,6 +370,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "SCRAM failed!")
                 end
+
+                -- send acknowledgement to coordinator
+                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = self.for_reactor,
+                    cmd = CRDN_COMMANDS.SCRAM,
+                    ack = ack
+                })
             elseif pkt.type == RPLC_TYPES.RPS_STATUS then
                 -- RPS status packet received, copy data
                 if pkt.length == 9 then
@@ -392,6 +415,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 elseif ack == false then
                     log.debug(log_header .. "RPS reset failed")
                 end
+
+                -- send acknowledgement to coordinator
+                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = self.for_reactor,
+                    cmd = CRDN_COMMANDS.RESET_RPS,
+                    ack = ack
+                })
             else
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end

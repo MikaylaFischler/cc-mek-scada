@@ -18,6 +18,7 @@ local println_ts = util.println_ts
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
+local CRDN_COMMANDS = comms.CRDN_COMMANDS
 
 -- request the user to select a monitor
 ---@param names table available monitors
@@ -306,11 +307,11 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     end
 
     -- send a unit command
-    ---@param unit integer unit ID
     ---@param cmd CRDN_COMMANDS command
+    ---@param unit integer unit ID
     ---@param option any? optional options (like burn rate)
-    function public.send_command(unit, cmd, option)
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.COMMAND_UNIT, { unit, cmd, option })
+    function public.send_command(cmd, unit, option)
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.COMMAND_UNIT, { cmd, unit, option })
     end
 
     -- parse a packet
@@ -425,6 +426,22 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             log.error("received invalid unit statuses packet")
                         end
                     elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                        -- unit command acknowledgement
+                        if packet.length == 3 then
+                            local cmd = packet.data[1]
+                            local unit = packet.data[2]
+                            local ack = packet.data[3]
+                            
+                            if cmd == CRDN_COMMANDS.SCRAM then
+                            elseif cmd == CRDN_COMMANDS.START then
+                            elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                            elseif cmd == CRDN_COMMANDS.SET_BURN then
+                            elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                            else
+                            end
+                        else
+                            log.debug("unit command ack packet length mismatch")
+                        end
                     elseif packet.type == SCADA_CRDN_TYPES.ALARM then
                     else
                         log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
