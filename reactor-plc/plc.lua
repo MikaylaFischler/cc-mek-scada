@@ -200,6 +200,8 @@ function plc.rps_init(reactor)
                 self.reactor_enabled = true
                 return true
             end
+        else
+            log.debug(util.c("RPS: failed start, RPS tripped: ", self.trip_cause))
         end
 
         return false
@@ -280,6 +282,8 @@ function plc.rps_init(reactor)
         for i = 1, #self.state do
             self.state[i] = false
         end
+
+        log.info("RPS: reset")
     end
 
     return public
@@ -677,7 +681,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                         -- set the burn rate
                         if packet.length == 2 then
                             local success = false
-                            local burn_rate = packet.data[1]
+                            local burn_rate = math.floor(packet.data[1] * 10) / 10
                             local ramp = packet.data[2]
 
                             -- if no known max burn rate, check again
@@ -696,6 +700,8 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                                         self.reactor.setBurnRate(burn_rate)
                                         success = not self.reactor.__p_is_faulted()
                                     end
+                                else
+                                    log.debug(burn_rate .. " rate outside of 0 < x <= " .. self.max_burn_rate)
                                 end
                             end
 

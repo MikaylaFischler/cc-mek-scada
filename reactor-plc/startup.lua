@@ -13,7 +13,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.8.8"
+local R_PLC_VERSION = "beta-v0.8.9"
 
 local print = util.print
 local println = util.println
@@ -143,14 +143,14 @@ local function init()
                 smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
             log.debug("init> comms init")
         else
-            println("boot> starting in offline mode");
+            println("boot> starting in offline mode")
             log.debug("init> running without networking")
         end
 
 ---@diagnostic disable-next-line: undefined-field
         os.queueEvent("clock_start")
 
-        println("boot> completed");
+        println("boot> completed")
         log.debug("init> boot completed")
     else
         println("boot> system in degraded state, awaiting devices...")
