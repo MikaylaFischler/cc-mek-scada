@@ -91,7 +91,7 @@ local function multi_button(args)
     ---@param event monitor_touch monitor touch event
     function e.handle_touch(event)
         -- determine what was pressed
-        if event.y == 2 then
+        if e.enabled and event.y == 2 then
             for i = 1, #args.options do
                 local opt = args.options[i] ---@type button_option
 

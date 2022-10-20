@@ -51,24 +51,26 @@ local function push_button(args)
     ---@param event monitor_touch monitor touch event
 ---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
-        if args.active_fg_bg ~= nil then
-            -- show as pressed
-            e.value = true
-            e.window.setTextColor(args.active_fg_bg.fgd)
-            e.window.setBackgroundColor(args.active_fg_bg.bkg)
-            draw()
-
-            -- show as unpressed in 0.25 seconds
-            tcd.dispatch(0.25, function ()
-                e.value = false
-                e.window.setTextColor(e.fg_bg.fgd)
-                e.window.setBackgroundColor(e.fg_bg.bkg)
+        if e.enabled then
+            if args.active_fg_bg ~= nil then
+                -- show as pressed
+                e.value = true
+                e.window.setTextColor(args.active_fg_bg.fgd)
+                e.window.setBackgroundColor(args.active_fg_bg.bkg)
                 draw()
-            end)
-        end
 
-        -- call the touch callback
-        args.callback()
+                -- show as unpressed in 0.25 seconds
+                tcd.dispatch(0.25, function ()
+                    e.value = false
+                    e.window.setTextColor(e.fg_bg.fgd)
+                    e.window.setBackgroundColor(e.fg_bg.bkg)
+                    draw()
+                end)
+            end
+
+            -- call the touch callback
+            args.callback()
+        end
     end
 
     -- set the value

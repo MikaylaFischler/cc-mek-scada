@@ -60,6 +60,7 @@ function element.new(args)
 
     ---@class graphics_template
     local protected = {
+        enabled = true,
         value = nil,    ---@type any
         window = nil,   ---@type table
         fg_bg = core.graphics.cpair(colors.white, colors.black),
@@ -157,6 +158,7 @@ function element.new(args)
     end
 
     -- handle data value changes
+    ---@vararg any value(s)
     function protected.on_update(...)
     end
 
@@ -168,7 +170,14 @@ function element.new(args)
     -- set value
     ---@param value any value to set
     function protected.set_value(value)
-        return nil
+    end
+
+    -- enable the control
+    function protected.enable()
+    end
+
+    -- disable the control
+    function protected.disable()
     end
 
     -- custom recolor command, varies by element if implemented
@@ -299,6 +308,18 @@ function element.new(args)
     ---@param value any new value
     function public.set_value(value)
         protected.set_value(value)
+    end
+
+    -- enable the element
+    function public.enable()
+        protected.enabled = true
+        protected.enable()
+    end
+
+    -- disable the element
+    function public.disable()
+        protected.enabled = false
+        protected.disable()
     end
 
     -- resize attributes of the element value if supported

@@ -35,37 +35,53 @@ local function hazard_button(args)
     e.window.write(args.text)
 
     -- draw border
+    ---@param accent color accent color
+    local function draw_border(accent)
+        -- top
+        e.window.setTextColor(args.accent)
+        e.window.setBackgroundColor(args.fg_bg.bkg)
+        e.window.setCursorPos(1, 1)
+        e.window.write("\x99\x89\x89\x89\x89\x89\x89\x89\x99")
 
-    -- top
-    e.window.setTextColor(args.accent)
-    e.window.setBackgroundColor(args.fg_bg.bkg)
-    e.window.setCursorPos(1, 1)
-    e.window.write("\x99\x89\x89\x89\x89\x89\x89\x89\x99")
+        -- center left
+        e.window.setCursorPos(1, 2)
+        e.window.setTextColor(args.fg_bg.bkg)
+        e.window.setBackgroundColor(args.accent)
+        e.window.write("\x99")
 
-    -- center left
-    e.window.setCursorPos(1, 2)
-    e.window.setTextColor(args.fg_bg.bkg)
-    e.window.setBackgroundColor(args.accent)
-    e.window.write("\x99")
+        -- center right
+        e.window.setTextColor(args.fg_bg.bkg)
+        e.window.setBackgroundColor(args.accent)
+        e.window.setCursorPos(9, 2)
+        e.window.write("\x99")
 
-    -- center right
-    e.window.setTextColor(args.fg_bg.bkg)
-    e.window.setBackgroundColor(args.accent)
-    e.window.setCursorPos(9, 2)
-    e.window.write("\x99")
-
-    -- bottom
-    e.window.setTextColor(args.accent)
-    e.window.setBackgroundColor(args.fg_bg.bkg)
-    e.window.setCursorPos(1, 3)
-    e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
+        -- bottom
+        e.window.setTextColor(args.accent)
+        e.window.setBackgroundColor(args.fg_bg.bkg)
+        e.window.setCursorPos(1, 3)
+        e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
+    end
 
     -- handle touch
     ---@param event monitor_touch monitor touch event
 ---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
-        -- call the touch callback
-        args.callback()
+        if e.enabled then
+            -- call the touch callback
+            args.callback()
+
+            -- change text color to indicate clicked
+            e.window.setTextColor(args.accent)
+            e.window.setCursorPos(3, 2)
+            e.window.write(args.text)
+
+            -- restore text color after 1 second
+            tcd.dispatch(1, function ()
+                e.window.setTextColor(args.fg_bg.fgd)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
+            end)
+        end
     end
 
     -- set the value

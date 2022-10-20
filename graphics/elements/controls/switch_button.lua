@@ -63,12 +63,14 @@ local function switch_button(args)
     ---@param event monitor_touch monitor touch event
 ---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
-        -- toggle state
-        e.value = not e.value
-        draw_state()
+        if e.enabled then
+            -- toggle state
+            e.value = not e.value
+            draw_state()
 
-        -- call the touch callback with state
-        args.callback(e.value)
+            -- call the touch callback with state
+            args.callback(e.value)
+        end
     end
 
     -- set the value

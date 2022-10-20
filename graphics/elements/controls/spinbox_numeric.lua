@@ -108,7 +108,7 @@ local function spinbox(args)
     ---@param event monitor_touch monitor touch event
     function e.handle_touch(event)
         -- only handle if on an increment or decrement arrow
-        if event.x ~= dec_point_x then
+        if e.enabled and event.x ~= dec_point_x then
             local idx = util.trinary(event.x > dec_point_x, event.x - 1, event.x)
             if event.y == 1 then
                 -- increment
