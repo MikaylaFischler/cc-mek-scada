@@ -21,14 +21,35 @@ local active = false
 local registry = { {}, {}, {} } -- one registry table per period
 local callback_counter = 0
 
--- start the flasher task
+-- blink registered indicators
+--
+-- this assumes it is called every 250ms, it does no checking of time on its own
+local function callback_250ms()
+    if active then
+        for _, f in pairs(registry[PERIOD.BLINK_250_MS]) do f() end
+
+        if callback_counter % 2 == 0 then
+            for _, f in pairs(registry[PERIOD.BLINK_500_MS]) do f() end
+        end
+
+        if callback_counter % 4 == 0 then
+            for _, f in pairs(registry[PERIOD.BLINK_1000_MS]) do f() end
+        end
+
+        callback_counter = callback_counter + 1
+
+        tcd.dispatch(0.25, callback_250ms)
+    end
+end
+
+-- start the flasher periodic
 function flasher.init()
     active = true
     registry = { {}, {}, {} }
-    flasher.callback_250ms()
+    callback_250ms()
 end
 
--- clear all blinking indicators and stop the flasher task
+-- clear all blinking indicators and stop the flasher periodic
 function flasher.clear()
     active = false
     registry = { {}, {}, {} }
@@ -55,27 +76,6 @@ function flasher.stop(f)
                 break
             end
         end
-    end
-end
-
--- blink registered indicators
---
--- this assumes it is called every 250ms, it does no checking of time on its own
-function flasher.callback_250ms()
-    if active then
-        for _, f in pairs(registry[PERIOD.BLINK_250_MS]) do f() end
-
-        if callback_counter % 2 == 0 then
-            for _, f in pairs(registry[PERIOD.BLINK_500_MS]) do f() end
-        end
-
-        if callback_counter % 4 == 0 then
-            for _, f in pairs(registry[PERIOD.BLINK_1000_MS]) do f() end
-        end
-
-        callback_counter = callback_counter + 1
-
-        tcd.dispatch(0.25, flasher.callback_250ms)
     end
 end
 
