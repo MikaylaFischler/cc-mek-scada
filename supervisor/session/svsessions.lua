@@ -60,12 +60,9 @@ local function _sv_handle_outq(session)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
                 local cmd = msg.message
-                if cmd == SV_Q_CMDS.BUILD_CHANGED then
-                    -- notify coordinator(s) that a build has changed
-                    for j = 1, #self.coord_sessions do
-                        local s = self.coord_sessions[j]    ---@type coord_session_struct
-                        s.in_queue.push_command(CRD_S_CMDS.RESEND_BUILDS)
-                    end
+                if (cmd == SV_Q_CMDS.BUILD_CHANGED) and (svsessions.get_coord_session() ~= nil) then
+                    -- notify coordinator that a build has changed
+                    svsessions.get_coord_session().in_queue.push_command(CRD_S_CMDS.RESEND_BUILDS)
                 end
             elseif msg.qtype == mqueue.TYPE.DATA then
                 -- instruction/notification with body
@@ -243,12 +240,20 @@ function svsessions.find_device_session(remote_port)
 end
 
 -- find a coordinator session by the remote port
+--
+-- only one coordinator is allowed, but this is kept to be consistent with all other session tables
 ---@param remote_port integer
 ---@return nil
 function svsessions.find_coord_session(remote_port)
     -- check coordinator sessions
 ---@diagnostic disable-next-line: return-type-mismatch
     return _find_session(self.coord_sessions, remote_port)
+end
+
+-- get the a coordinator session if exists
+---@return coord_session_struct|nil
+function svsessions.get_coord_session()
+    return self.coord_sessions[1]
 end
 
 -- get a session by reactor ID
@@ -342,27 +347,32 @@ end
 ---@param version string
 ---@return integer|false session_id
 function svsessions.establish_coord_session(local_port, remote_port, version)
-    ---@class coord_session_struct
-    local coord_s = {
-        s_type = "crd",
-        open = true,
-        version = version,
-        l_port = local_port,
-        r_port = remote_port,
-        in_queue = mqueue.new(),
-        out_queue = mqueue.new(),
-        instance = nil  ---@type coord_session
-    }
+    if svsessions.get_coord_session() == nil then
+        ---@class coord_session_struct
+        local coord_s = {
+            s_type = "crd",
+            open = true,
+            version = version,
+            l_port = local_port,
+            r_port = remote_port,
+            in_queue = mqueue.new(),
+            out_queue = mqueue.new(),
+            instance = nil  ---@type coord_session
+        }
 
-    coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, self.facility_units)
-    table.insert(self.coord_sessions, coord_s)
+        coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, self.facility_units)
+        table.insert(self.coord_sessions, coord_s)
 
-    log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_coord_id)
+        log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_coord_id)
 
-    self.next_coord_id = self.next_coord_id + 1
+        self.next_coord_id = self.next_coord_id + 1
 
-    -- success
-    return coord_s.instance.get_id()
+        -- success
+        return coord_s.instance.get_id()
+    else
+        -- we already have a coordinator linked
+        return false
+    end
 end
 
 -- attempt to identify which session's watchdog timer fired

@@ -38,7 +38,7 @@ local function hazard_button(args)
     ---@param accent color accent color
     local function draw_border(accent)
         -- top
-        e.window.setTextColor(args.accent)
+        e.window.setTextColor(accent)
         e.window.setBackgroundColor(args.fg_bg.bkg)
         e.window.setCursorPos(1, 1)
         e.window.write("\x99\x89\x89\x89\x89\x89\x89\x89\x99")
@@ -46,17 +46,17 @@ local function hazard_button(args)
         -- center left
         e.window.setCursorPos(1, 2)
         e.window.setTextColor(args.fg_bg.bkg)
-        e.window.setBackgroundColor(args.accent)
+        e.window.setBackgroundColor(accent)
         e.window.write("\x99")
 
         -- center right
         e.window.setTextColor(args.fg_bg.bkg)
-        e.window.setBackgroundColor(args.accent)
+        e.window.setBackgroundColor(accent)
         e.window.setCursorPos(9, 2)
         e.window.write("\x99")
 
         -- bottom
-        e.window.setTextColor(args.accent)
+        e.window.setTextColor(accent)
         e.window.setBackgroundColor(args.fg_bg.bkg)
         e.window.setCursorPos(1, 3)
         e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
@@ -89,6 +89,10 @@ local function hazard_button(args)
     function e.set_value(val)
         if val then e.handle_touch(core.events.touch("", 1, 1)) end
     end
+
+    -- initial draw of border
+    ---@todo disabling will change border
+    draw_border(args.accent)
 
     return e.get()
 end

@@ -80,15 +80,19 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
     -- send coordinator connection establish response
     ---@param seq_id integer
     ---@param dest integer
-    local function _send_crdn_establish(seq_id, dest)
+    ---@param allow boolean
+    local function _send_crdn_establish(seq_id, dest, allow)
         local s_pkt = comms.scada_packet()
         local c_pkt = comms.crdn_packet()
 
-        local config = { self.num_reactors }
+        local config = { false }
 
-        for i = 1, #cooling_conf do
-            table.insert(config, cooling_conf[i].BOILERS)
-            table.insert(config, cooling_conf[i].TURBINES)
+        if allow then
+            config = { self.num_reactors }
+            for i = 1, #cooling_conf do
+                table.insert(config, cooling_conf[i].BOILERS)
+                table.insert(config, cooling_conf[i].TURBINES)
+            end
         end
 
         c_pkt.make(SCADA_CRDN_TYPES.ESTABLISH, config)
@@ -235,11 +239,14 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                         if packet.length >= 1 then
                             -- this is an RTU advertisement for a new session
-                            println(util.c("connected to RTU (", packet.data[1], ") [:", r_port, "]"))
+                            local rtu_version = packet.data[1]
 
+                            -- note: this function mutates packet.data
                             svsessions.establish_rtu_session(l_port, r_port, packet.data)
 
+                            println(util.c("connected to RTU (", rtu_version, ") [:", r_port, "]"))
                             log.debug("RTU_ADVERT: linked " .. r_port)
+
                             _send_remote_linked(packet.scada_frame.seq_num() + 1, r_port)
                         else
                             log.debug("RTU_ADVERT: advertisement packet empty")
@@ -263,7 +270,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         session.in_queue.push_packet(packet)
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(util.c(r_port, "->", l_port, ": discarding SCADA_MGMT packet without a known session"))
+                        log.debug(r_port .. "->" .. l_port .. ": discarding SCADA_MGMT packet without a known session")
                     end
                 elseif protocol == PROTOCOLS.SCADA_CRDN then
                     -- coordinator packet
@@ -273,18 +280,22 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     elseif packet.type == SCADA_CRDN_TYPES.ESTABLISH then
                         if packet.length == 1 then
                             -- this is an attempt to establish a new session
-                            println(util.c("connected to coordinator (", packet.data[1], ") [:", r_port, "]"))
+                            local s_id = svsessions.establish_coord_session(l_port, r_port, packet.data[1])
 
-                            svsessions.establish_coord_session(l_port, r_port, packet.data[1])
+                            if s_id ~= false then
+                                println(util.c("connected to coordinator (", packet.data[1], ") [:", r_port, "]"))
+                                log.debug("CRDN_ESTABLISH: connected to " .. r_port)
+                            else
+                                log.debug("CRDN_ESTABLISH: denied new coordinator due to already being connected to another coordinator")
+                            end
 
-                            log.debug("CRDN_ESTABLISH: connected to " .. r_port)
-                            _send_crdn_establish(packet.scada_frame.seq_num() + 1, r_port)
+                            _send_crdn_establish(packet.scada_frame.seq_num() + 1, r_port, (s_id ~= false))
                         else
                             log.debug("CRDN_ESTABLISH: establish packet length mismatch")
                         end
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(util.c(r_port, "->", l_port, ": discarding SCADA_CRDN packet without a known session"))
+                        log.debug(r_port .. "->" .. l_port .. ": discarding SCADA_CRDN packet without a known session")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")

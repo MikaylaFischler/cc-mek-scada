@@ -409,6 +409,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             else
                                 log.debug("supervisor conn establish packet length mismatch")
                             end
+                        elseif packet.length == 1 and packet.data[1] == false then
+                            log.debug("supervisor connection denied")
                         else
                             log.debug("supervisor conn establish packet length mismatch")
                         end
@@ -431,7 +433,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             local cmd = packet.data[1]
                             local unit = packet.data[2]
                             local ack = packet.data[3]
-                            
+
                             if cmd == CRDN_COMMANDS.SCRAM then
                             elseif cmd == CRDN_COMMANDS.START then
                             elseif cmd == CRDN_COMMANDS.RESET_RPS then
