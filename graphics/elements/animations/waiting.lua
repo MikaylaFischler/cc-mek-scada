@@ -85,7 +85,7 @@ local function waiting(args)
         if state >= 12 then state = 0 end
 
         if run_animation then
-            tcd.dispatch(0.5, animate)
+            tcd.dispatch_unique(0.5, animate)
         end
     end
 

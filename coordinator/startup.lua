@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.5.6"
+local COORDINATOR_VERSION = "alpha-v0.5.7"
 
 local print = util.print
 local println = util.println
@@ -146,7 +146,6 @@ end
 ---@return boolean ui_ok started ok
 local function init_start_ui()
     log_graphics("starting UI...")
-    -- util.psleep(3)
 
     local draw_start = util.time_ms()
 

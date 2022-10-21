@@ -38,13 +38,14 @@ local function callback_250ms()
 
         callback_counter = callback_counter + 1
 
-        tcd.dispatch(0.25, callback_250ms)
+        tcd.dispatch_unique(0.25, callback_250ms)
     end
 end
 
 -- start the flasher periodic
 function flasher.init()
     active = true
+    callback_counter = 0
     registry = { {}, {}, {} }
     callback_250ms()
 end
