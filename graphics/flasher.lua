@@ -42,17 +42,16 @@ local function callback_250ms()
     end
 end
 
--- start the flasher periodic
-function flasher.init()
+-- start/resume the flasher periodic
+function flasher.run()
     active = true
-    callback_counter = 0
-    registry = { {}, {}, {} }
     callback_250ms()
 end
 
 -- clear all blinking indicators and stop the flasher periodic
 function flasher.clear()
     active = false
+    callback_counter = 0
     registry = { {}, {}, {} }
 end
 

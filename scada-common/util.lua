@@ -202,6 +202,33 @@ function util.pull_event(target_event)
     return os.pullEventRaw(target_event)
 end
 
+-- OS queue event raw wrapper with types
+---@param event os_event
+---@param param1 any
+---@param param2 any
+---@param param3 any
+---@param param4 any
+---@param param5 any
+function util.push_event(event, param1, param2, param3, param4, param5)
+---@diagnostic disable-next-line: undefined-field
+    return os.queueEvent(event, param1, param2, param3, param4, param5)
+end
+
+-- start an OS timer
+---@param t number timer duration in seconds
+---@return integer timer ID
+function util.start_timer(t)
+---@diagnostic disable-next-line: undefined-field
+    return os.startTimer(t)
+end
+
+-- cancel an OS timer
+---@param timer integer timer ID
+function util.cancel_timer(timer)
+---@diagnostic disable-next-line: undefined-field
+    os.cancelTimer(timer)
+end
+
 -- PARALLELIZATION --
 
 -- protected sleep call so we still are in charge of catching termination
@@ -312,14 +339,9 @@ end
 ---
 --- triggers a timer event if not fed within 'timeout' seconds
 function util.new_watchdog(timeout)
----@diagnostic disable-next-line: undefined-field
-    local start_timer = os.startTimer
----@diagnostic disable-next-line: undefined-field
-    local cancel_timer = os.cancelTimer
-
     local self = {
         timeout = timeout,
-        wd_timer = start_timer(timeout)
+        wd_timer = util.start_timer(timeout)
     }
 
     ---@class watchdog
@@ -333,15 +355,15 @@ function util.new_watchdog(timeout)
     -- satiate the beast
     function public.feed()
         if self.wd_timer ~= nil then
-            cancel_timer(self.wd_timer)
+            util.cancel_timer(self.wd_timer)
         end
-        self.wd_timer = start_timer(self.timeout)
+        self.wd_timer = util.start_timer(self.timeout)
     end
 
     -- cancel the watchdog
     function public.cancel()
         if self.wd_timer ~= nil then
-            cancel_timer(self.wd_timer)
+            util.cancel_timer(self.wd_timer)
         end
     end
 
@@ -355,9 +377,6 @@ end
 ---
 --- fires a timer event at the specified period, does not start at construct time
 function util.new_clock(period)
----@diagnostic disable-next-line: undefined-field
-    local start_timer = os.startTimer
-
     local self = {
         period = period,
         timer = nil
@@ -373,7 +392,7 @@ function util.new_clock(period)
 
     -- start the clock
     function public.start()
-        self.timer = start_timer(self.period)
+        self.timer = util.start_timer(self.period)
     end
 
     return public

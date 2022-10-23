@@ -109,7 +109,7 @@ function renderer.start_ui()
         end
 
         -- start flasher callback task
-        flasher.init()
+        flasher.run()
 
         -- report ui as ready
         engine.ui_ready = true
