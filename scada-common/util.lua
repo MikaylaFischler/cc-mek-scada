@@ -5,6 +5,11 @@
 ---@class util
 local util = {}
 
+-- ENVIRONMENT CONSTANTS --
+
+util.TICK_TIME_S = 0.05
+util.TICK_TIME_MS = 50
+
 -- OPERATORS --
 
 -- trinary operator

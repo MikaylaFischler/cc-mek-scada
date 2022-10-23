@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.5.7"
+local COORDINATOR_VERSION = "alpha-v0.5.9"
 
 local print = util.print
 local println = util.println
@@ -181,8 +181,7 @@ if ui_ok then
     log_sys("system started successfully")
 end
 
--- event loop
--- ui_ok will never change in this loop, same as while true or exit if UI start failed
+-- main event loop
 while ui_ok do
     local event, param1, param2, param3, param4, param5 = util.pull_event()
 
@@ -298,6 +297,9 @@ while ui_ok do
         -- handle a monitor touch event
         renderer.handle_touch(core.events.touch(param1, param2, param3))
     end
+
+    -- call unserviced TCD callbacks
+    tcallbackdsp.call_unserviced()
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then

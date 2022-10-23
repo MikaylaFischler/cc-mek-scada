@@ -42,7 +42,7 @@ local function indicator_light(args)
     -- called by flasher when enabled
     local function flash_callback()
         e.window.setCursorPos(1, 1)
-    
+
         if flash_on then
             e.window.blit(" \x95", "0" .. args.colors.blit_a, args.colors.blit_a .. e.fg_bg.blit_bkg)
         else
