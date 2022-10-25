@@ -38,7 +38,9 @@ local MAX_HEATED_COLLANT_FILL = 0.95
 --- identifies dangerous states and SCRAMs reactor if warranted
 ---
 --- autonomous from main SCADA supervisor/coordinator control
-function plc.rps_init(reactor)
+---@param reactor table
+---@param is_formed boolean
+function plc.rps_init(reactor, is_formed)
     local state_keys = {
         dmg_crit = 1,
         high_temp = 2,
@@ -48,13 +50,15 @@ function plc.rps_init(reactor)
         no_fuel = 6,
         fault = 7,
         timeout = 8,
-        manual = 9
+        manual = 9,
+        sys_fail = 10
     }
 
     local self = {
         reactor = reactor,
-        state = { false, false, false, false, false, false, false, false, false },
+        state = { false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
+        formed = is_formed,
         tripped = false,
         trip_cause = "" ---@type rps_trip_cause
     }
@@ -76,14 +80,25 @@ function plc.rps_init(reactor)
         self.state[state_keys.fault] = false
     end
 
+    -- check if the reactor is formed
+    local function _is_formed()
+        local is_formed = self.reactor.isFormed()
+        if is_formed == ppm.ACCESS_FAULT then
+            -- lost the peripheral or terminated, handled later
+            _set_fault()
+        elseif not self.state[state_keys.sys_fail] then
+            self.formed = is_formed
+            self.state[state_keys.sys_fail] = not is_formed
+        end
+    end
+
     -- check for critical damage
     local function _damage_critical()
         local damage_percent = self.reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.dmg_crit] = false
-        else
+        elseif not self.state[state_keys.dmg_crit] then
             self.state[state_keys.dmg_crit] = damage_percent >= MAX_DAMAGE_PERCENT
         end
     end
@@ -95,8 +110,7 @@ function plc.rps_init(reactor)
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.high_temp] = false
-        else
+        elseif not self.state[state_keys.high_temp] then
             self.state[state_keys.high_temp] = temp >= MAX_DAMAGE_TEMPERATURE
         end
     end
@@ -107,8 +121,7 @@ function plc.rps_init(reactor)
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.no_coolant] = false
-        else
+        elseif not self.state[state_keys.no_coolant] then
             self.state[state_keys.no_coolant] = coolant_filled < MIN_COOLANT_FILL
         end
     end
@@ -119,8 +132,7 @@ function plc.rps_init(reactor)
         if w_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.ex_waste] = false
-        else
+        elseif not self.state[state_keys.ex_waste] then
             self.state[state_keys.ex_waste] = w_filled > MAX_WASTE_FILL
         end
     end
@@ -131,8 +143,7 @@ function plc.rps_init(reactor)
         if hc_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.ex_hcoolant] = false
-        else
+        elseif not self.state[state_keys.ex_hcoolant] then
             self.state[state_keys.ex_hcoolant] = hc_filled > MAX_HEATED_COLLANT_FILL
         end
     end
@@ -143,8 +154,7 @@ function plc.rps_init(reactor)
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-            self.state[state_keys.no_fuel] = false
-        else
+        elseif not self.state[state_keys.no_fuel] then
             self.state[state_keys.no_fuel] = fuel == 0
         end
     end
@@ -169,7 +179,13 @@ function plc.rps_init(reactor)
 
     -- manually SCRAM the reactor
     function public.trip_manual()
-        self.state[state_keys.manual]  = true
+        self.state[state_keys.manual] = true
+    end
+
+    -- trip for unformed reactor
+    function public.trip_sys_fail()
+        self.state[state_keys.fault] = true
+        self.state[state_keys.sys_fail] = true
     end
 
     -- SCRAM the reactor now
@@ -216,6 +232,7 @@ function plc.rps_init(reactor)
 
         -- update state
         parallel.waitForAll(
+            _is_formed,
             _damage_critical,
             _high_temp,
             _no_coolant,
@@ -227,6 +244,9 @@ function plc.rps_init(reactor)
         -- check system states in order of severity
         if self.tripped then
             status = self.trip_cause
+        elseif self.state[state_keys.sys_fail] then
+            log.warning("RPS: system failure, reactor not formed")
+            status = rps_status_t.sys_fail
         elseif self.state[state_keys.dmg_crit] then
             log.warning("RPS: damage critical")
             status = rps_status_t.dmg_crit
@@ -273,9 +293,11 @@ function plc.rps_init(reactor)
     function public.status() return self.state end
     function public.is_tripped() return self.tripped end
     function public.is_active() return self.reactor_enabled end
+    function public.is_formed() return self.formed end
 
     -- reset the RPS
-    function public.reset()
+    ---@param quiet? boolean true to suppress the info log message
+    function public.reset(quiet)
         self.tripped = false
         self.trip_cause = rps_status_t.ok
 
@@ -283,7 +305,7 @@ function plc.rps_init(reactor)
             self.state[i] = false
         end
 
-        log.info("RPS: reset")
+        if not quiet then log.info("RPS: reset") end
     end
 
     return public
@@ -473,20 +495,19 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         local mek_data = { false, 0, 0, 0, min_pos, max_pos, 0, 0, 0, 0, 0, 0, 0, 0 }
 
         local tasks = {
-            function () mek_data[1]  = self.reactor.isFormed() end,
-            function () mek_data[2]  = self.reactor.getLength() end,
-            function () mek_data[3]  = self.reactor.getWidth() end,
-            function () mek_data[4]  = self.reactor.getHeight() end,
-            function () mek_data[5]  = self.reactor.getMinPos() end,
-            function () mek_data[6]  = self.reactor.getMaxPos() end,
-            function () mek_data[7]  = self.reactor.getHeatCapacity() end,
-            function () mek_data[8]  = self.reactor.getFuelAssemblies() end,
-            function () mek_data[9]  = self.reactor.getFuelSurfaceArea() end,
-            function () mek_data[10] = self.reactor.getFuelCapacity() end,
-            function () mek_data[11] = self.reactor.getWasteCapacity() end,
-            function () mek_data[12] = self.reactor.getCoolantCapacity() end,
-            function () mek_data[13] = self.reactor.getHeatedCoolantCapacity() end,
-            function () mek_data[14] = self.reactor.getMaxBurnRate() end
+            function () mek_data[1]  = self.reactor.getLength() end,
+            function () mek_data[2]  = self.reactor.getWidth() end,
+            function () mek_data[3]  = self.reactor.getHeight() end,
+            function () mek_data[4]  = self.reactor.getMinPos() end,
+            function () mek_data[5]  = self.reactor.getMaxPos() end,
+            function () mek_data[6]  = self.reactor.getHeatCapacity() end,
+            function () mek_data[7]  = self.reactor.getFuelAssemblies() end,
+            function () mek_data[8]  = self.reactor.getFuelSurfaceArea() end,
+            function () mek_data[9]  = self.reactor.getFuelCapacity() end,
+            function () mek_data[10] = self.reactor.getWasteCapacity() end,
+            function () mek_data[11] = self.reactor.getCoolantCapacity() end,
+            function () mek_data[12] = self.reactor.getHeatedCoolantCapacity() end,
+            function () mek_data[13] = self.reactor.getMaxBurnRate() end
         }
 
         parallel.waitForAll(table.unpack(tasks))
@@ -536,29 +557,35 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     end
 
     -- send live status information
-    ---@param degraded boolean
-    function public.send_status(degraded)
+    ---@param no_reactor boolean PLC lost reactor connection
+    ---@param formed boolean reactor formed
+    function public.send_status(no_reactor, formed)
         if self.linked then
-            local mek_data = nil
+            local mek_data = nil        ---@type table
+            local heating_rate = nil    ---@type number
 
-            if _update_status_cache() then
-                mek_data = self.status_cache
+            if (not no_reactor) and formed then
+                if _update_status_cache() then
+                    mek_data = self.status_cache
+                    log.debug("sent updated status")
+                else
+                    log.debug("sent cached status")
+                end
+
+                heating_rate = self.reactor.getHeatingRate()
             end
 
             local sys_status = {
                 util.time(),                    -- timestamp
                 (not self.scrammed),            -- requested control state
                 rps.is_tripped(),               -- rps_tripped
-                degraded,                       -- degraded
-                self.reactor.getHeatingRate(),  -- heating rate
+                no_reactor,                     -- no reactor peripheral connected
+                formed,                         -- reactor formed
+                heating_rate,                   -- heating rate
                 mek_data                        -- mekanism status data
             }
 
-            if not self.reactor.__p_is_faulted() then
-                _send(RPLC_TYPES.STATUS, sys_status)
-            else
-                log.error("failed to send status: PPM fault")
-            end
+            _send(RPLC_TYPES.STATUS, sys_status)
         end
     end
 
@@ -570,7 +597,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     end
 
     -- send reactor protection system alarm
-    ---@param cause rps_status_t
+    ---@param cause rps_status_t reactor protection system status
     function public.send_rps_alarm(cause)
         if self.linked then
             local rps_alarm = {
@@ -618,9 +645,9 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     end
 
     -- handle an RPLC packet
-    ---@param packet rplc_frame|mgmt_frame
-    ---@param plc_state plc_state
-    ---@param setpoints setpoints
+    ---@param packet rplc_frame|mgmt_frame packet frame
+    ---@param plc_state plc_state PLC state
+    ---@param setpoints setpoints setpoint control table
     function public.handle_packet(packet, plc_state, setpoints)
         if packet ~= nil and packet.scada_frame.local_port() == self.l_port then
             -- check sequence number
@@ -651,7 +678,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                             if link_ack == RPLC_LINKING.ALLOW then
                                 self.status_cache = nil
                                 _send_struct()
-                                public.send_status(plc_state.degraded)
+                                public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
                                 log.debug("re-sent initial status data")
                             elseif link_ack == RPLC_LINKING.DENY then
                                 println_ts("received unsolicited link denial, unlinking")
@@ -671,7 +698,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                     elseif packet.type == RPLC_TYPES.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
-                        public.send_status(plc_state.degraded)
+                        public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
                         log.debug("sent out status cache again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_STRUCT then
                         -- request for physical structure
@@ -738,8 +765,11 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                             self.r_seq_num = nil
                             self.status_cache = nil
 
-                            _send_struct()
-                            public.send_status(plc_state.degraded)
+                            if plc_state.reactor_formed then
+                                _send_struct()
+                            end
+
+                            public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
 
                             log.debug("sent initial status data")
                         elseif link_ack == RPLC_LINKING.DENY then

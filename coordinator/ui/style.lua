@@ -54,6 +54,10 @@ style.reactor = {
         {
             color = cpair(colors.black, colors.orange),
             text = "PLC  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
         }
     }
 }

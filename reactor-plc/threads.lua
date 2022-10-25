@@ -78,6 +78,51 @@ function threads.thread__main(smem, init)
                         end
                     end
                 end
+
+                -- are we now formed after waiting to be formed?
+                if not plc_state.reactor_formed and rps.is_formed() then
+                    -- push a connect event and unmount it from the PPM
+                    local iface = ppm.get_iface(plc_dev.reactor)
+                    if iface then
+                        ppm.unmount(plc_dev.reactor)
+
+                        local type, device = ppm.mount(iface)
+
+                        if type ~= "fissionReactorLogicAdapter" and device ~= nil then
+                            -- reconnect reactor
+                            plc_dev.reactor = device
+
+                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+
+                            println_ts("reactor reconnected as formed.")
+                            log.info("reactor reconnected as formed")
+
+                            plc_state.reactor_formed = device.isFormed()
+
+                            rps.reconnect_reactor(plc_dev.reactor)
+                            if networked then
+                                plc_comms.reconnect_reactor(plc_dev.reactor)
+                            end
+
+                            -- determine if we are still in a degraded state
+                            if not networked or not plc_state.no_modem then
+                                plc_state.degraded = false
+                            end
+                        else
+                            -- fully lost the reactor now :(
+                            println_ts("reactor lost (failed reconnect)!")
+                            log.error("reactor lost (failed reconnect!")
+
+                            plc_state.no_reactor = true
+                            plc_state.degraded = true
+                        end
+                    else
+                        log.error("failed to get interface of previously connected reactor", true)
+                    end
+                elseif not rps.is_formed() then
+                    -- reactor no longer formed
+                    plc_state.reactor_formed = false
+                end
             elseif event == "modem_message" and networked and plc_state.init_ok and not plc_state.no_modem then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
@@ -94,16 +139,18 @@ function threads.thread__main(smem, init)
                 local type, device = ppm.handle_unmount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "fissionReactor" then
+                    if type == "fissionReactorLogicAdapter" then
                         println_ts("reactor disconnected!")
                         log.error("reactor disconnected!")
+
                         plc_state.no_reactor = true
                         plc_state.degraded = true
                     elseif networked and type == "modem" then
                         -- we only care if this is our wireless modem
                         if device == plc_dev.modem then
-                            println_ts("wireless modem disconnected!")
+                            println_ts("comms modem disconnected!")
                             log.error("comms modem disconnected!")
+
                             plc_state.no_modem = true
 
                             if plc_state.init_ok then
@@ -122,7 +169,7 @@ function threads.thread__main(smem, init)
                 local type, device = ppm.mount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "fissionReactor" then
+                    if type == "fissionReactorLogicAdapter" then
                         -- reconnected reactor
                         plc_dev.reactor = device
 
@@ -130,7 +177,9 @@ function threads.thread__main(smem, init)
 
                         println_ts("reactor reconnected.")
                         log.info("reactor reconnected")
+
                         plc_state.no_reactor = false
+                        plc_state.reactor_formed = device.isFormed()
 
                         if plc_state.init_ok then
                             rps.reconnect_reactor(plc_dev.reactor)
@@ -140,7 +189,7 @@ function threads.thread__main(smem, init)
                         end
 
                         -- determine if we are still in a degraded state
-                        if not networked or not plc_state.no_modem then
+                        if (not networked or not plc_state.no_modem) and plc_state.reactor_formed then
                             plc_state.degraded = false
                         end
                     elseif networked and type == "modem" then
@@ -202,9 +251,7 @@ function threads.thread__main(smem, init)
             -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
             if not plc_state.shutdown then
                 log.info("main thread restarting now...")
-
----@diagnostic disable-next-line: undefined-field
-                os.queueEvent("clock_start")
+                util.push_event("clock_start")
             end
         end
     end
@@ -261,7 +308,7 @@ function threads.thread__rps(smem)
 
                 -- if we are in standalone mode, continuously reset RPS
                 -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
-                if not networked then rps.reset() end
+                if not networked then rps.reset(true) end
 
                 -- check safety (SCRAM occurs if tripped)
                 if not plc_state.no_reactor then
@@ -380,7 +427,7 @@ function threads.thread__comms_tx(smem)
                         -- received a command
                         if msg.message == MQ__COMM_CMD.SEND_STATUS then
                             -- send PLC/RPS status
-                            plc_comms.send_status(plc_state.degraded)
+                            plc_comms.send_status(plc_state.no_reactor, plc_state.reactor_formed)
                             plc_comms.send_rps_status()
                         end
                     elseif msg.qtype == mqueue.TYPE.DATA then

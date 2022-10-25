@@ -10,7 +10,10 @@ local ppm = {}
 
 local ACCESS_FAULT = nil    ---@type nil
 
+local UNDEFINED_FIELD = "undefined field"
+
 ppm.ACCESS_FAULT = ACCESS_FAULT
+ppm.UNDEFINED_FIELD = UNDEFINED_FIELD
 
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
@@ -110,6 +113,40 @@ local function peri_init(iface)
     self.device.__p_enable_afc  = enable_afc
     self.device.__p_disable_afc = disable_afc
 
+    -- add default index function to catch undefined indicies
+
+    local mt = {}
+
+    function mt.__index(_, key)
+        -- this will continuously be counting calls here as faults
+        -- unlike other functions, faults here can't be cleared as it is just not defined
+        if self.fault_counts[key] == nil then
+            self.fault_counts[key] = 0
+        end
+
+        -- function failed
+        self.faulted = true
+        self.last_fault = UNDEFINED_FIELD
+
+        _ppm_sys.faulted = true
+        _ppm_sys.last_fault = UNDEFINED_FIELD
+
+        if not _ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+            local count_str = ""
+            if self.fault_counts[key] > 0 then
+                count_str = " [" .. self.fault_counts[key] .. " total calls]"
+            end
+
+            log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
+        end
+
+        self.fault_counts[key] = self.fault_counts[key] + 1
+
+        return ACCESS_FAULT
+    end
+
+    setmetatable(self.device, mt)
+
     return {
         type = self.type,
         dev = self.device
@@ -208,6 +245,20 @@ function ppm.mount(iface)
     return pm_type, pm_dev
 end
 
+-- manually unmount a peripheral from the PPM
+---@param device table device table
+function ppm.unmount(device)
+    if device then
+        for side, data in pairs(_ppm_sys.mounts) do
+            if data.dev == device then
+                log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", side))
+                _ppm_sys.mounts[side] = nil
+                break
+            end
+        end
+    end
+end
+
 -- handle peripheral_detach event
 ---@param iface string CC peripheral interface
 ---@return string|nil type, table|nil device
@@ -227,6 +278,8 @@ function ppm.handle_unmount(iface)
         log.error(util.c("PPM: lost device unknown to the PPM mounted to ", iface))
     end
 
+    _ppm_sys.mounts[iface] = nil
+
     return pm_type, pm_dev
 end
 
@@ -242,6 +295,19 @@ end
 ---@return table mounts
 function ppm.list_mounts()
     return _ppm_sys.mounts
+end
+
+-- get a mounted peripheral side/interface by device table
+---@param device table device table
+---@return string|nil iface CC peripheral interface
+function ppm.get_iface(device)
+    if device then
+        for side, data in pairs(_ppm_sys.mounts) do
+            if data.dev == device then return side end
+        end
+    end
+
+    return nil
 end
 
 -- get a mounted peripheral by side/interface
@@ -298,7 +364,7 @@ end
 -- get the fission reactor (if multiple, returns the first)
 ---@return table|nil reactor function table
 function ppm.get_fission_reactor()
-    return ppm.get_device("fissionReactor") or ppm.get_device("fissionReactorLogicAdapter")
+    return ppm.get_device("fissionReactorLogicAdapter")
 end
 
 -- get the wireless modem (if multiple, returns the first)

@@ -13,7 +13,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.8.9"
+local R_PLC_VERSION = "beta-v0.9.0"
 
 local print = util.print
 local println = util.println
@@ -64,6 +64,7 @@ local __shared_memory = {
         init_ok = true,
         shutdown = false,
         degraded = false,
+        reactor_formed = true,
         no_reactor = false,
         no_modem = false
     },
@@ -101,7 +102,7 @@ local smem_sys = __shared_memory.plc_sys
 
 local plc_state = __shared_memory.plc_state
 
--- we need a reactor and a modem
+-- we need a reactor, can at least do some things even if it isn't formed though
 if smem_dev.reactor == nil then
     println("boot> fission reactor not found");
     log.warning("no reactor on startup")
@@ -109,12 +110,21 @@ if smem_dev.reactor == nil then
     plc_state.init_ok = false
     plc_state.degraded = true
     plc_state.no_reactor = true
+elseif not smem_dev.reactor.isFormed() then
+    println("boot> fission reactor not formed");
+    log.warning("reactor logic adapter present, but reactor is not formed")
+
+    plc_state.degraded = true
+    plc_state.reactor_formed = false
 end
+
+-- modem is required if networked
 if __shared_memory.networked and smem_dev.modem == nil then
     println("boot> wireless modem not found")
     log.warning("no wireless modem on startup")
 
-    if smem_dev.reactor ~= nil and smem_dev.reactor.getStatus() then
+    -- scram reactor if present and enabled
+    if (smem_dev.reactor ~= nil) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
         smem_dev.reactor.scram()
     end
 
@@ -127,10 +137,12 @@ end
 local function init()
     if plc_state.init_ok then
         -- just booting up, no fission allowed (neutrons stay put thanks)
-        if smem_dev.reactor.getStatus() then smem_dev.reactor.scram() end
+        if plc_state.reactor_formed and smem_dev.reactor.getStatus() then
+            smem_dev.reactor.scram()
+        end
 
         -- init reactor protection system
-        smem_sys.rps = plc.rps_init(smem_dev.reactor)
+        smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed)
         log.debug("init> rps init")
 
         if __shared_memory.networked then
@@ -147,8 +159,7 @@ local function init()
             log.debug("init> running without networking")
         end
 
----@diagnostic disable-next-line: undefined-field
-        os.queueEvent("clock_start")
+        util.push_event("clock_start")
 
         println("boot> completed")
         log.debug("init> boot completed")
@@ -182,7 +193,7 @@ if __shared_memory.networked then
 
     if plc_state.init_ok then
         -- send status one last time after RPS shutdown
-        smem_sys.plc_comms.send_status(plc_state.degraded)
+        smem_sys.plc_comms.send_status(plc_state.no_reactor, plc_state.reactor_formed)
         smem_sys.plc_comms.send_rps_status()
 
         -- close connection

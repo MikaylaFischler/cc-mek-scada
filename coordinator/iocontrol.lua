@@ -172,16 +172,21 @@ function iocontrol.update_statuses(statuses)
 
             if #reactor_status == 0 then
                 unit.reactor_ps.publish("computed_status", 1)   -- disconnected
-            else
+            elseif #reactor_status == 3 then
                 local mek_status = reactor_status[1]
                 local rps_status = reactor_status[2]
                 local gen_status = reactor_status[3]
 
-                unit.reactor_data.last_status_update = gen_status[1]
-                unit.reactor_data.control_state      = gen_status[2]
-                unit.reactor_data.rps_tripped        = gen_status[3]
-                unit.reactor_data.rps_trip_cause     = gen_status[4]
-                unit.reactor_data.degraded           = gen_status[5]
+                if #gen_status == 6 then
+                    unit.reactor_data.last_status_update = gen_status[1]
+                    unit.reactor_data.control_state      = gen_status[2]
+                    unit.reactor_data.rps_tripped        = gen_status[3]
+                    unit.reactor_data.rps_trip_cause     = gen_status[4]
+                    unit.reactor_data.no_reactor         = gen_status[5]
+                    unit.reactor_data.formed             = gen_status[6]
+                else
+                    log.debug("reactor general status length mismatch")
+                end
 
                 unit.reactor_data.rps_status = rps_status   ---@type rps_status
                 unit.reactor_data.mek_status = mek_status   ---@type mek_status
@@ -189,8 +194,10 @@ function iocontrol.update_statuses(statuses)
                 if unit.reactor_data.mek_status.status then
                     unit.reactor_ps.publish("computed_status", 3)       -- running
                 else
-                    if unit.reactor_data.degraded then
+                    if unit.reactor_data.no_reactor then
                         unit.reactor_ps.publish("computed_status", 5)   -- faulted
+                    elseif not unit.reactor_data.formed then
+                        unit.reactor_ps.publish("computed_status", 6)   -- multiblock not formed
                     elseif unit.reactor_data.rps_tripped and unit.reactor_data.rps_trip_cause ~= "manual" then
                         unit.reactor_ps.publish("computed_status", 4)   -- SCRAM
                     else
@@ -204,13 +211,19 @@ function iocontrol.update_statuses(statuses)
                     end
                 end
 
-                for key, val in pairs(unit.reactor_data.rps_status) do
-                    unit.reactor_ps.publish(key, val)
+                if type(unit.reactor_data.rps_status) == "table" then
+                    for key, val in pairs(unit.reactor_data.rps_status) do
+                        unit.reactor_ps.publish(key, val)
+                    end
                 end
 
-                for key, val in pairs(unit.reactor_data.mek_status) do
-                    unit.reactor_ps.publish(key, val)
+                if type(unit.reactor_data.mek_status) == "table" then
+                    for key, val in pairs(unit.reactor_data.mek_status) do
+                        unit.reactor_ps.publish(key, val)
+                    end
                 end
+            else
+                log.debug("reactor status length mismatch")
             end
 
             -- annunciator
@@ -252,65 +265,71 @@ function iocontrol.update_statuses(statuses)
 
             local rtu_statuses = status[3]
 
-            -- boiler statuses
+            if type(rtu_statuses) == "table" then
+                if type(rtu_statuses.boilers) == "table" then
+                    -- boiler statuses
 
-            for id = 1, #unit.boiler_data_tbl do
-                if rtu_statuses.boilers[i] == nil then
-                    -- disconnected
-                    unit.boiler_ps_tbl[id].publish("computed_status", 1)
-                end
-            end
+                    for id = 1, #unit.boiler_data_tbl do
+                        if rtu_statuses.boilers[i] == nil then
+                            -- disconnected
+                            unit.boiler_ps_tbl[id].publish("computed_status", 1)
+                        end
+                    end
 
-            for id, boiler in pairs(rtu_statuses.boilers) do
-                unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
-                unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
+                    for id, boiler in pairs(rtu_statuses.boilers) do
+                        unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
+                        unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
 
-                local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
+                        local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
 
-                if data.state.boil_rate > 0 then
-                    unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
-                else
-                    unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- idle
-                end
+                        if data.state.boil_rate > 0 then
+                            unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
+                        else
+                            unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- idle
+                        end
 
-                for key, val in pairs(unit.boiler_data_tbl[id].state) do
-                    unit.boiler_ps_tbl[id].publish(key, val)
-                end
+                        for key, val in pairs(unit.boiler_data_tbl[id].state) do
+                            unit.boiler_ps_tbl[id].publish(key, val)
+                        end
 
-                for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
-                    unit.boiler_ps_tbl[id].publish(key, val)
-                end
-            end
-
-            -- turbine statuses
-
-            for id = 1, #unit.turbine_ps_tbl do
-                if rtu_statuses.turbines[i] == nil then
-                    -- disconnected
-                    unit.turbine_ps_tbl[id].publish("computed_status", 1)
-                end
-            end
-
-            for id, turbine in pairs(rtu_statuses.turbines) do
-                unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
-                unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
-
-                local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
-
-                if data.tanks.steam_fill >= 0.99 then
-                    unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip
-                elseif data.state.flow_rate < 100 then
-                    unit.turbine_ps_tbl[id].publish("computed_status", 2)   -- idle
-                else
-                    unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- active
+                        for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
+                            unit.boiler_ps_tbl[id].publish(key, val)
+                        end
+                    end
                 end
 
-                for key, val in pairs(unit.turbine_data_tbl[id].state) do
-                    unit.turbine_ps_tbl[id].publish(key, val)
-                end
+                if type(rtu_statuses.turbines) == "table" then
+                    -- turbine statuses
 
-                for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
-                    unit.turbine_ps_tbl[id].publish(key, val)
+                    for id = 1, #unit.turbine_ps_tbl do
+                        if rtu_statuses.turbines[i] == nil then
+                            -- disconnected
+                            unit.turbine_ps_tbl[id].publish("computed_status", 1)
+                        end
+                    end
+
+                    for id, turbine in pairs(rtu_statuses.turbines) do
+                        unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
+                        unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
+
+                        local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
+
+                        if data.tanks.steam_fill >= 0.99 then
+                            unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip
+                        elseif data.state.flow_rate < 100 then
+                            unit.turbine_ps_tbl[id].publish("computed_status", 2)   -- idle
+                        else
+                            unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- active
+                        end
+
+                        for key, val in pairs(unit.turbine_data_tbl[id].state) do
+                            unit.turbine_ps_tbl[id].publish(key, val)
+                        end
+
+                        for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
+                            unit.turbine_ps_tbl[id].publish(key, val)
+                        end
+                    end
                 end
             end
         end
