@@ -9,7 +9,10 @@ local tcallbackdsp = {}
 
 local registry = {}
 
-local UNSERVICED_CALL_DELAY = util.TICK_TIME_S
+---@todo possibly move this to a config file?
+-- maximum 5 ticks late (0.25 seconds)<br/>
+-- heavily modded servers and large multiplayer servers tend to significantly slow tick times, so nominal 0.05s ticks are unlikely
+local UNSERVICED_CALL_DELAY = util.TICK_TIME_S * 5
 
 -- request a function to be called after the specified time
 ---@param time number seconds
