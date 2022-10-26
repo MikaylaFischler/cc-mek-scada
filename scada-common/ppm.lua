@@ -115,35 +115,35 @@ local function peri_init(iface)
 
     -- add default index function to catch undefined indicies
 
-    local mt = {}
-
-    function mt.__index(_, key)
-        -- this will continuously be counting calls here as faults
-        -- unlike other functions, faults here can't be cleared as it is just not defined
-        if self.fault_counts[key] == nil then
-            self.fault_counts[key] = 0
-        end
-
-        -- function failed
-        self.faulted = true
-        self.last_fault = UNDEFINED_FIELD
-
-        _ppm_sys.faulted = true
-        _ppm_sys.last_fault = UNDEFINED_FIELD
-
-        if not _ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
-            local count_str = ""
-            if self.fault_counts[key] > 0 then
-                count_str = " [" .. self.fault_counts[key] .. " total calls]"
+    local mt = {
+        __index = function (_, key)
+            -- this will continuously be counting calls here as faults
+            -- unlike other functions, faults here can't be cleared as it is just not defined
+            if self.fault_counts[key] == nil then
+                self.fault_counts[key] = 0
             end
 
-            log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
+            -- function failed
+            self.faulted = true
+            self.last_fault = UNDEFINED_FIELD
+
+            _ppm_sys.faulted = true
+            _ppm_sys.last_fault = UNDEFINED_FIELD
+
+            if not _ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                local count_str = ""
+                if self.fault_counts[key] > 0 then
+                    count_str = " [" .. self.fault_counts[key] .. " total calls]"
+                end
+
+                log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
+            end
+
+            self.fault_counts[key] = self.fault_counts[key] + 1
+
+            return (function () return ACCESS_FAULT end)
         end
-
-        self.fault_counts[key] = self.fault_counts[key] + 1
-
-        return ACCESS_FAULT
-    end
+    }
 
     setmetatable(self.device, mt)
 

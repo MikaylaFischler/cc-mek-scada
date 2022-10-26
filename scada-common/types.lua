@@ -105,7 +105,8 @@ types.rps_status_t = {
     no_fuel = "no_fuel",
     fault = "fault",
     timeout = "timeout",
-    manual = "manual"
+    manual = "manual",
+    sys_fail = "sys_fail"
 }
 
 -- turbine steam dumping modes

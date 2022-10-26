@@ -84,6 +84,7 @@ function threads.thread__main(smem, init)
                     -- push a connect event and unmount it from the PPM
                     local iface = ppm.get_iface(plc_dev.reactor)
                     if iface then
+                        log.info("unmounting and remounting unformed reactor")
                         ppm.unmount(plc_dev.reactor)
 
                         local type, device = ppm.mount(iface)
@@ -91,27 +92,32 @@ function threads.thread__main(smem, init)
                         if type ~= "fissionReactorLogicAdapter" and device ~= nil then
                             -- reconnect reactor
                             plc_dev.reactor = device
-
-                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
-                            println_ts("reactor reconnected as formed.")
-                            log.info("reactor reconnected as formed")
-
                             plc_state.reactor_formed = device.isFormed()
 
-                            rps.reconnect_reactor(plc_dev.reactor)
-                            if networked then
-                                plc_comms.reconnect_reactor(plc_dev.reactor)
+                            if plc_state.reactor_formed then
+                                println_ts("reactor reconnected as formed.")
+                                log.info("reactor reconnected as formed")
+
+                                -- SCRAM newly connected reactor
+                                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+                            else
+                                println_ts("reactor reconnected but still not formed.")
+                                log.info("reactor reconnected but still not formed")
                             end
 
                             -- determine if we are still in a degraded state
                             if not networked or not plc_state.no_modem then
                                 plc_state.degraded = false
                             end
+
+                            rps.reconnect_reactor(plc_dev.reactor)
+                            if networked then
+                                plc_comms.reconnect_reactor(plc_dev.reactor)
+                            end
                         else
                             -- fully lost the reactor now :(
                             println_ts("reactor lost (failed reconnect)!")
-                            log.error("reactor lost (failed reconnect!")
+                            log.error("reactor lost (failed reconnect)")
 
                             plc_state.no_reactor = true
                             plc_state.degraded = true
@@ -141,7 +147,7 @@ function threads.thread__main(smem, init)
                 if type ~= nil and device ~= nil then
                     if type == "fissionReactorLogicAdapter" then
                         println_ts("reactor disconnected!")
-                        log.error("reactor disconnected!")
+                        log.error("reactor logic adapter disconnected")
 
                         plc_state.no_reactor = true
                         plc_state.degraded = true
@@ -149,7 +155,7 @@ function threads.thread__main(smem, init)
                         -- we only care if this is our wireless modem
                         if device == plc_dev.modem then
                             println_ts("comms modem disconnected!")
-                            log.error("comms modem disconnected!")
+                            log.error("comms modem disconnected")
 
                             plc_state.no_modem = true
 
@@ -173,24 +179,26 @@ function threads.thread__main(smem, init)
                         -- reconnected reactor
                         plc_dev.reactor = device
 
-                        smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
                         println_ts("reactor reconnected.")
                         log.info("reactor reconnected")
 
                         plc_state.no_reactor = false
                         plc_state.reactor_formed = device.isFormed()
 
+                        -- determine if we are still in a degraded state
+                        if (not networked or not plc_state.no_modem) and plc_state.reactor_formed then
+                            plc_state.degraded = false
+                        end
+
                         if plc_state.init_ok then
+                            if plc_state.reactor_formed then
+                                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+                            end
+
                             rps.reconnect_reactor(plc_dev.reactor)
                             if networked then
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
-                        end
-
-                        -- determine if we are still in a degraded state
-                        if (not networked or not plc_state.no_modem) and plc_state.reactor_formed then
-                            plc_state.degraded = false
                         end
                     elseif networked and type == "modem" then
                         if device.isWireless() then
@@ -302,7 +310,7 @@ function threads.thread__rps(smem)
                 -- if we tried to SCRAM but failed, keep trying
                 -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
 ---@diagnostic disable-next-line: need-check-nil
-                if not plc_state.no_reactor and rps.is_tripped() and reactor.getStatus() then
+                if (not plc_state.no_reactor) and rps.is_formed() and rps.is_tripped() and reactor.getStatus() then
                     rps.scram()
                 end
 

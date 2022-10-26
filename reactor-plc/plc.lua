@@ -230,16 +230,21 @@ function plc.rps_init(reactor, is_formed)
         local was_tripped = self.tripped
         local first_trip = false
 
-        -- update state
-        parallel.waitForAll(
-            _is_formed,
-            _damage_critical,
-            _high_temp,
-            _no_coolant,
-            _excess_waste,
-            _excess_heated_coolant,
-            _insufficient_fuel
-        )
+        if self.formed then
+            -- update state
+            parallel.waitForAll(
+                _is_formed,
+                _damage_critical,
+                _high_temp,
+                _no_coolant,
+                _excess_waste,
+                _excess_heated_coolant,
+                _insufficient_fuel
+            )
+        else
+            -- check to see if its now formed
+            _is_formed()
+        end
 
         -- check system states in order of severity
         if self.tripped then
@@ -284,7 +289,11 @@ function plc.rps_init(reactor, is_formed)
             self.tripped = true
             self.trip_cause = status
 
-            public.scram()
+            if self.formed then
+                public.scram()
+            else
+                log.warning("RPS: skipping SCRAM due to not being formed")
+            end
         end
 
         return self.tripped, status, first_trip
@@ -322,19 +331,16 @@ end
 ---@param conn_watchdog watchdog
 function plc.comms(id, version, modem, local_port, server_port, reactor, rps, conn_watchdog)
     local self = {
-        id = id,
-        version = version,
         seq_num = 0,
         r_seq_num = nil,
         modem = modem,
         s_port = server_port,
         l_port = local_port,
         reactor = reactor,
-        rps = rps,
-        conn_watchdog = conn_watchdog,
         scrammed = false,
         linked = false,
         status_cache = nil,
+        resend_build = false,
         max_burn_rate = nil
     }
 
@@ -358,7 +364,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(self.id, msg_type, msg)
+        r_pkt.make(id, msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
 
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
@@ -514,6 +520,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
         if not self.reactor.__p_is_faulted() then
             _send(RPLC_TYPES.MEK_STRUCT, mek_data)
+            self.resend_build = false
         else
             log.error("failed to send structure: PPM fault")
         end
@@ -535,6 +542,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     function public.reconnect_reactor(reactor)
         self.reactor = reactor
         self.status_cache = nil
+        self.resend_build = true
     end
 
     -- unlink from the server
@@ -546,30 +554,27 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- close the connection to the server
     function public.close()
-        self.conn_watchdog.cancel()
+        conn_watchdog.cancel()
         public.unlink()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
     end
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
-        _send(RPLC_TYPES.LINK_REQ, { self.id, self.version })
+        _send(RPLC_TYPES.LINK_REQ, { id, version })
     end
 
     -- send live status information
     ---@param no_reactor boolean PLC lost reactor connection
-    ---@param formed boolean reactor formed
+    ---@param formed boolean reactor formed (from PLC state)
     function public.send_status(no_reactor, formed)
         if self.linked then
             local mek_data = nil        ---@type table
-            local heating_rate = nil    ---@type number
+            local heating_rate = 0.0    ---@type number
 
-            if (not no_reactor) and formed then
+            if (not no_reactor) and rps.is_formed() then
                 if _update_status_cache() then
                     mek_data = self.status_cache
-                    log.debug("sent updated status")
-                else
-                    log.debug("sent cached status")
                 end
 
                 heating_rate = self.reactor.getHeatingRate()
@@ -586,6 +591,10 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             }
 
             _send(RPLC_TYPES.STATUS, sys_status)
+
+            if self.resend_build then
+                _send_struct()
+            end
         end
     end
 
@@ -661,7 +670,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             end
 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
-            self.conn_watchdog.feed()
+            conn_watchdog.feed()
 
             local protocol = packet.scada_frame.protocol()
 
@@ -739,11 +748,11 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                     elseif packet.type == RPLC_TYPES.RPS_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
-                        _send_ack(packet.type, self.rps.activate())
+                        _send_ack(packet.type, rps.activate())
                     elseif packet.type == RPLC_TYPES.RPS_SCRAM then
                         -- disable the reactor
                         self.scrammed = true
-                        self.rps.trip_manual()
+                        rps.trip_manual()
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPES.RPS_RESET then
                         -- reset the RPS status
@@ -809,7 +818,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                     end
                 elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
                     -- handle session close
-                    self.conn_watchdog.cancel()
+                    conn_watchdog.cancel()
                     public.unlink()
                     println_ts("server connection closed by remote host")
                     log.warning("server connection closed by remote host")
