@@ -2,7 +2,7 @@
 -- Indicator Light Flasher
 --
 
-local tcd = require("scada-common.tcallbackdsp")
+local tcd  = require("scada-common.tcallbackdsp")
 
 local flasher = {}
 
@@ -26,14 +26,14 @@ local callback_counter = 0
 -- this assumes it is called every 250ms, it does no checking of time on its own
 local function callback_250ms()
     if active then
-        for _, f in pairs(registry[PERIOD.BLINK_250_MS]) do f() end
+        for _, f in ipairs(registry[PERIOD.BLINK_250_MS]) do f() end
 
         if callback_counter % 2 == 0 then
-            for _, f in pairs(registry[PERIOD.BLINK_500_MS]) do f() end
+            for _, f in ipairs(registry[PERIOD.BLINK_500_MS]) do f() end
         end
 
         if callback_counter % 4 == 0 then
-            for _, f in pairs(registry[PERIOD.BLINK_1000_MS]) do f() end
+            for _, f in ipairs(registry[PERIOD.BLINK_1000_MS]) do f() end
         end
 
         callback_counter = callback_counter + 1
@@ -70,10 +70,10 @@ end
 ---@param f function function callback registered
 function flasher.stop(f)
     for i = 1, #registry do
-        for j = 1, #registry[i] do
-            if registry[i][j] == f then
-                registry[i][j] = nil
-                break
+        for key, val in ipairs(registry[i]) do
+            if val == f then
+                table.remove(registry[i], key)
+                return
             end
         end
     end
