@@ -1,14 +1,12 @@
--- Data Indicator Graphics Element
+-- Power Indicator Graphics Element
 
 local util    = require("scada-common.util")
 
 local element = require("graphics.element")
 
----@class data_indicator_args
+---@class power_indicator_args
 ---@field label string indicator label
----@field unit? string indicator unit
----@field format string data format (lua string format)
----@field commas boolean whether to use commas if a number is given (default to false)
+---@field format string power format override (lua string format)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
 ---@field value any default value
 ---@field parent graphics_element
@@ -18,14 +16,12 @@ local element = require("graphics.element")
 ---@field width integer length
 ---@field fg_bg? cpair foreground/background colors
 
--- new data indicator
----@param args data_indicator_args
+-- new power indicator
+---@param args power_indicator_args
 ---@return graphics_element element, element_id id
-local function data(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.data: label is a required field")
-    assert(type(args.format) == "string", "graphics.elements.indicators.data: format is a required field")
-    assert(args.value ~= nil, "graphics.elements.indicators.data: value is a required field")
-    assert(util.is_int(args.width), "graphics.elements.indicators.data: width is a required field")
+local function power(args)
+    assert(args.value ~= nil, "graphics.elements.indicators.power: value is a required field")
+    assert(util.is_int(args.width), "graphics.elements.indicators.power: width is a required field")
 
     -- single line
     args.height = 1
@@ -49,24 +45,20 @@ local function data(args)
     function e.on_update(value)
         e.value = value
 
-        local data_str = util.sprintf(args.format, value)
+        local data_str, unit = util.power_format(value, false, args.format)
 
         -- write data
         e.window.setCursorPos(data_start, 1)
         e.window.setTextColor(e.fg_bg.fgd)
-        if args.commas then
-            e.window.write(util.comma_format(data_str))
-        else
-            e.window.write(data_str)
-        end
+        e.window.write(util.comma_format(data_str))
 
-        -- write label
-        if args.unit ~= nil then
-            if args.lu_colors ~= nil then
-                e.window.setTextColor(args.lu_colors.color_b)
-            end
-            e.window.write(" " .. args.unit)
+        -- write unit
+        if args.lu_colors ~= nil then
+            e.window.setTextColor(args.lu_colors.color_b)
         end
+        -- add space so we don't end up with FEE (after having kFE for example)
+        if unit == "FE" then unit = "FE " end
+        e.window.write(" " .. unit)
     end
 
     -- set the value
@@ -79,4 +71,4 @@ local function data(args)
     return e.get()
 end
 
-return data
+return power

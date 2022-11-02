@@ -4,6 +4,7 @@ local util           = require("scada-common.util")
 local style          = require("coordinator.ui.style")
 
 local DataIndicator  = require("graphics.elements.indicators.data")
+local PowerIndicator = require("graphics.elements.indicators.power")
 local StateIndicator = require("graphics.elements.indicators.state")
 local Rectangle      = require("graphics.elements.rectangle")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
@@ -23,7 +24,7 @@ local function new_view(root, x, y, ps)
     local lu_col = cpair(colors.gray, colors.gray)
 
     local status    = StateIndicator{parent=turbine,x=8,y=1,states=style.turbine.states,value=1,min_width=10}
-    local prod_rate = DataIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",unit="FE",format="%10.2f",value=0,width=16,fg_bg=text_fg_bg}
+    local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",format="%10.2f",value=0,width=16,fg_bg=text_fg_bg}
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg_bg}
 
     ps.subscribe("computed_status", status.update)

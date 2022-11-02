@@ -11,6 +11,7 @@ util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
 
 -- OPERATORS --
+--#region
 
 -- trinary operator
 ---@param cond boolean condition
@@ -21,7 +22,10 @@ function util.trinary(cond, a, b)
     if cond then return a else return b end
 end
 
+--#endregion
+
 -- PRINT --
+--#region
 
 -- print
 ---@param message any
@@ -47,7 +51,10 @@ function util.println_ts(message)
     print(os.date("[%H:%M:%S] ") .. tostring(message))
 end
 
+--#endregion
+
 -- STRING TOOLS --
+--#region
 
 -- get a value as a string
 ---@param val any
@@ -160,7 +167,33 @@ function util.sprintf(format, ...)
     return string.format(format, table.unpack(arg))
 end
 
+-- format a number string with commas as the thousands separator
+--
+-- subtracts from spaces at the start if present for each comma used
+---@param num string number string
+---@return string
+function util.comma_format(num)
+    local formatted = num
+    local commas = 0
+    local i = 1
+
+    while i > 0 do
+        formatted, i = formatted:gsub("^(%s-%d+)(%d%d%d)", '%1,%2')
+        if i > 0 then commas = commas + 1 end
+    end
+
+    local _, num_spaces = formatted:gsub(" %s-", "")
+    local remove = math.min(num_spaces, commas)
+
+    formatted = string.sub(formatted, remove + 1)
+
+    return formatted
+end
+
+--#endregion
+
 -- MATH --
+--#region
 
 -- is a value an integer
 ---@param x any value
@@ -197,7 +230,10 @@ function util.time()
     return util.time_ms()
 end
 
+--#endregion
+
 -- OS --
+--#region
 
 -- OS pull event raw wrapper with types
 ---@param target_event? string event to wait for
@@ -234,7 +270,10 @@ function util.cancel_timer(timer)
     os.cancelTimer(timer)
 end
 
+--#endregion
+
 -- PARALLELIZATION --
+--#region
 
 -- protected sleep call so we still are in charge of catching termination
 ---@param t integer seconds
@@ -265,7 +304,10 @@ function util.adaptive_delay(target_timing, last_update)
     return util.time()
 end
 
+--#endregion
+
 -- TABLE UTILITIES --
+--#region
 
 -- delete elements from a table if the passed function returns false when passed a table element
 --
@@ -303,7 +345,10 @@ function util.table_contains(t, element)
     return false
 end
 
+--#endregion
+
 -- MEKANISM POWER --
+--#region
 
 -- convert Joules to FE
 ---@param J number Joules
@@ -322,20 +367,45 @@ local function TFE(fe) return fe / 1000000000000.0 end
 
 -- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE)
 ---@param fe number forge energy value
----@return string str formatted string
-function util.power_format(fe)
+---@param combine_label boolean if a label should be included in the string itself
+---@param format string format override
+---@return string str, string? unit
+function util.power_format(fe, combine_label, format)
+    local unit
+    local value
+
+    if type(format) ~= "string" then
+        format = "%.2f"
+    end
+
     if fe < 1000 then
-        return string.format("%.2f FE", fe)
+        unit = "FE"
+        value = fe
     elseif fe < 1000000 then
-        return string.format("%.2f kFE", kFE(fe))
+        unit = "kFE"
+        value = kFE(fe)
     elseif fe < 1000000000 then
-        return string.format("%.2f MFE", MFE(fe))
+        unit = "MFE"
+        value = MFE(fe)
     elseif fe < 1000000000000 then
-        return string.format("%.2f GFE", GFE(fe))
+        unit = "GFE"
+        value = GFE(fe)
     else
-        return string.format("%.2f TFE", TFE(fe))
+        unit = "TFE"
+        value = TFE(fe)
+    end
+
+    if combine_label then
+        return util.sprintf(util.c(format, " %s"), value, unit)
+    else
+        return util.sprintf(format, value), unit
     end
 end
+
+--#endregion
+
+-- UTILITY CLASSES --
+--#region
 
 -- WATCHDOG --
 
@@ -403,6 +473,8 @@ function util.new_clock(period)
     return public
 end
 
+-- FIELD VALIDATOR --
+
 -- create a new type validator
 --
 -- can execute sequential checks and check valid() to see if it is still valid
@@ -432,5 +504,7 @@ function util.new_validator()
 
     return public
 end
+
+--#endregion
 
 return util
