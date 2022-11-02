@@ -16,7 +16,7 @@ local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 
-local COORDINATOR_VERSION = "alpha-v0.6.1"
+local COORDINATOR_VERSION = "alpha-v0.6.2"
 
 local print = util.print
 local println = util.println
@@ -297,9 +297,6 @@ while ui_ok do
         -- handle a monitor touch event
         renderer.handle_touch(core.events.touch(param1, param2, param3))
     end
-
-    -- call unserviced TCD callbacks
-    tcallbackdsp.call_unserviced()
 
     -- check for termination request
     if event == "terminate" or ppm.should_terminate() then

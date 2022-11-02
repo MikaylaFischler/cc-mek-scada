@@ -9,11 +9,6 @@ local tcallbackdsp = {}
 
 local registry = {}
 
----@todo possibly move this to a config file?
--- maximum 5 ticks late (0.25 seconds)<br/>
--- heavily modded servers and large multiplayer servers tend to significantly slow tick times, so nominal 0.05s ticks are unlikely
-local UNSERVICED_CALL_DELAY = util.TICK_TIME_S * 5
-
 -- request a function to be called after the specified time
 ---@param time number seconds
 ---@param f function callback function
@@ -62,33 +57,6 @@ function tcallbackdsp.handle(event)
         -- clear first so that dispatch_unique call from inside callback won't throw a debug message
         registry[event] = nil
         callback()
-    end
-end
-
--- execute any callbacks that are overdo their time and have not been serviced
---
--- this can be called periodically to prevent loss of any callbacks do to timer events that are lost (see github issue #110)
-function tcallbackdsp.call_unserviced()
-    local found_unserviced = true
-
-    while found_unserviced do
-        found_unserviced = false
-
-        -- go through registry, restart if unserviced entries were found due to mutating registry table
-        for timer, entry in pairs(registry) do
-            found_unserviced = util.time_s() > (entry.expiry + UNSERVICED_CALL_DELAY)
-            if found_unserviced then
-                local overtime = util.time_s() - entry.expiry
-                local callback = entry.callback
-
-                log.warning(util.c("TCD: executing unserviced callback ", entry.callback, " (", overtime, "s late) [timer: ", timer, "]"))
-
-                -- clear first so that dispatch_unique call from inside callback won't see it as a conflict
-                registry[timer] = nil
-                callback()
-                break
-            end
-        end
     end
 end
 

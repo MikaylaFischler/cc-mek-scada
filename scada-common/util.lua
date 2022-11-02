@@ -353,12 +353,12 @@ end
 -- convert Joules to FE
 ---@param J number Joules
 ---@return number FE Forge Energy
-function util.joules_to_fe(J) return mekanismEnergyHelper.joulesToFE(J) end
+function util.joules_to_fe(J) return (J * 0.4) end
 
 -- convert FE to Joules
 ---@param FE number Forge Energy
 ---@return number J Joules
-function util.fe_to_joules(FE) return mekanismEnergyHelper.feToJoules(FE) end
+function util.fe_to_joules(FE) return (FE * 2.5) end
 
 local function kFE(fe) return fe / 1000.0 end
 local function MFE(fe) return fe / 1000000.0 end
