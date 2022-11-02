@@ -141,6 +141,7 @@ local function init(parent, id)
     local rps_noc = IndicatorLight{parent=annunciator,label="No Coolant",colors=cpair(colors.yellow,colors.gray)}
     local rps_flt = IndicatorLight{parent=annunciator,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
     local rps_tmo = IndicatorLight{parent=annunciator,label="Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_sfl = IndicatorLight{parent=annunciator,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     r_ps.subscribe("rps_tripped", rps_trp.update)
     r_ps.subscribe("dmg_crit", rps_dmg.update)
@@ -151,6 +152,7 @@ local function init(parent, id)
     r_ps.subscribe("no_cool", rps_noc.update)
     r_ps.subscribe("fault", rps_flt.update)
     r_ps.subscribe("timeout", rps_tmo.update)
+    r_ps.subscribe("sys_fail", rps_sfl.update)
 
     annunciator.line_break()
 
@@ -171,7 +173,7 @@ local function init(parent, id)
 
     -- machine-specific indicators
     if unit.num_boilers > 0 then
-        TextBox{parent=main,x=32,y=34,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=main,x=32,y=35,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local b1_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
     end

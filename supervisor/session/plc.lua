@@ -304,7 +304,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     self.sDB.formed = pkt.data[5]
 
                     if not self.sDB.no_reactor and self.sDB.formed then
-                        self.sDB.mek_status.heating_rate = pkt.data[6]
+                        self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
 
                         -- attempt to read mek_data table
                         if pkt.data[7] ~= nil then
@@ -471,7 +471,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         if self.received_struct then
             return self.sDB.mek_struct
         else
-            return nil
+            return {}
         end
     end
 
@@ -480,7 +480,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         if self.received_status_cache then
             return self.sDB.mek_status
         else
-            return nil
+            return {}
         end
     end
 

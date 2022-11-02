@@ -112,7 +112,8 @@ function iocontrol.record_builds(builds)
                     unit.reactor_ps.publish(key, val)
                 end
 
-                if unit.reactor_data.mek_struct.length ~= 0 and unit.reactor_data.mek_struct.width ~= 0 then
+                if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
+                   (type(unit.reactor_data.mek_struct.width) == "number")  and (unit.reactor_data.mek_struct.width ~= 0) then
                     unit.reactor_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
                 end
             end
