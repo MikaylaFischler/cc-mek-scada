@@ -13,7 +13,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.9.1"
+local R_PLC_VERSION = "beta-v0.9.2"
 
 local print = util.print
 local println = util.println
@@ -134,6 +134,8 @@ if __shared_memory.networked and smem_dev.modem == nil then
 end
 
 -- PLC init
+--- 
+--- EVENT_CONSUMER: this function consumes events
 local function init()
     if plc_state.init_ok then
         -- just booting up, no fission allowed (neutrons stay put thanks)

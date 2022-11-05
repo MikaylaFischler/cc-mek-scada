@@ -80,7 +80,7 @@ function threads.thread__main(smem, init)
                 end
 
                 -- are we now formed after waiting to be formed?
-                if not plc_state.reactor_formed and rps.is_formed() then
+                if (not plc_state.reactor_formed) and rps.is_formed() then
                     -- push a connect event and unmount it from the PPM
                     local iface = ppm.get_iface(plc_dev.reactor)
                     if iface then
@@ -89,21 +89,19 @@ function threads.thread__main(smem, init)
 
                         local type, device = ppm.mount(iface)
 
-                        if type ~= "fissionReactorLogicAdapter" and device ~= nil then
+                        if type == "fissionReactorLogicAdapter" and device ~= nil then
                             -- reconnect reactor
                             plc_dev.reactor = device
-                            plc_state.reactor_formed = device.isFormed()
 
-                            if plc_state.reactor_formed then
-                                println_ts("reactor reconnected as formed.")
-                                log.info("reactor reconnected as formed")
+                            -- we need to assume formed here as we cannot check in this main loop
+                            -- RPS will identify if it isn't and this will get set false later
+                            plc_state.reactor_formed = true
 
-                                -- SCRAM newly connected reactor
-                                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-                            else
-                                println_ts("reactor reconnected but still not formed.")
-                                log.info("reactor reconnected but still not formed")
-                            end
+                            println_ts("reactor reconnected.")
+                            log.info("reactor reconnected")
+
+                            -- SCRAM newly connected reactor
+                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
                             -- determine if we are still in a degraded state
                             if not networked or not plc_state.no_modem then
@@ -114,6 +112,10 @@ function threads.thread__main(smem, init)
                             if networked then
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
+
+                            -- reset RPS for newly connected reactor
+                            -- without this, is_formed will be out of date and cause it to think its no longer formed again
+                            rps.reset()
                         else
                             -- fully lost the reactor now :(
                             println_ts("reactor lost (failed reconnect)!")
@@ -183,7 +185,10 @@ function threads.thread__main(smem, init)
                         log.info("reactor reconnected")
 
                         plc_state.no_reactor = false
-                        plc_state.reactor_formed = device.isFormed()
+
+                        -- we need to assume formed here as we cannot check in this main loop
+                        -- RPS will identify if it isn't and this will get set false later
+                        plc_state.reactor_formed = true
 
                         -- determine if we are still in a degraded state
                         if (not networked or not plc_state.no_modem) and plc_state.reactor_formed then
@@ -191,14 +196,16 @@ function threads.thread__main(smem, init)
                         end
 
                         if plc_state.init_ok then
-                            if plc_state.reactor_formed then
-                                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-                            end
+                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
                             rps.reconnect_reactor(plc_dev.reactor)
                             if networked then
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
+
+                            -- reset RPS for newly connected reactor
+                            -- without this, is_formed will be out of date and cause it to think its no longer formed again
+                            rps.reset()
                         end
                     elseif networked and type == "modem" then
                         if device.isWireless() then

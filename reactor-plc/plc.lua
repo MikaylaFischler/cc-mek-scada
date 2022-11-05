@@ -82,13 +82,16 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if the reactor is formed
     local function _is_formed()
-        local is_formed = self.reactor.isFormed()
-        if is_formed == ppm.ACCESS_FAULT then
+        local formed = self.reactor.isFormed()
+        if formed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-        elseif not self.state[state_keys.sys_fail] then
-            self.formed = is_formed
-            self.state[state_keys.sys_fail] = not is_formed
+        else
+            self.formed = formed
+
+            if not self.state[state_keys.sys_fail] then
+                self.state[state_keys.sys_fail] = not formed
+            end
         end
     end
 
