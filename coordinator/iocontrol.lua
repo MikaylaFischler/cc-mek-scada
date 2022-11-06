@@ -38,6 +38,13 @@ function iocontrol.init(conf, comms)
             scram = function () end,
             reset_rps = function () end,
             set_burn = function (rate) end,
+            set_waste = function (mode) end,
+
+            start_ack = function (success) end,
+            scram_ack = function (success) end,
+            reset_rps_ack = function (success) end,
+            set_burn_ack = function (success) end,
+            set_waste_ack = function (success) end,
 
             reactor_ps = psil.create(),
             reactor_data = {},  ---@type reactor_db
@@ -69,6 +76,11 @@ function iocontrol.init(conf, comms)
         function entry.set_burn(rate)
             comms.send_command(CRDN_COMMANDS.SET_BURN, i, rate)
             log.debug(util.c("UNIT[", i, "]: SET_BURN = ", rate))
+        end
+
+        function entry.set_waste(mode)
+            comms.send_command(CRDN_COMMANDS.SET_WASTE, i, mode)
+            log.debug(util.c("UNIT[", i, "]: SET_WASTE = ", mode))
         end
 
         -- create boiler tables

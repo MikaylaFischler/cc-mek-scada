@@ -163,6 +163,11 @@ function element.new(args)
     function protected.on_update(...)
     end
 
+    -- callback on control press responses
+    ---@param result any
+    function protected.response_callback(result)
+    end
+
     -- get value
     function protected.get_value()
         return protected.value
@@ -352,6 +357,12 @@ function element.new(args)
     ---@vararg any new data
     function public.update(...)
         protected.on_update(...)
+    end
+
+    -- on a control request response
+    ---@param result any
+    function public.on_response(result)
+        protected.response_callback(result)
     end
 
     -- VISIBILITY --

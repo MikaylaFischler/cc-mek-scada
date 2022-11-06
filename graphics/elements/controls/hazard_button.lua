@@ -8,6 +8,7 @@ local element = require("graphics.element")
 ---@class hazard_button_args
 ---@field text string text to show on button
 ---@field accent color accent color for hazard border
+---@field dis_colors? cpair text color and border color when disabled
 ---@field callback function function to call on touch
 ---@field parent graphics_element
 ---@field id? string element id
@@ -62,6 +63,82 @@ local function hazard_button(args)
         e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
     end
 
+    -- on request timeout: recursively calls itself to double flash button text
+    ---@param n integer call count
+    local function on_timeout(n)
+        -- start at 0
+        if n == nil then n = 0 end
+
+        if n == 0 then
+            -- go back off
+            e.window.setTextColor(args.fg_bg.fgd)
+            e.window.setCursorPos(3, 2)
+            e.window.write(args.text)
+        end
+
+        if n >= 4 then
+            -- done
+        elseif n % 2 == 0 then
+            -- toggle text color on after 0.25 seconds
+            tcd.dispatch(0.25, function ()
+                e.window.setTextColor(args.accent)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
+                on_timeout(n + 1)
+                on_timeout(n + 1)
+            end)
+        elseif n % 1 then
+            -- toggle text color off after 0.25 seconds
+            tcd.dispatch(0.25, function ()
+                e.window.setTextColor(args.fg_bg.fgd)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
+                on_timeout(n + 1)
+            end)
+        end
+    end
+
+    -- blink routine for success indication
+    local function on_success()
+        e.window.setTextColor(args.fg_bg.fgd)
+        e.window.setCursorPos(3, 2)
+        e.window.write(args.text)
+    end
+
+    -- blink routine for failure indication
+    ---@param n integer call count
+    local function on_failure(n)
+        -- start at 0
+        if n == nil then n = 0 end
+
+        if n == 0 then
+            -- go back off
+            e.window.setTextColor(args.fg_bg.fgd)
+            e.window.setCursorPos(3, 2)
+            e.window.write(args.text)
+        end
+
+        if n >= 2 then
+            -- done
+        elseif n % 2 == 0 then
+            -- toggle text color on after 0.5 seconds
+            tcd.dispatch(0.5, function ()
+                e.window.setTextColor(args.accent)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
+                on_failure(n + 1)
+            end)
+        elseif n % 1 then
+            -- toggle text color off after 0.25 seconds
+            tcd.dispatch(0.25, function ()
+                e.window.setTextColor(args.fg_bg.fgd)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
+                on_failure(n + 1)
+            end)
+        end
+    end
+
     -- handle touch
     ---@param event monitor_touch monitor touch event
 ---@diagnostic disable-next-line: unused-local
@@ -75,12 +152,25 @@ local function hazard_button(args)
             e.window.setCursorPos(3, 2)
             e.window.write(args.text)
 
-            -- restore text color after 1 second
-            tcd.dispatch(1, function ()
-                e.window.setTextColor(args.fg_bg.fgd)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
-            end)
+            -- abort any other callbacks
+            tcd.abort(on_timeout)
+            tcd.abort(on_success)
+            tcd.abort(on_failure)
+
+            -- 1.5 second timeout
+            tcd.dispatch(1.5, on_timeout)
+        end
+    end
+
+    -- callback on request response
+    ---@param result boolean true for success, false for failure
+    function e.response_callback(result)
+        tcd.abort(on_timeout)
+
+        if result then
+            on_success()
+        else
+            on_failure(0)
         end
     end
 
@@ -90,8 +180,25 @@ local function hazard_button(args)
         if val then e.handle_touch(core.events.touch("", 1, 1)) end
     end
 
+    -- show the button as disabled
+    function e.disable()
+        if args.dis_colors then
+            draw_border(args.dis_colors.color_a)
+            e.window.setTextColor(args.dis_colors.color_b)
+            e.window.setCursorPos(3, 2)
+            e.window.write(args.text)
+        end
+    end
+
+    -- show the button as enabled
+    function e.enable()
+        draw_border(args.accent)
+        e.window.setTextColor(args.fg_bg.fgd)
+        e.window.setCursorPos(3, 2)
+        e.window.write(args.text)
+    end
+
     -- initial draw of border
-    ---@todo disabling will change border
     draw_border(args.accent)
 
     return e.get()

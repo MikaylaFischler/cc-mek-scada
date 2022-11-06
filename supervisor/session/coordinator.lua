@@ -29,6 +29,7 @@ local CRD_S_CMDS = {
 }
 
 local CRD_S_DATA = {
+    CMD_ACK = 1
 }
 
 coordinator.CRD_S_CMDS = CRD_S_CMDS
@@ -271,6 +272,12 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
+                        local cmd = message.message ---@type queue_data
+
+                        if cmd.key == CRD_S_DATA.CMD_ACK then
+                            local ack = cmd.val ---@type coord_ack
+                            _send(SCADA_CRDN_TYPES.COMMAND_UNIT, { ack.cmd, ack.unit, ack.ack })
+                        end
                     end
                 end
 

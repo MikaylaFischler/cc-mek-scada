@@ -17,6 +17,7 @@ local SV_Q_DATA = svqtypes.SV_Q_DATA
 local PLC_S_CMDS = plc.PLC_S_CMDS
 local PLC_S_DATA = plc.PLC_S_DATA
 local CRD_S_CMDS = coordinator.CRD_S_CMDS
+local CRD_S_DATA = coordinator.CRD_S_DATA
 
 local svsessions = {}
 
@@ -70,7 +71,6 @@ local function _sv_handle_outq(session)
 
                 if cmd.key < SV_Q_DATA.__END_PLC_CMDS__ then
                     -- PLC commands from coordinator
-                    local crdn_sid = session.instance.get_id()
                     local plc_s = svsessions.get_reactor_session(cmd.val[1])
 
                     if plc_s ~= nil then
@@ -90,7 +90,11 @@ local function _sv_handle_outq(session)
                     end
                 else
                     if cmd.key == SV_Q_DATA.CRDN_ACK then
-                        ---@todo ack to be sent to coordinator
+                        -- ack to be sent to coordinator
+                        local crd_s = svsessions.get_coord_session()
+                        if crd_s ~= nil then
+                            crd_s.in_queue.push_data(CRD_S_DATA.CMD_ACK, cmd.val)
+                        end
                     end
                 end
             end

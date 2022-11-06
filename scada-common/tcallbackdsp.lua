@@ -27,7 +27,7 @@ end
 ---@param time number seconds
 ---@param f function callback function
 function tcallbackdsp.dispatch_unique(time, f)
-    -- ignore if already registered
+    -- cancel if already registered
     for timer, entry in pairs(registry) do
         if entry.callback == f then
             -- found an instance of this function reference, abort it
@@ -47,6 +47,18 @@ function tcallbackdsp.dispatch_unique(time, f)
     }
 
     -- log.debug(util.c("TCD: queued callback for ", f, " [timer: ", timer, "]"))
+end
+
+-- abort a requested callback
+---@param f function callback function
+function tcallbackdsp.abort(f)
+    for timer, entry in pairs(registry) do
+        if entry.callback == f then
+            -- cancel event and remove from registry (even if it fires it won't call)
+            util.cancel_timer(timer)
+            registry[timer] = nil
+        end
+    end
 end
 
 -- lookup a timer event and execute the callback if found

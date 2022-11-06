@@ -431,15 +431,27 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                         -- unit command acknowledgement
                         if packet.length == 3 then
                             local cmd = packet.data[1]
-                            local unit = packet.data[2]
+                            local unit_id = packet.data[2]
                             local ack = packet.data[3]
 
-                            if cmd == CRDN_COMMANDS.SCRAM then
-                            elseif cmd == CRDN_COMMANDS.START then
-                            elseif cmd == CRDN_COMMANDS.RESET_RPS then
-                            elseif cmd == CRDN_COMMANDS.SET_BURN then
-                            elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                            local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_entry
+
+                            if unit ~= nil then
+                                if cmd == CRDN_COMMANDS.SCRAM then
+                                    unit.scram_ack(ack)
+                                elseif cmd == CRDN_COMMANDS.START then
+                                    unit.start_ack(ack)
+                                elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                                    unit.reset_rps_ack(ack)
+                                elseif cmd == CRDN_COMMANDS.SET_BURN then
+                                    unit.set_burn_ack(ack)
+                                elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                                    unit.set_waste_ack(ack)
+                                else
+                                    log.debug(util.c("received command ack with unknown command ", cmd))
+                                end
                             else
+                                log.debug(util.c("received command ack with unknown unit ", unit_id))
                             end
                         else
                             log.debug("unit command ack packet length mismatch")

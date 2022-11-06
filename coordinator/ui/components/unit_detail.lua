@@ -239,15 +239,32 @@ local function init(parent, id)
     ---@todo radiation monitor
     IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
     IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    DataIndicator{parent=main,x=34,y=51,label="",format="%10.1f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=18,fg_bg=stat_fg_bg}
+    DataIndicator{parent=main,x=22,y=22,label="",format="%3.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=11,fg_bg=stat_fg_bg}
 
     -- reactor controls --
 
-    HazardButton{parent=main,x=2,y=44,text="START",accent=colors.lightBlue,callback=unit.start,fg_bg=scram_fg_bg}
-    HazardButton{parent=main,x=12,y=44,text="SCRAM",accent=colors.yellow,callback=unit.scram,fg_bg=scram_fg_bg}
-    HazardButton{parent=main,x=22,y=44,text="RESET",accent=colors.red,callback=unit.reset_rps,fg_bg=scram_fg_bg}
+    local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local burn_control = Div{parent=main,x=12,y=40,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local start = HazardButton{parent=main,x=2,y=26,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=scram_fg_bg}
+    local scram = HazardButton{parent=main,x=12,y=26,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=scram_fg_bg}
+    local reset = HazardButton{parent=main,x=22,y=26,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=scram_fg_bg}
+
+    unit.start_ack = start.on_response
+    unit.scram_ack = scram.on_response
+    unit.reset_rps_ack = reset.on_response
+
+    local function start_button_en_check()
+        if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
+            local can_start = (not unit.reactor_data.mek_status.status) and (not unit.reactor_data.rps_tripped)
+            if can_start then start.enable() else start.disable() end
+        end
+    end
+
+    r_ps.subscribe("status", start_button_en_check)
+    r_ps.subscribe("rps_tripped", start_button_en_check)
+    r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
+
+    local burn_control = Div{parent=main,x=2,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
@@ -280,10 +297,9 @@ local function init(parent, id)
     }
 
     ---@todo waste selection
-    local waste_sel_f = function (s) print("waste: " .. s) end
     local waste_sel = Div{parent=main,x=2,y=48,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
 
-    MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=waste_sel_f,min_width=6,fg_bg=cpair(colors.black, colors.white)}
+    MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=unit.set_waste,min_width=6,fg_bg=cpair(colors.black, colors.white)}
     TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
 
     ---@fixme test code

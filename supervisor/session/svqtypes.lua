@@ -14,6 +14,11 @@ local SV_Q_DATA = {
     CRDN_ACK = 7
 }
 
+---@class coord_ack
+---@field unit integer
+---@field cmd integer
+---@field ack boolean
+
 svqtypes.SV_Q_CMDS = SV_Q_CMDS
 svqtypes.SV_Q_DATA = SV_Q_DATA
 

@@ -74,14 +74,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             struct_req = (util.time() + 500),
             status_req = (util.time() + 500),
             scram_req = 0,
-            enable_req = 0,
             burn_rate_req = 0,
             rps_reset_req = 0
         },
         -- command acknowledgements
         acks = {
             scram = true,
-            enable = true,
             burn_rate = true,
             rps_reset = true
         },
@@ -355,7 +353,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- enable acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.enable = true
                     self.sDB.control_state = true
                 elseif ack == false then
                     log.debug(log_header .. "enable failed!")
@@ -537,8 +534,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         local cmd = message.message
                         if cmd == PLC_S_CMDS.ENABLE then
                             -- enable reactor
-                            self.acks.enable = false
-                            self.retry_times.enable_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_ENABLE, {})
                         elseif cmd == PLC_S_CMDS.SCRAM then
                             -- SCRAM reactor
@@ -632,15 +627,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     if rtimes.status_req - util.time() <= 0 then
                         _send(RPLC_TYPES.MEK_STATUS, {})
                         rtimes.status_req = util.time() + RETRY_PERIOD
-                    end
-                end
-
-                -- enable request retry
-
-                if not self.acks.enable then
-                    if rtimes.enable_req - util.time() <= 0 then
-                        _send(RPLC_TYPES.RPS_ENABLE, {})
-                        rtimes.enable_req = util.time() + RETRY_PERIOD
                     end
                 end
 
