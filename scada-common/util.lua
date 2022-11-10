@@ -364,11 +364,14 @@ local function kFE(fe) return fe / 1000.0 end
 local function MFE(fe) return fe / 1000000.0 end
 local function GFE(fe) return fe / 1000000000.0 end
 local function TFE(fe) return fe / 1000000000000.0 end
+local function PFE(fe) return fe / 1000000000000000.0 end
+local function EFE(fe) return fe / 1000000000000000000.0 end        -- if you accomplish this please touch grass
+local function ZFE(fe) return fe / 1000000000000000000000.0 end     -- please stop
 
--- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE)
+-- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE, PFE, EFE, ZFE)
 ---@param fe number forge energy value
----@param combine_label boolean if a label should be included in the string itself
----@param format string format override
+---@param combine_label? boolean if a label should be included in the string itself
+---@param format? string format override
 ---@return string str, string? unit
 function util.power_format(fe, combine_label, format)
     local unit
@@ -378,21 +381,30 @@ function util.power_format(fe, combine_label, format)
         format = "%.2f"
     end
 
-    if fe < 1000 then
+    if fe < 1000.0 then
         unit = "FE"
         value = fe
-    elseif fe < 1000000 then
+    elseif fe < 1000000.0 then
         unit = "kFE"
         value = kFE(fe)
-    elseif fe < 1000000000 then
+    elseif fe < 1000000000.0 then
         unit = "MFE"
         value = MFE(fe)
-    elseif fe < 1000000000000 then
+    elseif fe < 1000000000000.0 then
         unit = "GFE"
         value = GFE(fe)
-    else
+    elseif fe < 1000000000000000.0 then
         unit = "TFE"
         value = TFE(fe)
+    elseif fe < 1000000000000000000.0 then
+        unit = "PFE"
+        value = PFE(fe)
+    elseif fe < 1000000000000000000000.0 then
+        unit = "EFE"
+        value = EFE(fe)
+    else
+        unit = "ZFE"
+        value = ZFE(fe)
     end
 
     if combine_label then
