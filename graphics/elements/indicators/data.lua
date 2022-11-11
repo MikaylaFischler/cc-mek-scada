@@ -8,7 +8,7 @@ local element = require("graphics.element")
 ---@field label string indicator label
 ---@field unit? string indicator unit
 ---@field format string data format (lua string format)
----@field commas boolean whether to use commas if a number is given (default to false)
+---@field commas? boolean whether to use commas if a number is given (default to false)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
 ---@field value any default value
 ---@field parent graphics_element
@@ -43,6 +43,7 @@ local function data(args)
     e.window.write(args.label)
 
     local data_start = string.len(args.label) + 2
+    if string.len(args.label) == 0 then data_start = 1 end
 
     -- on state change
     ---@param value any new value

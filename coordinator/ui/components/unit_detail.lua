@@ -55,28 +55,33 @@ local function init(parent, id)
     local stat_fg_bg = cpair(colors.black,colors.white)
 
     TextBox{parent=main,x=21,y=3,text="Core Temp",height=1,fg_bg=style.label}
-    local core_temp = DataIndicator{parent=main,x=21,label="",format="%9.2f",value=0,unit="K",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    local core_temp = DataIndicator{parent=main,x=21,label="",format="%10.2f",value=0,unit="K",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     r_ps.subscribe("temp", core_temp.update)
     main.line_break()
 
     TextBox{parent=main,x=21,text="Burn Rate",height=1,width=12,fg_bg=style.label}
-    local act_burn_r = DataIndicator{parent=main,x=21,label="",format="%6.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    local act_burn_r = DataIndicator{parent=main,x=21,label="",format="%7.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     r_ps.subscribe("act_burn_rate", act_burn_r.update)
     main.line_break()
 
     TextBox{parent=main,x=21,text="Commanded Burn Rate",height=2,width=12,fg_bg=style.label}
-    local burn_r = DataIndicator{parent=main,x=21,label="",format="%6.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    local burn_r = DataIndicator{parent=main,x=21,label="",format="%7.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     r_ps.subscribe("burn_rate", burn_r.update)
     main.line_break()
 
     TextBox{parent=main,x=21,text="Heating Rate",height=1,width=12,fg_bg=style.label}
-    local heating_r = DataIndicator{parent=main,x=21,label="",format="%11.0f",value=0,unit="",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    local heating_r = DataIndicator{parent=main,x=21,label="",format="%12.0f",value=0,unit="",commas=true,lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     r_ps.subscribe("heating_rate", heating_r.update)
     main.line_break()
 
-    TextBox{parent=main,x=21,text="Containment Integrity",height=2,width=12,fg_bg=style.label}
-    local integ = DataIndicator{parent=main,x=21,label="",format="%9.0f",value=100,unit="%",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    r_ps.subscribe("damage", function (x) integ.update(100.0 - x) end)
+    TextBox{parent=main,x=21,text="Damage",height=1,width=12,fg_bg=style.label}
+    local damage_p = DataIndicator{parent=main,x=21,label="",format="%10.0f",value=100,unit="%",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    r_ps.subscribe("damage", damage_p.update)
+    main.line_break()
+
+    ---@todo radiation monitor
+    TextBox{parent=main,x=21,text="Radiation",height=1,width=12,fg_bg=style.label}
+    DataIndicator{parent=main,x=21,label="",format="%6.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
     -- TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
@@ -241,7 +246,6 @@ local function init(parent, id)
     ---@todo radiation monitor
     IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
     IndicatorLight{parent=annunciator,label="Radiation Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    DataIndicator{parent=main,x=22,y=22,label="",format="%3.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=11,fg_bg=stat_fg_bg}
 
     -- reactor controls --
 

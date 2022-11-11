@@ -39,6 +39,7 @@ local function power(args)
     e.window.write(args.label)
 
     local data_start = string.len(args.label) + 2
+    if string.len(args.label) == 0 then data_start = 1 end
 
     -- on state change
     ---@param value any new value
