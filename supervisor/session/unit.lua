@@ -44,6 +44,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 PLCHeartbeat = false,   -- alternate true/false to blink, each time there is a keep_alive
                 ReactorSCRAM = false,
                 ManualReactorSCRAM = false,
+                AutoReactorSCRAM = false,
                 RCPTrip = false,
                 RCSFlowLow = false,
                 ReactorTempHigh = false,
@@ -186,6 +187,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- update other annunciator fields
             self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
             self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
+            self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
             self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
             self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000

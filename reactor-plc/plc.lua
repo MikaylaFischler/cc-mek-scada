@@ -789,9 +789,14 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                         self.scrammed = false
                         _send_ack(packet.type, rps.activate())
                     elseif packet.type == RPLC_TYPES.RPS_SCRAM then
-                        -- disable the reactor
+                        -- disable the reactor per manual request
                         self.scrammed = true
                         rps.trip_manual()
+                        _send_ack(packet.type, true)
+                    elseif packet.type == RPLC_TYPES.RPS_ASCRAM then
+                        -- disable the reactor per automatic request
+                        self.scrammed = true
+                        rps.trip_auto()
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPES.RPS_RESET then
                         -- reset the RPS status

@@ -111,6 +111,7 @@ local function init(parent, id)
     -- annunciator fields
     local r_scram = IndicatorLight{parent=annunciator,label="Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
     local r_mscrm = IndicatorLight{parent=annunciator,label="Manual Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
+    local r_ascrm = IndicatorLight{parent=annunciator,label="Auto Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
     local r_rtrip = IndicatorLight{parent=annunciator,label="RCP Trip",colors=cpair(colors.red,colors.gray)}
     local r_cflow = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=cpair(colors.yellow,colors.gray)}
     local r_temp  = IndicatorLight{parent=annunciator,label="Reactor Temp. High",colors=cpair(colors.red,colors.gray)}
@@ -121,6 +122,7 @@ local function init(parent, id)
 
     r_ps.subscribe("ReactorSCRAM", r_scram.update)
     r_ps.subscribe("ManualReactorSCRAM", r_mscrm.update)
+    r_ps.subscribe("AutoReactorSCRAM", r_ascrm.update)
     r_ps.subscribe("RCPTrip", r_rtrip.update)
     r_ps.subscribe("RCSFlowLow", r_cflow.update)
     r_ps.subscribe("ReactorTempHigh", r_temp.update)

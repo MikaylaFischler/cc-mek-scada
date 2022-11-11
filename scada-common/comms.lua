@@ -9,6 +9,7 @@ local types = require("scada-common.types")
 local comms = {}
 
 local rtu_t = types.rtu_t
+
 local insert = table.insert
 
 ---@alias PROTOCOLS integer
@@ -27,10 +28,11 @@ local RPLC_TYPES = {
     MEK_STRUCT = 2,     -- mekanism build structure
     MEK_BURN_RATE = 3,  -- set burn rate
     RPS_ENABLE = 4,     -- enable reactor
-    RPS_SCRAM = 5,      -- SCRAM reactor
-    RPS_STATUS = 6,     -- RPS status
-    RPS_ALARM = 7,      -- RPS alarm broadcast
-    RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
+    RPS_SCRAM = 5,      -- SCRAM reactor (manual request)
+    RPS_ASCRAM = 6,      -- SCRAM reactor (automatic request)
+    RPS_STATUS = 7,     -- RPS status
+    RPS_ALARM = 8,      -- RPS alarm broadcast
+    RPS_RESET = 9       -- clear RPS trip (if in bad state, will trip immediately)
 }
 
 ---@alias RPLC_LINKING integer
@@ -290,6 +292,7 @@ function comms.rplc_packet()
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
                 self.type == RPLC_TYPES.RPS_ENABLE or
                 self.type == RPLC_TYPES.RPS_SCRAM or
+                self.type == RPLC_TYPES.RPS_ASCRAM or
                 self.type == RPLC_TYPES.RPS_ALARM or
                 self.type == RPLC_TYPES.RPS_STATUS or
                 self.type == RPLC_TYPES.RPS_RESET
