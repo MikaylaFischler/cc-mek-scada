@@ -103,7 +103,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 fault = false,
                 timeout = false,
                 manual = false,
-                sys_fail = false
+                automatic = false,
+                sys_fail = false,
+                force_dis = false
             },
             ---@class mek_status
             mek_status = {
@@ -134,7 +136,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             },
             ---@class mek_struct
             mek_struct = {
-                formed = false,
                 length = 0,
                 width = 0,
                 height = 0,
@@ -167,7 +168,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         self.sDB.rps_status.fault     = rps_status[7]
         self.sDB.rps_status.timeout   = rps_status[8]
         self.sDB.rps_status.manual    = rps_status[9]
-        self.sDB.rps_status.sys_fail  = rps_status[10]
+        self.sDB.rps_status.automatic = rps_status[10]
+        self.sDB.rps_status.sys_fail  = rps_status[11]
+        self.sDB.rps_status.force_dis = rps_status[12]
     end
 
     -- copy in the reactor status
@@ -382,7 +385,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 })
             elseif pkt.type == RPLC_TYPES.RPS_STATUS then
                 -- RPS status packet received, copy data
-                if pkt.length == 10 then
+                if pkt.length == 12 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK

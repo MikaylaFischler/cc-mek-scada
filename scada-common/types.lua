@@ -82,6 +82,9 @@ types.TRI_FAIL = {
 ---| "fault"
 ---| "timeout"
 ---| "manual"
+---| "automatic"
+---| "sys_fail"
+---| "force_disabled"
 
 ---@alias rtu_t string
 types.rtu_t = {
@@ -106,7 +109,9 @@ types.rps_status_t = {
     fault = "fault",
     timeout = "timeout",
     manual = "manual",
-    sys_fail = "sys_fail"
+    automatic = "automatic",
+    sys_fail = "sys_fail",
+    force_disabled = "force_disabled"
 }
 
 -- turbine steam dumping modes

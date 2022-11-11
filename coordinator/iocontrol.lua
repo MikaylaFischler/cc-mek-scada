@@ -207,6 +207,8 @@ function iocontrol.update_statuses(statuses)
                         unit.reactor_ps.publish("computed_status", 5)   -- faulted
                     elseif not unit.reactor_data.formed then
                         unit.reactor_ps.publish("computed_status", 6)   -- multiblock not formed
+                    elseif unit.reactor_data.rps_status.force_dis then
+                        unit.reactor_ps.publish("computed_status", 7)   -- reactor force disabled
                     elseif unit.reactor_data.rps_tripped and unit.reactor_data.rps_trip_cause ~= "manual" then
                         unit.reactor_ps.publish("computed_status", 4)   -- SCRAM
                     else

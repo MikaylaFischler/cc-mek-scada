@@ -58,6 +58,10 @@ style.reactor = {
         {
             color = cpair(colors.black, colors.orange),
             text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.red),
+            text = "FORCE DISABLED"
         }
     }
 }

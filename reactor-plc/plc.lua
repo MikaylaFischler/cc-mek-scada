@@ -51,14 +51,17 @@ function plc.rps_init(reactor, is_formed)
         fault = 7,
         timeout = 8,
         manual = 9,
-        sys_fail = 10
+        automatic = 10,
+        sys_fail = 11,
+        force_disabled = 12
     }
 
     local self = {
         reactor = reactor,
-        state = { false, false, false, false, false, false, false, false, false, false },
+        state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
         formed = is_formed,
+        force_disabled = false,
         tripped = false,
         trip_cause = "" ---@type rps_trip_cause
     }
@@ -91,6 +94,21 @@ function plc.rps_init(reactor, is_formed)
 
             if not self.state[state_keys.sys_fail] then
                 self.state[state_keys.sys_fail] = not formed
+            end
+        end
+    end
+
+    -- check if the reactor is force disabled
+    local function _is_force_disabled()
+        local disabled = self.reactor.isForceDisabled()
+        if disabled == ppm.ACCESS_FAULT then
+            -- lost the peripheral or terminated, handled later
+            _set_fault()
+        else
+            self.force_disabled = disabled
+
+            if not self.state[state_keys.force_disabled] then
+                self.state[state_keys.force_disabled] = disabled
             end
         end
     end
@@ -185,6 +203,11 @@ function plc.rps_init(reactor, is_formed)
         self.state[state_keys.manual] = true
     end
 
+    -- automatic SCRAM commanded by supervisor/coordinator
+    function public.trip_auto()
+        self.state[state_keys.automatic] = true
+    end
+
     -- trip for unformed reactor
     function public.trip_sys_fail()
         self.state[state_keys.fault] = true
@@ -237,6 +260,7 @@ function plc.rps_init(reactor, is_formed)
             -- update state
             parallel.waitForAll(
                 _is_formed,
+                _is_force_disabled,
                 _damage_critical,
                 _high_temp,
                 _no_coolant,
@@ -255,6 +279,9 @@ function plc.rps_init(reactor, is_formed)
         elseif self.state[state_keys.sys_fail] then
             log.warning("RPS: system failure, reactor not formed")
             status = rps_status_t.sys_fail
+        elseif self.state[state_keys.force_disabled] then
+            log.warning("RPS: reactor was force disabled")
+            status = rps_status_t.force_disabled
         elseif self.state[state_keys.dmg_crit] then
             log.warning("RPS: damage critical")
             status = rps_status_t.dmg_crit
@@ -282,6 +309,9 @@ function plc.rps_init(reactor, is_formed)
         elseif self.state[state_keys.manual] then
             log.warning("RPS: manual SCRAM requested")
             status = rps_status_t.manual
+        elseif self.state[state_keys.automatic] then
+            log.warning("RPS: automatic SCRAM requested")
+            status = rps_status_t.automatic
         else
             self.tripped = false
         end
@@ -292,8 +322,13 @@ function plc.rps_init(reactor, is_formed)
             self.tripped = true
             self.trip_cause = status
 
+            -- in the case that the reactor is detected to be active, it will be scrammed shortly after this in the main RPS loop if we don't here
             if self.formed then
-                public.scram()
+                if not self.force_disabled then
+                    public.scram()
+                else
+                    log.warning("RPS: skipping SCRAM due to reactor being force disabled")
+                end
             else
                 log.warning("RPS: skipping SCRAM due to not being formed")
             end
@@ -306,6 +341,7 @@ function plc.rps_init(reactor, is_formed)
     function public.is_tripped() return self.tripped end
     function public.is_active() return self.reactor_enabled end
     function public.is_formed() return self.formed end
+    function public.is_force_disabled() return self.force_disabled end
 
     -- reset the RPS
     ---@param quiet? boolean true to suppress the info log message
