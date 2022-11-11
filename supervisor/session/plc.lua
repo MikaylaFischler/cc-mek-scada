@@ -409,7 +409,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == RPLC_TYPES.RPS_ALARM then
                 -- RPS alarm
-                if pkt.length == 11 then
+                if pkt.length == 13 then
                     self.sDB.rps_tripped = true
                     self.sDB.rps_trip_cause = pkt.data[1]
                     local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, pkt.length) })
