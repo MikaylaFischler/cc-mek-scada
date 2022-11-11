@@ -180,7 +180,7 @@ local function init(parent, id)
 
     -- machine-specific indicators
     if unit.num_boilers > 0 then
-        TextBox{parent=main,x=32,y=35,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=main,x=32,y=36,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local b1_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
     end
@@ -197,7 +197,7 @@ local function init(parent, id)
 
     TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
     local t1_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-    t_ps[1].subscribe("SteamDumpOpen", t1_sdo.update)
+    t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
 
     TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
     local t1_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -213,7 +213,7 @@ local function init(parent, id)
     if unit.num_turbines > 1 then
         TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local t2_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[2].subscribe("SteamDumpOpen", t2_sdo.update)
+        t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
 
         TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local t2_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -230,7 +230,7 @@ local function init(parent, id)
     if unit.num_turbines > 2 then
         TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local t3_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[3].subscribe("SteamDumpOpen", t3_sdo.update)
+        t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
 
         TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
         local t3_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
