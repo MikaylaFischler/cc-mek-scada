@@ -112,6 +112,8 @@ function sna.new(session_id, unit_id, advert, out_queue)
                 self.db.build.input_cap   = m_pkt.data[1]
                 self.db.build.output_cap  = m_pkt.data[2]
                 self.has_build = true
+
+                out_queue.push_command(unit_session.RTU_US_CMDS.BUILD_CHANGED)
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -165,6 +167,12 @@ function sna.new(session_id, unit_id, advert, out_queue)
         end
 
         self.session.post_update()
+    end
+
+    -- invalidate build cache
+    function public.invalidate_cache()
+        self.periodics.next_build_req = 0
+        self.has_build = false
     end
 
     -- get the unit session database

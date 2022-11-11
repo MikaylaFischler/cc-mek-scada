@@ -254,6 +254,11 @@ function redstone.new(session_id, unit_id, advert, out_queue)
         self.session.post_update()
     end
 
+    -- invalidate build cache
+    function public.invalidate_cache()
+        -- no build cache for this device
+    end
+
     -- get the unit session database
     function public.get_db() return self.db end
 

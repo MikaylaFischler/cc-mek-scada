@@ -159,6 +159,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_boil_rate = m_pkt.data[12]
                 self.db.build.env_loss      = m_pkt.data[13]
                 self.has_build = true
+
+                out_queue.push_command(unit_session.RTU_US_CMDS.BUILD_CHANGED)
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -225,6 +227,13 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         end
 
         self.session.post_update()
+    end
+
+    -- invalidate build cache
+    function public.invalidate_cache()
+        self.periodics.next_formed_req = 0
+        self.periodics.next_build_req = 0
+        self.has_build = false
     end
 
     -- get the unit session database

@@ -198,6 +198,8 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_production   = m_pkt.data[14]
                 self.db.build.max_water_output = m_pkt.data[15]
                 self.has_build = true
+
+                out_queue.push_command(unit_session.RTU_US_CMDS.BUILD_CHANGED)
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -299,6 +301,13 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         end
 
         self.session.post_update()
+    end
+
+    -- invalidate build cache
+    function public.invalidate_cache()
+        self.periodics.next_formed_req = 0
+        self.periodics.next_build_req = 0
+        self.has_build = false
     end
 
     -- get the unit session database

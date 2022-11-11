@@ -429,13 +429,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         build.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            build.boilers[boiler.get_device_idx()] = { boiler.get_db().build, boiler.get_db().formed }
+            build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
         end
 
         build.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]  ---@type unit_session
-            build.turbines[turbine.get_device_idx()] = { turbine.get_db().build, turbine.get_db().formed }
+            build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
         end
 
         return build
@@ -461,14 +461,24 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         status.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]  ---@type unit_session
-            status.boilers[boiler.get_device_idx()] = { boiler.get_db().state, boiler.get_db().tanks }
+            status.boilers[boiler.get_device_idx()] = {
+                boiler.is_faulted(),
+                boiler.get_db().formed,
+                boiler.get_db().state,
+                boiler.get_db().tanks
+            }
         end
 
         -- status of turbines (including tanks)
         status.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]  ---@type unit_session
-            status.turbines[turbine.get_device_idx()] = { turbine.get_db().state, turbine.get_db().tanks }
+            status.turbines[turbine.get_device_idx()] = {
+                turbine.is_faulted(),
+                turbine.get_db().formed,
+                turbine.get_db().state,
+                turbine.get_db().tanks
+            }
         end
 
         ---@todo other RTU statuses

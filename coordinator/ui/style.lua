@@ -76,6 +76,14 @@ style.boiler = {
         {
             color = cpair(colors.black, colors.green),
             text = "ACTIVE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
         }
     }
 }
@@ -98,6 +106,14 @@ style.turbine = {
         {
             color = cpair(colors.black, colors.red),
             text = "TRIP"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
         }
     }
 }

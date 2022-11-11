@@ -271,6 +271,12 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
         _send(SCADA_MGMT_TYPES.RTU_ADVERT, advertisement)
     end
 
+    -- notify that a peripheral was remounted
+    ---@param unit_index integer RTU unit ID
+    function public.send_remounted(unit_index)
+        _send(SCADA_MGMT_TYPES.RTU_DEV_REMOUNT, { unit_index })
+    end
+
     -- parse a MODBUS/SCADA packet
     ---@param side string
     ---@param sender integer
@@ -400,6 +406,8 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
                     -- acknowledgement
                     rtu_state.linked = true
                     self.r_seq_num = nil
+                    println_ts("supervisor connection established")
+                    log.info("supervisor connection established")
                 elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                     -- request for capabilities again
                     public.send_advertisement(units)

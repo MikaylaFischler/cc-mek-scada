@@ -44,8 +44,9 @@ local RPLC_LINKING = {
 local SCADA_MGMT_TYPES = {
     KEEP_ALIVE = 0,     -- keep alive packet w/ RTT
     CLOSE = 1,          -- close a connection
-    RTU_ADVERT = 2,     -- RTU capability advertisement
-    REMOTE_LINKED = 3   -- remote device linked
+    REMOTE_LINKED = 2,  -- remote device linked
+    RTU_ADVERT = 3,     -- RTU capability advertisement
+    RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
 }
 
 ---@alias SCADA_CRDN_TYPES integer
@@ -383,7 +384,8 @@ function comms.mgmt_packet()
         return self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
                 self.type == SCADA_MGMT_TYPES.CLOSE or
                 self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
-                self.type == SCADA_MGMT_TYPES.RTU_ADVERT
+                self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
+                self.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT
     end
 
     -- make a SCADA management packet

@@ -133,12 +133,10 @@ function iocontrol.record_builds(builds)
             -- boiler builds
             if type(build.boilers) == "table" then
                 for id, boiler in pairs(build.boilers) do
-                    unit.boiler_data_tbl[id] = {
-                        formed = boiler[2], ---@type boolean|nil
-                        build = boiler[1]   ---@type table
-                    }
+                    unit.boiler_data_tbl[id].formed = boiler[1] ---@type boolean
+                    unit.boiler_data_tbl[id].build  = boiler[2] ---@type table
 
-                    unit.boiler_ps_tbl[id].publish("formed", boiler[2])
+                    unit.boiler_ps_tbl[id].publish("formed", boiler[1])
 
                     for key, val in pairs(unit.boiler_data_tbl[id].build) do
                         unit.boiler_ps_tbl[id].publish(key, val)
@@ -149,12 +147,10 @@ function iocontrol.record_builds(builds)
             -- turbine builds
             if type(build.turbines) == "table" then
                 for id, turbine in pairs(build.turbines) do
-                    unit.turbine_data_tbl[id] = {
-                        formed = turbine[2],    ---@type boolean|nil
-                        build = turbine[1]      ---@type table
-                    }
+                    unit.turbine_data_tbl[id].formed = turbine[1]   ---@type boolean
+                    unit.turbine_data_tbl[id].build  = turbine[2]   ---@type table
 
-                    unit.turbine_ps_tbl[id].publish("formed", turbine[2])
+                    unit.turbine_ps_tbl[id].publish("formed", turbine[1])
 
                     for key, val in pairs(unit.turbine_data_tbl[id].build) do
                         unit.turbine_ps_tbl[id].publish(key, val)
@@ -290,15 +286,26 @@ function iocontrol.update_statuses(statuses)
                     end
 
                     for id, boiler in pairs(rtu_statuses.boilers) do
-                        unit.boiler_data_tbl[id].state = boiler[1]  ---@type table
-                        unit.boiler_data_tbl[id].tanks = boiler[2]  ---@type table
+                        local rtu_faulted               = boiler[1] ---@type boolean
+                        unit.boiler_data_tbl[id].formed = boiler[2] ---@type boolean
+                        unit.boiler_data_tbl[id].state  = boiler[3] ---@type table
+                        unit.boiler_data_tbl[id].tanks  = boiler[4] ---@type table
 
                         local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
 
-                        if data.state.boil_rate > 0 then
-                            unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
+                        unit.boiler_ps_tbl[id].publish("formed", data.formed)
+                        unit.boiler_ps_tbl[id].publish("faulted", rtu_faulted)
+
+                        if data.formed then
+                            if rtu_faulted then
+                                unit.boiler_ps_tbl[id].publish("computed_status", 4)    -- faulted
+                            elseif data.state.boil_rate > 0 then
+                                unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- active
+                            else
+                                unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- idle
+                            end
                         else
-                            unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- idle
+                            unit.boiler_ps_tbl[id].publish("computed_status", 5)    -- not formed
                         end
 
                         for key, val in pairs(unit.boiler_data_tbl[id].state) do
@@ -322,17 +329,28 @@ function iocontrol.update_statuses(statuses)
                     end
 
                     for id, turbine in pairs(rtu_statuses.turbines) do
-                        unit.turbine_data_tbl[id].state = turbine[1]    ---@type table
-                        unit.turbine_data_tbl[id].tanks = turbine[2]    ---@type table
+                        local rtu_faulted                = turbine[1]   ---@type boolean
+                        unit.turbine_data_tbl[id].formed = turbine[2]   ---@type boolean
+                        unit.turbine_data_tbl[id].state  = turbine[3]   ---@type table
+                        unit.turbine_data_tbl[id].tanks  = turbine[4]   ---@type table
 
                         local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
 
-                        if data.tanks.steam_fill >= 0.99 then
-                            unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip
-                        elseif data.state.flow_rate < 100 then
-                            unit.turbine_ps_tbl[id].publish("computed_status", 2)   -- idle
+                        unit.turbine_ps_tbl[id].publish("formed", data.formed)
+                        unit.turbine_ps_tbl[id].publish("faulted", rtu_faulted)
+
+                        if data.formed then
+                            if data.tanks.energy_fill >= 0.99 then
+                                unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- trip
+                            elseif rtu_faulted then
+                                unit.turbine_ps_tbl[id].publish("computed_status", 5)   -- faulted
+                            elseif data.state.flow_rate < 100 then
+                                unit.turbine_ps_tbl[id].publish("computed_status", 2)   -- idle
+                            else
+                                unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- active
+                            end
                         else
-                            unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- active
+                            unit.turbine_ps_tbl[id].publish("computed_status", 6)       -- not formed
                         end
 
                         for key, val in pairs(unit.turbine_data_tbl[id].state) do

@@ -22,7 +22,7 @@ local function new_view(root, x, y, ps)
     local text_fg_bg = cpair(colors.black, colors.lightGray)
     local lu_col = cpair(colors.gray, colors.gray)
 
-    local status = StateIndicator{parent=boiler,x=10,y=1,states=style.boiler.states,value=1,min_width=10}
+    local status = StateIndicator{parent=boiler,x=9,y=1,states=style.boiler.states,value=1,min_width=12}
     local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
     local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 

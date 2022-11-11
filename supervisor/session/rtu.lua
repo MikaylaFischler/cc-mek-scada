@@ -288,6 +288,16 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 -- handle advertisement; this will re-create all unit sub-sessions
                 self.advert = pkt.data
                 _handle_advertisement()
+            elseif pkt.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT then
+                if pkt.length == 1 then
+                    local unit_id = pkt[1]
+                    if self.units[unit_id] ~= nil then
+                        local unit = self.units[unit_id]    ---@type unit_session
+                        unit.invalidate_cache()
+                    end
+                else
+                    log.debug(log_header .. "SCADA RTU device re-mount packet length mismatch")
+                end
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end

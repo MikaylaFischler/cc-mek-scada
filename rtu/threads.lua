@@ -5,7 +5,10 @@ local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
 local boilerv_rtu   = require("rtu.dev.boilerv_rtu")
+local envd_rtu      = require("rtu.dev.envd_rtu")
 local imatrix_rtu   = require("rtu.dev.imatrix_rtu")
+local sna_rtu       = require("rtu.dev.sna_rtu")
+local sps_rtu       = require("rtu.dev.sps_rtu")
 local turbinev_rtu  = require("rtu.dev.turbinev_rtu")
 
 local modbus = require("rtu.modbus")
@@ -117,19 +120,34 @@ function threads.thread__main(smem)
                             local unit = units[i]   ---@type rtu_unit_registry_entry
 
                             -- find disconnected device to reconnect
+                            -- note: cannot check isFormed as that would yield this coroutine and consume events
                             if unit.name == param1 then
                                 -- found, re-link
                                 unit.device = device
 
                                 if unit.type == rtu_t.boiler_valve then
                                     unit.rtu = boilerv_rtu.new(device)
+                                    unit.formed = true
                                 elseif unit.type == rtu_t.turbine_valve then
                                     unit.rtu = turbinev_rtu.new(device)
+                                    unit.formed = true
                                 elseif unit.type == rtu_t.induction_matrix then
                                     unit.rtu = imatrix_rtu.new(device)
+                                    unit.formed = true
+                                elseif unit.type == rtu_t.sps then
+                                    unit.rtu = sps_rtu.new(device)
+                                    unit.formed = true
+                                elseif unit.type == rtu_t.sna then
+                                    unit.rtu = sna_rtu.new(device)
+                                elseif unit.type == rtu_t.env_detector then
+                                    unit.rtu = envd_rtu.new(device)
+                                else
+                                    log.error(util.c("unreachable case occured trying to identify reconnected RTU unit type (", unit.name, ")"), true)
                                 end
 
                                 unit.modbus_io = modbus.new(unit.rtu, true)
+
+                                rtu_comms.send_remounted(unit.index)
 
                                 println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
                             end
@@ -256,6 +274,12 @@ function threads.thread__unit_comms(smem, unit)
 
         local last_update  = util.time()
 
+        local check_formed = type(unit.formed) == "boolean"
+        local last_f_check = 0
+
+        local detail_name  = util.c(unit.type, " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
+        local short_name   = util.c(unit.type, " (", unit.name, ")")
+
         if packet_queue == nil then
             log.error("rtu unit thread created without a message queue, exiting...", true)
             return
@@ -283,9 +307,64 @@ function threads.thread__unit_comms(smem, unit)
                 util.nop()
             end
 
+
+            -- check if multiblocks is still formed
+            if check_formed and (util.time() - last_f_check > 1000) then
+                if (not unit.formed) and unit.device.isFormed() then
+                    -- newly re-formed
+                    local iface = ppm.get_iface(unit.device)
+                    if iface then
+                        log.info(util.c("unmounting and remounting reformed RTU unit ", detail_name))
+
+                        ppm.unmount(unit.device)
+
+                        local type, device = ppm.mount(iface)
+
+                        if device ~= nil then
+                            if type == "boilerValve" and unit.type == rtu_t.boiler_valve then
+                                -- boiler multiblock
+                                unit.device = device
+                                unit.rtu = boilerv_rtu.new(device)
+                                unit.formed = device.isFormed()
+                                unit.modbus_io = modbus.new(unit.rtu, true)
+                            elseif type == "turbineValve" and unit.type == rtu_t.turbine_valve then
+                                -- turbine multiblock
+                                unit.device = device
+                                unit.rtu = turbinev_rtu.new(device)
+                                unit.formed = device.isFormed()
+                                unit.modbus_io = modbus.new(unit.rtu, true)
+                            elseif type == "inductionPort" and unit.type == rtu_t.induction_matrix then
+                                -- induction matrix multiblock
+                                unit.device = device
+                                unit.rtu = imatrix_rtu.new(device)
+                                unit.formed = device.isFormed()
+                                unit.modbus_io = modbus.new(unit.rtu, true)
+                            elseif type == "spsPort" and unit.type == rtu_t.sps then
+                                -- SPS multiblock
+                                unit.device = device
+                                unit.rtu = sps_rtu.new(device)
+                                unit.formed = device.isFormed()
+                                unit.modbus_io = modbus.new(unit.rtu, true)
+                            else
+                                log.error("illegal remount of non-multiblock RTU attempted for " .. short_name, true)
+                            end
+
+                            rtu_comms.send_remounted(unit.index)
+                        else
+                            -- fully lost the peripheral now :(
+                            log.error(util.c(unit.name, " lost (failed reconnect)"))
+                        end
+
+                        log.info("reconnected the " .. unit.type .. " on interface " .. unit.name)
+                    else
+                        log.error("failed to get interface of previously connected RTU unit " .. detail_name, true)
+                    end
+                end
+            end
+
             -- check for termination request
             if rtu_state.shutdown then
-                log.info("rtu unit thread exiting -> " .. unit.type .. "(" .. unit.name .. ")")
+                log.info("rtu unit thread exiting -> " .. short_name)
                 break
             end
 
@@ -305,7 +384,7 @@ function threads.thread__unit_comms(smem, unit)
             end
 
             if not rtu_state.shutdown then
-                log.info(util.c("rtu unit thread ", unit.type, "(", unit.name, ") restarting in 5 seconds..."))
+                log.info(util.c("rtu unit thread ", unit.type, "(", unit.name, " restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end

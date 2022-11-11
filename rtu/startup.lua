@@ -24,7 +24,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.8.2"
+local RTU_VERSION = "beta-v0.9.0"
 
 local rtu_t = types.rtu_t
 
@@ -116,8 +116,8 @@ local function configure()
     -- redstone interfaces
     for entry_idx = 1, #rtu_redstone do
         local rs_rtu = redstone_rtu.new()
-        local io_table = rtu_redstone[entry_idx].io
-        local io_reactor = rtu_redstone[entry_idx].for_reactor
+        local io_table = rtu_redstone[entry_idx].io             ---@type table
+        local io_reactor = rtu_redstone[entry_idx].for_reactor  ---@type integer
 
         -- CHECK: reactor ID must be >= to 1
         if (not util.is_int(io_reactor)) or (io_reactor <= 0) then
@@ -218,6 +218,7 @@ local function configure()
                 index = entry_idx,
                 reactor = io_reactor,
                 device = capabilities,  -- use device field for redstone channels
+                formed = nil,       ---@type boolean|nil
                 rtu = rs_rtu,       ---@type rtu_device|rtu_rs_device
                 modbus_io = modbus.new(rs_rtu, false),
                 pkt_queue = nil,    ---@type mqueue|nil
@@ -265,26 +266,55 @@ local function configure()
             local type = ppm.get_type(name)
             local rtu_iface = nil   ---@type rtu_device
             local rtu_type = ""
+            local formed = nil      ---@type boolean|nil
 
             if type == "boilerValve" then
                 -- boiler multiblock
                 rtu_type = rtu_t.boiler_valve
                 rtu_iface = boilerv_rtu.new(device)
+                formed = device.isFormed()
+
+                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                    println_ts(util.c("configure> failed to check if  '", name, "' is formed"))
+                    log.fatal(util.c("configure> failed to check if  '", name, "' is a formed boiler multiblock"))
+                    return false
+                end
             elseif type == "turbineValve" then
                 -- turbine multiblock
                 rtu_type = rtu_t.turbine_valve
                 rtu_iface = turbinev_rtu.new(device)
+                formed = device.isFormed()
+
+                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                    println_ts(util.c("configure> failed to check if  '", name, "' is formed"))
+                    log.fatal(util.c("configure> failed to check if  '", name, "' is a formed turbine multiblock"))
+                    return false
+                end
             elseif type == "inductionPort" then
                 -- induction matrix multiblock
                 rtu_type = rtu_t.induction_matrix
                 rtu_iface = imatrix_rtu.new(device)
+                formed = device.isFormed()
+
+                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                    println_ts(util.c("configure> failed to check if  '", name, "' is formed"))
+                    log.fatal(util.c("configure> failed to check if  '", name, "' is a formed induction matrix multiblock"))
+                    return false
+                end
             elseif type == "spsPort" then
                 -- SPS multiblock
                 rtu_type = rtu_t.sps
                 rtu_iface = sps_rtu.new(device)
+                formed = device.isFormed()
+
+                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                    println_ts(util.c("configure> failed to check if  '", name, "' is formed"))
+                    log.fatal(util.c("configure> failed to check if  '", name, "' is a formed SPS multiblock"))
+                    return false
+                end
             elseif type == "solarNeutronActivator" then
                 -- SNA
-                rtu_type = rtu_t.sps
+                rtu_type = rtu_t.sna
                 rtu_iface = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
@@ -305,6 +335,7 @@ local function configure()
                     index = index,
                     reactor = for_reactor,
                     device = device,
+                    formed = formed,
                     rtu = rtu_iface,            ---@type rtu_device|rtu_rs_device
                     modbus_io = modbus.new(rtu_iface, true),
                     pkt_queue = mqueue.new(),   ---@type mqueue|nil

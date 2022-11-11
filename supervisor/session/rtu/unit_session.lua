@@ -11,6 +11,16 @@ local PROTOCOLS = comms.PROTOCOLS
 local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
+local RTU_US_CMDS = {
+    BUILD_CHANGED = 1
+}
+
+local RTU_US_DATA = {
+}
+
+unit_session.RTU_US_CMDS = RTU_US_CMDS
+unit_session.RTU_US_DATA = RTU_US_DATA
+
 -- create a new unit session runner
 ---@param unit_id integer MODBUS unit ID
 ---@param advert rtu_advertisement RTU advertisement for this unit
@@ -150,6 +160,11 @@ function unit_session.new(unit_id, advert, out_queue, log_tag, txn_tags)
 ---@diagnostic disable-next-line: unused-local
     function public.update(time_now)
         log.debug("template unit_session.update() called", true)
+    end
+
+    -- invalidate build cache
+    function public.invalidate_cache()
+        log.debug("template unit_session.invalidate_cache() called", true)
     end
 
     -- get the unit session database

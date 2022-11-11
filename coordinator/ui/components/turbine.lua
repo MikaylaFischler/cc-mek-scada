@@ -23,7 +23,7 @@ local function new_view(root, x, y, ps)
     local text_fg_bg = cpair(colors.black, colors.lightGray)
     local lu_col = cpair(colors.gray, colors.gray)
 
-    local status    = StateIndicator{parent=turbine,x=8,y=1,states=style.turbine.states,value=1,min_width=10}
+    local status    = StateIndicator{parent=turbine,x=7,y=1,states=style.turbine.states,value=1,min_width=12}
     local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",format="%10.2f",value=0,width=16,fg_bg=text_fg_bg}
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg_bg}
 
