@@ -401,6 +401,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         table.insert(self.redstone[field], accessor)
     end
 
+    -- purge devices associated with the given RTU session ID
+    ---@param session integer RTU session ID
+    function public.purge_rtu_devices(session)
+        util.filter_table(self.turbines, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.boilers,  function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.redstone, function (s) return s.get_session_id() ~= session end)
+    end
+
     -- UPDATE SESSION --
 
     -- update (iterate) this unit

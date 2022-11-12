@@ -22,12 +22,13 @@ unit_session.RTU_US_CMDS = RTU_US_CMDS
 unit_session.RTU_US_DATA = RTU_US_DATA
 
 -- create a new unit session runner
+---@param session_id integer RTU session ID
 ---@param unit_id integer MODBUS unit ID
 ---@param advert rtu_advertisement RTU advertisement for this unit
 ---@param out_queue mqueue send queue
 ---@param log_tag string logging tag
 ---@param txn_tags table transaction log tags
-function unit_session.new(unit_id, advert, out_queue, log_tag, txn_tags)
+function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_tags)
     local self = {
         log_tag = log_tag,
         txn_tags = txn_tags,
@@ -132,6 +133,8 @@ function unit_session.new(unit_id, advert, out_queue, log_tag, txn_tags)
 
     -- PUBLIC FUNCTIONS --
 
+    -- get the unit ID
+    function public.get_session_id() return session_id end
     -- get the unit ID
     function public.get_unit_id() return self.unit_id end
     -- get the device index

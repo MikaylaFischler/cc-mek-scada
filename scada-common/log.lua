@@ -58,6 +58,7 @@ end
 -- private log write function
 ---@param msg string
 local function _log(msg)
+    local out_of_space = false
     local time_stamp = os.date("[%c] ")
     local stamped = time_stamp .. util.strval(msg)
 
@@ -69,15 +70,17 @@ local function _log(msg)
 
     -- if we don't have space, we need to create a new log file
 
-    if not status then
-        if result == "Out of space" then
+    if (not status) and (result ~= nil) then
+        out_of_space = string.find(result, "Out of space") ~= nil
+
+        if out_of_space then
             -- will delete log file
-        elseif result ~= nil then
+        else
             util.println("unknown error writing to logfile: " .. result)
         end
     end
 
-    if (result == "Out of space") or (free_space(_log_sys.path) < 100) then
+    if out_of_space or (free_space(_log_sys.path) < 100) then
         -- delete the old log file and open a new one
         _log_sys.file.close()
         fs.delete(_log_sys.path)

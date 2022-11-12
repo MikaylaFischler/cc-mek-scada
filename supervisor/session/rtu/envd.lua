@@ -37,7 +37,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").envd(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         periodics = {
             next_rad_req = 0
         },

@@ -46,7 +46,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").boilerv(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
         periodics = {
             next_formed_req = 0,

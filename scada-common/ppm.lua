@@ -12,8 +12,11 @@ local ACCESS_FAULT = nil    ---@type nil
 
 local UNDEFINED_FIELD = "undefined field"
 
+local VIRTUAL_DEVICE_TYPE = "ppm_vdev"
+
 ppm.ACCESS_FAULT = ACCESS_FAULT
 ppm.UNDEFINED_FIELD = UNDEFINED_FIELD
+ppm.VIRTUAL_DEVICE_TYPE = VIRTUAL_DEVICE_TYPE
 
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
@@ -23,6 +26,7 @@ local REPORT_FREQUENCY = 20 -- log every 20 faults per function
 
 local _ppm_sys = {
     mounts = {},
+    next_vid = 0,
     auto_cf = false,
     faulted = false,
     last_fault = "",
@@ -42,9 +46,14 @@ local function peri_init(iface)
         last_fault = "",
         fault_counts = {},
         auto_cf = true,
-        type = peripheral.getType(iface),
-        device = peripheral.wrap(iface)
+        type = VIRTUAL_DEVICE_TYPE,
+        device = {}
     }
+
+    if iface ~= "__virtual__" then
+        self.type = peripheral.getType(iface)
+        self.device = peripheral.wrap(iface)
+    end
 
     -- initialization process (re-map)
 
@@ -243,6 +252,19 @@ function ppm.mount(iface)
     end
 
     return pm_type, pm_dev
+end
+
+-- mount a virtual, placeholder device (specifically designed for RTU startup with missing devices)
+---@return string type, table device
+function ppm.mount_virtual()
+    local iface = "ppm_vdev_" .. _ppm_sys.next_vid
+
+    _ppm_sys.mounts[iface] = peri_init("__virtual__")
+    _ppm_sys.next_vid = _ppm_sys.next_vid + 1
+
+    log.info(util.c("PPM: mount_virtual() -> allocated new virtual device ", iface))
+
+    return _ppm_sys.mounts[iface].type, _ppm_sys.mounts[iface].dev
 end
 
 -- manually unmount a peripheral from the PPM

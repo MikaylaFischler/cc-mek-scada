@@ -89,8 +89,12 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
     -- parse the recorded advertisement and create unit sub-sessions
     local function _handle_advertisement()
-        self.units = {}
-        self.rs_io_q = {}
+        _reset_config()
+
+        for i = 1, #self.f_units do
+            local unit = self.f_units[i]    ---@type reactor_unit
+            unit.purge_rtu_devices(self.id)
+        end
 
         for i = 1, #self.advert do
             local unit     = nil ---@type unit_session|nil
@@ -130,6 +134,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             if u_type == false then
                 -- validation fail
+                log.debug(log_header .. "advertisement unit validation failure")
             else
                 local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
 
@@ -285,8 +290,13 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 _close()
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
                 -- RTU unit advertisement
-                -- handle advertisement; this will re-create all unit sub-sessions
+                log.debug(log_header .. "received updated advertisement")
+
+                -- copy advertisement and remove version tag
                 self.advert = pkt.data
+                table.remove(self.advert, 1)
+
+                -- handle advertisement; this will re-create all unit sub-sessions
                 _handle_advertisement()
             elseif pkt.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT then
                 if pkt.length == 1 then

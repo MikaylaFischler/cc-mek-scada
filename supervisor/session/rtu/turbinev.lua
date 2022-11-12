@@ -66,7 +66,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").turbinev(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         in_q = mqueue.new(),
         has_build = false,
         periodics = {

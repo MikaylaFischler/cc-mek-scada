@@ -642,6 +642,12 @@ function comms.rtu_t_to_unit_type(type)
         return RTU_UNIT_TYPES.TURBINE_VALVE
     elseif type == rtu_t.induction_matrix then
         return RTU_UNIT_TYPES.IMATRIX
+    elseif type == rtu_t.sps then
+        return RTU_UNIT_TYPES.SPS
+    elseif type == rtu_t.sna then
+        return RTU_UNIT_TYPES.SNA
+    elseif type == rtu_t.env_detector then
+        return RTU_UNIT_TYPES.ENV_DETECTOR
     end
 
     return nil
@@ -659,6 +665,12 @@ function comms.advert_type_to_rtu_t(utype)
         return rtu_t.turbine_valve
     elseif utype == RTU_UNIT_TYPES.IMATRIX then
         return rtu_t.induction_matrix
+    elseif utype == RTU_UNIT_TYPES.SPS then
+        return rtu_t.sps
+    elseif utype == RTU_UNIT_TYPES.SNA then
+        return rtu_t.sna
+    elseif utype == RTU_UNIT_TYPES.ENV_DETECTOR then
+        return rtu_t.env_detector
     end
 
     return nil

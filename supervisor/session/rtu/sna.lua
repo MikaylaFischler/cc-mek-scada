@@ -43,7 +43,7 @@ function sna.new(session_id, unit_id, advert, out_queue)
     local log_tag = "session.rtu(" .. session_id .. ").sna(" .. advert.index .. "): "
 
     local self = {
-        session = unit_session.new(unit_id, advert, out_queue, log_tag, TXN_TAGS),
+        session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
         periodics = {
             next_build_req = 0,

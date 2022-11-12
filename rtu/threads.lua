@@ -122,8 +122,36 @@ function threads.thread__main(smem)
                             -- find disconnected device to reconnect
                             -- note: cannot check isFormed as that would yield this coroutine and consume events
                             if unit.name == param1 then
+                                local resend_advert = false
+
                                 -- found, re-link
                                 unit.device = device
+
+                                if unit.type == "virtual" then
+                                    resend_advert = true
+                                    if type == "boilerValve" then
+                                        -- boiler multiblock
+                                        unit.type = rtu_t.boiler_valve
+                                    elseif type == "turbineValve" then
+                                        -- turbine multiblock
+                                        unit.type = rtu_t.turbine_valve
+                                    elseif type == "inductionPort" then
+                                        -- induction matrix multiblock
+                                        unit.type = rtu_t.induction_matrix
+                                    elseif type == "spsPort" then
+                                        -- SPS multiblock
+                                        unit.type = rtu_t.sps
+                                    elseif type == "solarNeutronActivator" then
+                                        -- SNA
+                                        unit.type = rtu_t.sna
+                                    elseif type == "environmentDetector" then
+                                        -- advanced peripherals environment detector
+                                        unit.type = rtu_t.env_detector
+                                    else
+                                        resend_advert = false
+                                        log.error(util.c("virtual device '", unit.name, "' cannot init to an unknown type (", type, ")"))
+                                    end
+                                end
 
                                 if unit.type == rtu_t.boiler_valve then
                                     unit.rtu = boilerv_rtu.new(device)
@@ -142,14 +170,19 @@ function threads.thread__main(smem)
                                 elseif unit.type == rtu_t.env_detector then
                                     unit.rtu = envd_rtu.new(device)
                                 else
-                                    log.error(util.c("unreachable case occured trying to identify reconnected RTU unit type (", unit.name, ")"), true)
+                                    log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
                                 end
 
                                 unit.modbus_io = modbus.new(unit.rtu, true)
 
-                                rtu_comms.send_remounted(unit.index)
-
                                 println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
+                                log.info("reconnected the " .. unit.type .. " on interface " .. unit.name)
+
+                                if resend_advert then
+                                    rtu_comms.send_advertisement(units)
+                                else
+                                    rtu_comms.send_remounted(unit.index)
+                                end
                             end
                         end
                     end
@@ -274,7 +307,6 @@ function threads.thread__unit_comms(smem, unit)
 
         local last_update  = util.time()
 
-        local check_formed = type(unit.formed) == "boolean"
         local last_f_check = 0
 
         local detail_name  = util.c(unit.type, " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
@@ -308,8 +340,8 @@ function threads.thread__unit_comms(smem, unit)
             end
 
 
-            -- check if multiblocks is still formed
-            if check_formed and (util.time() - last_f_check > 1000) then
+            -- check if multiblock is still formed if this is a multiblock
+            if (type(unit.formed) == "boolean") and (util.time() - last_f_check > 1000) then
                 if (not unit.formed) and unit.device.isFormed() then
                     -- newly re-formed
                     local iface = ppm.get_iface(unit.device)
