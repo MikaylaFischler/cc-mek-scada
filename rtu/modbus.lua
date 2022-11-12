@@ -56,11 +56,11 @@ function modbus.new(rtu_dev, use_parallel_read)
             -- run parallel tasks if configured
             if self.use_parallel then
                 parallel.waitForAll(table.unpack(tasks))
+            end
 
-                if access_fault then
-                    return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                end
+            if access_fault or #readings ~= count then
+                return_ok = false
+                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             readings = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
@@ -105,11 +105,11 @@ function modbus.new(rtu_dev, use_parallel_read)
             -- run parallel tasks if configured
             if self.use_parallel then
                 parallel.waitForAll(table.unpack(tasks))
+            end
 
-                if access_fault then
-                    return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                end
+            if access_fault or #readings ~= count then
+                return_ok = false
+                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             readings = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
@@ -154,11 +154,11 @@ function modbus.new(rtu_dev, use_parallel_read)
             -- run parallel tasks if configured
             if self.use_parallel then
                 parallel.waitForAll(table.unpack(tasks))
+            end
 
-                if access_fault then
-                    return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                end
+            if access_fault or #readings ~= count then
+                return_ok = false
+                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             readings = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
@@ -203,11 +203,11 @@ function modbus.new(rtu_dev, use_parallel_read)
             -- run parallel tasks if configured
             if self.use_parallel then
                 parallel.waitForAll(table.unpack(tasks))
+            end
 
-                if access_fault then
-                    return_ok = false
-                    readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                end
+            if access_fault or #readings ~= count then
+                return_ok = false
+                readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
             end
         else
             readings = MODBUS_EXCODE.ILLEGAL_DATA_ADDR
