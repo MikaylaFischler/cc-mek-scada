@@ -11,7 +11,7 @@ local sna_rtu       = require("rtu.dev.sna_rtu")
 local sps_rtu       = require("rtu.dev.sps_rtu")
 local turbinev_rtu  = require("rtu.dev.turbinev_rtu")
 
-local modbus = require("rtu.modbus")
+local modbus        = require("rtu.modbus")
 
 local threads = {}
 
@@ -58,10 +58,10 @@ function threads.thread__main(smem)
                 -- start next clock timer
                 loop_clock.start()
 
-                -- period tick, if we are not linked send advertisement
+                -- period tick, if we are not linked send establish request
                 if not rtu_state.linked then
                     -- advertise units
-                    rtu_comms.send_advertisement(units)
+                    rtu_comms.send_establish(units)
                 end
             elseif event == "modem_message" then
                 -- got a packet
@@ -93,7 +93,9 @@ function threads.thread__main(smem)
                                 -- we are going to let the PPM prevent crashes
                                 -- return fault flags/codes to MODBUS queries
                                 local unit = units[i]
-                                println_ts("lost the " .. unit.type .. " on interface " .. unit.name)
+                                println_ts(util.c("lost the ", unit.type, " on interface ", unit.name))
+                                log.warning(util.c("lost the ", unit.type, " unit peripheral on interface ", unit.name))
+                                break
                             end
                         end
                     end

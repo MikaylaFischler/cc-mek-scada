@@ -317,11 +317,9 @@ end
 ---@param local_port integer
 ---@param remote_port integer
 ---@param advertisement table
+---@param version string
 ---@return integer session_id
-function svsessions.establish_rtu_session(local_port, remote_port, advertisement)
-    -- pull version from advertisement
-    local version = table.remove(advertisement, 1)
-
+function svsessions.establish_rtu_session(local_port, remote_port, advertisement, version)
     ---@class rtu_session_struct
     local rtu_s = {
         s_type = "rtu",

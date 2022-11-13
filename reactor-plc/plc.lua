@@ -9,8 +9,9 @@ local plc = {}
 local rps_status_t = types.rps_status_t
 
 local PROTOCOLS = comms.PROTOCOLS
+local DEVICE_TYPES = comms.DEVICE_TYPES
+local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local RPLC_TYPES = comms.RPLC_TYPES
-local RPLC_LINKING = comms.RPLC_LINKING
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
 local print = util.print
@@ -600,7 +601,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
-        _send(RPLC_TYPES.LINK_REQ, { id, version })
+        _send_mgmt(SCADA_MGMT_TYPES.ESTABLISH, { comms.version, version, DEVICE_TYPES.PLC, id })
     end
 
     -- send live status information
@@ -716,34 +717,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             -- handle packet
             if protocol == PROTOCOLS.RPLC then
                 if self.linked then
-                    if packet.type == RPLC_TYPES.LINK_REQ then
-                        -- link request confirmation
-                        if packet.length == 1 then
-                            log.debug("received unsolicited link request response")
-
-                            local link_ack = packet.data[1]
-
-                            if link_ack == RPLC_LINKING.ALLOW then
-                                self.status_cache = nil
-                                _send_struct()
-                                public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
-                                log.debug("re-sent initial status data")
-                            elseif link_ack == RPLC_LINKING.DENY then
-                                println_ts("received unsolicited link denial, unlinking")
-                                log.debug("unsolicited RPLC link request denied")
-                            elseif link_ack == RPLC_LINKING.COLLISION then
-                                println_ts("received unsolicited link collision, unlinking")
-                                log.warning("unsolicited RPLC link request collision")
-                            else
-                                println_ts("invalid unsolicited link response")
-                                log.error("unsolicited unknown RPLC link request response")
-                            end
-
-                            self.linked = link_ack == RPLC_LINKING.ALLOW
-                        else
-                            log.debug("RPLC link req packet length mismatch")
-                        end
-                    elseif packet.type == RPLC_TYPES.STATUS then
+                    if packet.type == RPLC_TYPES.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
                         public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
@@ -805,69 +779,97 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                     else
                         log.warning("received unknown RPLC packet type " .. packet.type)
                     end
-                elseif packet.type == RPLC_TYPES.LINK_REQ then
+                else
+                    log.debug("discarding RPLC packet before linked")
+                end
+            elseif protocol == PROTOCOLS.SCADA_MGMT then
+                if self.linked then
+                    if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                        -- link request confirmation
+                        if packet.length == 1 then
+                            log.debug("received unsolicited establish response")
+
+                            local est_ack = packet.data[1]
+
+                            if est_ack == ESTABLISH_ACK.ALLOW then
+                                self.status_cache = nil
+                                _send_struct()
+                                public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
+                                log.debug("re-sent initial status data")
+                            elseif est_ack == ESTABLISH_ACK.DENY then
+                                println_ts("received unsolicited link denial, unlinking")
+                                log.info("unsolicited establish request denied")
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                println_ts("received unsolicited link collision, unlinking")
+                                log.warning("unsolicited establish request collision")
+                            else
+                                println_ts("invalid unsolicited link response")
+                                log.error("unsolicited unknown establish request response")
+                            end
+
+                            self.linked = est_ack == ESTABLISH_ACK.ALLOW
+                        else
+                            log.debug("SCADA_MGMT establish packet length mismatch")
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                        -- keep alive request received, echo back
+                        if packet.length == 1 and type(packet.data[1]) == "number" then
+                            local timestamp = packet.data[1]
+                            local trip_time = util.time() - timestamp
+
+                            if trip_time > 500 then
+                                log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                            end
+
+                            -- log.debug("RPLC RTT = " .. trip_time .. "ms")
+
+                            _send_keep_alive_ack(timestamp)
+                        else
+                            log.debug("SCADA_MGMT keep alive packet length/type mismatch")
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                        -- handle session close
+                        conn_watchdog.cancel()
+                        public.unlink()
+                        println_ts("server connection closed by remote host")
+                        log.warning("server connection closed by remote host")
+                    else
+                        log.warning("received unsupported SCADA_MGMT packet type " .. packet.type)
+                    end
+                elseif packet.type == SCADA_MGMT_TYPES.ESTABLISH then
                     -- link request confirmation
                     if packet.length == 1 then
-                        local link_ack = packet.data[1]
+                        local est_ack = packet.data[1]
 
-                        if link_ack == RPLC_LINKING.ALLOW then
+                        if est_ack == ESTABLISH_ACK.ALLOW then
                             println_ts("linked!")
-                            log.debug("RPLC link request approved")
+                            log.debug("supervisor establish request approved")
 
                             -- reset remote sequence number and cache
                             self.r_seq_num = nil
                             self.status_cache = nil
 
-                            if plc_state.reactor_formed then
-                                _send_struct()
-                            end
-
+                            if plc_state.reactor_formed then _send_struct() end
                             public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
 
                             log.debug("sent initial status data")
-                        elseif link_ack == RPLC_LINKING.DENY then
+                        elseif est_ack == ESTABLISH_ACK.DENY then
                             println_ts("link request denied, retrying...")
-                            log.debug("RPLC link request denied")
-                        elseif link_ack == RPLC_LINKING.COLLISION then
+                            log.debug("establish request denied")
+                        elseif est_ack == ESTABLISH_ACK.COLLISION then
                             println_ts("reactor PLC ID collision (check config), retrying...")
-                            log.warning("RPLC link request collision")
+                            log.warning("establish request collision")
                         else
                             println_ts("invalid link response, bad channel? retrying...")
-                            log.error("unknown RPLC link request response")
+                            log.error("unknown establish request response")
                         end
 
-                        self.linked = link_ack == RPLC_LINKING.ALLOW
+                        self.linked = est_ack == ESTABLISH_ACK.ALLOW
                     else
-                        log.debug("RPLC link req packet length mismatch")
+                        log.debug("SCADA_MGMT establish packet length mismatch")
                     end
                 else
-                    log.debug("discarding non-link packet before linked")
-                end
-            elseif protocol == PROTOCOLS.SCADA_MGMT then
-                if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
-                    -- keep alive request received, echo back
-                    if packet.length == 1 then
-                        local timestamp = packet.data[1]
-                        local trip_time = util.time() - timestamp
-
-                        if trip_time > 500 then
-                            log.warning("PLC KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
-                        end
-
-                        -- log.debug("RPLC RTT = " .. trip_time .. "ms")
-
-                        _send_keep_alive_ack(timestamp)
-                    else
-                        log.debug("SCADA keep alive packet length mismatch")
-                    end
-                elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
-                    -- handle session close
-                    conn_watchdog.cancel()
-                    public.unlink()
-                    println_ts("server connection closed by remote host")
-                    log.warning("server connection closed by remote host")
-                else
-                    log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                    log.debug("discarding non-link SCADA_MGMT packet before linked")
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()

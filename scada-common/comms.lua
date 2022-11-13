@@ -12,6 +12,8 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
+comms.version = "1.0.0"
+
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
@@ -21,43 +23,49 @@ local PROTOCOLS = {
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
----@alias RPLC_TYPES integer
-local RPLC_TYPES = {
-    LINK_REQ = 0,       -- linking requests
-    STATUS = 1,         -- reactor/system status
-    MEK_STRUCT = 2,     -- mekanism build structure
-    MEK_BURN_RATE = 3,  -- set burn rate
-    RPS_ENABLE = 4,     -- enable reactor
-    RPS_SCRAM = 5,      -- SCRAM reactor (manual request)
-    RPS_ASCRAM = 6,      -- SCRAM reactor (automatic request)
-    RPS_STATUS = 7,     -- RPS status
-    RPS_ALARM = 8,      -- RPS alarm broadcast
-    RPS_RESET = 9       -- clear RPS trip (if in bad state, will trip immediately)
+---@alias DEVICE_TYPES integer
+local DEVICE_TYPES = {
+    PLC = 0,            -- PLC device type for establish
+    RTU = 1,            -- RTU device type for establish
+    SV = 2,             -- supervisor device type for establish
+    CRDN = 3            -- coordinator device type for establish
 }
 
----@alias RPLC_LINKING integer
-local RPLC_LINKING = {
+---@alias RPLC_TYPES integer
+local RPLC_TYPES = {
+    STATUS = 0,         -- reactor/system status
+    MEK_STRUCT = 1,     -- mekanism build structure
+    MEK_BURN_RATE = 2,  -- set burn rate
+    RPS_ENABLE = 3,     -- enable reactor
+    RPS_SCRAM = 4,      -- SCRAM reactor (manual request)
+    RPS_ASCRAM = 5,      -- SCRAM reactor (automatic request)
+    RPS_STATUS = 6,     -- RPS status
+    RPS_ALARM = 7,      -- RPS alarm broadcast
+    RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
+}
+
+---@alias SCADA_MGMT_TYPES integer
+local SCADA_MGMT_TYPES = {
+    ESTABLISH = 0,      -- establish new connection
+    KEEP_ALIVE = 1,     -- keep alive packet w/ RTT
+    CLOSE = 2,          -- close a connection
+    RTU_ADVERT = 3,     -- RTU capability advertisement
+    RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+}
+
+---@alias ESTABLISH_ACK integer
+local ESTABLISH_ACK = {
     ALLOW = 0,          -- link approved
     DENY = 1,           -- link denied
     COLLISION = 2       -- link denied due to existing active link
 }
 
----@alias SCADA_MGMT_TYPES integer
-local SCADA_MGMT_TYPES = {
-    KEEP_ALIVE = 0,     -- keep alive packet w/ RTT
-    CLOSE = 1,          -- close a connection
-    REMOTE_LINKED = 2,  -- remote device linked
-    RTU_ADVERT = 3,     -- RTU capability advertisement
-    RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
-}
-
 ---@alias SCADA_CRDN_TYPES integer
 local SCADA_CRDN_TYPES = {
-    ESTABLISH = 0,      -- initial greeting
-    STRUCT_BUILDS = 1,  -- mekanism structure builds
-    UNIT_STATUSES = 2,  -- state of reactor units
-    COMMAND_UNIT = 3,   -- command a reactor unit
-    ALARM = 4           -- alarm signaling
+    STRUCT_BUILDS = 0,  -- mekanism structure builds
+    UNIT_STATUSES = 1,  -- state of reactor units
+    COMMAND_UNIT = 2,   -- command a reactor unit
+    ALARM = 3           -- alarm signaling
 }
 
 ---@alias CRDN_COMMANDS integer
@@ -86,8 +94,9 @@ local RTU_UNIT_TYPES = {
 }
 
 comms.PROTOCOLS = PROTOCOLS
+comms.DEVICE_TYPES = DEVICE_TYPES
 comms.RPLC_TYPES = RPLC_TYPES
-comms.RPLC_LINKING = RPLC_LINKING
+comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
 comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
 comms.CRDN_COMMANDS = CRDN_COMMANDS
@@ -286,8 +295,7 @@ function comms.rplc_packet()
 
     -- check that type is known
     local function _rplc_type_valid()
-        return self.type == RPLC_TYPES.LINK_REQ or
-                self.type == RPLC_TYPES.STATUS or
+        return self.type == RPLC_TYPES.STATUS or
                 self.type == RPLC_TYPES.MEK_STRUCT or
                 self.type == RPLC_TYPES.MEK_BURN_RATE or
                 self.type == RPLC_TYPES.RPS_ENABLE or
@@ -384,7 +392,8 @@ function comms.mgmt_packet()
 
     -- check that type is known
     local function _scada_type_valid()
-        return self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
+        return self.type == SCADA_MGMT_TYPES.ESTABLISH or
+                self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
                 self.type == SCADA_MGMT_TYPES.CLOSE or
                 self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
                 self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
@@ -472,8 +481,7 @@ function comms.crdn_packet()
 
     -- check that type is known
     local function _crdn_type_valid()
-        return self.type == SCADA_CRDN_TYPES.ESTABLISH or
-                self.type == SCADA_CRDN_TYPES.STRUCT_BUILDS or
+        return self.type == SCADA_CRDN_TYPES.STRUCT_BUILDS or
                 self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
                 self.type == SCADA_CRDN_TYPES.COMMAND_UNIT or
                 self.type == SCADA_CRDN_TYPES.ALARM

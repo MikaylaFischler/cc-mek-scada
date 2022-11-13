@@ -16,6 +16,8 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local PROTOCOLS = comms.PROTOCOLS
+local DEVICE_TYPES = comms.DEVICE_TYPES
+local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local CRDN_COMMANDS = comms.CRDN_COMMANDS
@@ -236,7 +238,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
     -- attempt connection establishment
     local function _send_establish()
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.ESTABLISH, { version })
+        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.ESTABLISH, { comms.version, version, DEVICE_TYPES.CRDN })
     end
 
     -- keep alive ack
@@ -288,7 +290,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
             elseif event == "modem_message" then
                 -- handle message
                 local packet = public.parse_packet(p1, p2, p3, p4, p5)
-                if packet ~= nil and packet.type == SCADA_CRDN_TYPES.ESTABLISH then
+                if packet ~= nil and packet.type == SCADA_MGMT_TYPES.ESTABLISH then
                     public.handle_packet(packet)
                 end
             elseif event == "terminate" then
@@ -385,106 +387,124 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
                 -- handle packet
                 if protocol == PROTOCOLS.SCADA_CRDN then
-                    if packet.type == SCADA_CRDN_TYPES.ESTABLISH then
-                        -- connection with supervisor established
-                        if packet.length > 1 then
-                            -- get configuration
-
-                            ---@class facility_conf
-                            local conf = {
-                                num_units = packet.data[1],
-                                defs = {}   -- boilers and turbines
-                            }
-
-                            if (packet.length - 1) == (conf.num_units * 2) then
-                                -- record sequence of pairs of [#boilers, #turbines] per unit
-                                for i = 2, packet.length do
-                                    table.insert(conf.defs, packet.data[i])
-                                end
-
-                                -- init io controller
-                                iocontrol.init(conf, public)
-
-                                self.sv_linked = true
+                    if self.sv_linked then
+                        if packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
+                            -- record builds
+                            if iocontrol.record_builds(packet.data) then
+                                -- acknowledge receipt of builds
+                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
                             else
-                                log.debug("supervisor conn establish packet length mismatch")
+                                log.error("received invalid SCADA_CRDN build packet")
                             end
-                        elseif packet.length == 1 and packet.data[1] == false then
-                            log.debug("supervisor connection denied")
-                        else
-                            log.debug("supervisor conn establish packet length mismatch")
-                        end
-                    elseif packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
-                        -- record builds
-                        if iocontrol.record_builds(packet.data) then
-                            -- acknowledge receipt of builds
-                            _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
-                        else
-                            log.error("received invalid build packet")
-                        end
-                    elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
-                        -- update statuses
-                        if not iocontrol.update_statuses(packet.data) then
-                            log.error("received invalid unit statuses packet")
-                        end
-                    elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
-                        -- unit command acknowledgement
-                        if packet.length == 3 then
-                            local cmd = packet.data[1]
-                            local unit_id = packet.data[2]
-                            local ack = packet.data[3]
+                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
+                            -- update statuses
+                            if not iocontrol.update_statuses(packet.data) then
+                                log.error("received invalid SCADA_CRDN unit statuses packet")
+                            end
+                        elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                            -- unit command acknowledgement
+                            if packet.length == 3 then
+                                local cmd = packet.data[1]
+                                local unit_id = packet.data[2]
+                                local ack = packet.data[3]
 
-                            local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_entry
+                                local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_entry
 
-                            if unit ~= nil then
-                                if cmd == CRDN_COMMANDS.SCRAM then
-                                    unit.scram_ack(ack)
-                                elseif cmd == CRDN_COMMANDS.START then
-                                    unit.start_ack(ack)
-                                elseif cmd == CRDN_COMMANDS.RESET_RPS then
-                                    unit.reset_rps_ack(ack)
-                                elseif cmd == CRDN_COMMANDS.SET_BURN then
-                                    unit.set_burn_ack(ack)
-                                elseif cmd == CRDN_COMMANDS.SET_WASTE then
-                                    unit.set_waste_ack(ack)
+                                if unit ~= nil then
+                                    if cmd == CRDN_COMMANDS.SCRAM then
+                                        unit.scram_ack(ack)
+                                    elseif cmd == CRDN_COMMANDS.START then
+                                        unit.start_ack(ack)
+                                    elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                                        unit.reset_rps_ack(ack)
+                                    elseif cmd == CRDN_COMMANDS.SET_BURN then
+                                        unit.set_burn_ack(ack)
+                                    elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                                        unit.set_waste_ack(ack)
+                                    else
+                                        log.debug(util.c("received command ack with unknown command ", cmd))
+                                    end
                                 else
-                                    log.debug(util.c("received command ack with unknown command ", cmd))
+                                    log.debug(util.c("received command ack with unknown unit ", unit_id))
                                 end
                             else
-                                log.debug(util.c("received command ack with unknown unit ", unit_id))
+                                log.debug("SCADA_CRDN unit command ack packet length mismatch")
                             end
+                        elseif packet.type == SCADA_CRDN_TYPES.ALARM then
+                            ---@todo alarm/architecture handling
                         else
-                            log.debug("unit command ack packet length mismatch")
+                            log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
                         end
-                    elseif packet.type == SCADA_CRDN_TYPES.ALARM then
                     else
-                        log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
+                        log.debug("discarding SCADA_CRDN packet before linked")
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
-                    if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
-                        -- keep alive request received, echo back
-                        if packet.length == 1 then
-                            local timestamp = packet.data[1]
-                            local trip_time = util.time() - timestamp
+                    if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                        -- connection with supervisor established
+                        if packet.length == 2 then
+                            local est_ack = packet.data[1]
+                            local config = packet.data[2]
 
-                            if trip_time > 500 then
-                                log.warning("coord KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                            if est_ack == ESTABLISH_ACK.ALLOW then
+                                if type(config) == "table" and #config > 1 then
+                                    -- get configuration
+
+                                    ---@class facility_conf
+                                    local conf = {
+                                        num_units = config[1],
+                                        defs = {}   -- boilers and turbines
+                                    }
+
+                                    if (#config - 1) == (conf.num_units * 2) then
+                                        -- record sequence of pairs of [#boilers, #turbines] per unit
+                                        for i = 2, #config do
+                                            table.insert(conf.defs, config[i])
+                                        end
+
+                                        -- init io controller
+                                        iocontrol.init(conf, public)
+
+                                        self.sv_linked = true
+                                    else
+                                        log.error("invalid supervisor configuration definitions received, establish failed")
+                                    end
+                                else
+                                    log.error("invalid supervisor configuration table received, establish failed")
+                                end
+                            else
+                                log.debug("supervisor connection denied")
                             end
-
-                            -- log.debug("coord RTT = " .. trip_time .. "ms")
-
-                            _send_keep_alive_ack(timestamp)
                         else
-                            log.debug("SCADA keep alive packet length mismatch")
+                            log.debug("SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
-                        -- handle session close
-                        sv_watchdog.cancel()
-                        self.sv_linked = false
-                        println_ts("server connection closed by remote host")
-                        log.warning("server connection closed by remote host")
+                    elseif self.sv_linked then
+                        if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                            -- keep alive request received, echo back
+                            if packet.length == 1 then
+                                local timestamp = packet.data[1]
+                                local trip_time = util.time() - timestamp
+
+                                if trip_time > 500 then
+                                    log.warning("coord KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                                end
+
+                                -- log.debug("coord RTT = " .. trip_time .. "ms")
+
+                                _send_keep_alive_ack(timestamp)
+                            else
+                                log.debug("SCADA keep alive packet length mismatch")
+                            end
+                        elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                            -- handle session close
+                            sv_watchdog.cancel()
+                            self.sv_linked = false
+                            println_ts("server connection closed by remote host")
+                            log.warning("server connection closed by remote host")
+                        else
+                            log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                        end
                     else
-                        log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                        log.debug("discarding non-link SCADA_MGMT packet before linked")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " on supervisor listening channel", true)

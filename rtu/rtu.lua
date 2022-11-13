@@ -8,6 +8,8 @@ local modbus = require("rtu.modbus")
 local rtu = {}
 
 local PROTOCOLS = comms.PROTOCOLS
+local DEVICE_TYPES = comms.DEVICE_TYPES
+local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 
@@ -210,6 +212,34 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
         _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
     end
 
+    -- generate device advertisement table
+    ---@param units table
+    ---@return table advertisement
+    local function _generate_advertisement(units)
+        local advertisement = {}
+
+        for i = 1, #units do
+            local unit = units[i]   --@type rtu_unit_registry_entry
+            local type = comms.rtu_t_to_unit_type(unit.type)
+
+            if type ~= nil then
+                local advert = {
+                    type,
+                    unit.index,
+                    unit.reactor
+                }
+
+                if type == RTU_UNIT_TYPES.REDSTONE then
+                    insert(advert, unit.device)
+                end
+
+                insert(advertisement, advert)
+            end
+        end
+
+        return advertisement
+    end
+
     -- PUBLIC FUNCTIONS --
 
     -- send a MODBUS TCP packet
@@ -244,31 +274,16 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
         _send(SCADA_MGMT_TYPES.CLOSE, {})
     end
 
+    -- send establish request (includes advertisement)
+    ---@param units table
+    function public.send_establish(units)
+        _send(SCADA_MGMT_TYPES.ESTABLISH, { comms.version, self.version, DEVICE_TYPES.RTU, _generate_advertisement(units) })
+    end
+
     -- send capability advertisement
     ---@param units table
     function public.send_advertisement(units)
-        local advertisement = { self.version }
-
-        for i = 1, #units do
-            local unit = units[i]   --@type rtu_unit_registry_entry
-            local type = comms.rtu_t_to_unit_type(unit.type)
-
-            if type ~= nil then
-                local advert = {
-                    type,
-                    unit.index,
-                    unit.reactor
-                }
-
-                if type == RTU_UNIT_TYPES.REDSTONE then
-                    insert(advert, unit.device)
-                end
-
-                insert(advertisement, advert)
-            end
-        end
-
-        _send(SCADA_MGMT_TYPES.RTU_ADVERT, advertisement)
+        _send(SCADA_MGMT_TYPES.RTU_ADVERT, _generate_advertisement(units))
     end
 
     -- notify that a peripheral was remounted
@@ -334,86 +349,107 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
             local protocol = packet.scada_frame.protocol()
 
             if protocol == PROTOCOLS.MODBUS_TCP then
-                local return_code = false
+                if rtu_state.linked then
+                    local return_code = false
 ---@diagnostic disable-next-line: param-type-mismatch
-                local reply = modbus.reply__neg_ack(packet)
+                    local reply = modbus.reply__neg_ack(packet)
 
-                -- handle MODBUS instruction
-                if packet.unit_id <= #units then
-                    local unit = units[packet.unit_id]  ---@type rtu_unit_registry_entry
-                    local unit_dbg_tag = " (unit " .. packet.unit_id .. ")"
+                    -- handle MODBUS instruction
+                    if packet.unit_id <= #units then
+                        local unit = units[packet.unit_id]  ---@type rtu_unit_registry_entry
+                        local unit_dbg_tag = " (unit " .. packet.unit_id .. ")"
 
-                    if unit.name == "redstone_io" then
-                        -- immediately execute redstone RTU requests
+                        if unit.name == "redstone_io" then
+                            -- immediately execute redstone RTU requests
 ---@diagnostic disable-next-line: param-type-mismatch
-                        return_code, reply = unit.modbus_io.handle_packet(packet)
-                        if not return_code then
-                            log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
+                            return_code, reply = unit.modbus_io.handle_packet(packet)
+                            if not return_code then
+                                log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
+                            end
+                        else
+                            -- check validity then pass off to unit comms thread
+---@diagnostic disable-next-line: param-type-mismatch
+                            return_code, reply = unit.modbus_io.check_request(packet)
+                            if return_code then
+                                -- check if there are more than 3 active transactions
+                                -- still queue the packet, but this may indicate a problem
+                                if unit.pkt_queue.length() > 3 then
+---@diagnostic disable-next-line: param-type-mismatch
+                                    reply = modbus.reply__srv_device_busy(packet)
+                                    log.debug("queueing new request with " .. unit.pkt_queue.length() ..
+                                        " transactions already in the queue" .. unit_dbg_tag)
+                                end
+
+                                -- always queue the command even if busy
+                                unit.pkt_queue.push_packet(packet)
+                            else
+                                log.warning("cannot perform requested MODBUS operation" .. unit_dbg_tag)
+                            end
                         end
                     else
-                        -- check validity then pass off to unit comms thread
+                        -- unit ID out of range?
 ---@diagnostic disable-next-line: param-type-mismatch
-                        return_code, reply = unit.modbus_io.check_request(packet)
-                        if return_code then
-                            -- check if there are more than 3 active transactions
-                            -- still queue the packet, but this may indicate a problem
-                            if unit.pkt_queue.length() > 3 then
----@diagnostic disable-next-line: param-type-mismatch
-                                reply = modbus.reply__srv_device_busy(packet)
-                                log.debug("queueing new request with " .. unit.pkt_queue.length() ..
-                                    " transactions already in the queue" .. unit_dbg_tag)
-                            end
-
-                            -- always queue the command even if busy
-                            unit.pkt_queue.push_packet(packet)
-                        else
-                            log.warning("cannot perform requested MODBUS operation" .. unit_dbg_tag)
-                        end
+                        reply = modbus.reply__gw_unavailable(packet)
+                        log.error("received MODBUS packet for non-existent unit")
                     end
-                else
-                    -- unit ID out of range?
----@diagnostic disable-next-line: param-type-mismatch
-                    reply = modbus.reply__gw_unavailable(packet)
-                    log.error("received MODBUS packet for non-existent unit")
-                end
 
-                public.send_modbus(reply)
+                    public.send_modbus(reply)
+                else
+                    log.debug("discarding MODBUS packet before linked")
+                end
             elseif protocol == PROTOCOLS.SCADA_MGMT then
                 -- SCADA management packet
-                if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
-                    -- keep alive request received, echo back
+                if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
                     if packet.length == 1 then
-                        local timestamp = packet.data[1]
-                        local trip_time = util.time() - timestamp
+                        local est_ack = packet.data[1]
 
-                        if trip_time > 500 then
-                            log.warning("RTU KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                        if est_ack == ESTABLISH_ACK.ALLOW then
+                            -- establish allowed
+                            rtu_state.linked = true
+                            self.r_seq_num = nil
+                            println_ts("supervisor connection established")
+                            log.info("supervisor connection established")
+                        else
+                            -- establish denied
+                            public.unlink(rtu_state)
+                            println_ts("supervisor connection")
+                            log.warning("supervisor connection denied by remote host")
                         end
-
-                        -- log.debug("RTU RTT = " .. trip_time .. "ms")
-
-                        _send_keep_alive_ack(timestamp)
                     else
-                        log.debug("SCADA keep alive packet length mismatch")
+                        log.debug("SCADA_MGMT establish packet length mismatch")
                     end
-                elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
-                    -- close connection
-                    self.conn_watchdog.cancel()
-                    public.unlink(rtu_state)
-                    println_ts("server connection closed by remote host")
-                    log.warning("server connection closed by remote host")
-                elseif packet.type == SCADA_MGMT_TYPES.REMOTE_LINKED then
-                    -- acknowledgement
-                    rtu_state.linked = true
-                    self.r_seq_num = nil
-                    println_ts("supervisor connection established")
-                    log.info("supervisor connection established")
-                elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
-                    -- request for capabilities again
-                    public.send_advertisement(units)
+                elseif rtu_state.linked then
+                    if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                        -- keep alive request received, echo back
+                        if packet.length == 1 and type(packet.data[1]) == "number" then
+                            local timestamp = packet.data[1]
+                            local trip_time = util.time() - timestamp
+
+                            if trip_time > 500 then
+                                log.warning("RTU KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                            end
+
+                            -- log.debug("RTU RTT = " .. trip_time .. "ms")
+
+                            _send_keep_alive_ack(timestamp)
+                        else
+                            log.debug("SCADA_MGMT keep alive packet length/type mismatch")
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                        -- close connection
+                        self.conn_watchdog.cancel()
+                        public.unlink(rtu_state)
+                        println_ts("server connection closed by remote host")
+                        log.warning("server connection closed by remote host")
+                    elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
+                        -- request for capabilities again
+                        public.send_advertisement(units)  
+                    else
+                        -- not supported
+                        log.warning("received unsupported SCADA_MGMT message type " .. packet.type)
+                    end
                 else
-                    -- not supported
-                    log.warning("RTU got unexpected SCADA message type " .. packet.type)
+                    log.debug("discarding non-link SCADA_MGMT packet before linked")
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()
