@@ -13,6 +13,7 @@
         "window",
         "read",
         "periphemu",
-        "mekanismEnergyHelper"
+        "mekanismEnergyHelper",
+        "_HOST"
     ]
 }
