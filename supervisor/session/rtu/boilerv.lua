@@ -71,12 +71,12 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 ccoolant_cap = 0,
                 superheaters = 0,
                 max_boil_rate = 0.0,
-                env_loss = 0.0
             },
             state = {
                 last_update = 0,
                 temperature = 0.0,
-                boil_rate = 0.0
+                boil_rate = 0.0,
+                env_loss = 0.0
             },
             tanks = {
                 last_update = 0,
@@ -108,14 +108,14 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
 
     -- query the build of the device
     local function _request_build()
-        -- read input registers 1 through 13 (start = 1, count = 13)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 13 })
+        -- read input registers 1 through 12 (start = 1, count = 12)
+        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 12 })
     end
 
     -- query the state of the device
     local function _request_state()
-        -- read input registers 14 through 15 (start = 14, count = 2)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 14, 2 })
+        -- read input registers 13 through 15 (start = 13, count = 3)
+        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 13, 3 })
     end
 
     -- query the tanks of the device
@@ -143,7 +143,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if m_pkt.length == 13 then
+            if m_pkt.length == 12 then
                 self.db.build.last_update   = util.time_ms()
                 self.db.build.length        = m_pkt.data[1]
                 self.db.build.width         = m_pkt.data[2]
@@ -157,7 +157,6 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 self.db.build.ccoolant_cap  = m_pkt.data[10]
                 self.db.build.superheaters  = m_pkt.data[11]
                 self.db.build.max_boil_rate = m_pkt.data[12]
-                self.db.build.env_loss      = m_pkt.data[13]
                 self.has_build = true
 
                 out_queue.push_command(unit_session.RTU_US_CMDS.BUILD_CHANGED)
@@ -167,10 +166,11 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
-            if m_pkt.length == 2 then
+            if m_pkt.length == 3 then
                 self.db.state.last_update = util.time_ms()
                 self.db.state.temperature = m_pkt.data[1]
                 self.db.state.boil_rate   = m_pkt.data[2]
+                self.db.state.env_loss    = m_pkt.data[3]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

@@ -28,10 +28,10 @@ function boilerv_rtu.new(boiler)
     unit.connect_input_reg(boiler.getCooledCoolantCapacity)
     unit.connect_input_reg(boiler.getSuperheaters)
     unit.connect_input_reg(boiler.getMaxBoilRate)
-    unit.connect_input_reg(boiler.getEnvironmentalLoss)
     -- current state
     unit.connect_input_reg(boiler.getTemperature)
     unit.connect_input_reg(boiler.getBoilRate)
+    unit.connect_input_reg(boiler.getEnvironmentalLoss)
     -- tanks
     unit.connect_input_reg(boiler.getSteam)
     unit.connect_input_reg(boiler.getSteamNeeded)
