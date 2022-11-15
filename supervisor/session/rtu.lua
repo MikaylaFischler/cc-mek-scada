@@ -7,6 +7,7 @@ local util          = require("scada-common.util")
 local svqtypes      = require("supervisor.session.svqtypes")
 
 -- supervisor rtu sessions (svrs)
+local unit_session  = require("supervisor.session.rtu.unit_session")
 local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
@@ -202,9 +203,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 break
             end
         end
-
-        -- report build changed
-        self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
     end
 
     -- mark this RTU session as closed, stop watchdog
@@ -419,9 +417,9 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             self.periodics.last_update = util.time()
 
-            ----------------------------------------------
-            -- pass MODBUS packets on to main out queue --
-            ----------------------------------------------
+            --------------------------------------------
+            -- process RTU session handler out queues --
+            --------------------------------------------
 
             for _ = 1, self.modbus_q.length() do
                 -- get the next message
@@ -429,7 +427,16 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.PACKET then
+                        -- handle a packet
                         _send_modbus(msg.message)
+                    elseif msg.qtype == mqueue.TYPE.COMMAND then
+                        -- handle instruction
+                        local cmd = msg.message
+                        if cmd == unit_session.RTU_US_CMDS.BUILD_CHANGED then
+                            self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
+                        end
+                    elseif msg.qtype == mqueue.TYPE.DATA then
+                        -- instruction with body
                     end
                 end
             end
