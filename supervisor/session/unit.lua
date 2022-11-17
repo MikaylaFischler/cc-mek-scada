@@ -95,7 +95,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.deltas[key] then
             local data = self.deltas[key]
 
-            if time ~= data.last_t then
+            if time > data.last_t then
                 data.dt = (value - data.last_v) / (time - data.last_t)
 
                 data.last_v = value
@@ -168,6 +168,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- update deltas
         _dt__compute_all()
 
+        -- variables for boiler, or reactor if no boilers used
+        local total_boil_rate = 0.0
+
         -------------
         -- REACTOR --
         -------------
@@ -192,10 +195,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
             self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
             self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
-            self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < 0.0 or plc_db.mek_status.fuel_fill <= 0.01
-            self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 0.0 or plc_db.mek_status.waste_fill >= 0.85
+            self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= 0.01
+            self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= 0.85
             ---@todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
             self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and plc_db.mek_status.burn_rate > 40
+
+            -- if no boilers, use reactor heating rate to check for boil rate mismatch
+            if self.counts.boilers == 0 then
+                total_boil_rate = plc_db.mek_status.heating_rate
+            end
         end
 
         -------------
@@ -206,10 +214,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         for i = 1, self.counts.boilers do self.db.annunciator.BoilerOnline[i] = false end
 
         -- aggregated statistics
-        local total_boil_rate = 0.0
         local boiler_steam_dt_sum = 0.0
         local boiler_water_dt_sum = 0.0
 
+        if self.counts.boilers > 0 then
         -- go through boilers for stats and online
         for i = 1, #self.boilers do
             local session = self.boilers[i] ---@type unit_session
@@ -223,7 +231,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
 
         -- check heating rate low
-        if self.plc_s ~= nil then
+            if self.plc_s ~= nil and #self.boilers > 0 then
             local r_db = self.plc_i.get_db()
 
             -- check for inactive boilers while reactor is active
@@ -238,25 +246,41 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                     self.db.annunciator.HeatingRateLow[idx] = false
                 end
             end
-
-            -- check for rate mismatch
-            local expected_boil_rate = r_db.mek_status.heating_rate / 10.0
-            self.db.annunciator.BoilRateMismatch = math.abs(expected_boil_rate - total_boil_rate) > 25.0
+        end
+        else
+            boiler_steam_dt_sum = _get_dt(DT_KEYS.ReactorHCool)
+            boiler_water_dt_sum = _get_dt(DT_KEYS.ReactorCCool)
         end
 
-        -- check coolant feed mismatch
-        local cfmismatch = false
-        for i = 1, #self.boilers do
-            local boiler = self.boilers[i]  ---@type unit_session
-            local idx = boiler.get_device_idx()
-            local db = boiler.get_db()      ---@type boilerv_session_db
+        ---------------------------
+        -- COOLANT FEED MISMATCH --
+        ---------------------------
 
-            local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 0 or db.tanks.hcool_fill == 1
+        -- check coolant feed mismatch if using boilers, otherwise calculate with reactor
+        local cfmismatch = false
+
+        if self.counts.boilers > 0 then
+        for i = 1, #self.boilers do
+                local boiler = self.boilers[i]      ---@type unit_session
+            local idx = boiler.get_device_idx()
+                local db = boiler.get_db()          ---@type boilerv_session_db
+
+                local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
 
             -- gaining heated coolant
             cfmismatch = cfmismatch or gaining_hc
             -- losing cooled coolant
-            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < 0 or (gaining_hc and db.tanks.ccool_fill == 0)
+                cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0 or (gaining_hc and db.tanks.ccool_fill == 0)
+            end
+        elseif self.plc_s ~= nil then
+            local r_db = self.plc_i.get_db()
+
+            local gaining_hc = _get_dt(DT_KEYS.ReactorHCool) > 10.0 or r_db.mek_status.hcool_fill == 1
+
+            -- gaining heated coolant (steam)
+            cfmismatch = cfmismatch or gaining_hc
+            -- losing cooled coolant (water)
+            cfmismatch = cfmismatch or _get_dt(DT_KEYS.ReactorCCool) < -10.0 or (gaining_hc and r_db.mek_status.ccool_fill == 0)
         end
 
         self.db.annunciator.CoolantFeedMismatch = cfmismatch
@@ -285,9 +309,12 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.db.annunciator.TurbineOnline[session.get_device_idx()] = true
         end
 
+        -- check for boil rate mismatch (either between reactor and turbine or boiler and turbine)
+        self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > 4
+
         -- check for steam feed mismatch and max return rate
         local sfmismatch = math.abs(total_flow_rate - total_input_rate) > 10
-        sfmismatch = sfmismatch or boiler_steam_dt_sum > 0 or boiler_water_dt_sum < 0
+        sfmismatch = sfmismatch or boiler_steam_dt_sum > 2.0 or boiler_water_dt_sum < -2.0
         self.db.annunciator.SteamFeedMismatch = sfmismatch
         self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
 
@@ -312,7 +339,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             local db = turbine.get_db()         ---@type turbinev_session_db
             local idx = turbine.get_device_idx()
 
-            self.db.annunciator.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0)
+            self.db.annunciator.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0.0)
         end
 
         --[[

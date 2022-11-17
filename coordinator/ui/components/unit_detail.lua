@@ -84,16 +84,6 @@ local function init(parent, id)
     DataIndicator{parent=main,x=21,label="",format="%6.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
-    -- TextBox{parent=main,text="FL",x=21,y=19,height=1,width=2,fg_bg=style.label}
-    -- TextBox{parent=main,text="WS",x=24,y=19,height=1,width=2,fg_bg=style.label}
-    -- TextBox{parent=main,text="CL",x=28,y=19,height=1,width=2,fg_bg=style.label}
-    -- TextBox{parent=main,text="HC",x=31,y=19,height=1,width=2,fg_bg=style.label}
-
-    -- local fuel  = VerticalBar{parent=main,x=21,y=12,fg_bg=cpair(colors.black,colors.gray),height=6,width=2}
-    -- local waste = VerticalBar{parent=main,x=24,y=12,fg_bg=cpair(colors.brown,colors.gray),height=6,width=2}
-    -- local ccool = VerticalBar{parent=main,x=28,y=12,fg_bg=cpair(colors.lightBlue,colors.gray),height=6,width=2}
-    -- local hcool = VerticalBar{parent=main,x=31,y=12,fg_bg=cpair(colors.orange,colors.gray),height=6,width=2}
-
     -- annunciator --
 
     local annunciator = Div{parent=main,x=34,y=3}
@@ -164,14 +154,14 @@ local function init(parent, id)
     annunciator.line_break()
 
     -- cooling
-    local c_brm  = IndicatorLight{parent=annunciator,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_cfm  = IndicatorLight{parent=annunciator,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_brm  = IndicatorLight{parent=annunciator,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_sfm  = IndicatorLight{parent=annunciator,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_mwrf = IndicatorLight{parent=annunciator,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
     local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
-    r_ps.subscribe("BoilRateMismatch", c_brm.update)
     r_ps.subscribe("CoolantFeedMismatch", c_cfm.update)
+    r_ps.subscribe("BoilRateMismatch", c_brm.update)
     r_ps.subscribe("SteamFeedMismatch", c_sfm.update)
     r_ps.subscribe("MaxWaterReturnFeed", c_mwrf.update)
     r_ps.subscribe("TurbineTrip", c_tbnt.update)
@@ -249,6 +239,15 @@ local function init(parent, id)
 
     -- reactor controls --
 
+    local burn_control = Div{parent=main,x=2,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
+    TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
+
+    local set_burn = function () unit.set_burn(burn_rate.get_value()) end
+    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
+
+    r_ps.subscribe("burn_rate", function (v) burn_rate.set_value(v) end)
+
     local dis_colors = cpair(colors.white, colors.lightGray)
 
     local start = HazardButton{parent=main,x=2,y=26,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=scram_fg_bg}
@@ -269,15 +268,6 @@ local function init(parent, id)
     r_ps.subscribe("status", start_button_en_check)
     r_ps.subscribe("rps_tripped", start_button_en_check)
     r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
-
-    local burn_control = Div{parent=main,x=2,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
-    TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
-
-    local set_burn = function () unit.set_burn(burn_rate.get_value()) end
-    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
-
-    r_ps.subscribe("burn_rate", function (v) burn_rate.set_value(v) end)
 
     local opts = {
         {
