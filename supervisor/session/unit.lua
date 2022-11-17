@@ -218,35 +218,35 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local boiler_water_dt_sum = 0.0
 
         if self.counts.boilers > 0 then
-        -- go through boilers for stats and online
-        for i = 1, #self.boilers do
-            local session = self.boilers[i] ---@type unit_session
-            local boiler = session.get_db() ---@type boilerv_session_db
-
-            total_boil_rate = total_boil_rate + boiler.state.boil_rate
-            boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
-            boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. self.boilers[i].get_device_idx())
-
-            self.db.annunciator.BoilerOnline[session.get_device_idx()] = true
-        end
-
-        -- check heating rate low
-            if self.plc_s ~= nil and #self.boilers > 0 then
-            local r_db = self.plc_i.get_db()
-
-            -- check for inactive boilers while reactor is active
+            -- go through boilers for stats and online
             for i = 1, #self.boilers do
-                local boiler = self.boilers[i]  ---@type unit_session
-                local idx = boiler.get_device_idx()
-                local db = boiler.get_db()      ---@type boilerv_session_db
+                local session = self.boilers[i] ---@type unit_session
+                local boiler = session.get_db() ---@type boilerv_session_db
 
-                if r_db.mek_status.status then
-                    self.db.annunciator.HeatingRateLow[idx] = db.state.boil_rate == 0
-                else
-                    self.db.annunciator.HeatingRateLow[idx] = false
+                total_boil_rate = total_boil_rate + boiler.state.boil_rate
+                boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
+                boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. self.boilers[i].get_device_idx())
+
+                self.db.annunciator.BoilerOnline[session.get_device_idx()] = true
+            end
+
+            -- check heating rate low
+            if self.plc_s ~= nil and #self.boilers > 0 then
+                local r_db = self.plc_i.get_db()
+
+                -- check for inactive boilers while reactor is active
+                for i = 1, #self.boilers do
+                    local boiler = self.boilers[i]  ---@type unit_session
+                    local idx = boiler.get_device_idx()
+                    local db = boiler.get_db()      ---@type boilerv_session_db
+
+                    if r_db.mek_status.status then
+                        self.db.annunciator.HeatingRateLow[idx] = db.state.boil_rate == 0
+                    else
+                        self.db.annunciator.HeatingRateLow[idx] = false
+                    end
                 end
             end
-        end
         else
             boiler_steam_dt_sum = _get_dt(DT_KEYS.ReactorHCool)
             boiler_water_dt_sum = _get_dt(DT_KEYS.ReactorCCool)
@@ -260,16 +260,16 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local cfmismatch = false
 
         if self.counts.boilers > 0 then
-        for i = 1, #self.boilers do
+            for i = 1, #self.boilers do
                 local boiler = self.boilers[i]      ---@type unit_session
-            local idx = boiler.get_device_idx()
+                local idx = boiler.get_device_idx()
                 local db = boiler.get_db()          ---@type boilerv_session_db
 
                 local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
 
-            -- gaining heated coolant
-            cfmismatch = cfmismatch or gaining_hc
-            -- losing cooled coolant
+                -- gaining heated coolant
+                cfmismatch = cfmismatch or gaining_hc
+                -- losing cooled coolant
                 cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0 or (gaining_hc and db.tanks.ccool_fill == 0)
             end
         elseif self.plc_s ~= nil then
