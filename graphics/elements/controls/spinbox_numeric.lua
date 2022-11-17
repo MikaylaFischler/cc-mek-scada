@@ -6,6 +6,8 @@ local util    = require("scada-common.util")
 
 ---@class spinbox_args
 ---@field default? number default value, defaults to 0.0
+---@field min? number default 0, currently must be 0 or greater
+---@field max? number default max number that can be displayed with the digits configuration
 ---@field whole_num_precision integer number of whole number digits
 ---@field fractional_precision integer number of fractional digits
 ---@field arrow_fg_bg cpair arrow foreground/background colors
@@ -61,6 +63,7 @@ local function spinbox(args)
     local function set_digits()
         local initial_str = util.sprintf(fmt_init, e.value)
 
+        digits = {}
 ---@diagnostic disable-next-line: discard-returns
         initial_str:gsub("%d", function (char) table.insert(digits, char) end)
     end
@@ -85,13 +88,23 @@ local function spinbox(args)
         if e.value < 0 then
             for i = 1, #digits do digits[i] = 0 end
             e.value = 0
-        -- max printable
-        elseif string.len(util.sprintf(fmt, e.value)) > args.width then
-            -- max out
-            for i = 1, #digits do digits[i] = 9 end
-
-            -- re-update value
-            update_value()
+        -- min configured
+        elseif (type(args.min) == "number") and (e.value < args.min) then
+            -- cap at min
+            e.value = args.min
+            set_digits()
+        else
+            -- max printable
+            if string.len(util.sprintf(fmt, e.value)) > args.width then
+                -- max out to all 9s
+                for i = 1, #digits do digits[i] = 9 end
+                update_value()
+            -- max configured
+            elseif (type(args.max) == "number") and (e.value > args.max) then
+                -- cap at max
+                e.value = args.max
+                set_digits()
+            end
         end
 
         -- draw
@@ -110,16 +123,18 @@ local function spinbox(args)
         -- only handle if on an increment or decrement arrow
         if e.enabled and event.x ~= dec_point_x then
             local idx = util.trinary(event.x > dec_point_x, event.x - 1, event.x)
-            if event.y == 1 then
-                -- increment
-                digits[idx] = digits[idx] + 1
-            elseif event.y == 3 then
-                -- decrement
-                digits[idx] = digits[idx] - 1
-            end
+            if digits[idx] ~= nil then
+                if event.y == 1 then
+                    -- increment
+                    digits[idx] = digits[idx] + 1
+                elseif event.y == 3 then
+                    -- decrement
+                    digits[idx] = digits[idx] - 1
+                end
 
-            update_value()
-            show_num()
+                update_value()
+                show_num()
+            end
         end
     end
 
@@ -130,6 +145,18 @@ local function spinbox(args)
 
         set_digits()
         show_num()
+    end
+
+    -- set minimum input value
+    ---@param min integer minimum allowed value
+    function e.set_min(min)
+        if min >= 0 then args.min = min end
+    end
+
+    -- set maximum input value
+    ---@param max integer maximum allowed value
+    function e.set_max(max)
+        args.max = max
     end
 
     return e.get()

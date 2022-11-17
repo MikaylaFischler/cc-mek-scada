@@ -247,6 +247,7 @@ local function init(parent, id)
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
 
     r_ps.subscribe("burn_rate", function (v) burn_rate.set_value(v) end)
+    r_ps.subscribe("max_burn", function (v) burn_rate.set_max(v) end)
 
     local dis_colors = cpair(colors.white, colors.lightGray)
 
