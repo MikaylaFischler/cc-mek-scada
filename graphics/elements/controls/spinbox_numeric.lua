@@ -150,13 +150,17 @@ local function spinbox(args)
     -- set minimum input value
     ---@param min integer minimum allowed value
     function e.set_min(min)
-        if min >= 0 then args.min = min end
+        if min >= 0 then
+            args.min = min
+            show_num()
+        end
     end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
     function e.set_max(max)
         args.max = max
+        show_num()
     end
 
     return e.get()

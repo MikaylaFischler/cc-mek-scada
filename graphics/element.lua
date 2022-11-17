@@ -178,6 +178,16 @@ function element.new(args)
     function protected.set_value(value)
     end
 
+    -- set minimum input value
+    ---@param min integer minimum allowed value
+    function protected.set_min(min)
+    end
+
+    -- set maximum input value
+    ---@param max integer maximum allowed value
+    function protected.set_max(max)
+    end
+
     -- enable the control
     function protected.enable()
     end
@@ -314,6 +324,18 @@ function element.new(args)
     ---@param value any new value
     function public.set_value(value)
         protected.set_value(value)
+    end
+
+    -- set minimum input value
+    ---@param min integer minimum allowed value
+    function public.set_min(min)
+        protected.set_min(min)
+    end
+
+    -- set maximum input value
+    ---@param max integer maximum allowed value
+    function public.set_max(max)
+        protected.set_max(max)
     end
 
     -- enable the element
