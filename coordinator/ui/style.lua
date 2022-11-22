@@ -15,7 +15,7 @@ style.colors = {
     { c = colors.red,       hex = 0xdf4949 },
     { c = colors.orange,    hex = 0xffb659 },
     { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x64dd20 },
+    { c = colors.lime,      hex = 0x80ff80 },
     { c = colors.green,     hex = 0x4aee8a },
     { c = colors.cyan,      hex = 0x34bac8 },
     { c = colors.lightBlue, hex = 0x6cc0f2 },

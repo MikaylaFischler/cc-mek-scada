@@ -299,10 +299,6 @@ local function init(parent, id)
     MultiButton{parent=waste_sel,x=1,y=1,options=opts,callback=unit.set_waste,min_width=6,fg_bg=cpair(colors.black, colors.white)}
     TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
 
-    ---@fixme test code
-    main.line_break()
-    ColorMap{parent=main,x=2,y=51}
-
     return main
 end
 
