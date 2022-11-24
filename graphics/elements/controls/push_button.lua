@@ -24,13 +24,12 @@ local function push_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.push_button: text is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.push_button: callback is a required field")
 
-    -- single line
-    args.height = 1
-
-    args.min_width = args.min_width or 0
-
     local text_width = string.len(args.text)
-    args.width = math.max(text_width + 2, args.min_width)
+
+    -- single line height, calculate width
+    args.height = 1
+    args.min_width = args.min_width or 0
+    args.width = math.max(text_width, args.min_width)
 
     -- create new graphics element base object
     local e = element.new(args)
