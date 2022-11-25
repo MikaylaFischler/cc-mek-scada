@@ -1,8 +1,6 @@
 local log       = require("scada-common.log")
 local flasher   = require("graphics.flasher")
 
-local iocontrol = require("coordinator.iocontrol")
-
 local style     = require("coordinator.ui.style")
 
 local main_view = require("coordinator.ui.layout.main_view")

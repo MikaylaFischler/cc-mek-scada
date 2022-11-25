@@ -1,8 +1,9 @@
 -- Indicator Light Graphics Element
 
+local util    = require("scada-common.util")
+
 local element = require("graphics.element")
 local flasher = require("graphics.flasher")
-local util    = require("scada-common.util")
 
 ---@class indicator_light_args
 ---@field label string indicator label

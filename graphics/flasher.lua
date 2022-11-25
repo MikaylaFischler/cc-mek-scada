@@ -2,7 +2,7 @@
 -- Indicator Light Flasher
 --
 
-local tcd  = require("scada-common.tcallbackdsp")
+local tcd = require("scada-common.tcallbackdsp")
 
 local flasher = {}
 

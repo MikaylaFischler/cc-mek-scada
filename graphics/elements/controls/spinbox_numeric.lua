@@ -1,8 +1,8 @@
 -- Spinbox Numeric Graphics Element
 
-local element = require("graphics.element")
-
 local util    = require("scada-common.util")
+
+local element = require("graphics.element")
 
 ---@class spinbox_args
 ---@field default? number default value, defaults to 0.0
