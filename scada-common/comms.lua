@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.0.0"
+comms.version = "1.0.1"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -74,7 +74,10 @@ local CRDN_COMMANDS = {
     START = 1,          -- start the reactor
     RESET_RPS = 2,      -- reset the RPS
     SET_BURN = 3,       -- set the burn rate
-    SET_WASTE = 4       -- set the waste processing mode
+    SET_WASTE = 4,      -- set the waste processing mode
+    ACK_ALL_ALARMS = 5, -- ack all active alarms
+    ACK_ALARM = 6,      -- ack a particular alarm
+    RESET_ALARM = 7     -- reset a particular alarm
 }
 
 ---@alias CAPI_TYPES integer

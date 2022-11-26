@@ -412,7 +412,7 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
                         else
                             -- establish denied
                             public.unlink(rtu_state)
-                            println_ts("supervisor connection")
+                            println_ts("supervisor connection denied")
                             log.warning("supervisor connection denied by remote host")
                         end
                     else

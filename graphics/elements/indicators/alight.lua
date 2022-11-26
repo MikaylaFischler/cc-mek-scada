@@ -1,17 +1,17 @@
--- Tri-State Indicator Light Graphics Element
+-- Tri-State Alarm Indicator Light Graphics Element
 
 local util    = require("scada-common.util")
 
 local element = require("graphics.element")
 local flasher = require("graphics.flasher")
 
----@class tristate_indicator_light_args
+---@class alarm_indicator_light
 ---@field label string indicator label
----@field c1 color color for state 1
----@field c2 color color for state 2
----@field c3 color color for state 3
+---@field c1 color color for off state
+---@field c2 color color for alarm state
+---@field c3 color color for ring-back state
 ---@field min_label_width? integer label length if omitted
----@field flash? boolean whether to flash on state 2 or 3 rather than stay on
+---@field flash? boolean whether to flash on alarm state rather than stay on
 ---@field period? PERIOD flash period
 ---@field parent graphics_element
 ---@field id? string element id
@@ -19,17 +19,17 @@ local flasher = require("graphics.flasher")
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
--- new tri-state indicator light
----@param args tristate_indicator_light_args
+-- new alarm indicator light
+---@param args alarm_indicator_light
 ---@return graphics_element element, element_id id
-local function tristate_indicator_light(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.trilight: label is a required field")
-    assert(type(args.c1) == "number", "graphics.elements.indicators.trilight: c1 is a required field")
-    assert(type(args.c2) == "number", "graphics.elements.indicators.trilight: c2 is a required field")
-    assert(type(args.c3) == "number", "graphics.elements.indicators.trilight: c3 is a required field")
+local function alarm_indicator_light(args)
+    assert(type(args.label) == "string", "graphics.elements.indicators.alight: label is a required field")
+    assert(type(args.c1) == "number", "graphics.elements.indicators.alight: c1 is a required field")
+    assert(type(args.c2) == "number", "graphics.elements.indicators.alight: c2 is a required field")
+    assert(type(args.c3) == "number", "graphics.elements.indicators.alight: c3 is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "graphics.elements.indicators.trilight: period is a required field if flash is enabled")
+        assert(util.is_int(args.period), "graphics.elements.indicators.alight: period is a required field if flash is enabled")
     end
 
     -- single line
@@ -49,9 +49,6 @@ local function tristate_indicator_light(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- init value for initial check in on_update
-    e.value = 1
-
     -- called by flasher when enabled
     local function flash_callback()
         e.window.setCursorPos(1, 1)
@@ -59,11 +56,13 @@ local function tristate_indicator_light(args)
         if flash_on then
             if e.value == 2 then
                 e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
-            elseif e.value == 3 then
-                e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
             end
         else
-            e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            if e.value == 3 then
+                e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+            else
+                e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            end
         end
 
         flash_on = not flash_on
@@ -72,20 +71,24 @@ local function tristate_indicator_light(args)
     -- on state change
     ---@param new_state integer indicator state
     function e.on_update(new_state)
-        local was_off = e.value <= 1
+        local was_off = e.value ~= 2
 
         e.value = new_state
         e.window.setCursorPos(1, 1)
 
         if args.flash then
-            if was_off and (new_state > 1) then
+            if was_off and (new_state == 2) then
                 flash_on = true
                 flasher.start(flash_callback, args.period)
-            elseif new_state <= 1 then
+            elseif new_state ~= 2 then
                 flash_on = false
                 flasher.stop(flash_callback)
 
-                e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                if new_state == 3 then
+                    e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                else
+                    e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                end
             end
         elseif new_state == 2 then
             e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
@@ -107,4 +110,4 @@ local function tristate_indicator_light(args)
     return e.get()
 end
 
-return tristate_indicator_light
+return alarm_indicator_light

@@ -421,6 +421,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                         unit.set_burn_ack(ack)
                                     elseif cmd == CRDN_COMMANDS.SET_WASTE then
                                         unit.set_waste_ack(ack)
+                                    elseif cmd == CRDN_COMMANDS.ACK_ALL_ALARMS then
+                                        unit.ack_alarms_ack(ack)
                                     else
                                         log.debug(util.c("received command ack with unknown command ", cmd))
                                     end
@@ -474,6 +476,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             else
                                 log.debug("supervisor connection denied")
                             end
+                        elseif packet.length == 1 and packet.data[1] == ESTABLISH_ACK.DENY then
+                            log.debug("supervisor connection denied")
+                        elseif packet.length == 1 and packet.data[1] == ESTABLISH_ACK.COLLISION then
+                            log.debug("supervisor connection denied due to collision")
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end

@@ -4,8 +4,14 @@ local log   = require("scada-common.log")
 
 local unit = {}
 
+local ALARM = types.ALARM
+local PRIO = types.ALARM_PRIORITY
+local ALARM_STATE = types.ALARM_STATE
+
 local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
+
+local FLOW_STABILITY_DELAY_MS = 15000
 
 local DT_KEYS = {
     ReactorTemp  = "RTP",
@@ -21,6 +27,32 @@ local DT_KEYS = {
     TurbinePower = "TPR"
 }
 
+---@alias ALARM_INT_STATE integer
+local AISTATE = {
+    INACTIVE = 0,
+    TRIPPING = 1,
+    TRIPPED = 2,
+    ACKED = 3,
+    RING_BACK = 4,
+    RING_BACK_TRIPPING = 5
+}
+
+local aistate_string = {
+    "INACTIVE",
+    "TRIPPING",
+    "TRIPPED",
+    "ACKED",
+    "RING_BACK",
+    "RING_BACK_TRIPPING"
+}
+
+---@class alarm_def
+---@field state ALARM_INT_STATE internal alarm state
+---@field trip_time integer time (ms) when first tripped
+---@field hold_time integer time (s) to hold before tripping
+---@field id ALARM alarm ID
+---@field tier integer alarm urgency tier (0 = highest)
+
 -- create a new reactor unit
 ---@param for_reactor integer reactor unit number
 ---@param num_boilers integer number of boilers expected
@@ -30,12 +62,49 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         r_id = for_reactor,
         plc_s = nil,    ---@class plc_session_struct
         plc_i = nil,    ---@class plc_session
-        counts = { boilers = num_boilers, turbines = num_turbines },
         turbines = {},
         boilers = {},
         redstone = {},
         deltas = {},
         last_heartbeat = 0,
+        -- logic for alarms
+        had_reactor = false,
+        start_time = 0,
+        plc_cache = {
+            ok = false,
+            rps_trip = false,
+            rps_status = {},  ---@type rps_status
+            damage = 0,
+            temp = 0,
+            waste = 0
+        },
+        ---@class alarm_monitors
+        alarms = {
+            -- reactor lost under the condition of meltdown imminent
+            ContainmentBreach    = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ContainmentBreach, tier = PRIO.CRITICAL },
+            -- radiation monitor alarm for this unit
+            ContainmentRadiation = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ContainmentRadiation, tier = PRIO.CRITICAL },
+            -- reactor offline after being online
+            ReactorLost          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorLost, tier = PRIO.URGENT },
+            -- damage >100%
+            CriticalDamage       = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.CriticalDamage, tier = PRIO.CRITICAL },
+            -- reactor damage increasing
+            ReactorDamage        = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorDamage, tier = PRIO.EMERGENCY },
+            -- reactor >1200K
+            ReactorOverTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorOverTemp, tier = PRIO.URGENT },
+            -- reactor >1100K
+            ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
+            -- waste = 100%
+            ReactorWasteLeak     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorWasteLeak, tier = PRIO.EMERGENCY },
+            -- waste >85%
+            ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.TIMELY },
+            -- RPS trip occured
+            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.RPSTransient, tier = PRIO.URGENT },
+            -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
+            RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
+            -- "It's just a routine turbin' trip!" -Bill Gibson
+            TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
+        },
         db = {
             ---@class annunciator
             annunciator = {
@@ -47,6 +116,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 AutoReactorSCRAM = false,
                 RCPTrip = false,
                 RCSFlowLow = false,
+                CoolantLevelLow = false,
                 ReactorTempHigh = false,
                 ReactorHighDeltaT = false,
                 FuelInputRateLow = false,
@@ -55,6 +125,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 -- boiler
                 BoilerOnline = {},
                 HeatingRateLow = {},
+                WaterLevelLow = {},
                 BoilRateMismatch = false,
                 CoolantFeedMismatch = false,
                 -- turbine
@@ -64,6 +135,21 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 SteamDumpOpen = {},
                 TurbineOverSpeed = {},
                 TurbineTrip = {}
+            },
+            ---@class alarms
+            alarm_states = {
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE
             }
         }
     }
@@ -125,6 +211,92 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
+    -- update an alarm state given conditions
+    ---@param tripped boolean if the alarm condition is still active
+    ---@param alarm alarm_def alarm table
+    local function _update_alarm_state(tripped, alarm)
+        local int_state = alarm.state
+        local ext_state = self.db.alarm_states[alarm.id]
+
+        -- alarm inactive
+        if int_state == AISTATE.INACTIVE then
+            if tripped then
+                alarm.trip_time = util.time_ms()
+                if alarm.hold_time > 0 then
+                    alarm.state = AISTATE.TRIPPING
+                    self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
+                else
+                    alarm.state = AISTATE.TRIPPED
+                    self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
+                    log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
+                        types.alarm_prio_string[alarm.tier + 1],"]"))
+                end
+            else
+                alarm.trip_time = util.time_ms()
+                self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
+            end
+        -- alarm condition met, but not yet for required hold time
+        elseif (int_state == AISTATE.TRIPPING) or (int_state == AISTATE.RING_BACK_TRIPPING) then
+            if tripped then
+                local elapsed = util.time_ms() - alarm.trip_time
+                if elapsed > (alarm.hold_time * 1000) then
+                    alarm.state = AISTATE.TRIPPED
+                    self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
+                    log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
+                        types.alarm_prio_string[alarm.tier + 1],"]"))
+                end
+            elseif int_state == AISTATE.RING_BACK_TRIPPING then
+                alarm.trip_time = 0
+                alarm.state = AISTATE.RING_BACK
+                self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
+            else
+                alarm.trip_time = 0
+                alarm.state = AISTATE.INACTIVE
+                self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
+            end
+        -- alarm tripped and alarming
+        elseif int_state == AISTATE.TRIPPED then
+            if tripped then
+                if ext_state == ALARM_STATE.ACKED then
+                    -- was acked by coordinator
+                    alarm.state = AISTATE.ACKED
+                end
+            else
+                alarm.state = AISTATE.RING_BACK
+                self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
+            end
+        -- alarm acknowledged but still tripped
+        elseif int_state == AISTATE.ACKED then
+            if not tripped then
+                alarm.state = AISTATE.RING_BACK
+                self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
+            end
+        -- alarm no longer tripped, operator must reset to clear
+        elseif int_state == AISTATE.RING_BACK then
+            if tripped then
+                alarm.trip_time = util.time_ms()
+                if alarm.hold_time > 0 then
+                    alarm.state = AISTATE.RING_BACK_TRIPPING
+                else
+                    alarm.state = AISTATE.TRIPPED
+                    self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
+                end
+            elseif ext_state == ALARM_STATE.INACTIVE then
+                -- was reset by coordinator
+                alarm.state = AISTATE.INACTIVE
+                alarm.trip_time = 0
+            end
+        else
+            log.error(util.c("invalid alarm state for unit ", self.r_id, " alarm ", alarm.id), true)
+        end
+
+        -- check for state change
+        if alarm.state ~= int_state then
+            local change_str = util.c(aistate_string[int_state + 1], " -> ", aistate_string[alarm.state + 1])
+            log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): ", change_str))
+        end
+    end
+
     -- update all delta computations
     local function _dt__compute_all()
         if self.plc_s ~= nil then
@@ -181,6 +353,21 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil then
             local plc_db = self.plc_i.get_db()
 
+            -- record reactor start time (some alarms are delayed during reactor heatup)
+            if self.start_time == 0 and plc_db.mek_status.status then
+                self.start_time = util.time_ms()
+            elseif not plc_db.mek_status.status then
+                self.start_time = 0
+            end
+
+            -- record reactor stats
+            self.plc_cache.ok = not (plc_db.rps_status.fault or plc_db.rps_status.sys_fail or plc_db.rps_status.force_dis)
+            self.plc_cache.rps_trip = plc_db.rps_tripped
+            self.plc_cache.rps_status = plc_db.rps_status
+            self.plc_cache.damage = plc_db.mek_status.damage
+            self.plc_cache.temp = plc_db.mek_status.temp
+            self.plc_cache.waste = plc_db.mek_status.waste_fill
+
             -- heartbeat blink about every second
             if self.last_heartbeat + 1000 < plc_db.last_status_update then
                 self.db.annunciator.PLCHeartbeat = not self.db.annunciator.PLCHeartbeat
@@ -201,9 +388,11 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and plc_db.mek_status.burn_rate > 40
 
             -- if no boilers, use reactor heating rate to check for boil rate mismatch
-            if self.counts.boilers == 0 then
+            if num_boilers == 0 then
                 total_boil_rate = plc_db.mek_status.heating_rate
             end
+        else
+            self.plc_cache.ok = false
         end
 
         -------------
@@ -211,13 +400,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -------------
 
         -- clear boiler online flags
-        for i = 1, self.counts.boilers do self.db.annunciator.BoilerOnline[i] = false end
+        for i = 1, num_boilers do self.db.annunciator.BoilerOnline[i] = false end
 
         -- aggregated statistics
         local boiler_steam_dt_sum = 0.0
         local boiler_water_dt_sum = 0.0
 
-        if self.counts.boilers > 0 then
+        if num_boilers > 0 then
             -- go through boilers for stats and online
             for i = 1, #self.boilers do
                 local session = self.boilers[i] ---@type unit_session
@@ -259,7 +448,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- check coolant feed mismatch if using boilers, otherwise calculate with reactor
         local cfmismatch = false
 
-        if self.counts.boilers > 0 then
+        if num_boilers > 0 then
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]      ---@type unit_session
                 local idx = boiler.get_device_idx()
@@ -290,7 +479,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         --------------
 
         -- clear turbine online flags
-        for i = 1, self.counts.turbines do self.db.annunciator.TurbineOnline[i] = false end
+        for i = 1, num_turbines do self.db.annunciator.TurbineOnline[i] = false end
 
         -- aggregated statistics
         local total_flow_rate = 0
@@ -359,6 +548,75 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
+    -- evaluate alarm conditions
+    local function _update_alarms()
+        local annunc = self.db.annunciator
+        local plc_cache = self.plc_cache
+
+        -- Containment Breach
+        -- lost plc with critical damage (rip plc, you will be missed)
+        _update_alarm_state((not plc_cache.ok) and (plc_cache.damage > 99), self.alarms.ContainmentBreach)
+
+        -- Containment Radiation
+        ---@todo containment radiation alarm
+        _update_alarm_state(false, self.alarms.ContainmentRadiation)
+
+        -- Reactor Lost
+        _update_alarm_state(self.had_reactor and self.plc_s == nil, self.alarms.ReactorLost)
+
+        -- Critical Damage
+        _update_alarm_state(plc_cache.damage >= 100, self.alarms.CriticalDamage)
+
+        -- Reactor Damage
+        _update_alarm_state(plc_cache.damage > 0, self.alarms.ReactorDamage)
+
+        -- Over-Temperature
+        _update_alarm_state(plc_cache.temp >= 1200, self.alarms.ReactorOverTemp)
+
+        -- High Temperature
+        _update_alarm_state(plc_cache.temp > 1150, self.alarms.ReactorHighTemp)
+
+        -- Waste Leak
+        _update_alarm_state(plc_cache.waste >= 0.99, self.alarms.ReactorWasteLeak)
+
+        -- High Waste
+        _update_alarm_state(plc_cache.waste > 0.50, self.alarms.ReactorHighWaste)
+
+        -- RPS Transient (excludes timeouts and manual trips)
+        local rps_alarm = false
+        if plc_cache.rps_status.manual ~= nil then
+            if plc_cache.rps_trip then
+                for key, val in pairs(plc_cache.rps_status) do
+                    if key ~= "manual" and key ~= "timeout" then
+                        rps_alarm = rps_alarm or val
+                    end
+                end
+            end
+        end
+
+        _update_alarm_state(rps_alarm, self.alarms.RPSTransient)
+
+        -- RCS Transient
+        local any_low = false
+        local any_over = false
+        for i = 1, #annunc.WaterLevelLow do any_low = any_low or annunc.WaterLevelLow[i] end
+        for i = 1, #annunc.TurbineOverSpeed do any_over = any_over or annunc.TurbineOverSpeed[i] end
+
+        local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.RCSFlowLow or annunc.MaxWaterReturnFeed
+
+        -- flow is ramping up right after reactor start, annunciator indicators for these states may not indicate a real issue
+        if util.time_ms() - self.start_time > FLOW_STABILITY_DELAY_MS then
+            rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
+        end
+
+        _update_alarm_state(rcs_trans, self.alarms.RCSTransient)
+
+        -- Turbine Trip
+        local any_trip = false
+        for i = 1, #annunc.TurbineTrip do any_trip = any_trip or annunc.TurbineTrip[i] end
+        _update_alarm_state(any_trip, self.alarms.TurbineTrip)
+    end
+
     -- unlink disconnected units
     ---@param sessions table
     local function _unlink_disconnected_units(sessions)
@@ -372,6 +630,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- link the PLC
     ---@param plc_session plc_session_struct
     function public.link_plc_session(plc_session)
+        self.had_reactor = true
         self.plc_s = plc_session
         self.plc_i = plc_session.instance
 
@@ -443,6 +702,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- unlink PLC if session was closed
         if self.plc_s ~= nil and not self.plc_s.open then
             self.plc_s = nil
+            self.plc_i = nil
         end
 
         -- unlink RTU unit sessions if they are closed
@@ -451,6 +711,36 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- update annunciator logic
         _update_annunciator()
+
+        -- update alarm status
+        _update_alarms()
+    end
+
+    -- ACK/RESET ALARMS --
+
+    -- acknowledge all alarms (if possible)
+    function public.ack_all()
+        for i = 1, #self.db.alarm_states do
+            if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
+                self.db.alarm_states[i] = ALARM_STATE.ACKED
+            end
+        end
+    end
+
+    -- acknowledge an alarm (if possible)
+    ---@param id ALARM alarm ID
+    function public.ack_alarm(id)
+        if (type(id) == "number") and (self.db.alarm_states[id] == ALARM_STATE.TRIPPED) then
+            self.db.alarm_states[id] = ALARM_STATE.ACKED
+        end
+    end
+
+    -- reset an alarm (if possible)
+    ---@param id ALARM alarm ID
+    function public.reset_alarm(id)
+        if (type(id) == "number") and (self.db.alarm_states[id] == ALARM_STATE.RING_BACK) then
+            self.db.alarm_states[id] = ALARM_STATE.INACTIVE
+        end
     end
 
     -- READ STATES/PROPERTIES --
@@ -525,6 +815,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- get the annunciator status
     function public.get_annunciator() return self.db.annunciator end
+
+    -- get the alarm states
+    function public.get_alarms() return self.db.alarm_states end
 
     -- get the reactor ID
     function public.get_id() return self.r_id end

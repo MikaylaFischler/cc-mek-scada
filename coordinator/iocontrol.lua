@@ -1,6 +1,7 @@
 local comms = require("scada-common.comms")
 local log   = require("scada-common.log")
 local psil  = require("scada-common.psil")
+local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
 local CRDN_COMMANDS = comms.CRDN_COMMANDS
@@ -22,9 +23,19 @@ function iocontrol.init(conf, comms)
 
     io.units = {}
     for i = 1, conf.num_units do
+        local function ack(alarm)
+            comms.send_command(CRDN_COMMANDS.ACK_ALARM, i, alarm)
+            log.debug(util.c("UNIT[", i, "]: ACK ALARM ", alarm))
+        end
+
+        local function reset(alarm)
+            comms.send_command(CRDN_COMMANDS.RESET_ALARM, i, alarm)
+            log.debug(util.c("UNIT[", i, "]: RESET ALARM ", alarm))
+        end
+
         ---@class ioctl_entry
         local entry = {
-            unit_id = i,        ---@type integer
+            unit_id = i,                            ---@type integer
             initialized = false,
 
             num_boilers = 0,
@@ -37,17 +48,36 @@ function iocontrol.init(conf, comms)
             start = function () end,
             scram = function () end,
             reset_rps = function () end,
-            set_burn = function (rate) end,
-            set_waste = function (mode) end,
+            ack_alarms = function () end,
+            set_burn = function (rate) end,         ---@param rate number
+            set_waste = function (mode) end,        ---@param mode integer
 
-            start_ack = function (success) end,
-            scram_ack = function (success) end,
-            reset_rps_ack = function (success) end,
-            set_burn_ack = function (success) end,
-            set_waste_ack = function (success) end,
+            start_ack = function (success) end,     ---@param success boolean
+            scram_ack = function (success) end,     ---@param success boolean
+            reset_rps_ack = function (success) end, ---@param success boolean
+            ack_alarms_ack = function (success) end,---@param success boolean
+            set_burn_ack = function (success) end,  ---@param success boolean
+            set_waste_ack = function (success) end, ---@param success boolean
+
+            alarm_callbacks = {
+                c_breach    = { ack = function () ack(1) end,  reset = function () reset(1) end },
+                radiation   = { ack = function () ack(2) end,  reset = function () reset(2) end },
+                dmg_crit    = { ack = function () ack(3) end,  reset = function () reset(3) end },
+                r_lost      = { ack = function () ack(4) end,  reset = function () reset(4) end },
+                damage      = { ack = function () ack(5) end,  reset = function () reset(5) end },
+                over_temp   = { ack = function () ack(6) end,  reset = function () reset(6) end },
+                high_temp   = { ack = function () ack(7) end,  reset = function () reset(7) end },
+                waste_leak  = { ack = function () ack(8) end,  reset = function () reset(8) end },
+                waste_high  = { ack = function () ack(9) end,  reset = function () reset(9) end },
+                rps_trans   = { ack = function () ack(10) end, reset = function () reset(10) end },
+                rcs_trans   = { ack = function () ack(11) end, reset = function () reset(11) end },
+                t_trip      = { ack = function () ack(12) end, reset = function () reset(12) end }
+            },
+
+            alarms = {},                            ---@type alarms
 
             reactor_ps = psil.create(),
-            reactor_data = {},  ---@type reactor_db
+            reactor_data = {},                      ---@type reactor_db
 
             boiler_ps_tbl = {},
             boiler_data_tbl = {},
@@ -71,6 +101,11 @@ function iocontrol.init(conf, comms)
         function entry.reset_rps()
             comms.send_command(CRDN_COMMANDS.RESET_RPS, i)
             log.debug(util.c("UNIT[", i, "]: RESET_RPS"))
+        end
+
+        function entry.ack_alarms()
+            comms.send_command(CRDN_COMMANDS.ACK_ALL_ALARMS, i)
+            log.debug(util.c("UNIT[", i, "]: ACK_ALL_ALARMS"))
         end
 
         function entry.set_burn(rate)
@@ -167,13 +202,21 @@ end
 ---@param statuses table
 ---@return boolean valid
 function iocontrol.update_statuses(statuses)
-    if #statuses ~= #io.units then
+    if type(statuses) ~= "table" then
+        log.error("unit statuses not a table")
+        return false
+    elseif #statuses ~= #io.units then
         log.error("number of provided unit statuses does not match expected number of units")
         return false
     else
         for i = 1, #statuses do
             local unit = io.units[i]    ---@type ioctl_entry
             local status = statuses[i]
+
+            if type(status) ~= "table" or #status ~= 4 then
+                log.error("invalid status entry in unit statuses (not a table or invalid length)")
+                return false
+            end
 
             -- reactor PLC status
 
@@ -253,7 +296,7 @@ function iocontrol.update_statuses(statuses)
                     end
 
                     unit.reactor_ps.publish("TurbineTrip", any)
-                elseif key == "BoilerOnline" or key == "HeatingRateLow" then
+                elseif key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
                     -- split up array for all boilers
                     for id = 1, #val do
                         unit.boiler_ps_tbl[id].publish(key, val[id])
@@ -272,9 +315,25 @@ function iocontrol.update_statuses(statuses)
                 end
             end
 
+            -- alarms
+
+            local alarm_states = status[3]
+
+            for id = 1, #alarm_states do
+                local state = alarm_states[id]
+
+                if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
+                    unit.reactor_ps.publish("ALM" .. id, 2)
+                elseif state == types.ALARM_STATE.RING_BACK then
+                    unit.reactor_ps.publish("ALM" .. id, 3)
+                else
+                    unit.reactor_ps.publish("ALM" .. id, 1)
+                end
+            end
+
             -- RTU statuses
 
-            local rtu_statuses = status[3]
+            local rtu_statuses = status[4]
 
             if type(rtu_statuses) == "table" then
                 if type(rtu_statuses.boilers) == "table" then

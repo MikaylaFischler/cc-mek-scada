@@ -129,7 +129,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
         for i = 1, #self.units do
             local unit = self.units[i]  ---@type reactor_unit
-            status[unit.get_id()] = { unit.get_reactor_status(), unit.get_annunciator(), unit.get_rtu_statuses() }
+            status[unit.get_id()] = { unit.get_reactor_status(), unit.get_annunciator(), unit.get_alarms(), unit.get_rtu_statuses() }
         end
 
         _send(SCADA_CRDN_TYPES.UNIT_STATUSES, status)
@@ -191,6 +191,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
+                        local unit = self.units[uid]    ---@type reactor_unit
+
                         if cmd == CRDN_COMMANDS.START then
                             self.out_q.push_data(SV_Q_DATA.START, data)
                         elseif cmd == CRDN_COMMANDS.SCRAM then
@@ -208,6 +210,21 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                                 self.out_q.push_data(SV_Q_DATA.SET_WASTE, data)
                             else
                                 log.debug(log_header .. "CRDN command unit set waste missing option")
+                            end
+                        elseif cmd == CRDN_COMMANDS.ACK_ALL_ALARMS then
+                            unit.ack_all()
+                            _send(SCADA_CRDN_TYPES.COMMAND_UNIT, { cmd, uid, true })
+                        elseif cmd == CRDN_COMMANDS.ACK_ALARM then
+                            if pkt.length == 3 then
+                                unit.ack_alarm(pkt.data[3])
+                            else
+                                log.debug(log_header .. "CRDN command unit ack alarm missing id")
+                            end
+                        elseif cmd == CRDN_COMMANDS.RESET_ALARM then
+                            if pkt.length == 3 then
+                                unit.reset_alarm(pkt.data[3])
+                            else
+                                log.debug(log_header .. "CRDN command unit reset alarm missing id")
                             end
                         else
                             log.debug(log_header .. "CRDN command unknown")

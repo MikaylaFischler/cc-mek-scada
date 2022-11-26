@@ -35,6 +35,76 @@ types.TRI_FAIL = {
     FULL = 2
 }
 
+---@alias ALARM integer
+types.ALARM = {
+    ContainmentBreach = 1,
+    ContainmentRadiation = 2,
+    ReactorLost = 3,
+    CriticalDamage = 4,
+    ReactorDamage = 5,
+    ReactorOverTemp = 6,
+    ReactorHighTemp = 7,
+    ReactorWasteLeak = 8,
+    ReactorHighWaste = 9,
+    RPSTransient = 10,
+    RCSTransient = 11,
+    TurbineTrip = 12
+}
+
+types.alarm_string = {
+    "ContainmentBreach",
+    "ContainmentRadiation",
+    "ReactorLost",
+    "CriticalDamage",
+    "ReactorDamage",
+    "ReactorOverTemp",
+    "ReactorHighTemp",
+    "ReactorWasteLeak",
+    "ReactorHighWaste",
+    "RPSTransient",
+    "RCSTransient",
+    "TurbineTrip"
+}
+
+---@alias ALARM_PRIORITY integer
+types.ALARM_PRIORITY = {
+    CRITICAL = 0,
+    EMERGENCY = 1,
+    URGENT = 2,
+    TIMELY = 3
+}
+
+types.alarm_prio_string = {
+    "CRITICAL",
+    "EMERGENCY",
+    "URGENT",
+    "TIMELY"
+}
+
+-- map alarms to alarm priority
+types.ALARM_PRIO_MAP = {
+    types.ALARM_PRIORITY.CRITICAL,
+    types.ALARM_PRIORITY.CRITICAL,
+    types.ALARM_PRIORITY.URGENT,
+    types.ALARM_PRIORITY.CRITICAL,
+    types.ALARM_PRIORITY.EMERGENCY,
+    types.ALARM_PRIORITY.URGENT,
+    types.ALARM_PRIORITY.TIMELY,
+    types.ALARM_PRIORITY.EMERGENCY,
+    types.ALARM_PRIORITY.TIMELY,
+    types.ALARM_PRIORITY.URGENT,
+    types.ALARM_PRIORITY.TIMELY,
+    types.ALARM_PRIORITY.URGENT
+}
+
+---@alias ALARM_STATE integer
+types.ALARM_STATE = {
+    INACTIVE = 0,
+    TRIPPED = 1,
+    ACKED = 2,
+    RING_BACK = 3
+}
+
 -- STRING TYPES --
 
 ---@alias os_event

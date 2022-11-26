@@ -26,6 +26,7 @@ local element = {}
 ---|push_button_args
 ---|spinbox_args
 ---|switch_button_args
+---|alarm_indicator_light
 ---|core_map_args
 ---|data_indicator_args
 ---|hbar_args
@@ -301,6 +302,18 @@ function element.new(args)
     -- get the foreground/background colors
     ---@return cpair fg_bg
     function public.get_fg_bg() return protected.fg_bg end
+
+    -- get element x
+    ---@return integer x
+    function public.get_x()
+        return protected.frame.x
+    end
+
+    -- get element y
+    ---@return integer y
+    function public.get_y()
+        return protected.frame.y
+    end
 
     -- get element width
     ---@return integer width
