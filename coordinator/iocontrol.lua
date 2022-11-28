@@ -62,8 +62,8 @@ function iocontrol.init(conf, comms)
             alarm_callbacks = {
                 c_breach    = { ack = function () ack(1) end,  reset = function () reset(1) end },
                 radiation   = { ack = function () ack(2) end,  reset = function () reset(2) end },
-                dmg_crit    = { ack = function () ack(3) end,  reset = function () reset(3) end },
-                r_lost      = { ack = function () ack(4) end,  reset = function () reset(4) end },
+                r_lost      = { ack = function () ack(3) end,  reset = function () reset(3) end },
+                dmg_crit    = { ack = function () ack(4) end,  reset = function () reset(4) end },
                 damage      = { ack = function () ack(5) end,  reset = function () reset(5) end },
                 over_temp   = { ack = function () ack(6) end,  reset = function () reset(6) end },
                 high_temp   = { ack = function () ack(7) end,  reset = function () reset(7) end },
