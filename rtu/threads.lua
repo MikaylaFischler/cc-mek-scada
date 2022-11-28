@@ -341,10 +341,11 @@ function threads.thread__unit_comms(smem, unit)
                 util.nop()
             end
 
-
             -- check if multiblock is still formed if this is a multiblock
             if (type(unit.formed) == "boolean") and (util.time() - last_f_check > 1000) then
-                if (not unit.formed) and unit.device.isFormed() then
+                local is_formed = unit.device.isFormed()
+
+                if (not unit.formed) and is_formed then
                     -- newly re-formed
                     local iface = ppm.get_iface(unit.device)
                     if iface then
@@ -394,6 +395,8 @@ function threads.thread__unit_comms(smem, unit)
                         log.error("failed to get interface of previously connected RTU unit " .. detail_name, true)
                     end
                 end
+
+                unit.formed = is_formed
             end
 
             -- check for termination request
