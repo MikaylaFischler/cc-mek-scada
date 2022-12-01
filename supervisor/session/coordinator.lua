@@ -207,7 +207,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                             end
                         elseif cmd == CRDN_COMMANDS.SET_WASTE then
                             if pkt.length == 3 then
-                                self.out_q.push_data(SV_Q_DATA.SET_WASTE, data)
+                                unit.set_waste(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN command unit set waste missing option")
                             end

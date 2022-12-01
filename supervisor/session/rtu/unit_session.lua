@@ -1,5 +1,6 @@
 local comms   = require("scada-common.comms")
 local log     = require("scada-common.log")
+local mqueue  = require("scada-common.mqueue")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
@@ -42,7 +43,9 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     }
 
     ---@class _unit_session
-    local protected = {}
+    local protected = {
+        in_q = mqueue.new()
+    }
 
     ---@class unit_session
     local public = {}
@@ -53,6 +56,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     ---@param txn_type integer transaction type
     ---@param f_code MODBUS_FCODE function code
     ---@param register_param table register range or register and values
+    ---@return integer txn_id transaction ID of this transaction
     function protected.send_request(txn_type, f_code, register_param)
         local m_pkt = comms.modbus_packet()
         local txn_id = self.transaction_controller.create(txn_type)
@@ -60,11 +64,13 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         m_pkt.make(txn_id, self.unit_id, f_code, register_param)
 
         self.out_q.push_packet(m_pkt)
+
+        return txn_id
     end
 
     -- try to resolve a MODBUS transaction
     ---@param m_pkt modbus_frame MODBUS packet
-    ---@return integer|false txn_type transaction type or false on error/busy
+    ---@return integer|false txn_type, integer txn_id transaction type or false on error/busy, transaction ID
     function protected.try_resolve(m_pkt)
         if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
             if m_pkt.unit_id == self.unit_id then
@@ -110,7 +116,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
                     self.device_fail = false
 
                     -- no error, return the transaction type
-                    return txn_type
+                    return txn_type, m_pkt.txn_id
                 end
             else
                 log.error(log_tag .. "wrong unit ID: " .. m_pkt.unit_id, true)
@@ -120,7 +126,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         end
 
         -- error or transaction in progress, return false
-        return false
+        return false, m_pkt.txn_id
     end
 
     -- post update tasks
@@ -141,6 +147,8 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     function public.get_device_idx() return self.device_index end
     -- get the reactor ID
     function public.get_reactor() return self.reactor end
+    -- get the command queue
+    function public.get_cmd_queue() return protected.in_q end
 
     -- close this unit
     function public.close() self.connected = false end
@@ -171,7 +179,10 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     end
 
     -- get the unit session database
-    function public.get_db() return {} end
+    function public.get_db()
+        log.debug("template unit_session.get_db() called", true)
+        return {}
+    end
 
     return protected
 end

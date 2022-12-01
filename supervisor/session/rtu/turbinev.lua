@@ -4,6 +4,7 @@ local mqueue       = require("scada-common.mqueue")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
 
+local qtypes       = require("supervisor.session.rtu.qtypes")
 local unit_session = require("supervisor.session.rtu.unit_session")
 
 local turbinev = {}
@@ -12,17 +13,8 @@ local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
-local TBV_RTU_S_CMDS = {
-    INC_DUMP_MODE = 1,
-    DEC_DUMP_MODE = 2
-}
-
-local TBV_RTU_S_DATA = {
-    SET_DUMP_MODE = 1
-}
-
-turbinev.RS_RTU_S_CMDS = TBV_RTU_S_CMDS
-turbinev.RS_RTU_S_DATA = TBV_RTU_S_DATA
+local TBV_RTU_S_CMDS = qtypes.TBV_RTU_S_CMDS
+local TBV_RTU_S_DATA = qtypes.TBV_RTU_S_DATA
 
 local TXN_TYPES = {
     FORMED = 1,
@@ -67,7 +59,6 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
-        in_q = mqueue.new(),
         has_build = false,
         periodics = {
             next_formed_req = 0,
@@ -240,9 +231,9 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     ---@param time_now integer milliseconds
     function public.update(time_now)
         -- check command queue
-        while self.in_q.ready() do
+        while self.session.in_q.ready() do
             -- get a new message to process
-            local msg = self.in_q.pop()
+            local msg = self.session.in_q.pop()
 
             if msg ~= nil then
                 if msg.qtype == mqueue.TYPE.COMMAND then
@@ -254,15 +245,21 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                     elseif cmd == TBV_RTU_S_CMDS.DEC_DUMP_MODE then
                         _dec_dump_mode()
                     else
-                        log.debug(util.c(log_tag, "unrecognized in_q command ", cmd))
+                        log.debug(util.c(log_tag, "unrecognized in-queue command ", cmd))
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
                     local cmd = msg.message     ---@type queue_data
                     if cmd.key == TBV_RTU_S_DATA.SET_DUMP_MODE then
-                        _set_dump_mode(cmd.val)
+                        if cmd.val == types.DUMPING_MODE.IDLE or
+                           cmd.val == types.DUMPING_MODE.DUMPING_EXCESS or
+                           cmd.val == types.DUMPING_MODE.DUMPING then
+                            _set_dump_mode(cmd.val)
+                        else
+                            log.debug(util.c(log_tag, "unrecognized dumping mode \"", cmd.val, "\""))
+                        end
                     else
-                        log.debug(util.c(log_tag, "unrecognized in_q data ", cmd.key))
+                        log.debug(util.c(log_tag, "unrecognized in-queue data ", cmd.key))
                     end
                 end
             end
@@ -313,7 +310,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     -- get the unit session database
     function public.get_db() return self.db end
 
-    return public, self.in_q
+    return public
 end
 
 return turbinev

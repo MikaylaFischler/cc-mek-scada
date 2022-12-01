@@ -4,9 +4,10 @@ local rsio = require("scada-common.rsio")
 
 local redstone_rtu = {}
 
+local IO_LVL = rsio.IO_LVL
+
 local digital_read = rsio.digital_read
 local digital_write = rsio.digital_write
-local digital_is_active = rsio.digital_is_active
 
 -- create new redstone device
 function redstone_rtu.new()
@@ -47,10 +48,9 @@ function redstone_rtu.new()
     end
 
     -- link digital output
-    ---@param channel RS_IO
     ---@param side string
     ---@param color integer
-    function public.link_do(channel, side, color)
+    function public.link_do(side, color)
         local f_read = nil
         local f_write = nil
 
@@ -60,15 +60,17 @@ function redstone_rtu.new()
             end
 
             f_write = function (level)
-                local output = rs.getBundledOutput(side)
+                if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
+                    local output = rs.getBundledOutput(side)
 
-                if digital_write(channel, level) then
-                    output = colors.combine(output, color)
-                else
-                    output = colors.subtract(output, color)
+                    if digital_write(level) then
+                        output = colors.combine(output, color)
+                    else
+                        output = colors.subtract(output, color)
+                    end
+
+                    rs.setBundledOutput(side, output)
                 end
-
-                rs.setBundledOutput(side, output)
             end
         else
             f_read = function ()
@@ -76,7 +78,9 @@ function redstone_rtu.new()
             end
 
             f_write = function (level)
-                rs.setOutput(side, digital_is_active(channel, level))
+                if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
+                    rs.setOutput(side, digital_write(level))
+                end
             end
         end
 

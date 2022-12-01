@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.9.7"
+local RTU_VERSION = "beta-v0.9.8"
 
 local rtu_t = types.rtu_t
 
@@ -166,7 +166,7 @@ local function main()
                     local conf = io_table[i]
 
                     -- verify configuration
-                    if rsio.is_valid_channel(conf.channel) and rsio.is_valid_side(conf.side) then
+                    if rsio.is_valid_port(conf.port) and rsio.is_valid_side(conf.side) then
                         if conf.bundled_color then
                             valid = rsio.is_color(conf.bundled_color)
                         else
@@ -182,22 +182,22 @@ local function main()
                         return false
                     else
                         -- link redstone in RTU
-                        local mode = rsio.get_io_mode(conf.channel)
+                        local mode = rsio.get_io_mode(conf.port)
                         if mode == rsio.IO_MODE.DIGITAL_IN then
                             -- can't have duplicate inputs
-                            if util.table_contains(capabilities, conf.channel) then
-                                local message = util.c("configure> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side)
+                            if util.table_contains(capabilities, conf.port) then
+                                local message = util.c("configure> skipping duplicate input for port ", rsio.to_string(conf.port), " on side ", conf.side)
                                 println(message)
                                 log.warning(message)
                             else
                                 rs_rtu.link_di(conf.side, conf.bundled_color)
                             end
                         elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                            rs_rtu.link_do(conf.channel, conf.side, conf.bundled_color)
+                            rs_rtu.link_do(conf.side, conf.bundled_color)
                         elseif mode == rsio.IO_MODE.ANALOG_IN then
                             -- can't have duplicate inputs
-                            if util.table_contains(capabilities, conf.channel) then
-                                local message = util.c("configure> skipping duplicate input for channel ", rsio.to_string(conf.channel), " on side ", conf.side)
+                            if util.table_contains(capabilities, conf.port) then
+                                local message = util.c("configure> skipping duplicate input for port ", rsio.to_string(conf.port), " on side ", conf.side)
                                 println(message)
                                 log.warning(message)
                             else
@@ -206,15 +206,15 @@ local function main()
                         elseif mode == rsio.IO_MODE.ANALOG_OUT then
                             rs_rtu.link_ao(conf.side)
                         else
-                            -- should be unreachable code, we already validated channels
+                            -- should be unreachable code, we already validated ports
                             log.error("configure> fell through if chain attempting to identify IO mode", true)
                             println("configure> encountered a software error, check logs")
                             return false
                         end
 
-                        table.insert(capabilities, conf.channel)
+                        table.insert(capabilities, conf.port)
 
-                        log.debug(util.c("configure> linked redstone ", #capabilities, ": ", rsio.to_string(conf.channel),
+                        log.debug(util.c("configure> linked redstone ", #capabilities, ": ", rsio.to_string(conf.port),
                             " (", conf.side, ") for reactor ", io_reactor))
                     end
                 end
@@ -225,7 +225,7 @@ local function main()
                     type = rtu_t.redstone,
                     index = entry_idx,
                     reactor = io_reactor,
-                    device = capabilities,  -- use device field for redstone channels
+                    device = capabilities,  -- use device field for redstone ports
                     formed = nil,       ---@type boolean|nil
                     rtu = rs_rtu,       ---@type rtu_device|rtu_rs_device
                     modbus_io = modbus.new(rs_rtu, false),

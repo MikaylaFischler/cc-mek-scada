@@ -82,8 +82,6 @@ local function _sv_handle_outq(session)
                             plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
                         elseif cmd.key == SV_Q_DATA.SET_BURN and type(cmd.val) == "table" and #cmd.val == 2 then
                             plc_s.in_queue.push_data(PLC_S_DATA.BURN_RATE, cmd.val[2])
-                        elseif cmd.key == SV_Q_DATA.SET_WASTE and type(cmd.val) == "table" and #cmd.val == 2 then
-                            ---@todo set waste
                         else
                             log.debug(util.c("unknown PLC SV queue command ", cmd.key))
                         end

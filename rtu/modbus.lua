@@ -366,7 +366,7 @@ function modbus.new(rtu_dev, use_parallel_read)
         local return_code = true
         local response = nil
 
-        if packet.length == 2 then
+        if packet.length >= 2 then
             -- handle  by function code
             if packet.func_code == MODBUS_FCODE.READ_COILS then
                 return_code, response = _1_read_coils(packet.data[1], packet.data[2])
@@ -381,9 +381,9 @@ function modbus.new(rtu_dev, use_parallel_read)
             elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
                 return_code, response = _6_write_single_holding_register(packet.data[1], packet.data[2])
             elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
-                return_code, response = _15_write_multiple_coils(packet.data[1], packet.data[2])
+                return_code, response = _15_write_multiple_coils(packet.data[1], { table.unpack(packet.data, 2, packet.length) })
             elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
-                return_code, response = _16_write_multiple_holding_registers(packet.data[1], packet.data[2])
+                return_code, response = _16_write_multiple_holding_registers(packet.data[1], { table.unpack(packet.data, 2, packet.length) })
             else
                 -- unknown function
                 return_code = false
@@ -392,6 +392,7 @@ function modbus.new(rtu_dev, use_parallel_read)
         else
             -- invalid length
             return_code = false
+            response = MODBUS_EXCODE.NEG_ACKNOWLEDGE
         end
 
         -- default is to echo back

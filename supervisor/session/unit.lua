@@ -1,8 +1,14 @@
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
-local log   = require("scada-common.log")
+local log    = require("scada-common.log")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
+local qtypes = require("supervisor.session.rtu.qtypes")
+
+---@class reactor_control_unit
 local unit = {}
+
+local WASTE_MODE = types.WASTE_MODE
 
 local ALARM = types.ALARM
 local PRIO = types.ALARM_PRIORITY
@@ -10,6 +16,8 @@ local ALARM_STATE = types.ALARM_STATE
 
 local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
+
+local IO = rsio.IO
 
 local FLOW_STABILITY_DELAY_MS = 15000
 
@@ -105,6 +113,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- "It's just a routine turbin' trip!" -Bill Gibson
             TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
         },
+        ---@class unit_db
         db = {
             ---@class annunciator
             annunciator = {
@@ -173,6 +182,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- PRIVATE FUNCTIONS --
 
+    --#region time derivative utility functions
+
     -- compute a change with respect to time of the given value
     ---@param key string value key
     ---@param value number value
@@ -204,12 +215,43 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@param key string value key
     ---@return number
     local function _get_dt(key)
-        if self.deltas[key] then
-            return self.deltas[key].dt
-        else
-            return 0.0
+        if self.deltas[key] then return self.deltas[key].dt else return 0.0 end
+    end
+
+    --#endregion
+
+    --#region redstone I/O
+
+    -- write to a redstone port
+    local function __rs_w(port, value)
+        for i = 1, #self.redstone do
+            local db = self.redstone[i].get_db()    ---@type redstone_session_db
+            local io = db.io[port]                  ---@type rs_db_dig_io|nil
+            if io ~= nil then io.write(value) end
         end
     end
+
+    -- read a redstone port<br>
+    -- this will read from the first one encountered if there are multiple, because there should not be multiple
+    ---@param port IO_PORT
+    ---@return boolean|nil
+    local function __rs_r(port)
+        for i = 1, #self.redstone do
+            local db = self.redstone[i].get_db()    ---@type redstone_session_db
+            local io = db.io[port]                  ---@type rs_db_dig_io|nil
+            if io ~= nil then return io.read() end
+        end
+    end
+
+    -- waste valves
+    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU, true) end,   close = function () __rs_w(IO.WASTE_PU, false) end }
+    local waste_sna = { open = function () __rs_w(IO.WASTE_PO, true) end,   close = function () __rs_w(IO.WASTE_PO, false) end }
+    local waste_po  = { open = function () __rs_w(IO.WASTE_POPL, true) end, close = function () __rs_w(IO.WASTE_POPL, false) end }
+    local waste_sps = { open = function () __rs_w(IO.WASTE_AM, true) end,   close = function () __rs_w(IO.WASTE_AM, false) end }
+
+    --#endregion
+
+    --#region task helpers
 
     -- update an alarm state given conditions
     ---@param tripped boolean if the alarm condition is still active
@@ -334,6 +376,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.tanks.energy, last_update_s)
         end
     end
+
+    --#endregion
+
+    --#region alarms and annunciator
 
     -- update the annunciator
     local function _update_annunciator()
@@ -617,6 +663,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         _update_alarm_state(any_trip, self.alarms.TurbineTrip)
     end
 
+    --#endregion
+
     -- unlink disconnected units
     ---@param sessions table
     local function _unlink_disconnected_units(sessions)
@@ -640,6 +688,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         _reset_dt(DT_KEYS.ReactorWaste)
         _reset_dt(DT_KEYS.ReactorCCool)
         _reset_dt(DT_KEYS.ReactorHCool)
+    end
+
+    -- link a redstone RTU session
+    ---@param rs_unit unit_session
+    function public.add_redstone(rs_unit)
+        -- insert into list
+        table.insert(self.redstone, rs_unit)
     end
 
     -- link a turbine RTU session
@@ -676,17 +731,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
-    -- link a redstone RTU capability
-    function public.add_redstone(field, accessor)
-        -- ensure field exists
-        if self.redstone[field] == nil then
-            self.redstone[field] = {}
-        end
-
-        -- insert into list
-        table.insert(self.redstone[field], accessor)
-    end
-
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
     function public.purge_rtu_devices(session)
@@ -716,7 +760,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         _update_alarms()
     end
 
-    -- ACK/RESET ALARMS --
+    -- OPERATIONS --
 
     -- acknowledge all alarms (if possible)
     function public.ack_all()
@@ -740,6 +784,32 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     function public.reset_alarm(id)
         if (type(id) == "number") and (self.db.alarm_states[id] == ALARM_STATE.RING_BACK) then
             self.db.alarm_states[id] = ALARM_STATE.INACTIVE
+        end
+    end
+
+    -- route reactor waste
+    ---@param mode WASTE_MODE waste handling mode
+    function public.set_waste(mode)
+        if mode == WASTE_MODE.AUTO then
+            ---@todo automatic waste routing
+        elseif mode == WASTE_MODE.PLUTONIUM then
+            -- route through plutonium generation
+            waste_pu.open()
+            waste_sna.close()
+            waste_po.close()
+            waste_sps.close()
+        elseif mode == WASTE_MODE.POLONIUM then
+            -- route through polonium generation into pellets
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.open()
+            waste_sps.close()
+        elseif mode == WASTE_MODE.ANTI_MATTER then
+            -- route through polonium generation into SPS
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.close()
+            waste_sps.open()
         end
     end
 

@@ -27,25 +27,9 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-local RTU_S_CMDS = {
-}
-
-local RTU_S_DATA = {
-    RS_COMMAND = 1,
-    UNIT_COMMAND = 2
-}
-
-rtu.RTU_S_CMDS = RTU_S_CMDS
-rtu.RTU_S_DATA = RTU_S_DATA
-
 local PERIODICS = {
     KEEP_ALIVE = 2000
 }
-
----@class rs_session_command
----@field reactor integer
----@field channel RS_IO
----@field value integer|boolean
 
 -- create a new RTU session
 ---@param id integer
@@ -74,8 +58,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
             last_update = 0,
             keep_alive = 0
         },
-        rs_io_q = {},
-        turbine_cmd_q = {},
         units = {}
     }
 
@@ -84,8 +66,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
     local function _reset_config()
         self.units = {}
-        self.rs_io_q = {}
-        self.turbine_cmd_q = {}
     end
 
     -- parse the recorded advertisement and create unit sub-sessions
@@ -141,14 +121,15 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
                 if u_type == RTU_UNIT_TYPES.REDSTONE then
                     -- redstone
-                    unit, rs_in_q = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
+                    unit = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
+                    if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
                 elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
                     -- boiler (Mekanism 10.1+)
                     unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
                     if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
                 elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
                     -- turbine (Mekanism 10.1+)
-                    unit, tbv_in_q = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
+                    unit = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
                     if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
                 elseif u_type == RTU_UNIT_TYPES.IMATRIX then
                     -- induction matrix
@@ -169,31 +150,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             if unit ~= nil then
                 table.insert(self.units, unit)
-
-                if u_type == RTU_UNIT_TYPES.REDSTONE then
-                    if self.rs_io_q[unit_advert.reactor] == nil then
-                        self.rs_io_q[unit_advert.reactor] = rs_in_q
-                    else
-                        _reset_config()
-                        log.error(log_header .. util.c("bad advertisement: duplicate redstone RTU for reactor " .. unit_advert.reactor))
-                        break
-                    end
-                elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
-                    if self.turbine_cmd_q[unit_advert.reactor] == nil then
-                        self.turbine_cmd_q[unit_advert.reactor] = {}
-                    end
-
-                    local queues = self.turbine_cmd_q[unit_advert.reactor]
-
-                    if queues[unit_advert.index] == nil then
-                        queues[unit_advert.index] = tbv_in_q
-                    else
-                        _reset_config()
-                        log.error(log_header .. util.c("bad advertisement: duplicate turbine RTU (same index of ",
-                            unit_advert.index, ") for reactor ", unit_advert.reactor))
-                        break
-                    end
-                end
             else
                 _reset_config()
                 if type(u_type) == "number" then
@@ -353,25 +309,6 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                         -- handle instruction
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
-                        local cmd = msg.message ---@type queue_data
-                        if cmd.key == RTU_S_DATA.RS_COMMAND then
-                            local rs_cmd = cmd.val  ---@type rs_session_command
-
-                            if rsio.is_valid_channel(rs_cmd.channel) then
-                                cmd.key = svrs_redstone.RS_RTU_S_DATA.RS_COMMAND
-                                if rs_cmd.reactor == nil then
-                                    -- for all reactors (facility)
-                                    for i = 1, #self.rs_io_q do
-                                        local q = self.rs_io.q[i]   ---@type mqueue
-                                        q.push_data(msg)
-                                    end
-                                elseif self.rs_io_q[rs_cmd.reactor] ~= nil then
-                                    -- for just one reactor
-                                    local q = self.rs_io.q[rs_cmd.reactor]  ---@type mqueue
-                                    q.push_data(msg)
-                                end
-                            end
-                        end
                     end
                 end
 

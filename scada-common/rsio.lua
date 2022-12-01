@@ -4,6 +4,7 @@
 
 local util = require("scada-common.util")
 
+---@class rsio
 local rsio = {}
 
 ----------------------
@@ -12,9 +13,10 @@ local rsio = {}
 
 ---@alias IO_LVL integer
 local IO_LVL = {
+    DISCONNECT = -1, -- use for RTU session to indicate this RTU is not connected to this port
     LOW = 0,
     HIGH = 1,
-    DISCONNECT = -1 -- use for RTU session to indicate this RTU is not connected to this channel
+    FLOATING = 2     -- use for RTU session to indicate this RTU is connected but not yet read
 }
 
 ---@alias IO_DIR integer
@@ -31,8 +33,8 @@ local IO_MODE = {
     ANALOG_OUT = 3
 }
 
----@alias RS_IO integer
-local RS_IO = {
+---@alias IO_PORT integer
+local IO_PORT = {
     -- digital inputs --
 
     -- facility
@@ -48,45 +50,47 @@ local RS_IO = {
     F_ALARM       = 4,  -- active high, facility safety alarm
 
     -- waste
-    WASTE_PO      = 5,  -- active low, polonium routing
-    WASTE_PU      = 6,  -- active low, plutonium routing
-    WASTE_AM      = 7,  -- active low, antimatter routing
+    WASTE_PU      = 5,  -- active low, waste -> plutonium -> pellets route
+    WASTE_PO      = 6,  -- active low, waste -> polonium route
+    WASTE_POPL    = 7,  -- active low, polonium -> pellets route
+    WASTE_AM      = 8,  -- active low, polonium -> anti-matter route
 
     -- reactor
-    R_ALARM       = 8,  -- active high, reactor safety alarm
-    R_SCRAMMED    = 9,  -- active high, if the reactor is scrammed
-    R_AUTO_SCRAM  = 10, -- active high, if the reactor was automatically scrammed
-    R_ACTIVE      = 11, -- active high, if the reactor is active
-    R_AUTO_CTRL   = 12, -- active high, if the reactor burn rate is automatic
-    R_DMG_CRIT    = 13, -- active high, if the reactor damage is critical
-    R_HIGH_TEMP   = 14, -- active high, if the reactor is at a high temperature
-    R_NO_COOLANT  = 15, -- active high, if the reactor has no coolant
-    R_EXCESS_HC   = 16, -- active high, if the reactor has excess heated coolant
-    R_EXCESS_WS   = 17, -- active high, if the reactor has excess waste
-    R_INSUFF_FUEL = 18, -- active high, if the reactor has insufficent fuel
-    R_PLC_FAULT   = 19, -- active high, if the reactor PLC reports a device access fault
-    R_PLC_TIMEOUT = 20  -- active high, if the reactor PLC has not been heard from
+    R_ALARM       = 9,  -- active high, reactor safety alarm
+    R_SCRAMMED    = 10, -- active high, if the reactor is scrammed
+    R_AUTO_SCRAM  = 11, -- active high, if the reactor was automatically scrammed
+    R_ACTIVE      = 12, -- active high, if the reactor is active
+    R_AUTO_CTRL   = 13, -- active high, if the reactor burn rate is automatic
+    R_DMG_CRIT    = 14, -- active high, if the reactor damage is critical
+    R_HIGH_TEMP   = 15, -- active high, if the reactor is at a high temperature
+    R_NO_COOLANT  = 16, -- active high, if the reactor has no coolant
+    R_EXCESS_HC   = 17, -- active high, if the reactor has excess heated coolant
+    R_EXCESS_WS   = 18, -- active high, if the reactor has excess waste
+    R_INSUFF_FUEL = 19, -- active high, if the reactor has insufficent fuel
+    R_PLC_FAULT   = 20, -- active high, if the reactor PLC reports a device access fault
+    R_PLC_TIMEOUT = 21  -- active high, if the reactor PLC has not been heard from
 }
 
 rsio.IO_LVL = IO_LVL
 rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
-rsio.IO = RS_IO
+rsio.IO = IO_PORT
 
 -----------------------
 -- UTILITY FUNCTIONS --
 -----------------------
 
--- channel to string
----@param channel RS_IO
-function rsio.to_string(channel)
+-- port to string
+---@param port IO_PORT
+function rsio.to_string(port)
     local names = {
         "F_SCRAM",
         "R_SCRAM",
         "R_ENABLE",
         "F_ALARM",
-        "WASTE_PO",
         "WASTE_PU",
+        "WASTE_PO",
+        "WASTE_POPL",
         "WASTE_AM",
         "R_ALARM",
         "R_SCRAMMED",
@@ -103,8 +107,8 @@ function rsio.to_string(channel)
         "R_PLC_TIMEOUT"
     }
 
-    if util.is_int(channel) and channel > 0 and channel <= #names then
-        return names[channel]
+    if util.is_int(port) and port > 0 and port <= #names then
+        return names[port]
     else
         return ""
     end
@@ -112,64 +116,69 @@ end
 
 local _B_AND = bit.band
 
-local function _ACTIVE_HIGH(level) return level == IO_LVL.HIGH end
-local function _ACTIVE_LOW(level) return level == IO_LVL.LOW end
+local function _I_ACTIVE_HIGH(level) return level == IO_LVL.HIGH end
+local function _I_ACTIVE_LOW(level) return level == IO_LVL.LOW end
+local function _O_ACTIVE_HIGH(active) if active then return IO_LVL.HIGH else return IO_LVL.LOW end end
+local function _O_ACTIVE_LOW(active) if active then return IO_LVL.LOW else return IO_LVL.HIGH end end
 
 -- I/O mappings to I/O function and I/O mode
 local RS_DIO_MAP = {
     -- F_SCRAM
-    { _f = _ACTIVE_LOW,  mode = IO_DIR.IN },
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
     -- R_SCRAM
-    { _f = _ACTIVE_LOW,  mode = IO_DIR.IN },
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
     -- R_ENABLE
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.IN },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
     -- F_ALARM
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- WASTE_PO
-    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- WASTE_PU
-    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    -- WASTE_PO
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    -- WASTE_POPL
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
     -- WASTE_AM
-    { _f = _ACTIVE_LOW,  mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
     -- R_ALARM
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_SCRAMMED
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_AUTO_SCRAM
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_ACTIVE
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_AUTO_CTRL
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_DMG_CRIT
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_HIGH_TEMP
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_NO_COOLANT
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_EXCESS_HC
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_EXCESS_WS
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_INSUFF_FUEL
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_PLC_FAULT
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT },
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_PLC_TIMEOUT
-    { _f = _ACTIVE_HIGH, mode = IO_DIR.OUT }
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT }
 }
 
--- get the mode of a channel
----@param channel RS_IO
+-- get the mode of a port
+---@param port IO_PORT
 ---@return IO_MODE
-function rsio.get_io_mode(channel)
+function rsio.get_io_mode(port)
     local modes = {
         IO_MODE.DIGITAL_IN,     -- F_SCRAM
         IO_MODE.DIGITAL_IN,     -- R_SCRAM
         IO_MODE.DIGITAL_IN,     -- R_ENABLE
         IO_MODE.DIGITAL_OUT,    -- F_ALARM
-        IO_MODE.DIGITAL_OUT,    -- WASTE_PO
         IO_MODE.DIGITAL_OUT,    -- WASTE_PU
+        IO_MODE.DIGITAL_OUT,    -- WASTE_PO
+        IO_MODE.DIGITAL_OUT,    -- WASTE_POPL
         IO_MODE.DIGITAL_OUT,    -- WASTE_AM
         IO_MODE.DIGITAL_OUT,    -- R_ALARM
         IO_MODE.DIGITAL_OUT,    -- R_SCRAMMED
@@ -186,8 +195,8 @@ function rsio.get_io_mode(channel)
         IO_MODE.DIGITAL_OUT     -- R_PLC_TIMEOUT
     }
 
-    if util.is_int(channel) and channel > 0 and channel <= #modes then
-        return modes[channel]
+    if util.is_int(port) and port > 0 and port <= #modes then
+        return modes[port]
     else
         return IO_MODE.ANALOG_IN
     end
@@ -199,11 +208,11 @@ end
 
 local RS_SIDES = rs.getSides()
 
--- check if a channel is valid
----@param channel RS_IO
+-- check if a port is valid
+---@param port IO_PORT
 ---@return boolean valid
-function rsio.is_valid_channel(channel)
-    return util.is_int(channel) and (channel > 0) and (channel <= RS_IO.R_PLC_TIMEOUT)
+function rsio.is_valid_port(port)
+    return util.is_int(port) and (port > 0) and (port <= IO_PORT.R_PLC_TIMEOUT)
 end
 
 -- check if a side is valid
@@ -229,7 +238,7 @@ end
 -- DIGITAL I/O --
 -----------------
 
--- get digital IO level reading
+-- get digital I/O level reading from a redstone boolean input value
 ---@param rs_value boolean
 ---@return IO_LVL
 function rsio.digital_read(rs_value)
@@ -240,27 +249,36 @@ function rsio.digital_read(rs_value)
     end
 end
 
--- returns the level corresponding to active
----@param channel RS_IO
+-- get redstone boolean output value corresponding to a digital I/O level
 ---@param level IO_LVL
 ---@return boolean
-function rsio.digital_write(channel, level)
-    if (not util.is_int(channel)) or (channel < RS_IO.F_ALARM) or (channel > RS_IO.R_PLC_TIMEOUT) then
+function rsio.digital_write(level)
+    return level == IO_LVL.HIGH
+end
+
+-- returns the level corresponding to active
+---@param port IO_PORT
+---@param active boolean
+---@return IO_LVL|false
+function rsio.digital_write_active(port, active)
+    if (not util.is_int(port)) or (port < IO_PORT.F_ALARM) or (port > IO_PORT.R_PLC_TIMEOUT) then
         return false
     else
-        return RS_DIO_MAP[channel]._f(level)
+        return RS_DIO_MAP[port]._out(active)
     end
 end
 
 -- returns true if the level corresponds to active
----@param channel RS_IO
+---@param port IO_PORT
 ---@param level IO_LVL
----@return boolean
-function rsio.digital_is_active(channel, level)
-    if (not util.is_int(channel)) or (channel > RS_IO.R_ENABLE) then
-        return false
+---@return boolean|nil
+function rsio.digital_is_active(port, level)
+    if (not util.is_int(port)) or (port > IO_PORT.R_ENABLE) then
+        return nil
+    elseif level == IO_LVL.FLOATING or level == IO_LVL.DISCONNECT then
+        return nil
     else
-        return RS_DIO_MAP[channel]._f(level)
+        return RS_DIO_MAP[port]._in(level)
     end
 end
 

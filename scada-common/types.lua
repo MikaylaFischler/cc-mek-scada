@@ -35,6 +35,14 @@ types.TRI_FAIL = {
     FULL = 2
 }
 
+---@alias WASTE_MODE integer
+types.WASTE_MODE = {
+    AUTO = 1,
+    PLUTONIUM = 2,
+    POLONIUM = 3,
+    ANTI_MATTER = 4
+}
+
 ---@alias ALARM integer
 types.ALARM = {
     ContainmentBreach = 1,
