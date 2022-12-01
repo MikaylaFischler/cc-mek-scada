@@ -31,8 +31,8 @@ assert(di == 0 and c == 0 and ir == 0 and hr == 0, "IOCOUNT_0")
 rs_rtu.link_di("back", colors.black)
 rs_rtu.link_di("back", colors.blue)
 
-rs_rtu.link_do(rsio.IO.F_ALARM, "back", colors.red)
-rs_rtu.link_do(rsio.IO.WASTE_AM, "back", colors.purple)
+rs_rtu.link_do("back", colors.red)
+rs_rtu.link_do("back", colors.purple)
 
 rs_rtu.link_ai("right")
 rs_rtu.link_ao("left")
