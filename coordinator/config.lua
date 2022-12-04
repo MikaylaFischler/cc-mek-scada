@@ -10,6 +10,9 @@ config.SCADA_API_LISTEN = 16200
 config.NUM_UNITS = 4
 -- graphics color
 config.RECOLOR = true
+-- alarm sounder volume (0.0 to 3.0, 1.0 being standard max volume, this is the option given to to speaker.play())
+-- note: alarm sine waves are at half saturation, so that multiple will be required to reach full scale
+config.SOUNDER_VOLUME = 1.0
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode

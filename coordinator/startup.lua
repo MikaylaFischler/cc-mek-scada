@@ -18,7 +18,7 @@ local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.7.2"
+local COORDINATOR_VERSION = "beta-v0.7.3"
 
 local print = util.print
 local println = util.println
@@ -42,6 +42,7 @@ cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_bool(config.RECOLOR)
+cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 cfv.assert_type_bool(config.SECURE)
@@ -105,7 +106,7 @@ local function main()
     else
         local sounder_start = util.time_ms()
         log_boot("annunciator alarm speaker connected")
-        sounder.init(speaker)
+        sounder.init(speaker, config.SOUNDER_VOLUME)
         log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
         log_sys("annunciator alarm configured")
     end

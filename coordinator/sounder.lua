@@ -265,10 +265,12 @@ end
 
 -- initialize the annunciator alarm system
 ---@param speaker table speaker peripheral
-function sounder.init(speaker)
+---@param volume number speaker volume
+function sounder.init(speaker, volume)
     alarm_ctl.speaker = speaker
     alarm_ctl.speaker.stop()
 
+    alarm_ctl.volume = volume
     alarm_ctl.playing = false
     alarm_ctl.num_active = 0
     alarm_ctl.next_block = 1
