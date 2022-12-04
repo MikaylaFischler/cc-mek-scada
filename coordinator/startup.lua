@@ -18,7 +18,7 @@ local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.7.3"
+local COORDINATOR_VERSION = "beta-v0.7.4"
 
 local print = util.print
 local println = util.println
@@ -238,11 +238,15 @@ local function main()
                 elseif type == "monitor" then
                     if renderer.is_monitor_used(device) then
                         -- "halt and catch fire" style handling
+                        println_ts("lost a configured monitor, system will now exit")
                         log_sys("lost a configured monitor, system will now exit")
                         break
                     else
                         log_sys("lost unused monitor, ignoring")
                     end
+                elseif type == "speaker" then
+                    println_ts("lost alarm sounder speaker")
+                    log_sys("lost alarm sounder speaker")
                 end
             end
         elseif event == "peripheral" then
@@ -267,6 +271,10 @@ local function main()
                     end
                 elseif type == "monitor" then
                     -- not supported, system will exit on loss of in-use monitors
+                elseif type == "speaker" then
+                    println_ts("alarm sounder speaker reconnected")
+                    log_sys("alarm sounder speaker reconnected")
+                    sounder.reconnect(device)
                 end
             end
         elseif event == "timer" then

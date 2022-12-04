@@ -288,6 +288,13 @@ function sounder.init(speaker, volume)
     gen_tone_8()
 end
 
+-- reconnect the speaker peripheral
+---@param speaker table speaker peripheral
+function sounder.reconnect(speaker)
+    alarm_ctl.speaker = speaker
+    alarm_ctl.playing = false
+end
+
 -- check alarm state to enable/disable alarms
 ---@param units table|nil unit list or nil to use test mode
 function sounder.eval(units)
