@@ -250,7 +250,7 @@ local function init(parent, id)
         TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
     end
 
-    local t1_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    local t1_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
     t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
 
     TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
@@ -264,7 +264,7 @@ local function init(parent, id)
 
     if unit.num_turbines > 1 then
         TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t2_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        local t2_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
 
         TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
@@ -279,7 +279,7 @@ local function init(parent, id)
 
     if unit.num_turbines > 2 then
         TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t3_sdo = TriIndicatorLight{parent=annunciator,label="Steam Dump Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        local t3_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
 
         TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}

@@ -1,10 +1,14 @@
-local comms = require("scada-common.comms")
-local log   = require("scada-common.log")
-local psil  = require("scada-common.psil")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local log     = require("scada-common.log")
+local psil    = require("scada-common.psil")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
+
+local sounder = require("coordinator.sounder")
 
 local CRDN_COMMANDS = comms.CRDN_COMMANDS
+
+local ALARM_STATE = types.ALARM_STATE
 
 local iocontrol = {}
 
@@ -74,7 +78,21 @@ function iocontrol.init(conf, comms)
                 t_trip      = { ack = function () ack(12) end, reset = function () reset(12) end }
             },
 
-            alarms = {},                            ---@type alarms
+            ---@type alarms
+            alarms = {
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE,
+                ALARM_STATE.INACTIVE
+            },
 
             reactor_ps = psil.create(),
             reactor_data = {},                      ---@type reactor_db
@@ -203,10 +221,10 @@ end
 ---@return boolean valid
 function iocontrol.update_statuses(statuses)
     if type(statuses) ~= "table" then
-        log.error("unit statuses not a table")
+        log.debug("unit statuses not a table")
         return false
     elseif #statuses ~= #io.units then
-        log.error("number of provided unit statuses does not match expected number of units")
+        log.debug("number of provided unit statuses does not match expected number of units")
         return false
     else
         for i = 1, #statuses do
@@ -214,7 +232,7 @@ function iocontrol.update_statuses(statuses)
             local status = statuses[i]
 
             if type(status) ~= "table" or #status ~= 4 then
-                log.error("invalid status entry in unit statuses (not a table or invalid length)")
+                log.debug("invalid status entry in unit statuses (not a table or invalid length)")
                 return false
             end
 
@@ -319,16 +337,23 @@ function iocontrol.update_statuses(statuses)
 
             local alarm_states = status[3]
 
-            for id = 1, #alarm_states do
-                local state = alarm_states[id]
+            if type(alarm_states) == "table" then
+                for id = 1, #alarm_states do
+                    local state = alarm_states[id]
 
-                if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
-                    unit.reactor_ps.publish("ALM" .. id, 2)
-                elseif state == types.ALARM_STATE.RING_BACK then
-                    unit.reactor_ps.publish("ALM" .. id, 3)
-                else
-                    unit.reactor_ps.publish("ALM" .. id, 1)
+                    unit.alarms[id] = state
+
+                    if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
+                        unit.reactor_ps.publish("ALM" .. id, 2)
+                    elseif state == types.ALARM_STATE.RING_BACK then
+                        unit.reactor_ps.publish("ALM" .. id, 3)
+                    else
+                        unit.reactor_ps.publish("ALM" .. id, 1)
+                    end
                 end
+            else
+                log.debug("alarm states not a table")
+                return false
             end
 
             -- RTU statuses
@@ -377,6 +402,8 @@ function iocontrol.update_statuses(statuses)
                             unit.boiler_ps_tbl[id].publish(key, val)
                         end
                     end
+                else
+                    log.debug("boiler list not a table")
                 end
 
                 if type(rtu_statuses.turbines) == "table" then
@@ -422,9 +449,17 @@ function iocontrol.update_statuses(statuses)
                             unit.turbine_ps_tbl[id].publish(key, val)
                         end
                     end
+                else
+                    log.debug("turbine list not a table")
+                    return false
                 end
+            else
+                log.debug("rtu list not a table")
             end
         end
+
+        -- update alarm sounder
+        sounder.eval(io.units)
     end
 
     return true

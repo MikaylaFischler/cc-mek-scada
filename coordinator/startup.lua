@@ -16,8 +16,9 @@ local apisessions  = require("coordinator.apisessions")
 local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
+local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "alpha-v0.7.1"
+local COORDINATOR_VERSION = "beta-v0.7.2"
 
 local print = util.print
 local println = util.println
@@ -90,6 +91,24 @@ local function main()
     log_graphics("displays connected and reset")
     log_sys("system start on " .. os.date("%c"))
     log_boot("starting " .. COORDINATOR_VERSION)
+
+    ----------------------------------------
+    -- setup alarm sounder subsystem
+    ----------------------------------------
+
+    local speaker = ppm.get_device("speaker")
+    if speaker == nil then
+        log_boot("annunciator alarm speaker not found")
+        println("boot> speaker not found")
+        log.fatal("no annunciator alarm speaker found")
+        return
+    else
+        local sounder_start = util.time_ms()
+        log_boot("annunciator alarm speaker connected")
+        sounder.init(speaker)
+        log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
+        log_sys("annunciator alarm configured")
+    end
 
     ----------------------------------------
     -- setup communications
@@ -304,6 +323,9 @@ local function main()
         elseif event == "monitor_touch" then
             -- handle a monitor touch event
             renderer.handle_touch(core.events.touch(param1, param2, param3))
+        elseif event == "speaker_audio_empty" then
+            -- handle speaker buffer emptied
+            sounder.continue()
         end
 
         -- check for termination request
@@ -320,6 +342,7 @@ local function main()
     end
 
     renderer.close_ui()
+    sounder.stop()
     log_sys("system shutdown")
 
     println_ts("exited")

@@ -36,7 +36,7 @@ local function switch_button(args)
     -- button state (convert nil to false if missing)
     e.value = args.default or false
 
-    local h_pad = math.floor((e.frame.w - text_width) / 2)
+    local h_pad = math.floor((e.frame.w - text_width) / 2) + 1
     local v_pad = math.floor(e.frame.h / 2) + 1
 
     -- show the button state
@@ -50,6 +50,9 @@ local function switch_button(args)
             e.window.setTextColor(e.fg_bg.fgd)
             e.window.setBackgroundColor(e.fg_bg.bkg)
         end
+
+        -- clear to redraw background
+        e.window.clear()
 
         -- write the button text
         e.window.setCursorPos(h_pad, v_pad)

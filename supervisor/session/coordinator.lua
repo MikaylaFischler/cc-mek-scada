@@ -57,7 +57,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
         seq_num = 0,
         r_seq_num = nil,
         connected = true,
-        conn_watchdog = util.new_watchdog(3),
+        conn_watchdog = util.new_watchdog(5),
         last_rtt = 0,
         -- periodic messages
         periodics = {
