@@ -109,7 +109,6 @@ local function multi_button(args)
     function e.set_value(val)
         e.value = val
         draw()
-        args.callback(e.value)
     end
 
     -- initial draw

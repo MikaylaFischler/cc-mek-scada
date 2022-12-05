@@ -54,6 +54,13 @@ local aistate_string = {
     "RING_BACK_TRIPPING"
 }
 
+-- check if an alarm is active (tripped or ack'd)
+---@param alarm table alarm entry
+---@return boolean active
+local function is_active(alarm)
+    return alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED
+end
+
 ---@class alarm_def
 ---@field state ALARM_INT_STATE internal alarm state
 ---@field trip_time integer time (ms) when first tripped
@@ -73,11 +80,16 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         turbines = {},
         boilers = {},
         redstone = {},
+        -- state tracking
         deltas = {},
         last_heartbeat = 0,
+        damage_initial = 0,
+        damage_start = 0,
+        waste_mode = WASTE_MODE.AUTO,
+        status_text = { "Unknown", "Awaiting Connection..." },
         -- logic for alarms
         had_reactor = false,
-        start_time = 0,
+        start_ms = 0,
         plc_cache = {
             ok = false,
             rps_trip = false,
@@ -110,7 +122,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.RPSTransient, tier = PRIO.URGENT },
             -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
             RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
-            -- "It's just a routine turbin' trip!" -Bill Gibson
+            -- "It's just a routine turbin' trip!" -Bill Gibson, "The China Syndrome"
             TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
         },
         ---@class unit_db
@@ -244,10 +256,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- waste valves
-    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU, true) end,   close = function () __rs_w(IO.WASTE_PU, false) end }
-    local waste_sna = { open = function () __rs_w(IO.WASTE_PO, true) end,   close = function () __rs_w(IO.WASTE_PO, false) end }
+    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,   true) end, close = function () __rs_w(IO.WASTE_PU,   false) end }
+    local waste_sna = { open = function () __rs_w(IO.WASTE_PO,   true) end, close = function () __rs_w(IO.WASTE_PO,   false) end }
     local waste_po  = { open = function () __rs_w(IO.WASTE_POPL, true) end, close = function () __rs_w(IO.WASTE_POPL, false) end }
-    local waste_sps = { open = function () __rs_w(IO.WASTE_AM, true) end,   close = function () __rs_w(IO.WASTE_AM, false) end }
+    local waste_sps = { open = function () __rs_w(IO.WASTE_AM,   true) end, close = function () __rs_w(IO.WASTE_AM,   false) end }
 
     --#endregion
 
@@ -396,14 +408,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- check PLC status
         self.db.annunciator.PLCOnline = (self.plc_s ~= nil) and (self.plc_s.open)
 
-        if self.plc_s ~= nil then
+        if self.plc_i ~= nil then
             local plc_db = self.plc_i.get_db()
 
             -- record reactor start time (some alarms are delayed during reactor heatup)
-            if self.start_time == 0 and plc_db.mek_status.status then
-                self.start_time = util.time_ms()
+            if self.start_ms == 0 and plc_db.mek_status.status then
+                self.start_ms = util.time_ms()
             elseif not plc_db.mek_status.status then
-                self.start_time = 0
+                self.start_ms = 0
             end
 
             -- record reactor stats
@@ -413,6 +425,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.plc_cache.damage = plc_db.mek_status.damage
             self.plc_cache.temp = plc_db.mek_status.temp
             self.plc_cache.waste = plc_db.mek_status.waste_fill
+
+            -- track damage
+            if (self.damage_initial == 0) and (plc_db.mek_status.damage > 0) then
+                self.damage_start = util.time_s()
+                self.damage_initial = plc_db.mek_status.damage
+            else
+                self.damage_initial = 0
+                self.damage_start = 0
+            end
 
             -- heartbeat blink about every second
             if self.last_heartbeat + 1000 < plc_db.last_status_update then
@@ -633,9 +654,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if plc_cache.rps_status.manual ~= nil then
             if plc_cache.rps_trip then
                 for key, val in pairs(plc_cache.rps_status) do
-                    if key ~= "manual" and key ~= "timeout" then
-                        rps_alarm = rps_alarm or val
-                    end
+                    if key ~= "manual" and key ~= "timeout" then rps_alarm = rps_alarm or val end
                 end
             end
         end
@@ -651,7 +670,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.RCSFlowLow or annunc.MaxWaterReturnFeed
 
         -- flow is ramping up right after reactor start, annunciator indicators for these states may not indicate a real issue
-        if util.time_ms() - self.start_time > FLOW_STABILITY_DELAY_MS then
+        if util.time_ms() - self.start_ms > FLOW_STABILITY_DELAY_MS then
             rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
         end
 
@@ -758,6 +777,42 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- update alarm status
         _update_alarms()
+
+        -- update status text (what the reactor doin?)
+        if is_active(self.alarms.ContainmentBreach) then
+            -- boom? or was boom disabled
+            if self.plc_i ~= nil and self.plc_i.get_rps().force_dis then
+                self.status_text = { "REACTOR FORCE DISABLED", "meltdown would have occured" }
+            else
+                self.status_text = { "CORE MELTDOWN", "reactor destroyed" }
+            end
+        elseif is_active(self.alarms.CriticalDamage) then
+            -- so much for it being a "routine turbin' trip"...
+            self.status_text = { "MELTDOWN IMMINENT", "evacuate facility immediately" }
+        elseif is_active(self.alarms.ReactorDamage) then
+            -- attempt to determine when a chance of a meltdown will occur
+            self.status_text[1] = "Containment Taking Damage"
+            if self.plc_cache.damage >= 100 then
+                self.status_text[2] = "damage critical"
+            elseif (self.plc_cache.damage - self.damage_initial) > 0 then
+                local rate = (self.plc_cache.damage - self.damage_initial) / (util.time_s() - self.damage_start)
+                local remaining_s = (100 - self.plc_cache.damage) * rate
+
+                self.status_text[2] = util.c("damage critical in ", remaining_s, "s")
+            else
+                self.status_text[2] = "estimating time to critical..."
+            end
+        -- connection dependent states
+        elseif self.plc_i ~= nil then
+            local plc_db = self.plc_i.get_db()
+            if plc_db.mek_status.status then
+                self.status_text = { "Active", "reactor nominal" }
+            else
+                self.status_text = { "Idle", "" }
+            end
+        else
+            self.status_text = { "Reactor Off-line", "awaiting connection..." }
+        end
     end
 
     -- OPERATIONS --
@@ -792,24 +847,30 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     function public.set_waste(mode)
         if mode == WASTE_MODE.AUTO then
             ---@todo automatic waste routing
+            self.waste_mode = mode
         elseif mode == WASTE_MODE.PLUTONIUM then
             -- route through plutonium generation
+            self.waste_mode = mode
             waste_pu.open()
             waste_sna.close()
             waste_po.close()
             waste_sps.close()
         elseif mode == WASTE_MODE.POLONIUM then
             -- route through polonium generation into pellets
+            self.waste_mode = mode
             waste_pu.close()
             waste_sna.open()
             waste_po.open()
             waste_sps.close()
         elseif mode == WASTE_MODE.ANTI_MATTER then
             -- route through polonium generation into SPS
+            self.waste_mode = mode
             waste_pu.close()
             waste_sna.open()
             waste_po.close()
             waste_sps.open()
+        else
+            log.debug(util.c("invalid waste mode setting ", mode))
         end
     end
 
@@ -888,6 +949,11 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- get the alarm states
     function public.get_alarms() return self.db.alarm_states end
+
+    -- get unit state (currently only waste mode)
+    function public.get_state()
+        return { self.status_text[1], self.status_text[2], self.waste_mode }
+    end
 
     -- get the reactor ID
     function public.get_id() return self.r_id end

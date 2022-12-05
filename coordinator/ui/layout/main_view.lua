@@ -4,6 +4,7 @@
 
 local iocontrol     = require("coordinator.iocontrol")
 local sounder       = require("coordinator.sounder")
+local util          = require("scada-common.util")
 
 local style         = require("coordinator.ui.style")
 
@@ -28,32 +29,46 @@ local function init(monitor)
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
     -- window header message
-    TextBox{parent=main,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=main,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
     local db = iocontrol.get_db()
 
     local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
 
+    local cnc_y_start = 3
+
     -- unit overviews
-    if db.facility.num_units >= 1 then uo_1 = unit_overview(main, 2, 3, db.units[1]) end
-    if db.facility.num_units >= 2 then uo_2 = unit_overview(main, 84, 3, db.units[2]) end
+    if db.facility.num_units >= 1 then
+        uo_1 = unit_overview(main, 2, 3, db.units[1])
+        cnc_y_start = cnc_y_start + uo_1.height() + 1
+    end
+
+    if db.facility.num_units >= 2 then
+        uo_2 = unit_overview(main, 84, 3, db.units[2])
+    end
 
     if db.facility.num_units >= 3 then
         -- base offset 3, spacing 1, max height of units 1 and 2
         local row_2_offset = 3 + 1 + math.max(uo_1.height(), uo_2.height())
 
         uo_3 = unit_overview(main, 2, row_2_offset, db.units[3])
-        if db.facility.num_units == 4 then uo_4 = unit_overview(main, 84, row_2_offset, db.units[4]) end
+        cnc_y_start = cnc_y_start + uo_3.height() + 1
+
+        if db.facility.num_units == 4 then
+            uo_4 = unit_overview(main, 84, row_2_offset, db.units[4])
+        end
     end
 
     -- command & control
+
+    TextBox{parent=main,y=cnc_y_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -- testing
     ---@fixme remove test code
 
     ColorMap{parent=main,x=2,y=(main.height()-1)}
 
-    PushButton{parent=main,x=2,y=(main.height()-20),text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
+    PushButton{parent=main,x=2,y=(cnc_y_start+2),text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
     PushButton{parent=main,x=2,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
     PushButton{parent=main,x=2,text="TEST 3",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_3}
     PushButton{parent=main,x=2,text="TEST 4",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_4}
@@ -64,7 +79,7 @@ local function init(monitor)
     PushButton{parent=main,x=2,text="STOP",min_width=8,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.stop}
     PushButton{parent=main,x=2,text="PSCALE",min_width=8,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_power_scale}
 
-    SwitchButton{parent=main,x=12,y=(main.height()-20),text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
+    SwitchButton{parent=main,x=12,y=(cnc_y_start+2),text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
     SwitchButton{parent=main,x=12,text="CONTAINMENT RADIATION",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rad}
     SwitchButton{parent=main,x=12,text="REACTOR LOST",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_lost}
     SwitchButton{parent=main,x=12,text="CRITICAL DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_crit}

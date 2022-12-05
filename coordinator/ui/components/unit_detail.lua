@@ -308,8 +308,8 @@ local function init(parent, id)
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
     PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
 
-    r_ps.subscribe("burn_rate", function (v) burn_rate.set_value(v) end)
-    r_ps.subscribe("max_burn", function (v) burn_rate.set_max(v) end)
+    r_ps.subscribe("burn_rate", burn_rate.set_value)
+    r_ps.subscribe("max_burn", burn_rate.set_max)
 
     local dis_colors = cpair(colors.white, colors.lightGray)
 
@@ -334,18 +334,24 @@ local function init(parent, id)
     r_ps.subscribe("rps_tripped", start_button_en_check)
     r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    TextBox{parent=main,x=2,y=30,text="Idle",width=29,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+    local stat_line_1 = DataIndicator{parent=main,x=2,y=30,label="",format="%s",value="",width=29,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+    local stat_line_2 = DataIndicator{parent=main,x=2,y=31,label="",format="%s",value="",width=29,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+
+    r_ps.subscribe("U_StatusLine1", stat_line_1.update)
+    r_ps.subscribe("U_StatusLine2", stat_line_2.update)
 
     local waste_sel = Div{parent=main,x=2,y=50,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
 
-    MultiButton{parent=waste_sel,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6,fg_bg=cpair(colors.black, colors.white)}
+    local waste_mode = MultiButton{parent=waste_sel,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6,fg_bg=cpair(colors.black, colors.white)}
     TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
+
+    r_ps.subscribe("U_WasteMode", waste_mode.set_value)
 
     ----------------------
     -- alarm management --
     ----------------------
 
-    local alarm_panel = Div{parent=main,x=2,y=32,width=29,height=16,fg_bg=cpair(colors.black,colors.white)}
+    local alarm_panel = Div{parent=main,x=2,y=33,width=29,height=16,fg_bg=cpair(colors.black,colors.white)}
 
     local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
     local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
@@ -362,20 +368,20 @@ local function init(parent, id)
     local a_clt = AlarmLight{parent=alarm_panel,x=6,label="RCS Transient",c1=colors.gray,c2=colors.yellow,c3=colors.green,flash=true,period=period.BLINK_500_MS}
     local a_tbt = AlarmLight{parent=alarm_panel,x=6,label="Turbine Trip",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
 
-    r_ps.subscribe("ALM1", a_brc.update)
-    r_ps.subscribe("ALM2", a_rad.update)
-    r_ps.subscribe("ALM4", a_dmg.update)
+    r_ps.subscribe("Alarm_1", a_brc.update)
+    r_ps.subscribe("Alarm_2", a_rad.update)
+    r_ps.subscribe("Alarm_4", a_dmg.update)
 
-    r_ps.subscribe("ALM3", a_rcl.update)
-    r_ps.subscribe("ALM5", a_rcd.update)
-    r_ps.subscribe("ALM6", a_rot.update)
-    r_ps.subscribe("ALM7", a_rht.update)
-    r_ps.subscribe("ALM8", a_rwl.update)
-    r_ps.subscribe("ALM9", a_rwh.update)
+    r_ps.subscribe("Alarm_3", a_rcl.update)
+    r_ps.subscribe("Alarm_5", a_rcd.update)
+    r_ps.subscribe("Alarm_6", a_rot.update)
+    r_ps.subscribe("Alarm_7", a_rht.update)
+    r_ps.subscribe("Alarm_8", a_rwl.update)
+    r_ps.subscribe("Alarm_9", a_rwh.update)
 
-    r_ps.subscribe("ALM10", a_rps.update)
-    r_ps.subscribe("ALM11", a_clt.update)
-    r_ps.subscribe("ALM12", a_tbt.update)
+    r_ps.subscribe("Alarm_10", a_rps.update)
+    r_ps.subscribe("Alarm_11", a_clt.update)
+    r_ps.subscribe("Alarm_12", a_tbt.update)
 
     -- ack's and resets
 

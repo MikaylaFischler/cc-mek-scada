@@ -129,7 +129,13 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
         for i = 1, #self.units do
             local unit = self.units[i]  ---@type reactor_unit
-            status[unit.get_id()] = { unit.get_reactor_status(), unit.get_annunciator(), unit.get_alarms(), unit.get_rtu_statuses() }
+            status[unit.get_id()] = {
+                unit.get_reactor_status(),
+                unit.get_rtu_statuses(),
+                unit.get_annunciator(),
+                unit.get_alarms(),
+                unit.get_state()
+            }
         end
 
         _send(SCADA_CRDN_TYPES.UNIT_STATUSES, status)

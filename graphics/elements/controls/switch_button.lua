@@ -82,9 +82,6 @@ local function switch_button(args)
         -- set state
         e.value = val
         draw_state()
-
-        -- call the touch callback with state
-        args.callback(e.value)
     end
 
     return e.get()

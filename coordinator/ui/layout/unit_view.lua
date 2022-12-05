@@ -2,15 +2,11 @@
 -- Reactor Unit SCADA Coordinator GUI
 --
 
-local tcallbackdsp = require("scada-common.tcallbackdsp")
+local style       = require("coordinator.ui.style")
 
-local iocontrol    = require("coordinator.iocontrol")
+local unit_detail = require("coordinator.ui.components.unit_detail")
 
-local style        = require("coordinator.ui.style")
-
-local unit_detail  = require("coordinator.ui.components.unit_detail")
-
-local DisplayBox   = require("graphics.elements.displaybox")
+local DisplayBox  = require("graphics.elements.displaybox")
 
 -- create a unit view
 ---@param monitor table

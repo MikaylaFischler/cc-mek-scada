@@ -18,7 +18,7 @@ local coordinator  = require("coordinator.coordinator")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.7.4"
+local COORDINATOR_VERSION = "beta-v0.7.5"
 
 local print = util.print
 local println = util.println

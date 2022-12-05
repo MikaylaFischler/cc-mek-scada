@@ -72,7 +72,7 @@ local function push_button(args)
         end
     end
 
-    -- set the value
+    -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
         if val then e.handle_touch(core.events.touch("", 1, 1)) end
