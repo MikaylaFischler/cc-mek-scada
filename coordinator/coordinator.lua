@@ -1,14 +1,12 @@
-local comms = require("scada-common.comms")
-local log   = require("scada-common.log")
-local ppm   = require("scada-common.ppm")
-local util  = require("scada-common.util")
+local comms       = require("scada-common.comms")
+local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
+local util        = require("scada-common.util")
 
 local apisessions = require("coordinator.apisessions")
 local iocontrol   = require("coordinator.iocontrol")
 
-local dialog = require("coordinator.ui.dialog")
-
-local coordinator = {}
+local dialog      = require("coordinator.ui.dialog")
 
 local print = util.print
 local println = util.println
@@ -21,6 +19,8 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local CRDN_COMMANDS = comms.CRDN_COMMANDS
+
+local coordinator = {}
 
 -- request the user to select a monitor
 ---@param names table available monitors
@@ -495,6 +495,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                 end
 
                                 -- log.debug("coord RTT = " .. trip_time .. "ms")
+
+                                iocontrol.get_db().facility.ps.publish("sv_ping", trip_time)
 
                                 _send_keep_alive_ack(timestamp)
                             else

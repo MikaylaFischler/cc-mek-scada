@@ -19,6 +19,8 @@ local TextBox       = require("graphics.elements.textbox")
 local PushButton    = require("graphics.elements.controls.push_button")
 local SwitchButton  = require("graphics.elements.controls.switch_button")
 
+local DataIndicator = require("graphics.elements.indicators.data")
+
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 local cpair = core.graphics.cpair
@@ -26,42 +28,49 @@ local cpair = core.graphics.cpair
 -- create new main view
 ---@param monitor table main viewscreen
 local function init(monitor)
+    local facility = iocontrol.get_db().facility
+    local units = iocontrol.get_db().units
+
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
     -- window header message
-    local header = TextBox{parent=main,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local ping = DataIndicator{parent=main,x=1,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=cpair(colors.lightGray, colors.white),width=12,fg_bg=style.header}
+    -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
+    local datetime = TextBox{parent=main,x=(header.width()-42),y=1,text="",alignment=TEXT_ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
 
-    local db = iocontrol.get_db()
+    facility.ps.subscribe("sv_ping", ping.update)
+    facility.ps.subscribe("date_time", datetime.set_value)
 
     local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
 
     local cnc_y_start = 3
 
     -- unit overviews
-    if db.facility.num_units >= 1 then
-        uo_1 = unit_overview(main, 2, 3, db.units[1])
+    if facility.num_units >= 1 then
+        uo_1 = unit_overview(main, 2, 3, units[1])
         cnc_y_start = cnc_y_start + uo_1.height() + 1
     end
 
-    if db.facility.num_units >= 2 then
-        uo_2 = unit_overview(main, 84, 3, db.units[2])
+    if facility.num_units >= 2 then
+        uo_2 = unit_overview(main, 84, 3, units[2])
     end
 
-    if db.facility.num_units >= 3 then
+    if facility.num_units >= 3 then
         -- base offset 3, spacing 1, max height of units 1 and 2
         local row_2_offset = 3 + 1 + math.max(uo_1.height(), uo_2.height())
 
-        uo_3 = unit_overview(main, 2, row_2_offset, db.units[3])
+        uo_3 = unit_overview(main, 2, row_2_offset, units[3])
         cnc_y_start = cnc_y_start + uo_3.height() + 1
 
-        if db.facility.num_units == 4 then
-            uo_4 = unit_overview(main, 84, row_2_offset, db.units[4])
+        if facility.num_units == 4 then
+            uo_4 = unit_overview(main, 84, row_2_offset, units[4])
         end
     end
 
     -- command & control
 
-    TextBox{parent=main,y=cnc_y_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=cnc_y_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
 
     -- testing
     ---@fixme remove test code

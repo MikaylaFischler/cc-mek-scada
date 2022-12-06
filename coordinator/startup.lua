@@ -15,10 +15,11 @@ local core         = require("graphics.core")
 local apisessions  = require("coordinator.apisessions")
 local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
+local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.7.5"
+local COORDINATOR_VERSION = "beta-v0.7.6"
 
 local print = util.print
 local println = util.println
@@ -43,6 +44,7 @@ cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_bool(config.RECOLOR)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
+cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 cfv.assert_type_bool(config.SECURE)
@@ -199,6 +201,8 @@ local function main()
     -- main event loop
     ----------------------------------------
 
+    local date_format = util.trinary(config.TIME_24_HOUR, "%X \x04 %A, %B %d %Y", "%r \x04 %A, %B %d %Y")
+
     local no_modem = false
 
     if ui_ok then
@@ -283,6 +287,9 @@ local function main()
 
                 -- free any closed sessions
                 --apisessions.free_all_closed()
+
+                -- update date and time string for main display
+                iocontrol.get_db().facility.ps.publish("date_time", os.date(date_format))
 
                 loop_clock.start()
             elseif conn_watchdog.is_timer(param1) then

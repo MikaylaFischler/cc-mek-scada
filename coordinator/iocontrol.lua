@@ -18,6 +18,7 @@ local io = {}
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
+---@diagnostic disable-next-line: redefined-local
 function iocontrol.init(conf, comms)
     io.facility = {
         scram = false,

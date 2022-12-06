@@ -42,17 +42,26 @@ local function data(args)
     e.window.setCursorPos(1, 1)
     e.window.write(args.label)
 
-    local data_start = string.len(args.label) + 2
-    if string.len(args.label) == 0 then data_start = 1 end
+    local label_len = string.len(args.label)
+    local data_start = 1
+    local clear_width = args.width
+
+    if label_len > 0 then
+        data_start = data_start + (label_len + 1)
+        clear_width = args.width - (label_len + 1)
+    end
 
     -- on state change
     ---@param value any new value
     function e.on_update(value)
         e.value = value
 
-        local data_str = util.sprintf(args.format, value)
+        -- clear old data and label
+        e.window.setCursorPos(data_start, 1)
+        e.window.write(util.spaces(clear_width))
 
         -- write data
+        local data_str = util.sprintf(args.format, value)
         e.window.setCursorPos(data_start, 1)
         e.window.setTextColor(e.fg_bg.fgd)
         if args.commas then
