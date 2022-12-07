@@ -315,6 +315,7 @@ function plc.rps_init(reactor, is_formed)
             status = rps_status_t.automatic
         else
             self.tripped = false
+            self.trip_cause = rps_status_t.ok
         end
 
         -- if a new trip occured...
@@ -339,7 +340,10 @@ function plc.rps_init(reactor, is_formed)
     end
 
     function public.status() return self.state end
+
     function public.is_tripped() return self.tripped end
+    function public.get_trip_cause() return self.trip_cause end
+
     function public.is_active() return self.reactor_enabled end
     function public.is_formed() return self.formed end
     function public.is_force_disabled() return self.force_disabled end
@@ -623,7 +627,6 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
             local sys_status = {
                 util.time(),                    -- timestamp
                 (not self.scrammed),            -- requested control state
-                rps.is_tripped(),               -- rps_tripped
                 no_reactor,                     -- no reactor peripheral connected
                 formed,                         -- reactor formed
                 heating_rate,                   -- heating rate
@@ -641,7 +644,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     -- send reactor protection system status
     function public.send_rps_status()
         if self.linked then
-            _send(RPLC_TYPES.RPS_STATUS, rps.status())
+            _send(RPLC_TYPES.RPS_STATUS, { rps.is_tripped(), rps.get_trip_cause(), table.unpack(rps.status()) })
         end
     end
 

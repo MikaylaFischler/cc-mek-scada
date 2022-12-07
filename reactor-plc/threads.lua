@@ -10,7 +10,7 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-local MAIN_CLOCK    = 1   -- (1Hz, 20 ticks)
+local MAIN_CLOCK    = 0.5 -- (2Hz,   10 ticks)
 local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
@@ -37,9 +37,9 @@ function threads.thread__main(smem, init)
     function public.exec()
         log.debug("main thread init, clock inactive")
 
-        -- send status updates at 1Hz (every 20 server ticks) (every loop tick)
-        -- send link requests at 0.5Hz (every 40 server ticks) (every 4 loop ticks)
-        local LINK_TICKS = 4
+        -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
+        -- send link requests at 0.5Hz (every 40 server ticks) (every 8 loop ticks)
+        local LINK_TICKS = 8
         local ticks_to_update = 0
         local loop_clock = util.new_clock(MAIN_CLOCK)
 

@@ -161,18 +161,20 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     -- copy in the RPS status
     ---@param rps_status table
     local function _copy_rps_status(rps_status)
-        self.sDB.rps_status.dmg_crit  = rps_status[1]
-        self.sDB.rps_status.high_temp = rps_status[2]
-        self.sDB.rps_status.no_cool   = rps_status[3]
-        self.sDB.rps_status.ex_waste  = rps_status[4]
-        self.sDB.rps_status.ex_hcool  = rps_status[5]
-        self.sDB.rps_status.no_fuel   = rps_status[6]
-        self.sDB.rps_status.fault     = rps_status[7]
-        self.sDB.rps_status.timeout   = rps_status[8]
-        self.sDB.rps_status.manual    = rps_status[9]
-        self.sDB.rps_status.automatic = rps_status[10]
-        self.sDB.rps_status.sys_fail  = rps_status[11]
-        self.sDB.rps_status.force_dis = rps_status[12]
+        self.sDB.rps_tripped          = rps_status[1]
+        self.sDB.rps_trip_cause       = rps_status[2]
+        self.sDB.rps_status.dmg_crit  = rps_status[3]
+        self.sDB.rps_status.high_temp = rps_status[4]
+        self.sDB.rps_status.no_cool   = rps_status[5]
+        self.sDB.rps_status.ex_waste  = rps_status[6]
+        self.sDB.rps_status.ex_hcool  = rps_status[7]
+        self.sDB.rps_status.no_fuel   = rps_status[8]
+        self.sDB.rps_status.fault     = rps_status[9]
+        self.sDB.rps_status.timeout   = rps_status[10]
+        self.sDB.rps_status.manual    = rps_status[11]
+        self.sDB.rps_status.automatic = rps_status[12]
+        self.sDB.rps_status.sys_fail  = rps_status[13]
+        self.sDB.rps_status.force_dis = rps_status[14]
     end
 
     -- copy in the reactor status
@@ -299,19 +301,18 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             -- handle packet by type
             if pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
-                if pkt.length >= 5 then
+                if pkt.length >= 4 then
                     self.sDB.last_status_update = pkt.data[1]
                     self.sDB.control_state = pkt.data[2]
-                    self.sDB.rps_tripped = pkt.data[3]
-                    self.sDB.no_reactor = pkt.data[4]
-                    self.sDB.formed = pkt.data[5]
+                    self.sDB.no_reactor = pkt.data[3]
+                    self.sDB.formed = pkt.data[4]
 
                     if not self.sDB.no_reactor and self.sDB.formed then
-                        self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
+                        self.sDB.mek_status.heating_rate = pkt.data[5] or 0.0
 
                         -- attempt to read mek_data table
-                        if pkt.data[7] ~= nil then
-                            local status = pcall(_copy_status, pkt.data[7])
+                        if pkt.data[6] ~= nil then
+                            local status = pcall(_copy_status, pkt.data[6])
                             if status then
                                 -- copied in status data OK
                                 self.received_status_cache = true
@@ -396,7 +397,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 end
             elseif pkt.type == RPLC_TYPES.RPS_STATUS then
                 -- RPS status packet received, copy data
-                if pkt.length == 12 then
+                if pkt.length == 14 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK
@@ -410,9 +411,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             elseif pkt.type == RPLC_TYPES.RPS_ALARM then
                 -- RPS alarm
                 if pkt.length == 13 then
-                    self.sDB.rps_tripped = true
-                    self.sDB.rps_trip_cause = pkt.data[1]
-                    local status = pcall(_copy_rps_status, { table.unpack(pkt.data, 2, pkt.length) })
+                    local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
                     if status then
                         -- copied in RPS status data OK
                     else
