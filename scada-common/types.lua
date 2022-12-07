@@ -175,7 +175,7 @@ types.rtu_t = {
     env_detector = "environment_detector"
 }
 
----@alias rps_status_t string
+---@alias rps_status_t rps_trip_cause
 types.rps_status_t = {
     ok = "ok",
     dmg_crit = "dmg_crit",

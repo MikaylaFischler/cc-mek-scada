@@ -107,6 +107,12 @@ local function init(parent, id)
     DataIndicator{parent=main,x=21,label="",format="%6.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
     main.line_break()
 
+    local stat_line_1 = TextBox{parent=main,x=2,text="UNKNOWN",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.black, colors.white)}
+    local stat_line_2 = TextBox{parent=main,x=2,text="awaiting data",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+
+    r_ps.subscribe("U_StatusLine1", stat_line_1.set_value)
+    r_ps.subscribe("U_StatusLine2", stat_line_2.set_value)
+
     -----------------
     -- annunciator --
     -----------------
@@ -301,7 +307,7 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
-    local burn_control = Div{parent=main,x=2,y=22,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_control = Div{parent=main,x=2,y=25,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
@@ -313,10 +319,10 @@ local function init(parent, id)
 
     local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local start = HazardButton{parent=main,x=22,y=22,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
-    local ack_a = HazardButton{parent=main,x=12,y=26,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
-    local scram = HazardButton{parent=main,x=2,y=26,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
-    local reset = HazardButton{parent=main,x=22,y=26,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
+    local start = HazardButton{parent=main,x=22,y=25,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
+    local ack_a = HazardButton{parent=main,x=12,y=29,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
+    local scram = HazardButton{parent=main,x=2,y=29,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
+    local reset = HazardButton{parent=main,x=22,y=29,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
 
     unit.start_ack = start.on_response
     unit.scram_ack = scram.on_response
@@ -333,12 +339,6 @@ local function init(parent, id)
     r_ps.subscribe("status", start_button_en_check)
     r_ps.subscribe("rps_tripped", start_button_en_check)
     r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
-
-    local stat_line_1 = DataIndicator{parent=main,x=2,y=30,label="",format="%s",value="",width=29,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
-    local stat_line_2 = DataIndicator{parent=main,x=2,y=31,label="",format="%s",value="",width=29,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
-
-    r_ps.subscribe("U_StatusLine1", stat_line_1.update)
-    r_ps.subscribe("U_StatusLine2", stat_line_2.update)
 
     local waste_sel = Div{parent=main,x=2,y=50,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
 

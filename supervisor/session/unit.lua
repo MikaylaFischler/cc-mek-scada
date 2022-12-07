@@ -85,12 +85,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         last_heartbeat = 0,
         damage_initial = 0,
         damage_start = 0,
+        damage_last = 0,
+        damage_est_last = 0,
         waste_mode = WASTE_MODE.AUTO,
         status_text = { "Unknown", "Awaiting Connection..." },
         -- logic for alarms
         had_reactor = false,
         start_ms = 0,
         plc_cache = {
+            active = false,
             ok = false,
             rps_trip = false,
             rps_status = {},  ---@type rps_status
@@ -419,6 +422,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             end
 
             -- record reactor stats
+            self.plc_cache.active = plc_db.mek_status.status
             self.plc_cache.ok = not (plc_db.rps_status.fault or plc_db.rps_status.sys_fail or plc_db.rps_status.force_dis)
             self.plc_cache.rps_trip = plc_db.rps_tripped
             self.plc_cache.rps_status = plc_db.rps_status
@@ -427,12 +431,16 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.plc_cache.waste = plc_db.mek_status.waste_fill
 
             -- track damage
-            if (self.damage_initial == 0) and (plc_db.mek_status.damage > 0) then
-                self.damage_start = util.time_s()
-                self.damage_initial = plc_db.mek_status.damage
+            if plc_db.mek_status.damage > 0 then
+                if self.damage_start == 0 then
+                    self.damage_start = util.time_s()
+                    self.damage_initial = plc_db.mek_status.damage
+                end
             else
-                self.damage_initial = 0
                 self.damage_start = 0
+                self.damage_initial = 0
+                self.damage_last = 0
+                self.damage_est_last = 0
             end
 
             -- heartbeat blink about every second
@@ -662,15 +670,17 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         _update_alarm_state(rps_alarm, self.alarms.RPSTransient)
 
         -- RCS Transient
-        local any_low = false
+        local any_low = annunc.CoolantLevelLow
         local any_over = false
         for i = 1, #annunc.WaterLevelLow do any_low = any_low or annunc.WaterLevelLow[i] end
         for i = 1, #annunc.TurbineOverSpeed do any_over = any_over or annunc.TurbineOverSpeed[i] end
 
         local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.RCSFlowLow or annunc.MaxWaterReturnFeed
 
-        -- flow is ramping up right after reactor start, annunciator indicators for these states may not indicate a real issue
-        if util.time_ms() - self.start_ms > FLOW_STABILITY_DELAY_MS then
+        -- annunciator indicators for these states may not indicate a real issue when:
+        --  > flow is ramping up right after reactor start
+        --  > flow is ramping down after reactor shutdown
+        if (util.time_ms() - self.start_ms > FLOW_STABILITY_DELAY_MS) and plc_cache.active then
             rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
         end
 
@@ -791,24 +801,102 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.status_text = { "MELTDOWN IMMINENT", "evacuate facility immediately" }
         elseif is_active(self.alarms.ReactorDamage) then
             -- attempt to determine when a chance of a meltdown will occur
-            self.status_text[1] = "Containment Taking Damage"
+            self.status_text[1] = "CONTAINMENT TAKING DAMAGE"
             if self.plc_cache.damage >= 100 then
                 self.status_text[2] = "damage critical"
             elseif (self.plc_cache.damage - self.damage_initial) > 0 then
-                local rate = (self.plc_cache.damage - self.damage_initial) / (util.time_s() - self.damage_start)
-                local remaining_s = (100 - self.plc_cache.damage) * rate
+                if self.plc_cache.damage > self.damage_last then
+                    self.damage_last = self.plc_cache.damage
+                    local rate = (self.plc_cache.damage - self.damage_initial) / (util.time_s() - self.damage_start)
+                    self.damage_est_last = (100 - self.plc_cache.damage) / rate
+                end
 
-                self.status_text[2] = util.c("damage critical in ", remaining_s, "s")
+                self.status_text[2] = util.c("damage critical in ", util.sprintf("%.1f", self.damage_est_last), "s")
             else
                 self.status_text[2] = "estimating time to critical..."
             end
+        elseif is_active(self.alarms.ContainmentRadiation) then
+            self.status_text = { "RADIATION DETECTED", "radiation levels above normal" }
+        -- elseif is_active(self.alarms.RPSTransient) then
+            -- RPS status handled when checking reactor status
+        elseif is_active(self.alarms.RCSTransient) then
+            self.status_text = { "RCS TRANSIENT", "check coolant system" }
+        elseif is_active(self.alarms.ReactorOverTemp) then
+            self.status_text = { "CORE OVER TEMP", "reactor core temperature >=1200K" }
+        elseif is_active(self.alarms.ReactorWasteLeak) then
+            self.status_text = { "WASTE LEAK", "radioactive waste leak detected" }
+        elseif is_active(self.alarms.ReactorHighTemp) then
+            self.status_text = { "CORE TEMP HIGH", "reactor core temperature >1150K" }
+        elseif is_active(self.alarms.ReactorHighWaste) then
+            self.status_text = { "WASTE LEVEL HIGH", "waste accumulating in reactor" }
+        elseif is_active(self.alarms.TurbineTrip) then
+            self.status_text = { "TURBINE TRIP", "turbine stall occured" }
         -- connection dependent states
         elseif self.plc_i ~= nil then
             local plc_db = self.plc_i.get_db()
             if plc_db.mek_status.status then
-                self.status_text = { "Active", "reactor nominal" }
+                self.status_text[1] = "ACTIVE"
+
+                if self.db.annunciator.ReactorHighDeltaT then
+                    self.status_text[2] = "core temperature rising"
+                elseif self.db.annunciator.ReactorTempHigh then
+                    self.status_text[2] = "core temp high, system nominal"
+                elseif self.db.annunciator.FuelInputRateLow then
+                    self.status_text[2] = "insufficient fuel input rate"
+                elseif self.db.annunciator.WasteLineOcclusion then
+                    self.status_text[2] = "insufficient waste output rate"
+                elseif (util.time_ms() - self.start_ms) <= FLOW_STABILITY_DELAY_MS then
+                    if num_turbines > 1 then
+                        self.status_text[2] = "turbines spinning up"
+                    else
+                        self.status_text[2] = "turbine spinning up"
+                    end
+                else
+                    self.status_text[2] = "system nominal"
+                end
+            elseif plc_db.rps_tripped then
+                local cause = "unknown"
+
+                if plc_db.rps_trip_cause == "ok" then
+                    -- hmm...
+                elseif plc_db.rps_trip_cause == "dmg_crit" then
+                    cause = "core damage critical"
+                elseif plc_db.rps_trip_cause == "high_temp" then
+                    cause = "core temperature high"
+                elseif plc_db.rps_trip_cause == "no_coolant" then
+                    cause = "insufficient coolant"
+                elseif plc_db.rps_trip_cause == "full_waste" then
+                    cause = "excess waste"
+                elseif plc_db.rps_trip_cause == "heated_coolant_backup" then
+                    cause = "excess heated coolant"
+                elseif plc_db.rps_trip_cause == "no_fuel" then
+                    cause = "insufficient fuel"
+                elseif plc_db.rps_trip_cause == "fault" then
+                    cause = "hardware fault"
+                elseif plc_db.rps_trip_cause == "timeout" then
+                    cause = "connection timed out"
+                elseif plc_db.rps_trip_cause == "manual" then
+                    cause = "manual operator SCRAM"
+                elseif plc_db.rps_trip_cause == "automatic" then
+                    cause = "automated system SCRAM"
+                elseif plc_db.rps_trip_cause == "sys_fail" then
+                    cause = "PLC system failure"
+                elseif plc_db.rps_trip_cause == "force_disabled" then
+                    cause = "reactor force disabled"
+                end
+
+                self.status_text = { "RPS SCRAM", cause }
             else
-                self.status_text = { "Idle", "" }
+                self.status_text[1] = "IDLE"
+
+                local temp = plc_db.mek_status.temp
+                if temp < 350 then
+                    self.status_text[2] = "core cold"
+                elseif temp < 600 then
+                    self.status_text[2] = "core warm"
+                else
+                    self.status_text[2] = "core hot"
+                end
             end
         else
             self.status_text = { "Reactor Off-line", "awaiting connection..." }
