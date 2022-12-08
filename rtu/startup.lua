@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.9.8"
+local RTU_VERSION = "beta-v0.9.9"
 
 local rtu_t = types.rtu_t
 
@@ -257,9 +257,9 @@ local function main()
                 return false
             end
 
-            -- CHECK: reactor is an integer >= 1
-            if (not util.is_int(for_reactor)) or (for_reactor <= 0) then
-                println(util.c("configure> device entry #", i, ": reactor ", for_reactor, " isn't an integer >= 1"))
+            -- CHECK: reactor is an integer >= 0
+            if (not util.is_int(for_reactor)) or (for_reactor < 0) then
+                println(util.c("configure> device entry #", i, ": reactor ", for_reactor, " isn't an integer >= 0"))
                 return false
             end
 
@@ -362,7 +362,12 @@ local function main()
 
             table.insert(units, rtu_unit)
 
-            log.debug(util.c("configure> initialized RTU unit #", #units, ": ", name, " (", rtu_type, ") [", index, "] for reactor ", for_reactor))
+            local for_message = "facility"
+            if for_reactor > 0 then
+                for_message = util.c("reactor ", for_reactor)
+            end
+
+            log.debug(util.c("configure> initialized RTU unit #", #units, ": ", name, " (", rtu_type, ") [", index, "] for ", for_message))
         end
 
         -- we made it through all that trusting-user-to-write-a-config-file chaos

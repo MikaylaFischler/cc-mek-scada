@@ -12,7 +12,7 @@ config.LOG_PATH = "/log.txt"
 --  0 = APPEND (adds to existing file on start)
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
--- RTU peripheral devices (named: side/network device name)
+-- RTU peripheral devices (name: side/network device name)
 config.RTU_DEVICES = {
     {
         name = "boilerValve_0",
