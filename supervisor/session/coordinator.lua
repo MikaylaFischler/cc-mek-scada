@@ -113,7 +113,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility, units)
     -- send facility builds
     local function _send_fac_builds()
         self.acks.fac_builds = false
-        _send(SCADA_CRDN_TYPES.FAC_BUILDS, facility.get_build())
+        _send(SCADA_CRDN_TYPES.FAC_BUILDS, { facility.get_build() })
     end
 
     -- send unit builds

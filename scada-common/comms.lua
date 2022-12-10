@@ -491,7 +491,7 @@ function comms.crdn_packet()
                 self.type == SCADA_CRDN_TYPES.FAC_CMD or
                 self.type == SCADA_CRDN_TYPES.UNIT_BUILDS or
                 self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
-                self.type == SCADA_CRDN_TYPES.UNIT_STATUSES
+                self.type == SCADA_CRDN_TYPES.UNIT_CMD
     end
 
     -- make a coordinator packet

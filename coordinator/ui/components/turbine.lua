@@ -3,10 +3,11 @@ local util           = require("scada-common.util")
 
 local style          = require("coordinator.ui.style")
 
+local Rectangle      = require("graphics.elements.rectangle")
+
 local DataIndicator  = require("graphics.elements.indicators.data")
 local PowerIndicator = require("graphics.elements.indicators.power")
 local StateIndicator = require("graphics.elements.indicators.state")
-local Rectangle      = require("graphics.elements.rectangle")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
 local cpair = core.graphics.cpair

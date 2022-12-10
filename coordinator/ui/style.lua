@@ -138,7 +138,7 @@ style.imatrix = {
             text = "RTU  FAULT"
         },
         {
-            color = cpair(colors.white, colors.green),
+            color = cpair(colors.black, colors.green),
             text = "ONLINE"
         },
         {

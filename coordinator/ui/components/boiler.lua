@@ -2,10 +2,11 @@ local core           = require("graphics.core")
 
 local style          = require("coordinator.ui.style")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local StateIndicator = require("graphics.elements.indicators.state")
 local Rectangle      = require("graphics.elements.rectangle")
 local TextBox        = require("graphics.elements.textbox")
+
+local DataIndicator  = require("graphics.elements.indicators.data")
+local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
 local cpair = core.graphics.cpair

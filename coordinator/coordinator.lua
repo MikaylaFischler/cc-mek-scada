@@ -389,12 +389,16 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                 if protocol == PROTOCOLS.SCADA_CRDN then
                     if self.sv_linked then
                         if packet.type == SCADA_CRDN_TYPES.FAC_BUILDS then
-                            -- record facility builds
-                            if iocontrol.record_facility_builds(packet.data) then
-                                -- acknowledge receipt of builds
-                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_BUILDS, {})
+                            if packet.length == 1 then
+                                -- record facility builds
+                                if iocontrol.record_facility_builds(packet.data[1]) then
+                                    -- acknowledge receipt of builds
+                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_BUILDS, {})
+                                else
+                                    log.error("received invalid FAC_BUILDS packet")
+                                end
                             else
-                                log.error("received invalid FAC_BUILDS packet")
+                                log.debug("FAC_BUILDS packet length mismatch")
                             end
                         elseif packet.type == SCADA_CRDN_TYPES.FAC_STATUS then
                             -- update facility status

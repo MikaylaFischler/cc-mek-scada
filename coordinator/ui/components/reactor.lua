@@ -4,11 +4,12 @@ local core           = require("graphics.core")
 
 local style          = require("coordinator.ui.style")
 
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local DataIndicator  = require("graphics.elements.indicators.data")
-local StateIndicator = require("graphics.elements.indicators.state")
 local Rectangle      = require("graphics.elements.rectangle")
 local TextBox        = require("graphics.elements.textbox")
+
+local DataIndicator  = require("graphics.elements.indicators.data")
+local HorizontalBar  = require("graphics.elements.indicators.hbar")
+local StateIndicator = require("graphics.elements.indicators.state")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 

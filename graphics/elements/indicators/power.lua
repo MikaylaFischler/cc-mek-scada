@@ -7,6 +7,7 @@ local element = require("graphics.element")
 ---@class power_indicator_args
 ---@field label string indicator label
 ---@field format string power format override (lua string format)
+---@field rate boolean? whether to append /t to the end (power per tick)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
 ---@field value any default value
 ---@field parent graphics_element
@@ -57,8 +58,16 @@ local function power(args)
         if args.lu_colors ~= nil then
             e.window.setTextColor(args.lu_colors.color_b)
         end
-        -- add space so we don't end up with FEE (after having kFE for example)
-        if unit == "FE" then unit = "FE " end
+
+        -- append per tick if rate is set
+        -- add space to FE so we don't end up with FEE (after having kFE for example)
+        if args.rate == true then
+            unit = unit .. "/t"
+            if unit == "FE/t" then unit = "FE/t " end
+        else
+            if unit == "FE" then unit = "FE " end
+        end
+
         e.window.write(" " .. unit)
     end
 

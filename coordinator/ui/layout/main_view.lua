@@ -9,6 +9,7 @@ local util          = require("scada-common.util")
 local style         = require("coordinator.ui.style")
 
 local unit_overview = require("coordinator.ui.components.unit_overview")
+local imatrix = require("coordinator.ui.components.imatrix")
 
 local core          = require("graphics.core")
 
@@ -72,12 +73,14 @@ local function init(monitor)
 
     TextBox{parent=main,y=cnc_y_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
 
+    cnc_y_start = cnc_y_start + 2
+
     -- testing
     ---@fixme remove test code
 
     ColorMap{parent=main,x=2,y=(main.height()-1)}
 
-    PushButton{parent=main,x=2,y=(cnc_y_start+2),text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
+    PushButton{parent=main,x=2,y=cnc_y_start,text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
     PushButton{parent=main,x=2,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
     PushButton{parent=main,x=2,text="TEST 3",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_3}
     PushButton{parent=main,x=2,text="TEST 4",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_4}
@@ -88,7 +91,7 @@ local function init(monitor)
     PushButton{parent=main,x=2,text="STOP",min_width=8,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.stop}
     PushButton{parent=main,x=2,text="PSCALE",min_width=8,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_power_scale}
 
-    SwitchButton{parent=main,x=12,y=(cnc_y_start+2),text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
+    SwitchButton{parent=main,x=12,y=cnc_y_start,text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
     SwitchButton{parent=main,x=12,text="CONTAINMENT RADIATION",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rad}
     SwitchButton{parent=main,x=12,text="REACTOR LOST",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_lost}
     SwitchButton{parent=main,x=12,text="CRITICAL DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_crit}
@@ -100,6 +103,8 @@ local function init(monitor)
     SwitchButton{parent=main,x=12,text="RPS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rps}
     SwitchButton{parent=main,x=12,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
     SwitchButton{parent=main,x=12,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
+
+    local imatrix_1 = imatrix(main, 131, cnc_y_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 
     return main
 end
