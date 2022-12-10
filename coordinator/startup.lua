@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.7.7"
+local COORDINATOR_VERSION = "beta-v0.8.0"
 
 local print = util.print
 local println = util.println
@@ -365,4 +365,8 @@ local function main()
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() end
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    pcall(sounder.stop)
+    crash.exit()
+end

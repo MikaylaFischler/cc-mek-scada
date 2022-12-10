@@ -2,6 +2,7 @@ local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
+local facility    = require("supervisor.session.facility")
 local svqtypes    = require("supervisor.session.svqtypes")
 local unit        = require("supervisor.session.unit")
 
@@ -32,7 +33,8 @@ svsessions.SESSION_TYPE = SESSION_TYPE
 local self = {
     modem = nil,
     num_reactors = 0,
-    facility_units = {},
+    facility = facility.new(),
+    units = {},
     rtu_sessions = {},
     plc_sessions = {},
     coord_sessions = {},
@@ -197,10 +199,10 @@ end
 function svsessions.init(modem, num_reactors, cooling_conf)
     self.modem = modem
     self.num_reactors = num_reactors
-    self.facility_units = {}
+    self.units = {}
 
     for i = 1, self.num_reactors do
-        table.insert(self.facility_units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
+        table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
     end
 end
 
@@ -297,7 +299,7 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
         plc_s.instance = plc.new_session(self.next_plc_id, for_reactor, plc_s.in_queue, plc_s.out_queue)
         table.insert(self.plc_sessions, plc_s)
 
-        self.facility_units[for_reactor].link_plc_session(plc_s)
+        self.units[for_reactor].link_plc_session(plc_s)
 
         log.debug("established new PLC session to " .. remote_port .. " with ID " .. self.next_plc_id)
 
@@ -330,7 +332,7 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
         instance = nil  ---@type rtu_session
     }
 
-    rtu_s.instance = rtu.new_session(self.next_rtu_id, rtu_s.in_queue, rtu_s.out_queue, advertisement, self.facility_units)
+    rtu_s.instance = rtu.new_session(self.next_rtu_id, rtu_s.in_queue, rtu_s.out_queue, advertisement, self.facility, self.units)
     table.insert(self.rtu_sessions, rtu_s)
 
     log.debug("established new RTU session to " .. remote_port .. " with ID " .. self.next_rtu_id)
@@ -360,7 +362,7 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
             instance = nil  ---@type coord_session
         }
 
-        coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, self.facility_units)
+        coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, self.facility, self.units)
         table.insert(self.coord_sessions, coord_s)
 
         log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_coord_id)
@@ -399,9 +401,12 @@ function svsessions.iterate_all()
     -- iterate coordinator sessions
     _iterate(self.coord_sessions)
 
+    -- iterate facility
+    self.facility.update()
+
     -- iterate units
-    for i = 1, #self.facility_units do
-        local u = self.facility_units[i]    ---@type reactor_unit
+    for i = 1, #self.units do
+        local u = self.units[i]    ---@type reactor_unit
         u.update()
     end
 end

@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.0.1"
+comms.version = "1.1.0"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -38,7 +38,7 @@ local RPLC_TYPES = {
     MEK_BURN_RATE = 2,  -- set burn rate
     RPS_ENABLE = 3,     -- enable reactor
     RPS_SCRAM = 4,      -- SCRAM reactor (manual request)
-    RPS_ASCRAM = 5,      -- SCRAM reactor (automatic request)
+    RPS_ASCRAM = 5,     -- SCRAM reactor (automatic request)
     RPS_STATUS = 6,     -- RPS status
     RPS_ALARM = 7,      -- RPS alarm broadcast
     RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
@@ -62,14 +62,16 @@ local ESTABLISH_ACK = {
 
 ---@alias SCADA_CRDN_TYPES integer
 local SCADA_CRDN_TYPES = {
-    STRUCT_BUILDS = 0,  -- mekanism structure builds
-    UNIT_STATUSES = 1,  -- state of reactor units
-    COMMAND_UNIT = 2,   -- command a reactor unit
-    ALARM = 3           -- alarm signaling
+    FAC_BUILDS = 0,     -- facility RTU builds
+    FAC_STATUS = 1,     -- state of facility and facility devices
+    FAC_CMD = 2,        -- faility command
+    UNIT_BUILDS = 3,    -- build of each reactor unit (reactor + RTUs)
+    UNIT_STATUSES = 4,  -- state of each of the reactor units
+    UNIT_CMD = 5        -- command a reactor unit
 }
 
----@alias CRDN_COMMANDS integer
-local CRDN_COMMANDS = {
+---@alias UNIT_COMMANDS integer
+local UNIT_COMMANDS = {
     SCRAM = 0,          -- SCRAM the reactor
     START = 1,          -- start the reactor
     RESET_RPS = 2,      -- reset the RPS
@@ -102,7 +104,7 @@ comms.RPLC_TYPES = RPLC_TYPES
 comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
 comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
-comms.CRDN_COMMANDS = CRDN_COMMANDS
+comms.UNIT_COMMANDS = UNIT_COMMANDS
 comms.CAPI_TYPES = CAPI_TYPES
 comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
 
@@ -484,10 +486,12 @@ function comms.crdn_packet()
 
     -- check that type is known
     local function _crdn_type_valid()
-        return self.type == SCADA_CRDN_TYPES.STRUCT_BUILDS or
+        return self.type == SCADA_CRDN_TYPES.FAC_BUILDS or
+                self.type == SCADA_CRDN_TYPES.FAC_STATUS or
+                self.type == SCADA_CRDN_TYPES.FAC_CMD or
+                self.type == SCADA_CRDN_TYPES.UNIT_BUILDS or
                 self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
-                self.type == SCADA_CRDN_TYPES.COMMAND_UNIT or
-                self.type == SCADA_CRDN_TYPES.ALARM
+                self.type == SCADA_CRDN_TYPES.UNIT_STATUSES
     end
 
     -- make a coordinator packet

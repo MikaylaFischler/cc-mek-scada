@@ -11,7 +11,7 @@ local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 
-local CRDN_COMMANDS = comms.CRDN_COMMANDS
+local UNIT_COMMANDS = comms.UNIT_COMMANDS
 
 local print = util.print
 local println = util.println
@@ -352,7 +352,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- send acknowledgement to coordinator
                 self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
                     unit = self.for_reactor,
-                    cmd = CRDN_COMMANDS.SET_BURN,
+                    cmd = UNIT_COMMANDS.SET_BURN,
                     ack = ack
                 })
             elseif pkt.type == RPLC_TYPES.RPS_ENABLE then
@@ -367,7 +367,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- send acknowledgement to coordinator
                 self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
                     unit = self.for_reactor,
-                    cmd = CRDN_COMMANDS.START,
+                    cmd = UNIT_COMMANDS.START,
                     ack = ack
                 })
             elseif pkt.type == RPLC_TYPES.RPS_SCRAM then
@@ -383,7 +383,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- send acknowledgement to coordinator
                 self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
                     unit = self.for_reactor,
-                    cmd = CRDN_COMMANDS.SCRAM,
+                    cmd = UNIT_COMMANDS.SCRAM,
                     ack = ack
                 })
             elseif pkt.type == RPLC_TYPES.RPS_ASCRAM then
@@ -435,7 +435,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                 -- send acknowledgement to coordinator
                 self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
                     unit = self.for_reactor,
-                    cmd = CRDN_COMMANDS.RESET_RPS,
+                    cmd = UNIT_COMMANDS.RESET_RPS,
                     ack = ack
                 })
             else

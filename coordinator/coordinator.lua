@@ -18,7 +18,7 @@ local DEVICE_TYPES = comms.DEVICE_TYPES
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
-local CRDN_COMMANDS = comms.CRDN_COMMANDS
+local UNIT_COMMANDS = comms.UNIT_COMMANDS
 
 local coordinator = {}
 
@@ -309,11 +309,11 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
     end
 
     -- send a unit command
-    ---@param cmd CRDN_COMMANDS command
+    ---@param cmd UNIT_COMMANDS command
     ---@param unit integer unit ID
     ---@param option any? optional options (like burn rate)
     function public.send_command(cmd, unit, option)
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.COMMAND_UNIT, { cmd, unit, option })
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_CMD, { cmd, unit, option })
     end
 
     -- parse a packet
@@ -388,20 +388,35 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                 -- handle packet
                 if protocol == PROTOCOLS.SCADA_CRDN then
                     if self.sv_linked then
-                        if packet.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
-                            -- record builds
-                            if iocontrol.record_builds(packet.data) then
+                        if packet.type == SCADA_CRDN_TYPES.FAC_BUILDS then
+                            -- record facility builds
+                            if iocontrol.record_facility_builds(packet.data) then
                                 -- acknowledge receipt of builds
-                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.STRUCT_BUILDS, {})
+                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_BUILDS, {})
                             else
-                                log.error("received invalid SCADA_CRDN build packet")
+                                log.error("received invalid FAC_BUILDS packet")
+                            end
+                        elseif packet.type == SCADA_CRDN_TYPES.FAC_STATUS then
+                            -- update facility status
+                            if not iocontrol.update_facility_status(packet.data) then
+                                log.error("received invalid FAC_STATUS packet")
+                            end
+                        elseif packet.type == SCADA_CRDN_TYPES.FAC_CMD then
+                            -- facility command acknowledgement
+                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
+                            -- record builds
+                            if iocontrol.record_unit_builds(packet.data) then
+                                -- acknowledge receipt of builds
+                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_BUILDS, {})
+                            else
+                                log.error("received invalid UNIT_BUILDS packet")
                             end
                         elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
                             -- update statuses
-                            if not iocontrol.update_statuses(packet.data) then
-                                log.error("received invalid SCADA_CRDN unit statuses packet")
+                            if not iocontrol.update_unit_statuses(packet.data) then
+                                log.error("received invalid UNIT_STATUSES packet")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_CMD then
                             -- unit command acknowledgement
                             if packet.length == 3 then
                                 local cmd = packet.data[1]
@@ -411,17 +426,17 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                 local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_entry
 
                                 if unit ~= nil then
-                                    if cmd == CRDN_COMMANDS.SCRAM then
+                                    if cmd == UNIT_COMMANDS.SCRAM then
                                         unit.scram_ack(ack)
-                                    elseif cmd == CRDN_COMMANDS.START then
+                                    elseif cmd == UNIT_COMMANDS.START then
                                         unit.start_ack(ack)
-                                    elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                                    elseif cmd == UNIT_COMMANDS.RESET_RPS then
                                         unit.reset_rps_ack(ack)
-                                    elseif cmd == CRDN_COMMANDS.SET_BURN then
+                                    elseif cmd == UNIT_COMMANDS.SET_BURN then
                                         unit.set_burn_ack(ack)
-                                    elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                                    elseif cmd == UNIT_COMMANDS.SET_WASTE then
                                         unit.set_waste_ack(ack)
-                                    elseif cmd == CRDN_COMMANDS.ACK_ALL_ALARMS then
+                                    elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
                                     else
                                         log.debug(util.c("received command ack with unknown command ", cmd))
@@ -432,8 +447,6 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             else
                                 log.debug("SCADA_CRDN unit command ack packet length mismatch")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.ALARM then
-                            ---@todo alarm/architecture handling
                         else
                             log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
                         end

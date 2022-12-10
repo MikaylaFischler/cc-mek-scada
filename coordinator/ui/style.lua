@@ -40,6 +40,14 @@ style.reactor = {
             text = "PLC OFF-LINE"
         },
         {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "PLC  FAULT"
+        },
+        {
             color = cpair(colors.white, colors.gray),
             text = "DISABLED"
         },
@@ -50,14 +58,6 @@ style.reactor = {
         {
             color = cpair(colors.black, colors.red),
             text = "SCRAMMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "PLC  FAULT"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
         },
         {
             color = cpair(colors.black, colors.red),
@@ -74,20 +74,20 @@ style.boiler = {
             text = "OFF-LINE"
         },
         {
-            color = cpair(colors.white, colors.gray),
-            text = "IDLE"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ACTIVE"
-        },
-        {
             color = cpair(colors.black, colors.orange),
             text = "RTU  FAULT"
         },
         {
             color = cpair(colors.black, colors.orange),
             text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.white, colors.gray),
+            text = "IDLE"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ACTIVE"
         }
     }
 }
@@ -100,6 +100,14 @@ style.turbine = {
             text = "OFF-LINE"
         },
         {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
             color = cpair(colors.white, colors.gray),
             text = "IDLE"
         },
@@ -110,15 +118,37 @@ style.turbine = {
         {
             color = cpair(colors.black, colors.red),
             text = "TRIP"
+        }
+    }
+}
+
+style.imatrix = {
+    -- induction matrix states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
         },
         {
             color = cpair(colors.black, colors.orange),
             text = "RTU  FAULT"
         },
         {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        }
+            color = cpair(colors.white, colors.green),
+            text = "ONLINE"
+        },
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "LOW CHARGE"
+        },
+        {
+            color = cpair(colors.black, colors.red),
+            text = "HIGH  CHARGE"
+        },
     }
 }
 

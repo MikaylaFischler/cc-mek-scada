@@ -1,9 +1,9 @@
-local log    = require("scada-common.log")
-local rsio   = require("scada-common.rsio")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local log   = require("scada-common.log")
+local rsio  = require("scada-common.rsio")
+local types = require("scada-common.types")
+local util  = require("scada-common.util")
 
-local qtypes = require("supervisor.session.rtu.qtypes")
+local rsctl = require("supervisor.session.rsctl")
 
 ---@class reactor_control_unit
 local unit = {}
@@ -178,6 +178,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         }
     }
 
+    -- init redstone RTU I/O controller
+    local rs_rtu_io_ctl = rsctl.new(self.redstone)
+
     -- init boiler table fields
     for _ = 1, num_boilers do
         table.insert(self.db.annunciator.BoilerOnline, false)
@@ -191,9 +194,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
     end
-
-    ---@class reactor_unit
-    local public = {}
 
     -- PRIVATE FUNCTIONS --
 
@@ -237,26 +237,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     --#region redstone I/O
 
-    -- write to a redstone port
-    local function __rs_w(port, value)
-        for i = 1, #self.redstone do
-            local db = self.redstone[i].get_db()    ---@type redstone_session_db
-            local io = db.io[port]                  ---@type rs_db_dig_io|nil
-            if io ~= nil then io.write(value) end
-        end
-    end
-
-    -- read a redstone port<br>
-    -- this will read from the first one encountered if there are multiple, because there should not be multiple
-    ---@param port IO_PORT
-    ---@return boolean|nil
-    local function __rs_r(port)
-        for i = 1, #self.redstone do
-            local db = self.redstone[i].get_db()    ---@type redstone_session_db
-            local io = db.io[port]                  ---@type rs_db_dig_io|nil
-            if io ~= nil then return io.read() end
-        end
-    end
+    local __rs_w = rs_rtu_io_ctl.digital_write
+    local __rs_r = rs_rtu_io_ctl.digital_read
 
     -- waste valves
     local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,   true) end, close = function () __rs_w(IO.WASTE_PU,   false) end }
@@ -702,6 +684,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- PUBLIC FUNCTIONS --
 
+    ---@class reactor_unit
+    local public = {}
+
     -- ADD/LINK DEVICES --
 
     -- link the PLC
@@ -722,7 +707,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- link a redstone RTU session
     ---@param rs_unit unit_session
     function public.add_redstone(rs_unit)
-        -- insert into list
         table.insert(self.redstone, rs_unit)
     end
 
@@ -781,6 +765,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- unlink RTU unit sessions if they are closed
         _unlink_disconnected_units(self.boilers)
         _unlink_disconnected_units(self.turbines)
+        _unlink_disconnected_units(self.redstone)
 
         -- update annunciator logic
         _update_annunciator()

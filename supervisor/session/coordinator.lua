@@ -10,7 +10,7 @@ local coordinator = {}
 local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
-local CRDN_COMMANDS = comms.CRDN_COMMANDS
+local UNIT_COMMANDS = comms.UNIT_COMMANDS
 
 local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
@@ -44,15 +44,14 @@ local PERIODICS = {
 ---@param id integer
 ---@param in_queue mqueue
 ---@param out_queue mqueue
----@param facility_units table
-function coordinator.new_session(id, in_queue, out_queue, facility_units)
+---@param facility facility
+---@param units table
+function coordinator.new_session(id, in_queue, out_queue, facility, units)
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
-        id = id,
         in_q = in_queue,
         out_q = out_queue,
-        units = facility_units,
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -67,11 +66,13 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
         },
         -- when to next retry one of these messages
         retry_times = {
-            builds_packet = 0
+            f_builds_packet = 0,
+            u_builds_packet = 0
         },
         -- message acknowledgements
         acks = {
-            builds = false
+            fac_builds = false,
+            unit_builds = false
         }
     }
 
@@ -109,26 +110,41 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
         self.seq_num = self.seq_num + 1
     end
 
+    -- send facility builds
+    local function _send_fac_builds()
+        self.acks.fac_builds = false
+        _send(SCADA_CRDN_TYPES.FAC_BUILDS, facility.get_build())
+    end
+
     -- send unit builds
-    local function _send_builds()
-        self.acks.builds = false
+    local function _send_unit_builds()
+        self.acks.unit_builds = false
 
         local builds = {}
 
-        for i = 1, #self.units do
-            local unit = self.units[i]  ---@type reactor_unit
+        for i = 1, #units do
+            local unit = units[i]   ---@type reactor_unit
             builds[unit.get_id()] = unit.get_build()
         end
 
-        _send(SCADA_CRDN_TYPES.STRUCT_BUILDS, builds)
+        _send(SCADA_CRDN_TYPES.UNIT_BUILDS, builds)
+    end
+
+    -- send facility status
+    local function _send_fac_status()
+        local status = {
+            facility.get_rtu_statuses()
+        }
+
+        _send(SCADA_CRDN_TYPES.FAC_STATUS, status)
     end
 
     -- send unit statuses
-    local function _send_status()
+    local function _send_unit_statuses()
         local status = {}
 
-        for i = 1, #self.units do
-            local unit = self.units[i]  ---@type reactor_unit
+        for i = 1, #units do
+            local unit = units[i]  ---@type reactor_unit
             status[unit.get_id()] = {
                 unit.get_reactor_status(),
                 unit.get_rtu_statuses(),
@@ -183,10 +199,13 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_CRDN then
-            if pkt.type == SCADA_CRDN_TYPES.STRUCT_BUILDS then
+            if pkt.type == SCADA_CRDN_TYPES.FAC_BUILDS then
                 -- acknowledgement to coordinator receiving builds
-                self.acks.builds = true
-            elseif pkt.type == SCADA_CRDN_TYPES.COMMAND_UNIT then
+                self.acks.fac_builds = true
+            elseif pkt.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
+                -- acknowledgement to coordinator receiving builds
+                self.acks.unit_builds = true
+            elseif pkt.type == SCADA_CRDN_TYPES.UNIT_CMD then
                 if pkt.length >= 2 then
                     -- get command and unit id
                     local cmd = pkt.data[1]
@@ -196,37 +215,37 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                     local data = { uid, pkt.data[3] }
 
                     -- continue if valid unit id
-                    if util.is_int(uid) and uid > 0 and uid <= #self.units then
-                        local unit = self.units[uid]    ---@type reactor_unit
+                    if util.is_int(uid) and uid > 0 and uid <= #units then
+                        local unit = units[uid]    ---@type reactor_unit
 
-                        if cmd == CRDN_COMMANDS.START then
+                        if cmd == UNIT_COMMANDS.START then
                             self.out_q.push_data(SV_Q_DATA.START, data)
-                        elseif cmd == CRDN_COMMANDS.SCRAM then
+                        elseif cmd == UNIT_COMMANDS.SCRAM then
                             self.out_q.push_data(SV_Q_DATA.SCRAM, data)
-                        elseif cmd == CRDN_COMMANDS.RESET_RPS then
+                        elseif cmd == UNIT_COMMANDS.RESET_RPS then
                             self.out_q.push_data(SV_Q_DATA.RESET_RPS, data)
-                        elseif cmd == CRDN_COMMANDS.SET_BURN then
+                        elseif cmd == UNIT_COMMANDS.SET_BURN then
                             if pkt.length == 3 then
                                 self.out_q.push_data(SV_Q_DATA.SET_BURN, data)
                             else
                                 log.debug(log_header .. "CRDN command unit burn rate missing option")
                             end
-                        elseif cmd == CRDN_COMMANDS.SET_WASTE then
+                        elseif cmd == UNIT_COMMANDS.SET_WASTE then
                             if pkt.length == 3 then
                                 unit.set_waste(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN command unit set waste missing option")
                             end
-                        elseif cmd == CRDN_COMMANDS.ACK_ALL_ALARMS then
+                        elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
                             unit.ack_all()
-                            _send(SCADA_CRDN_TYPES.COMMAND_UNIT, { cmd, uid, true })
-                        elseif cmd == CRDN_COMMANDS.ACK_ALARM then
+                            _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, true })
+                        elseif cmd == UNIT_COMMANDS.ACK_ALARM then
                             if pkt.length == 3 then
                                 unit.ack_alarm(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN command unit ack alarm missing id")
                             end
-                        elseif cmd == CRDN_COMMANDS.RESET_ALARM then
+                        elseif cmd == UNIT_COMMANDS.RESET_ALARM then
                             if pkt.length == 3 then
                                 unit.reset_alarm(pkt.data[3])
                             else
@@ -251,7 +270,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
     local public = {}
 
     -- get the session ID
-    function public.get_id() return self.id end
+    function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
     function public.check_wd(timer)
@@ -262,7 +281,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
     function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
-        println("connection to coordinator " .. self.id .. " closed by server")
+        println("connection to coordinator " .. id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
 
@@ -289,9 +308,9 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                         local cmd = message.message
                         if cmd == CRD_S_CMDS.RESEND_BUILDS then
                             -- re-send builds
-                            self.acks.builds = false
                             self.retry_times.builds_packet = util.time() + RETRY_PERIOD
-                            _send_builds()
+                            _send_fac_builds()
+                            _send_unit_builds()
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
@@ -299,7 +318,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
                         if cmd.key == CRD_S_DATA.CMD_ACK then
                             local ack = cmd.val ---@type coord_ack
-                            _send(SCADA_CRDN_TYPES.COMMAND_UNIT, { ack.cmd, ack.unit, ack.ack })
+                            _send(SCADA_CRDN_TYPES.UNIT_CMD, { ack.cmd, ack.unit, ack.ack })
                         end
                     end
                 end
@@ -313,7 +332,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to coordinator " .. self.id .. " closed by remote host")
+                println("connection to coordinator " .. id .. " closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end
@@ -334,11 +353,12 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
                 periodics.keep_alive = 0
             end
 
-            -- unit statuses to coordinator
+            -- statuses to coordinator
 
             periodics.status_packet = periodics.status_packet + elapsed
             if periodics.status_packet >= PERIODICS.STATUS then
-                _send_status()
+                _send_fac_status()
+                _send_unit_statuses()
                 periodics.status_packet = 0
             end
 
@@ -350,12 +370,19 @@ function coordinator.new_session(id, in_queue, out_queue, facility_units)
 
             local rtimes = self.retry_times
 
-            -- builds packet retry
+            -- builds packet retries
 
-            if not self.acks.builds then
-                if rtimes.builds_packet - util.time() <= 0 then
-                    _send_builds()
-                    rtimes.builds_packet = util.time() + RETRY_PERIOD
+            if not self.acks.fac_builds then
+                if rtimes.f_builds_packet - util.time() <= 0 then
+                    _send_fac_builds()
+                    rtimes.f_builds_packet = util.time() + RETRY_PERIOD
+                end
+            end
+
+            if not self.acks.unit_builds then
+                if rtimes.u_builds_packet - util.time() <= 0 then
+                    _send_unit_builds()
+                    rtimes.u_builds_packet = util.time() + RETRY_PERIOD
                 end
             end
         end

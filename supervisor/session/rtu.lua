@@ -36,16 +36,15 @@ local PERIODICS = {
 ---@param in_queue mqueue
 ---@param out_queue mqueue
 ---@param advertisement table
+---@param facility facility
 ---@param facility_units table
-function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
+function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facility_units)
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
-        id = id,
         in_q = in_queue,
         out_q = out_queue,
         modbus_q = mqueue.new(),
-        f_units = facility_units,
         advert = advertisement,
         -- connection properties
         seq_num = 0,
@@ -72,9 +71,10 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
     local function _handle_advertisement()
         _reset_config()
 
-        for i = 1, #self.f_units do
-            local unit = self.f_units[i]    ---@type reactor_unit
-            unit.purge_rtu_devices(self.id)
+        for i = 1, #facility_units do
+            local unit = facility_units[i]    ---@type reactor_unit
+            unit.purge_rtu_devices(id)
+            facility.purge_rtu_devices(id)
         end
 
         for i = 1, #self.advert do
@@ -104,12 +104,15 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
 
             if advert_validator.valid() then
                 advert_validator.assert_min(unit_advert.index, 1)
-                advert_validator.assert_min(unit_advert.reactor, 1)
-                advert_validator.assert_max(unit_advert.reactor, #self.f_units)
+                advert_validator.assert_min(unit_advert.reactor, 0)
+                advert_validator.assert_max(unit_advert.reactor, #facility_units)
                 if not advert_validator.valid() then u_type = false end
             else
                 u_type = false
             end
+
+            local type_string = util.strval(u_type)
+            if type(u_type) == "number" then type_string = util.strval(comms.advert_type_to_rtu_t(u_type)) end
 
             -- create unit by type
 
@@ -117,34 +120,45 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 -- validation fail
                 log.debug(log_header .. "advertisement unit validation failure")
             else
-                local target_unit = self.f_units[unit_advert.reactor]   ---@type reactor_unit
+                if unit_advert.reactor > 0 then
+                    local target_unit = facility_units[unit_advert.reactor] ---@type reactor_unit
 
-                if u_type == RTU_UNIT_TYPES.REDSTONE then
-                    -- redstone
-                    unit = svrs_redstone.new(self.id, i, unit_advert, self.modbus_q)
-                    if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
-                elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
-                    -- boiler (Mekanism 10.1+)
-                    unit = svrs_boilerv.new(self.id, i, unit_advert, self.modbus_q)
-                    if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
-                elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
-                    -- turbine (Mekanism 10.1+)
-                    unit = svrs_turbinev.new(self.id, i, unit_advert, self.modbus_q)
-                    if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
-                elseif u_type == RTU_UNIT_TYPES.IMATRIX then
-                    -- induction matrix
-                    unit = svrs_imatrix.new(self.id, i, unit_advert, self.modbus_q)
-                elseif u_type == RTU_UNIT_TYPES.SPS then
-                    -- super-critical phase shifter
-                    unit = svrs_sps.new(self.id, i, unit_advert, self.modbus_q)
-                elseif u_type == RTU_UNIT_TYPES.SNA then
-                    -- solar neutron activator
-                    unit = svrs_sna.new(self.id, i, unit_advert, self.modbus_q)
-                elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
-                    -- environment detector
-                    unit = svrs_envd.new(self.id, i, unit_advert, self.modbus_q)
+                    if u_type == RTU_UNIT_TYPES.REDSTONE then
+                        -- redstone
+                        unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
+                    elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
+                        -- boiler (Mekanism 10.1+)
+                        unit = svrs_boilerv.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
+                    elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
+                        -- turbine (Mekanism 10.1+)
+                        unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
+                    else
+                        log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-specific RTU type ", type_string))
+                    end
                 else
-                    log.error(log_header .. "bad advertisement: encountered unsupported RTU type")
+                    if u_type == RTU_UNIT_TYPES.REDSTONE then
+                        -- redstone
+                        unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_redstone(unit) end
+                    elseif u_type == RTU_UNIT_TYPES.IMATRIX then
+                        -- induction matrix
+                        unit = svrs_imatrix.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_imatrix(unit) end
+                    elseif u_type == RTU_UNIT_TYPES.SPS then
+                        -- super-critical phase shifter
+                        unit = svrs_sps.new(id, i, unit_advert, self.modbus_q)
+                    elseif u_type == RTU_UNIT_TYPES.SNA then
+                        -- solar neutron activator
+                        unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
+                    elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                        -- environment detector
+                        unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
+                    else
+                        log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-independent RTU type ", type_string))
+                    end
                 end
             end
 
@@ -152,10 +166,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
                 table.insert(self.units, unit)
             else
                 _reset_config()
-                if type(u_type) == "number" then
-                    local type_string = util.strval(comms.advert_type_to_rtu_t(u_type))
-                    log.error(log_header .. "bad advertisement: error occured while creating a unit (type is " .. type_string .. ")")
-                end
+                log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
                 break
             end
         end
@@ -271,7 +282,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility_units)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
-    function public.get_id() return self.id end
+    function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
     ---@param timer number
