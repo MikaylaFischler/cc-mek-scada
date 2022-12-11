@@ -89,7 +89,9 @@ local function vbar(args)
 
         -- re-draw
         last_num_bars = 0
-        e.on_update(e.value)
+        if type(e.value) == "number" then
+            e.on_update(e.value)
+        end
     end
 
     -- set the percentage value

@@ -94,14 +94,30 @@ local function init(parent, id)
     TextBox{parent=main,text="W",x=29,y=22,width=1,height=1,fg_bg=style.label}
 
     local fuel  = VerticalBar{parent=main,x=23,y=23,fg_bg=cpair(colors.black,colors.gray),height=4,width=1}
-    local ccool = VerticalBar{parent=main,x=25,y=23,fg_bg=cpair(colors.lightBlue,colors.gray),height=4,width=1}
-    local hcool = VerticalBar{parent=main,x=27,y=23,fg_bg=cpair(colors.orange,colors.gray),height=4,width=1}
+    local ccool = VerticalBar{parent=main,x=25,y=23,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}
+    local hcool = VerticalBar{parent=main,x=27,y=23,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local waste = VerticalBar{parent=main,x=29,y=23,fg_bg=cpair(colors.brown,colors.gray),height=4,width=1}
 
     r_ps.subscribe("fuel_fill", fuel.update)
     r_ps.subscribe("ccool_fill", ccool.update)
     r_ps.subscribe("hcool_fill", hcool.update)
     r_ps.subscribe("waste_fill", waste.update)
+
+    r_ps.subscribe("ccool_type", function (type)
+        if type == "mekanism:sodium" then
+            ccool.recolor(cpair(colors.lightBlue, colors.gray))
+        else
+            ccool.recolor(cpair(colors.blue, colors.gray))
+        end
+    end)
+
+    r_ps.subscribe("hcool_type", function (type)
+        if type == "mekanism:superheated_sodium" then
+            hcool.recolor(cpair(colors.orange, colors.gray))
+        else
+            hcool.recolor(cpair(colors.white, colors.gray))
+        end
+    end)
 
     TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
     local core_temp = DataIndicator{parent=main,x=32,label="",format="%11.2f",value=0,unit="K",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}

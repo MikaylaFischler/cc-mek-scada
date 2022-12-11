@@ -45,15 +45,26 @@ local function new_view(root, x, y, data, ps)
     TextBox{parent=reactor_fills,text="HCOOL",x=2,y=4,height=1,fg_bg=text_fg_bg}
     TextBox{parent=reactor_fills,text="WASTE",x=2,y=5,height=1,fg_bg=text_fg_bg}
 
-    -- local ccool_color = util.trinary(data.mek_status.ccool_type == "sodium", cpair(colors.lightBlue,colors.gray), cpair(colors.blue,colors.gray))
-    -- local hcool_color = util.trinary(data.mek_status.hcool_type == "superheated_sodium", cpair(colors.orange,colors.gray), cpair(colors.white,colors.gray))
-    local ccool_color = util.trinary(true, cpair(colors.lightBlue,colors.gray), cpair(colors.blue,colors.gray))
-    local hcool_color = util.trinary(true, cpair(colors.orange,colors.gray), cpair(colors.white,colors.gray))
-
     local fuel  = HorizontalBar{parent=reactor_fills,x=8,y=1,show_percent=true,bar_fg_bg=cpair(colors.black,colors.gray),height=1,width=14}
-    local ccool = HorizontalBar{parent=reactor_fills,x=8,y=2,show_percent=true,bar_fg_bg=ccool_color,height=1,width=14}
-    local hcool = HorizontalBar{parent=reactor_fills,x=8,y=4,show_percent=true,bar_fg_bg=hcool_color,height=1,width=14}
+    local ccool = HorizontalBar{parent=reactor_fills,x=8,y=2,show_percent=true,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=14}
+    local hcool = HorizontalBar{parent=reactor_fills,x=8,y=4,show_percent=true,bar_fg_bg=cpair(colors.white,colors.gray),height=1,width=14}
     local waste = HorizontalBar{parent=reactor_fills,x=8,y=5,show_percent=true,bar_fg_bg=cpair(colors.brown,colors.gray),height=1,width=14}
+
+    ps.subscribe("ccool_type", function (type)
+        if type == "mekanism:sodium" then
+            ccool.recolor(cpair(colors.lightBlue, colors.gray))
+        else
+            ccool.recolor(cpair(colors.blue, colors.gray))
+        end
+    end)
+
+    ps.subscribe("hcool_type", function (type)
+        if type == "mekanism:superheated_sodium" then
+            hcool.recolor(cpair(colors.orange, colors.gray))
+        else
+            hcool.recolor(cpair(colors.white, colors.gray))
+        end
+    end)
 
     ps.subscribe("fuel_fill", fuel.update)
     ps.subscribe("ccool_fill", ccool.update)

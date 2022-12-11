@@ -363,6 +363,12 @@ function element.new(args)
         protected.disable()
     end
 
+    -- custom recolor command, varies by element if implemented
+    ---@vararg cpair|color color(s)
+    function public.recolor(...)
+        protected.recolor(...)
+    end
+
     -- resize attributes of the element value if supported
     ---@vararg number dimensions (element specific)
     function public.resize(...)
