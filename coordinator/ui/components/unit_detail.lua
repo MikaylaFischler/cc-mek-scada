@@ -9,6 +9,7 @@ local style             = require("coordinator.ui.style")
 local core              = require("graphics.core")
 
 local Div               = require("graphics.elements.div")
+local Rectangle         = require("graphics.elements.rectangle")
 local TextBox           = require("graphics.elements.textbox")
 
 local AlarmLight        = require("graphics.elements.indicators.alight")
@@ -16,6 +17,7 @@ local CoreMap           = require("graphics.elements.indicators.coremap")
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
+local VerticalBar       = require("graphics.elements.indicators.vbar")
 
 local HazardButton      = require("graphics.elements.controls.hazard_button")
 local MultiButton       = require("graphics.elements.controls.multi_button")
@@ -25,6 +27,7 @@ local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 local cpair = core.graphics.cpair
+local border = core.graphics.border
 
 local period = core.flasher.PERIOD
 
@@ -77,38 +80,52 @@ local function init(parent, id)
 
     local stat_fg_bg = cpair(colors.black,colors.white)
 
-    TextBox{parent=main,x=21,y=3,text="Core Temp",height=1,fg_bg=style.label}
-    local core_temp = DataIndicator{parent=main,x=21,label="",format="%10.2f",value=0,unit="K",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    r_ps.subscribe("temp", core_temp.update)
-    main.line_break()
-
-    TextBox{parent=main,x=21,text="Burn Rate",height=1,width=12,fg_bg=style.label}
-    local act_burn_r = DataIndicator{parent=main,x=21,label="",format="%7.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    r_ps.subscribe("act_burn_rate", act_burn_r.update)
-    main.line_break()
-
-    TextBox{parent=main,x=21,text="Commanded Burn Rate",height=2,width=12,fg_bg=style.label}
-    local burn_r = DataIndicator{parent=main,x=21,label="",format="%7.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    r_ps.subscribe("burn_rate", burn_r.update)
-    main.line_break()
-
-    TextBox{parent=main,x=21,text="Heating Rate",height=1,width=12,fg_bg=style.label}
-    local heating_r = DataIndicator{parent=main,x=21,label="",format="%12.0f",value=0,unit="",commas=true,lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    TextBox{parent=main,x=2,y=22,text="Heating Rate",height=1,width=12,fg_bg=style.label}
+    local heating_r = DataIndicator{parent=main,x=2,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=stat_fg_bg}
     r_ps.subscribe("heating_rate", heating_r.update)
-    main.line_break()
 
-    TextBox{parent=main,x=21,text="Damage",height=1,width=12,fg_bg=style.label}
-    local damage_p = DataIndicator{parent=main,x=21,label="",format="%10.0f",value=100,unit="%",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
+    TextBox{parent=main,x=2,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
+    local burn_r = DataIndicator{parent=main,x=2,label="",format="%14.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=stat_fg_bg}
+    r_ps.subscribe("burn_rate", burn_r.update)
+
+    TextBox{parent=main,text="F",x=23,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="C",x=25,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="H",x=27,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="W",x=29,y=22,width=1,height=1,fg_bg=style.label}
+
+    local fuel  = VerticalBar{parent=main,x=23,y=23,fg_bg=cpair(colors.black,colors.gray),height=4,width=1}
+    local ccool = VerticalBar{parent=main,x=25,y=23,fg_bg=cpair(colors.lightBlue,colors.gray),height=4,width=1}
+    local hcool = VerticalBar{parent=main,x=27,y=23,fg_bg=cpair(colors.orange,colors.gray),height=4,width=1}
+    local waste = VerticalBar{parent=main,x=29,y=23,fg_bg=cpair(colors.brown,colors.gray),height=4,width=1}
+
+    r_ps.subscribe("fuel_fill", fuel.update)
+    r_ps.subscribe("ccool_fill", ccool.update)
+    r_ps.subscribe("hcool_fill", hcool.update)
+    r_ps.subscribe("waste_fill", waste.update)
+
+    TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
+    local core_temp = DataIndicator{parent=main,x=32,label="",format="%11.2f",value=0,unit="K",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    r_ps.subscribe("temp", core_temp.update)
+
+    TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
+    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    r_ps.subscribe("act_burn_rate", act_burn_r.update)
+
+    TextBox{parent=main,x=32,y=28,text="Damage",height=1,width=6,fg_bg=style.label}
+    local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
     r_ps.subscribe("damage", damage_p.update)
-    main.line_break()
 
     ---@todo radiation monitor
-    TextBox{parent=main,x=21,text="Radiation",height=1,width=12,fg_bg=style.label}
-    DataIndicator{parent=main,x=21,label="",format="%6.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=12,fg_bg=stat_fg_bg}
-    main.line_break()
+    TextBox{parent=main,x=32,y=31,text="Radiation",height=1,width=21,fg_bg=style.label}
+    DataIndicator{parent=main,x=32,label="",format="%7.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
 
-    local stat_line_1 = TextBox{parent=main,x=2,text="UNKNOWN",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.black, colors.white)}
-    local stat_line_2 = TextBox{parent=main,x=2,text="awaiting data",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+    -------------------
+    -- system status --
+    -------------------
+
+    local u_stat = Rectangle{parent=main,border=border(1, colors.gray, true),thin=true,width=33,height=4,x=46,y=3,fg_bg=cpair(colors.black,colors.white)}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.black, colors.white)}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
 
     r_ps.subscribe("U_StatusLine1", stat_line_1.set_value)
     r_ps.subscribe("U_StatusLine2", stat_line_2.set_value)
@@ -119,7 +136,7 @@ local function init(parent, id)
 
     -- annunciator colors (generally) per IAEA-TECDOC-812 recommendations
 
-    local annunciator = Div{parent=main,x=35,y=3}
+    local annunciator = Div{parent=main,width=23,height=18,x=22,y=3}
 
     -- connectivity/basic state
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
@@ -127,6 +144,11 @@ local function init(parent, id)
     local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
     ---@todo auto control as info sent here
     local r_auto     = IndicatorLight{parent=annunciator,label="Auto. Control",colors=cpair(colors.blue,colors.gray)}
+
+    annunciator.line_break()
+
+    ---@todo radiation monitor
+    local rad_mon    = IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
 
     r_ps.subscribe("PLCOnline", plc_online.update)
     r_ps.subscribe("PLCHeartbeat", plc_hbeat.update)
@@ -159,29 +181,22 @@ local function init(parent, id)
     r_ps.subscribe("WasteLineOcclusion", r_wloc.update)
     r_ps.subscribe("HighStartupRate", r_hsrt.update)
 
-    annunciator.line_break()
-
     -- RPS annunciator panel
-    TextBox{parent=main,x=34,y=20,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.brown)}
-    local rps_trp = IndicatorLight{parent=annunciator,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_dmg = IndicatorLight{parent=annunciator,label="Damage Critical",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_exh = IndicatorLight{parent=annunciator,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
-    local rps_exw = IndicatorLight{parent=annunciator,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
-    local rps_tmp = IndicatorLight{parent=annunciator,label="Core Temp. High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_nof = IndicatorLight{parent=annunciator,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
-    local rps_noc = IndicatorLight{parent=annunciator,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
-    local rps_flt = IndicatorLight{parent=annunciator,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local rps_tmo = IndicatorLight{parent=annunciator,label="Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local rps_sfl = IndicatorLight{parent=annunciator,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
+
+    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=8}
+    local rps = Rectangle{parent=main,border=border(1, colors.cyan, true),thin=true,width=33,height=12,x=46,y=9}
+    local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
+
+    local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Critical",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
+    local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
+    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temp. High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
+    local rps_noc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
+    local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_tmo = IndicatorLight{parent=rps_annunc,label="Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     r_ps.subscribe("rps_tripped", rps_trp.update)
     r_ps.subscribe("dmg_crit", rps_dmg.update)
@@ -194,19 +209,18 @@ local function init(parent, id)
     r_ps.subscribe("timeout", rps_tmo.update)
     r_ps.subscribe("sys_fail", rps_sfl.update)
 
-    annunciator.line_break()
-
     -- cooling annunciator panel
-    TextBox{parent=main,x=34,y=31,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
-    TextBox{parent=main,x=34,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.cyan)}
-    local c_cfm  = IndicatorLight{parent=annunciator,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_brm  = IndicatorLight{parent=annunciator,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_sfm  = IndicatorLight{parent=annunciator,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_mwrf = IndicatorLight{parent=annunciator,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
-    local c_tbnt = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+
+    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
+    local rcs = Rectangle{parent=main,border=border(1, colors.blue, true),thin=true,width=33,height=24,x=46,y=23}
+    local rcs_annunc = Div{parent=rcs,width=27,height=22,x=2,y=1}
+    local rcs_tags = Div{parent=rcs,width=2,height=22,x=29,y=1}
+
+    local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
+    local c_tbnt = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     r_ps.subscribe("CoolantFeedMismatch", c_cfm.update)
     r_ps.subscribe("BoilRateMismatch", c_brm.update)
@@ -214,100 +228,89 @@ local function init(parent, id)
     r_ps.subscribe("MaxWaterReturnFeed", c_mwrf.update)
     r_ps.subscribe("TurbineTrip", c_tbnt.update)
 
-    annunciator.line_break()
+    rcs_annunc.line_break()
 
     -- boiler annunciator panel(s)
 
-    local tag_y = 1
-
     if unit.num_boilers > 0 then
-        tag_y = TextBox{parent=main,x=32,y=37,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local b1_wll = IndicatorLight{parent=annunciator,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
+        TextBox{parent=rcs_tags,x=1,y=7,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[1].subscribe("WasterLevelLow", b1_wll.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
 
-        tag_y = TextBox{parent=main,x=32,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local b1_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
     end
     if unit.num_boilers > 1 then
-        tag_y = TextBox{parent=main,x=32,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local b2_wll = IndicatorLight{parent=annunciator,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[2].subscribe("WasterLevelLow", b2_wll.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
 
-        tag_y = TextBox{parent=main,x=32,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local b2_hr = IndicatorLight{parent=annunciator,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[2].subscribe("HeatingRateLow", b2_hr.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.blue)}
-    end
-
-    if unit.num_boilers > 0 then
-        main.line_break()
-        annunciator.line_break()
     end
 
     -- turbine annunciator panels
 
     if unit.num_boilers == 0 then
-        TextBox{parent=main,x=32,y=37,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,y=7,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
     else
-        TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        rcs_tags.line_break()
+        rcs_annunc.line_break()
+        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
     end
 
-    local t1_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
     t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
 
-    TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-    local t1_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
     t_ps[1].subscribe("TurbineOverSpeed", t1_tos.update)
 
-    tag_y = TextBox{parent=main,x=32,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-    local t1_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     t_ps[1].subscribe("TurbineTrip", t1_trp.update)
-    TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.cyan)}
 
     if unit.num_turbines > 1 then
-        TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t2_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        rcs_tags.line_break()
+        rcs_annunc.line_break()
+
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
 
-        TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t2_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
         t_ps[2].subscribe("TurbineOverSpeed", t2_tos.update)
 
-        tag_y = TextBox{parent=main,x=32,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local t2_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[2].subscribe("TurbineTrip", t2_trp.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.cyan)}
     end
 
     if unit.num_turbines > 2 then
-        TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t3_sdo = TriIndicatorLight{parent=annunciator,label="Steam Relief Valve",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        rcs_tags.line_break()
+        rcs_annunc.line_break()
+
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
 
-        TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
-        local t3_tos = IndicatorLight{parent=annunciator,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
         t_ps[3].subscribe("TurbineOverSpeed", t3_tos.update)
 
-        tag_y = TextBox{parent=main,x=32,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}.get_y()
-        local t3_trp = IndicatorLight{parent=annunciator,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[3].subscribe("TurbineTrip", t3_trp.update)
-        TextBox{parent=main,x=34,y=tag_y,text="\x95",width=1,height=1,fg_bg=cpair(colors.lightGray, colors.cyan)}
     end
-
-    annunciator.line_break()
-
-    ---@todo radiation monitor
-    IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
 
     ----------------------
     -- reactor controls --
     ----------------------
 
-    local burn_control = Div{parent=main,x=2,y=25,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_control = Div{parent=main,x=2,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
@@ -319,10 +322,10 @@ local function init(parent, id)
 
     local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local start = HazardButton{parent=main,x=22,y=25,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
-    local ack_a = HazardButton{parent=main,x=12,y=29,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
-    local scram = HazardButton{parent=main,x=2,y=29,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
-    local reset = HazardButton{parent=main,x=22,y=29,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
+    local start = HazardButton{parent=main,x=22,y=28,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
+    local ack_a = HazardButton{parent=main,x=12,y=32,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
+    local scram = HazardButton{parent=main,x=2,y=32,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
+    local reset = HazardButton{parent=main,x=22,y=32,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
 
     unit.start_ack = start.on_response
     unit.scram_ack = scram.on_response
@@ -340,10 +343,11 @@ local function init(parent, id)
     r_ps.subscribe("rps_tripped", start_button_en_check)
     r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    local waste_sel = Div{parent=main,x=2,y=50,width=29,height=2,fg_bg=cpair(colors.black, colors.white)}
+    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=48}
+    local waste_proc = Rectangle{parent=main,border=border(1, colors.brown, true),thin=true,width=33,height=3,x=46,y=49}
+    local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
-    local waste_mode = MultiButton{parent=waste_sel,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6,fg_bg=cpair(colors.black, colors.white)}
-    TextBox{parent=waste_sel,text="Waste Processing",alignment=TEXT_ALIGN.CENTER,x=1,y=1,height=1}
+    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6}
 
     r_ps.subscribe("U_WasteMode", waste_mode.set_value)
 
@@ -351,7 +355,7 @@ local function init(parent, id)
     -- alarm management --
     ----------------------
 
-    local alarm_panel = Div{parent=main,x=2,y=33,width=29,height=16,fg_bg=cpair(colors.black,colors.white)}
+    local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=cpair(colors.black,colors.white)}
 
     local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
     local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
@@ -419,9 +423,9 @@ local function init(parent, id)
 
     -- color tags
 
-    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.brown)}
+    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.cyan)}
     TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.blue)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.cyan)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.blue)}
 
     return main
 end

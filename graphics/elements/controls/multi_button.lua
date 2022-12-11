@@ -32,7 +32,7 @@ local function multi_button(args)
     assert(type(args.callback) == "function", "graphics.elements.controls.multi_button: callback is a required field")
 
     -- single line
-    args.height = 3
+    args.height = 1
 
     -- determine widths
     local max_width = 1
@@ -71,7 +71,7 @@ local function multi_button(args)
         for i = 1, #args.options do
             local opt = args.options[i] ---@type button_option
 
-            e.window.setCursorPos(opt._start_x, 2)
+            e.window.setCursorPos(opt._start_x, 1)
 
             if e.value == i then
                 -- show as pressed
@@ -91,7 +91,7 @@ local function multi_button(args)
     ---@param event monitor_touch monitor touch event
     function e.handle_touch(event)
         -- determine what was pressed
-        if e.enabled and event.y == 2 then
+        if e.enabled and event.y == 1 then
             for i = 1, #args.options do
                 local opt = args.options[i] ---@type button_option
 
