@@ -1,4 +1,4 @@
--- Button Graphics Element
+-- Multi Button Graphics Element
 
 local util    = require("scada-common.util")
 
@@ -15,7 +15,7 @@ local element = require("graphics.element")
 ---@class multi_button_args
 ---@field options table button options
 ---@field callback function function to call on touch
----@field default? boolean default state, defaults to options[1]
+---@field default? integer default state, defaults to options[1]
 ---@field min_width? integer text length + 2 if omitted
 ---@field parent graphics_element
 ---@field id? string element id
@@ -29,7 +29,12 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function multi_button(args)
     assert(type(args.options) == "table", "graphics.elements.controls.multi_button: options is a required field")
+    assert(#args.options > 0, "graphics.elements.controls.multi_button: at least one option is required")
     assert(type(args.callback) == "function", "graphics.elements.controls.multi_button: callback is a required field")
+    assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0),
+        "graphics.elements.controls.multi_button: default must be nil or a number > 0")
+    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
+        "graphics.elements.controls.multi_button: min_width must be nil or a number > 0")
 
     -- single line
     args.height = 1
@@ -43,7 +48,7 @@ local function multi_button(args)
         end
     end
 
-    local button_width = math.max(max_width, args.min_width or 1)
+    local button_width = math.max(max_width, args.min_width or 0)
 
     args.width = (button_width * #args.options) + #args.options + 1
 

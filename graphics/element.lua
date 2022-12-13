@@ -24,6 +24,7 @@ local element = {}
 ---|hazard_button_args
 ---|multi_button_args
 ---|push_button_args
+---|radio_button_args
 ---|spinbox_args
 ---|switch_button_args
 ---|alarm_indicator_light

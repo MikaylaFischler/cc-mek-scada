@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.8.3"
+local COORDINATOR_VERSION = "beta-v0.8.4"
 
 local print = util.print
 local println = util.println
@@ -297,7 +297,6 @@ local function main()
                 local msg = "supervisor server timeout"
                 log_comms(msg)
                 println_ts(msg)
-                log.warning(msg)
 
                 -- close connection and UI
                 coord_comms.close()

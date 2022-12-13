@@ -22,6 +22,7 @@ local VerticalBar       = require("graphics.elements.indicators.vbar")
 local HazardButton      = require("graphics.elements.controls.hazard_button")
 local MultiButton       = require("graphics.elements.controls.multi_button")
 local PushButton        = require("graphics.elements.controls.push_button")
+local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
@@ -67,6 +68,7 @@ local function init(parent, id)
 
     TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
+    local bw_fg_bg  = cpair(colors.black, colors.white)
     local hzd_fg_bg = cpair(colors.white, colors.gray)
     local lu_cpair  = cpair(colors.gray, colors.gray)
 
@@ -78,25 +80,25 @@ local function init(parent, id)
     r_ps.subscribe("temp", core_map.update)
     r_ps.subscribe("size", function (s) core_map.resize(s[1], s[2]) end)
 
-    local stat_fg_bg = cpair(colors.black,colors.white)
-
-    TextBox{parent=main,x=2,y=22,text="Heating Rate",height=1,width=12,fg_bg=style.label}
-    local heating_r = DataIndicator{parent=main,x=2,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=stat_fg_bg}
+    TextBox{parent=main,x=12,y=22,text="Heating Rate",height=1,width=12,fg_bg=style.label}
+    local heating_r = DataIndicator{parent=main,x=12,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
     r_ps.subscribe("heating_rate", heating_r.update)
 
-    TextBox{parent=main,x=2,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
-    local burn_r = DataIndicator{parent=main,x=2,label="",format="%14.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=stat_fg_bg}
+    TextBox{parent=main,x=12,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
+    local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
     r_ps.subscribe("burn_rate", burn_r.update)
 
-    TextBox{parent=main,text="F",x=23,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="C",x=25,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="H",x=27,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="W",x=29,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="F",x=2,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="C",x=4,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="\x1a",x=6,y=24,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="\x1a",x=6,y=25,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="H",x=8,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="W",x=10,y=22,width=1,height=1,fg_bg=style.label}
 
-    local fuel  = VerticalBar{parent=main,x=23,y=23,fg_bg=cpair(colors.black,colors.gray),height=4,width=1}
-    local ccool = VerticalBar{parent=main,x=25,y=23,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}
-    local hcool = VerticalBar{parent=main,x=27,y=23,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
-    local waste = VerticalBar{parent=main,x=29,y=23,fg_bg=cpair(colors.brown,colors.gray),height=4,width=1}
+    local fuel  = VerticalBar{parent=main,x=2,y=23,fg_bg=cpair(colors.black,colors.gray),height=4,width=1}
+    local ccool = VerticalBar{parent=main,x=4,y=23,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}
+    local hcool = VerticalBar{parent=main,x=8,y=23,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
+    local waste = VerticalBar{parent=main,x=10,y=23,fg_bg=cpair(colors.brown,colors.gray),height=4,width=1}
 
     r_ps.subscribe("fuel_fill", fuel.update)
     r_ps.subscribe("ccool_fill", ccool.update)
@@ -120,27 +122,27 @@ local function init(parent, id)
     end)
 
     TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
-    local core_temp = DataIndicator{parent=main,x=32,label="",format="%11.2f",value=0,unit="K",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    local core_temp = DataIndicator{parent=main,x=32,label="",format="%11.2f",value=0,unit="K",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     r_ps.subscribe("temp", core_temp.update)
 
     TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
-    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     r_ps.subscribe("act_burn_rate", act_burn_r.update)
 
     TextBox{parent=main,x=32,y=28,text="Damage",height=1,width=6,fg_bg=style.label}
-    local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     r_ps.subscribe("damage", damage_p.update)
 
     ---@todo radiation monitor
     TextBox{parent=main,x=32,y=31,text="Radiation",height=1,width=21,fg_bg=style.label}
-    DataIndicator{parent=main,x=32,label="",format="%7.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=13,fg_bg=stat_fg_bg}
+    DataIndicator{parent=main,x=32,label="",format="%7.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
 
     -------------------
     -- system status --
     -------------------
 
-    local u_stat = Rectangle{parent=main,border=border(1, colors.gray, true),thin=true,width=33,height=4,x=46,y=3,fg_bg=cpair(colors.black,colors.white)}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.black, colors.white)}
+    local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
     local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
 
     r_ps.subscribe("U_StatusLine1", stat_line_1.set_value)
@@ -159,7 +161,7 @@ local function init(parent, id)
     local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
     local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
     ---@todo auto control as info sent here
-    local r_auto     = IndicatorLight{parent=annunciator,label="Auto. Control",colors=cpair(colors.blue,colors.gray)}
+    local r_auto     = IndicatorLight{parent=annunciator,label="Automatic Control",colors=cpair(colors.blue,colors.gray)}
 
     annunciator.line_break()
 
@@ -200,14 +202,14 @@ local function init(parent, id)
     -- RPS annunciator panel
 
     TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=8}
-    local rps = Rectangle{parent=main,border=border(1, colors.cyan, true),thin=true,width=33,height=12,x=46,y=9}
+    local rps = Rectangle{parent=main,border=border(1,colors.cyan,true),thin=true,width=33,height=12,x=46,y=9}
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
     local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Critical",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
     local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
-    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temp. High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
     local rps_noc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
     local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
@@ -228,7 +230,7 @@ local function init(parent, id)
     -- cooling annunciator panel
 
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
-    local rcs = Rectangle{parent=main,border=border(1, colors.blue, true),thin=true,width=33,height=24,x=46,y=23}
+    local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=2,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=22,x=29,y=1}
 
@@ -249,20 +251,20 @@ local function init(parent, id)
     -- boiler annunciator panel(s)
 
     if unit.num_boilers > 0 then
-        TextBox{parent=rcs_tags,x=1,y=7,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,x=1,y=7,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[1].subscribe("WasterLevelLow", b1_wll.update)
 
-        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
         local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
     end
     if unit.num_boilers > 1 then
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
         local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[2].subscribe("WasterLevelLow", b2_wll.update)
 
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
         local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
         b_ps[2].subscribe("HeatingRateLow", b2_hr.update)
     end
@@ -270,21 +272,21 @@ local function init(parent, id)
     -- turbine annunciator panels
 
     if unit.num_boilers == 0 then
-        TextBox{parent=rcs_tags,y=7,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,y=7,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     else
         rcs_tags.line_break()
         rcs_annunc.line_break()
-        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     end
 
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
     t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
     t_ps[1].subscribe("TurbineOverSpeed", t1_tos.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     t_ps[1].subscribe("TurbineTrip", t1_trp.update)
 
@@ -292,15 +294,15 @@ local function init(parent, id)
         rcs_tags.line_break()
         rcs_annunc.line_break()
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
         t_ps[2].subscribe("TurbineOverSpeed", t2_tos.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[2].subscribe("TurbineTrip", t2_trp.update)
     end
@@ -309,15 +311,15 @@ local function init(parent, id)
         rcs_tags.line_break()
         rcs_annunc.line_break()
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
         t_ps[3].subscribe("TurbineOverSpeed", t3_tos.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=cpair(colors.black, colors.white)}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[3].subscribe("TurbineTrip", t3_trp.update)
     end
@@ -326,8 +328,8 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
-    local burn_control = Div{parent=main,x=2,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=cpair(colors.black,colors.white)}
+    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
@@ -338,7 +340,7 @@ local function init(parent, id)
 
     local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local start = HazardButton{parent=main,x=22,y=28,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
+    local start = HazardButton{parent=main,x=2,y=28,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
     local ack_a = HazardButton{parent=main,x=12,y=32,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
     local scram = HazardButton{parent=main,x=2,y=32,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
     local reset = HazardButton{parent=main,x=22,y=32,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
@@ -360,7 +362,7 @@ local function init(parent, id)
     r_ps.subscribe("rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
     TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=48}
-    local waste_proc = Rectangle{parent=main,border=border(1, colors.brown, true),thin=true,width=33,height=3,x=46,y=49}
+    local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
     local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6}
@@ -371,7 +373,7 @@ local function init(parent, id)
     -- alarm management --
     ----------------------
 
-    local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=cpair(colors.black,colors.white)}
+    local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=bw_fg_bg}
 
     local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
     local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
@@ -410,38 +412,70 @@ local function init(parent, id)
     local rst_fg_bg = cpair(colors.black, colors.lime)
     local active_fg_bg = cpair(colors.white, colors.gray)
 
-    PushButton{parent=alarm_panel,x=2,y=2,text="\x13",min_width=1,callback=c.c_breach.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=2,text="R",min_width=1,callback=c.c_breach.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=3,text="\x13",min_width=1,callback=c.radiation.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=3,text="R",min_width=1,callback=c.radiation.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=4,text="\x13",min_width=1,callback=c.dmg_crit.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=4,text="R",min_width=1,callback=c.dmg_crit.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=2,text="\x13",callback=c.c_breach.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=2,text="R",callback=c.c_breach.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=3,text="\x13",callback=c.radiation.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=3,text="R",callback=c.radiation.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=4,text="\x13",callback=c.dmg_crit.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=4,text="R",callback=c.dmg_crit.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
 
-    PushButton{parent=alarm_panel,x=2,y=6,text="\x13",min_width=1,callback=c.r_lost.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=6,text="R",min_width=1,callback=c.r_lost.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=7,text="\x13",min_width=1,callback=c.damage.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=7,text="R",min_width=1,callback=c.damage.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=8,text="\x13",min_width=1,callback=c.over_temp.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=8,text="R",min_width=1,callback=c.over_temp.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=9,text="\x13",min_width=1,callback=c.high_temp.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=9,text="R",min_width=1,callback=c.high_temp.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=10,text="\x13",min_width=1,callback=c.waste_leak.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=10,text="R",min_width=1,callback=c.waste_leak.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=11,text="\x13",min_width=1,callback=c.waste_high.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=11,text="R",min_width=1,callback=c.waste_high.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=6,text="\x13",callback=c.r_lost.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=6,text="R",callback=c.r_lost.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=7,text="\x13",callback=c.damage.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=7,text="R",callback=c.damage.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=8,text="\x13",callback=c.over_temp.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=8,text="R",callback=c.over_temp.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=9,text="\x13",callback=c.high_temp.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=9,text="R",callback=c.high_temp.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=10,text="\x13",callback=c.waste_leak.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=10,text="R",callback=c.waste_leak.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=11,text="\x13",callback=c.waste_high.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=11,text="R",callback=c.waste_high.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
 
-    PushButton{parent=alarm_panel,x=2,y=13,text="\x13",min_width=1,callback=c.rps_trans.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=13,text="R",min_width=1,callback=c.rps_trans.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=14,text="\x13",min_width=1,callback=c.rcs_trans.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=14,text="R",min_width=1,callback=c.rcs_trans.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=2,y=15,text="\x13",min_width=1,callback=c.t_trip.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
-    PushButton{parent=alarm_panel,x=4,y=15,text="R",min_width=1,callback=c.t_trip.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=13,text="\x13",callback=c.rps_trans.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=13,text="R",callback=c.rps_trans.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=14,text="\x13",callback=c.rcs_trans.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=14,text="R",callback=c.rcs_trans.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=2,y=15,text="\x13",callback=c.t_trip.ack,fg_bg=ack_fg_bg,active_fg_bg=active_fg_bg}
+    PushButton{parent=alarm_panel,x=4,y=15,text="R",callback=c.t_trip.reset,fg_bg=rst_fg_bg,active_fg_bg=active_fg_bg}
 
     -- color tags
 
-    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.cyan)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.blue)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white, colors.blue)}
+    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.cyan)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.blue)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.blue)}
+
+    --------------------------------
+    -- automatic control settings --
+    --------------------------------
+
+    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=TEXT_ALIGN.CENTER,width=13,height=1,x=32,y=36}
+    local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
+    local auto_div = Div{parent=auto_ctl,width=13,height=15,x=2,y=1}
+
+    local ctl_opts = { "Manual", "Group A", "Group B", "Group C", "Group D" }
+
+    local a_prm, a_stb
+    local test = function (val)
+        a_prm.update(val ~= 1)
+        a_stb.update(val ~= 1)
+    end
+
+    RadioButton{parent=auto_div,options=ctl_opts,callback=test,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
+
+    auto_div.line_break()
+
+    PushButton{parent=auto_div,text="SET",x=3,min_width=5,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.white,colors.gray),callback=function()end}
+
+    auto_div.line_break()
+
+    TextBox{parent=auto_div,text="CRD Group",height=1,width=9,fg_bg=style.label}
+    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=9,fg_bg=bw_fg_bg}
+
+    auto_div.line_break()
+
+    a_prm = IndicatorLight{parent=auto_div,label="Primary",colors=cpair(colors.green,colors.gray)}
+    a_stb = IndicatorLight{parent=auto_div,label="Standby",colors=cpair(colors.white,colors.gray)}
 
     return main
 end
