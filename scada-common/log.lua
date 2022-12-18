@@ -81,10 +81,12 @@ local function _log(msg)
     end
 
     if out_of_space or (free_space(_log_sys.path) < 100) then
-        -- delete the old log file and open a new one
+        -- delete the old log file before opening a new one
         _log_sys.file.close()
         fs.delete(_log_sys.path)
-        log.init(_log_sys.path, _log_sys.mode)
+
+        -- re-init logger and pass dmesg_out so that it doesn't change
+        log.init(_log_sys.path, _log_sys.mode, _log_sys.dmesg_out)
 
         -- leave a message
         _log_sys.file.writeLine(time_stamp .. "recycled log file")
