@@ -37,8 +37,7 @@ local PERIODICS = {
 ---@param out_queue mqueue
 ---@param advertisement table
 ---@param facility facility
----@param facility_units table
-function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facility_units)
+function rtu.new_session(id, in_queue, out_queue, advertisement, facility)
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
@@ -46,6 +45,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facil
         out_q = out_queue,
         modbus_q = mqueue.new(),
         advert = advertisement,
+        fac_units = facility.get_units(),
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -71,8 +71,8 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facil
     local function _handle_advertisement()
         _reset_config()
 
-        for i = 1, #facility_units do
-            local unit = facility_units[i]    ---@type reactor_unit
+        for i = 1, #self.fac_units do
+            local unit = self.fac_units[i]    ---@type reactor_unit
             unit.purge_rtu_devices(id)
             facility.purge_rtu_devices(id)
         end
@@ -105,7 +105,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facil
             if advert_validator.valid() then
                 advert_validator.assert_min(unit_advert.index, 1)
                 advert_validator.assert_min(unit_advert.reactor, 0)
-                advert_validator.assert_max(unit_advert.reactor, #facility_units)
+                advert_validator.assert_max(unit_advert.reactor, #self.fac_units)
                 if not advert_validator.valid() then u_type = false end
             else
                 u_type = false
@@ -121,7 +121,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility, facil
                 log.debug(log_header .. "advertisement unit validation failure")
             else
                 if unit_advert.reactor > 0 then
-                    local target_unit = facility_units[unit_advert.reactor] ---@type reactor_unit
+                    local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
 
                     if u_type == RTU_UNIT_TYPES.REDSTONE then
                         -- redstone

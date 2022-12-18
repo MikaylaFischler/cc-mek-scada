@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.1.0"
+comms.version = "1.1.1"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -79,7 +79,9 @@ local UNIT_COMMANDS = {
     SET_WASTE = 4,      -- set the waste processing mode
     ACK_ALL_ALARMS = 5, -- ack all active alarms
     ACK_ALARM = 6,      -- ack a particular alarm
-    RESET_ALARM = 7     -- reset a particular alarm
+    RESET_ALARM = 7,    -- reset a particular alarm
+    SET_GROUP = 8,      -- assign this unit to a group
+    SET_LIMIT = 9       -- set this unit maximum auto burn rate
 }
 
 ---@alias CAPI_TYPES integer

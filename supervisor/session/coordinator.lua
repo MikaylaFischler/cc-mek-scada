@@ -45,13 +45,13 @@ local PERIODICS = {
 ---@param in_queue mqueue
 ---@param out_queue mqueue
 ---@param facility facility
----@param units table
-function coordinator.new_session(id, in_queue, out_queue, facility, units)
+function coordinator.new_session(id, in_queue, out_queue, facility)
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
         in_q = in_queue,
         out_q = out_queue,
+        units = facility.get_units(),
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -122,8 +122,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility, units)
 
         local builds = {}
 
-        for i = 1, #units do
-            local unit = units[i]   ---@type reactor_unit
+        for i = 1, #self.units do
+            local unit = self.units[i]  ---@type reactor_unit
             builds[unit.get_id()] = unit.get_build()
         end
 
@@ -143,8 +143,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility, units)
     local function _send_unit_statuses()
         local status = {}
 
-        for i = 1, #units do
-            local unit = units[i]  ---@type reactor_unit
+        for i = 1, #self.units do
+            local unit = self.units[i]  ---@type reactor_unit
             status[unit.get_id()] = {
                 unit.get_reactor_status(),
                 unit.get_rtu_statuses(),
@@ -215,8 +215,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility, units)
                     local data = { uid, pkt.data[3] }
 
                     -- continue if valid unit id
-                    if util.is_int(uid) and uid > 0 and uid <= #units then
-                        local unit = units[uid]    ---@type reactor_unit
+                    if util.is_int(uid) and uid > 0 and uid <= #self.units then
+                        local unit = self.units[uid]    ---@type reactor_unit
 
                         if cmd == UNIT_COMMANDS.START then
                             self.out_q.push_data(SV_Q_DATA.START, data)
@@ -243,13 +243,27 @@ function coordinator.new_session(id, in_queue, out_queue, facility, units)
                             if pkt.length == 3 then
                                 unit.ack_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN command unit ack alarm missing id")
+                                log.debug(log_header .. "CRDN command unit ack alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMANDS.RESET_ALARM then
                             if pkt.length == 3 then
                                 unit.reset_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN command unit reset alarm missing id")
+                                log.debug(log_header .. "CRDN command unit reset alarm missing alarm id")
+                            end
+                        elseif cmd == UNIT_COMMANDS.SET_GROUP then
+                            if pkt.length == 3 then
+                                unit.set_group(pkt.data[3])
+                                _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
+                            else
+                                log.debug(log_header .. "CRDN command unit set group missing group id")
+                            end
+                        elseif cmd == UNIT_COMMANDS.SET_LIMIT then
+                            if pkt.length == 3 then
+                                unit.set_burn_limit(pkt.data[3])
+                                _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
+                            else
+                                log.debug(log_header .. "CRDN command unit set limit missing group id")
                             end
                         else
                             log.debug(log_header .. "CRDN command unknown")

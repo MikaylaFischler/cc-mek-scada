@@ -88,7 +88,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         damage_last = 0,
         damage_est_last = 0,
         waste_mode = WASTE_MODE.AUTO,
-        status_text = { "Unknown", "Awaiting Connection..." },
+        status_text = { "UNKNOWN", "awaiting connection..." },
+        -- auto control
+        group = 0,
+        limit = 0.0,
         -- logic for alarms
         had_reactor = false,
         start_ms = 0,
@@ -944,6 +947,28 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             waste_sps.open()
         else
             log.debug(util.c("invalid waste mode setting ", mode))
+        end
+    end
+
+    -- set the automatic control group of this unit
+    ---@param group integer group ID or 0 for independent
+    function public.set_group(group)
+        if group >= 0 and group <= 4 then
+            self.group = group
+        end
+    end
+
+    -- set the automatic control max burn rate for this unit
+    ---@param limit number burn rate limit for auto control
+    function public.set_burn_limit(limit)
+        if limit >= 0 then
+            self.limit = limit
+
+            if self.plc_i ~= nil then
+                if limit > self.plc_i.get_struct().max_burn then
+                    self.limit = self.plc_i.get_struct().max_burn
+                end
+            end
         end
     end
 

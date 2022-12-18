@@ -2,17 +2,17 @@
 -- Basic Unit Overview
 --
 
-local core = require("graphics.core")
+local core         = require("graphics.core")
 
-local style = require("coordinator.ui.style")
+local style        = require("coordinator.ui.style")
 
 local reactor_view = require("coordinator.ui.components.reactor")
 local boiler_view  = require("coordinator.ui.components.boiler")
 local turbine_view = require("coordinator.ui.components.turbine")
 
-local Div         = require("graphics.elements.div")
-local PipeNetwork = require("graphics.elements.pipenet")
-local TextBox     = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.div")
+local PipeNetwork  = require("graphics.elements.pipenet")
+local TextBox      = require("graphics.elements.textbox")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 

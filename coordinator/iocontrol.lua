@@ -4,6 +4,7 @@ local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
+local process = require("coordinator.process")
 local sounder = require("coordinator.sounder")
 
 local UNIT_COMMANDS = comms.UNIT_COMMANDS
@@ -20,13 +21,21 @@ local io = {}
 ---@param comms coord_comms comms reference
 ---@diagnostic disable-next-line: redefined-local
 function iocontrol.init(conf, comms)
+    -- pass IO control here since it can't be require'd due to a require loop
+    process.init(iocontrol, comms)
+
     io.facility = {
+        auto_active = false,
         scram = false,
+
         num_units = conf.num_units, ---@type integer
         ps = psil.create(),
 
         induction_ps_tbl = {},
-        induction_data_tbl = {}
+        induction_data_tbl = {},
+
+        env_d_ps = psil.create(),
+        env_d_data = {}
     }
 
     -- create induction tables (max 1 per unit, preferably 1 total)
@@ -38,20 +47,12 @@ function iocontrol.init(conf, comms)
 
     io.units = {}
     for i = 1, conf.num_units do
-        local function ack(alarm)
-            comms.send_command(UNIT_COMMANDS.ACK_ALARM, i, alarm)
-            log.debug(util.c("UNIT[", i, "]: ACK ALARM ", alarm))
-        end
-
-        local function reset(alarm)
-            comms.send_command(UNIT_COMMANDS.RESET_ALARM, i, alarm)
-            log.debug(util.c("UNIT[", i, "]: RESET ALARM ", alarm))
-        end
+        local function ack(alarm) process.ack_alarm(i, alarm) end
+        local function reset(alarm) process.reset_alarm(i, alarm) end
 
         ---@class ioctl_entry
         local entry = {
-            unit_id = i,                                ---@type integer
-            initialized = false,
+            unit_id = i,            ---@type integer
 
             num_boilers = 0,
             num_turbines = 0,
@@ -60,53 +61,58 @@ function iocontrol.init(conf, comms)
             burn_rate_cmd = 0.0,
             waste_control = 0,
 
-            start = function () end,
-            scram = function () end,
-            reset_rps = function () end,
-            ack_alarms = function () end,
-            set_burn = function (rate) end,             ---@param rate number
-            set_waste = function (mode) end,            ---@param mode integer
+            a_group = 0,            -- auto control group
+            a_limit = 0.0,          -- auto control limit
 
-            start_ack = function (success) end,         ---@param success boolean
-            scram_ack = function (success) end,         ---@param success boolean
-            reset_rps_ack = function (success) end,     ---@param success boolean
-            ack_alarms_ack = function (success) end,    ---@param success boolean
-            set_burn_ack = function (success) end,      ---@param success boolean
-            set_waste_ack = function (success) end,     ---@param success boolean
+            start = function () process.start(i) end,
+            scram = function () process.scram(i) end,
+            reset_rps = function () process.reset_rps(i) end,
+            ack_alarms = function () process.ack_all_alarms(i) end,
+            set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
+            set_waste = function (mode) process.set_waste(i, mode) end, ---@param mode integer waste processing mode
+
+            set_group = function (g) process.set_group(i, g) end,       ---@param g integer|0 group ID or 0
+
+            start_ack = function (success) end,                         ---@param success boolean
+            scram_ack = function (success) end,                         ---@param success boolean
+            reset_rps_ack = function (success) end,                     ---@param success boolean
+            ack_alarms_ack = function (success) end,                    ---@param success boolean
+            set_burn_ack = function (success) end,                      ---@param success boolean
+            set_waste_ack = function (success) end,                     ---@param success boolean
 
             alarm_callbacks = {
-                c_breach    = { ack = function () ack(1) end,  reset = function () reset(1) end },
-                radiation   = { ack = function () ack(2) end,  reset = function () reset(2) end },
-                r_lost      = { ack = function () ack(3) end,  reset = function () reset(3) end },
-                dmg_crit    = { ack = function () ack(4) end,  reset = function () reset(4) end },
-                damage      = { ack = function () ack(5) end,  reset = function () reset(5) end },
-                over_temp   = { ack = function () ack(6) end,  reset = function () reset(6) end },
-                high_temp   = { ack = function () ack(7) end,  reset = function () reset(7) end },
-                waste_leak  = { ack = function () ack(8) end,  reset = function () reset(8) end },
-                waste_high  = { ack = function () ack(9) end,  reset = function () reset(9) end },
-                rps_trans   = { ack = function () ack(10) end, reset = function () reset(10) end },
-                rcs_trans   = { ack = function () ack(11) end, reset = function () reset(11) end },
-                t_trip      = { ack = function () ack(12) end, reset = function () reset(12) end }
+                c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
+                radiation  = { ack = function () ack(2)  end, reset = function () reset(2)  end },
+                r_lost     = { ack = function () ack(3)  end, reset = function () reset(3)  end },
+                dmg_crit   = { ack = function () ack(4)  end, reset = function () reset(4)  end },
+                damage     = { ack = function () ack(5)  end, reset = function () reset(5)  end },
+                over_temp  = { ack = function () ack(6)  end, reset = function () reset(6)  end },
+                high_temp  = { ack = function () ack(7)  end, reset = function () reset(7)  end },
+                waste_leak = { ack = function () ack(8)  end, reset = function () reset(8)  end },
+                waste_high = { ack = function () ack(9)  end, reset = function () reset(9)  end },
+                rps_trans  = { ack = function () ack(10) end, reset = function () reset(10) end },
+                rcs_trans  = { ack = function () ack(11) end, reset = function () reset(11) end },
+                t_trip     = { ack = function () ack(12) end, reset = function () reset(12) end }
             },
 
             ---@type alarms
             alarms = {
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE,
-                ALARM_STATE.INACTIVE
+                ALARM_STATE.INACTIVE,   -- containment breach
+                ALARM_STATE.INACTIVE,   -- containment radiation
+                ALARM_STATE.INACTIVE,   -- reactor lost
+                ALARM_STATE.INACTIVE,   -- damage critical
+                ALARM_STATE.INACTIVE,   -- reactor taking damage
+                ALARM_STATE.INACTIVE,   -- reactor over temperature
+                ALARM_STATE.INACTIVE,   -- reactor high temperature
+                ALARM_STATE.INACTIVE,   -- waste leak
+                ALARM_STATE.INACTIVE,   -- waste level high
+                ALARM_STATE.INACTIVE,   -- RPS transient
+                ALARM_STATE.INACTIVE,   -- RCS transient
+                ALARM_STATE.INACTIVE    -- turbine trip
             },
 
             reactor_ps = psil.create(),
-            reactor_data = {},                          ---@type reactor_db
+            reactor_data = {},          ---@type reactor_db
 
             boiler_ps_tbl = {},
             boiler_data_tbl = {},
@@ -114,38 +120,6 @@ function iocontrol.init(conf, comms)
             turbine_ps_tbl = {},
             turbine_data_tbl = {}
         }
-
-        function entry.start()
-            entry.control_state = true
-            comms.send_command(UNIT_COMMANDS.START, i)
-            log.debug(util.c("UNIT[", i, "]: START"))
-        end
-
-        function entry.scram()
-            entry.control_state = false
-            comms.send_command(UNIT_COMMANDS.SCRAM, i)
-            log.debug(util.c("UNIT[", i, "]: SCRAM"))
-        end
-
-        function entry.reset_rps()
-            comms.send_command(UNIT_COMMANDS.RESET_RPS, i)
-            log.debug(util.c("UNIT[", i, "]: RESET_RPS"))
-        end
-
-        function entry.ack_alarms()
-            comms.send_command(UNIT_COMMANDS.ACK_ALL_ALARMS, i)
-            log.debug(util.c("UNIT[", i, "]: ACK_ALL_ALARMS"))
-        end
-
-        function entry.set_burn(rate)
-            comms.send_command(UNIT_COMMANDS.SET_BURN, i, rate)
-            log.debug(util.c("UNIT[", i, "]: SET_BURN = ", rate))
-        end
-
-        function entry.set_waste(mode)
-            comms.send_command(UNIT_COMMANDS.SET_WASTE, i, mode)
-            log.debug(util.c("UNIT[", i, "]: SET_WASTE = ", mode))
-        end
 
         -- create boiler tables
         for _ = 1, conf.defs[(i * 2) - 1] do

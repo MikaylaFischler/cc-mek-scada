@@ -2,6 +2,7 @@ local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
+local process     = require("coordinator.process")
 
 local apisessions = require("coordinator.apisessions")
 local iocontrol   = require("coordinator.iocontrol")
@@ -442,6 +443,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                         unit.set_waste_ack(ack)
                                     elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
+                                    elseif cmd == UNIT_COMMANDS.SET_GROUP then
+                                        process.sv_assign(unit_id, ack)
+                                    elseif cmd == UNIT_COMMANDS.SET_LIMIT then
+                                        process.sv_limit(unit_id, ack)
                                     else
                                         log.debug(util.c("received command ack with unknown command ", cmd))
                                     end
