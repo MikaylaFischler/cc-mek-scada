@@ -42,8 +42,8 @@ function logic.update_annunciator(self)
         local plc_db = self.plc_i.get_db()
 
         -- update auto control limit
-        if self.db.control.limit == 0.0 or self.db.control.limit > plc_db.mek_struct.max_burn then
-            self.db.control.limit = plc_db.mek_struct.max_burn
+        if (self.db.control.lim_br10 == 0) or ((self.db.control.lim_br10 / 10) > plc_db.mek_struct.max_burn) then
+            self.db.control.lim_br10 = math.floor(plc_db.mek_struct.max_burn * 10)
         end
 
         -- record reactor start time (some alarms are delayed during reactor heatup)
