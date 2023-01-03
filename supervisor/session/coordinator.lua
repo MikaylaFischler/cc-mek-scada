@@ -253,7 +253,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                             end
                         elseif cmd == UNIT_COMMANDS.SET_GROUP then
                             if pkt.length == 3 then
-                                unit.set_group(pkt.data[3])
+                                facility.set_group(unit.get_id(), pkt.data[3])
                                 _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
                                 log.debug(log_header .. "CRDN command unit set group missing group id")

@@ -8,51 +8,12 @@ local unit  = require("supervisor.session.unit")
 local HEATING_WATER  = 20000
 local HEATING_SODIUM = 200000
 
--- 7.14 kJ per blade for 1 mB of fissile fuel
+-- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
+-- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
 local POWER_PER_BLADE = util.joules_to_fe(7140)
 
-local function m_avg(length, default)
-    local data = {}
-    local index = 1
-    local last_t = 0    ---@type number|nil
-
-    ---@class moving_average
-    local public = {}
-
-    -- reset all to a given value
-    ---@param x number value
-    function public.reset(x)
-        data = {}
-        for _ = 1, length do table.insert(data, x) end
-    end
-
-    -- record a new value
-    ---@param x number new value
-    ---@param t number? optional last update time to prevent duplicated entries
-    function public.record(x, t)
-        if type(t) == "number" and last_t == t then
-            return
-        end
-
-        data[index] = x
-        last_t = t
-
-        index = index + 1
-        if index > length then index = 1 end
-    end
-
-    -- compute the moving average
-    ---@return number average
-    function public.compute()
-        local sum = 0
-        for i = 1, length do sum = sum + data[i] end
-        return sum
-    end
-
-    public.reset(default)
-
-    return public
-end
+local MAX_CHARGE = 0.99
+local RE_ENABLE_CHARGE = 0.95
 
 ---@alias PROCESS integer
 local PROCESS = {
@@ -62,6 +23,20 @@ local PROCESS = {
     GEN_RATE = 4,
     BURN_RATE = 5
 }
+
+local AUTO_SCRAM = {
+    NONE = 0,
+    MATRIX_DC = 1,
+    MATRIX_FILL = 2
+}
+
+local charge_Kp = 1.0
+local charge_Ki = 0.0
+local charge_Kd = 0.0
+
+local rate_Kp = 1.0
+local rate_Ki = 0.00001
+local rate_Kd = 0.0
 
 ---@class facility_management
 local facility = {}
@@ -73,30 +48,37 @@ facility.PROCESS_MODES = PROCESS
 ---@param cooling_conf table cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
     local self = {
-        -- components
         units = {},
         induction = {},
         redstone = {},
         -- process control
         mode = PROCESS.INACTIVE,
-        charge_target = 0,      -- FE
-        charge_rate = 0,        -- FE/t
-        charge_limit = 0.99,    -- percentage
-        burn_rate_set = 0,
-        unit_limits = {},
+        last_mode = PROCESS.INACTIVE,
+        burn_target = 0.0,              -- burn rate target for aggregate burn mode
+        charge_target = 0,              -- FE charge target
+        charge_rate = 0,                -- FE/t charge rate target
+        group_map = { 0, 0, 0, 0 },     -- units -> group IDs
+        prio_defs = { {}, {}, {}, {} }, -- priority definitions (each level is a table of units)
+        ascram = false,
+        ascram_reason = AUTO_SCRAM.NONE,
+        -- closed loop control
+        charge_conversion = 1.0,
+        time_start = 0.0,
+        initial_ramp = true,
+        waiting_on_ramp = false,
+        accumulator = 0.0,
+        last_error = 0.0,
+        last_time = 0.0,
         -- statistics
         im_stat_init = false,
-        avg_charge = m_avg(10, 0.0),
-        avg_inflow = m_avg(10, 0.0),
-        avg_outflow = m_avg(10, 0.0)
+        avg_charge = util.mov_avg(10, 0.0),
+        avg_inflow = util.mov_avg(10, 0.0),
+        avg_outflow = util.mov_avg(10, 0.0)
     }
 
     -- create units
     for i = 1, num_reactors do
         table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
-
-        local u_lim = { burn_rate = -1.0, temp = 1100 } ---@class unit_limit
-        table.insert(self.unit_limits, u_lim)
     end
 
     -- init redstone RTU I/O controller
@@ -106,6 +88,60 @@ function facility.new(num_reactors, cooling_conf)
     ---@param sessions table
     local function _unlink_disconnected_units(sessions)
         util.filter_table(sessions, function (u) return u.is_connected() end)
+    end
+
+    -- check if all auto-controlled units completed ramping
+    local function _all_units_ramped()
+        local all_ramped = true
+
+        for i = 1, #self.prio_defs do
+            local units = self.prio_defs[i]
+            for u = 1, #units do
+                all_ramped = all_ramped and units[u].a_ramp_complete()
+            end
+        end
+
+        return all_ramped
+    end
+
+    -- split a burn rate among the reactors
+    ---@param burn_rate number burn rate assignment
+    ---@param ramp boolean true to ramp, false to set right away
+    local function _allocate_burn_rate(burn_rate, ramp)
+        local unallocated = math.floor(burn_rate * 10)
+
+        -- go through alll priority groups
+        for i = 1, #self.prio_defs and (unallocated > 0) do
+            local units = self.prio_defs[i]
+            local split = math.floor(unallocated / #units)
+
+            local splits = {}
+            for u = 1, #units do splits[u] = split end
+            splits[#units] = splits[#units] + (unallocated % #units)
+
+            -- go through all reactor units in this group
+            for u = 1, #units do
+                local ctl = units[u].get_control_inf()  ---@type unit_control
+                local last = ctl.br10
+
+                if splits[u] <= ctl.lim_br10 then
+                    ctl.br10 = splits[u]
+                else
+                    ctl.br10 = ctl.lim_br10
+
+                    if u < #units then
+                        local remaining = #units - u
+                        split = math.floor(unallocated / remaining)
+                        for x = (u + 1), #units do splits[x] = split end
+                        splits[#units] = splits[#units] + (unallocated % remaining)
+                    end
+                end
+
+                unallocated = unallocated - ctl.br10
+
+                if last ~= ctl.br10 then units[u].a_commit_br10(ramp) end
+            end
+        end
     end
 
     -- PUBLIC FUNCTIONS --
@@ -141,12 +177,235 @@ function facility.new(num_reactors, cooling_conf)
         -- unlink RTU unit sessions if they are closed
         _unlink_disconnected_units(self.induction)
         _unlink_disconnected_units(self.redstone)
+
+        -- calculate moving averages for induction matrix
+        if self.induction[1] ~= nil then
+            local matrix = self.induction[1]    ---@type unit_session
+            local db = matrix.get_db()          ---@type imatrix_session_db
+
+            if (db.state.last_update > 0) and (db.tanks.last_update > 0) then
+                if self.im_stat_init then
+                    self.avg_charge.record(db.tanks.energy, db.tanks.last_update)
+                    self.avg_inflow.record(db.state.last_input, db.state.last_update)
+                    self.avg_outflow.record(db.state.last_output, db.state.last_update)
+                else
+                    self.im_stat_init = true
+                    self.avg_charge.reset(db.tanks.energy)
+                    self.avg_inflow.reset(db.state.last_input)
+                    self.avg_outflow.reset(db.state.last_output)
+                end
+            end
+        else
+            self.im_stat_init = false
+        end
+
+        -------------------------
+        -- Run Process Control --
+        -------------------------
+
+        local avg_charge = self.avg_charge.compute()
+        local avg_inflow = self.avg_inflow.compute()
+
+        local now = util.time_s()
+
+        local state_changed = self.mode ~= self.last_mode
+
+        -- once auto control is started, sort the priority sublists by limits
+        if state_changed then
+            if self.last_mode == PROCESS.INACTIVE then
+                local blade_count = 0
+                for i = 1, #self.prio_defs do
+                    table.sort(self.prio_defs[i],
+                        ---@param a reactor_unit
+                        ---@param b reactor_unit
+                        function (a, b) return a.get_control_inf().lim_br10 < b.get_control_inf().lim_br10 end
+                    )
+
+                    for _, u in pairs(self.prio_defs[i]) do
+                        blade_count = blade_count + u.get_db().blade_count
+                        u.a_engage()
+                    end
+                end
+
+                self.charge_conversion = blade_count * POWER_PER_BLADE
+            elseif self.mode == PROCESS.INACTIVE then
+                for i = 1, #self.prio_defs do
+                    for _, u in pairs(self.prio_defs[i]) do
+                        u.a_disengage()
+                    end
+                end
+            end
+
+            self.initial_ramp = true
+            self.waiting_on_ramp = false
+        else
+            self.initial_ramp = false
+        end
+
+        if self.mode == PROCESS.SIMPLE then
+            -- run units at their last configured set point
+            if state_changed then
+                self.time_start = now
+            end
+        elseif self.mode == PROCESS.CHARGE then
+            -- target a level of charge
+            local error = (self.charge_target - avg_charge) / self.charge_conversion
+
+            if state_changed then
+                -- nothing special to do
+            elseif self.waiting_on_ramp and _all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.time_start = now
+                self.accumulator = 0
+            end
+
+            if not self.waiting_on_ramp then
+                self.accumulator = self.accumulator + (avg_charge / self.charge_conversion)
+
+                local runtime = now - self.time_start
+                local integral = self.accumulator / runtime
+                local derivative = (error - self.last_error) / (now - self.last_time)
+
+                local P = (charge_Kp * error)
+                local I = (charge_Ki * integral)
+                local D = (charge_Kd * derivative)
+
+                local setpoint = P + I + D
+                local sp_r = util.round(setpoint * 10.0) / 10.0
+
+                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => SP[%f] SP_R[%f] <= P[%f] I[%f] D[%d] }",
+                    runtime, avg_charge, error, integral, setpoint, sp_r, P, I, D))
+
+                _allocate_burn_rate(sp_r, self.initial_ramp)
+
+                if self.initial_ramp then
+                    self.waiting_on_ramp = true
+                end
+            end
+        elseif self.mode == PROCESS.GEN_RATE then
+            -- target a rate of generation
+            local error = (self.charge_rate - avg_inflow) / self.charge_conversion
+            local setpoint = 0.0
+
+            if state_changed then
+                -- estimate an initial setpoint
+                setpoint = error / self.charge_conversion
+
+                local sp_r = util.round(setpoint * 10.0) / 10.0
+
+                _allocate_burn_rate(sp_r, true)
+            elseif self.waiting_on_ramp and _all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.time_start = now
+                self.accumulator = 0
+            end
+
+            if not self.waiting_on_ramp then
+                self.accumulator = self.accumulator + (avg_inflow / self.charge_conversion)
+
+                local runtime = util.time_s() - self.time_start
+                local integral = self.accumulator / runtime
+                local derivative = (error - self.last_error) / (now - self.last_time)
+
+                local P = (rate_Kp * error)
+                local I = (rate_Ki * integral)
+                local D = (rate_Kd * derivative)
+
+                setpoint = P + I + D
+
+                local sp_r = util.round(setpoint * 10.0) / 10.0
+
+                log.debug(util.sprintf("PROC_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => SP[%f] SP_R[%f] <= P[%f] I[%f] D[%f] }",
+                    runtime, avg_inflow, error, integral, setpoint, sp_r, P, I, D))
+
+                _allocate_burn_rate(sp_r, false)
+            end
+        elseif self.mode == PROCESS.BURN_RATE then
+            -- a total aggregate burn rate
+            if state_changed then
+                -- nothing special to do
+            elseif self.waiting_on_ramp and _all_units_ramped() then
+                self.waiting_on_ramp = false
+                self.time_start = now
+            end
+
+            if not self.waiting_on_ramp then
+                _allocate_burn_rate(self.burn_target, self.initial_ramp)
+            end
+        end
+
+        ------------------------------
+        -- Evaluate Automatic SCRAM --
+        ------------------------------
+
+        if self.mode ~= PROCESS.INACTIVE then
+            local scram = false
+
+            if self.induction[1] ~= nil then
+                local matrix = self.induction[1]    ---@type unit_session
+                local db = matrix.get_db()          ---@type imatrix_session_db
+
+                if self.ascram_reason == AUTO_SCRAM.MATRIX_DC then
+                    self.ascram_reason = AUTO_SCRAM.NONE
+                end
+
+                if (db.tanks.energy_fill > MAX_CHARGE) or
+                   (self.ascram_reason == AUTO_SCRAM.MATRIX_FILL and db.tanks.energy_fill > RE_ENABLE_CHARGE) then
+                    scram = true
+
+                    if self.ascram_reason == AUTO_SCRAM.NONE then
+                        self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
+                    end
+                end
+            else
+                scram = true
+                if self.ascram_reason == AUTO_SCRAM.NONE then
+                    self.ascram_reason = AUTO_SCRAM.MATRIX_DC
+                end
+            end
+
+            -- SCRAM all units
+            if not self.ascram and scram then
+                for i = 1, #self.prio_defs do
+                    for _, u in pairs(self.prio_defs[i]) do
+                        u.a_scram()
+                    end
+                end
+
+                self.ascram = true
+            end
+        end
     end
 
+    -- call the update function of all units in the facility
     function public.update_units()
         for i = 1, #self.units do
             local u = self.units[i] ---@type reactor_unit
             u.update()
+        end
+    end
+
+    -- SETTINGS --
+
+    -- set the automatic control group of a unit
+    ---@param unit_id integer unit ID
+    ---@param group integer group ID or 0 for independent
+    function public.set_group(unit_id, group)
+        if group >= 0 and group <= 4 and self.mode == PROCESS.INACTIVE then
+            -- remove from old group if previously assigned
+            local old_group = self.group_map[unit_id]
+            if old_group ~= 0 then
+                util.filter_table(self.prio_defs[old_group], function (u) return u.get_id() ~= unit_id end)
+            end
+
+            self.group_map[unit] = group
+
+            -- add to group if not independent
+            if group > 0 then
+                table.insert(self.prio_defs[group], self.units[unit_id])
+            end
         end
     end
 

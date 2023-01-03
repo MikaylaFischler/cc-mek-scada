@@ -208,6 +208,52 @@ function util.round(x)
     return math.floor(x + 0.5)
 end
 
+-- get a new moving average object
+---@param length integer history length
+---@param default number value to fill history with for first call to compute()
+function util.mov_avg(length, default)
+    local data = {}
+    local index = 1
+    local last_t = 0    ---@type number|nil
+
+    ---@class moving_average
+    local public = {}
+
+    -- reset all to a given value
+    ---@param x number value
+    function public.reset(x)
+        data = {}
+        for _ = 1, length do table.insert(data, x) end
+    end
+
+    -- record a new value
+    ---@param x number new value
+    ---@param t number? optional last update time to prevent duplicated entries
+    function public.record(x, t)
+        if type(t) == "number" and last_t == t then
+            return
+        end
+
+        data[index] = x
+        last_t = t
+
+        index = index + 1
+        if index > length then index = 1 end
+    end
+
+    -- compute the moving average
+    ---@return number average
+    function public.compute()
+        local sum = 0
+        for i = 1, length do sum = sum + data[i] end
+        return sum
+    end
+
+    public.reset(default)
+
+    return public
+end
+
 -- TIME --
 
 -- current time

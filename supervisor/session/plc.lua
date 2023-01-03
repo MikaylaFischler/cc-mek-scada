@@ -31,7 +31,8 @@ local PLC_S_CMDS = {
 
 local PLC_S_DATA = {
     BURN_RATE = 1,
-    RAMP_BURN_RATE = 2
+    RAMP_BURN_RATE = 2,
+    AUTO_BURN_RATE = 3
 }
 
 plc.PLC_S_CMDS = PLC_S_CMDS
@@ -58,6 +59,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         commanded_burn_rate = 0.0,
         ramping_rate = false,
         auto_scram = false,
+        auto_lock = false,
         -- connection properties
         seq_num = 0,
         r_seq_num = nil,
@@ -511,6 +513,20 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         }
     end
 
+    -- lock out some manual operator actions during automatic control
+    ---@param engage boolean true to engage the lockout
+    function public.auto_lock(engage)
+        self.auto_lock = engage
+    end
+
+    -- set the burn rate on behalf of automatic control
+    ---@param rate number burn rate
+    ---@param ramp boolean true to ramp, false to not
+    function public.auto_set_burn(rate, ramp)
+        self.ramping_rate = ramp
+        self.in_q.push_data(PLC_S_DATA.AUTO_BURN_RATE, rate)
+    end
+
     -- check if a timer matches this session's watchdog
     function public.check_wd(timer)
         return self.plc_conn_watchdog.is_timer(timer) and self.connected
@@ -547,7 +563,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         local cmd = message.message
                         if cmd == PLC_S_CMDS.ENABLE then
                             -- enable reactor
-                            _send(RPLC_TYPES.RPS_ENABLE, {})
+                            if not self.auto_lock then
+                                _send(RPLC_TYPES.RPS_ENABLE, {})
+                            end
                         elseif cmd == PLC_S_CMDS.SCRAM then
                             -- SCRAM reactor
                             self.auto_scram = false
@@ -571,20 +589,33 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         local cmd = message.message ---@type queue_data
                         if cmd.key == PLC_S_DATA.BURN_RATE then
                             -- update burn rate
-                            cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
-                            if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
-                                self.commanded_burn_rate = cmd.val
-                                self.ramping_rate = false
-                                self.acks.burn_rate = false
-                                self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                                _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            if not self.auto_lock then
+                                cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                                if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                    self.commanded_burn_rate = cmd.val
+                                    self.ramping_rate = false
+                                    self.acks.burn_rate = false
+                                    self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                end
                             end
                         elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
                             -- ramp to burn rate
+                            if not self.auto_lock then
+                                cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                                if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                    self.commanded_burn_rate = cmd.val
+                                    self.ramping_rate = true
+                                    self.acks.burn_rate = false
+                                    self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
+                                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                end
+                            end
+                        elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
+                            -- set automatic burn rate
                             cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
                             if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                 self.commanded_burn_rate = cmd.val
-                                self.ramping_rate = true
                                 self.acks.burn_rate = false
                                 self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
                                 _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
