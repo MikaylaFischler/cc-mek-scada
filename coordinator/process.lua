@@ -48,17 +48,12 @@ function process.reset_rps(id)
     log.debug(util.c("UNIT[", id, "]: RESET RPS"))
 end
 
--- set burn rate or burn limit if part of a group
+-- set burn rate
 ---@param id integer unit ID
 ---@param rate number burn rate
 function process.set_rate(id, rate)
-    if self.io.units[id].group == 0 then
-        self.comms.send_command(UNIT_COMMANDS.SET_BURN, id, rate)
-        log.debug(util.c("UNIT[", id, "]: SET BURN = ", rate))
-    else
-        self.comms.send_command(UNIT_COMMANDS.SET_LIMIT, id, rate)
-        log.debug(util.c("UNIT[", id, "]: SET LIMIT = ", rate))
-    end
+    self.comms.send_command(UNIT_COMMANDS.SET_BURN, id, rate)
+    log.debug(util.c("UNIT[", id, "]: SET BURN = ", rate))
 end
 
 -- set waste mode
@@ -98,6 +93,14 @@ end
 function process.set_group(unit_id, group_id)
     self.comms.send_command(UNIT_COMMANDS.SET_GROUP, unit_id, group_id)
     log.debug(util.c("UNIT[", unit_id, "]: SET GROUP ", group_id))
+end
+
+-- set the burn rate limit
+---@param id integer unit ID
+---@param limit number burn rate limit
+function process.set_limit(id, limit)
+    self.comms.send_command(UNIT_COMMANDS.SET_LIMIT, id, limit)
+    log.debug(util.c("UNIT[", id, "]: SET LIMIT = ", limit))
 end
 
 --------------------------

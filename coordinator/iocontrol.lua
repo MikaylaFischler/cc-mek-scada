@@ -22,7 +22,7 @@ local io = {}
 ---@diagnostic disable-next-line: redefined-local
 function iocontrol.init(conf, comms)
     -- pass IO control here since it can't be require'd due to a require loop
-    process.init(iocontrol, comms)
+    process.init(io, comms)
 
     io.facility = {
         auto_active = false,
@@ -71,7 +71,8 @@ function iocontrol.init(conf, comms)
             set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
             set_waste = function (mode) process.set_waste(i, mode) end, ---@param mode integer waste processing mode
 
-            set_group = function (g) process.set_group(i, g) end,       ---@param g integer|0 group ID or 0
+            set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
+            set_limit = function (lim) process.set_limit(i, lim) end,   ---@param lim number burn rate limit
 
             start_ack = function (success) end,                         ---@param success boolean
             scram_ack = function (success) end,                         ---@param success boolean
