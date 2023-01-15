@@ -145,12 +145,18 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
 
         for i = 1, #self.units do
             local unit = self.units[i]  ---@type reactor_unit
+
+            local auto_ctl = {
+                unit.get_control_inf().lim_br10 / 10
+            }
+
             status[unit.get_id()] = {
                 unit.get_reactor_status(),
                 unit.get_rtu_statuses(),
                 unit.get_annunciator(),
                 unit.get_alarms(),
-                unit.get_state()
+                unit.get_state(),
+                auto_ctl
             }
         end
 

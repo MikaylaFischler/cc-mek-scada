@@ -62,7 +62,6 @@ function iocontrol.init(conf, comms)
             waste_control = 0,
 
             a_group = 0,            -- auto control group
-            a_limit = 0.0,          -- auto control limit
 
             start = function () process.start(i) end,
             scram = function () process.scram(i) end,
@@ -334,7 +333,7 @@ function iocontrol.update_unit_statuses(statuses)
             local unit = io.units[i]    ---@type ioctl_entry
             local status = statuses[i]
 
-            if type(status) ~= "table" or #status ~= 5 then
+            if type(status) ~= "table" or #status ~= 6 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
                 return false
             end
@@ -342,6 +341,11 @@ function iocontrol.update_unit_statuses(statuses)
             -- reactor PLC status
 
             local reactor_status = status[1]
+
+            if type(reactor_status) ~= "table" then
+                reactor_status = {}
+                log.debug(log_header .. "reactor status not a table")
+            end
 
             if #reactor_status == 0 then
                 unit.reactor_ps.publish("computed_status", 1)   -- disconnected
@@ -512,6 +516,11 @@ function iocontrol.update_unit_statuses(statuses)
 
             local annunciator = status[3]   ---@type annunciator
 
+            if type(annunciator) ~= "table" then
+                annunciator = {}
+                log.debug(log_header .. "annunciator state not a table")
+            end
+
             for key, val in pairs(annunciator) do
                 if key == "TurbineTrip" then
                     -- split up turbine trip table for all turbines and a general OR combination
@@ -579,6 +588,20 @@ function iocontrol.update_unit_statuses(statuses)
                 end
             else
                 log.debug(log_header .. "unit state not a table")
+            end
+
+            -- auto control state fields
+
+            local auto_ctl_state = status[6]
+
+            if type(auto_ctl_state) == "table" then
+                if #auto_ctl_state == 1 then
+                    unit.reactor_ps.publish("burn_limit", auto_ctl_state[1])
+                else
+                    log.debug(log_header .. "auto control state length mismatch")
+                end
+            else
+                log.debug(log_header .. "auto control state not a table")
             end
         end
 

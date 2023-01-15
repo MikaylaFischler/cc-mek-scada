@@ -301,6 +301,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     local public = {}
 
     -- ADD/LINK DEVICES --
+    --#region
 
     -- link the PLC
     ---@param plc_session plc_session_struct
@@ -365,7 +366,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         util.filter_table(self.redstone, function (s) return s.get_session_id() ~= session end)
     end
 
+    --#endregion
+
     -- AUTO CONTROL --
+    --#region
 
     -- engage automatic control
     function public.a_engage()
@@ -409,6 +413,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ASCRAM)
         end
     end
+
+    --#endregion
 
     -- UPDATE SESSION --
 
@@ -501,7 +507,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- set the automatic control max burn rate for this unit
     ---@param limit number burn rate limit for auto control
     function public.set_burn_limit(limit)
-        if limit >= 0 then
+        if limit > 0 then
             self.db.control.lim_br10 = math.floor(limit * 10)
 
             if self.plc_i ~= nil then

@@ -2,19 +2,22 @@
 -- Main SCADA Coordinator GUI
 --
 
+local util          = require("scada-common.util")
+
 local iocontrol     = require("coordinator.iocontrol")
 local sounder       = require("coordinator.sounder")
-local util          = require("scada-common.util")
 
 local style         = require("coordinator.ui.style")
 
+local imatrix       = require("coordinator.ui.components.imatrix")
+local process_ctl   = require("coordinator.ui.components.processctl")
 local unit_overview = require("coordinator.ui.components.unit_overview")
-local imatrix = require("coordinator.ui.components.imatrix")
 
 local core          = require("graphics.core")
 
 local ColorMap      = require("graphics.elements.colormap")
 local DisplayBox    = require("graphics.elements.displaybox")
+local Div           = require("graphics.elements.div")
 local TextBox       = require("graphics.elements.textbox")
 
 local PushButton    = require("graphics.elements.controls.push_button")
@@ -75,34 +78,38 @@ local function init(monitor)
 
     cnc_y_start = cnc_y_start + 2
 
+    local process = process_ctl(main, 2, cnc_y_start)
+
     -- testing
     ---@fixme remove test code
 
     ColorMap{parent=main,x=2,y=(main.height()-1)}
 
-    PushButton{parent=main,x=2,y=cnc_y_start,text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
-    PushButton{parent=main,x=2,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
-    PushButton{parent=main,x=2,text="TEST 3",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_3}
-    PushButton{parent=main,x=2,text="TEST 4",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_4}
-    PushButton{parent=main,x=2,text="TEST 5",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_5}
-    PushButton{parent=main,x=2,text="TEST 6",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_6}
-    PushButton{parent=main,x=2,text="TEST 7",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_7}
-    PushButton{parent=main,x=2,text="TEST 8",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_8}
-    PushButton{parent=main,x=2,text="STOP",min_width=8,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.stop}
-    PushButton{parent=main,x=2,text="PSCALE",min_width=8,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_power_scale}
+    local audio = Div{parent=main,width=34,height=15,x=95,y=cnc_y_start}
 
-    SwitchButton{parent=main,x=12,y=cnc_y_start,text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
-    SwitchButton{parent=main,x=12,text="CONTAINMENT RADIATION",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rad}
-    SwitchButton{parent=main,x=12,text="REACTOR LOST",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_lost}
-    SwitchButton{parent=main,x=12,text="CRITICAL DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_crit}
-    SwitchButton{parent=main,x=12,text="REACTOR DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_dmg}
-    SwitchButton{parent=main,x=12,text="REACTOR OVER TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_overtemp}
-    SwitchButton{parent=main,x=12,text="REACTOR HIGH TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_hightemp}
-    SwitchButton{parent=main,x=12,text="REACTOR WASTE LEAK",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_wasteleak}
-    SwitchButton{parent=main,x=12,text="REACTOR WASTE HIGH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_highwaste}
-    SwitchButton{parent=main,x=12,text="RPS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rps}
-    SwitchButton{parent=main,x=12,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
-    SwitchButton{parent=main,x=12,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
+    PushButton{parent=audio,x=1,y=1,text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
+    PushButton{parent=audio,x=1,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
+    PushButton{parent=audio,x=1,text="TEST 3",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_3}
+    PushButton{parent=audio,x=1,text="TEST 4",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_4}
+    PushButton{parent=audio,x=1,text="TEST 5",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_5}
+    PushButton{parent=audio,x=1,text="TEST 6",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_6}
+    PushButton{parent=audio,x=1,text="TEST 7",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_7}
+    PushButton{parent=audio,x=1,text="TEST 8",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_8}
+    PushButton{parent=audio,x=1,text="STOP",min_width=8,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.stop}
+    PushButton{parent=audio,x=1,text="PSCALE",min_width=8,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_power_scale}
+
+    SwitchButton{parent=audio,x=11,y=1,text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
+    SwitchButton{parent=audio,x=11,text="CONTAINMENT RADIATION",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rad}
+    SwitchButton{parent=audio,x=11,text="REACTOR LOST",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_lost}
+    SwitchButton{parent=audio,x=11,text="CRITICAL DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_crit}
+    SwitchButton{parent=audio,x=11,text="REACTOR DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_dmg}
+    SwitchButton{parent=audio,x=11,text="REACTOR OVER TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_overtemp}
+    SwitchButton{parent=audio,x=11,text="REACTOR HIGH TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_hightemp}
+    SwitchButton{parent=audio,x=11,text="REACTOR WASTE LEAK",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_wasteleak}
+    SwitchButton{parent=audio,x=11,text="REACTOR WASTE HIGH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_highwaste}
+    SwitchButton{parent=audio,x=11,text="RPS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rps}
+    SwitchButton{parent=audio,x=11,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
+    SwitchButton{parent=audio,x=11,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
 
     local imatrix_1 = imatrix(main, 131, cnc_y_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 

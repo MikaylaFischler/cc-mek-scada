@@ -451,31 +451,25 @@ local function init(parent, id)
 
     TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=TEXT_ALIGN.CENTER,width=13,height=1,x=32,y=36}
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
-    local auto_div = Div{parent=auto_ctl,width=13,height=15,x=2,y=1}
+    local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
-    local ctl_opts = { "Manual", "Group A", "Group B", "Group C", "Group D" }
+    local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
-    local a_prm, a_stb
-    local test = function (val)
-        a_prm.update(val ~= 1)
-        a_stb.update(val ~= 1)
-    end
-
-    RadioButton{parent=auto_div,options=ctl_opts,callback=test,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
+    RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
 
     auto_div.line_break()
 
-    PushButton{parent=auto_div,text="SET",x=3,min_width=5,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.white,colors.gray),callback=function()end}
+    PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.white,colors.gray),callback=function()end}
 
     auto_div.line_break()
 
-    TextBox{parent=auto_div,text="CRD Group",height=1,width=9,fg_bg=style.label}
-    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=9,fg_bg=bw_fg_bg}
+    TextBox{parent=auto_div,text="Prio. Group",height=1,width=11,fg_bg=style.label}
+    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=11,fg_bg=bw_fg_bg}
 
     auto_div.line_break()
 
-    a_prm = IndicatorLight{parent=auto_div,label="Primary",colors=cpair(colors.green,colors.gray)}
-    a_stb = IndicatorLight{parent=auto_div,label="Standby",colors=cpair(colors.white,colors.gray)}
+    local a_prm = IndicatorLight{parent=auto_div,label="Active",x=2,colors=cpair(colors.green,colors.gray)}
+    local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=cpair(colors.white,colors.gray)}
 
     return main
 end

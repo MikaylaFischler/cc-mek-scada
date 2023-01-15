@@ -84,25 +84,21 @@ local function spinbox(args)
     -- print out the current value
     local function show_num()
         -- enforce limits
-        -- min 0
-        if e.value < 0 then
-            for i = 1, #digits do digits[i] = 0 end
-            e.value = 0
-        -- min configured
-        elseif (type(args.min) == "number") and (e.value < args.min) then
-            -- cap at min
+        if (type(args.min) == "number") and (e.value < args.min) then
             e.value = args.min
             set_digits()
+        elseif e.value < 0 then
+            e.value = 0
+            set_digits()
         else
-            -- max printable
             if string.len(util.sprintf(fmt, e.value)) > args.width then
-                -- max out to all 9s
+                -- max printable exceeded, so max out to all 9s
                 for i = 1, #digits do digits[i] = 9 end
                 update_value()
-            -- max configured
             elseif (type(args.max) == "number") and (e.value > args.max) then
-                -- cap at max
                 e.value = args.max
+                set_digits()
+            else
                 set_digits()
             end
         end
@@ -142,8 +138,6 @@ local function spinbox(args)
     ---@param val number number to show
     function e.set_value(val)
         e.value = val
-
-        set_digits()
         show_num()
     end
 
@@ -162,6 +156,10 @@ local function spinbox(args)
         args.max = max
         show_num()
     end
+
+    -- default to zero, init digits table
+    e.value = 0
+    set_digits()
 
     return e.get()
 end
