@@ -38,7 +38,7 @@ local function new_view(root, x, y, data, ps, id)
     local label_fg_bg = cpair(colors.gray, colors.lightGray)
     local lu_col = cpair(colors.gray, colors.gray)
 
-    local status   = StateIndicator{parent=rect,x=11,y=1,states=style.imatrix.states,value=1,min_width=12}
+    local status   = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
     local energy   = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Energy:  ",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}
     local capacity = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Capacity:",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}
     local input    = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="Input:   ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}

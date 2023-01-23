@@ -426,9 +426,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             if packet.length == 3 then
                                 local cmd = packet.data[1]
                                 local unit_id = packet.data[2]
-                                local ack = packet.data[3]
+                                local ack = packet.data[3] == true
 
-                                local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_entry
+                                local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_unit
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMANDS.SCRAM then
@@ -444,14 +444,12 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                                     elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
                                     elseif cmd == UNIT_COMMANDS.SET_GROUP then
-                                        process.sv_assign(unit_id, ack)
-                                    elseif cmd == UNIT_COMMANDS.SET_LIMIT then
-                                        process.sv_limit(unit_id, ack)
+                                        ---@todo how is this going to be handled?
                                     else
-                                        log.debug(util.c("received command ack with unknown command ", cmd))
+                                        log.debug(util.c("received unit command ack with unknown command ", cmd))
                                     end
                                 else
-                                    log.debug(util.c("received command ack with unknown unit ", unit_id))
+                                    log.debug(util.c("received unit command ack with unknown unit ", unit_id))
                                 end
                             else
                                 log.debug("SCADA_CRDN unit command ack packet length mismatch")

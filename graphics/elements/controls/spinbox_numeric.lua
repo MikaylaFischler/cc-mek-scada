@@ -11,6 +11,7 @@ local element = require("graphics.element")
 ---@field whole_num_precision integer number of whole number digits
 ---@field fractional_precision integer number of fractional digits
 ---@field arrow_fg_bg cpair arrow foreground/background colors
+---@field arrow_disable? color color when disabled (default light gray)
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -29,8 +30,17 @@ local function spinbox(args)
     assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
     assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
 
-    local fmt = "%" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
-    local fmt_init = "%0" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
+    local fmt = ""
+    local fmt_init = ""
+
+    if fr_prec > 0 then
+        fmt = "%" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
+        fmt_init = "%0" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
+    else
+        fmt = "%" .. wn_prec .. "d"
+        fmt_init = "%0" .. wn_prec .. "d"
+    end
+
     local dec_point_x = args.whole_num_precision + 1
 
     assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
@@ -43,21 +53,25 @@ local function spinbox(args)
     local e = element.new(args)
 
     -- set initial value
-    e.value = args.default or 0.0
+    e.value = args.default or 0
 
     -- draw the arrows
-    e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
-    e.window.setTextColor(args.arrow_fg_bg.fgd)
-    e.window.setCursorPos(1, 1)
-    e.window.write(util.strrep("\x1e", wn_prec))
-    e.window.setCursorPos(1, 3)
-    e.window.write(util.strrep("\x1f", wn_prec))
-    if fr_prec > 0 then
-        e.window.setCursorPos(1 + wn_prec, 1)
-        e.window.write(" " .. util.strrep("\x1e", fr_prec))
-        e.window.setCursorPos(1 + wn_prec, 3)
-        e.window.write(" " .. util.strrep("\x1f", fr_prec))
+    local function draw_arrows(color)
+        e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
+        e.window.setTextColor(color)
+        e.window.setCursorPos(1, 1)
+        e.window.write(util.strrep("\x1e", wn_prec))
+        e.window.setCursorPos(1, 3)
+        e.window.write(util.strrep("\x1f", wn_prec))
+        if fr_prec > 0 then
+            e.window.setCursorPos(1 + wn_prec, 1)
+            e.window.write(" " .. util.strrep("\x1e", fr_prec))
+            e.window.setCursorPos(1 + wn_prec, 3)
+            e.window.write(" " .. util.strrep("\x1f", fr_prec))
+        end
     end
+
+    draw_arrows(args.arrow_fg_bg.fgd)
 
     -- populate digits from current value
     local function set_digits()
@@ -155,6 +169,16 @@ local function spinbox(args)
     function e.set_max(max)
         args.max = max
         show_num()
+    end
+
+    -- enable this input
+    function e.enable()
+        draw_arrows(args.arrow_fg_bg.fgd)
+    end
+
+    -- disable this input
+    function e.disable()
+        draw_arrows(args.arrow_disable or colors.lightGray)
     end
 
     -- default to zero, init digits table

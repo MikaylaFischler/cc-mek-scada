@@ -1,6 +1,7 @@
 -- Hazard-bordered Button Graphics Element
 
 local tcd     = require("scada-common.tcallbackdsp")
+local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -42,7 +43,7 @@ local function hazard_button(args)
         e.window.setTextColor(accent)
         e.window.setBackgroundColor(args.fg_bg.bkg)
         e.window.setCursorPos(1, 1)
-        e.window.write("\x99\x89\x89\x89\x89\x89\x89\x89\x99")
+        e.window.write("\x99" .. util.strrep("\x89", args.width - 2) .. "\x99")
 
         -- center left
         e.window.setCursorPos(1, 2)
@@ -53,14 +54,14 @@ local function hazard_button(args)
         -- center right
         e.window.setTextColor(args.fg_bg.bkg)
         e.window.setBackgroundColor(accent)
-        e.window.setCursorPos(9, 2)
+        e.window.setCursorPos(args.width, 2)
         e.window.write("\x99")
 
         -- bottom
         e.window.setTextColor(accent)
         e.window.setBackgroundColor(args.fg_bg.bkg)
         e.window.setCursorPos(1, 3)
-        e.window.write("\x99\x98\x98\x98\x98\x98\x98\x98\x99")
+        e.window.write("\x99" .. util.strrep("\x98", args.width - 2) .. "\x99")
     end
 
     -- on request timeout: recursively calls itself to double flash button text

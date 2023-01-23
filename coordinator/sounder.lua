@@ -306,7 +306,7 @@ function sounder.eval(units)
     if units ~= nil then
         -- check all alarms for all units
         for i = 1, #units do
-            local unit = units[i]   ---@type ioctl_entry
+            local unit = units[i]   ---@type ioctl_unit
             for id = 1, #unit.alarms do
                 alarms[id] = alarms[id] or (unit.alarms[id] == ALARM_STATE.TRIPPED)
             end

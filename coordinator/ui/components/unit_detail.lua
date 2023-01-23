@@ -59,7 +59,7 @@ local waste_opts = {
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)
-    local unit = iocontrol.get_db().units[id]   ---@type ioctl_entry
+    local unit = iocontrol.get_db().units[id]   ---@type ioctl_unit
     local r_ps = unit.reactor_ps
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
@@ -329,7 +329,7 @@ local function init(parent, id)
     ----------------------
 
     local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end

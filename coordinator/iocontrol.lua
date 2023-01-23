@@ -21,9 +21,7 @@ local io = {}
 ---@param comms coord_comms comms reference
 ---@diagnostic disable-next-line: redefined-local
 function iocontrol.init(conf, comms)
-    -- pass IO control here since it can't be require'd due to a require loop
-    process.init(io, comms)
-
+    ---@class ioctl_facility
     io.facility = {
         auto_active = false,
         scram = false,
@@ -50,7 +48,7 @@ function iocontrol.init(conf, comms)
         local function ack(alarm) process.ack_alarm(i, alarm) end
         local function reset(alarm) process.reset_alarm(i, alarm) end
 
-        ---@class ioctl_entry
+        ---@class ioctl_unit
         local entry = {
             unit_id = i,            ---@type integer
 
@@ -140,6 +138,9 @@ function iocontrol.init(conf, comms)
 
         table.insert(io.units, entry)
     end
+
+    -- pass IO control here since it can't be require'd due to a require loop
+    process.init(io, comms)
 end
 
 -- populate facility structure builds
@@ -180,7 +181,7 @@ end
 function iocontrol.record_unit_builds(builds)
     -- note: if not all units and RTUs are connected, some will be nil
     for id, build in pairs(builds) do
-        local unit = io.units[id]    ---@type ioctl_entry
+        local unit = io.units[id]    ---@type ioctl_unit
 
         if type(build) ~= "table" then
             log.error(util.c("corrupted unit builds provided, unit ", id, " not a table"))
@@ -330,7 +331,7 @@ function iocontrol.update_unit_statuses(statuses)
         -- get all unit statuses
         for i = 1, #statuses do
             local log_header = util.c("iocontrol.update_unit_statuses[unit ", i, "]: ")
-            local unit = io.units[i]    ---@type ioctl_entry
+            local unit = io.units[i]    ---@type ioctl_unit
             local status = statuses[i]
 
             if type(status) ~= "table" or #status ~= 6 then
