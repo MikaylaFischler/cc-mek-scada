@@ -23,6 +23,21 @@ local self = {
 function process.init(iocontrol, comms)
     self.io = iocontrol
     self.comms = comms
+
+    -- load settings
+    if not settings.load("/coord.settings") then
+        log.error("process.init(): failed to load coordinator settings file")
+    end
+
+    local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
+
+    if type(waste_mode) == "table" then
+        for id = 1, math.min(#waste_mode, self.io.facility.num_units) do
+            self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, waste_mode[id])
+        end
+
+        log.info("PROCESS: loaded waste mode settings from coord.settings")
+    end
 end
 
 -- start reactor
@@ -62,6 +77,20 @@ end
 function process.set_waste(id, mode)
     self.comms.send_command(UNIT_COMMANDS.SET_WASTE, id, mode)
     log.debug(util.c("UNIT[", id, "]: SET WASTE = ", mode))
+
+    local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
+
+    if type(waste_mode) ~= "table" then
+        waste_mode = {}
+    end
+
+    waste_mode[id] = mode
+
+    settings.set("WASTE_MODES", waste_mode)
+
+    if not settings.save("/coord.settings") then
+        log.error("process.set_waste(): failed to save coordinator settings file")
+    end
 end
 
 -- acknowledge all alarms

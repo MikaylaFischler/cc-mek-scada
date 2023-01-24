@@ -70,7 +70,9 @@ function coordinator.configure_monitors(num_units)
     end
 
     -- attempt to load settings
-    settings.load("/coord.settings")
+    if not settings.load("/coord.settings") then
+        log.warning("configure_monitors(): failed to load coordinator settings file (may not exist yet)")
+    end
 
     ---------------------
     -- PRIMARY DISPLAY --
@@ -143,7 +145,9 @@ function coordinator.configure_monitors(num_units)
     end
 
     settings.set("UNIT_DISPLAYS", unit_displays)
-    settings.save("/coord.settings")
+    if not settings.save("/coord.settings") then
+        log.warning("configure_monitors(): failed to save coordinator settings file")
+    end
 
     for i = 1, #unit_displays do
         monitors.unit_displays[i] = ppm.get_periph(unit_displays[i])

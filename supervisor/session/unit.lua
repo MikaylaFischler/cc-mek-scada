@@ -322,6 +322,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@param rs_unit unit_session
     function public.add_redstone(rs_unit)
         table.insert(self.redstone, rs_unit)
+
+        -- send or re-send waste settings
+        public.set_waste(self.waste_mode)
     end
 
     -- link a turbine RTU session
