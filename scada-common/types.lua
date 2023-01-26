@@ -35,6 +35,15 @@ types.TRI_FAIL = {
     FULL = 2
 }
 
+---@alias PROCESS integer
+types.PROCESS = {
+    INACTIVE = 0,
+    SIMPLE = 1,
+    BURN_RATE = 2,
+    CHARGE = 3,
+    GEN_RATE = 4
+}
+
 ---@alias WASTE_MODE integer
 types.WASTE_MODE = {
     AUTO = 1,
@@ -163,6 +172,9 @@ types.ALARM_STATE = {
 ---| "automatic"
 ---| "sys_fail"
 ---| "force_disabled"
+
+---@alias auto_scram_cause
+---| "ok"
 
 ---@alias rtu_t string
 types.rtu_t = {

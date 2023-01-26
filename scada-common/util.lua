@@ -202,6 +202,13 @@ function util.is_int(x)
     return type(x) == "number" and x == math.floor(x)
 end
 
+-- get the sign of a number
+---@param x number value
+---@return integer sign (-1 for < 0, 1 otherwise)
+function util.sign(x)
+    return util.trinary(x < 0, -1, 1)
+end
+
 -- round a number to an integer
 ---@return integer rounded
 function util.round(x)

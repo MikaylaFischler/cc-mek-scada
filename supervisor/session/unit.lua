@@ -450,6 +450,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- OPERATIONS --
 
+    -- queue a command to SCRAM the reactor
+    function public.scram()
+        if self.plc_s ~= nil then
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
+        end
+    end
+
     -- acknowledge all alarms (if possible)
     function public.ack_all()
         for i = 1, #self.db.alarm_states do

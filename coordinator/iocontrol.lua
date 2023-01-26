@@ -24,9 +24,17 @@ function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
         auto_active = false,
-        scram = false,
+        auto_ramping = false,
+        auto_scram = false,
+        auto_scram_cause = "ok",                ---@type auto_scram_cause
 
-        num_units = conf.num_units, ---@type integer
+        num_units = conf.num_units,             ---@type integer
+
+        save_cfg_ack = function (success) end,  ---@param success boolean
+        start_ack = function (success) end,     ---@param success boolean
+        stop_ack = function (success) end,      ---@param success boolean
+        scram_ack = function (success) end,     ---@param success boolean
+
         ps = psil.create(),
 
         induction_ps_tbl = {},
@@ -69,7 +77,6 @@ function iocontrol.init(conf, comms)
             set_waste = function (mode) process.set_waste(i, mode) end, ---@param mode integer waste processing mode
 
             set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
-            set_limit = function (lim) process.set_limit(i, lim) end,   ---@param lim number burn rate limit
 
             start_ack = function (success) end,                         ---@param success boolean
             scram_ack = function (success) end,                         ---@param success boolean
@@ -195,7 +202,7 @@ function iocontrol.record_unit_builds(builds)
 
         -- reactor build
         if type(build.reactor) == "table" then
-            unit.reactor_data.mek_struct = build.reactor
+            unit.reactor_data.mek_struct = build.reactor    ---@type mek_struct
             for key, val in pairs(unit.reactor_data.mek_struct) do
                 unit.reactor_ps.publish(key, val)
             end
@@ -257,11 +264,38 @@ function iocontrol.update_facility_status(status)
     else
         local fac = io.facility
 
+        -- auto control status information
+
+        local ctl_status = status[1]
+
+        if type(ctl_status) == "table" then
+            fac.auto_active = ctl_status[1] > 0
+            fac.auto_ramping = ctl_status[2]
+            fac.auto_scram = ctl_status[3]
+            fac.auto_scram_cause = ctl_status[4]
+
+            fac.ps.publish("auto_active", fac.auto_active)
+            fac.ps.publish("auto_ramping", fac.auto_ramping)
+            fac.ps.publish("auto_scram", fac.auto_scram)
+            fac.ps.publish("auto_scram_cause", fac.auto_scram_cause)
+        else
+            log.debug(log_header .. "control status not a table")
+        end
+
         -- RTU statuses
 
-        local rtu_statuses = status[1]
+        local rtu_statuses = status[2]
 
         if type(rtu_statuses) == "table" then
+            -- power statistics
+            if type(rtu_statuses.power) == "table" then
+                fac.ps.publish("avg_charge", rtu_statuses.power[1])
+                fac.ps.publish("avg_inflow", rtu_statuses.power[2])
+                fac.ps.publish("avg_outflow", rtu_statuses.power[3])
+            else
+                log.debug(log_header .. "power statistics list not a table")
+            end
+
             -- induction matricies statuses
             if type(rtu_statuses.induction) == "table" then
                 for id = 1, #fac.induction_ps_tbl do
@@ -328,6 +362,8 @@ function iocontrol.update_unit_statuses(statuses)
         log.debug("iocontrol.update_unit_statuses: number of provided unit statuses does not match expected number of units")
         return false
     else
+        local burn_rate_sum = 0.0
+
         -- get all unit statuses
         for i = 1, #statuses do
             local log_header = util.c("iocontrol.update_unit_statuses[unit ", i, "]: ")
@@ -368,6 +404,11 @@ function iocontrol.update_unit_statuses(statuses)
 
                 unit.reactor_data.rps_status = rps_status   ---@type rps_status
                 unit.reactor_data.mek_status = mek_status   ---@type mek_status
+
+                -- if status hasn't been received, mek_status = {}
+                if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
+                    burn_rate_sum = burn_rate_sum + unit.reactor_data.mek_status.act_burn_rate
+                end
 
                 if unit.reactor_data.mek_status.status then
                     unit.reactor_ps.publish("computed_status", 5)       -- running
@@ -596,8 +637,8 @@ function iocontrol.update_unit_statuses(statuses)
             local auto_ctl_state = status[6]
 
             if type(auto_ctl_state) == "table" then
-                if #auto_ctl_state == 1 then
-                    unit.reactor_ps.publish("burn_limit", auto_ctl_state[1])
+                if #auto_ctl_state == 0 then
+                    ---@todo
                 else
                     log.debug(log_header .. "auto control state length mismatch")
                 end
@@ -605,6 +646,8 @@ function iocontrol.update_unit_statuses(statuses)
                 log.debug(log_header .. "auto control state not a table")
             end
         end
+
+        io.facility.ps.publish("burn_sum", burn_rate_sum)
 
         -- update alarm sounder
         sounder.eval(io.units)

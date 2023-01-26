@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.1.1"
+comms.version = "1.1.2"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -21,14 +21,6 @@ local PROTOCOLS = {
     SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
     SCADA_CRDN = 3,     -- data/control packets for coordinators to/from supervisory controllers
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
-}
-
----@alias DEVICE_TYPES integer
-local DEVICE_TYPES = {
-    PLC = 0,            -- PLC device type for establish
-    RTU = 1,            -- RTU device type for establish
-    SV = 2,             -- supervisor device type for establish
-    CRDN = 3            -- coordinator device type for establish
 }
 
 ---@alias RPLC_TYPES integer
@@ -41,7 +33,8 @@ local RPLC_TYPES = {
     RPS_ASCRAM = 5,     -- SCRAM reactor (automatic request)
     RPS_STATUS = 6,     -- RPS status
     RPS_ALARM = 7,      -- RPS alarm broadcast
-    RPS_RESET = 8       -- clear RPS trip (if in bad state, will trip immediately)
+    RPS_RESET = 8,      -- clear RPS trip (if in bad state, will trip immediately)
+    AUTO_BURN_RATE = 9  -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
 ---@alias SCADA_MGMT_TYPES integer
@@ -51,13 +44,6 @@ local SCADA_MGMT_TYPES = {
     CLOSE = 2,          -- close a connection
     RTU_ADVERT = 3,     -- RTU capability advertisement
     RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
-}
-
----@alias ESTABLISH_ACK integer
-local ESTABLISH_ACK = {
-    ALLOW = 0,          -- link approved
-    DENY = 1,           -- link denied
-    COLLISION = 2       -- link denied due to existing active link
 }
 
 ---@alias SCADA_CRDN_TYPES integer
@@ -70,23 +56,24 @@ local SCADA_CRDN_TYPES = {
     UNIT_CMD = 5        -- command a reactor unit
 }
 
----@alias UNIT_COMMANDS integer
-local UNIT_COMMANDS = {
-    SCRAM = 0,          -- SCRAM the reactor
-    START = 1,          -- start the reactor
-    RESET_RPS = 2,      -- reset the RPS
-    SET_BURN = 3,       -- set the burn rate
-    SET_WASTE = 4,      -- set the waste processing mode
-    ACK_ALL_ALARMS = 5, -- ack all active alarms
-    ACK_ALARM = 6,      -- ack a particular alarm
-    RESET_ALARM = 7,    -- reset a particular alarm
-    SET_GROUP = 8,      -- assign this unit to a group
-    SET_LIMIT = 9       -- set this unit maximum auto burn rate
-}
-
 ---@alias CAPI_TYPES integer
 local CAPI_TYPES = {
     ESTABLISH = 0       -- initial greeting
+}
+
+---@alias ESTABLISH_ACK integer
+local ESTABLISH_ACK = {
+    ALLOW = 0,          -- link approved
+    DENY = 1,           -- link denied
+    COLLISION = 2       -- link denied due to existing active link
+}
+
+---@alias DEVICE_TYPES integer
+local DEVICE_TYPES = {
+    PLC = 0,            -- PLC device type for establish
+    RTU = 1,            -- RTU device type for establish
+    SV = 2,             -- supervisor device type for establish
+    CRDN = 3            -- coordinator device type for establish
 }
 
 ---@alias RTU_UNIT_TYPES integer
@@ -100,15 +87,50 @@ local RTU_UNIT_TYPES = {
     ENV_DETECTOR = 6    -- environment detector
 }
 
+---@alias PLC_AUTO_ACK integer
+local PLC_AUTO_ACK = {
+    FAIL = 0,           -- failed to set burn rate/burn rate invalid
+    DIRECT_SET_OK = 1,  -- successfully set burn rate
+    RAMP_SET_OK = 2,    -- successfully started burn rate ramping
+    ZERO_DIS_OK = 3,    -- successfully disabled reactor with < 0.1 burn rate
+    ZERO_DIS_WAIT = 4   -- too soon to disable reactor with < 0.1 burn rate
+}
+
+---@alias FAC_COMMANDS integer
+local FAC_COMMANDS = {
+    SCRAM_ALL = 0,      -- SCRAM all reactors
+    STOP = 1,           -- stop automatic control
+    START = 2           -- start automatic control
+}
+
+---@alias UNIT_COMMANDS integer
+local UNIT_COMMANDS = {
+    SCRAM = 0,          -- SCRAM the reactor
+    START = 1,          -- start the reactor
+    RESET_RPS = 2,      -- reset the RPS
+    SET_BURN = 3,       -- set the burn rate
+    SET_WASTE = 4,      -- set the waste processing mode
+    ACK_ALL_ALARMS = 5, -- ack all active alarms
+    ACK_ALARM = 6,      -- ack a particular alarm
+    RESET_ALARM = 7,    -- reset a particular alarm
+    SET_GROUP = 8       -- assign this unit to a group
+}
+
 comms.PROTOCOLS = PROTOCOLS
-comms.DEVICE_TYPES = DEVICE_TYPES
+
 comms.RPLC_TYPES = RPLC_TYPES
-comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
 comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
-comms.UNIT_COMMANDS = UNIT_COMMANDS
 comms.CAPI_TYPES = CAPI_TYPES
+
+comms.ESTABLISH_ACK = ESTABLISH_ACK
+comms.DEVICE_TYPES = DEVICE_TYPES
 comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
+
+comms.PLC_AUTO_ACK = PLC_AUTO_ACK
+
+comms.UNIT_COMMANDS = UNIT_COMMANDS
+comms.FAC_COMMANDS = FAC_COMMANDS
 
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
@@ -308,9 +330,10 @@ function comms.rplc_packet()
                 self.type == RPLC_TYPES.RPS_ENABLE or
                 self.type == RPLC_TYPES.RPS_SCRAM or
                 self.type == RPLC_TYPES.RPS_ASCRAM or
-                self.type == RPLC_TYPES.RPS_ALARM or
                 self.type == RPLC_TYPES.RPS_STATUS or
-                self.type == RPLC_TYPES.RPS_RESET
+                self.type == RPLC_TYPES.RPS_ALARM or
+                self.type == RPLC_TYPES.RPS_RESET or
+                self.type == RPLC_TYPES.AUTO_BURN_RATE
     end
 
     -- make an RPLC packet

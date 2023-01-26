@@ -10,6 +10,7 @@ local plc = {}
 local PROTOCOLS = comms.PROTOCOLS
 local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 
 local UNIT_COMMANDS = comms.UNIT_COMMANDS
 
@@ -19,8 +20,9 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- retry time constants in ms
-local INITIAL_WAIT = 1500
-local RETRY_PERIOD = 1000
+local INITIAL_WAIT      = 1500
+local INITIAL_AUTO_WAIT = 1000
+local RETRY_PERIOD      = 1000
 
 local PLC_S_CMDS = {
     SCRAM = 1,
@@ -440,6 +442,21 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     cmd = UNIT_COMMANDS.RESET_RPS,
                     ack = ack
                 })
+            elseif pkt.type == RPLC_TYPES.AUTO_BURN_RATE then
+                if pkt.length == 1 then
+                    local ack = pkt.data[1]
+
+                    self.acks.burn_rate = ack ~= PLC_AUTO_ACK.FAIL
+
+                    if ack == PLC_AUTO_ACK.FAIL then
+                    elseif ack == PLC_AUTO_ACK.DIRECT_SET_OK then
+                    elseif ack == PLC_AUTO_ACK.RAMP_SET_OK then
+                    elseif ack == PLC_AUTO_ACK.ZERO_DIS_OK then
+                    elseif ack == PLC_AUTO_ACK.ZERO_DIS_WAIT then
+                    end
+                else
+                    log.debug(log_header .. "RPLC automatic burn rate ack packet length mismatch")
+                end
             else
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
@@ -517,6 +534,11 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     ---@param engage boolean true to engage the lockout
     function public.auto_lock(engage)
         self.auto_lock = engage
+
+        -- stop retrying a burn rate command
+        if engage then
+            self.acks.burn_rate = true
+        end
     end
 
     -- set the burn rate on behalf of automatic control
@@ -583,6 +605,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                             self.acks.rps_reset = false
                             self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_RESET, {})
+                        else
+                            log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
@@ -613,13 +637,20 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                             end
                         elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
                             -- set automatic burn rate
-                            cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
-                            if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
-                                self.commanded_burn_rate = cmd.val
-                                self.acks.burn_rate = false
-                                self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                                _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            if self.auto_lock then
+                                cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                                if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                    self.commanded_burn_rate = cmd.val
+
+                                    -- this is only for manual control, only retry auto ramps
+                                    self.acks.burn_rate = not self.ramping_rate
+                                    self.retry_times.burn_rate_req = util.time() + INITIAL_AUTO_WAIT
+
+                                    _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                end
                             end
+                        else
+                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
                         end
                     end
                 end
@@ -685,7 +716,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
 
                 if not self.acks.burn_rate then
                     if rtimes.burn_rate_req - util.time() <= 0 then
-                        _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        if self.auto_lock then
+                            _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        else
+                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        end
+
                         rtimes.burn_rate_req = util.time() + RETRY_PERIOD
                     end
                 end

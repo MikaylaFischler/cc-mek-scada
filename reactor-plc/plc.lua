@@ -13,6 +13,7 @@ local DEVICE_TYPES = comms.DEVICE_TYPES
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local print = util.print
 local println = util.println
@@ -23,6 +24,8 @@ local println_ts = util.println_ts
 -- I wish they didn't change it to be like this
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 local PCALL_START_MSG = "pcall: Reactor is already active."
+
+local AUTO_TOGGLE_DELAY_MS = 5000
 
 -- RPS SAFETY CONSTANTS
 
@@ -61,6 +64,7 @@ function plc.rps_init(reactor, is_formed)
         reactor = reactor,
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
+        enabled_at = 0,
         formed = is_formed,
         force_disabled = false,
         tripped = false,
@@ -215,7 +219,7 @@ function plc.rps_init(reactor, is_formed)
         self.state[state_keys.sys_fail] = true
     end
 
-    -- SCRAM the reactor now
+    -- SCRAM the reactor now (blocks waiting for server tick)
     ---@return boolean success
     function public.scram()
         log.info("RPS: reactor SCRAM")
@@ -226,11 +230,12 @@ function plc.rps_init(reactor, is_formed)
             return false
         else
             self.reactor_enabled = false
+            self.last_runtime = util.time_ms() - self.enabled_at
             return true
         end
     end
 
-    -- start the reactor
+    -- start the reactor now (blocks waiting for server tick)
     ---@return boolean success
     function public.activate()
         if not self.tripped then
@@ -241,6 +246,7 @@ function plc.rps_init(reactor, is_formed)
                 log.error("RPS: failed reactor start")
             else
                 self.reactor_enabled = true
+                self.enabled_at = util.time_ms()
                 return true
             end
         else
@@ -248,6 +254,21 @@ function plc.rps_init(reactor, is_formed)
         end
 
         return false
+    end
+
+    -- automatic control activate/re-activate
+    ---@return boolean success
+    function public.auto_activate()
+        -- clear automatic SCRAM if it was the cause
+        if self.tripped and self.trip_cause == "automatic" then
+            self.state[state_keys.automatic] = true
+            self.trip_cause = rps_status_t.ok
+            self.tripped = false
+
+            log.debug("RPS: cleared automatic SCRAM for re-activation")
+        end
+
+        return public.activate()
     end
 
     -- check all safety conditions
@@ -324,7 +345,8 @@ function plc.rps_init(reactor, is_formed)
             self.tripped = true
             self.trip_cause = status
 
-            -- in the case that the reactor is detected to be active, it will be scrammed shortly after this in the main RPS loop if we don't here
+            -- in the case that the reactor is detected to be active,
+            -- it will be scrammed shortly after this in the main RPS loop if we don't here
             if self.formed then
                 if not self.force_disabled then
                     public.scram()
@@ -347,6 +369,10 @@ function plc.rps_init(reactor, is_formed)
     function public.is_active() return self.reactor_enabled end
     function public.is_formed() return self.formed end
     function public.is_force_disabled() return self.force_disabled end
+
+    -- get the runtime of the reactor if active, or the last runtime if disabled
+    ---@return integer runtime time since last enable
+    function public.get_runtime() return util.trinary(self.reactor_enabled, util.time_ms() - self.enabled_at, self.last_runtime) end
 
     -- reset the RPS
     ---@param quiet? boolean true to suppress the info log message
@@ -383,8 +409,8 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         reactor = reactor,
         scrammed = false,
         linked = false,
-        status_cache = nil,
         resend_build = false,
+        status_cache = nil,
         max_burn_rate = nil
     }
 
@@ -532,9 +558,9 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
     -- general ack
     ---@param msg_type RPLC_TYPES
-    ---@param succeeded boolean
-    local function _send_ack(msg_type, succeeded)
-        _send(msg_type, { succeeded })
+    ---@param status boolean|integer
+    local function _send_ack(msg_type, status)
+        _send(msg_type, { status })
     end
 
     -- send structure properties (these should not change, server will cache these)
@@ -587,6 +613,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         self.reactor = reactor
         self.status_cache = nil
         self.resend_build = true
+        self.max_burn_rate = nil
     end
 
     -- unlink from the server
@@ -731,7 +758,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                         log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
                         -- set the burn rate
-                        if packet.length == 2 then
+                        if (packet.length == 2) and (type(packet.data[1]) == "number") then
                             local success = false
                             local burn_rate = math.floor(packet.data[1] * 10) / 10
                             local ramp = packet.data[2]
@@ -759,7 +786,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
 
                             _send_ack(packet.type, success)
                         else
-                            log.debug("RPLC set burn rate packet length mismatch")
+                            log.debug("RPLC set burn rate packet length mismatch or non-numeric burn rate")
                         end
                     elseif packet.type == RPLC_TYPES.RPS_ENABLE then
                         -- enable the reactor
@@ -779,6 +806,63 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                         -- reset the RPS status
                         rps.reset()
                         _send_ack(packet.type, true)
+                    elseif packet.type == RPLC_TYPES.AUTO_BURN_RATE then
+                        -- automatic control requested a new burn rate
+                        if (packet.length == 2) and (type(packet.data[1]) == "number") then
+                            local ack = AUTO_ACK.FAIL
+                            local burn_rate = math.floor(packet.data[1] * 10) / 10
+                            local ramp = packet.data[2]
+
+                            -- if no known max burn rate, check again
+                            if self.max_burn_rate == nil then
+                                self.max_burn_rate = self.reactor.getMaxBurnRate()
+                            end
+
+                            -- if we know our max burn rate, update current burn rate setpoint if in range
+                            if self.max_burn_rate ~= ppm.ACCESS_FAULT then
+                                if burn_rate < 0.1 then
+                                    if rps.is_active() then
+                                        if rps.get_runtime() > AUTO_TOGGLE_DELAY_MS then
+                                            -- auto scram to disable
+                                            if rps.scram() then
+                                                ack = AUTO_ACK.ZERO_DIS_OK
+                                                self.auto_last_disable = util.time_ms()
+                                            end
+                                        else
+                                            -- too soon to disable
+                                            ack = AUTO_ACK.ZERO_DIS_WAIT
+                                        end
+                                    else
+                                        ack = AUTO_ACK.ZERO_DIS_OK
+                                    end
+                                elseif burn_rate <= self.max_burn_rate then
+                                    if not rps.is_active() then
+                                        -- activate the reactor
+                                        if not rps.auto_activate() then
+                                            log.debug("automatic reactor activation failed")
+                                        end
+                                    end
+
+                                    -- if active, set/ramp burn rate
+                                    if rps.is_active() then
+                                        if ramp then
+                                            setpoints.burn_rate_en = true
+                                            setpoints.burn_rate = burn_rate
+                                            ack = AUTO_ACK.RAMP_SET_OK
+                                        else
+                                            self.reactor.setBurnRate(burn_rate)
+                                            ack = util.trinary(self.reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
+                                        end
+                                    end
+                                else
+                                    log.debug(burn_rate .. " rate outside of 0 < x <= " .. self.max_burn_rate)
+                                end
+                            end
+
+                            _send_ack(packet.type, ack)
+                        else
+                            log.debug("RPLC set automatic burn rate packet length mismatch or non-numeric burn rate")
+                        end
                     else
                         log.warning("received unknown RPLC packet type " .. packet.type)
                     end

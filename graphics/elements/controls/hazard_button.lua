@@ -145,9 +145,6 @@ local function hazard_button(args)
 ---@diagnostic disable-next-line: unused-local
     function e.handle_touch(event)
         if e.enabled then
-            -- call the touch callback
-            args.callback()
-
             -- change text color to indicate clicked
             e.window.setTextColor(args.accent)
             e.window.setCursorPos(3, 2)
@@ -160,6 +157,9 @@ local function hazard_button(args)
 
             -- 1.5 second timeout
             tcd.dispatch(1.5, on_timeout)
+
+            -- call the touch callback
+            args.callback()
         end
     end
 

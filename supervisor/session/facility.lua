@@ -1,12 +1,12 @@
 local log   = require("scada-common.log")
 local rsio  = require("scada-common.rsio")
+local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
 local rsctl = require("supervisor.session.rsctl")
 local unit  = require("supervisor.session.unit")
 
-local HEATING_WATER  = 20000
-local HEATING_SODIUM = 200000
+local PROCESS = types.PROCESS
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
@@ -15,15 +15,6 @@ local POWER_PER_BLADE = util.joules_to_fe(7140)
 local MAX_CHARGE = 0.99
 local RE_ENABLE_CHARGE = 0.95
 
----@alias PROCESS integer
-local PROCESS = {
-    INACTIVE = 1,
-    SIMPLE = 2,
-    CHARGE = 3,
-    GEN_RATE = 4,
-    BURN_RATE = 5
-}
-
 local AUTO_SCRAM = {
     NONE = 0,
     MATRIX_DC = 1,
@@ -31,7 +22,7 @@ local AUTO_SCRAM = {
 }
 
 local charge_Kp = 1.0
-local charge_Ki = 0.0
+local charge_Ki = 0.00001
 local charge_Kd = 0.0
 
 local rate_Kp = 1.0
@@ -40,8 +31,6 @@ local rate_Kd = 0.0
 
 ---@class facility_management
 local facility = {}
-
-facility.PROCESS_MODES = PROCESS
 
 -- create a new facility management object
 ---@param num_reactors integer number of reactor units
@@ -54,9 +43,11 @@ function facility.new(num_reactors, cooling_conf)
         -- process control
         mode = PROCESS.INACTIVE,
         last_mode = PROCESS.INACTIVE,
-        burn_target = 0.0,              -- burn rate target for aggregate burn mode
+        mode_set = PROCESS.SIMPLE,
+        max_burn_combined = 0.0,        -- maximum burn rate to clamp at
+        burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_target = 0,              -- FE charge target
-        charge_rate = 0,                -- FE/t charge rate target
+        gen_rate_target = 0,            -- FE/t charge rate target
         group_map = { 0, 0, 0, 0 },     -- units -> group IDs
         prio_defs = { {}, {}, {}, {} }, -- priority definitions (each level is a table of units)
         ascram = false,
@@ -67,6 +58,7 @@ function facility.new(num_reactors, cooling_conf)
         initial_ramp = true,
         waiting_on_ramp = false,
         accumulator = 0.0,
+        saturated = false,
         last_error = 0.0,
         last_time = 0.0,
         -- statistics
@@ -214,6 +206,8 @@ function facility.new(num_reactors, cooling_conf)
         if state_changed then
             if self.last_mode == PROCESS.INACTIVE then
                 local blade_count = 0
+                self.max_burn_combined = 0.0
+
                 for i = 1, #self.prio_defs do
                     table.sort(self.prio_defs[i],
                         ---@param a reactor_unit
@@ -224,6 +218,7 @@ function facility.new(num_reactors, cooling_conf)
                     for _, u in pairs(self.prio_defs[i]) do
                         blade_count = blade_count + u.get_db().blade_count
                         u.a_engage()
+                        self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br10 / 10.0)
                     end
                 end
 
@@ -247,6 +242,18 @@ function facility.new(num_reactors, cooling_conf)
             if state_changed then
                 self.time_start = now
             end
+        elseif self.mode == PROCESS.BURN_RATE then
+            -- a total aggregate burn rate
+            if state_changed then
+                -- nothing special to do
+            elseif self.waiting_on_ramp and _all_units_ramped() then
+                self.waiting_on_ramp = false
+                self.time_start = now
+            end
+
+            if not self.waiting_on_ramp then
+                _allocate_burn_rate(self.burn_target, self.initial_ramp)
+            end
         elseif self.mode == PROCESS.CHARGE then
             -- target a level of charge
             local error = (self.charge_target - avg_charge) / self.charge_conversion
@@ -261,23 +268,32 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             if not self.waiting_on_ramp then
-                self.accumulator = self.accumulator + (avg_charge / self.charge_conversion)
+                if not self.saturated then
+                    self.accumulator = self.accumulator + ((avg_charge / self.charge_conversion) * (now - self.last_time))
+                end
 
                 local runtime = now - self.time_start
-                local integral = self.accumulator / runtime
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local integral = self.accumulator
+                -- local derivative = (error - self.last_error) / (now - self.last_time)
 
                 local P = (charge_Kp * error)
                 local I = (charge_Ki * integral)
-                local D = (charge_Kd * derivative)
+                local D = 0 -- (charge_Kd * derivative)
 
                 local setpoint = P + I + D
+
+                -- round setpoint -> setpoint rounded (sp_r)
                 local sp_r = util.round(setpoint * 10.0) / 10.0
 
-                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => SP[%f] SP_R[%f] <= P[%f] I[%f] D[%d] }",
-                    runtime, avg_charge, error, integral, setpoint, sp_r, P, I, D))
+                -- clamp at range -> setpoint clamped (sp_c)
+                local sp_c = math.max(0, math.min(sp_r, self.max_burn_combined))
 
-                _allocate_burn_rate(sp_r, self.initial_ramp)
+                self.saturated = sp_r ~= sp_c
+
+                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => SP[%f] SP_C[%f] <= P[%f] I[%f] D[%d] }",
+                    runtime, avg_charge, error, integral, setpoint, sp_c, P, I, D))
+
+                _allocate_burn_rate(sp_c, self.initial_ramp)
 
                 if self.initial_ramp then
                     self.waiting_on_ramp = true
@@ -285,7 +301,7 @@ function facility.new(num_reactors, cooling_conf)
             end
         elseif self.mode == PROCESS.GEN_RATE then
             -- target a rate of generation
-            local error = (self.charge_rate - avg_inflow) / self.charge_conversion
+            local error = (self.gen_rate_target - avg_inflow) / self.charge_conversion
             local setpoint = 0.0
 
             if state_changed then
@@ -303,36 +319,32 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             if not self.waiting_on_ramp then
-                self.accumulator = self.accumulator + (avg_inflow / self.charge_conversion)
+                if not self.saturated then
+                    self.accumulator = self.accumulator + ((avg_inflow / self.charge_conversion) * (now - self.last_time))
+                end
 
                 local runtime = util.time_s() - self.time_start
-                local integral = self.accumulator / runtime
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local integral = self.accumulator
+                -- local derivative = (error - self.last_error) / (now - self.last_time)
 
                 local P = (rate_Kp * error)
                 local I = (rate_Ki * integral)
-                local D = (rate_Kd * derivative)
+                local D = 0 -- (rate_Kd * derivative)
 
                 setpoint = P + I + D
 
+                -- round setpoint -> setpoint rounded (sp_r)
                 local sp_r = util.round(setpoint * 10.0) / 10.0
 
-                log.debug(util.sprintf("PROC_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => SP[%f] SP_R[%f] <= P[%f] I[%f] D[%f] }",
-                    runtime, avg_inflow, error, integral, setpoint, sp_r, P, I, D))
+                -- clamp at range -> setpoint clamped (sp_c)
+                local sp_c = math.max(0, math.min(sp_r, self.max_burn_combined))
 
-                _allocate_burn_rate(sp_r, false)
-            end
-        elseif self.mode == PROCESS.BURN_RATE then
-            -- a total aggregate burn rate
-            if state_changed then
-                -- nothing special to do
-            elseif self.waiting_on_ramp and _all_units_ramped() then
-                self.waiting_on_ramp = false
-                self.time_start = now
-            end
+                self.saturated = sp_r ~= sp_c
 
-            if not self.waiting_on_ramp then
-                _allocate_burn_rate(self.burn_target, self.initial_ramp)
+                log.debug(util.sprintf("PROC_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => SP[%f] SP_C[%f] <= P[%f] I[%f] D[%f] }",
+                    runtime, avg_inflow, error, integral, setpoint, sp_c, P, I, D))
+
+                _allocate_burn_rate(sp_c, false)
             end
         end
 
@@ -387,6 +399,83 @@ function facility.new(num_reactors, cooling_conf)
         end
     end
 
+    -- COMMANDS --
+
+    -- SCRAM all reactor units
+    function public.scram_all()
+        for i = 1, #self.units do
+            local u = self.units[i] ---@type reactor_unit
+            u.scram()
+        end
+    end
+
+    -- stop auto control
+    function public.auto_stop()
+        self.mode = PROCESS.INACTIVE
+    end
+
+    -- set automatic control configuration and start the process
+    ---@param config coord_auto_config configuration
+    ---@return table response ready state (successfully started) and current configuration (after updating)
+    function public.auto_start(config)
+        local ready = false
+
+        -- load up current limits
+        local limits = {}
+        for i = 1, num_reactors do
+            local u = self.units[i] ---@type reactor_unit
+            limits[i] = u.get_control_inf().lim_br10 * 10
+        end
+
+        -- only allow changes if not running
+        if self.mode == PROCESS.INACTIVE then
+            if (type(config.mode) == "number") and (config.mode > PROCESS.INACTIVE) and (config.mode <= PROCESS.SIMPLE) then
+                self.mode_set = config.mode
+            end
+
+            if (type(config.burn_target) == "number") and config.burn_target >= 0.1 then
+                self.burn_target = config.burn_target
+                log.debug("SET BURN TARGET " .. config.burn_target)
+            end
+
+            if (type(config.charge_target) == "number") and config.charge_target >= 0 then
+                self.charge_target = config.charge_target
+                log.debug("SET CHARGE TARGET " .. config.charge_target)
+            end
+
+            if (type(config.gen_target) == "number") and config.gen_target >= 0 then
+                self.gen_rate_target = config.gen_target
+                log.debug("SET RATE TARGET " .. config.gen_target)
+            end
+
+            if (type(config.limits) == "table") and (#config.limits == num_reactors) then
+                for i = 1, num_reactors do
+                    local limit = config.limits[i]
+
+                    if (type(limit) == "number") and (limit >= 0.1) then
+                        limits[i] = limit
+                        self.units[i].set_burn_limit(limit)
+                        log.debug("SET UNIT " .. i .. " LIMIT " .. limit)
+                    end
+                end
+            end
+
+            ready = self.mode_set > 0
+
+            if (self.mode_set == PROCESS.CHARGE) and (self.charge_target <= 0) then
+                ready = false
+            elseif (self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_target <= 0) then
+                ready = false
+            elseif (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target <= 0.1) then
+                ready = false
+            end
+
+            if ready then self.mode = self.mode_set end
+        end
+
+        return { ready, self.mode_set, self.burn_target, self.charge_target, self.gen_rate_target, limits }
+    end
+
     -- SETTINGS --
 
     -- set the automatic control group of a unit
@@ -424,9 +513,26 @@ function facility.new(num_reactors, cooling_conf)
         return build
     end
 
+    -- get automatic process control status
+    function public.get_control_status()
+        return {
+            self.mode,
+            self.waiting_on_ramp,
+            self.ascram,
+            self.ascram_reason
+        }
+    end
+
     -- get RTU statuses
     function public.get_rtu_statuses()
         local status = {}
+
+        -- power averages from induction matricies
+        status.power = {
+            self.avg_charge,
+            self.avg_inflow,
+            self.avg_outflow
+        }
 
         -- status of induction matricies (including tanks)
         status.induction = {}

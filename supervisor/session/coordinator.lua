@@ -11,6 +11,7 @@ local PROTOCOLS = comms.PROTOCOLS
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local UNIT_COMMANDS = comms.UNIT_COMMANDS
+local FAC_COMMANDS = comms.FAC_COMMANDS
 
 local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
@@ -133,6 +134,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
     -- send facility status
     local function _send_fac_status()
         local status = {
+            facility.get_control_status(),
             facility.get_rtu_statuses()
         }
 
@@ -146,9 +148,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
         for i = 1, #self.units do
             local unit = self.units[i]  ---@type reactor_unit
 
-            local auto_ctl = {
-                unit.get_control_inf().lim_br10 / 10
-            }
+            local auto_ctl = {}
 
             status[unit.get_id()] = {
                 unit.get_reactor_status(),
@@ -208,6 +208,37 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
             if pkt.type == SCADA_CRDN_TYPES.FAC_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.fac_builds = true
+            elseif pkt.type == SCADA_CRDN_TYPES.FAC_CMD then
+                if pkt.length >= 1 then
+                    local cmd = pkt.data[1]
+
+                    if cmd == FAC_COMMANDS.SCRAM_ALL then
+                        facility.scram_all()
+                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMANDS.STOP then
+                        facility.auto_stop()
+                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMANDS.START then
+                        if pkt.length == 6 then
+                            ---@type coord_auto_config
+                            local config = {
+                                mode = pkt.data[2],
+                                burn_target = pkt.data[3],
+                                charge_target = pkt.data[4],
+                                gen_target = pkt.data[5],
+                                limits = pkt.data[6]
+                            }
+
+                            _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })
+                        else
+                            log.debug(log_header .. "CRDN auto start (with configuration) packet length mismatch")
+                        end
+                    else
+                        log.debug(log_header .. "CRDN facility command unknown")
+                    end
+                else
+                    log.debug(log_header .. "CRDN facility command packet length mismatch")
+                end
             elseif pkt.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.unit_builds = true
@@ -234,13 +265,13 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                             if pkt.length == 3 then
                                 self.out_q.push_data(SV_Q_DATA.SET_BURN, data)
                             else
-                                log.debug(log_header .. "CRDN command unit burn rate missing option")
+                                log.debug(log_header .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMANDS.SET_WASTE then
                             if pkt.length == 3 then
                                 unit.set_waste(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN command unit set waste missing option")
+                                log.debug(log_header .. "CRDN unit command set waste missing option")
                             end
                         elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
                             unit.ack_all()
@@ -249,36 +280,29 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                             if pkt.length == 3 then
                                 unit.ack_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN command unit ack alarm missing alarm id")
+                                log.debug(log_header .. "CRDN unit command ack alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMANDS.RESET_ALARM then
                             if pkt.length == 3 then
                                 unit.reset_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN command unit reset alarm missing alarm id")
+                                log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMANDS.SET_GROUP then
                             if pkt.length == 3 then
                                 facility.set_group(unit.get_id(), pkt.data[3])
                                 _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
-                                log.debug(log_header .. "CRDN command unit set group missing group id")
-                            end
-                        elseif cmd == UNIT_COMMANDS.SET_LIMIT then
-                            if pkt.length == 3 then
-                                unit.set_burn_limit(pkt.data[3])
-                                _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
-                            else
-                                log.debug(log_header .. "CRDN command unit set limit missing group id")
+                                log.debug(log_header .. "CRDN unit command set group missing group id")
                             end
                         else
-                            log.debug(log_header .. "CRDN command unknown")
+                            log.debug(log_header .. "CRDN unit command unknown")
                         end
                     else
-                        log.debug(log_header .. "CRDN command unit invalid")
+                        log.debug(log_header .. "CRDN unit command invalid")
                     end
                 else
-                    log.debug(log_header .. "CRDN command unit packet length mismatch")
+                    log.debug(log_header .. "CRDN unit command packet length mismatch")
                 end
             else
                 log.debug(log_header .. "handler received unexpected SCADA_CRDN packet type " .. pkt.type)
@@ -331,6 +355,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                             self.retry_times.builds_packet = util.time() + RETRY_PERIOD
                             _send_fac_builds()
                             _send_unit_builds()
+                        else
+                            log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
@@ -339,6 +365,8 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                         if cmd.key == CRD_S_DATA.CMD_ACK then
                             local ack = cmd.val ---@type coord_ack
                             _send(SCADA_CRDN_TYPES.UNIT_CMD, { ack.cmd, ack.unit, ack.ack })
+                        else
+                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
                         end
                     end
                 end

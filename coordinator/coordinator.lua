@@ -2,10 +2,10 @@ local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
-local process     = require("coordinator.process")
 
 local apisessions = require("coordinator.apisessions")
 local iocontrol   = require("coordinator.iocontrol")
+local process     = require("coordinator.process")
 
 local dialog      = require("coordinator.ui.dialog")
 
@@ -20,6 +20,7 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local UNIT_COMMANDS = comms.UNIT_COMMANDS
+local FAC_COMMANDS = comms.FAC_COMMANDS
 
 local coordinator = {}
 
@@ -313,11 +314,25 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
         return self.sv_linked
     end
 
+    -- send a facility command
+    ---@param cmd FAC_COMMANDS command
+    function public.send_fac_command(cmd)
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_CMD, { cmd })
+    end
+
+    -- send the auto process control configuration with a start command
+    ---@param config coord_auto_config configuration
+    function public.send_auto_start(config)
+        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_CMD, {
+            FAC_COMMANDS.START, config.mode, config.burn_target, config.charge_target, config.gen_target, config.limits
+        })
+    end
+
     -- send a unit command
     ---@param cmd UNIT_COMMANDS command
     ---@param unit integer unit ID
-    ---@param option any? optional options (like burn rate)
-    function public.send_command(cmd, unit, option)
+    ---@param option any? optional option options for the optional options (like burn rate) (does option still look like a word?)
+    function public.send_unit_command(cmd, unit, option)
         _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_CMD, { cmd, unit, option })
     end
 
@@ -412,6 +427,26 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
                             end
                         elseif packet.type == SCADA_CRDN_TYPES.FAC_CMD then
                             -- facility command acknowledgement
+                            if packet.length >= 2 then
+                                local cmd = packet.data[1]
+                                local ack = packet.data[2] == true
+
+                                if cmd == FAC_COMMANDS.SCRAM_ALL then
+                                    iocontrol.get_db().facility.scram_ack(ack)
+                                elseif cmd == FAC_COMMANDS.STOP then
+                                    iocontrol.get_db().facility.stop_ack(ack)
+                                elseif cmd == FAC_COMMANDS.START then
+                                    if packet.length == 7 then
+                                        process.start_ack_handle({ table.unpack(packet.data, 2) })
+                                    else
+                                        log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
+                                    end
+                                else
+                                    log.debug(util.c("received facility command ack with unknown command ", cmd))
+                                end
+                            else
+                                log.debug("SCADA_CRDN facility command ack packet length mismatch")
+                            end
                         elseif packet.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
                             -- record builds
                             if iocontrol.record_unit_builds(packet.data) then
