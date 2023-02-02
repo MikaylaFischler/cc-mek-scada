@@ -160,7 +160,6 @@ local function init(parent, id)
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
     local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
     local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
-    ---@todo auto control as info sent here
     local r_auto     = IndicatorLight{parent=annunciator,label="Automatic Control",colors=cpair(colors.blue,colors.gray)}
 
     annunciator.line_break()
@@ -171,6 +170,7 @@ local function init(parent, id)
     r_ps.subscribe("PLCOnline", plc_online.update)
     r_ps.subscribe("PLCHeartbeat", plc_hbeat.update)
     r_ps.subscribe("status", r_active.update)
+    r_ps.subscribe("AutoControl", r_auto.update)
 
     annunciator.line_break()
 
@@ -328,17 +328,17 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
+    local dis_colors = cpair(colors.white, colors.lightGray)
+
     local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
-    PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=set_burn}
+    local set_burn_btn = PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=dis_colors,callback=set_burn}
 
     r_ps.subscribe("burn_rate", burn_rate.set_value)
     r_ps.subscribe("max_burn", burn_rate.set_max)
-
-    local dis_colors = cpair(colors.white, colors.lightGray)
 
     local start = HazardButton{parent=main,x=2,y=28,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
     local ack_a = HazardButton{parent=main,x=12,y=32,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
@@ -352,7 +352,9 @@ local function init(parent, id)
 
     local function start_button_en_check()
         if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
-            local can_start = (not unit.reactor_data.mek_status.status) and (not unit.reactor_data.rps_tripped)
+            local can_start = (not unit.reactor_data.mek_status.status) and
+                                (not unit.reactor_data.rps_tripped) and
+                                (not unit.annunciator.AutoControl)
             if can_start then start.enable() else start.disable() end
         end
     end
@@ -455,21 +457,54 @@ local function init(parent, id)
 
     local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
-    RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
+    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
 
     auto_div.line_break()
 
-    PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.white,colors.gray),callback=function()end}
+    local function set_group() unit.set_group(group.get_value() - 1) end
+
+    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
 
     auto_div.line_break()
 
     TextBox{parent=auto_div,text="Prio. Group",height=1,width=11,fg_bg=style.label}
     local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=11,fg_bg=bw_fg_bg}
 
+    r_ps.subscribe("auto_group", auto_grp.set_value)
+
     auto_div.line_break()
 
-    local a_prm = IndicatorLight{parent=auto_div,label="Active",x=2,colors=cpair(colors.green,colors.gray)}
+    local a_act = IndicatorLight{parent=auto_div,label="Active",x=2,colors=cpair(colors.green,colors.gray)}
     local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=cpair(colors.white,colors.gray)}
+
+    r_ps.subscribe("status", function (active)
+        if unit.annunciator.AutoControl then
+            a_act.update(active)
+            a_stb.update(not active)
+        else
+            a_act.update(false)
+            a_stb.update(false)
+        end
+    end)
+
+    -- enable and disable controls based on auto control state (start button is handled separately)
+    r_ps.subscribe("AutoControl", function (auto_active)
+        start_button_en_check()
+
+        if auto_active then
+            burn_rate.disable()
+            set_burn_btn.disable()
+            set_grp_btn.disable()
+            a_act.update(unit.reactor_data.mek_status.status == true)
+            a_stb.update(unit.reactor_data.mek_status.status == false)
+        else
+            burn_rate.enable()
+            set_burn_btn.enable()
+            set_grp_btn.enable()
+            a_act.update(false)
+            a_stb.update(false)
+        end
+    end)
 
     return main
 end

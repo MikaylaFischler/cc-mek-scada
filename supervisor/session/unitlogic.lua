@@ -194,7 +194,7 @@ function logic.update_annunciator(self)
     local max_water_return_rate = 0
 
     -- recompute blade count on the chance that it may have changed
-    self.db.blade_count = 0
+    self.db.control.blade_count = 0
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
@@ -204,7 +204,7 @@ function logic.update_annunciator(self)
         total_flow_rate = total_flow_rate + turbine.state.flow_rate
         total_input_rate = total_input_rate + turbine.state.steam_input_rate
         max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
-        self.db.blade_count = self.db.blade_count + turbine.build.blades
+        self.db.control.blade_count = self.db.control.blade_count + turbine.build.blades
 
         self.db.annunciator.TurbineOnline[session.get_device_idx()] = true
     end

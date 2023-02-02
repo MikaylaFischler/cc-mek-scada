@@ -116,6 +116,8 @@ function iocontrol.init(conf, comms)
                 ALARM_STATE.INACTIVE    -- turbine trip
             },
 
+            annunciator = {},           ---@type annunciator
+
             reactor_ps = psil.create(),
             reactor_data = {},          ---@type reactor_db
 
@@ -272,12 +274,23 @@ function iocontrol.update_facility_status(status)
             fac.auto_active = ctl_status[1] > 0
             fac.auto_ramping = ctl_status[2]
             fac.auto_scram = ctl_status[3]
-            fac.auto_scram_cause = ctl_status[4]
+            fac.status_line_1 = ctl_status[4]
+            fac.status_line_2 = ctl_status[5]
 
             fac.ps.publish("auto_active", fac.auto_active)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
             fac.ps.publish("auto_scram", fac.auto_scram)
-            fac.ps.publish("auto_scram_cause", fac.auto_scram_cause)
+            fac.ps.publish("status_line_1", fac.status_line_1)
+            fac.ps.publish("status_line_2", fac.status_line_2)
+
+            local group_map = ctl_status[6]
+
+            if (type(group_map) == "table") and (#group_map == fac.num_units) then
+                local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
+                for i = 1, #group_map do
+                    io.units[i].reactor_ps.publish("auto_group", names[group_map[i] + 1])
+                end
+            end
         else
             log.debug(log_header .. "control status not a table")
         end
@@ -556,14 +569,14 @@ function iocontrol.update_unit_statuses(statuses)
 
             -- annunciator
 
-            local annunciator = status[3]   ---@type annunciator
+            unit.annunciator = status[3]
 
-            if type(annunciator) ~= "table" then
-                annunciator = {}
+            if type(unit.annunciator) ~= "table" then
+                unit.annunciator = {}
                 log.debug(log_header .. "annunciator state not a table")
             end
 
-            for key, val in pairs(annunciator) do
+            for key, val in pairs(unit.annunciator) do
                 if key == "TurbineTrip" then
                     -- split up turbine trip table for all turbines and a general OR combination
                     local trips = val

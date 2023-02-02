@@ -10,6 +10,7 @@ local element = require("graphics.element")
 ---@field callback function function to call on touch
 ---@field min_width? integer text length + 2 if omitted
 ---@field active_fg_bg? cpair foreground/background colors when pressed
+---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -61,8 +62,10 @@ local function push_button(args)
                 -- show as unpressed in 0.25 seconds
                 tcd.dispatch(0.25, function ()
                     e.value = false
-                    e.window.setTextColor(e.fg_bg.fgd)
-                    e.window.setBackgroundColor(e.fg_bg.bkg)
+                    if e.enabled then
+                        e.window.setTextColor(e.fg_bg.fgd)
+                        e.window.setBackgroundColor(e.fg_bg.bkg)
+                    end
                     draw()
                 end)
             end
@@ -76,6 +79,26 @@ local function push_button(args)
     ---@param val boolean new value
     function e.set_value(val)
         if val then e.handle_touch(core.events.touch("", 1, 1)) end
+    end
+
+    -- show butten as enabled
+    function e.enable()
+        if args.dis_fg_bg ~= nil then
+            e.value = false
+            e.window.setTextColor(e.fg_bg.fgd)
+            e.window.setBackgroundColor(e.fg_bg.bkg)
+            draw()
+        end
+    end
+
+    -- show button as disabled
+    function e.disable()
+        if args.dis_fg_bg ~= nil then
+            e.value = false
+            e.window.setTextColor(args.dis_fg_bg.fgd)
+            e.window.setBackgroundColor(args.dis_fg_bg.bkg)
+            draw()
+        end
     end
 
     -- initial draw

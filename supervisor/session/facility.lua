@@ -40,6 +40,7 @@ function facility.new(num_reactors, cooling_conf)
         units = {},
         induction = {},
         redstone = {},
+        status_text = { "IDLE", "control inactive" },
         -- process control
         mode = PROCESS.INACTIVE,
         last_mode = PROCESS.INACTIVE,
@@ -103,36 +104,42 @@ function facility.new(num_reactors, cooling_conf)
         local unallocated = math.floor(burn_rate * 10)
 
         -- go through alll priority groups
-        for i = 1, #self.prio_defs and (unallocated > 0) do
+        for i = 1, #self.prio_defs do
             local units = self.prio_defs[i]
-            local split = math.floor(unallocated / #units)
 
-            local splits = {}
-            for u = 1, #units do splits[u] = split end
-            splits[#units] = splits[#units] + (unallocated % #units)
+            if #units > 0 then
+                local split = math.floor(unallocated / #units)
 
-            -- go through all reactor units in this group
-            for u = 1, #units do
-                local ctl = units[u].get_control_inf()  ---@type unit_control
-                local last = ctl.br10
+                local splits = {}
+                for u = 1, #units do splits[u] = split end
+                splits[#units] = splits[#units] + (unallocated % #units)
 
-                if splits[u] <= ctl.lim_br10 then
-                    ctl.br10 = splits[u]
-                else
-                    ctl.br10 = ctl.lim_br10
+                -- go through all reactor units in this group
+                for u = 1, #units do
+                    local ctl = units[u].get_control_inf()  ---@type unit_control
+                    local last = ctl.br10
 
-                    if u < #units then
-                        local remaining = #units - u
-                        split = math.floor(unallocated / remaining)
-                        for x = (u + 1), #units do splits[x] = split end
-                        splits[#units] = splits[#units] + (unallocated % remaining)
+                    if splits[u] <= ctl.lim_br10 then
+                        ctl.br10 = splits[u]
+                    else
+                        ctl.br10 = ctl.lim_br10
+
+                        if u < #units then
+                            local remaining = #units - u
+                            split = math.floor(unallocated / remaining)
+                            for x = (u + 1), #units do splits[x] = split end
+                            splits[#units] = splits[#units] + (unallocated % remaining)
+                        end
                     end
+
+                    unallocated = unallocated - ctl.br10
+
+                    if last ~= ctl.br10 then units[u].a_commit_br10(ramp) end
                 end
-
-                unallocated = unallocated - ctl.br10
-
-                if last ~= ctl.br10 then units[u].a_commit_br10(ramp) end
             end
+
+            -- stop if fully allocated
+            if unallocated <= 0 then break end
         end
     end
 
@@ -216,19 +223,24 @@ function facility.new(num_reactors, cooling_conf)
                     )
 
                     for _, u in pairs(self.prio_defs[i]) do
-                        blade_count = blade_count + u.get_db().blade_count
+                        blade_count = blade_count + u.get_control_inf().blade_count
                         u.a_engage()
                         self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br10 / 10.0)
                     end
                 end
 
                 self.charge_conversion = blade_count * POWER_PER_BLADE
+
+                log.debug(util.c("FAC: starting auto control: chg_conv = ", self.charge_conversion, ", blade_count = ", blade_count, ", max_burn = ", self.max_burn_combined))
             elseif self.mode == PROCESS.INACTIVE then
                 for i = 1, #self.prio_defs do
                     for _, u in pairs(self.prio_defs[i]) do
                         u.a_disengage()
                     end
                 end
+
+                self.status_text = { "IDLE", "control disengaged" }
+                log.debug("FAC: disengaging auto control (now inactive)")
             end
 
             self.initial_ramp = true
@@ -241,30 +253,43 @@ function facility.new(num_reactors, cooling_conf)
             -- run units at their last configured set point
             if state_changed then
                 self.time_start = now
+                ---@todo will still need to ramp?
+                log.debug(util.c("FAC: SIMPLE mode first call completed"))
             end
         elseif self.mode == PROCESS.BURN_RATE then
             -- a total aggregate burn rate
             if state_changed then
                 -- nothing special to do
+                self.status_text = { "BURN RATE MODE", "starting up" }
+                log.debug(util.c("FAC: BURN_RATE mode first call completed"))
             elseif self.waiting_on_ramp and _all_units_ramped() then
                 self.waiting_on_ramp = false
                 self.time_start = now
+                self.status_text = { "BURN RATE MODE", "running" }
+                log.debug(util.c("FAC: BURN_RATE mode initial ramp completed"))
             end
 
             if not self.waiting_on_ramp then
                 _allocate_burn_rate(self.burn_target, self.initial_ramp)
+
+                if self.initial_ramp then
+                    self.status_text = { "BURN RATE MODE", "ramping reactors" }
+                    self.waiting_on_ramp = true
+                    log.debug(util.c("FAC: BURN_RATE mode allocated initial ramp"))
+                end
             end
         elseif self.mode == PROCESS.CHARGE then
             -- target a level of charge
             local error = (self.charge_target - avg_charge) / self.charge_conversion
 
             if state_changed then
-                -- nothing special to do
+                log.debug(util.c("FAC: CHARGE mode first call completed"))
             elseif self.waiting_on_ramp and _all_units_ramped() then
                 self.waiting_on_ramp = false
 
                 self.time_start = now
                 self.accumulator = 0
+                log.debug(util.c("FAC: CHARGE mode initial ramp completed"))
             end
 
             if not self.waiting_on_ramp then
@@ -311,11 +336,13 @@ function facility.new(num_reactors, cooling_conf)
                 local sp_r = util.round(setpoint * 10.0) / 10.0
 
                 _allocate_burn_rate(sp_r, true)
+                log.debug(util.c("FAC: GEN_RATE mode first call completed"))
             elseif self.waiting_on_ramp and _all_units_ramped() then
                 self.waiting_on_ramp = false
 
                 self.time_start = now
                 self.accumulator = 0
+                log.debug(util.c("FAC: GEN_RATE mode initial ramp completed"))
             end
 
             if not self.waiting_on_ramp then
@@ -346,6 +373,9 @@ function facility.new(num_reactors, cooling_conf)
 
                 _allocate_burn_rate(sp_c, false)
             end
+        elseif self.mode ~= PROCESS.INACTIVE then
+            log.error(util.c("FAC: unsupported process mode ", self.mode, ", switching to inactive"))
+            self.mode = PROCESS.INACTIVE
         end
 
         ------------------------------
@@ -389,6 +419,9 @@ function facility.new(num_reactors, cooling_conf)
                 self.ascram = true
             end
         end
+
+        -- update last mode
+        self.last_mode = self.mode
     end
 
     -- call the update function of all units in the facility
@@ -429,8 +462,9 @@ function facility.new(num_reactors, cooling_conf)
 
         -- only allow changes if not running
         if self.mode == PROCESS.INACTIVE then
-            if (type(config.mode) == "number") and (config.mode > PROCESS.INACTIVE) and (config.mode <= PROCESS.SIMPLE) then
+            if (type(config.mode) == "number") and (config.mode > PROCESS.INACTIVE) and (config.mode <= PROCESS.GEN_RATE) then
                 self.mode_set = config.mode
+                log.debug("SET MODE " .. config.mode)
             end
 
             if (type(config.burn_target) == "number") and config.burn_target >= 0.1 then
@@ -489,7 +523,7 @@ function facility.new(num_reactors, cooling_conf)
                 util.filter_table(self.prio_defs[old_group], function (u) return u.get_id() ~= unit_id end)
             end
 
-            self.group_map[unit] = group
+            self.group_map[unit_id] = group
 
             -- add to group if not independent
             if group > 0 then
@@ -519,7 +553,9 @@ function facility.new(num_reactors, cooling_conf)
             self.mode,
             self.waiting_on_ramp,
             self.ascram,
-            self.ascram_reason
+            self.status_text[1],
+            self.status_text[2],
+            self.group_map
         }
     end
 

@@ -387,6 +387,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         self.db.annunciator.AutoControl = false
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(false)
+            self.db.control.br10 = 0
         end
     end
 
