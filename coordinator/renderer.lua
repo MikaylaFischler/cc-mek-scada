@@ -1,4 +1,5 @@
 local log       = require("scada-common.log")
+local util      = require("scada-common.util")
 
 local style     = require("coordinator.ui.style")
 
@@ -83,6 +84,29 @@ function renderer.reset(recolor)
     for _, monitor in pairs(engine.monitors.unit_displays) do
         _reset_display(monitor, recolor)
     end
+end
+
+-- check main display width
+---@return boolean width_okay
+function renderer.validate_main_display_width()
+    local w, _ = engine.monitors.primary.getSize()
+    return w == 164
+end
+
+-- check display sizes
+---@return boolean valid all unit display dimensions OK
+function renderer.validate_unit_display_sizes()
+    local valid = true
+
+    for id, monitor in pairs(engine.monitors.unit_displays) do
+        local w, h = monitor.getSize()
+        if w ~= 79 or h ~= 52 then
+            log.warning(util.c("unit ", id, " display resolution not 79 wide by 52 tall: ", w, ", ", h))
+            valid = false
+        end
+    end
+
+    return valid
 end
 
 -- initialize the dmesg output window

@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.8.13"
+local COORDINATOR_VERSION = "beta-v0.8.14"
 
 local print = util.print
 local println = util.println
@@ -84,12 +84,24 @@ local function main()
         return
     end
 
-    log.info("monitors ready, dmesg output incoming...")
-
     -- init renderer
     renderer.set_displays(monitors)
     renderer.reset(config.RECOLOR)
+
+    if not renderer.validate_main_display_width() then
+        println("boot> main display must be 8 blocks wide")
+        log.fatal("main display not wide enough")
+        return
+    elseif not renderer.validate_unit_display_sizes() then
+        println("boot> one or more unit display dimensions incorrect; they must be 4x4 blocks")
+        log.fatal("unit display dimensions incorrect")
+        return
+    end
+
     renderer.init_dmesg()
+
+    -- lets get started!
+    log.info("monitors ready, dmesg output incoming...")
 
     log_graphics("displays connected and reset")
     log_sys("system start on " .. os.date("%c"))

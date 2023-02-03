@@ -35,6 +35,8 @@ local period = core.flasher.PERIOD
 ---@param x integer top left x
 ---@param y integer top left y
 local function new_view(root, x, y)
+    assert(root.height() >= (y + 24), "main display not of sufficient vertical resolution (add an additional row of monitors)")
+
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 
