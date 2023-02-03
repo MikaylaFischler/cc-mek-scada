@@ -578,6 +578,8 @@ function threads.thread__setpoint_control(smem)
         local last_update  = util.time()
         local running      = false
 
+        local last_burn_sp = 0.0
+
         -- do not use the actual elapsed time, it could spike
         -- we do not want to have big jumps as that is what we are trying to avoid in the first place
         local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
@@ -591,18 +593,20 @@ function threads.thread__setpoint_control(smem)
 
             if plc_state.init_ok and (not plc_state.no_reactor) then
                 -- check if we should start ramping
-                if setpoints.burn_rate_en then
+                if setpoints.burn_rate_en and (setpoints.burn_rate ~= last_burn_sp) then
 ---@diagnostic disable-next-line: need-check-nil
                     local cur_burn_rate = reactor.getBurnRate()
 
-                    if (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
+                    if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
+                        last_burn_sp = setpoints.burn_rate
+
                         -- update without ramp if <= 2.5 mB/t change
                         running = math.abs(setpoints.burn_rate - cur_burn_rate) > 2.5
 
                         if running then
-                            log.debug("SPCTL: starting burn rate ramp from " .. cur_burn_rate .. " mB/t to " .. setpoints.burn_rate .. " mB/t")
+                            log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))
                         else
-                            log.debug("SPCTL: setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
+                            log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
 ---@diagnostic disable-next-line: need-check-nil
                             reactor.setBurnRate(setpoints.burn_rate)
                         end
@@ -641,8 +645,19 @@ function threads.thread__setpoint_control(smem)
 ---@diagnostic disable-next-line: need-check-nil
                                 reactor.setBurnRate(new_burn_rate)
                             end
+                        else
+                            log.debug("SPCTL: ramping aborted (reactor inactive)")
+                            setpoints.burn_rate_en = false
                         end
                     end
+                elseif setpoints.burn_rate_en then
+                    log.debug(util.c("SPCTL: ramping completed (setpoint of ", setpoints.burn_rate, " mB/t)"))
+                    setpoints.burn_rate_en = false
+                end
+
+                -- if ramping completed or was aborted, reset last burn setpoint so that if it is requested again it will be re-attempted
+                if not setpoints.burn_rate_en then
+                    last_burn_sp = 0
                 end
             end
 
