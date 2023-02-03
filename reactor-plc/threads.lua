@@ -601,7 +601,7 @@ function threads.thread__setpoint_control(smem)
 ---@diagnostic disable-next-line: need-check-nil
                             reactor.setBurnRate(setpoints.burn_rate)
                         else
-                            log.debug("starting burn rate ramp from " .. last_sp_burn .. "mB/t to " .. setpoints.burn_rate .. "mB/t")
+                            log.debug("starting burn rate ramp from " .. last_sp_burn .. " mB/t to " .. setpoints.burn_rate .. " mB/t")
                             running = true
                         end
 
@@ -623,19 +623,19 @@ function threads.thread__setpoint_control(smem)
                             local current_burn_rate = reactor.getBurnRate()
 
                             -- we yielded, check enable again
-                            if setpoints.burn_rate_en and (current_burn_rate ~= ppm.ACCESS_FAULT) and (current_burn_rate ~= setpoints.burn_rate) then
+                            if setpoints.burn_rate_en and (type(current_burn_rate) == "number") and (current_burn_rate ~= setpoints.burn_rate) then
                                 -- calculate new burn rate
                                 local new_burn_rate = current_burn_rate
 
                                 if setpoints.burn_rate > current_burn_rate then
                                     -- need to ramp up
-                                    local new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
                                     if new_burn_rate > setpoints.burn_rate then
                                         new_burn_rate = setpoints.burn_rate
                                     end
                                 else
                                     -- need to ramp down
-                                    local new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
                                     if new_burn_rate < setpoints.burn_rate then
                                         new_burn_rate = setpoints.burn_rate
                                     end

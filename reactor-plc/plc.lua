@@ -824,9 +824,12 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                                     if rps.is_active() then
                                         if rps.get_runtime() > AUTO_TOGGLE_DELAY_MS then
                                             -- auto scram to disable
+                                            log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
                                             if rps.scram() then
                                                 ack = AUTO_ACK.ZERO_DIS_OK
                                                 self.auto_last_disable = util.time_ms()
+                                            else
+                                                log.debug("AUTO: automatic reactor stop failed")
                                             end
                                         else
                                             -- too soon to disable
@@ -838,24 +841,32 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                                 elseif burn_rate <= self.max_burn_rate then
                                     if not rps.is_active() then
                                         -- activate the reactor
-                                        if not rps.auto_activate() then
-                                            log.debug("automatic reactor activation failed")
+                                        log.debug("AUTO: activating the reactor")
+                                        if rps.auto_activate() then
+                                            self.reactor.setBurnRate(0.1)
+                                            if self.reactor.__p_is_faulted() then
+                                                log.debug("AUTO: failed to reset burn rate on auto activation")
+                                            end
+                                        else
+                                            log.debug("AUTO: automatic reactor activation failed")
                                         end
                                     end
 
                                     -- if active, set/ramp burn rate
                                     if rps.is_active() then
                                         if ramp then
+                                            log.debug(util.c("AUTO: setting burn rate ramp to ", burn_rate))
                                             setpoints.burn_rate_en = true
                                             setpoints.burn_rate = burn_rate
                                             ack = AUTO_ACK.RAMP_SET_OK
                                         else
+                                            log.debug(util.c("AUTO: setting burn rate directly to ", burn_rate))
                                             self.reactor.setBurnRate(burn_rate)
                                             ack = util.trinary(self.reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
                                         end
                                     end
                                 else
-                                    log.debug(burn_rate .. " rate outside of 0 < x <= " .. self.max_burn_rate)
+                                    log.debug(util.c(burn_rate, " rate outside of 0 < x <= ", self.max_burn_rate))
                                 end
                             end
 
