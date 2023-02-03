@@ -40,8 +40,9 @@ function facility.new(num_reactors, cooling_conf)
         units = {},
         induction = {},
         redstone = {},
-        status_text = { "IDLE", "control inactive" },
+        status_text = { "START UP", "initializing..." },
         -- process control
+        units_ready = false,
         mode = PROCESS.INACTIVE,
         last_mode = PROCESS.INACTIVE,
         mode_set = PROCESS.SIMPLE,
@@ -234,7 +235,10 @@ function facility.new(num_reactors, cooling_conf)
                 log.debug(util.c("FAC: starting auto control: chg_conv = ", self.charge_conversion, ", blade_count = ", blade_count, ", max_burn = ", self.max_burn_combined))
             elseif self.mode == PROCESS.INACTIVE then
                 for i = 1, #self.prio_defs do
+                    -- SCRAM reactors and disengage auto control
+                    -- use manual SCRAM since inactive was requested, and automatic SCRAM trips an alarm
                     for _, u in pairs(self.prio_defs[i]) do
+                        u.scram()
                         u.a_disengage()
                     end
                 end
@@ -249,7 +253,21 @@ function facility.new(num_reactors, cooling_conf)
             self.initial_ramp = false
         end
 
-        if self.mode == PROCESS.SIMPLE then
+        if self.mode == PROCESS.INACTIVE then
+            -- check if we are ready to start when that time comes
+            self.units_ready = true
+            for i = 1, #self.prio_defs do
+                for _, u in pairs(self.prio_defs[i]) do
+                    self.units_ready = self.units_ready and u.get_control_inf().ready
+                end
+            end
+
+            if self.units_ready then
+                self.status_text = { "IDLE", "control disengaged" }
+            else
+                self.status_text = { "NOT READY", "assigned units not ready" }
+            end
+        elseif self.mode == PROCESS.SIMPLE then
             -- run units at their last configured set point
             if state_changed then
                 self.time_start = now
@@ -504,6 +522,8 @@ function facility.new(num_reactors, cooling_conf)
                 ready = false
             end
 
+            ready = ready and self.units_ready
+
             if ready then self.mode = self.mode_set end
         end
 
@@ -550,6 +570,7 @@ function facility.new(num_reactors, cooling_conf)
     -- get automatic process control status
     function public.get_control_status()
         return {
+            self.units_ready,
             self.mode,
             self.waiting_on_ramp,
             self.ascram,

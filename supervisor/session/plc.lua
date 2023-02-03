@@ -448,6 +448,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
 
                     self.acks.burn_rate = ack ~= PLC_AUTO_ACK.FAIL
 
+                    ---@todo implement error handling here
                     if ack == PLC_AUTO_ACK.FAIL then
                     elseif ack == PLC_AUTO_ACK.DIRECT_SET_OK then
                     elseif ack == PLC_AUTO_ACK.RAMP_SET_OK then

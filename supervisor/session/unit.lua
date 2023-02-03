@@ -174,6 +174,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- fields for facility control
             ---@class unit_control
             control = {
+                ready = false,
+                degraded = false,
                 blade_count = 0,
                 br10 = 0,
                 lim_br10 = 0
@@ -398,7 +400,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             if self.plc_i ~= nil then
                 self.plc_i.auto_set_burn(self.db.control.br10 / 10, ramp)
 
-                if ramp then self.ramp_target_br10 = self.db.control.br10 / 10 end
+                if ramp then self.ramp_target_br10 = self.db.control.br10 end
             end
         end
     end
@@ -407,8 +409,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@return boolean complete
     function public.a_ramp_complete()
         if self.plc_i ~= nil then
-            return (math.floor(self.plc_i.get_db().mek_status.burn_rate * 10) == self.ramp_target_br10) or (self.ramp_target_br10 == 0)
-        else return false end
+            local cur_rate = math.floor(self.plc_i.get_db().mek_status.burn_rate * 10)
+            return (cur_rate == self.ramp_target_br10) or (self.ramp_target_br10 == 0)
+        else return true end
     end
 
     -- perform an automatic SCRAM
@@ -428,6 +431,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil and not self.plc_s.open then
             self.plc_s = nil
             self.plc_i = nil
+            self.db.control.br10 = 0
             self.db.control.lim_br10 = 0
         end
 
@@ -435,6 +439,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         _unlink_disconnected_units(self.boilers)
         _unlink_disconnected_units(self.turbines)
         _unlink_disconnected_units(self.redstone)
+
+        -- update degraded state for auto control
+        self.db.control.degraded = (#self.boilers ~= num_boilers) or (#self.turbines ~= num_turbines) or (self.plc_i == nil)
 
         -- update deltas
         _dt__compute_all()
@@ -606,9 +613,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- get information required for automatic reactor control
     function public.get_control_inf() return self.db.control end
 
-    -- get unit state (currently only waste mode)
+    -- get unit state
     function public.get_state()
-        return { self.status_text[1], self.status_text[2], self.waste_mode }
+        return { self.status_text[1], self.status_text[2], self.waste_mode, self.db.control.ready, self.db.control.degraded }
     end
 
     -- get the reactor ID

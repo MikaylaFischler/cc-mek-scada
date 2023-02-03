@@ -49,26 +49,31 @@ local function init(monitor)
     local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
 
     local cnc_y_start = 3
+    local row_1_height = 0
 
     -- unit overviews
     if facility.num_units >= 1 then
         uo_1 = unit_overview(main, 2, 3, units[1])
-        cnc_y_start = cnc_y_start + uo_1.height() + 1
+        row_1_height = uo_1.height()
     end
 
     if facility.num_units >= 2 then
         uo_2 = unit_overview(main, 84, 3, units[2])
+        row_1_height = math.max(row_1_height, uo_2.height())
     end
+
+    cnc_y_start = cnc_y_start + row_1_height + 1
 
     if facility.num_units >= 3 then
         -- base offset 3, spacing 1, max height of units 1 and 2
-        local row_2_offset = 3 + 1 + math.max(uo_1.height(), uo_2.height())
+        local row_2_offset = cnc_y_start
 
         uo_3 = unit_overview(main, 2, row_2_offset, units[3])
-        cnc_y_start = cnc_y_start + uo_3.height() + 1
+        cnc_y_start = row_2_offset + uo_3.height() + 1
 
         if facility.num_units == 4 then
             uo_4 = unit_overview(main, 84, row_2_offset, units[4])
+            cnc_y_start = math.max(cnc_y_start, row_2_offset + uo_4.height() + 1)
         end
     end
 

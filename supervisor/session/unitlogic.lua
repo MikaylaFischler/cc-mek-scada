@@ -38,8 +38,16 @@ function logic.update_annunciator(self)
     -- check PLC status
     self.db.annunciator.PLCOnline = self.plc_i ~= nil
 
+    local plc_ready = self.db.annunciator.PLCOnline
+
     if self.db.annunciator.PLCOnline then
         local plc_db = self.plc_i.get_db()
+
+        -- update ready state
+        --  - can't be tripped
+        --  - must have received status at least once
+        --  - must have received struct at least once
+        plc_ready = (not plc_db.rps_tripped) and (plc_db.last_status_update > 0) and (plc_db.mek_struct.length > 0)
 
         -- update auto control limit
         if (self.db.control.lim_br10 == 0) or ((self.db.control.lim_br10 / 10) > plc_db.mek_struct.max_burn) then
@@ -106,6 +114,8 @@ function logic.update_annunciator(self)
     -- BOILERS --
     -------------
 
+    local boilers_ready = num_boilers == #self.boilers
+
     -- clear boiler online flags
     for i = 1, num_boilers do self.db.annunciator.BoilerOnline[i] = false end
 
@@ -118,6 +128,14 @@ function logic.update_annunciator(self)
         for i = 1, #self.boilers do
             local session = self.boilers[i] ---@type unit_session
             local boiler = session.get_db() ---@type boilerv_session_db
+
+            -- update ready state
+            --  - must be formed
+            --  - must have received build, state, and tanks at least once
+            boilers_ready = boilers_ready and boiler.formed and
+                            (boiler.build.last_update > 0) and
+                            (boiler.state.last_update > 0) and
+                            (boiler.tanks.last_update > 0)
 
             total_boil_rate = total_boil_rate + boiler.state.boil_rate
             boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
@@ -185,6 +203,8 @@ function logic.update_annunciator(self)
     -- TURBINES --
     --------------
 
+    local turbines_ready = num_turbines == #self.turbines
+
     -- clear turbine online flags
     for i = 1, num_turbines do self.db.annunciator.TurbineOnline[i] = false end
 
@@ -200,6 +220,14 @@ function logic.update_annunciator(self)
     for i = 1, #self.turbines do
         local session = self.turbines[i]    ---@type unit_session
         local turbine = session.get_db()    ---@type turbinev_session_db
+
+        -- update ready state
+        --  - must be formed
+        --  - must have received build, state, and tanks at least once
+        turbines_ready = turbines_ready and turbine.formed and
+                        (turbine.build.last_update > 0) and
+                        (turbine.state.last_update > 0) and
+                        (turbine.tanks.last_update > 0)
 
         total_flow_rate = total_flow_rate + turbine.state.flow_rate
         total_input_rate = total_input_rate + turbine.state.steam_input_rate
@@ -257,6 +285,9 @@ function logic.update_annunciator(self)
         local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
         self.db.annunciator.TurbineTrip[turbine.get_device_idx()] = has_steam and db.state.flow_rate == 0
     end
+
+    -- update auto control ready state for this unit
+    self.db.control.ready = plc_ready and boilers_ready and turbines_ready
 end
 
 -- update an alarm state given conditions

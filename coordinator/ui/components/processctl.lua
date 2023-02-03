@@ -30,6 +30,8 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 local cpair = core.graphics.cpair
 local border = core.graphics.border
 
+local period = core.flasher.PERIOD
+
 -- new process control view
 ---@param root graphics_element parent
 ---@param x integer top left x
@@ -47,6 +49,22 @@ local function new_view(root, x, y)
     local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
 
     facility.scram_ack = scram.on_response
+
+    local auto_act   = IndicatorLight{parent=main,y=5,label="Auto Active",colors=cpair(colors.green,colors.gray)}
+    local auto_ramp  = IndicatorLight{parent=main,label="Auto Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local auto_scram = IndicatorLight{parent=main,label="Auto SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+
+    facility.ps.subscribe("auto_active", auto_act.update)
+    facility.ps.subscribe("auto_ramping", auto_ramp.update)
+    facility.ps.subscribe("auto_scram", auto_scram.update)
+
+    main.line_break()
+
+    local _ = IndicatorLight{parent=main,label="Unit Off-line",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_1000_MS}
+    local _ = IndicatorLight{parent=main,label="Unit RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local _ = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local _ = IndicatorLight{parent=main,label="High Charge Level",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+
 
     ---------------------
     -- process control --
@@ -134,6 +152,9 @@ local function new_view(root, x, y)
     local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
     local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
 
+    facility.ps.subscribe("status_line_1", stat_line_1.set_value)
+    facility.ps.subscribe("status_line_2", stat_line_2.set_value)
+
     local auto_controls = Div{parent=proc,x=1,y=20,width=31,height=5,fg_bg=cpair(colors.gray,colors.white)}
 
     -- save the automatic process control configuration without starting
@@ -160,6 +181,36 @@ local function new_view(root, x, y)
     function facility.save_cfg_ack(ack)
         tcd.dispatch(0.2, function () save.on_response(ack) end)
     end
+
+    facility.ps.subscribe("auto_ready", function (ready)
+        if ready and (not facility.auto_active) then start.enable() else start.disable() end
+    end)
+
+    facility.ps.subscribe("auto_active", function (active)
+        if active then
+            b_target.disable()
+            c_target.disable()
+            g_target.disable()
+
+            mode.disable()
+            start.disable()
+
+            for i = 1, #rate_limits do
+                rate_limits[i].disable()
+            end
+        else
+            b_target.enable()
+            c_target.enable()
+            g_target.enable()
+
+            mode.enable()
+            if facility.auto_ready then start.enable() end
+
+            for i = 1, #rate_limits do
+                rate_limits[i].enable()
+            end
+        end
+    end)
 end
 
 return new_view

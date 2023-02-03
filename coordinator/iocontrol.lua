@@ -23,9 +23,11 @@ local io = {}
 function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
+        auto_ready = false,
         auto_active = false,
         auto_ramping = false,
         auto_scram = false,
+        ---@todo not currently used or set
         auto_scram_cause = "ok",                ---@type auto_scram_cause
 
         num_units = conf.num_units,             ---@type integer
@@ -271,19 +273,21 @@ function iocontrol.update_facility_status(status)
         local ctl_status = status[1]
 
         if type(ctl_status) == "table" then
-            fac.auto_active = ctl_status[1] > 0
-            fac.auto_ramping = ctl_status[2]
-            fac.auto_scram = ctl_status[3]
-            fac.status_line_1 = ctl_status[4]
-            fac.status_line_2 = ctl_status[5]
+            fac.auto_ready = ctl_status[1]
+            fac.auto_active = ctl_status[2] > 0
+            fac.auto_ramping = ctl_status[3]
+            fac.auto_scram = ctl_status[4]
+            fac.status_line_1 = ctl_status[5]
+            fac.status_line_2 = ctl_status[6]
 
+            fac.ps.publish("auto_ready", fac.auto_ready)
             fac.ps.publish("auto_active", fac.auto_active)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
             fac.ps.publish("auto_scram", fac.auto_scram)
             fac.ps.publish("status_line_1", fac.status_line_1)
             fac.ps.publish("status_line_2", fac.status_line_2)
 
-            local group_map = ctl_status[6]
+            local group_map = ctl_status[7]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
@@ -634,10 +638,12 @@ function iocontrol.update_unit_statuses(statuses)
             local unit_state = status[5]
 
             if type(unit_state) == "table" then
-                if #unit_state == 3 then
+                if #unit_state == 5 then
                     unit.reactor_ps.publish("U_StatusLine1", unit_state[1])
                     unit.reactor_ps.publish("U_StatusLine2", unit_state[2])
-                    unit.reactor_ps.publish("U_WasteMode",   unit_state[3])
+                    unit.reactor_ps.publish("U_WasteMode", unit_state[3])
+                    unit.reactor_ps.publish("U_AutoReady", unit_state[4])
+                    unit.reactor_ps.publish("U_AutoDegraded", unit_state[5])
                 else
                     log.debug(log_header .. "unit state length mismatch")
                 end

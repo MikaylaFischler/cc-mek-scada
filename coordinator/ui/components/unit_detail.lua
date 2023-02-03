@@ -474,17 +474,14 @@ local function init(parent, id)
 
     auto_div.line_break()
 
-    local a_act = IndicatorLight{parent=auto_div,label="Active",x=2,colors=cpair(colors.green,colors.gray)}
-    local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=cpair(colors.white,colors.gray)}
+    local a_rdy = IndicatorLight{parent=auto_div,label="Ready",x=2,colors=cpair(colors.green,colors.gray)}
+    local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_1000_MS}
 
+    r_ps.subscribe("U_AutoReady", a_rdy.update)
+
+    -- update standby indicator
     r_ps.subscribe("status", function (active)
-        if unit.annunciator.AutoControl then
-            a_act.update(active)
-            a_stb.update(not active)
-        else
-            a_act.update(false)
-            a_stb.update(false)
-        end
+        a_stb.update(unit.annunciator.AutoControl and (not active))
     end)
 
     -- enable and disable controls based on auto control state (start button is handled separately)
@@ -495,13 +492,11 @@ local function init(parent, id)
             burn_rate.disable()
             set_burn_btn.disable()
             set_grp_btn.disable()
-            a_act.update(unit.reactor_data.mek_status.status == true)
             a_stb.update(unit.reactor_data.mek_status.status == false)
         else
             burn_rate.enable()
             set_burn_btn.enable()
             set_grp_btn.enable()
-            a_act.update(false)
             a_stb.update(false)
         end
     end)
