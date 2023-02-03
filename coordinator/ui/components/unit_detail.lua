@@ -459,10 +459,11 @@ local function init(parent, id)
 
     local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
 
+    u_ps.subscribe("auto_group_id", group.set_value)
+
     auto_div.line_break()
 
     local function set_group() unit.set_group(group.get_value() - 1) end
-
     local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
 
     auto_div.line_break()

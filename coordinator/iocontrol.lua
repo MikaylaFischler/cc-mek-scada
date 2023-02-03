@@ -292,6 +292,7 @@ function iocontrol.update_facility_status(status)
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
                 for i = 1, #group_map do
+                    io.units[i].unit_ps.publish("auto_group_id", group_map[i] + 1)
                     io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
                 end
             end

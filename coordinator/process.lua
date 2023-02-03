@@ -70,11 +70,21 @@ function process.init(iocontrol, comms)
     local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
 
     if type(waste_mode) == "table" then
-        for id = 1, math.min(#waste_mode, self.io.facility.num_units) do
-            self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, waste_mode[id])
+        for id, mode in pairs(waste_mode) do
+            self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
         end
 
         log.info("PROCESS: loaded waste mode settings from coord.settings")
+    end
+
+    local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
+
+    if type(prio_groups) == "table" then
+        for id, group in pairs(prio_groups) do
+            self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, id, group)
+        end
+
+        log.info("PROCESS: loaded priority groups settings from coord.settings")
     end
 end
 
@@ -113,6 +123,9 @@ end
 ---@param id integer unit ID
 ---@param mode integer waste mode
 function process.set_waste(id, mode)
+    -- publish so that if it fails then it gets reset
+    self.io.units[id].unit_ps.publish("U_WasteMode", mode)
+
     self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
     log.debug(util.c("UNIT[", id, "]: SET WASTE = ", mode))
 
@@ -160,6 +173,20 @@ end
 function process.set_group(unit_id, group_id)
     self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, unit_id, group_id)
     log.debug(util.c("UNIT[", unit_id, "]: SET GROUP ", group_id))
+
+    local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
+
+    if type(prio_groups) ~= "table" then
+        prio_groups = {}
+    end
+
+    prio_groups[unit_id] = group_id
+
+    settings.set("PRIORITY_GROUPS", prio_groups)
+
+    if not settings.save("/coord.settings") then
+        log.error("process.set_group(): failed to save coordinator settings file")
+    end
 end
 
 --------------------------

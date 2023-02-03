@@ -268,7 +268,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                                 log.debug(log_header .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMANDS.SET_WASTE then
-                            if pkt.length == 3 then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
                                 unit.set_waste(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN unit command set waste missing option")
@@ -289,7 +289,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                                 log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMANDS.SET_GROUP then
-                            if pkt.length == 3 then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
                                 facility.set_group(unit.get_id(), pkt.data[3])
                                 _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
