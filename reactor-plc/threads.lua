@@ -578,8 +578,6 @@ function threads.thread__setpoint_control(smem)
         local last_update  = util.time()
         local running      = false
 
-        local last_sp_burn = 0.0
-
         -- do not use the actual elapsed time, it could spike
         -- we do not want to have big jumps as that is what we are trying to avoid in the first place
         local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
@@ -591,23 +589,23 @@ function threads.thread__setpoint_control(smem)
             -- get reactor, may have changed do to disconnect/reconnect
             local reactor = plc_dev.reactor
 
-            if plc_state.init_ok and not plc_state.no_reactor then
+            if plc_state.init_ok and (not plc_state.no_reactor) then
                 -- check if we should start ramping
-                if setpoints.burn_rate_en and setpoints.burn_rate ~= last_sp_burn then
-                    if rps.is_active() then
-                        if math.abs(setpoints.burn_rate - last_sp_burn) <= 5 then
-                            -- update without ramp if <= 5 mB/t change
-                            log.debug("setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
+                if setpoints.burn_rate_en then
+---@diagnostic disable-next-line: need-check-nil
+                    local cur_burn_rate = reactor.getBurnRate()
+
+                    if (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
+                        -- update without ramp if <= 2.5 mB/t change
+                        running = math.abs(setpoints.burn_rate - cur_burn_rate) > 2.5
+
+                        if running then
+                            log.debug("SPCTL: starting burn rate ramp from " .. cur_burn_rate .. " mB/t to " .. setpoints.burn_rate .. " mB/t")
+                        else
+                            log.debug("SPCTL: setting burn rate directly to " .. setpoints.burn_rate .. "mB/t")
 ---@diagnostic disable-next-line: need-check-nil
                             reactor.setBurnRate(setpoints.burn_rate)
-                        else
-                            log.debug("starting burn rate ramp from " .. last_sp_burn .. " mB/t to " .. setpoints.burn_rate .. " mB/t")
-                            running = true
                         end
-
-                        last_sp_burn = setpoints.burn_rate
-                    else
-                        last_sp_burn = 0.0
                     end
                 end
 
@@ -630,25 +628,19 @@ function threads.thread__setpoint_control(smem)
                                 if setpoints.burn_rate > current_burn_rate then
                                     -- need to ramp up
                                     new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                    if new_burn_rate > setpoints.burn_rate then
-                                        new_burn_rate = setpoints.burn_rate
-                                    end
+                                    if new_burn_rate > setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
                                 else
                                     -- need to ramp down
                                     new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                    if new_burn_rate < setpoints.burn_rate then
-                                        new_burn_rate = setpoints.burn_rate
-                                    end
+                                    if new_burn_rate < setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
                                 end
+
+                                running = running or (new_burn_rate ~= setpoints.burn_rate)
 
                                 -- set the burn rate
 ---@diagnostic disable-next-line: need-check-nil
                                 reactor.setBurnRate(new_burn_rate)
-
-                                running = running or (new_burn_rate ~= setpoints.burn_rate)
                             end
-                        else
-                            last_sp_burn = 0.0
                         end
                     end
                 end
