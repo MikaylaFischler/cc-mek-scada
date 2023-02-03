@@ -12,8 +12,6 @@ local Div               = require("graphics.elements.div")
 local Rectangle         = require("graphics.elements.rectangle")
 local TextBox           = require("graphics.elements.textbox")
 
-local AlarmLight        = require("graphics.elements.indicators.alight")
-local CoreMap           = require("graphics.elements.indicators.coremap")
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
@@ -131,12 +129,12 @@ local function new_view(root, x, y)
         rate_limits[i] = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
         TextBox{parent=lim_ctl,x=9,y=2,text="mB/t"}
 
-        unit.reactor_ps.subscribe("max_burn", rate_limits[i].set_max)
-        unit.reactor_ps.subscribe("burn_limit", rate_limits[i].set_value)
+        unit.unit_ps.subscribe("max_burn", rate_limits[i].set_max)
+        unit.unit_ps.subscribe("burn_limit", rate_limits[i].set_value)
 
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(colors.black,colors.black),width=14,fg_bg=cpair(colors.black,colors.brown)}
 
-        unit.reactor_ps.subscribe("act_burn_rate", cur_burn.update)
+        unit.unit_ps.subscribe("act_burn_rate", cur_burn.update)
     end
 
     -------------------------

@@ -61,7 +61,7 @@ function process.init(iocontrol, comms)
 
         for id = 1, math.min(#self.config.limits, self.io.facility.num_units) do
             local unit = self.io.units[id]   ---@type ioctl_unit
-            unit.reactor_ps.publish("burn_limit", self.config.limits[id])
+            unit.unit_ps.publish("burn_limit", self.config.limits[id])
         end
 
         log.info("PROCESS: loaded auto control settings from coord.settings")

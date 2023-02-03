@@ -43,13 +43,13 @@ local function make(parent, x, y, unit)
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}
 
     -- unit header message
-    TextBox{parent=root,text="Unit #" .. unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -------------
     -- REACTOR --
     -------------
 
-    reactor_view(root, 1, 3, unit.reactor_data, unit.reactor_ps)
+    reactor_view(root, 1, 3, unit.reactor_data, unit.unit_ps)
 
     if num_boilers > 0 then
         local coolant_pipes = {}

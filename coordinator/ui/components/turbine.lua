@@ -1,7 +1,8 @@
-local core           = require("graphics.core")
 local util           = require("scada-common.util")
 
 local style          = require("coordinator.ui.style")
+
+local core           = require("graphics.core")
 
 local Rectangle      = require("graphics.elements.rectangle")
 

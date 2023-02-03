@@ -1,6 +1,6 @@
-local core           = require("graphics.core")
-
 local style          = require("coordinator.ui.style")
+
+local core           = require("graphics.core")
 
 local Rectangle      = require("graphics.elements.rectangle")
 local TextBox        = require("graphics.elements.textbox")

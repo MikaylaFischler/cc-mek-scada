@@ -120,7 +120,7 @@ function iocontrol.init(conf, comms)
 
             annunciator = {},           ---@type annunciator
 
-            reactor_ps = psil.create(),
+            unit_ps = psil.create(),
             reactor_data = {},          ---@type reactor_db
 
             boiler_ps_tbl = {},
@@ -208,12 +208,12 @@ function iocontrol.record_unit_builds(builds)
         if type(build.reactor) == "table" then
             unit.reactor_data.mek_struct = build.reactor    ---@type mek_struct
             for key, val in pairs(unit.reactor_data.mek_struct) do
-                unit.reactor_ps.publish(key, val)
+                unit.unit_ps.publish(key, val)
             end
 
             if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
                 (type(unit.reactor_data.mek_struct.width) == "number")  and (unit.reactor_data.mek_struct.width ~= 0) then
-                unit.reactor_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
+                unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
             end
         end
 
@@ -292,7 +292,7 @@ function iocontrol.update_facility_status(status)
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
                 for i = 1, #group_map do
-                    io.units[i].reactor_ps.publish("auto_group", names[group_map[i] + 1])
+                    io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
                 end
             end
         else
@@ -402,7 +402,7 @@ function iocontrol.update_unit_statuses(statuses)
             end
 
             if #reactor_status == 0 then
-                unit.reactor_ps.publish("computed_status", 1)   -- disconnected
+                unit.unit_ps.publish("computed_status", 1)   -- disconnected
             elseif #reactor_status == 3 then
                 local mek_status = reactor_status[1]
                 local rps_status = reactor_status[2]
@@ -428,36 +428,36 @@ function iocontrol.update_unit_statuses(statuses)
                 end
 
                 if unit.reactor_data.mek_status.status then
-                    unit.reactor_ps.publish("computed_status", 5)       -- running
+                    unit.unit_ps.publish("computed_status", 5)       -- running
                 else
                     if unit.reactor_data.no_reactor then
-                        unit.reactor_ps.publish("computed_status", 3)   -- faulted
+                        unit.unit_ps.publish("computed_status", 3)   -- faulted
                     elseif not unit.reactor_data.formed then
-                        unit.reactor_ps.publish("computed_status", 2)   -- multiblock not formed
+                        unit.unit_ps.publish("computed_status", 2)   -- multiblock not formed
                     elseif unit.reactor_data.rps_status.force_dis then
-                        unit.reactor_ps.publish("computed_status", 7)   -- reactor force disabled
+                        unit.unit_ps.publish("computed_status", 7)   -- reactor force disabled
                     elseif unit.reactor_data.rps_tripped and unit.reactor_data.rps_trip_cause ~= "manual" then
-                        unit.reactor_ps.publish("computed_status", 6)   -- SCRAM
+                        unit.unit_ps.publish("computed_status", 6)   -- SCRAM
                     else
-                        unit.reactor_ps.publish("computed_status", 4)   -- disabled
+                        unit.unit_ps.publish("computed_status", 4)   -- disabled
                     end
                 end
 
                 for key, val in pairs(unit.reactor_data) do
                     if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                        unit.reactor_ps.publish(key, val)
+                        unit.unit_ps.publish(key, val)
                     end
                 end
 
                 if type(unit.reactor_data.rps_status) == "table" then
                     for key, val in pairs(unit.reactor_data.rps_status) do
-                        unit.reactor_ps.publish(key, val)
+                        unit.unit_ps.publish(key, val)
                     end
                 end
 
                 if type(unit.reactor_data.mek_status) == "table" then
                     for key, val in pairs(unit.reactor_data.mek_status) do
-                        unit.reactor_ps.publish(key, val)
+                        unit.unit_ps.publish(key, val)
                     end
                 end
             else
@@ -591,7 +591,7 @@ function iocontrol.update_unit_statuses(statuses)
                         unit.turbine_ps_tbl[id].publish(key, trips[id])
                     end
 
-                    unit.reactor_ps.publish("TurbineTrip", any)
+                    unit.unit_ps.publish("TurbineTrip", any)
                 elseif key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
                     -- split up array for all boilers
                     for id = 1, #val do
@@ -607,7 +607,7 @@ function iocontrol.update_unit_statuses(statuses)
                     log.error(log_header .. "unrecognized table found in annunciator list, this is a bug", true)
                 else
                     -- non-table fields
-                    unit.reactor_ps.publish(key, val)
+                    unit.unit_ps.publish(key, val)
                 end
             end
 
@@ -622,11 +622,11 @@ function iocontrol.update_unit_statuses(statuses)
                     unit.alarms[id] = state
 
                     if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
-                        unit.reactor_ps.publish("Alarm_" .. id, 2)
+                        unit.unit_ps.publish("Alarm_" .. id, 2)
                     elseif state == types.ALARM_STATE.RING_BACK then
-                        unit.reactor_ps.publish("Alarm_" .. id, 3)
+                        unit.unit_ps.publish("Alarm_" .. id, 3)
                     else
-                        unit.reactor_ps.publish("Alarm_" .. id, 1)
+                        unit.unit_ps.publish("Alarm_" .. id, 1)
                     end
                 end
             else
@@ -639,11 +639,11 @@ function iocontrol.update_unit_statuses(statuses)
 
             if type(unit_state) == "table" then
                 if #unit_state == 5 then
-                    unit.reactor_ps.publish("U_StatusLine1", unit_state[1])
-                    unit.reactor_ps.publish("U_StatusLine2", unit_state[2])
-                    unit.reactor_ps.publish("U_WasteMode", unit_state[3])
-                    unit.reactor_ps.publish("U_AutoReady", unit_state[4])
-                    unit.reactor_ps.publish("U_AutoDegraded", unit_state[5])
+                    unit.unit_ps.publish("U_StatusLine1", unit_state[1])
+                    unit.unit_ps.publish("U_StatusLine2", unit_state[2])
+                    unit.unit_ps.publish("U_WasteMode", unit_state[3])
+                    unit.unit_ps.publish("U_AutoReady", unit_state[4])
+                    unit.unit_ps.publish("U_AutoDegraded", unit_state[5])
                 else
                     log.debug(log_header .. "unit state length mismatch")
                 end
