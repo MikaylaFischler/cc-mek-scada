@@ -307,9 +307,9 @@ function iocontrol.update_facility_status(status)
         if type(rtu_statuses) == "table" then
             -- power statistics
             if type(rtu_statuses.power) == "table" then
-                fac.ps.publish("avg_charge", rtu_statuses.power[1])
-                fac.ps.publish("avg_inflow", rtu_statuses.power[2])
-                fac.ps.publish("avg_outflow", rtu_statuses.power[3])
+                fac.induction_ps_tbl[1].publish("avg_charge", rtu_statuses.power[1])
+                fac.induction_ps_tbl[1].publish("avg_inflow", rtu_statuses.power[2])
+                fac.induction_ps_tbl[1].publish("avg_outflow", rtu_statuses.power[3])
             else
                 log.debug(log_header .. "power statistics list not a table")
             end

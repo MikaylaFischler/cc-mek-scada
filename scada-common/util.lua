@@ -253,7 +253,7 @@ function util.mov_avg(length, default)
     function public.compute()
         local sum = 0
         for i = 1, length do sum = sum + data[i] end
-        return sum
+        return sum / length
     end
 
     public.reset(default)

@@ -65,9 +65,9 @@ function facility.new(num_reactors, cooling_conf)
         last_time = 0.0,
         -- statistics
         im_stat_init = false,
-        avg_charge = util.mov_avg(10, 0.0),
-        avg_inflow = util.mov_avg(10, 0.0),
-        avg_outflow = util.mov_avg(10, 0.0)
+        avg_charge = util.mov_avg(20, 0.0),
+        avg_inflow = util.mov_avg(20, 0.0),
+        avg_outflow = util.mov_avg(20, 0.0)
     }
 
     -- create units
@@ -185,14 +185,14 @@ function facility.new(num_reactors, cooling_conf)
 
             if (db.state.last_update > 0) and (db.tanks.last_update > 0) then
                 if self.im_stat_init then
-                    self.avg_charge.record(db.tanks.energy, db.tanks.last_update)
-                    self.avg_inflow.record(db.state.last_input, db.state.last_update)
-                    self.avg_outflow.record(db.state.last_output, db.state.last_update)
+                    self.avg_charge.record(util.joules_to_fe(db.tanks.energy), db.tanks.last_update)
+                    self.avg_inflow.record(util.joules_to_fe(db.state.last_input), db.state.last_update)
+                    self.avg_outflow.record(util.joules_to_fe(db.state.last_output), db.state.last_update)
                 else
                     self.im_stat_init = true
-                    self.avg_charge.reset(db.tanks.energy)
-                    self.avg_inflow.reset(db.state.last_input)
-                    self.avg_outflow.reset(db.state.last_output)
+                    self.avg_charge.reset(util.joules_to_fe(db.tanks.energy))
+                    self.avg_inflow.reset(util.joules_to_fe(db.state.last_input))
+                    self.avg_outflow.reset(util.joules_to_fe(db.state.last_output))
                 end
             end
         else
@@ -586,9 +586,9 @@ function facility.new(num_reactors, cooling_conf)
 
         -- power averages from induction matricies
         status.power = {
-            self.avg_charge,
-            self.avg_inflow,
-            self.avg_outflow
+            self.avg_charge.compute(),
+            self.avg_inflow.compute(),
+            self.avg_outflow.compute()
         }
 
         -- status of induction matricies (including tanks)
