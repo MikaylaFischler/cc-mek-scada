@@ -41,6 +41,7 @@ function facility.new(num_reactors, cooling_conf)
         induction = {},
         redstone = {},
         status_text = { "START UP", "initializing..." },
+        all_sys_ok = false,
         -- process control
         units_ready = false,
         mode = PROCESS.INACTIVE,
@@ -197,6 +198,11 @@ function facility.new(num_reactors, cooling_conf)
             end
         else
             self.im_stat_init = false
+        end
+
+        self.all_sys_ok = true
+        for i = 1, #self.units do
+            self.all_sys_ok = self.all_sys_ok and not self.units[i].get_control_inf().degraded
         end
 
         -------------------------
@@ -570,6 +576,7 @@ function facility.new(num_reactors, cooling_conf)
     -- get automatic process control status
     function public.get_control_status()
         return {
+            self.all_sys_ok,
             self.units_ready,
             self.mode,
             self.waiting_on_ramp,

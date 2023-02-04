@@ -68,7 +68,7 @@ function plc.rps_init(reactor, is_formed)
         formed = is_formed,
         force_disabled = false,
         tripped = false,
-        trip_cause = "" ---@type rps_trip_cause
+        trip_cause = "ok"   ---@type rps_trip_cause
     }
 
     ---@class rps
@@ -410,6 +410,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         scrammed = false,
         linked = false,
         resend_build = false,
+        auto_ack_token = 0,
         status_cache = nil,
         max_burn_rate = nil
     }
@@ -656,6 +657,7 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                 (not self.scrammed),            -- requested control state
                 no_reactor,                     -- no reactor peripheral connected
                 formed,                         -- reactor formed
+                self.auto_ack_token,            -- token to indicate auto command has been received before this status update
                 heating_rate,                   -- heating rate
                 mek_data                        -- mekanism status data
             }
@@ -808,10 +810,11 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPES.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate
-                        if (packet.length == 2) and (type(packet.data[1]) == "number") then
+                        if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
                             local ack = AUTO_ACK.FAIL
                             local burn_rate = math.floor(packet.data[1] * 10) / 10
                             local ramp = packet.data[2]
+                            self.auto_ack_token = packet.data[3]
 
                             -- if no known max burn rate, check again
                             if self.max_burn_rate == nil then

@@ -50,10 +50,21 @@ local function new_view(root, x, y)
 
     facility.scram_ack = scram.on_response
 
-    local auto_act   = IndicatorLight{parent=main,y=5,label="Auto Active",colors=cpair(colors.green,colors.gray)}
-    local auto_ramp  = IndicatorLight{parent=main,label="Auto Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local auto_scram = IndicatorLight{parent=main,label="Auto SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local all_ok = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
+    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
+    local rad_mon = IndicatorLight{parent=main,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
 
+    facility.ps.subscribe("all_sys_ok", all_ok.update)
+    facility.induction_ps_tbl[1].subscribe("computed_status", function (status) ind_mat.update(status > 1) end)
+
+    main.line_break()
+
+    local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=cpair(colors.green,colors.red)}
+    local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=cpair(colors.green,colors.gray)}
+    local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+
+    facility.ps.subscribe("auto_ready", auto_ready.update)
     facility.ps.subscribe("auto_active", auto_act.update)
     facility.ps.subscribe("auto_ramping", auto_ramp.update)
     facility.ps.subscribe("auto_scram", auto_scram.update)

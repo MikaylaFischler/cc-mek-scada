@@ -110,73 +110,40 @@ function log.dmesg(msg, tag, tag_color)
 
     local t_stamp = string.format("%12.2f", os.clock())
     local out = _log_sys.dmesg_out
-    local out_w, out_h = out.getSize()
 
-    local lines = { msg }
+    if out ~= nil then
+        local out_w, out_h = out.getSize()
 
-    -- wrap if needed
-    if string.len(msg) > out_w then
-        local remaining = true
-        local s_start = 1
-        local s_end = out_w
-        local i = 1
+        local lines = { msg }
 
-        lines = {}
+        -- wrap if needed
+        if string.len(msg) > out_w then
+            local remaining = true
+            local s_start = 1
+            local s_end = out_w
+            local i = 1
 
-        while remaining do
-            local line = string.sub(msg, s_start, s_end)
+            lines = {}
 
-            if line == "" then
-                remaining = false
-            else
-                lines[i] = line
+            while remaining do
+                local line = string.sub(msg, s_start, s_end)
 
-                s_start = s_end + 1
-                s_end = s_end + out_w
-                i = i + 1
+                if line == "" then
+                    remaining = false
+                else
+                    lines[i] = line
+
+                    s_start = s_end + 1
+                    s_end = s_end + out_w
+                    i = i + 1
+                end
             end
         end
-    end
 
-    -- start output with tag and time, assuming we have enough width for this to be on one line
-    local cur_x, cur_y = out.getCursorPos()
+        -- start output with tag and time, assuming we have enough width for this to be on one line
+        local cur_x, cur_y = out.getCursorPos()
 
-    if cur_x > 1 then
-        if cur_y == out_h then
-            out.scroll(1)
-            out.setCursorPos(1, cur_y)
-        else
-            out.setCursorPos(1, cur_y + 1)
-        end
-    end
-
-    -- colored time
-    local initial_color = out.getTextColor()
-    out.setTextColor(colors.white)
-    out.write("[")
-    out.setTextColor(colors.lightGray)
-    out.write(t_stamp)
-    ts_coord.x2, ts_coord.y = out.getCursorPos()
-    ts_coord.x2 = ts_coord.x2 - 1
-    out.setTextColor(colors.white)
-    out.write("] ")
-
-    -- print optionally colored tag
-    if tag ~= "" then
-        out.write("[")
-        if tag_color then out.setTextColor(tag_color) end
-        out.write(tag)
-        out.setTextColor(colors.white)
-        out.write("] ")
-    end
-
-    out.setTextColor(initial_color)
-
-    -- output message
-    for i = 1, #lines do
-        cur_x, cur_y = out.getCursorPos()
-
-        if i > 1 and cur_x > 1 then
+        if cur_x > 1 then
             if cur_y == out_h then
                 out.scroll(1)
                 out.setCursorPos(1, cur_y)
@@ -185,10 +152,46 @@ function log.dmesg(msg, tag, tag_color)
             end
         end
 
-        out.write(lines[i])
-    end
+        -- colored time
+        local initial_color = out.getTextColor()
+        out.setTextColor(colors.white)
+        out.write("[")
+        out.setTextColor(colors.lightGray)
+        out.write(t_stamp)
+        ts_coord.x2, ts_coord.y = out.getCursorPos()
+        ts_coord.x2 = ts_coord.x2 - 1
+        out.setTextColor(colors.white)
+        out.write("] ")
 
-    _log(util.c("[", t_stamp, "] [", tag, "] ", msg))
+        -- print optionally colored tag
+        if tag ~= "" then
+            out.write("[")
+            if tag_color then out.setTextColor(tag_color) end
+            out.write(tag)
+            out.setTextColor(colors.white)
+            out.write("] ")
+        end
+
+        out.setTextColor(initial_color)
+
+        -- output message
+        for i = 1, #lines do
+            cur_x, cur_y = out.getCursorPos()
+
+            if i > 1 and cur_x > 1 then
+                if cur_y == out_h then
+                    out.scroll(1)
+                    out.setCursorPos(1, cur_y)
+                else
+                    out.setCursorPos(1, cur_y + 1)
+                end
+            end
+
+            out.write(lines[i])
+        end
+
+        _log(util.c("[", t_stamp, "] [", tag, "] ", msg))
+    end
 
     return ts_coord
 end
@@ -204,52 +207,56 @@ function log.dmesg_working(msg, tag, tag_color)
     local out = _log_sys.dmesg_out
     local width = (ts_coord.x2 - ts_coord.x1) + 1
 
-    local initial_color = out.getTextColor()
+    if out ~= nil then
+        local initial_color = out.getTextColor()
 
-    local counter = 0
+        local counter = 0
 
-    local function update(sec_remaining)
-        local time = util.sprintf("%ds", sec_remaining)
-        local available = width - (string.len(time) + 2)
-        local progress = ""
+        local function update(sec_remaining)
+            local time = util.sprintf("%ds", sec_remaining)
+            local available = width - (string.len(time) + 2)
+            local progress = ""
 
-        out.setCursorPos(ts_coord.x1, ts_coord.y)
-        out.write(" ")
+            out.setCursorPos(ts_coord.x1, ts_coord.y)
+            out.write(" ")
 
-        if counter % 4 == 0 then
-            progress = "|"
-        elseif counter % 4 == 1 then
-            progress = "/"
-        elseif counter % 4 == 2 then
-            progress = "-"
-        elseif counter % 4 == 3 then
-            progress = "\\"
+            if counter % 4 == 0 then
+                progress = "|"
+            elseif counter % 4 == 1 then
+                progress = "/"
+            elseif counter % 4 == 2 then
+                progress = "-"
+            elseif counter % 4 == 3 then
+                progress = "\\"
+            end
+
+            out.setTextColor(colors.blue)
+            out.write(progress)
+            out.setTextColor(colors.lightGray)
+            out.write(util.spaces(available) .. time)
+            out.setTextColor(initial_color)
+
+            counter = counter + 1
         end
 
-        out.setTextColor(colors.blue)
-        out.write(progress)
-        out.setTextColor(colors.lightGray)
-        out.write(util.spaces(available) .. time)
-        out.setTextColor(initial_color)
+        local function done(ok)
+            out.setCursorPos(ts_coord.x1, ts_coord.y)
 
-        counter = counter + 1
-    end
+            if ok or ok == nil then
+                out.setTextColor(colors.green)
+                out.write(util.pad("DONE", width))
+            else
+                out.setTextColor(colors.red)
+                out.write(util.pad("FAIL", width))
+            end
 
-    local function done(ok)
-        out.setCursorPos(ts_coord.x1, ts_coord.y)
-
-        if ok or ok == nil then
-            out.setTextColor(colors.green)
-            out.write(util.pad("DONE", width))
-        else
-            out.setTextColor(colors.red)
-            out.write(util.pad("FAIL", width))
+            out.setTextColor(initial_color)
         end
 
-        out.setTextColor(initial_color)
+        return update, done
+    else
+        return function () end, function () end
     end
-
-    return update, done
 end
 
 -- log debug messages

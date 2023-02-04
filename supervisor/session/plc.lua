@@ -59,6 +59,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         out_q = out_queue,
         commanded_state = false,
         commanded_burn_rate = 0.0,
+        auto_cmd_token = 0,
         ramping_rate = false,
         auto_scram = false,
         auto_lock = false,
@@ -92,6 +93,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         -- session database
         ---@class reactor_db
         sDB = {
+            auto_ack_token = 0,
             last_status_update = 0,
             control_state = false,
             no_reactor = false,
@@ -305,18 +307,19 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
             -- handle packet by type
             if pkt.type == RPLC_TYPES.STATUS then
                 -- status packet received, update data
-                if pkt.length >= 4 then
+                if pkt.length >= 5 then
                     self.sDB.last_status_update = pkt.data[1]
                     self.sDB.control_state = pkt.data[2]
                     self.sDB.no_reactor = pkt.data[3]
                     self.sDB.formed = pkt.data[4]
+                    self.sDB.auto_ack_token = pkt.data[5]
 
                     if not self.sDB.no_reactor and self.sDB.formed then
-                        self.sDB.mek_status.heating_rate = pkt.data[5] or 0.0
+                        self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
 
                         -- attempt to read mek_data table
-                        if pkt.data[6] ~= nil then
-                            local status = pcall(_copy_status, pkt.data[6])
+                        if pkt.data[7] ~= nil then
+                            local status = pcall(_copy_status, pkt.data[7])
                             if status then
                                 -- copied in status data OK
                                 self.received_status_cache = true
@@ -496,6 +499,11 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     -- get the session database
     function public.get_db() return self.sDB end
 
+    -- check if ramping is completed by first verifying auto command token ack
+    function public.is_ramp_complete()
+        return (self.sDB.auto_ack_token == self.auto_cmd_token) and (self.commanded_burn_rate == self.sDB.mek_status.act_burn_rate)
+    end
+
     -- get the reactor structure
     function public.get_struct()
         if self.received_struct then
@@ -618,6 +626,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                                 cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
                                 if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                     self.commanded_burn_rate = cmd.val
+                                    self.auto_cmd_token = 0
                                     self.ramping_rate = false
                                     self.acks.burn_rate = false
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
@@ -630,6 +639,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                                 cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
                                 if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                     self.commanded_burn_rate = cmd.val
+                                    self.auto_cmd_token = 0
                                     self.ramping_rate = true
                                     self.acks.burn_rate = false
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
@@ -640,14 +650,15 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                             -- set automatic burn rate
                             if self.auto_lock then
                                 cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
-                                if cmd.val > 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                if cmd.val >= 0 and cmd.val <= self.sDB.mek_struct.max_burn then
+                                    self.auto_cmd_token = util.time_ms()
                                     self.commanded_burn_rate = cmd.val
 
                                     -- this is only for manual control, only retry auto ramps
                                     self.acks.burn_rate = not self.ramping_rate
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_AUTO_WAIT
 
-                                    _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                    _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
                                 end
                             end
                         else
@@ -717,10 +728,19 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
 
                 if not self.acks.burn_rate then
                     if rtimes.burn_rate_req - util.time() <= 0 then
-                        if self.auto_lock then
-                            _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
-                        else
+                        if self.auto_cmd_token > 0 then
+                            if self.auto_lock then
+                                _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
+                                log.debug("retried auto burn rate?")
+                            else
+                                -- would have been an auto command, but disengaged, so stop retrying
+                                self.acks.burn_rate = true
+                            end
+                        elseif not self.auto_lock then
                             _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                        else
+                            -- shouldn't be in this state, just pretend it was acknowledged
+                            self.acks.burn_rate = true
                         end
 
                         rtimes.burn_rate_req = util.time() + RETRY_PERIOD

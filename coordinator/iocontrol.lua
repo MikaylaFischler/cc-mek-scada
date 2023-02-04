@@ -23,6 +23,8 @@ local io = {}
 function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
+        all_sys_ok = false,
+
         auto_ready = false,
         auto_active = false,
         auto_ramping = false,
@@ -273,13 +275,15 @@ function iocontrol.update_facility_status(status)
         local ctl_status = status[1]
 
         if type(ctl_status) == "table" then
-            fac.auto_ready = ctl_status[1]
-            fac.auto_active = ctl_status[2] > 0
-            fac.auto_ramping = ctl_status[3]
-            fac.auto_scram = ctl_status[4]
-            fac.status_line_1 = ctl_status[5]
-            fac.status_line_2 = ctl_status[6]
+            fac.all_sys_ok = ctl_status[1]
+            fac.auto_ready = ctl_status[2]
+            fac.auto_active = ctl_status[3] > 0
+            fac.auto_ramping = ctl_status[4]
+            fac.auto_scram = ctl_status[5]
+            fac.status_line_1 = ctl_status[6]
+            fac.status_line_2 = ctl_status[7]
 
+            fac.ps.publish("all_sys_ok", fac.all_sys_ok)
             fac.ps.publish("auto_ready", fac.auto_ready)
             fac.ps.publish("auto_active", fac.auto_active)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
@@ -287,12 +291,13 @@ function iocontrol.update_facility_status(status)
             fac.ps.publish("status_line_1", fac.status_line_1)
             fac.ps.publish("status_line_2", fac.status_line_2)
 
-            local group_map = ctl_status[7]
+            local group_map = ctl_status[8]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
                 for i = 1, #group_map do
-                    io.units[i].unit_ps.publish("auto_group_id", group_map[i] + 1)
+                    io.units[i].a_group = group_map[i]
+                    io.units[i].unit_ps.publish("auto_group_id", group_map[i])
                     io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
                 end
             end

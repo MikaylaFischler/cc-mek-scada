@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.1.2"
+comms.version = "1.2.0"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -140,11 +140,11 @@ function comms.scada_packet()
     local self = {
         modem_msg_in = nil,
         valid = false,
-        raw = nil,
-        seq_num = nil,
-        protocol = nil,
-        length = nil,
-        payload = nil
+        raw = { -1, -1, {} },
+        seq_num = -1,
+        protocol = -1,
+        length = 0,
+        payload = {}
     }
 
     ---@class scada_packet

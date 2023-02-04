@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.9.11"
+local RTU_VERSION = "beta-v0.9.12"
 
 local rtu_t = types.rtu_t
 
@@ -361,6 +361,10 @@ local function main()
             rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
 
             table.insert(units, rtu_unit)
+
+            if not formed then
+                log.debug(util.c("configure> device '", name, "' is not formed"))
+            end
 
             local for_message = "facility"
             if for_reactor > 0 then

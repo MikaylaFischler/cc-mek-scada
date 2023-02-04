@@ -354,7 +354,7 @@ local function init(parent, id)
         if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
             local can_start = (not unit.reactor_data.mek_status.status) and
                                 (not unit.reactor_data.rps_tripped) and
-                                (not unit.annunciator.AutoControl)
+                                (unit.a_group == 0)
             if can_start then start.enable() else start.disable() end
         end
     end
@@ -459,7 +459,7 @@ local function init(parent, id)
 
     local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
 
-    u_ps.subscribe("auto_group_id", group.set_value)
+    u_ps.subscribe("auto_group_id", function (gid) group.set_value(gid + 1) end)
 
     auto_div.line_break()
 
@@ -485,18 +485,27 @@ local function init(parent, id)
         a_stb.update(unit.annunciator.AutoControl and (not active))
     end)
 
+    -- enable and disable controls based on group assignment
+    u_ps.subscribe("auto_group_id", function (gid)
+        start_button_en_check()
+
+        if gid == 0 then
+            burn_rate.enable()
+            set_burn_btn.enable()
+        else
+            burn_rate.disable()
+            set_burn_btn.disable()
+        end
+    end)
+
     -- enable and disable controls based on auto control state (start button is handled separately)
     u_ps.subscribe("AutoControl", function (auto_active)
         start_button_en_check()
 
         if auto_active then
-            burn_rate.disable()
-            set_burn_btn.disable()
             set_grp_btn.disable()
             a_stb.update(unit.reactor_data.mek_status.status == false)
         else
-            burn_rate.enable()
-            set_burn_btn.enable()
             set_grp_btn.enable()
             a_stb.update(false)
         end

@@ -14,7 +14,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.10.3"
+local R_PLC_VERSION = "beta-v0.10.4"
 
 local print = util.print
 local println = util.println
@@ -169,6 +169,7 @@ local function main()
                 log.debug("init> running without networking")
             end
 
+---@diagnostic disable-next-line: param-type-mismatch
             util.push_event("clock_start")
 
             println("boot> completed")

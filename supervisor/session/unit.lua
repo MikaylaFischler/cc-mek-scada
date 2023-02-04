@@ -409,8 +409,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@return boolean complete
     function public.a_ramp_complete()
         if self.plc_i ~= nil then
-            local cur_rate = math.floor(self.plc_i.get_db().mek_status.burn_rate * 10)
-            return (cur_rate == self.ramp_target_br10) or (self.ramp_target_br10 == 0)
+            return self.plc_i.is_ramp_complete()
         else return true end
     end
 
