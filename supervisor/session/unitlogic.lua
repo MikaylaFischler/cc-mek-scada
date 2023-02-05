@@ -54,11 +54,9 @@ function logic.update_annunciator(self)
             self.db.control.lim_br10 = math.floor(plc_db.mek_struct.max_burn * 10)
         end
 
-        -- record reactor start time (some alarms are delayed during reactor heatup)
-        if self.start_ms == 0 and plc_db.mek_status.status then
-            self.start_ms = util.time_ms()
-        elseif not plc_db.mek_status.status then
-            self.start_ms = 0
+        -- some alarms wait until the burn rate has stabilized, so keep track of that
+        if math.abs(_get_dt(DT_KEYS.ReactorBurnR)) > 0 then
+            self.last_rate_change_ms = util.time_ms()
         end
 
         -- record reactor stats
@@ -237,8 +235,8 @@ function logic.update_annunciator(self)
         self.db.annunciator.TurbineOnline[session.get_device_idx()] = true
     end
 
-    -- check for boil rate mismatch (either between reactor and turbine or boiler and turbine)
-    self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > 4
+    -- check for boil rate mismatch (> 4% error) either between reactor and turbine or boiler and turbine
+    self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
 
     -- check for steam feed mismatch and max return rate
     local sfmismatch = math.abs(total_flow_rate - total_input_rate) > 10
@@ -436,7 +434,7 @@ function logic.update_alarms(self)
     -- annunciator indicators for these states may not indicate a real issue when:
     --  > flow is ramping up right after reactor start
     --  > flow is ramping down after reactor shutdown
-    if (util.time_ms() - self.start_ms > self.defs.FLOW_STABILITY_DELAY_MS) and plc_cache.active then
+    if ((util.time_ms() - self.last_rate_change_ms) > self.defs.FLOW_STABILITY_DELAY_MS) and plc_cache.active then
         rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
     end
 
@@ -517,7 +515,7 @@ function logic.update_status_text(self)
                 self.status_text[2] = "insufficient fuel input rate"
             elseif self.db.annunciator.WasteLineOcclusion then
                 self.status_text[2] = "insufficient waste output rate"
-            elseif (util.time_ms() - self.start_ms) <= self.defs.FLOW_STABILITY_DELAY_MS then
+            elseif (util.time_ms() - self.last_rate_change_ms) <= self.defs.FLOW_STABILITY_DELAY_MS then
                 if self.num_turbines > 1 then
                     self.status_text[2] = "turbines spinning up"
                 else

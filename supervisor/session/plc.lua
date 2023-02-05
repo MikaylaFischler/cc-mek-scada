@@ -731,7 +731,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         if self.auto_cmd_token > 0 then
                             if self.auto_lock then
                                 _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
-                                log.debug("retried auto burn rate?")
                             else
                                 -- would have been an auto command, but disengaged, so stop retrying
                                 self.acks.burn_rate = true

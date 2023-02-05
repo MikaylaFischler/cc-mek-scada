@@ -524,7 +524,7 @@ function facility.new(num_reactors, cooling_conf)
                 ready = false
             elseif (self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_target <= 0) then
                 ready = false
-            elseif (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target <= 0.1) then
+            elseif (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1) then
                 ready = false
             end
 

@@ -26,6 +26,7 @@ local IO = rsio.IO
 local FLOW_STABILITY_DELAY_MS = 15000
 
 local DT_KEYS = {
+    ReactorBurnR = "RBR",
     ReactorTemp  = "RTP",
     ReactorFuel  = "RFL",
     ReactorWaste = "RWS",
@@ -86,7 +87,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
         had_reactor = false,
-        start_ms = 0,
+        last_rate_change_ms = 0,
         plc_cache = {
             active = false,
             ok = false,
@@ -245,6 +246,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
             local last_update_s = plc_db.last_status_update / 1000.0
 
+            _compute_dt(DT_KEYS.ReactorBurnR, plc_db.mek_status.act_burn_rate, last_update_s)
             _compute_dt(DT_KEYS.ReactorTemp, plc_db.mek_status.temp, last_update_s)
             _compute_dt(DT_KEYS.ReactorFuel, plc_db.mek_status.fuel, last_update_s)
             _compute_dt(DT_KEYS.ReactorWaste, plc_db.mek_status.waste, last_update_s)
@@ -409,7 +411,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@return boolean complete
     function public.a_ramp_complete()
         if self.plc_i ~= nil then
-            return self.plc_i.is_ramp_complete()
+            return self.plc_i.is_ramp_complete() or (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br10 == 0)
         else return true end
     end
 
