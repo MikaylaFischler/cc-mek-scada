@@ -77,20 +77,27 @@ local function init(monitor)
         end
     end
 
-    -- command & control
+    -- command & control    
 
-    TextBox{parent=main,y=cnc_y_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+    cnc_y_start = cnc_y_start
 
-    cnc_y_start = cnc_y_start + 2
+    -- induction matrix and process control interfaces are 24 tall + space needed for divider
+    local cnc_bottom_align_start = main.height() - 26
 
-    local process = process_ctl(main, 2, cnc_y_start)
+    assert(cnc_bottom_align_start >= cnc_y_start, "main display not of sufficient vertical resolution (add an additional row of monitors)")
+
+    TextBox{parent=main,y=cnc_bottom_align_start,text=util.strrep("\x8c", header.width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+
+    cnc_bottom_align_start = cnc_bottom_align_start + 2
+
+    local process = process_ctl(main, 2, cnc_bottom_align_start)
 
     -- testing
     ---@fixme remove test code
 
     -- ColorMap{parent=main,x=98,y=(main.height()-1)}
 
-    local audio = Div{parent=main,width=23,height=23,x=107,y=cnc_y_start}
+    local audio = Div{parent=main,width=23,height=23,x=107,y=cnc_bottom_align_start}
 
     PushButton{parent=audio,x=16,y=1,text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
     PushButton{parent=audio,x=16,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
@@ -116,7 +123,7 @@ local function init(monitor)
     SwitchButton{parent=audio,x=1,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
     SwitchButton{parent=audio,x=1,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
 
-    local imatrix_1 = imatrix(main, 131, cnc_y_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
+    local imatrix_1 = imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 
     return main
 end

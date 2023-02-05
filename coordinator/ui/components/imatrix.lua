@@ -29,7 +29,7 @@ local function new_view(root, x, y, data, ps, id)
     local title = "INDUCTION MATRIX"
     if type(id) == "number" then title = title .. id end
 
-    local matrix = Div{parent=root,fg_bg=style.root,width=33,height=25,x=x,y=y}
+    local matrix = Div{parent=root,fg_bg=style.root,width=33,height=24,x=x,y=y}
 
     TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
     TextBox{parent=matrix,text=title,alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.gray)}
