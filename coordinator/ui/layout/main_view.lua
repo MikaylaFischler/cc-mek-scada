@@ -88,7 +88,7 @@ local function init(monitor)
     -- testing
     ---@fixme remove test code
 
-    ColorMap{parent=main,x=98,y=(main.height()-1)}
+    -- ColorMap{parent=main,x=98,y=(main.height()-1)}
 
     local audio = Div{parent=main,width=23,height=23,x=107,y=cnc_y_start}
 

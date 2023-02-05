@@ -44,7 +44,7 @@ local function new_view(root, x, y)
     local hzd_fg_bg  = cpair(colors.white, colors.gray)
     local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local main = Div{parent=root,width=80,height=24,x=x,y=y}
+    local main = Div{parent=root,width=104,height=24,x=x,y=y}
 
     local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
 
@@ -81,7 +81,7 @@ local function new_view(root, x, y)
     -- process control --
     ---------------------
 
-    local proc = Div{parent=main,width=54,height=24,x=27,y=1}
+    local proc = Div{parent=main,width=78,height=24,x=27,y=1}
 
     -----------------------------
     -- process control targets --
@@ -126,7 +126,7 @@ local function new_view(root, x, y)
     -- unit limits --
     -----------------
 
-    local limit_div = Div{parent=proc,width=40,height=19,x=34,y=6}
+    local limit_div = Div{parent=proc,width=21,height=19,x=34,y=6}
 
     local rate_limits = {}
 
@@ -140,7 +140,7 @@ local function new_view(root, x, y)
 
         local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=cpair(colors.gray,colors.white)}
         rate_limits[i] = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
-        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t"}
+        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1}
 
         unit.unit_ps.subscribe("max_burn", rate_limits[i].set_max)
         unit.unit_ps.subscribe("burn_limit", rate_limits[i].set_value)
@@ -148,6 +148,28 @@ local function new_view(root, x, y)
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(colors.black,colors.black),width=14,fg_bg=cpair(colors.black,colors.brown)}
 
         unit.unit_ps.subscribe("act_burn_rate", cur_burn.update)
+    end
+
+    -------------------
+    -- unit statuses --
+    -------------------
+
+    local stat_div = Div{parent=proc,width=38,height=19,x=57,y=6}
+
+    for i = 1, facility.num_units do
+        local unit = units[i]   ---@type ioctl_unit
+
+        local _y = ((i - 1) * 5) + 1
+
+        local unit_tag = Div{parent=stat_div,x=1,y=_y,width=8,height=4,fg_bg=cpair(colors.black,colors.lightBlue)}
+        TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Status",width=7,height=2}
+
+        local lights   = Div{parent=stat_div,x=9,y=_y,width=12,height=4,fg_bg=bw_fg_bg}
+        local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(colors.green,colors.gray)}
+        local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+
+        unit.unit_ps.subscribe("U_AutoReady", ready.update)
+        unit.unit_ps.subscribe("U_AutoDegraded", degraded.update)
     end
 
     -------------------------
