@@ -191,13 +191,14 @@ function coordinator.log_comms_connecting(message)
 end
 
 -- coordinator communications
----@param version string
----@param modem table
----@param sv_port integer
----@param sv_listen integer
----@param api_listen integer
+---@param version string coordinator version
+---@param modem table modem device
+---@param sv_port integer port of configured supervisor
+---@param sv_listen integer listening port for supervisor replys
+---@param api_listen integer listening port for pocket API
+---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_watchdog)
+function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_seq_num = 0,
@@ -208,6 +209,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
     ---@class coord_comms
     local public = {}
+
+    comms.set_trusted_range(range)
 
     -- PRIVATE FUNCTIONS --
 
@@ -512,8 +515,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, sv_wa
 
                                     ---@class facility_conf
                                     local conf = {
-                                        num_units = config[1],
-                                        defs = {}   -- boilers and turbines
+                                        num_units = config[1],  ---@type integer
+                                        defs = {}               -- boilers and turbines
                                     }
 
                                     if (#config - 1) == (conf.num_units * 2) then

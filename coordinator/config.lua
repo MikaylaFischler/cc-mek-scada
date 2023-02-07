@@ -6,6 +6,8 @@ config.SCADA_SV_PORT = 16100
 config.SCADA_SV_LISTEN = 16101
 -- listen port for SCADA coordinator API access
 config.SCADA_API_LISTEN = 16200
+-- max trusted modem message distance (0 to disable check)
+config.TRUSTED_RANGE = 0
 
 -- expected number of reactor units, used only to require that number of unit monitors
 config.NUM_UNITS = 4

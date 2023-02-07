@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.9.13"
+local RTU_VERSION = "beta-v0.10.0"
 
 local rtu_t = types.rtu_t
 
@@ -42,6 +42,7 @@ local cfv = util.new_validator()
 
 cfv.assert_port(config.SERVER_PORT)
 cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 cfv.assert_type_table(config.RTU_DEVICES)
@@ -390,7 +391,8 @@ local function main()
         log.debug("boot> conn watchdog started")
 
         -- setup comms
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT, smem_sys.conn_watchdog)
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT,
+                                        config.TRUSTED_RANGE, smem_sys.conn_watchdog)
         log.debug("boot> comms init")
 
         -- init threads

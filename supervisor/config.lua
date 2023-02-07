@@ -4,6 +4,8 @@ local config = {}
 config.SCADA_DEV_LISTEN = 16000
 -- listen port for SCADA supervisor access by coordinators
 config.SCADA_SV_LISTEN = 16100
+-- max trusted modem message distance (0 to disable check)
+config.TRUSTED_RANGE = 0
 -- expected number of reactors
 config.NUM_REACTORS = 4
 -- expected number of boilers/turbines for each reactor

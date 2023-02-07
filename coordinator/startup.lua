@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.9.1"
+local COORDINATOR_VERSION = "beta-v0.9.2"
 
 local print = util.print
 local println = util.println
@@ -41,6 +41,7 @@ local cfv = util.new_validator()
 cfv.assert_port(config.SCADA_SV_PORT)
 cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
+cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_bool(config.RECOLOR)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
@@ -146,7 +147,8 @@ local function main()
     log.debug("boot> conn watchdog created")
 
     -- start comms, open all channels
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_LISTEN, config.SCADA_API_LISTEN, conn_watchdog)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_LISTEN,
+                                            config.SCADA_API_LISTEN, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("boot> comms init")
     log_comms("comms initialized")
 

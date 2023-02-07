@@ -8,6 +8,8 @@ config.REACTOR_ID = 1
 config.SERVER_PORT = 16000
 -- port to listen to incoming packets FROM server
 config.LISTEN_PORT = 14001
+-- max trusted modem message distance (0 to disable check)
+config.TRUSTED_RANGE = 0
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode

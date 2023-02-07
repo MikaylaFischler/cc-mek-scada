@@ -14,7 +14,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.10.5"
+local R_PLC_VERSION = "beta-v0.10.6"
 
 local print = util.print
 local println = util.println
@@ -31,6 +31,7 @@ cfv.assert_type_bool(config.NETWORKED)
 cfv.assert_type_int(config.REACTOR_ID)
 cfv.assert_port(config.SERVER_PORT)
 cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 assert(cfv.valid(), "bad config file: missing/invalid fields")
@@ -162,7 +163,7 @@ local function main()
 
                 -- start comms
                 smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT,
-                    smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+                                                config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
                 println("boot> starting in offline mode")

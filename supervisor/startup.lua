@@ -14,7 +14,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.9.14"
+local SUPERVISOR_VERSION = "beta-v0.10.0"
 
 local print = util.print
 local println = util.println
@@ -29,6 +29,7 @@ local cfv = util.new_validator()
 
 cfv.assert_port(config.SCADA_DEV_LISTEN)
 cfv.assert_port(config.SCADA_SV_LISTEN)
+cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_str(config.LOG_PATH)
@@ -81,7 +82,7 @@ local function main()
 
     -- start comms, open all channels
     local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem,
-                                            config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN)
+                                            config.SCADA_DEV_LISTEN, config.SCADA_SV_LISTEN, config.TRUSTED_RANGE)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15

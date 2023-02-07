@@ -404,15 +404,16 @@ function plc.rps_init(reactor, is_formed)
 end
 
 -- Reactor PLC Communications
----@param id integer
----@param version string
----@param modem table
----@param local_port integer
----@param server_port integer
----@param reactor table
----@param rps rps
----@param conn_watchdog watchdog
-function plc.comms(id, version, modem, local_port, server_port, reactor, rps, conn_watchdog)
+---@param id integer reactor ID
+---@param version string PLC version
+---@param modem table modem device
+---@param local_port integer local listening port
+---@param server_port integer remote server port
+---@param range integer trusted device connection range
+---@param reactor table reactor device
+---@param rps rps RPS reference
+---@param conn_watchdog watchdog watchdog reference
+function plc.comms(id, version, modem, local_port, server_port, range, reactor, rps, conn_watchdog)
     local self = {
         seq_num = 0,
         r_seq_num = nil,
@@ -428,6 +429,13 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
         max_burn_rate = nil
     }
 
+    ---@class plc_comms
+    local public = {}
+
+    comms.set_trusted_range(range)
+
+    -- PRIVATE FUNCTIONS --
+
     -- configure modem channels
     local function _conf_channels()
         self.modem.closeAll()
@@ -435,11 +443,6 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
     end
 
     _conf_channels()
-
-    ---@class plc_comms
-    local public = {}
-
-    -- PRIVATE FUNCTIONS --
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPES

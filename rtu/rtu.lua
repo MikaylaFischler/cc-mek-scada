@@ -160,12 +160,13 @@ function rtu.init_unit()
 end
 
 -- RTU Communications
----@param version string
----@param modem table
----@param local_port integer
----@param server_port integer
----@param conn_watchdog watchdog
-function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
+---@param version string RTU version
+---@param modem table modem device
+---@param local_port integer local listening port
+---@param server_port integer remote server port
+---@param range integer trusted device connection range
+---@param conn_watchdog watchdog watchdog reference
+function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog)
     local self = {
         version = version,
         seq_num = 0,
@@ -177,6 +178,15 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
         conn_watchdog = conn_watchdog
     }
 
+    ---@class rtu_comms
+    local public = {}
+
+    local insert = table.insert
+
+    comms.set_trusted_range(range)
+
+    -- PRIVATE FUNCTIONS --
+
     -- configure modem channels
     local function _conf_channels()
         self.modem.closeAll()
@@ -184,13 +194,6 @@ function rtu.comms(version, modem, local_port, server_port, conn_watchdog)
     end
 
     _conf_channels()
-
-    ---@class rtu_comms
-    local public = {}
-
-    local insert = table.insert
-
-    -- PRIVATE FUNCTIONS --
 
     -- send a scada management packet
     ---@param msg_type SCADA_MGMT_TYPES

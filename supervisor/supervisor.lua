@@ -9,9 +9,7 @@ local supervisor = {}
 local PROTOCOLS = comms.PROTOCOLS
 local DEVICE_TYPES = comms.DEVICE_TYPES
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local RPLC_TYPES = comms.RPLC_TYPES
 local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 
 local print = util.print
 local println = util.println
@@ -19,13 +17,14 @@ local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- supervisory controller communications
----@param version string
----@param num_reactors integer
----@param cooling_conf table
----@param modem table
----@param dev_listen integer
----@param coord_listen integer
-function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, coord_listen)
+---@param version string supervisor version
+---@param num_reactors integer number of reactors
+---@param cooling_conf table cooling configuration table
+---@param modem table modem device
+---@param dev_listen integer listening port for PLC/RTU devices
+---@param coord_listen integer listening port for coordinator
+---@param range integer trusted device connection range
+function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, coord_listen, range)
     local self = {
         version = version,
         num_reactors = num_reactors,
@@ -37,6 +36,8 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 
     ---@class superv_comms
     local public = {}
+
+    comms.set_trusted_range(range)
 
     -- PRIVATE FUNCTIONS --
 
@@ -205,12 +206,12 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 
                                     if plc_id == false then
                                         -- reactor already has a PLC assigned
-                                        log.debug(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
+                                        log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
                                         _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.COLLISION })
                                     else
                                         -- got an ID; assigned to a reactor successfully
-                                        println(util.c("reactor ", reactor_id, " PLC (", firmware_v, ") [:", r_port, "] \xbb connected"))
-                                        log.debug(util.c("PLC_ESTABLISH: link accepted for PLC (", firmware_v, ") [:", r_port, "] connected with session ID ", plc_id))
+                                        println(util.c("PLC (", firmware_v, ") [:", r_port, "] \xbb reactor ", reactor_id, " connected"))
+                                        log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [:", r_port, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id))
                                         _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
                                     end
                                 else
@@ -224,7 +225,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                     local s_id = svsessions.establish_rtu_session(l_port, r_port, rtu_advert, firmware_v)
 
                                     println(util.c("RTU (", firmware_v, ") [:", r_port, "] \xbb connected"))
-                                    log.debug(util.c("RTU_ESTABLISH: RTU (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
+                                    log.info(util.c("RTU_ESTABLISH: RTU (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
                                     _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
                                 else
                                     log.debug("RTU_ESTABLISH: packet length mismatch")
@@ -286,8 +287,8 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                     table.insert(config, cooling_conf[i].TURBINES)
                                 end
 
-                                println(util.c("coordinator (",firmware_v, ") [:", r_port, "] \xbb connected"))
-                                log.debug(util.c("CRDN_ESTABLISH: coordinator (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
+                                println(util.c("CRD (",firmware_v, ") [:", r_port, "] \xbb connected"))
+                                log.info(util.c("CRDN_ESTABLISH: coordinator (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
                                 _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW, config })
                             else
                                 log.debug("CRDN_ESTABLISH: denied new coordinator due to already being connected to another coordinator")

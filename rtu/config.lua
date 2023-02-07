@@ -6,13 +6,15 @@ local config = {}
 config.SERVER_PORT = 16000
 -- port to listen to incoming packets FROM server
 config.LISTEN_PORT = 15001
+-- max trusted modem message distance (0 to disable check)
+config.TRUSTED_RANGE = 0
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode
 --  0 = APPEND (adds to existing file on start)
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
--- RTU peripheral devices (name: side/network device name)
+-- RTU peripheral devices (named: side/network device name)
 config.RTU_DEVICES = {
     {
         name = "boilerValve_0",
@@ -33,17 +35,22 @@ config.RTU_REDSTONE = {
     --         {
     --             port = rsio.IO.WASTE_PO,
     --             side = "top",
-    --             bundled_color = colors.blue
+    --             bundled_color = colors.red
     --         },
     --         {
     --             port = rsio.IO.WASTE_PU,
     --             side = "top",
-    --             bundled_color = colors.cyan
+    --             bundled_color = colors.orange
+    --         },
+    --         {
+    --             port = rsio.IO.WASTE_POPL,
+    --             side = "top",
+    --             bundled_color = colors.yellow
     --         },
     --         {
     --             port = rsio.IO.WASTE_AM,
     --             side = "top",
-    --             bundled_color = colors.purple
+    --             bundled_color = colors.lime
     --         }
     --     }
     -- }

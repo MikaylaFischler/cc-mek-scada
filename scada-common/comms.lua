@@ -12,6 +12,8 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
+local max_distance = nil
+
 comms.version = "1.3.0"
 
 ---@alias PROTOCOLS integer
@@ -136,6 +138,17 @@ comms.FAC_COMMANDS = FAC_COMMANDS
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
 
+-- configure the maximum allowable message receive distance <br/>
+-- packets received with distances greater than this will be silently discarded
+---@param distance integer max modem message distance (less than 1 disables the limit)
+function comms.set_trusted_range(distance)
+    if distance < 1 then
+        max_distance = nil
+    else
+        max_distance = distance
+    end
+end
+
 -- generic SCADA packet object
 function comms.scada_packet()
     local self = {
@@ -181,6 +194,10 @@ function comms.scada_packet()
 
         self.raw = self.modem_msg_in.msg
 
+        if (type(max_distance) == "number") and (distance > max_distance) then
+            -- outside of maximum allowable transmission distance
+            -- log.debug("comms.scada_packet.receive(): discarding packet with distance " .. distance .. " outside of trusted range")
+        else
         if type(self.raw) == "table" then
             if #self.raw >= 3 then
                 self.seq_num = self.raw[1]
@@ -196,6 +213,7 @@ function comms.scada_packet()
             self.valid = type(self.seq_num) == "number" and
                          type(self.protocol) == "number" and
                          type(self.payload) == "table"
+            end
         end
 
         return self.valid
