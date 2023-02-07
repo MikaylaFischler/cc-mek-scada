@@ -266,6 +266,7 @@ function threads.thread__main(smem, init)
             -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
             if not plc_state.shutdown then
                 log.info("main thread restarting now...")
+---@diagnostic disable-next-line: param-type-mismatch
                 util.push_event("clock_start")
             end
         end

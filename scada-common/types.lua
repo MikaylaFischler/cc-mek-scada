@@ -37,6 +37,8 @@ types.TRI_FAIL = {
 
 ---@alias PROCESS integer
 types.PROCESS = {
+    UNIT_ALARM_IDLE = -2,
+    MATRIX_FAULT_IDLE = -1,
     INACTIVE = 0,
     SIMPLE = 1,
     BURN_RATE = 2,
@@ -172,9 +174,6 @@ types.ALARM_STATE = {
 ---| "automatic"
 ---| "sys_fail"
 ---| "force_disabled"
-
----@alias auto_scram_cause
----| "ok"
 
 ---@alias rtu_t string
 types.rtu_t = {

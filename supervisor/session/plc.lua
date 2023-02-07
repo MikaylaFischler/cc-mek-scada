@@ -28,7 +28,8 @@ local PLC_S_CMDS = {
     SCRAM = 1,
     ASCRAM = 2,
     ENABLE = 3,
-    RPS_RESET = 4
+    RPS_RESET = 4,
+    RPS_AUTO_RESET = 5
 }
 
 local PLC_S_DATA = {
@@ -445,18 +446,29 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                     cmd = UNIT_COMMANDS.RESET_RPS,
                     ack = ack
                 })
+            elseif pkt.type == RPLC_TYPES.RPS_AUTO_RESET then
+                -- RPS auto control reset acknowledgement
+                local ack = _get_ack(pkt)
+                if ack then
+                    self.auto_scram = false
+                else
+                    log.debug(log_header .. "RPS auto reset failed")
+                end
             elseif pkt.type == RPLC_TYPES.AUTO_BURN_RATE then
                 if pkt.length == 1 then
                     local ack = pkt.data[1]
 
-                    self.acks.burn_rate = ack ~= PLC_AUTO_ACK.FAIL
-
-                    ---@todo implement error handling here
                     if ack == PLC_AUTO_ACK.FAIL then
-                    elseif ack == PLC_AUTO_ACK.DIRECT_SET_OK then
-                    elseif ack == PLC_AUTO_ACK.RAMP_SET_OK then
-                    elseif ack == PLC_AUTO_ACK.ZERO_DIS_OK then
+                        self.acks.burn_rate = false
+                        log.debug(log_header .. "RPLC automatic burn rate set fail")
+                    elseif ack == PLC_AUTO_ACK.DIRECT_SET_OK or ack == PLC_AUTO_ACK.RAMP_SET_OK or ack == PLC_AUTO_ACK.ZERO_DIS_OK then
+                        self.acks.burn_rate = true
                     elseif ack == PLC_AUTO_ACK.ZERO_DIS_WAIT then
+                        self.acks.burn_rate = false
+                        log.debug(log_header .. "RPLC automatic burn rate too soon to disable at 0 mB/t")
+                    else
+                        self.acks.burn_rate = false
+                        log.debug(log_header .. "RPLC automatic burn rate ack unknown")
                     end
                 else
                     log.debug(log_header .. "RPLC automatic burn rate ack packet length mismatch")
@@ -614,6 +626,10 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                             self.acks.rps_reset = false
                             self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_RESET, {})
+                        elseif cmd == PLC_S_CMDS.RPS_AUTO_RESET then
+                            if self.auto_scram or self.sDB.rps_status.timeout then
+                                _send(RPLC_TYPES.RPS_AUTO_RESET, {})
+                            end
                         else
                             log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
                         end

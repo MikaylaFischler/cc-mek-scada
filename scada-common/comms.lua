@@ -12,7 +12,7 @@ local rtu_t = types.rtu_t
 
 local insert = table.insert
 
-comms.version = "1.2.0"
+comms.version = "1.3.0"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -34,7 +34,8 @@ local RPLC_TYPES = {
     RPS_STATUS = 6,     -- RPS status
     RPS_ALARM = 7,      -- RPS alarm broadcast
     RPS_RESET = 8,      -- clear RPS trip (if in bad state, will trip immediately)
-    AUTO_BURN_RATE = 9  -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
+    RPS_AUTO_RESET = 9, -- clear RPS trip if it is just a timeout or auto scram
+    AUTO_BURN_RATE = 10 -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
 ---@alias SCADA_MGMT_TYPES integer
@@ -223,12 +224,12 @@ end
 function comms.modbus_packet()
     local self = {
         frame = nil,
-        raw = nil,
-        txn_id = nil,
-        length = nil,
-        unit_id = nil,
-        func_code = nil,
-        data = nil
+        raw = {},
+        txn_id = -1,
+        length = 0,
+        unit_id = -1,
+        func_code = 0,
+        data = {}
     }
 
     ---@class modbus_packet
@@ -312,11 +313,11 @@ end
 function comms.rplc_packet()
     local self = {
         frame = nil,
-        raw = nil,
-        id = nil,
-        type = nil,
-        length = nil,
-        body = nil
+        raw = {},
+        id = 0,
+        type = -1,
+        length = 0,
+        data = {}
     }
 
     ---@class rplc_packet
@@ -333,6 +334,7 @@ function comms.rplc_packet()
                 self.type == RPLC_TYPES.RPS_STATUS or
                 self.type == RPLC_TYPES.RPS_ALARM or
                 self.type == RPLC_TYPES.RPS_RESET or
+                self.type == RPLC_TYPES.RPS_AUTO_RESET or
                 self.type == RPLC_TYPES.AUTO_BURN_RATE
     end
 
@@ -411,10 +413,10 @@ end
 function comms.mgmt_packet()
     local self = {
         frame = nil,
-        raw = nil,
-        type = nil,
-        length = nil,
-        data = nil
+        raw = {},
+        type = -1,
+        length = 0,
+        data = {}
     }
 
     ---@class mgmt_packet
@@ -500,10 +502,10 @@ end
 function comms.crdn_packet()
     local self = {
         frame = nil,
-        raw = nil,
-        type = nil,
-        length = nil,
-        data = nil
+        raw = {},
+        type = -1,
+        length = 0,
+        data = {}
     }
 
     ---@class crdn_packet
@@ -590,10 +592,10 @@ end
 function comms.capi_packet()
     local self = {
         frame = nil,
-        raw = nil,
-        type = nil,
-        length = nil,
-        data = nil
+        raw = {},
+        type = -1,
+        length = 0,
+        data = {}
     }
 
     ---@class capi_packet

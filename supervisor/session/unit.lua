@@ -375,55 +375,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     --#endregion
 
-    -- AUTO CONTROL --
-    --#region
-
-    -- engage automatic control
-    function public.a_engage()
-        self.db.annunciator.AutoControl = true
-        if self.plc_i ~= nil then
-            self.plc_i.auto_lock(true)
-        end
-    end
-
-    -- disengage automatic control
-    function public.a_disengage()
-        self.db.annunciator.AutoControl = false
-        if self.plc_i ~= nil then
-            self.plc_i.auto_lock(false)
-            self.db.control.br10 = 0
-        end
-    end
-
-    -- set the automatic burn rate based on the last set br10
-    ---@param ramp boolean true to ramp to rate, false to set right away
-    function public.a_commit_br10(ramp)
-        if self.db.annunciator.AutoControl then
-            if self.plc_i ~= nil then
-                self.plc_i.auto_set_burn(self.db.control.br10 / 10, ramp)
-
-                if ramp then self.ramp_target_br10 = self.db.control.br10 end
-            end
-        end
-    end
-
-    -- check if ramping is complete (burn rate is same as target)
-    ---@return boolean complete
-    function public.a_ramp_complete()
-        if self.plc_i ~= nil then
-            return self.plc_i.is_ramp_complete() or (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br10 == 0)
-        else return true end
-    end
-
-    -- perform an automatic SCRAM
-    function public.a_scram()
-        if self.plc_s ~= nil then
-            self.plc_s.in_queue.push_command(PLC_S_CMDS.ASCRAM)
-        end
-    end
-
-    --#endregion
-
     -- UPDATE SESSION --
 
     -- update (iterate) this unit
@@ -444,6 +395,32 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- update degraded state for auto control
         self.db.control.degraded = (#self.boilers ~= num_boilers) or (#self.turbines ~= num_turbines) or (self.plc_i == nil)
 
+        -- check boilers formed/faulted
+        for i = 1, #self.boilers do
+            local sess = self.boilers[i]    ---@type unit_session
+            local boiler = sess.get_db()    ---@type boilerv_session_db
+            if sess.is_faulted() or not boiler.formed then
+                self.db.control.degraded = true
+            end
+        end
+
+        -- check turbines formed/faulted
+        for i = 1, #self.turbines do
+            local sess = self.turbines[i]   ---@type unit_session
+            local turbine = sess.get_db()   ---@type turbinev_session_db
+            if sess.is_faulted() or not turbine.formed then
+                self.db.control.degraded = true
+            end
+        end
+
+        -- check plc formed/faulted
+        if self.plc_i ~= nil then
+            local rps = self.plc_i.get_rps()
+            if rps.fault or rps.sys_fail then
+                self.db.control.degraded = true
+            end
+        end
+
         -- update deltas
         _dt__compute_all()
 
@@ -457,7 +434,82 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         logic.update_status_text(self)
     end
 
+    -- AUTO CONTROL OPERATIONS --
+    --#region
+
+    -- engage automatic control
+    function public.a_engage()
+        self.db.annunciator.AutoControl = true
+        if self.plc_i ~= nil then
+            self.plc_i.auto_lock(true)
+        end
+    end
+
+    -- disengage automatic control
+    function public.a_disengage()
+        self.db.annunciator.AutoControl = false
+        if self.plc_i ~= nil then
+            self.plc_i.auto_lock(false)
+            self.db.control.br10 = 0
+        end
+    end
+
+    -- get the actual limit of this unit
+    --
+    -- if it is degraded or not ready, the limit will be 0
+    ---@return integer lim_br10
+    function public.a_get_effective_limit()
+        if not self.db.control.ready or self.db.control.degraded or self.plc_cache.rps_trip then
+            self.db.control.br10 = 0
+            return 0
+        else
+            return self.db.control.lim_br10
+        end
+    end
+
+    -- set the automatic burn rate based on the last set br10
+    ---@param ramp boolean true to ramp to rate, false to set right away
+    function public.a_commit_br10(ramp)
+        if self.db.annunciator.AutoControl then
+            if self.plc_i ~= nil then
+                self.plc_i.auto_set_burn(self.db.control.br10 / 10, ramp)
+
+                if ramp then self.ramp_target_br10 = self.db.control.br10 end
+            end
+        end
+    end
+
+    -- check if ramping is complete (burn rate is same as target)
+    ---@return boolean complete
+    function public.a_ramp_complete()
+        if self.plc_i ~= nil then
+            return self.plc_i.is_ramp_complete() or
+                (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br10 == 0) or
+                public.a_get_effective_limit() == 0
+        else return true end
+    end
+
+    -- perform an automatic SCRAM
+    function public.a_scram()
+        if self.plc_s ~= nil then
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.ASCRAM)
+        end
+    end
+
+    -- queue a command to clear timeout/auto-scram if set
+    function public.a_cond_rps_reset()
+        if self.plc_s ~= nil and self.plc_i ~= nil then
+            local rps = self.plc_i.get_rps()
+            if rps.timeout or rps.automatic then
+                self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_AUTO_RESET)
+            end
+        end
+    end
+
+    --#endregion
+
     -- OPERATIONS --
+    --#region
 
     -- queue a command to SCRAM the reactor
     function public.scram()
@@ -537,7 +589,21 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
+    --#endregion
+
     -- READ STATES/PROPERTIES --
+    --#region
+
+    -- check if a critical alarm is tripped
+    function public.has_critical_alarm()
+        for _, data in pairs(self.alarms) do
+            if data.tier == PRIO.CRITICAL and (data.state == AISTATE.TRIPPED or data.state == AISTATE.ACKED) then
+                return true
+            end
+        end
+
+        return false
+    end
 
     -- get build properties of all machines
     function public.get_build()
@@ -621,6 +687,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- get the reactor ID
     function public.get_id() return self.r_id end
+
+    --#endregion
 
     return public
 end

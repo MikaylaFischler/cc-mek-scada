@@ -387,6 +387,19 @@ function plc.rps_init(reactor, is_formed)
         if not quiet then log.info("RPS: reset") end
     end
 
+    -- reset the automatic and timeout trip flags, then clear trip if that was the trip cause
+    function public.auto_reset()
+        self.state[state_keys.automatic] = false
+        self.state[state_keys.timeout] = false
+
+        if self.trip_cause == rps_status_t.automatic or self.trip_cause == rps_status_t.timeout then
+            self.trip_cause = rps_status_t.ok
+            self.tripped = false
+        end
+
+        log.info("RPS: auto reset")
+    end
+
     return public
 end
 
@@ -807,6 +820,10 @@ function plc.comms(id, version, modem, local_port, server_port, reactor, rps, co
                     elseif packet.type == RPLC_TYPES.RPS_RESET then
                         -- reset the RPS status
                         rps.reset()
+                        _send_ack(packet.type, true)
+                    elseif packet.type == RPLC_TYPES.RPS_AUTO_RESET then
+                        -- reset automatic SCRAM and timeout trips
+                        rps.auto_reset()
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPES.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate

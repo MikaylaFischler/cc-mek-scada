@@ -12,13 +12,14 @@ local PROCESS = types.PROCESS
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
 local POWER_PER_BLADE = util.joules_to_fe(7140)
 
-local MAX_CHARGE = 0.99
+local HIGH_CHARGE = 1.0
 local RE_ENABLE_CHARGE = 0.95
 
 local AUTO_SCRAM = {
     NONE = 0,
     MATRIX_DC = 1,
-    MATRIX_FILL = 2
+    MATRIX_FILL = 2,
+    CRIT_ALARM = 3
 }
 
 local charge_Kp = 1.0
@@ -46,6 +47,7 @@ function facility.new(num_reactors, cooling_conf)
         units_ready = false,
         mode = PROCESS.INACTIVE,
         last_mode = PROCESS.INACTIVE,
+        return_mode = PROCESS.INACTIVE,
         mode_set = PROCESS.SIMPLE,
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
@@ -53,6 +55,7 @@ function facility.new(num_reactors, cooling_conf)
         gen_rate_target = 0,            -- FE/t charge rate target
         group_map = { 0, 0, 0, 0 },     -- units -> group IDs
         prio_defs = { {}, {}, {}, {} }, -- priority definitions (each level is a table of units)
+        at_max_burn = false,
         ascram = false,
         ascram_reason = AUTO_SCRAM.NONE,
         -- closed loop control
@@ -102,6 +105,7 @@ function facility.new(num_reactors, cooling_conf)
     -- split a burn rate among the reactors
     ---@param burn_rate number burn rate assignment
     ---@param ramp boolean true to ramp, false to set right away
+    ---@return integer unallocated
     local function _allocate_burn_rate(burn_rate, ramp)
         local unallocated = math.floor(burn_rate * 10)
 
@@ -117,32 +121,38 @@ function facility.new(num_reactors, cooling_conf)
                 splits[#units] = splits[#units] + (unallocated % #units)
 
                 -- go through all reactor units in this group
-                for u = 1, #units do
-                    local ctl = units[u].get_control_inf()  ---@type unit_control
+                for id = 1, #units do
+                    local u = units[id] ---@type reactor_unit
+
+                    local ctl = u.get_control_inf()
+                    local lim_br10 = u.a_get_effective_limit()
+
                     local last = ctl.br10
 
-                    if splits[u] <= ctl.lim_br10 then
-                        ctl.br10 = splits[u]
+                    if splits[id] <= lim_br10 then
+                        ctl.br10 = splits[id]
                     else
-                        ctl.br10 = ctl.lim_br10
+                        ctl.br10 = lim_br10
 
-                        if u < #units then
-                            local remaining = #units - u
+                        if id < #units then
+                            local remaining = #units - id
                             split = math.floor(unallocated / remaining)
-                            for x = (u + 1), #units do splits[x] = split end
+                            for x = (id + 1), #units do splits[x] = split end
                             splits[#units] = splits[#units] + (unallocated % remaining)
                         end
                     end
 
-                    unallocated = unallocated - ctl.br10
+                    unallocated = math.max(0, unallocated - ctl.br10)
 
-                    if last ~= ctl.br10 then units[u].a_commit_br10(ramp) end
+                    if last ~= ctl.br10 then
+                        log.debug("unit " .. id .. ": set to " .. ctl.br10 .. " (was " .. last .. ")")
+                        u.a_commit_br10(ramp)
+                    end
                 end
             end
-
-            -- stop if fully allocated
-            if unallocated <= 0 then break end
         end
+
+        return unallocated
     end
 
     -- PUBLIC FUNCTIONS --
@@ -215,10 +225,18 @@ function facility.new(num_reactors, cooling_conf)
         local now = util.time_s()
 
         local state_changed = self.mode ~= self.last_mode
+        local next_mode = self.mode
 
         -- once auto control is started, sort the priority sublists by limits
         if state_changed then
+            self.saturated = false
+
+            log.debug("FAC: state changed from " .. self.last_mode .. " to " .. self.mode)
+
             if self.last_mode == PROCESS.INACTIVE then
+                ---@todo change this to be a reset button
+                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.ascram = false end
+
                 local blade_count = 0
                 self.max_burn_combined = 0.0
 
@@ -259,27 +277,31 @@ function facility.new(num_reactors, cooling_conf)
             self.initial_ramp = false
         end
 
-        if self.mode == PROCESS.INACTIVE then
-            -- check if we are ready to start when that time comes
-            self.units_ready = true
-            for i = 1, #self.prio_defs do
-                for _, u in pairs(self.prio_defs[i]) do
-                    self.units_ready = self.units_ready and u.get_control_inf().ready
-                end
+        -- update unit ready state
+        self.units_ready = true
+        for i = 1, #self.prio_defs do
+            for _, u in pairs(self.prio_defs[i]) do
+                self.units_ready = self.units_ready and u.get_control_inf().ready
             end
+        end
 
+        -- perform mode-specific operations
+        if self.mode == PROCESS.INACTIVE then
             if self.units_ready then
                 self.status_text = { "IDLE", "control disengaged" }
             else
                 self.status_text = { "NOT READY", "assigned units not ready" }
             end
         elseif self.mode == PROCESS.SIMPLE then
-            -- run units at their last configured set point
+            -- run units at their limits
             if state_changed then
                 self.time_start = now
-                ---@todo will still need to ramp?
+                self.saturated = true
+                self.status_text = { "MONITORED MODE", "running reactors at limit" }
                 log.debug(util.c("FAC: SIMPLE mode first call completed"))
             end
+
+            _allocate_burn_rate(self.max_burn_combined, true)
         elseif self.mode == PROCESS.BURN_RATE then
             -- a total aggregate burn rate
             if state_changed then
@@ -294,7 +316,8 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             if not self.waiting_on_ramp then
-                _allocate_burn_rate(self.burn_target, self.initial_ramp)
+                local unallocated = _allocate_burn_rate(self.burn_target, true)
+                self.saturated = self.burn_target == self.max_burn_combined or unallocated > 0
 
                 if self.initial_ramp then
                     self.status_text = { "BURN RATE MODE", "ramping reactors" }
@@ -397,16 +420,27 @@ function facility.new(num_reactors, cooling_conf)
 
                 _allocate_burn_rate(sp_c, false)
             end
+        elseif self.mode == PROCESS.MATRIX_FAULT_IDLE then
+            -- exceeded charge, wait until condition clears
+            if self.ascram_reason == AUTO_SCRAM.NONE then
+                next_mode = self.return_mode
+                log.info("FAC: exiting matrix fault idle state due to fault resolution")
+            elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
+                next_mode = PROCESS.INACTIVE
+                log.info("FAC: exiting matrix fault idle state due to critical unit alarm")
+            end
+        elseif self.mode == PROCESS.UNIT_ALARM_IDLE then
+            -- do nothing, wait for user to confirm (stop and reset)
         elseif self.mode ~= PROCESS.INACTIVE then
             log.error(util.c("FAC: unsupported process mode ", self.mode, ", switching to inactive"))
-            self.mode = PROCESS.INACTIVE
+            next_mode = PROCESS.INACTIVE
         end
 
         ------------------------------
         -- Evaluate Automatic SCRAM --
         ------------------------------
 
-        if self.mode ~= PROCESS.INACTIVE then
+        if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
             local scram = false
 
             if self.induction[1] ~= nil then
@@ -415,37 +449,93 @@ function facility.new(num_reactors, cooling_conf)
 
                 if self.ascram_reason == AUTO_SCRAM.MATRIX_DC then
                     self.ascram_reason = AUTO_SCRAM.NONE
+                    log.info("FAC: cleared automatic SCRAM trip due to prior induction matrix disconnect")
                 end
 
-                if (db.tanks.energy_fill > MAX_CHARGE) or
+                if (db.tanks.energy_fill >= HIGH_CHARGE) or
                    (self.ascram_reason == AUTO_SCRAM.MATRIX_FILL and db.tanks.energy_fill > RE_ENABLE_CHARGE) then
                     scram = true
+
+                    if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then
+                        self.return_mode = self.mode
+                        next_mode = PROCESS.MATRIX_FAULT_IDLE
+                    end
 
                     if self.ascram_reason == AUTO_SCRAM.NONE then
                         self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
                     end
+                elseif self.ascram_reason == AUTO_SCRAM.MATRIX_FILL then
+                    log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
+                    self.ascram_reason = AUTO_SCRAM.NONE
+                end
+
+                for i = 1, #self.units do
+                    local u = self.units[i] ---@type reactor_unit
+
+                    if u.has_critical_alarm() then
+                        scram = true
+
+                        if self.ascram_reason == AUTO_SCRAM.NONE then
+                            self.ascram_reason = AUTO_SCRAM.CRIT_ALARM
+                        end
+
+                        next_mode = PROCESS.UNIT_ALARM_IDLE
+
+                        log.info("FAC: emergency exit of process control due to critical unit alarm")
+                        break
+                    end
                 end
             else
                 scram = true
+
+                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then
+                    self.return_mode = self.mode
+                    next_mode = PROCESS.MATRIX_FAULT_IDLE
+                end
+
                 if self.ascram_reason == AUTO_SCRAM.NONE then
                     self.ascram_reason = AUTO_SCRAM.MATRIX_DC
                 end
             end
 
             -- SCRAM all units
-            if not self.ascram and scram then
+            if (not self.ascram) and scram then
                 for i = 1, #self.prio_defs do
                     for _, u in pairs(self.prio_defs[i]) do
                         u.a_scram()
                     end
                 end
 
-                self.ascram = true
+                if self.ascram_reason == AUTO_SCRAM.MATRIX_DC then
+                    log.info("FAC: automatic SCRAM due to induction matrix disconnection")
+                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix disconnected" }
+                elseif self.ascram_reason == AUTO_SCRAM.MATRIX_FILL then
+                    log.info("FAC: automatic SCRAM due to induction matrix high charge")
+                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix fill high" }
+                elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
+                    log.info("FAC: automatic SCRAM due to critical unit alarm")
+                    self.status_text = { "AUTOMATIC SCRAM", "critical unit alarm tripped" }
+                else
+                    log.error(util.c("FAC: automatic SCRAM reason (", self.ascram_reason, ") not set to a known value"))
+                end
+            end
+
+            self.ascram = scram
+
+            -- clear PLC SCRAM if we should
+            if not self.ascram then
+                self.ascram_reason = AUTO_SCRAM.NONE
+
+                for i = 1, #self.units do
+                    local u = self.units[i] ---@type reactor_unit
+                    u.a_cond_rps_reset()
+                end
             end
         end
 
-        -- update last mode
+        -- update last mode and set next mode
         self.last_mode = self.mode
+        self.mode = next_mode
     end
 
     -- call the update function of all units in the facility
@@ -580,6 +670,7 @@ function facility.new(num_reactors, cooling_conf)
             self.units_ready,
             self.mode,
             self.waiting_on_ramp,
+            self.at_max_burn or self.saturated,
             self.ascram,
             self.status_text[1],
             self.status_text[2],

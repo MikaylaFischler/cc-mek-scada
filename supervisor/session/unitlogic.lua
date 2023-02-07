@@ -516,11 +516,7 @@ function logic.update_status_text(self)
             elseif self.db.annunciator.WasteLineOcclusion then
                 self.status_text[2] = "insufficient waste output rate"
             elseif (util.time_ms() - self.last_rate_change_ms) <= self.defs.FLOW_STABILITY_DELAY_MS then
-                if self.num_turbines > 1 then
-                    self.status_text[2] = "turbines spinning up"
-                else
-                    self.status_text[2] = "turbine spinning up"
-                end
+                self.status_text[2] = "awaiting flow stability"
             else
                 self.status_text[2] = "system nominal"
             end

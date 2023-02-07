@@ -62,11 +62,13 @@ local function new_view(root, x, y)
     local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=cpair(colors.green,colors.red)}
     local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=cpair(colors.green,colors.gray)}
     local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local auto_sat   = IndicatorLight{parent=main,label="Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
     local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     facility.ps.subscribe("auto_ready", auto_ready.update)
     facility.ps.subscribe("auto_active", auto_act.update)
     facility.ps.subscribe("auto_ramping", auto_ramp.update)
+    facility.ps.subscribe("auto_saturated", auto_sat.update)
     facility.ps.subscribe("auto_scram", auto_scram.update)
 
     main.line_break()
@@ -176,7 +178,7 @@ local function new_view(root, x, y)
     -- controls and status --
     -------------------------
 
-    local ctl_opts = { "Regulated", "Burn Rate", "Charge Level", "Generation Rate" }
+    local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
     local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.purple,colors.black),radio_bg=colors.gray}
 
     facility.ps.subscribe("process_mode", mode.set_value)
