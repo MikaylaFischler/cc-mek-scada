@@ -380,7 +380,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to coordinator " .. id .. " closed by remote host")
+                println("connection to coordinator closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end

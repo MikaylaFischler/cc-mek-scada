@@ -332,7 +332,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility)
 
             -- exit if connection was closed
             if not self.connected then
-                println(log_header .. "connection to RTU closed by remote host")
+                println("RTU connection " .. id .. " closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end

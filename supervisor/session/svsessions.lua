@@ -135,7 +135,7 @@ local function _shutdown(session)
         end
     end
 
-    log.debug("closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+    log.debug(util.c("closed ", session.s_type, " session ", session.instance.get_id(), " on remote port ", session.r_port))
 end
 
 -- close connections
@@ -158,7 +158,8 @@ local function _check_watchdogs(sessions, timer_event)
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
-                log.debug("watchdog closing session " .. session.instance.get_id() .. " on remote port " .. session.r_port .. "...")
+                log.debug(util.c("watchdog closing ", session.s_type, " session ", session.instance.get_id(),
+                    " on remote port ", session.r_port, "..."))
                 _shutdown(session)
             end
         end
@@ -171,7 +172,8 @@ local function _free_closed(sessions)
     local f = function (session) return session.open end
 
     local on_delete = function (session)
-        log.debug("free'ing closed session " .. session.instance.get_id() .. " on remote port " .. session.r_port)
+        log.debug(util.c("free'ing closed ", session.s_type, " session ", session.instance.get_id(),
+            " on remote port ", session.r_port))
     end
 
     util.filter_table(sessions, f, on_delete)
@@ -296,7 +298,7 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
         local units = self.facility.get_units()
         units[for_reactor].link_plc_session(plc_s)
 
-        log.debug("established new PLC session to " .. remote_port .. " with ID " .. self.next_plc_id)
+        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_plc_id, " for reactor ", for_reactor))
 
         self.next_plc_id = self.next_plc_id + 1
 

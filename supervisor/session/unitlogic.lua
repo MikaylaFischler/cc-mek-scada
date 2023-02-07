@@ -397,10 +397,12 @@ function logic.update_alarms(self)
     _update_alarm_state(self, plc_cache.damage >= 100, self.alarms.CriticalDamage)
 
     -- Reactor Damage
-    _update_alarm_state(self, plc_cache.damage > 0, self.alarms.ReactorDamage)
+    local rps_dmg_90 = plc_cache.rps_status.dmg_crit and not self.last_rps_trips.dmg_crit
+    _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage)
 
     -- Over-Temperature
-    _update_alarm_state(self, plc_cache.temp >= 1200, self.alarms.ReactorOverTemp)
+    local rps_high_temp = plc_cache.rps_status.high_temp and not self.last_rps_trips.high_temp
+    _update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp)
 
     -- High Temperature
     _update_alarm_state(self, plc_cache.temp > 1150, self.alarms.ReactorHighTemp)
@@ -409,7 +411,8 @@ function logic.update_alarms(self)
     _update_alarm_state(self, plc_cache.waste >= 0.99, self.alarms.ReactorWasteLeak)
 
     -- High Waste
-    _update_alarm_state(self, plc_cache.waste > 0.50, self.alarms.ReactorHighWaste)
+    local rps_high_waste = plc_cache.rps_status.ex_waste and not self.last_rps_trips.ex_waste
+    _update_alarm_state(self, (plc_cache.waste > 0.50) or rps_high_waste, self.alarms.ReactorHighWaste)
 
     -- RPS Transient (excludes timeouts and manual trips)
     local rps_alarm = false
@@ -444,6 +447,11 @@ function logic.update_alarms(self)
     local any_trip = false
     for i = 1, #annunc.TurbineTrip do any_trip = any_trip or annunc.TurbineTrip[i] end
     _update_alarm_state(self, any_trip, self.alarms.TurbineTrip)
+
+    -- update last trips table
+    for key, val in pairs(plc_cache.rps_status) do
+        self.last_rps_trips[key] = val
+    end
 end
 
 -- update the two unit status text messages

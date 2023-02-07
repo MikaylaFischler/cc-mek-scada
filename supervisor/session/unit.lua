@@ -88,11 +88,39 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- logic for alarms
         had_reactor = false,
         last_rate_change_ms = 0,
+        ---@type rps_status
+        last_rps_trips = {
+            dmg_crit = false,
+            high_temp = false,
+            no_cool = false,
+            ex_waste = false,
+            ex_hcool = false,
+            no_fuel = false,
+            fault = false,
+            timeout = false,
+            manual = false,
+            automatic = false,
+            sys_fail = false,
+            force_dis = false
+        },
         plc_cache = {
             active = false,
             ok = false,
-            rps_trip = false,
-            rps_status = {},  ---@type rps_status
+            ---@type rps_status
+            rps_status = {
+                dmg_crit = false,
+                high_temp = false,
+                no_cool = false,
+                ex_waste = false,
+                ex_hcool = false,
+                no_fuel = false,
+                fault = false,
+                timeout = false,
+                manual = false,
+                automatic = false,
+                sys_fail = false,
+                force_dis = false
+            },
             damage = 0,
             temp = 0,
             waste = 0
@@ -118,11 +146,11 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- waste >85%
             ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.TIMELY },
             -- RPS trip occured
-            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.RPSTransient, tier = PRIO.URGENT },
+            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.RPSTransient, tier = PRIO.URGENT },
             -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
             RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
             -- "It's just a routine turbin' trip!" -Bill Gibson, "The China Syndrome"
-            TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
+            TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
         },
         ---@class unit_db
         db = {
