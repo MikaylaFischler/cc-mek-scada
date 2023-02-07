@@ -47,8 +47,10 @@ local function new_view(root, x, y)
     local main = Div{parent=root,width=104,height=24,x=x,y=y}
 
     local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
+    local ack_a = HazardButton{parent=main,x=16,y=1,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,fg_bg=hzd_fg_bg}
 
     facility.scram_ack = scram.on_response
+    facility.ack_alarms_ack = ack_a.on_response
 
     local all_ok = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
@@ -208,7 +210,7 @@ local function new_view(root, x, y)
 
     local save  = HazardButton{parent=auto_controls,x=2,y=2,text="SAVE",accent=colors.purple,dis_colors=dis_colors,callback=_save_cfg,fg_bg=hzd_fg_bg}
     local start = HazardButton{parent=auto_controls,x=13,y=2,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=_start_auto,fg_bg=hzd_fg_bg}
-    local stop  = HazardButton{parent=auto_controls,x=23,y=2,text="STOP",accent=colors.orange,dis_colors=dis_colors,callback=process.stop_auto,fg_bg=hzd_fg_bg}
+    local stop  = HazardButton{parent=auto_controls,x=23,y=2,text="STOP",accent=colors.red,dis_colors=dis_colors,callback=process.stop_auto,fg_bg=hzd_fg_bg}
 
     facility.start_ack = start.on_response
     facility.stop_ack = stop.on_response

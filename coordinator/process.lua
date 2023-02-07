@@ -17,11 +17,11 @@ local self = {
     comms = nil,    ---@type coord_comms
     ---@class coord_auto_config
     config = {
-        mode = 0,           ---@type PROCESS
+        mode = PROCESS.INACTIVE,
         burn_target = 0.0,
         charge_target = 0.0,
         gen_target = 0.0,
-        limits = {}         ---@type table
+        limits = {}
     }
 }
 
@@ -86,6 +86,18 @@ function process.init(iocontrol, comms)
 
         log.info("PROCESS: loaded priority groups settings from coord.settings")
     end
+end
+
+-- facility SCRAM command
+function process.fac_scram()
+    self.comms.send_fac_command(FAC_COMMANDS.SCRAM_ALL)
+    log.debug("FAC: SCRAM ALL")
+end
+
+-- facility alarm acknowledge command
+function process.fac_ack_alarms()
+    self.comms.send_fac_command(FAC_COMMANDS.ACK_ALL_ALARMS)
+    log.debug("FAC: ACK ALL ALARMS")
 end
 
 -- start reactor
@@ -192,12 +204,6 @@ end
 --------------------------
 -- AUTO PROCESS CONTROL --
 --------------------------
-
--- facility SCRAM command
-function process.fac_scram()
-    self.comms.send_fac_command(FAC_COMMANDS.SCRAM_ALL)
-    log.debug("FAC: SCRAM ALL")
-end
 
 -- stop automatic process control
 function process.stop_auto()

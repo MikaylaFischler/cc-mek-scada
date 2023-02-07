@@ -556,6 +556,14 @@ function facility.new(num_reactors, cooling_conf)
         end
     end
 
+    -- ack all alarms on all reactor units
+    function public.ack_all()
+        for i = 1, #self.units do
+            local u = self.units[i] ---@type reactor_unit
+            u.ack_all()
+        end
+    end
+
     -- stop auto control
     function public.auto_stop()
         self.mode = PROCESS.INACTIVE

@@ -14,7 +14,7 @@ local insert = table.insert
 
 local max_distance = nil
 
-comms.version = "1.3.0"
+comms.version = "1.3.1"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -103,7 +103,8 @@ local PLC_AUTO_ACK = {
 local FAC_COMMANDS = {
     SCRAM_ALL = 0,      -- SCRAM all reactors
     STOP = 1,           -- stop automatic control
-    START = 2           -- start automatic control
+    START = 2,          -- start automatic control
+    ACK_ALL_ALARMS = 3  -- acknowledge all alarms on all units
 }
 
 ---@alias UNIT_COMMANDS integer
@@ -198,21 +199,21 @@ function comms.scada_packet()
             -- outside of maximum allowable transmission distance
             -- log.debug("comms.scada_packet.receive(): discarding packet with distance " .. distance .. " outside of trusted range")
         else
-        if type(self.raw) == "table" then
-            if #self.raw >= 3 then
-                self.seq_num = self.raw[1]
-                self.protocol = self.raw[2]
+            if type(self.raw) == "table" then
+                if #self.raw >= 3 then
+                    self.seq_num = self.raw[1]
+                    self.protocol = self.raw[2]
 
-                -- element 3 must be a table
-                if type(self.raw[3]) == "table" then
-                    self.length = #self.raw[3]
-                    self.payload = self.raw[3]
+                    -- element 3 must be a table
+                    if type(self.raw[3]) == "table" then
+                        self.length = #self.raw[3]
+                        self.payload = self.raw[3]
+                    end
                 end
-            end
 
-            self.valid = type(self.seq_num) == "number" and
-                         type(self.protocol) == "number" and
-                         type(self.payload) == "table"
+                self.valid = type(self.seq_num) == "number" and
+                             type(self.protocol) == "number" and
+                             type(self.payload) == "table"
             end
         end
 

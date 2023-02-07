@@ -444,6 +444,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     else
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
                                     end
+                                elseif cmd == FAC_COMMANDS.ACK_ALL_ALARMS then
+                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end

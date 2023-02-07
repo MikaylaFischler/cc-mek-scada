@@ -233,6 +233,9 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
                         else
                             log.debug(log_header .. "CRDN auto start (with configuration) packet length mismatch")
                         end
+                    elseif cmd == FAC_COMMANDS.ACK_ALL_ALARMS then
+                        facility.ack_all()
+                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
                     else
                         log.debug(log_header .. "CRDN facility command unknown")
                     end

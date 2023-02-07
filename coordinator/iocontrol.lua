@@ -31,12 +31,13 @@ function iocontrol.init(conf, comms)
         auto_saturated = false,
         auto_scram = false,
 
-        num_units = conf.num_units,             ---@type integer
+        num_units = conf.num_units,                 ---@type integer
 
-        save_cfg_ack = function (success) end,  ---@param success boolean
-        start_ack = function (success) end,     ---@param success boolean
-        stop_ack = function (success) end,      ---@param success boolean
-        scram_ack = function (success) end,     ---@param success boolean
+        save_cfg_ack = function (success) end,      ---@param success boolean
+        start_ack = function (success) end,         ---@param success boolean
+        stop_ack = function (success) end,          ---@param success boolean
+        scram_ack = function (success) end,         ---@param success boolean
+        ack_alarms_ack = function (success) end,    ---@param success boolean
 
         ps = psil.create(),
 
