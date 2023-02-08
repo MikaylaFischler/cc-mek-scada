@@ -50,6 +50,8 @@ local AISTATE = {
     RING_BACK_TRIPPING = 5
 }
 
+unit.FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS
+
 ---@class alarm_def
 ---@field state ALARM_INT_STATE internal alarm state
 ---@field trip_time integer time (ms) when first tripped
