@@ -25,8 +25,6 @@ local println_ts = util.println_ts
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 local PCALL_START_MSG = "pcall: Reactor is already active."
 
-local AUTO_TOGGLE_DELAY_MS = 5000
-
 -- RPS SAFETY CONSTANTS
 
 local MAX_DAMAGE_PERCENT      = 90
@@ -832,7 +830,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         -- automatic control requested a new burn rate
                         if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
                             local ack = AUTO_ACK.FAIL
-                            local burn_rate = math.floor(packet.data[1] * 10) / 10
+                            local burn_rate = math.floor(packet.data[1] * 100) / 100
                             local ramp = packet.data[2]
                             self.auto_ack_token = packet.data[3]
 
@@ -843,20 +841,15 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                             -- if we know our max burn rate, update current burn rate setpoint if in range
                             if self.max_burn_rate ~= ppm.ACCESS_FAULT then
-                                if burn_rate < 0.1 then
+                                if burn_rate < 0.01 then
                                     if rps.is_active() then
-                                        if rps.get_runtime() > AUTO_TOGGLE_DELAY_MS then
-                                            -- auto scram to disable
-                                            log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
-                                            if rps.scram() then
-                                                ack = AUTO_ACK.ZERO_DIS_OK
-                                                self.auto_last_disable = util.time_ms()
-                                            else
-                                                log.debug("AUTO: automatic reactor stop failed")
-                                            end
+                                        -- auto scram to disable
+                                        log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
+                                        if rps.scram() then
+                                            ack = AUTO_ACK.ZERO_DIS_OK
+                                            self.auto_last_disable = util.time_ms()
                                         else
-                                            -- too soon to disable
-                                            ack = AUTO_ACK.ZERO_DIS_WAIT
+                                            log.debug("AUTO: automatic reactor stop failed")
                                         end
                                     else
                                         ack = AUTO_ACK.ZERO_DIS_OK
@@ -865,13 +858,14 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                     if not rps.is_active() then
                                         -- activate the reactor
                                         log.debug("AUTO: activating the reactor")
-                                        if rps.auto_activate() then
-                                            self.reactor.setBurnRate(0.1)
-                                            if self.reactor.__p_is_faulted() then
-                                                log.debug("AUTO: failed to reset burn rate on auto activation")
-                                            end
+
+                                        self.reactor.setBurnRate(0.01)
+                                        if self.reactor.__p_is_faulted() then
+                                            log.debug("AUTO: failed to reset burn rate for auto activation")
                                         else
-                                            log.debug("AUTO: automatic reactor activation failed")
+                                            if not rps.auto_activate() then
+                                                log.debug("AUTO: automatic reactor activation failed")
+                                            end
                                         end
                                     end
 

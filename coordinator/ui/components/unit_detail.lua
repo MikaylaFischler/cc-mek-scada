@@ -85,7 +85,7 @@ local function init(parent, id)
     u_ps.subscribe("heating_rate", heating_r.update)
 
     TextBox{parent=main,x=12,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
-    local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
+    local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
     u_ps.subscribe("burn_rate", burn_r.update)
 
     TextBox{parent=main,text="F",x=2,y=22,width=1,height=1,fg_bg=style.label}
@@ -126,7 +126,7 @@ local function init(parent, id)
     u_ps.subscribe("temp", core_temp.update)
 
     TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
-    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.1f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     u_ps.subscribe("act_burn_rate", act_burn_r.update)
 
     TextBox{parent=main,x=32,y=28,text="Damage",height=1,width=6,fg_bg=style.label}

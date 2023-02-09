@@ -77,7 +77,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         boilers = {},
         redstone = {},
         -- auto control
-        ramp_target_br10 = 0,
+        ramp_target_br100 = 0,
         -- state tracking
         deltas = {},
         last_heartbeat = 0,
@@ -208,8 +208,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 ready = false,
                 degraded = false,
                 blade_count = 0,
-                br10 = 0,
-                lim_br10 = 0
+                br100 = 0,
+                lim_br100 = 0
             }
         }
     }
@@ -413,8 +413,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil and not self.plc_s.open then
             self.plc_s = nil
             self.plc_i = nil
-            self.db.control.br10 = 0
-            self.db.control.lim_br10 = 0
+            self.db.control.br100 = 0
+            self.db.control.lim_br100 = 0
         end
 
         -- unlink RTU unit sessions if they are closed
@@ -480,31 +480,31 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         self.db.annunciator.AutoControl = false
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(false)
-            self.db.control.br10 = 0
+            self.db.control.br100 = 0
         end
     end
 
     -- get the actual limit of this unit
     --
     -- if it is degraded or not ready, the limit will be 0
-    ---@return integer lim_br10
+    ---@return integer lim_br100
     function public.a_get_effective_limit()
         if not self.db.control.ready or self.db.control.degraded or self.plc_cache.rps_trip then
-            self.db.control.br10 = 0
+            self.db.control.br100 = 0
             return 0
         else
-            return self.db.control.lim_br10
+            return self.db.control.lim_br100
         end
     end
 
-    -- set the automatic burn rate based on the last set br10
+    -- set the automatic burn rate based on the last set burn rate in 100ths
     ---@param ramp boolean true to ramp to rate, false to set right away
-    function public.a_commit_br10(ramp)
+    function public.a_commit_br100(ramp)
         if self.db.annunciator.AutoControl then
             if self.plc_i ~= nil then
-                self.plc_i.auto_set_burn(self.db.control.br10 / 10, ramp)
+                self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
 
-                if ramp then self.ramp_target_br10 = self.db.control.br10 end
+                if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end
     end
@@ -514,7 +514,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     function public.a_ramp_complete()
         if self.plc_i ~= nil then
             return self.plc_i.is_ramp_complete() or
-                (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br10 == 0) or
+                (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br100 == 0) or
                 public.a_get_effective_limit() == 0
         else return true end
     end
@@ -609,11 +609,11 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     ---@param limit number burn rate limit for auto control
     function public.set_burn_limit(limit)
         if limit > 0 then
-            self.db.control.lim_br10 = math.floor(limit * 10)
+            self.db.control.lim_br100 = math.floor(limit * 100)
 
             if self.plc_i ~= nil then
                 if limit > self.plc_i.get_struct().max_burn then
-                    self.db.control.lim_br10 = math.floor(self.plc_i.get_struct().max_burn * 10)
+                    self.db.control.lim_br100 = math.floor(self.plc_i.get_struct().max_burn * 100)
                 end
             end
         end

@@ -111,7 +111,7 @@ function facility.new(num_reactors, cooling_conf)
     ---@param ramp boolean true to ramp, false to set right away
     ---@return integer unallocated
     local function _allocate_burn_rate(burn_rate, ramp)
-        local unallocated = math.floor(burn_rate * 10)
+        local unallocated = math.floor(burn_rate * 100)
 
         -- go through alll priority groups
         for i = 1, #self.prio_defs do
@@ -129,14 +129,14 @@ function facility.new(num_reactors, cooling_conf)
                     local u = units[id] ---@type reactor_unit
 
                     local ctl = u.get_control_inf()
-                    local lim_br10 = u.a_get_effective_limit()
+                    local lim_br100 = u.a_get_effective_limit()
 
-                    local last = ctl.br10
+                    local last = ctl.br100
 
-                    if splits[id] <= lim_br10 then
-                        ctl.br10 = splits[id]
+                    if splits[id] <= lim_br100 then
+                        ctl.br100 = splits[id]
                     else
-                        ctl.br10 = lim_br10
+                        ctl.br100 = lim_br100
 
                         if id < #units then
                             local remaining = #units - id
@@ -146,11 +146,11 @@ function facility.new(num_reactors, cooling_conf)
                         end
                     end
 
-                    unallocated = math.max(0, unallocated - ctl.br10)
+                    unallocated = math.max(0, unallocated - ctl.br100)
 
-                    if last ~= ctl.br10 then
-                        log.debug("unit " .. id .. ": set to " .. ctl.br10 .. " (was " .. last .. ")")
-                        u.a_commit_br10(ramp)
+                    if last ~= ctl.br100 then
+                        log.debug("unit " .. id .. ": set to " .. ctl.br100 .. " (was " .. last .. ")")
+                        u.a_commit_br100(ramp)
                     end
                 end
             end
@@ -253,13 +253,13 @@ function facility.new(num_reactors, cooling_conf)
                     table.sort(self.prio_defs[i],
                         ---@param a reactor_unit
                         ---@param b reactor_unit
-                        function (a, b) return a.get_control_inf().lim_br10 < b.get_control_inf().lim_br10 end
+                        function (a, b) return a.get_control_inf().lim_br100 < b.get_control_inf().lim_br100 end
                     )
 
                     for _, u in pairs(self.prio_defs[i]) do
                         blade_count = blade_count + u.get_control_inf().blade_count
                         u.a_engage()
-                        self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br10 / 10.0)
+                        self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br100 / 100.0)
                     end
                 end
 
@@ -366,13 +366,10 @@ function facility.new(num_reactors, cooling_conf)
 
                 local setpoint = P + I + D
 
-                -- round setpoint -> setpoint rounded (sp_r)
-                local sp_r = util.round(setpoint * 10.0) / 10.0
-
                 -- clamp at range -> setpoint clamped (sp_c)
-                local sp_c = math.max(0, math.min(sp_r, self.max_burn_combined))
+                local sp_c = math.max(0, math.min(setpoint, self.max_burn_combined))
 
-                self.saturated = sp_r ~= sp_c
+                self.saturated = setpoint ~= sp_c
 
                 log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => SP[%f] SP_C[%f] <= P[%f] I[%f] D[%d] }",
                     runtime, avg_charge, error, integral, setpoint, sp_c, P, I, D))
@@ -395,11 +392,9 @@ function facility.new(num_reactors, cooling_conf)
                 -- estimate an initial setpoint
                 output = (error * 1000000) / self.charge_conversion
 
-                local out_r = util.round(output * 10.0) / 10.0
+                log.debug(util.c("FAC: initial burn rate for gen rate is " .. output))
 
-                log.debug(util.c("FAC: initial burn rate for gen rate setpoint is " .. out_r))
-
-                _allocate_burn_rate(out_r, true)
+                _allocate_burn_rate(output, true)
 
                 self.waiting_on_ramp = true
 
@@ -444,13 +439,10 @@ function facility.new(num_reactors, cooling_conf)
 
                 output = P + I + D + FF
 
-                -- round output -> output rounded (sp_r)
-                local out_r = util.round(output * 10.0) / 10.0
-
                 -- clamp at range -> output clamped (sp_c)
-                local out_c = math.max(0, math.min(out_r, self.max_burn_combined))
+                local out_c = math.max(0, math.min(output, self.max_burn_combined))
 
-                self.saturated = out_r ~= out_c
+                self.saturated = output ~= out_c
 
                 log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
@@ -621,7 +613,7 @@ function facility.new(num_reactors, cooling_conf)
         local limits = {}
         for i = 1, num_reactors do
             local u = self.units[i] ---@type reactor_unit
-            limits[i] = u.get_control_inf().lim_br10 * 10
+            limits[i] = u.get_control_inf().lim_br100 * 100
         end
 
         -- only allow changes if not running

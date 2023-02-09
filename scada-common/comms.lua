@@ -14,7 +14,7 @@ local insert = table.insert
 
 local max_distance = nil
 
-comms.version = "1.3.1"
+comms.version = "1.3.2"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -95,8 +95,7 @@ local PLC_AUTO_ACK = {
     FAIL = 0,           -- failed to set burn rate/burn rate invalid
     DIRECT_SET_OK = 1,  -- successfully set burn rate
     RAMP_SET_OK = 2,    -- successfully started burn rate ramping
-    ZERO_DIS_OK = 3,    -- successfully disabled reactor with < 0.1 burn rate
-    ZERO_DIS_WAIT = 4   -- too soon to disable reactor with < 0.1 burn rate
+    ZERO_DIS_OK = 3     -- successfully disabled reactor with < 0.01 burn rate
 }
 
 ---@alias FAC_COMMANDS integer

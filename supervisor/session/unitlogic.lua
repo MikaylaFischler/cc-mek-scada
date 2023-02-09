@@ -50,8 +50,8 @@ function logic.update_annunciator(self)
         plc_ready = (not plc_db.rps_tripped) and (plc_db.last_status_update > 0) and (plc_db.mek_struct.length > 0)
 
         -- update auto control limit
-        if (self.db.control.lim_br10 == 0) or ((self.db.control.lim_br10 / 10) > plc_db.mek_struct.max_burn) then
-            self.db.control.lim_br10 = math.floor(plc_db.mek_struct.max_burn * 10)
+        if (self.db.control.lim_br100 == 0) or ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
+            self.db.control.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
         end
 
         -- some alarms wait until the burn rate has stabilized, so keep track of that

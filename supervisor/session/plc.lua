@@ -463,9 +463,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         log.debug(log_header .. "RPLC automatic burn rate set fail")
                     elseif ack == PLC_AUTO_ACK.DIRECT_SET_OK or ack == PLC_AUTO_ACK.RAMP_SET_OK or ack == PLC_AUTO_ACK.ZERO_DIS_OK then
                         self.acks.burn_rate = true
-                    elseif ack == PLC_AUTO_ACK.ZERO_DIS_WAIT then
-                        self.acks.burn_rate = false
-                        log.debug(log_header .. "RPLC automatic burn rate too soon to disable at 0 mB/t")
                     else
                         self.acks.burn_rate = false
                         log.debug(log_header .. "RPLC automatic burn rate ack unknown")
@@ -665,7 +662,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
                         elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
                             -- set automatic burn rate
                             if self.auto_lock then
-                                cmd.val = math.floor(cmd.val * 10) / 10 -- round to 10ths place
+                                cmd.val = math.floor(cmd.val * 100) / 100   -- round to 100ths place
                                 if cmd.val >= 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                     self.auto_cmd_token = util.time_ms()
                                     self.commanded_burn_rate = cmd.val
