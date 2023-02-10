@@ -124,7 +124,7 @@ local function new_view(root, x, y)
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="kFE/t",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
 
     facility.ps.subscribe("process_gen_target", g_target.set_value)
-    facility.induction_ps_tbl[1].subscribe("last_input", function (j) cur_gen.update(util.joules_to_fe(j) / 1000) end)
+    facility.induction_ps_tbl[1].subscribe("last_input", function (j) cur_gen.update(util.round(util.joules_to_fe(j) / 1000)) end)
 
     -----------------
     -- unit limits --

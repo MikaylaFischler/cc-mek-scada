@@ -531,6 +531,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         if self.plc_s ~= nil and self.plc_i ~= nil then
             local rps = self.plc_i.get_rps()
             if rps.timeout or rps.automatic then
+                self.plc_i.auto_lock(true)  -- if it timed out/restarted, auto lock was lost, so re-lock it
                 self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_AUTO_RESET)
             end
         end

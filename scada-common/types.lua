@@ -37,13 +37,13 @@ types.TRI_FAIL = {
 
 ---@alias PROCESS integer
 types.PROCESS = {
-    UNIT_ALARM_IDLE = -2,
-    MATRIX_FAULT_IDLE = -1,
     INACTIVE = 0,
-    SIMPLE = 1,
+    MAX_BURN = 1,
     BURN_RATE = 2,
     CHARGE = 3,
-    GEN_RATE = 4
+    GEN_RATE = 4,
+    MATRIX_FAULT_IDLE = 5,
+    UNIT_ALARM_IDLE = 6
 }
 
 ---@alias WASTE_MODE integer

@@ -24,13 +24,19 @@ local AUTO_SCRAM = {
     CRIT_ALARM = 3
 }
 
+local START_STATUS = {
+    OK = 0,
+    NO_UNITS = 1,
+    BLADE_MISMATCH = 2
+}
+
 local charge_Kp = 1.0
 local charge_Ki = 0.0
 local charge_Kd = 0.0
 
-local rate_Kp = 0.75
-local rate_Ki = 0.01
-local rate_Kd = -0.10
+local rate_Kp = 2.45
+local rate_Ki = 0.2825  -- 0.1825, 0.2825
+local rate_Kd = -1.0
 
 ---@class facility_management
 local facility = {}
@@ -50,7 +56,8 @@ function facility.new(num_reactors, cooling_conf)
         mode = PROCESS.INACTIVE,
         last_mode = PROCESS.INACTIVE,
         return_mode = PROCESS.INACTIVE,
-        mode_set = PROCESS.SIMPLE,
+        mode_set = PROCESS.MAX_BURN,
+        start_fail = START_STATUS.OK,
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_setpoint = 0,            -- FE charge target setpoint
@@ -149,7 +156,7 @@ function facility.new(num_reactors, cooling_conf)
                     unallocated = math.max(0, unallocated - ctl.br100)
 
                     if last ~= ctl.br100 then
-                        log.debug("unit " .. id .. ": set to " .. ctl.br100 .. " (was " .. last .. ")")
+                        log.debug("unit " .. u.get_id() .. ": set to " .. ctl.br100 .. " (was " .. last .. ")")
                         u.a_commit_br100(ramp)
                     end
                 end
@@ -193,9 +200,11 @@ function facility.new(num_reactors, cooling_conf)
         _unlink_disconnected_units(self.induction)
         _unlink_disconnected_units(self.redstone)
 
-        -- calculate moving averages for induction matrix
+        -- current state for process control
         local charge_update = 0
         local rate_update = 0
+
+        -- calculate moving averages for induction matrix
         if self.induction[1] ~= nil then
             local matrix = self.induction[1]    ---@type unit_session
             local db = matrix.get_db()          ---@type imatrix_session_db
@@ -243,10 +252,11 @@ function facility.new(num_reactors, cooling_conf)
             log.debug("FAC: state changed from " .. self.last_mode .. " to " .. self.mode)
 
             if self.last_mode == PROCESS.INACTIVE then
-                ---@todo change this to be a reset button
+                self.start_fail = START_STATUS.OK
+
                 if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.ascram = false end
 
-                local blade_count = 0
+                local blade_count = nil
                 self.max_burn_combined = 0.0
 
                 for i = 1, #self.prio_defs do
@@ -257,15 +267,32 @@ function facility.new(num_reactors, cooling_conf)
                     )
 
                     for _, u in pairs(self.prio_defs[i]) do
-                        blade_count = blade_count + u.get_control_inf().blade_count
-                        u.a_engage()
+                        local u_blade_count = u.get_control_inf().blade_count
+
+                        if blade_count == nil then
+                            blade_count = u_blade_count
+                        elseif u_blade_count ~= blade_count then
+                            log.warning("FAC: cannot start auto control with inconsistent blade counts")
+                            next_mode = PROCESS.INACTIVE
+                            self.start_fail = START_STATUS.BLADE_MISMATCH
+                        end
+
+                        if self.start_fail == START_STATUS.OK then u.a_engage() end
+
                         self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br100 / 100.0)
                     end
                 end
 
-                self.charge_conversion = blade_count * POWER_PER_BLADE
+                if blade_count == nil then
+                    -- no units
+                    log.warning("FAC: cannot start process control with 0 units assigned")
+                    next_mode = PROCESS.INACTIVE
+                    self.start_fail = START_STATUS.NO_UNITS
+                else
+                    self.charge_conversion = blade_count * POWER_PER_BLADE
 
-                log.debug(util.c("FAC: starting auto control: chg_conv = ", self.charge_conversion, ", blade_count = ", blade_count, ", max_burn = ", self.max_burn_combined))
+                    log.debug(util.c("FAC: starting auto control: chg_conv = ", self.charge_conversion, ", blade_count = ", blade_count, ", max_burn = ", self.max_burn_combined))
+                end
             elseif self.mode == PROCESS.INACTIVE then
                 for i = 1, #self.prio_defs do
                     -- SCRAM reactors and disengage auto control
@@ -276,8 +303,7 @@ function facility.new(num_reactors, cooling_conf)
                     end
                 end
 
-                self.status_text = { "IDLE", "control disengaged" }
-                log.debug("FAC: disengaging auto control (now inactive)")
+                log.info("FAC: disengaging auto control (now inactive)")
             end
 
             self.initial_ramp = true
@@ -297,44 +323,36 @@ function facility.new(num_reactors, cooling_conf)
 
         -- perform mode-specific operations
         if self.mode == PROCESS.INACTIVE then
-            if self.units_ready then
-                self.status_text = { "IDLE", "control disengaged" }
-            else
+            if not self.units_ready then
                 self.status_text = { "NOT READY", "assigned units not ready" }
+            elseif self.start_fail == START_STATUS.NO_UNITS then
+                self.status_text = { "START FAILED", "no units assigned" }
+            elseif self.start_fail == START_STATUS.BLADE_MISMATCH then
+                self.status_text = { "START FAILED", "turbine blade count mismatch" }
+            else
+                self.status_text = { "IDLE", "control disengaged" }
             end
-        elseif self.mode == PROCESS.SIMPLE then
+        elseif self.mode == PROCESS.MAX_BURN then
             -- run units at their limits
             if state_changed then
                 self.time_start = now
                 self.saturated = true
+
                 self.status_text = { "MONITORED MODE", "running reactors at limit" }
-                log.debug(util.c("FAC: SIMPLE mode first call completed"))
+                log.info(util.c("FAC: MAX_BURN process mode started"))
             end
 
             _allocate_burn_rate(self.max_burn_combined, true)
         elseif self.mode == PROCESS.BURN_RATE then
             -- a total aggregate burn rate
             if state_changed then
-                -- nothing special to do
-                self.status_text = { "BURN RATE MODE", "starting up" }
-                log.debug(util.c("FAC: BURN_RATE mode first call completed"))
-            elseif self.waiting_on_ramp and _all_units_ramped() then
-                self.waiting_on_ramp = false
                 self.time_start = now
                 self.status_text = { "BURN RATE MODE", "running" }
-                log.debug(util.c("FAC: BURN_RATE mode initial ramp completed"))
+                log.info(util.c("FAC: BURN_RATE process mode started"))
             end
 
-            if not self.waiting_on_ramp then
-                local unallocated = _allocate_burn_rate(self.burn_target, true)
-                self.saturated = self.burn_target == self.max_burn_combined or unallocated > 0
-
-                if self.initial_ramp then
-                    self.status_text = { "BURN RATE MODE", "ramping reactors" }
-                    self.waiting_on_ramp = true
-                    log.debug(util.c("FAC: BURN_RATE mode allocated initial ramp"))
-                end
-            end
+            local unallocated = _allocate_burn_rate(self.burn_target, true)
+            self.saturated = self.burn_target == self.max_burn_combined or unallocated > 0
         elseif self.mode == PROCESS.CHARGE then
             -- target a level of charge
             -- convert to kFE to make constants not microscopic
@@ -343,38 +361,45 @@ function facility.new(num_reactors, cooling_conf)
             if state_changed then
                 self.last_time = now
                 log.debug(util.c("FAC: CHARGE mode first call completed"))
-            elseif self.waiting_on_ramp and _all_units_ramped() then
-                self.waiting_on_ramp = false
+            elseif self.waiting_on_ramp then
+                if _all_units_ramped() then
+                    self.waiting_on_ramp = false
 
-                self.time_start = now
-                self.accumulator = 0
-                log.debug(util.c("FAC: CHARGE mode initial ramp completed"))
+                    self.time_start = now
+                    self.last_time = now
+                    self.last_error = 0
+                    self.accumulator = 0
+
+                    self.status_text = { "CHARGE MODE", "running control loop" }
+                    log.info(util.c("FAC: CHARGE mode initial ramp completed"))
+                end
             end
 
-            if not self.waiting_on_ramp then
-                if not self.saturated then
+            if not self.waiting_on_ramp and self.last_update ~= rate_update then
+                -- stop accumulator when saturated to avoid windup, deadband accumulator at 1kFE to avoid windup
+                if (not self.saturated) and (math.abs(error) >= 0.001) then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
                 local runtime = now - self.time_start
                 local integral = self.accumulator
-                -- local derivative = (error - self.last_error) / (now - self.last_time)
+                local derivative = (error - self.last_error) / (now - self.last_time)
 
                 local P = (charge_Kp * error)
                 local I = (charge_Ki * integral)
-                local D = 0 -- (charge_Kd * derivative)
+                local D = (charge_Kd * derivative)
 
-                local setpoint = P + I + D
+                local output = P + I + D
 
-                -- clamp at range -> setpoint clamped (sp_c)
-                local sp_c = math.max(0, math.min(setpoint, self.max_burn_combined))
+                -- clamp at range -> output clamped (out_c)
+                local out_c = math.max(0, math.min(output, self.max_burn_combined))
 
-                self.saturated = setpoint ~= sp_c
+                self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => SP[%f] SP_C[%f] <= P[%f] I[%f] D[%d] }",
-                    runtime, avg_charge, error, integral, setpoint, sp_c, P, I, D))
+                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
+                    runtime, avg_charge, error, integral, output, out_c, P, I, D))
 
-                _allocate_burn_rate(sp_c, self.initial_ramp)
+                _allocate_burn_rate(out_c, self.initial_ramp)
 
                 self.last_time = now
 
@@ -382,23 +407,21 @@ function facility.new(num_reactors, cooling_conf)
                     self.waiting_on_ramp = true
                 end
             end
+
+            self.last_update = charge_update
         elseif self.mode == PROCESS.GEN_RATE then
             -- target a rate of generation
-            -- convert to MFE to make constants not microscopic
-            local error = (self.gen_rate_setpoint - avg_inflow) / 1000000
-            local output = 0.0
-
             if state_changed then
-                -- estimate an initial setpoint
-                output = (error * 1000000) / self.charge_conversion
+                -- estimate an initial output
+                local output = self.gen_rate_setpoint / self.charge_conversion
 
-                log.debug(util.c("FAC: initial burn rate for gen rate is " .. output))
+                local unallocated = _allocate_burn_rate(output, true)
 
-                _allocate_burn_rate(output, true)
-
+                self.saturated = output >= self.max_burn_combined or unallocated > 0
                 self.waiting_on_ramp = true
 
                 self.status_text = { "GENERATION MODE", "starting up" }
+                log.info(util.c("FAC: GEN_RATE process mode initial ramp started (initial target is ", output, " mB/t)"))
             elseif self.waiting_on_ramp then
                 if _all_units_ramped() then
                     self.waiting_on_ramp = false
@@ -407,7 +430,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.time_start = now
 
                     self.status_text = { "GENERATION MODE", "holding ramped rate" }
-                    log.debug("FAC: GEN_RATE mode initial ramp completed, holding for stablization time")
+                    log.info("FAC: GEN_RATE process mode initial ramp completed, holding for stablization time")
                 end
             elseif self.waiting_on_stable then
                 if (now - self.time_start) > FLOW_STABILITY_DELAY_S then
@@ -419,14 +442,18 @@ function facility.new(num_reactors, cooling_conf)
                     self.accumulator = 0
 
                     self.status_text = { "GENERATION MODE", "running control loop" }
-                    log.debug("FAC: GEN_RATE mode initial hold completed")
+                    log.info("FAC: GEN_RATE process mode initial hold completed, starting PID control")
                 end
             elseif self.last_update ~= rate_update then
+                -- convert to MFE (in rounded kFE) to make constants not microscopic
+                local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
+
+                -- stop accumulator when saturated to avoid windup, deadband accumulator at 1kFE to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
-                local runtime = util.time_s() - self.time_start
+                local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -437,7 +464,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- velocity (rate) (derivative of charge level => rate) feed forward
                 local FF = self.gen_rate_setpoint / self.charge_conversion
 
-                output = P + I + D + FF
+                local output = P + I + D + FF
 
                 -- clamp at range -> output clamped (sp_c)
                 local out_c = math.max(0, math.min(output, self.max_burn_combined))
@@ -620,22 +647,18 @@ function facility.new(num_reactors, cooling_conf)
         if self.mode == PROCESS.INACTIVE then
             if (type(config.mode) == "number") and (config.mode > PROCESS.INACTIVE) and (config.mode <= PROCESS.GEN_RATE) then
                 self.mode_set = config.mode
-                log.debug("SET MODE " .. self.mode_set)
             end
 
             if (type(config.burn_target) == "number") and config.burn_target >= 0.1 then
                 self.burn_target = config.burn_target
-                log.debug("SET BURN TARGET " .. self.burn_target)
             end
 
             if (type(config.charge_target) == "number") and config.charge_target >= 0 then
                 self.charge_setpoint = config.charge_target
-                log.debug("SET CHARGE TARGET " .. self.charge_setpoint)
             end
 
             if (type(config.gen_target) == "number") and config.gen_target >= 0 then
-                self.gen_rate_setpoint = config.gen_target * 1000 -- convert kFE to FE
-                log.debug("SET RATE TARGET " .. self.gen_rate_setpoint)
+                self.gen_rate_setpoint = config.gen_target * 1000   -- convert kFE to FE
             end
 
             if (type(config.limits) == "table") and (#config.limits == num_reactors) then
@@ -645,7 +668,6 @@ function facility.new(num_reactors, cooling_conf)
                     if (type(limit) == "number") and (limit >= 0.1) then
                         limits[i] = limit
                         self.units[i].set_burn_limit(limit)
-                        log.debug("SET UNIT " .. i .. " LIMIT " .. limit)
                     end
                 end
             end

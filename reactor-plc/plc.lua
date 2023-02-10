@@ -393,9 +393,9 @@ function plc.rps_init(reactor, is_formed)
         if self.trip_cause == rps_status_t.automatic or self.trip_cause == rps_status_t.timeout then
             self.trip_cause = rps_status_t.ok
             self.tripped = false
-        end
 
-        log.info("RPS: auto reset")
+            log.info("RPS: auto reset")
+        end
     end
 
     return public
