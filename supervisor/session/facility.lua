@@ -7,6 +7,7 @@ local rsctl = require("supervisor.session.rsctl")
 local unit  = require("supervisor.session.unit")
 
 local PROCESS = types.PROCESS
+local PROCESS_NAMES = types.PROCESS_NAMES
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
@@ -21,7 +22,8 @@ local AUTO_SCRAM = {
     NONE = 0,
     MATRIX_DC = 1,
     MATRIX_FILL = 2,
-    CRIT_ALARM = 3
+    CRIT_ALARM = 3,
+    GEN_FAULT = 4
 }
 
 local START_STATUS = {
@@ -116,11 +118,12 @@ function facility.new(num_reactors, cooling_conf)
     -- split a burn rate among the reactors
     ---@param burn_rate number burn rate assignment
     ---@param ramp boolean true to ramp, false to set right away
-    ---@return integer unallocated
-    local function _allocate_burn_rate(burn_rate, ramp)
+    ---@param abort_on_fault boolean? true to exit if one device has an effective burn rate different than its limit
+    ---@return integer unallocated_br100, boolean? aborted
+    local function _allocate_burn_rate(burn_rate, ramp, abort_on_fault)
         local unallocated = math.floor(burn_rate * 100)
 
-        -- go through alll priority groups
+        -- go through all priority groups
         for i = 1, #self.prio_defs do
             local units = self.prio_defs[i]
 
@@ -137,6 +140,11 @@ function facility.new(num_reactors, cooling_conf)
 
                     local ctl = u.get_control_inf()
                     local lim_br100 = u.a_get_effective_limit()
+
+                    if abort_on_fault and (lim_br100 ~= ctl.lim_br100) then
+                        -- effective limit differs from set limit, unit is degraded
+                        return unallocated, true
+                    end
 
                     local last = ctl.br100
 
@@ -163,7 +171,7 @@ function facility.new(num_reactors, cooling_conf)
             end
         end
 
-        return unallocated
+        return unallocated, false
     end
 
     -- PUBLIC FUNCTIONS --
@@ -249,12 +257,15 @@ function facility.new(num_reactors, cooling_conf)
         if state_changed then
             self.saturated = false
 
-            log.debug("FAC: state changed from " .. self.last_mode .. " to " .. self.mode)
+            log.debug("FAC: state changed from " .. PROCESS_NAMES[self.last_mode + 1] .. " to " .. PROCESS_NAMES[self.mode + 1])
 
-            if self.last_mode == PROCESS.INACTIVE then
+            if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
                 self.start_fail = START_STATUS.OK
 
-                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.ascram = false end
+                if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
+                    -- auto clear ASCRAM
+                    self.ascram = false
+                end
 
                 local blade_count = nil
                 self.max_burn_combined = 0.0
@@ -462,7 +473,12 @@ function facility.new(num_reactors, cooling_conf)
                 log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
 
-                _allocate_burn_rate(out_c, false)
+                local _, fault = _allocate_burn_rate(out_c, false)
+
+                if fault then
+                    log.info("FAC: one or more units degraded, pausing GEN_RATE process control")
+                    next_mode = PROCESS.GEN_RATE_FAULT_IDLE
+                end
 
                 self.last_time = now
                 self.last_error = error
@@ -480,6 +496,13 @@ function facility.new(num_reactors, cooling_conf)
             end
         elseif self.mode == PROCESS.UNIT_ALARM_IDLE then
             -- do nothing, wait for user to confirm (stop and reset)
+        elseif self.mode == PROCESS.GEN_RATE_FAULT_IDLE then
+            -- system faulted (degraded/not ready) while running generation rate mode
+            -- mode will need to be fully restarted once everything is OK to re-ramp to feed-forward
+            if self.units_ready then
+                log.info("FAC: system ready after faulting out of GEN_RATE process mode, switching back...")
+                next_mode = PROCESS.GEN_RATE
+            end
         elseif self.mode ~= PROCESS.INACTIVE then
             log.error(util.c("FAC: unsupported process mode ", self.mode, ", switching to inactive"))
             next_mode = PROCESS.INACTIVE
@@ -491,6 +514,10 @@ function facility.new(num_reactors, cooling_conf)
 
         if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
             local scram = false
+
+            if self.units_ready and self.ascram_reason == AUTO_SCRAM.GEN_FAULT then
+                self.ascram_reason = AUTO_SCRAM.NONE
+            end
 
             if self.induction[1] ~= nil then
                 local matrix = self.induction[1]    ---@type unit_session
@@ -534,6 +561,17 @@ function facility.new(num_reactors, cooling_conf)
                         break
                     end
                 end
+
+                if (self.mode == PROCESS.GEN_RATE) and (not self.units_ready) then
+                    -- system not ready, will need to restart GEN_RATE mode
+                    scram = true
+
+                    if self.ascram_reason == AUTO_SCRAM.NONE then
+                        self.ascram_reason = AUTO_SCRAM.GEN_FAULT
+                    end
+
+                    next_mode = PROCESS.GEN_RATE_FAULT_IDLE
+                end
             else
                 scram = true
 
@@ -564,6 +602,9 @@ function facility.new(num_reactors, cooling_conf)
                 elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
                     log.info("FAC: automatic SCRAM due to critical unit alarm")
                     self.status_text = { "AUTOMATIC SCRAM", "critical unit alarm tripped" }
+                elseif self.ascram_reason == AUTO_SCRAM.GEN_FAULT then
+                    log.info("FAC: automatic SCRAM due to unit problem while in GEN_RATE mode, will resume once all units are ready")
+                    self.status_text = { "GENERATION MODE IDLE", "paused: system not ready" }
                 else
                     log.error(util.c("FAC: automatic SCRAM reason (", self.ascram_reason, ") not set to a known value"))
                 end
@@ -575,6 +616,7 @@ function facility.new(num_reactors, cooling_conf)
             if not self.ascram then
                 self.ascram_reason = AUTO_SCRAM.NONE
 
+                -- do not reset while in gen rate, we have to exit this mode first
                 for i = 1, #self.units do
                     local u = self.units[i] ---@type reactor_unit
                     u.a_cond_rps_reset()

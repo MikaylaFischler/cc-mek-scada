@@ -522,6 +522,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- perform an automatic SCRAM
     function public.a_scram()
         if self.plc_s ~= nil then
+            self.db.control.br100 = 0
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ASCRAM)
         end
     end

@@ -43,7 +43,19 @@ types.PROCESS = {
     CHARGE = 3,
     GEN_RATE = 4,
     MATRIX_FAULT_IDLE = 5,
-    UNIT_ALARM_IDLE = 6
+    UNIT_ALARM_IDLE = 6,
+    GEN_RATE_FAULT_IDLE = 7
+}
+
+types.PROCESS_NAMES = {
+    "INACTIVE",
+    "MAX_BURN",
+    "BURN_RATE",
+    "CHARGE",
+    "GEN_RATE",
+    "MATRIX_FAULT_IDLE",
+    "UNIT_ALARM_IDLE",
+    "GEN_RATE_FAULT_IDLE"
 }
 
 ---@alias WASTE_MODE integer
