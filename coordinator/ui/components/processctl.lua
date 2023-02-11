@@ -64,7 +64,7 @@ local function new_view(root, x, y)
     local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=cpair(colors.green,colors.red)}
     local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=cpair(colors.green,colors.gray)}
     local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local auto_sat   = IndicatorLight{parent=main,label="Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
+    local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
     local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     facility.ps.subscribe("auto_ready", auto_ready.update)
@@ -109,11 +109,11 @@ local function new_view(root, x, y)
 
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=cpair(colors.gray,colors.white)}
     local c_target = SpinboxNumeric{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
-    TextBox{parent=chg_target,x=18,y=2,text="kFE"}
-    local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="kFE",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
+    TextBox{parent=chg_target,x=18,y=2,text="MFE"}
+    local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="MFE",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
 
     facility.ps.subscribe("process_charge_target", c_target.set_value)
-    facility.induction_ps_tbl[1].subscribe("energy", function (j) cur_charge.update(util.joules_to_fe(j) / 1000) end)
+    facility.induction_ps_tbl[1].subscribe("energy", function (j) cur_charge.update(util.joules_to_fe(j) / 1000000) end)
 
     local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=cpair(colors.black,colors.purple)}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}

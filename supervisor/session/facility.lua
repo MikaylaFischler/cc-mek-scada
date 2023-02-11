@@ -30,9 +30,9 @@ local START_STATUS = {
     BLADE_MISMATCH = 2
 }
 
-local charge_Kp = 1.0
+local charge_Kp = 0.275
 local charge_Ki = 0.0
-local charge_Kd = 0.0
+local charge_Kd = 4.5
 
 local rate_Kp = 2.45
 local rate_Ki = 0.4825
@@ -80,9 +80,9 @@ function facility.new(num_reactors, cooling_conf)
         last_time = 0.0,
         -- statistics
         im_stat_init = false,
-        avg_charge = util.mov_avg(10, 0.0),
-        avg_inflow = util.mov_avg(10, 0.0),
-        avg_outflow = util.mov_avg(10, 0.0)
+        avg_charge = util.mov_avg(3, 0.0),
+        avg_inflow = util.mov_avg(6, 0.0),
+        avg_outflow = util.mov_avg(6, 0.0)
     }
 
     -- create units
@@ -290,8 +290,6 @@ function facility.new(num_reactors, cooling_conf)
                     self.start_fail = START_STATUS.NO_UNITS
                 else
                     self.charge_conversion = blade_count * POWER_PER_BLADE
-
-                    log.debug(util.c("FAC: starting auto control: chg_conv = ", self.charge_conversion, ", blade_count = ", blade_count, ", max_burn = ", self.max_burn_combined))
                 end
             elseif self.mode == PROCESS.INACTIVE then
                 for i = 1, #self.prio_defs do
@@ -357,29 +355,20 @@ function facility.new(num_reactors, cooling_conf)
             self.saturated = self.burn_target == self.max_burn_combined or unallocated > 0
         elseif self.mode == PROCESS.CHARGE then
             -- target a level of charge
-            -- convert to kFE to make constants not microscopic
-            local error = (self.charge_setpoint - avg_charge) / 1000000
-
             if state_changed then
+                self.time_start = now
                 self.last_time = now
-                log.debug(util.c("FAC: CHARGE mode first call completed"))
-            elseif self.waiting_on_ramp then
-                if _all_units_ramped() then
-                    self.waiting_on_ramp = false
+                self.last_error = 0
+                self.accumulator = 0
 
-                    self.time_start = now
-                    self.last_time = now
-                    self.last_error = 0
-                    self.accumulator = 0
+                self.status_text = { "CHARGE MODE", "running control loop" }
+                log.info(util.c("FAC: CHARGE mode starting PID control"))
+            elseif self.last_update ~= charge_update then
+                -- convert to kFE to make constants not microscopic
+                local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
 
-                    self.status_text = { "CHARGE MODE", "running control loop" }
-                    log.info(util.c("FAC: CHARGE mode initial ramp completed"))
-                end
-            end
-
-            if not self.waiting_on_ramp and self.last_update ~= rate_update then
-                -- stop accumulator when saturated to avoid windup, deadband accumulator at 1kFE to avoid windup
-                if (not self.saturated) and (math.abs(error) >= 0.001) then
+                -- stop accumulator when saturated to avoid windup
+                if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
@@ -398,16 +387,13 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("PROC_CHRG[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
+                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
                     runtime, avg_charge, error, integral, output, out_c, P, I, D))
 
-                _allocate_burn_rate(out_c, self.initial_ramp)
+                _allocate_burn_rate(out_c, true)
 
                 self.last_time = now
-
-                if self.initial_ramp then
-                    self.waiting_on_ramp = true
-                end
+                self.last_error = error
             end
 
             self.last_update = charge_update
@@ -450,7 +436,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- convert to MFE (in rounded kFE) to make constants not microscopic
                 local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
 
-                -- stop accumulator when saturated to avoid windup, deadband accumulator at 1kFE to avoid windup
+                -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
@@ -656,7 +642,7 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             if (type(config.charge_target) == "number") and config.charge_target >= 0 then
-                self.charge_setpoint = config.charge_target
+                self.charge_setpoint = config.charge_target * 1000000  -- convert MFE to FE
             end
 
             if (type(config.gen_target) == "number") and config.gen_target >= 0 then
