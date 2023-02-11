@@ -47,7 +47,8 @@ function logic.update_annunciator(self)
         --  - can't be tripped
         --  - must have received status at least once
         --  - must have received struct at least once
-        plc_ready = (not plc_db.rps_tripped) and (plc_db.last_status_update > 0) and (plc_db.mek_struct.length > 0)
+        plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and
+                    (next(self.plc_i.get_status()) ~= nil) and (next(self.plc_i.get_struct()) ~= nil)
 
         -- update auto control limit
         if (self.db.control.lim_br100 == 0) or ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then

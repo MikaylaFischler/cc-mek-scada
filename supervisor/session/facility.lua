@@ -35,7 +35,7 @@ local charge_Ki = 0.0
 local charge_Kd = 0.0
 
 local rate_Kp = 2.45
-local rate_Ki = 0.2825  -- 0.1825, 0.2825
+local rate_Ki = 0.4825
 local rate_Kd = -1.0
 
 ---@class facility_management
@@ -271,8 +271,8 @@ function facility.new(num_reactors, cooling_conf)
 
                         if blade_count == nil then
                             blade_count = u_blade_count
-                        elseif u_blade_count ~= blade_count then
-                            log.warning("FAC: cannot start auto control with inconsistent blade counts")
+                        elseif (u_blade_count ~= blade_count) and (self.mode == PROCESS.GEN_RATE) then
+                            log.warning("FAC: cannot start GEN_RATE process with inconsistent unit blade counts")
                             next_mode = PROCESS.INACTIVE
                             self.start_fail = START_STATUS.BLADE_MISMATCH
                         end
@@ -314,9 +314,11 @@ function facility.new(num_reactors, cooling_conf)
         end
 
         -- update unit ready state
+        local assign_count = 0
         self.units_ready = true
         for i = 1, #self.prio_defs do
             for _, u in pairs(self.prio_defs[i]) do
+                assign_count = assign_count + 1
                 self.units_ready = self.units_ready and u.get_control_inf().ready
             end
         end
@@ -325,8 +327,8 @@ function facility.new(num_reactors, cooling_conf)
         if self.mode == PROCESS.INACTIVE then
             if not self.units_ready then
                 self.status_text = { "NOT READY", "assigned units not ready" }
-            elseif self.start_fail == START_STATUS.NO_UNITS then
-                self.status_text = { "START FAILED", "no units assigned" }
+            elseif self.start_fail == START_STATUS.NO_UNITS and assign_count == 0 then
+                self.status_text = { "START FAILED", "no units were assigned" }
             elseif self.start_fail == START_STATUS.BLADE_MISMATCH then
                 self.status_text = { "START FAILED", "turbine blade count mismatch" }
             else
