@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.10.2"
+local RTU_VERSION = "beta-v0.10.3"
 
 local rtu_t = types.rtu_t
 
@@ -222,11 +222,13 @@ local function main()
 
                 ---@class rtu_unit_registry_entry
                 local unit = {
+                    uid = 0,
                     name = "redstone_io",
                     type = rtu_t.redstone,
                     index = entry_idx,
                     reactor = io_reactor,
                     device = capabilities,  -- use device field for redstone ports
+                    is_multiblock = false,
                     formed = nil,       ---@type boolean|nil
                     rtu = rs_rtu,       ---@type rtu_device|rtu_rs_device
                     modbus_io = modbus.new(rs_rtu, false),
@@ -237,6 +239,8 @@ local function main()
                 table.insert(units, unit)
 
                 log.debug(util.c("init> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for reactor ", io_reactor))
+
+                unit.uid = #units
             end
         end
 
@@ -267,9 +271,10 @@ local function main()
             local device = ppm.get_periph(name)
 
             local type = nil
-            local rtu_iface = nil   ---@type rtu_device
+            local rtu_iface = nil       ---@type rtu_device
             local rtu_type = ""
-            local formed = nil      ---@type boolean|nil
+            local is_multiblock = false
+            local formed = nil          ---@type boolean|nil
 
             if device == nil then
                 local message = util.c("configure> '", name, "' not found, using placeholder")
@@ -286,6 +291,7 @@ local function main()
                 -- boiler multiblock
                 rtu_type = rtu_t.boiler_valve
                 rtu_iface = boilerv_rtu.new(device)
+                is_multiblock = true
                 formed = device.isFormed()
 
                 if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
@@ -297,6 +303,7 @@ local function main()
                 -- turbine multiblock
                 rtu_type = rtu_t.turbine_valve
                 rtu_iface = turbinev_rtu.new(device)
+                is_multiblock = true
                 formed = device.isFormed()
 
                 if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
@@ -308,6 +315,7 @@ local function main()
                 -- induction matrix multiblock
                 rtu_type = rtu_t.induction_matrix
                 rtu_iface = imatrix_rtu.new(device)
+                is_multiblock = true
                 formed = device.isFormed()
 
                 if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
@@ -319,6 +327,7 @@ local function main()
                 -- SPS multiblock
                 rtu_type = rtu_t.sps
                 rtu_iface = sps_rtu.new(device)
+                is_multiblock = true
                 formed = device.isFormed()
 
                 if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
@@ -347,15 +356,17 @@ local function main()
 
             ---@class rtu_unit_registry_entry
             local rtu_unit = {
+                uid = 0,
                 name = name,
                 type = rtu_type,
                 index = index,
                 reactor = for_reactor,
                 device = device,
-                formed = formed,
-                rtu = rtu_iface,            ---@type rtu_device|rtu_rs_device
+                is_multiblock = is_multiblock,
+                formed = formed,                        ---@type boolean|nil
+                rtu = rtu_iface,                        ---@type rtu_device|rtu_rs_device
                 modbus_io = modbus.new(rtu_iface, true),
-                pkt_queue = mqueue.new(),   ---@type mqueue|nil
+                pkt_queue = mqueue.new(),               ---@type mqueue|nil
                 thread = nil
             }
 
@@ -373,6 +384,8 @@ local function main()
             end
 
             log.debug(util.c("configure> initialized RTU unit #", #units, ": ", name, " (", rtu_type, ") [", index, "] for ", for_message))
+
+            rtu_unit.uid = #units
         end
 
         -- we made it through all that trusting-user-to-write-a-config-file chaos

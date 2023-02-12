@@ -137,6 +137,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
             -- load in data if correct length
             if m_pkt.length == 1 then
                 self.db.formed = m_pkt.data[1]
+
+                if not self.db.formed then self.has_build = false end
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

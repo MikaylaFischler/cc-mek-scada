@@ -157,22 +157,30 @@ function threads.thread__main(smem)
 
                                 if unit.type == rtu_t.boiler_valve then
                                     unit.rtu = boilerv_rtu.new(device)
-                                    unit.formed = true
+                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
+                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
                                 elseif unit.type == rtu_t.turbine_valve then
                                     unit.rtu = turbinev_rtu.new(device)
-                                    unit.formed = true
+                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
+                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
                                 elseif unit.type == rtu_t.induction_matrix then
                                     unit.rtu = imatrix_rtu.new(device)
-                                    unit.formed = true
+                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
+                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
                                 elseif unit.type == rtu_t.sps then
                                     unit.rtu = sps_rtu.new(device)
-                                    unit.formed = true
+                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
+                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
                                 elseif unit.type == rtu_t.sna then
                                     unit.rtu = sna_rtu.new(device)
                                 elseif unit.type == rtu_t.env_detector then
                                     unit.rtu = envd_rtu.new(device)
                                 else
                                     log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
+                                end
+
+                                if unit.is_multiblock and (unit.formed == false) then
+                                    log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
                                 end
 
                                 unit.modbus_io = modbus.new(unit.rtu, true)
@@ -183,7 +191,7 @@ function threads.thread__main(smem)
                                 if resend_advert then
                                     rtu_comms.send_advertisement(units)
                                 else
-                                    rtu_comms.send_remounted(unit.index)
+                                     rtu_comms.send_remounted(unit.uid)
                                 end
                             end
                         end
@@ -342,8 +350,12 @@ function threads.thread__unit_comms(smem, unit)
             end
 
             -- check if multiblock is still formed if this is a multiblock
-            if (type(unit.formed) == "boolean") and (util.time() - last_f_check > 1000) then
+            if unit.is_multiblock and (util.time_ms() - last_f_check > 250) then
                 local is_formed = unit.device.isFormed()
+
+                last_f_check = util.time_ms()
+
+                if unit.formed == nil then unit.formed = is_formed end
 
                 if (not unit.formed) and is_formed then
                     -- newly re-formed
@@ -384,13 +396,13 @@ function threads.thread__unit_comms(smem, unit)
                                 log.error("illegal remount of non-multiblock RTU attempted for " .. short_name, true)
                             end
 
-                            rtu_comms.send_remounted(unit.index)
+                            rtu_comms.send_remounted(unit.uid)
                         else
                             -- fully lost the peripheral now :(
                             log.error(util.c(unit.name, " lost (failed reconnect)"))
                         end
 
-                        log.info("reconnected the " .. unit.type .. " on interface " .. unit.name)
+                        log.info(util.c("reconnected the ", unit.type, " on interface ", unit.name))
                     else
                         log.error("failed to get interface of previously connected RTU unit " .. detail_name, true)
                     end
