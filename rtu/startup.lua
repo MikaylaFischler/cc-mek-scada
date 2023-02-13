@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.10.4"
+local RTU_VERSION = "beta-v0.10.5"
 
 local rtu_t = types.rtu_t
 
@@ -376,7 +376,7 @@ local function main()
 
             table.insert(units, rtu_unit)
 
-            if not formed then
+            if is_multiblock and not formed then
                 log.debug(util.c("configure> device '", name, "' is not formed"))
             end
 
