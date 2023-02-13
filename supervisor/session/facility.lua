@@ -69,6 +69,12 @@ function facility.new(num_reactors, cooling_conf)
         at_max_burn = false,
         ascram = false,
         ascram_reason = AUTO_SCRAM.NONE,
+        ascram_status = {
+            matrix_dc = false,
+            matrix_fill = false,
+            crit_alarm = false,
+            gen_fault = false
+        },
         -- closed loop control
         charge_conversion = 1.0,
         time_start = 0.0,
@@ -512,111 +518,95 @@ function facility.new(num_reactors, cooling_conf)
         -- Evaluate Automatic SCRAM --
         ------------------------------
 
+        local astatus = self.ascram_status
+
         if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
-            local scram = false
-
-            if self.units_ready and self.ascram_reason == AUTO_SCRAM.GEN_FAULT then
-                self.ascram_reason = AUTO_SCRAM.NONE
-            end
-
             if self.induction[1] ~= nil then
                 local matrix = self.induction[1]    ---@type unit_session
                 local db = matrix.get_db()          ---@type imatrix_session_db
 
-                if self.ascram_reason == AUTO_SCRAM.MATRIX_DC then
-                    self.ascram_reason = AUTO_SCRAM.NONE
-                    log.info("FAC: cleared automatic SCRAM trip due to prior induction matrix disconnect")
+                -- clear matrix disconnected
+                if astatus.matrix_dc then
+                    astatus.matrix_dc = false
+                    log.info("FAC: induction matrix reconnected, clearing ASCRAM condition")
                 end
 
-                if (db.tanks.energy_fill >= HIGH_CHARGE) or
-                   (self.ascram_reason == AUTO_SCRAM.MATRIX_FILL and db.tanks.energy_fill > RE_ENABLE_CHARGE) then
-                    scram = true
+                -- check matrix fill too high
+                local was_fill = astatus.matrix_fill
+                astatus.matrix_fill = (db.tanks.energy_fill >= HIGH_CHARGE) or (astatus.matrix_fill and db.tanks.energy_fill > RE_ENABLE_CHARGE)
 
-                    if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then
-                        self.return_mode = self.mode
-                        next_mode = PROCESS.MATRIX_FAULT_IDLE
-                    end
-
-                    if self.ascram_reason == AUTO_SCRAM.NONE then
-                        self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
-                    end
-                elseif self.ascram_reason == AUTO_SCRAM.MATRIX_FILL then
+                if was_fill and not astatus.matrix_fill then
                     log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
-                    self.ascram_reason = AUTO_SCRAM.NONE
                 end
 
+                -- system not ready, will need to restart GEN_RATE mode
+                -- clears when we enter the fault waiting state
+                astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
+
+                -- check for critical unit alarms
                 for i = 1, #self.units do
                     local u = self.units[i] ---@type reactor_unit
 
                     if u.has_critical_alarm() then
-                        scram = true
-
-                        if self.ascram_reason == AUTO_SCRAM.NONE then
-                            self.ascram_reason = AUTO_SCRAM.CRIT_ALARM
-                        end
-
-                        next_mode = PROCESS.UNIT_ALARM_IDLE
-
-                        log.info("FAC: emergency exit of process control due to critical unit alarm")
+                        log.info(util.c("FAC: emergency exit of process control due to critical unit alarm (unit ", u.get_id(), ")"))
                         break
                     end
                 end
-
-                if (self.mode == PROCESS.GEN_RATE) and (not self.units_ready) then
-                    -- system not ready, will need to restart GEN_RATE mode
-                    scram = true
-
-                    if self.ascram_reason == AUTO_SCRAM.NONE then
-                        self.ascram_reason = AUTO_SCRAM.GEN_FAULT
-                    end
-
-                    next_mode = PROCESS.GEN_RATE_FAULT_IDLE
-                end
             else
-                scram = true
-
-                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then
-                    self.return_mode = self.mode
-                    next_mode = PROCESS.MATRIX_FAULT_IDLE
-                end
-
-                if self.ascram_reason == AUTO_SCRAM.NONE then
-                    self.ascram_reason = AUTO_SCRAM.MATRIX_DC
-                end
+                astatus.matrix_dc = true
             end
 
-            -- SCRAM all units
-            if (not self.ascram) and scram then
+            -- log.debug(util.c("dc: ", astatus.matrix_dc, " fill: ", astatus.matrix_fill, " crit: ", astatus.crit_alarm, " gen: ", astatus.gen_fault))
+
+            local scram = astatus.matrix_dc or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
+
+            if scram and not self.ascram then
+                -- SCRAM all units
                 for i = 1, #self.prio_defs do
                     for _, u in pairs(self.prio_defs[i]) do
                         u.a_scram()
                     end
                 end
 
-                if self.ascram_reason == AUTO_SCRAM.MATRIX_DC then
-                    log.info("FAC: automatic SCRAM due to induction matrix disconnection")
-                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix disconnected" }
-                elseif self.ascram_reason == AUTO_SCRAM.MATRIX_FILL then
-                    log.info("FAC: automatic SCRAM due to induction matrix high charge")
-                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix fill high" }
-                elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
-                    log.info("FAC: automatic SCRAM due to critical unit alarm")
+                if astatus.crit_alarm then
+                    -- highest priority alarm
+                    next_mode = PROCESS.UNIT_ALARM_IDLE
+                    self.ascram_reason = AUTO_SCRAM.CRIT_ALARM
                     self.status_text = { "AUTOMATIC SCRAM", "critical unit alarm tripped" }
-                elseif self.ascram_reason == AUTO_SCRAM.GEN_FAULT then
-                    log.info("FAC: automatic SCRAM due to unit problem while in GEN_RATE mode, will resume once all units are ready")
+
+                    log.info("FAC: automatic SCRAM due to critical unit alarm")
+                elseif astatus.matrix_dc then
+                    next_mode = PROCESS.MATRIX_FAULT_IDLE
+                    self.ascram_reason = AUTO_SCRAM.MATRIX_DC
+                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix disconnected" }
+
+                    if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
+
+                    log.info("FAC: automatic SCRAM due to induction matrix disconnection")
+                elseif astatus.matrix_fill then
+                    next_mode = PROCESS.MATRIX_FAULT_IDLE
+                    self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
+                    self.status_text = { "AUTOMATIC SCRAM", "induction matrix fill high" }
+
+                    if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
+
+                    log.info("FAC: automatic SCRAM due to induction matrix high charge")
+                elseif astatus.gen_fault then
+                    -- lowest priority alarm
+                    next_mode = PROCESS.GEN_RATE_FAULT_IDLE
+                    self.ascram_reason = AUTO_SCRAM.GEN_FAULT
                     self.status_text = { "GENERATION MODE IDLE", "paused: system not ready" }
-                else
-                    log.error(util.c("FAC: automatic SCRAM reason (", self.ascram_reason, ") not set to a known value"))
+
+                    log.info("FAC: automatic SCRAM due to unit problem while in GEN_RATE mode, will resume once all units are ready")
                 end
             end
 
             self.ascram = scram
 
-            -- clear PLC SCRAM if we should
             if not self.ascram then
                 self.ascram_reason = AUTO_SCRAM.NONE
 
-                -- do not reset while in gen rate, we have to exit this mode first
+                -- reset PLC RPS trips if we should
                 for i = 1, #self.units do
                     local u = self.units[i] ---@type reactor_unit
                     u.a_cond_rps_reset()

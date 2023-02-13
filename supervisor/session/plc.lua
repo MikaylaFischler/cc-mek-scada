@@ -62,7 +62,6 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
         ramping_rate = false,
-        auto_scram = false,
         auto_lock = false,
         -- connection properties
         seq_num = 0,
@@ -82,12 +81,14 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
             struct_req = (util.time() + 500),
             status_req = (util.time() + 500),
             scram_req = 0,
+            ascram_req = 0,
             burn_rate_req = 0,
             rps_reset_req = 0
         },
         -- command acknowledgements
         acks = {
             scram = true,
+            ascram = true,
             burn_rate = true,
             rps_reset = true
         },
@@ -398,7 +399,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 -- automatic SCRAM acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
-                    self.acks.scram = true
+                    self.acks.ascram = true
                     self.sDB.control_state = false
                 elseif ack == false then
                     log.debug(log_header .. " automatic SCRAM failed!")
@@ -449,9 +450,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
             elseif pkt.type == RPLC_TYPES.RPS_AUTO_RESET then
                 -- RPS auto control reset acknowledgement
                 local ack = _get_ack(pkt)
-                if ack then
-                    self.auto_scram = false
-                else
+                if not ack then
                     log.debug(log_header .. "RPS auto reset failed")
                 end
             elseif pkt.type == RPLC_TYPES.AUTO_BURN_RATE then
@@ -608,23 +607,22 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                             end
                         elseif cmd == PLC_S_CMDS.SCRAM then
                             -- SCRAM reactor
-                            self.auto_scram = false
                             self.acks.scram = false
                             self.retry_times.scram_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_SCRAM, {})
                         elseif cmd == PLC_S_CMDS.ASCRAM then
                             -- SCRAM reactor
-                            self.auto_scram = true
-                            self.acks.scram = false
-                            self.retry_times.scram_req = util.time() + INITIAL_WAIT
+                            self.acks.ascram = false
+                            self.retry_times.ascram_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_ASCRAM, {})
                         elseif cmd == PLC_S_CMDS.RPS_RESET then
                             -- reset RPS
+                            self.acks.ascram = true
                             self.acks.rps_reset = false
                             self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
                             _send(RPLC_TYPES.RPS_RESET, {})
                         elseif cmd == PLC_S_CMDS.RPS_AUTO_RESET then
-                            if self.auto_scram or self.sDB.rps_status.timeout then
+                            if self.sDB.rps_status.automatic or self.sDB.rps_status.timeout then
                                 _send(RPLC_TYPES.RPS_AUTO_RESET, {})
                             end
                         else
@@ -763,14 +761,18 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
             -- SCRAM request retry
 
             if not self.acks.scram then
-                if rtimes.scram_req - util.time() <= 0 then
-                    if self.auto_scram then
-                        _send(RPLC_TYPES.RPS_ASCRAM, {})
-                    else
-                        _send(RPLC_TYPES.RPS_SCRAM, {})
-                    end
-
+            if rtimes.scram_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.RPS_SCRAM, {})
                     rtimes.scram_req = util.time() + RETRY_PERIOD
+                end
+            end
+
+            -- automatic SCRAM request retry
+
+            if not self.acks.ascram then
+                if rtimes.ascram_req - util.time() <= 0 then
+                    _send(RPLC_TYPES.RPS_ASCRAM, {})
+                    rtimes.ascram_req = util.time() + RETRY_PERIOD
                 end
             end
 
