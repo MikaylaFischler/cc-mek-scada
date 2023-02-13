@@ -108,6 +108,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         plc_cache = {
             active = false,
             ok = false,
+            rps_trip = false,
             ---@type rps_status
             rps_status = {
                 dmg_crit = false,
@@ -315,11 +316,12 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     local __rs_w = rs_rtu_io_ctl.digital_write
     local __rs_r = rs_rtu_io_ctl.digital_read
 
-    -- waste valves
-    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,   true) end, close = function () __rs_w(IO.WASTE_PU,   false) end }
-    local waste_sna = { open = function () __rs_w(IO.WASTE_PO,   true) end, close = function () __rs_w(IO.WASTE_PO,   false) end }
-    local waste_po  = { open = function () __rs_w(IO.WASTE_POPL, true) end, close = function () __rs_w(IO.WASTE_POPL, false) end }
-    local waste_sps = { open = function () __rs_w(IO.WASTE_AM,   true) end, close = function () __rs_w(IO.WASTE_AM,   false) end }
+    -- valves
+    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,    true) end, close = function () __rs_w(IO.WASTE_PU,    false) end }
+    local waste_sna = { open = function () __rs_w(IO.WASTE_PO,    true) end, close = function () __rs_w(IO.WASTE_PO,    false) end }
+    local waste_po  = { open = function () __rs_w(IO.WASTE_POPL,  true) end, close = function () __rs_w(IO.WASTE_POPL,  false) end }
+    local waste_sps = { open = function () __rs_w(IO.WASTE_AM,    true) end, close = function () __rs_w(IO.WASTE_AM,    false) end }
+    local emer_cool = { open = function () __rs_w(IO.U_EMER_COOL, true) end, close = function () __rs_w(IO.U_EMER_COOL, false) end }
 
     --#endregion
 
@@ -462,6 +464,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
         -- update status text
         logic.update_status_text(self)
+
+        -- check if emergency coolant is needed
+        if self.plc_cache.rps_status.no_cool then
+            emer_cool.open()
+        elseif not self.plc_cache.rps_trip then
+            -- can't turn off on sufficient coolant level since it might drop again
+            -- turn off once system is OK again
+            emer_cool.close()
+        end
     end
 
     -- AUTO CONTROL OPERATIONS --

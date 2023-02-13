@@ -68,7 +68,10 @@ local IO_PORT = {
     R_EXCESS_WS   = 18, -- active high, if the reactor has excess waste
     R_INSUFF_FUEL = 19, -- active high, if the reactor has insufficent fuel
     R_PLC_FAULT   = 20, -- active high, if the reactor PLC reports a device access fault
-    R_PLC_TIMEOUT = 21  -- active high, if the reactor PLC has not been heard from
+    R_PLC_TIMEOUT = 21, -- active high, if the reactor PLC has not been heard from
+
+    -- unit outputs
+    U_EMER_COOL   = 22  -- active low, emergency coolant control
 }
 
 rsio.IO_LVL = IO_LVL
@@ -104,7 +107,8 @@ function rsio.to_string(port)
         "R_EXCESS_WS",
         "R_INSUFF_FUEL",
         "R_PLC_FAULT",
-        "R_PLC_TIMEOUT"
+        "R_PLC_TIMEOUT",
+        "U_EMER_COOL"
     }
 
     if util.is_int(port) and port > 0 and port <= #names then
@@ -164,7 +168,9 @@ local RS_DIO_MAP = {
     -- R_PLC_FAULT
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_PLC_TIMEOUT
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT }
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    -- U_EMER_COOL
+    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
 }
 
 -- get the mode of a port
@@ -192,7 +198,8 @@ function rsio.get_io_mode(port)
         IO_MODE.DIGITAL_OUT,    -- R_EXCESS_WS
         IO_MODE.DIGITAL_OUT,    -- R_INSUFF_FUEL
         IO_MODE.DIGITAL_OUT,    -- R_PLC_FAULT
-        IO_MODE.DIGITAL_OUT     -- R_PLC_TIMEOUT
+        IO_MODE.DIGITAL_OUT,    -- R_PLC_TIMEOUT
+        IO_MODE.DIGITAL_OUT     -- U_EMER_COOL
     }
 
     if util.is_int(port) and port > 0 and port <= #modes then
@@ -212,7 +219,7 @@ local RS_SIDES = rs.getSides()
 ---@param port IO_PORT
 ---@return boolean valid
 function rsio.is_valid_port(port)
-    return util.is_int(port) and (port > 0) and (port <= IO_PORT.R_PLC_TIMEOUT)
+    return util.is_int(port) and (port > 0) and (port <= IO_PORT.U_EMER_COOL)
 end
 
 -- check if a side is valid
@@ -261,7 +268,7 @@ end
 ---@param active boolean
 ---@return IO_LVL|false
 function rsio.digital_write_active(port, active)
-    if (not util.is_int(port)) or (port < IO_PORT.F_ALARM) or (port > IO_PORT.R_PLC_TIMEOUT) then
+    if (not util.is_int(port)) or (port < IO_PORT.F_ALARM) or (port > IO_PORT.U_EMER_COOL) then
         return false
     else
         return RS_DIO_MAP[port]._out(active)
