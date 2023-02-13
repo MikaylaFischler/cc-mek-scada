@@ -6,7 +6,7 @@ config.SCADA_DEV_LISTEN = 16000
 config.SCADA_SV_LISTEN = 16100
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
--- time in seconds (>= 1) before assuming a remote device is no longer active
+-- time in seconds (>= 2) before assuming a remote device is no longer active
 config.PLC_TIMEOUT = 5
 config.RTU_TIMEOUT = 5
 config.CRD_TIMEOUT = 5
