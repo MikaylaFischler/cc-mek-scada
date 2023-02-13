@@ -75,11 +75,11 @@ style.boiler = {
         },
         {
             color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
+            text = "NOT FORMED"
         },
         {
             color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
+            text = "RTU  FAULT"
         },
         {
             color = cpair(colors.white, colors.gray),

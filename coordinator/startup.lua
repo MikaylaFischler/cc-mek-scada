@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.9.7"
+local COORDINATOR_VERSION = "beta-v0.9.8"
 
 local print = util.print
 local println = util.println
