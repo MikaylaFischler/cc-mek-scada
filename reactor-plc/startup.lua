@@ -14,7 +14,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.10.9"
+local R_PLC_VERSION = "beta-v0.10.10"
 
 local print = util.print
 local println = util.println
@@ -32,8 +32,11 @@ cfv.assert_type_int(config.REACTOR_ID)
 cfv.assert_port(config.SERVER_PORT)
 cfv.assert_port(config.LISTEN_PORT)
 cfv.assert_type_int(config.TRUSTED_RANGE)
+cfv.assert_type_num(config.COMMS_TIMEOUT)
+cfv.assert_min(config.COMMS_TIMEOUT, 1)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
 ----------------------------------------
@@ -157,8 +160,8 @@ local function main()
             log.debug("init> rps init")
 
             if __shared_memory.networked then
-                -- comms watchdog, 3 second timeout
-                smem_sys.conn_watchdog = util.new_watchdog(3)
+                -- comms watchdog
+                smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
                 log.debug("init> conn watchdog started")
 
                 -- start comms

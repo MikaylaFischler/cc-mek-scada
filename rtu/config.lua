@@ -6,14 +6,18 @@ local config = {}
 config.SERVER_PORT = 16000
 -- port to listen to incoming packets FROM server
 config.LISTEN_PORT = 15001
--- max trusted modem message distance (0 to disable check)
+-- max trusted modem message distance (< 1 to disable check)
 config.TRUSTED_RANGE = 0
+-- time in seconds (>= 1) before assuming a remote device is no longer active
+config.COMMS_TIMEOUT = 5
+
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode
 --  0 = APPEND (adds to existing file on start)
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
+
 -- RTU peripheral devices (named: side/network device name)
 config.RTU_DEVICES = {
     {

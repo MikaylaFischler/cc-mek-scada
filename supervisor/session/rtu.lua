@@ -32,12 +32,13 @@ local PERIODICS = {
 }
 
 -- create a new RTU session
----@param id integer
----@param in_queue mqueue
----@param out_queue mqueue
----@param advertisement table
----@param facility facility
-function rtu.new_session(id, in_queue, out_queue, advertisement, facility)
+---@param id integer session ID
+---@param in_queue mqueue in message queue
+---@param out_queue mqueue out message queue
+---@param timeout number communications timeout
+---@param advertisement table RTU device advertisement
+---@param facility facility facility data table
+function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facility)
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
@@ -50,7 +51,7 @@ function rtu.new_session(id, in_queue, out_queue, advertisement, facility)
         seq_num = 0,
         r_seq_num = nil,
         connected = true,
-        rtu_conn_watchdog = util.new_watchdog(3),
+        rtu_conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {

@@ -46,15 +46,15 @@ local PERIODICS = {
 }
 
 -- PLC supervisor session
----@param id integer
----@param for_reactor integer
----@param in_queue mqueue
----@param out_queue mqueue
-function plc.new_session(id, for_reactor, in_queue, out_queue)
+---@param id integer session ID
+---@param for_reactor integer reactor ID
+---@param in_queue mqueue in message queue
+---@param out_queue mqueue out message queue
+---@param timeout number communications timeout
+function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
-        id = id,
         for_reactor = for_reactor,
         in_q = in_queue,
         out_q = out_queue,
@@ -70,7 +70,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         connected = true,
         received_struct = false,
         received_status_cache = false,
-        plc_conn_watchdog = util.new_watchdog(3),
+        plc_conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -248,7 +248,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(self.id, msg_type, msg)
+        r_pkt.make(for_reactor, msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
 
         self.out_q.push_packet(s_pkt)
@@ -503,7 +503,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
-    function public.get_id() return self.id end
+    function public.get_id() return id end
 
     -- get the session database
     function public.get_db() return self.sDB end

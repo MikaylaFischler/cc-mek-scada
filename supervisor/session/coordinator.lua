@@ -42,11 +42,12 @@ local PERIODICS = {
 }
 
 -- coordinator supervisor session
----@param id integer
----@param in_queue mqueue
----@param out_queue mqueue
----@param facility facility
-function coordinator.new_session(id, in_queue, out_queue, facility)
+---@param id integer session ID
+---@param in_queue mqueue in message queue
+---@param out_queue mqueue out message queue
+---@param timeout number communications timeout
+---@param facility facility facility data table
+function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
@@ -57,7 +58,7 @@ function coordinator.new_session(id, in_queue, out_queue, facility)
         seq_num = 0,
         r_seq_num = nil,
         connected = true,
-        conn_watchdog = util.new_watchdog(5),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {

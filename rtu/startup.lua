@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.10.3"
+local RTU_VERSION = "beta-v0.10.4"
 
 local rtu_t = types.rtu_t
 
@@ -43,6 +43,8 @@ local cfv = util.new_validator()
 cfv.assert_port(config.SERVER_PORT)
 cfv.assert_port(config.LISTEN_PORT)
 cfv.assert_type_int(config.TRUSTED_RANGE)
+cfv.assert_type_num(config.COMMS_TIMEOUT)
+cfv.assert_min(config.COMMS_TIMEOUT, 1)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 cfv.assert_type_table(config.RTU_DEVICES)
@@ -400,7 +402,7 @@ local function main()
 
     if configure() then
         -- start connection watchdog
-        smem_sys.conn_watchdog = util.new_watchdog(5)
+        smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
         log.debug("boot> conn watchdog started")
 
         -- setup comms

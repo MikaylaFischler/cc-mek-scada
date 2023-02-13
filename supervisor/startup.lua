@@ -14,7 +14,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.11.1"
+local SUPERVISOR_VERSION = "beta-v0.11.2"
 
 local print = util.print
 local println = util.println
@@ -30,6 +30,12 @@ local cfv = util.new_validator()
 cfv.assert_port(config.SCADA_DEV_LISTEN)
 cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_type_int(config.TRUSTED_RANGE)
+cfv.assert_type_num(config.PLC_TIMEOUT)
+cfv.assert_min(config.PLC_TIMEOUT, 1)
+cfv.assert_type_num(config.RTU_TIMEOUT)
+cfv.assert_min(config.RTU_TIMEOUT, 1)
+cfv.assert_type_num(config.CRD_TIMEOUT)
+cfv.assert_min(config.CRD_TIMEOUT, 1)
 cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_str(config.LOG_PATH)

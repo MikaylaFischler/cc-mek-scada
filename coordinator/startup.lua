@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.9.6"
+local COORDINATOR_VERSION = "beta-v0.9.7"
 
 local print = util.print
 local println = util.println
@@ -42,14 +42,15 @@ cfv.assert_port(config.SCADA_SV_PORT)
 cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.TRUSTED_RANGE)
+cfv.assert_type_num(config.COMMS_TIMEOUT)
+cfv.assert_min(config.COMMS_TIMEOUT, 1)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_bool(config.RECOLOR)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.SECURE)
-cfv.assert_type_str(config.PASSWORD)
+
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
 ----------------------------------------
@@ -142,7 +143,7 @@ local function main()
     end
 
     -- create connection watchdog
-    local conn_watchdog = util.new_watchdog(5)
+    local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
     conn_watchdog.cancel()
     log.debug("boot> conn watchdog created")
 
