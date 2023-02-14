@@ -49,8 +49,9 @@ local facility = {}
 function facility.new(num_reactors, cooling_conf)
     local self = {
         units = {},
-        induction = {},
         redstone = {},
+        induction = {},
+        envd = {},
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
         -- process control
@@ -199,11 +200,18 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.induction, imatrix)
     end
 
+    -- link an environment detector RTU session
+    ---@param envd unit_session
+    function public.add_envd(envd)
+        table.insert(self.envd, envd)
+    end
+
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
     function public.purge_rtu_devices(session)
         util.filter_table(self.redstone,  function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.induction, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.envd,      function (s) return s.get_session_id() ~= session end)
     end
 
     -- UPDATE --
@@ -211,8 +219,9 @@ function facility.new(num_reactors, cooling_conf)
     -- update (iterate) the facility management
     function public.update()
         -- unlink RTU unit sessions if they are closed
-        _unlink_disconnected_units(self.induction)
         _unlink_disconnected_units(self.redstone)
+        _unlink_disconnected_units(self.induction)
+        _unlink_disconnected_units(self.envd)
 
         -- current state for process control
         local charge_update = 0
@@ -785,7 +794,15 @@ function facility.new(num_reactors, cooling_conf)
             }
         end
 
-        ---@todo other RTU statuses
+        -- radiation monitors (environment detectors)
+        status.rad_mon = {}
+        for i = 1, #self.envd do
+            local envd = self.envd[i]   ---@type unit_session
+            status.rad_mon[envd.get_device_idx()] = {
+                envd.is_faulted(),
+                envd.get_db().radiation
+            }
+        end
 
         return status
     end

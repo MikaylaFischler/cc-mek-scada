@@ -31,13 +31,15 @@ function iocontrol.init(conf, comms)
         auto_saturated = false,
         auto_scram = false,
 
-        num_units = conf.num_units,                 ---@type integer
+        radiation = { radiation = 0, unit = "nSv" },    ---@type radiation_reading
 
-        save_cfg_ack = function (success) end,      ---@param success boolean
-        start_ack = function (success) end,         ---@param success boolean
-        stop_ack = function (success) end,          ---@param success boolean
-        scram_ack = function (success) end,         ---@param success boolean
-        ack_alarms_ack = function (success) end,    ---@param success boolean
+        num_units = conf.num_units,                     ---@type integer
+
+        save_cfg_ack = function (success) end,          ---@param success boolean
+        start_ack = function (success) end,             ---@param success boolean
+        stop_ack = function (success) end,              ---@param success boolean
+        scram_ack = function (success) end,             ---@param success boolean
+        ack_alarms_ack = function (success) end,        ---@param success boolean
 
         ps = psil.create(),
 
@@ -62,7 +64,8 @@ function iocontrol.init(conf, comms)
 
         ---@class ioctl_unit
         local entry = {
-            unit_id = i,            ---@type integer
+            ---@type integer
+            unit_id = i,
 
             num_boilers = 0,
             num_turbines = 0,
@@ -70,8 +73,9 @@ function iocontrol.init(conf, comms)
             control_state = false,
             burn_rate_cmd = 0.0,
             waste_control = 0,
+            radiation = { radiation = 0, unit = "nSv" },                ---@type radiation_reading
 
-            a_group = 0,            -- auto control group
+            a_group = 0,                                                -- auto control group
 
             start = function () process.start(i) end,
             scram = function () process.scram(i) end,
@@ -370,6 +374,24 @@ function iocontrol.update_facility_status(status)
             else
                 log.debug(log_header .. "induction matrix list not a table")
             end
+
+            -- environment detector status
+            if type(rtu_statuses.rad_mon) == "table" then
+                if #rtu_statuses.rad_mon > 0 then
+                    local rad_mon = rtu_statuses.rad_mon[1]
+                    local rtu_faulted = rad_mon[1]  ---@type boolean
+                    fac.radiation     = rad_mon[2]  ---@type number
+
+                    fac.ps.publish("RadMonOnline", util.trinary(rtu_faulted, 2, 3))
+                    fac.ps.publish("radiation", fac.radiation)
+                else
+                    fac.radiation = { radiation = 0, unit = "nSv" }
+                    fac.ps.publish("RadMonOnline", 1)
+                end
+            else
+                log.debug(log_header .. "radiation monitor list not a table")
+                return false
+            end
         end
     end
 
@@ -575,6 +597,24 @@ function iocontrol.update_unit_statuses(statuses)
                     log.debug(log_header .. "turbine list not a table")
                     return false
                 end
+
+                -- environment detector status
+                if type(rtu_statuses.rad_mon) == "table" then
+                    if #rtu_statuses.rad_mon > 0 then
+                        local rad_mon = rtu_statuses.rad_mon[1]
+                        local rtu_faulted = rad_mon[1]  ---@type boolean
+                        unit.radiation    = rad_mon[2]  ---@type number
+
+                        unit.unit_ps.publish("RadMonOnline", util.trinary(rtu_faulted, 2, 3))
+                        unit.unit_ps.publish("radiation", unit.radiation)
+                    else
+                        unit.radiation = { radiation = 0, unit = "nSv" }
+                        unit.unit_ps.publish("RadMonOnline", 1)
+                    end
+                else
+                    log.debug(log_header .. "radiation monitor list not a table")
+                    return false
+                end
             else
                 log.debug(log_header .. "rtu list not a table")
             end
@@ -657,20 +697,6 @@ function iocontrol.update_unit_statuses(statuses)
                 end
             else
                 log.debug(log_header .. "unit state not a table")
-            end
-
-            -- auto control state fields
-
-            local auto_ctl_state = status[6]
-
-            if type(auto_ctl_state) == "table" then
-                if #auto_ctl_state == 0 then
-                    ---@todo
-                else
-                    log.debug(log_header .. "auto control state length mismatch")
-                end
-            else
-                log.debug(log_header .. "auto control state not a table")
             end
         end
 

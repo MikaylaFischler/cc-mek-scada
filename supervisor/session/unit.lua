@@ -73,9 +73,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         defs = { FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS },
-        turbines = {},
-        boilers = {},
         redstone = {},
+        boilers = {},
+        turbines = {},
+        envd = {},
         -- auto control
         ramp_target_br100 = 0,
         -- state tracking
@@ -397,12 +398,19 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
+    -- link an environment detector RTU session
+    ---@param envd unit_session
+    function public.add_envd(envd)
+        table.insert(self.envd, envd)
+    end
+
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
     function public.purge_rtu_devices(session)
-        util.filter_table(self.turbines, function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.boilers,  function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.redstone, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.boilers,  function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.turbines, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.envd,     function (s) return s.get_session_id() ~= session end)
     end
 
     --#endregion
@@ -420,9 +428,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
 
         -- unlink RTU unit sessions if they are closed
+        _unlink_disconnected_units(self.redstone)
         _unlink_disconnected_units(self.boilers)
         _unlink_disconnected_units(self.turbines)
-        _unlink_disconnected_units(self.redstone)
+        _unlink_disconnected_units(self.envd)
 
         -- update degraded state for auto control
         self.db.control.degraded = (#self.boilers ~= num_boilers) or (#self.turbines ~= num_turbines) or (self.plc_i == nil)
@@ -709,7 +718,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             }
         end
 
-        ---@todo other RTU statuses
+        -- radiation monitors (environment detectors)
+        status.rad_mon = {}
+        for i = 1, #self.envd do
+            local envd = self.envd[i]       ---@type unit_session
+            status.rad_mon[envd.get_device_idx()] = {
+                envd.is_faulted(),
+                envd.get_db().radiation
+            }
+        end
 
         return status
     end

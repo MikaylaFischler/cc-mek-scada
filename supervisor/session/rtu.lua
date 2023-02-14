@@ -136,6 +136,10 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         -- turbine (Mekanism 10.1+)
                         unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
+                    elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                        -- environment detector
+                        unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_envd(unit) end
                     else
                         log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-specific RTU type ", type_string))
                     end
@@ -157,6 +161,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                     elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_envd(unit) end
                     else
                         log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-independent RTU type ", type_string))
                     end

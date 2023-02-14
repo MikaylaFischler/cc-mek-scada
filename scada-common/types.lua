@@ -11,6 +11,10 @@ local types = {}
 ---@field name string
 ---@field amount integer
 
+---@class radiation_reading
+---@field radiation number
+---@field unit string
+
 ---@class coordinate
 ---@field x integer
 ---@field y integer

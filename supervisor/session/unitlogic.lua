@@ -16,6 +16,11 @@ local aistate_string = {
     "RING_BACK_TRIPPING"
 }
 
+-- background radiation 0.0000001 Sv/h (99.99 nSv/h)
+-- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
+-- damaging radiation 0.00006 Sv/h (60 uSv/h)
+local RADIATION_ALARM_LEVEL = 0.00005   -- 50 uSv/h, not yet damaging but this isn't good
+
 ---@class unit_logic_extension
 local logic = {}
 
@@ -388,8 +393,12 @@ function logic.update_alarms(self)
     _update_alarm_state(self, (not plc_cache.ok) and (plc_cache.damage > 99), self.alarms.ContainmentBreach)
 
     -- Containment Radiation
-    ---@todo containment radiation alarm
-    _update_alarm_state(self, false, self.alarms.ContainmentRadiation)
+    local rad_alarm = false
+    for i = 1, #self.envd do
+        rad_alarm = self.envd[i].get_db().radiation_raw > RADIATION_ALARM_LEVEL
+        break
+    end
+    _update_alarm_state(self, rad_alarm, self.alarms.ContainmentRadiation)
 
     -- Reactor Lost
     _update_alarm_state(self, self.had_reactor and self.plc_i == nil, self.alarms.ReactorLost)

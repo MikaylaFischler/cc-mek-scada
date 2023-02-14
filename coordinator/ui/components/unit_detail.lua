@@ -16,6 +16,7 @@ local AlarmLight        = require("graphics.elements.indicators.alight")
 local CoreMap           = require("graphics.elements.indicators.coremap")
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
+local RadIndicator      = require("graphics.elements.indicators.rad")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 local VerticalBar       = require("graphics.elements.indicators.vbar")
 
@@ -133,9 +134,9 @@ local function init(parent, id)
     local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     u_ps.subscribe("damage", damage_p.update)
 
-    ---@todo radiation monitor
     TextBox{parent=main,x=32,y=31,text="Radiation",height=1,width=21,fg_bg=style.label}
-    DataIndicator{parent=main,x=32,label="",format="%7.2f",value=0,unit="mSv/h",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local radiation = RadIndicator{parent=main,x=32,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    u_ps.subscribe("radiation", radiation.update)
 
     -------------------
     -- system status --
@@ -164,13 +165,13 @@ local function init(parent, id)
 
     annunciator.line_break()
 
-    ---@todo radiation monitor
-    local rad_mon    = IndicatorLight{parent=annunciator,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
+    local rad_mon = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
 
     u_ps.subscribe("PLCOnline", plc_online.update)
     u_ps.subscribe("PLCHeartbeat", plc_hbeat.update)
     u_ps.subscribe("status", r_active.update)
     u_ps.subscribe("AutoControl", r_auto.update)
+    u_ps.subscribe("RadMonOnline", rad_mon.update)
 
     annunciator.line_break()
 
@@ -213,7 +214,7 @@ local function init(parent, id)
     local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
     local rps_noc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
     local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local rps_tmo = IndicatorLight{parent=rps_annunc,label="Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
     local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     u_ps.subscribe("rps_tripped", rps_trp.update)

@@ -44,7 +44,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
         ---@class envd_session_db
         db = {
             last_update = 0,
-            radiation = {},
+            radiation = { radiation = 0, unit = "nSv" },    ---@type radiation_reading
             radiation_raw = 0
         }
     }

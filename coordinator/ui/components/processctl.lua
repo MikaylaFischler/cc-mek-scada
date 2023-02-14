@@ -14,6 +14,7 @@ local TextBox           = require("graphics.elements.textbox")
 
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
+local RadIndicator      = require("graphics.elements.indicators.rad")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 local VerticalBar       = require("graphics.elements.indicators.vbar")
 
@@ -42,6 +43,7 @@ local function new_view(root, x, y)
 
     local bw_fg_bg   = cpair(colors.black, colors.white)
     local hzd_fg_bg  = cpair(colors.white, colors.gray)
+    local lu_cpair   = cpair(colors.gray, colors.gray)
     local dis_colors = cpair(colors.white, colors.lightGray)
 
     local main = Div{parent=root,width=104,height=24,x=x,y=y}
@@ -52,12 +54,13 @@ local function new_view(root, x, y)
     facility.scram_ack = scram.on_response
     facility.ack_alarms_ack = ack_a.on_response
 
-    local all_ok = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
+    local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
-    local rad_mon = IndicatorLight{parent=main,label="Radiation Monitor",colors=cpair(colors.green,colors.gray)}
+    local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
 
     facility.ps.subscribe("all_sys_ok", all_ok.update)
     facility.induction_ps_tbl[1].subscribe("computed_status", function (status) ind_mat.update(status > 1) end)
+    facility.ps.subscribe("RadMonOnline", rad_mon.update)
 
     main.line_break()
 
@@ -65,21 +68,25 @@ local function new_view(root, x, y)
     local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=cpair(colors.green,colors.gray)}
     local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
     local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
-    local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     facility.ps.subscribe("auto_ready", auto_ready.update)
     facility.ps.subscribe("auto_active", auto_act.update)
     facility.ps.subscribe("auto_ramping", auto_ramp.update)
     facility.ps.subscribe("auto_saturated", auto_sat.update)
-    facility.ps.subscribe("auto_scram", auto_scram.update)
 
     main.line_break()
 
-    local _ = IndicatorLight{parent=main,label="Unit Off-line",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_1000_MS}
-    local _ = IndicatorLight{parent=main,label="Unit RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local _ = IndicatorLight{parent=main,label="Matrix Disconnected",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local _ = IndicatorLight{parent=main,label="Matrix Charge High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local _ = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local _ = IndicatorLight{parent=main,label="High Charge Level",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local _ = IndicatorLight{parent=main,label="Gen. Control Fault",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
+    facility.ps.subscribe("auto_scram", auto_scram.update)
+
+    TextBox{parent=main,y=23,text="Radiation",height=1,width=21,fg_bg=style.label}
+    local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    facility.ps.subscribe("radiation", radiation.update)
 
     ---------------------
     -- process control --
