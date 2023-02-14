@@ -417,7 +417,7 @@ function iocontrol.update_unit_statuses(statuses)
             local unit = io.units[i]    ---@type ioctl_unit
             local status = statuses[i]
 
-            if type(status) ~= "table" or #status ~= 6 then
+            if type(status) ~= "table" or #status ~= 5 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
                 return false
             end
