@@ -1,6 +1,7 @@
 local comms    = require("scada-common.comms")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
+local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
 local svqtypes = require("supervisor.session.svqtypes")
@@ -149,8 +150,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
-                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                min_pos = types.new_zero_coordinate(),
+                max_pos = types.new_zero_coordinate(),
                 heat_cap = 0,
                 fuel_asm = 0,
                 fuel_sa = 0,

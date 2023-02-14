@@ -74,8 +74,8 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
-                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                min_pos = types.new_zero_coordinate(),
+                max_pos = types.new_zero_coordinate(),
                 blades = 0,
                 coils = 0,
                 vents = 0,
@@ -96,7 +96,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
             },
             tanks = {
                 last_update = 0,
-                steam = { type = "mekanism:empty_gas", amount = 0 }, ---@type tank_fluid
+                steam = types.new_empty_gas(),
                 steam_need = 0,
                 steam_fill = 0.0,
                 energy = 0,

@@ -31,7 +31,7 @@ function iocontrol.init(conf, comms)
         auto_saturated = false,
         auto_scram = false,
 
-        radiation = { radiation = 0, unit = "nSv" },    ---@type radiation_reading
+        radiation = types.new_zero_radiation_reading(),
 
         num_units = conf.num_units,                     ---@type integer
 
@@ -73,7 +73,7 @@ function iocontrol.init(conf, comms)
             control_state = false,
             burn_rate_cmd = 0.0,
             waste_control = 0,
-            radiation = { radiation = 0, unit = "nSv" },                ---@type radiation_reading
+            radiation = types.new_zero_radiation_reading(),
 
             a_group = 0,                                                -- auto control group
 

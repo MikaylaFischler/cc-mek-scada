@@ -64,10 +64,10 @@ function sna.new(session_id, unit_id, advert, out_queue)
             },
             tanks = {
                 last_update = 0,
-                input = {},         ---@type tank_fluid
+                input = types.new_empty_gas(),
                 input_need = 0,
                 input_fill = 0.0,
-                output = {},        ---@type tank_fluid
+                output = types.new_empty_gas(),
                 output_need = 0,
                 output_fill = 0.0
             }

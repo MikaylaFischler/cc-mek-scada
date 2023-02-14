@@ -62,8 +62,8 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 length = 0,
                 width = 0,
                 height = 0,
-                min_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
-                max_pos = { x = 0, y = 0, z = 0 },  ---@type coordinate
+                min_pos = types.new_zero_coordinate(),
+                max_pos = types.new_zero_coordinate(),
                 coils = 0,
                 input_cap = 0,
                 output_cap = 0,
@@ -75,10 +75,10 @@ function sps.new(session_id, unit_id, advert, out_queue)
             },
             tanks = {
                 last_update = 0,
-                input = {},         ---@type tank_fluid
+                input = types.new_empty_gas(),
                 input_need = 0,
                 input_fill = 0.0,
-                output = {},        ---@type tank_fluid
+                output = types.new_empty_gas(),
                 output_need = 0,
                 output_fill = 0.0,
                 energy = 0,

@@ -11,14 +11,45 @@ local types = {}
 ---@field name string
 ---@field amount integer
 
+-- create a new tank fluid
+---@param n string name
+---@param a integer amount
+---@return radiation_reading
+function types.new_tank_fluid(n, a) return { name = n, amount = a } end
+
+-- create a new empty tank fluid
+---@return tank_fluid
+function types.new_empty_gas() return { type = "mekanism:empty_gas", amount = 0 } end
+
 ---@class radiation_reading
 ---@field radiation number
 ---@field unit string
+
+-- create a new radiation reading
+---@param r number radiaiton level
+---@param u string radiation unit
+---@return radiation_reading
+function types.new_radiation_reading(r, u) return { radiation = r, unit = u } end
+
+-- create a new zeroed radiation reading
+---@return radiation_reading
+function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv" } end
 
 ---@class coordinate
 ---@field x integer
 ---@field y integer
 ---@field z integer
+
+-- create a new coordinate
+---@param x integer
+---@param y integer
+---@param z integer
+---@return coordinate
+function types.new_coordinate(x, y, z) return { x = x, y = y, z = z } end
+
+-- create a new zero coordinate
+---@return coordinate
+function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 
 ---@class rtu_advertisement
 ---@field type integer
@@ -47,7 +78,7 @@ types.PROCESS = {
     CHARGE = 3,
     GEN_RATE = 4,
     MATRIX_FAULT_IDLE = 5,
-    UNIT_ALARM_IDLE = 6,
+    SYSTEM_ALARM_IDLE = 6,
     GEN_RATE_FAULT_IDLE = 7
 }
 
@@ -58,7 +89,7 @@ types.PROCESS_NAMES = {
     "CHARGE",
     "GEN_RATE",
     "MATRIX_FAULT_IDLE",
-    "UNIT_ALARM_IDLE",
+    "SYSTEM_ALARM_IDLE",
     "GEN_RATE_FAULT_IDLE"
 }
 
