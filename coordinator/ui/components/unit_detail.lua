@@ -171,7 +171,7 @@ local function init(parent, id)
     u_ps.subscribe("PLCHeartbeat", plc_hbeat.update)
     u_ps.subscribe("status", r_active.update)
     u_ps.subscribe("AutoControl", r_auto.update)
-    u_ps.subscribe("RadMonOnline", rad_mon.update)
+    u_ps.subscribe("rad_computed_status", rad_mon.update)
 
     annunciator.line_break()
 

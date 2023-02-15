@@ -15,6 +15,11 @@ local POWER_PER_BLADE = util.joules_to_fe(7140)
 
 local FLOW_STABILITY_DELAY_S = unit.FLOW_STABILITY_DELAY_MS / 1000
 
+-- background radiation 0.0000001 Sv/h (99.99 nSv/h)
+-- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
+-- damaging radiation 0.00006 Sv/h (60 uSv/h)
+local RADIATION_ALARM_LEVEL = 0.00001
+
 local HIGH_CHARGE = 1.0
 local RE_ENABLE_CHARGE = 0.95
 
@@ -23,7 +28,8 @@ local AUTO_SCRAM = {
     MATRIX_DC = 1,
     MATRIX_FILL = 2,
     CRIT_ALARM = 3,
-    GEN_FAULT = 4
+    RADIATION = 4,
+    GEN_FAULT = 5
 }
 
 local START_STATUS = {
@@ -70,10 +76,12 @@ function facility.new(num_reactors, cooling_conf)
         at_max_burn = false,
         ascram = false,
         ascram_reason = AUTO_SCRAM.NONE,
+        ---@class ascram_status
         ascram_status = {
             matrix_dc = false,
             matrix_fill = false,
             crit_alarm = false,
+            radiation = false,
             gen_fault = false
         },
         -- closed loop control
@@ -277,7 +285,7 @@ function facility.new(num_reactors, cooling_conf)
             if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
                 self.start_fail = START_STATUS.OK
 
-                if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
+                if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
                     -- auto clear ASCRAM
                     self.ascram = false
                 end
@@ -488,12 +496,7 @@ function facility.new(num_reactors, cooling_conf)
                 log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
 
-                local _, fault = _allocate_burn_rate(out_c, false)
-
-                if fault then
-                    log.info("FAC: one or more units degraded, pausing GEN_RATE process control")
-                    next_mode = PROCESS.GEN_RATE_FAULT_IDLE
-                end
+                _allocate_burn_rate(out_c, false)
 
                 self.last_time = now
                 self.last_error = error
@@ -509,7 +512,7 @@ function facility.new(num_reactors, cooling_conf)
                 next_mode = PROCESS.INACTIVE
                 log.info("FAC: exiting matrix fault idle state due to critical unit alarm")
             end
-        elseif self.mode == PROCESS.UNIT_ALARM_IDLE then
+        elseif self.mode == PROCESS.SYSTEM_ALARM_IDLE then
             -- do nothing, wait for user to confirm (stop and reset)
         elseif self.mode == PROCESS.GEN_RATE_FAULT_IDLE then
             -- system faulted (degraded/not ready) while running generation rate mode
@@ -529,7 +532,7 @@ function facility.new(num_reactors, cooling_conf)
 
         local astatus = self.ascram_status
 
-        if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.UNIT_ALARM_IDLE) then
+        if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
             if self.induction[1] ~= nil then
                 local matrix = self.induction[1]    ---@type unit_session
                 local db = matrix.get_db()          ---@type imatrix_session_db
@@ -548,10 +551,6 @@ function facility.new(num_reactors, cooling_conf)
                     log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
                 end
 
-                -- system not ready, will need to restart GEN_RATE mode
-                -- clears when we enter the fault waiting state
-                astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
-
                 -- check for critical unit alarms
                 for i = 1, #self.units do
                     local u = self.units[i] ---@type reactor_unit
@@ -561,6 +560,21 @@ function facility.new(num_reactors, cooling_conf)
                         break
                     end
                 end
+
+                -- check for facility radiation
+                if self.envd[1] ~= nil then
+                    local envd = self.envd[1]   ---@type unit_session
+                    local e_db = envd.get_db()  ---@type envd_session_db
+
+                    astatus.radiation = e_db.radiation_raw > RADIATION_ALARM_LEVEL
+                else
+                    -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
+                    -- operator can restart the system or hit the stop/reset button
+                end
+
+                -- system not ready, will need to restart GEN_RATE mode
+                -- clears when we enter the fault waiting state
+                astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
             else
                 astatus.matrix_dc = true
             end
@@ -579,11 +593,17 @@ function facility.new(num_reactors, cooling_conf)
 
                 if astatus.crit_alarm then
                     -- highest priority alarm
-                    next_mode = PROCESS.UNIT_ALARM_IDLE
+                    next_mode = PROCESS.SYSTEM_ALARM_IDLE
                     self.ascram_reason = AUTO_SCRAM.CRIT_ALARM
                     self.status_text = { "AUTOMATIC SCRAM", "critical unit alarm tripped" }
 
                     log.info("FAC: automatic SCRAM due to critical unit alarm")
+                elseif astatus.radiation then
+                    next_mode = PROCESS.SYSTEM_ALARM_IDLE
+                    self.ascram_reason = AUTO_SCRAM.RADIATION
+                    self.status_text = { "AUTOMATIC SCRAM", "facility radiation high" }
+
+                    log.info("FAC: automatic SCRAM due to high facility radiation")
                 elseif astatus.matrix_dc then
                     next_mode = PROCESS.MATRIX_FAULT_IDLE
                     self.ascram_reason = AUTO_SCRAM.MATRIX_DC
@@ -758,6 +778,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- get automatic process control status
     function public.get_control_status()
+        local astat = self.ascram_status
         return {
             self.all_sys_ok,
             self.units_ready,
@@ -765,6 +786,11 @@ function facility.new(num_reactors, cooling_conf)
             self.waiting_on_ramp or self.waiting_on_stable,
             self.at_max_burn or self.saturated,
             self.ascram,
+            astat.matrix_dc,
+            astat.matrix_fill,
+            astat.crit_alarm,
+            astat.radiation,
+            astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
             self.status_text[1],
             self.status_text[2],
             self.group_map

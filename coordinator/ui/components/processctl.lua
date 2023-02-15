@@ -60,7 +60,7 @@ local function new_view(root, x, y)
 
     facility.ps.subscribe("all_sys_ok", all_ok.update)
     facility.induction_ps_tbl[1].subscribe("computed_status", function (status) ind_mat.update(status > 1) end)
-    facility.ps.subscribe("RadMonOnline", rad_mon.update)
+    facility.ps.subscribe("rad_computed_status", rad_mon.update)
 
     main.line_break()
 
@@ -76,13 +76,19 @@ local function new_view(root, x, y)
 
     main.line_break()
 
-    local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local _ = IndicatorLight{parent=main,label="Matrix Disconnected",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local _ = IndicatorLight{parent=main,label="Matrix Charge High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local _ = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local _ = IndicatorLight{parent=main,label="Gen. Control Fault",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local auto_scram  = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local matrix_dc   = IndicatorLight{parent=main,label="Matrix Disconnected",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local matrix_fill = IndicatorLight{parent=main,label="Matrix Charge High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local unit_crit   = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     facility.ps.subscribe("auto_scram", auto_scram.update)
+    facility.ps.subscribe("as_matrix_dc", matrix_dc.update)
+    facility.ps.subscribe("as_matrix_fill", matrix_fill.update)
+    facility.ps.subscribe("as_crit_alarm", unit_crit.update)
+    facility.ps.subscribe("as_radiation", fac_rad_h.update)
+    facility.ps.subscribe("as_gen_fault", gen_fault.update)
 
     TextBox{parent=main,y=23,text="Radiation",height=1,width=21,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
