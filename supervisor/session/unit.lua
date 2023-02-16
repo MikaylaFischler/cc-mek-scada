@@ -163,10 +163,12 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 -- reactor
                 PLCOnline = false,
                 PLCHeartbeat = false,   -- alternate true/false to blink, each time there is a keep_alive
+                RadiationMonitor = 1,
                 AutoControl = false,
                 ReactorSCRAM = false,
                 ManualReactorSCRAM = false,
                 AutoReactorSCRAM = false,
+                RadiationWarning = false,
                 RCPTrip = false,
                 RCSFlowLow = false,
                 CoolantLevelLow = false,
@@ -175,16 +177,19 @@ function unit.new(for_reactor, num_boilers, num_turbines)
                 FuelInputRateLow = false,
                 WasteLineOcclusion = false,
                 HighStartupRate = false,
-                -- boiler
+                -- cooling
+                RCSFault = false,
+                EmergencyCoolant = 1,
+                CoolantFeedMismatch = false,
+                BoilRateMismatch = false,
+                SteamFeedMismatch = false,
+                MaxWaterReturnFeed = false,
+                -- boilers
                 BoilerOnline = {},
                 HeatingRateLow = {},
                 WaterLevelLow = {},
-                BoilRateMismatch = false,
-                CoolantFeedMismatch = false,
-                -- turbine
+                -- turbines
                 TurbineOnline = {},
-                SteamFeedMismatch = false,
-                MaxWaterReturnFeed = false,
                 SteamDumpOpen = {},
                 TurbineOverSpeed = {},
                 TurbineTrip = {}

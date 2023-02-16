@@ -1,5 +1,6 @@
 -- Radiation Indicator Graphics Element
 
+local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
 local element = require("graphics.element")
@@ -80,7 +81,7 @@ local function rad(args)
     function e.set_value(val) e.on_update(val) end
 
     -- initial value draw
-    e.on_update({ radiation = 0, unit = "nSv" })
+    e.on_update(types.new_zero_radiation_reading())
 
     return e.get()
 end

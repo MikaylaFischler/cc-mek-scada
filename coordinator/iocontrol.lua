@@ -23,7 +23,9 @@ local io = {}
 function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
+        num_units = conf.num_units, ---@type integer
         all_sys_ok = false,
+        rtu_count = 0,
 
         auto_ready = false,
         auto_active = false,
@@ -41,8 +43,6 @@ function iocontrol.init(conf, comms)
         },
 
         radiation = types.new_zero_radiation_reading(),
-
-        num_units = conf.num_units,                     ---@type integer
 
         save_cfg_ack = function (success) end,          ---@param success boolean
         start_ack = function (success) end,             ---@param success boolean
@@ -336,7 +336,12 @@ function iocontrol.update_facility_status(status)
 
         local rtu_statuses = status[2]
 
+        fac.rtu_count = 0
         if type(rtu_statuses) == "table" then
+            -- connected RTU count
+            fac.rtu_count = rtu_statuses.count
+            fac.ps.publish("rtu_count", fac.rtu_count)
+
             -- power statistics
             if type(rtu_statuses.power) == "table" then
                 fac.induction_ps_tbl[1].publish("avg_charge", rtu_statuses.power[1])
@@ -406,13 +411,15 @@ function iocontrol.update_facility_status(status)
                     fac.ps.publish("rad_computed_status", util.trinary(rtu_faulted, 2, 3))
                     fac.ps.publish("radiation", fac.radiation)
                 else
-                    fac.radiation = { radiation = 0, unit = "nSv" }
+                    fac.radiation = types.new_zero_radiation_reading()
                     fac.ps.publish("rad_computed_status", 1)
                 end
             else
                 log.debug(log_header .. "radiation monitor list not a table")
                 return false
             end
+        else
+            log.debug(log_header .. "rtu statuses not a table")
         end
     end
 
@@ -626,11 +633,9 @@ function iocontrol.update_unit_statuses(statuses)
                         local rtu_faulted = rad_mon[1]  ---@type boolean
                         unit.radiation    = rad_mon[2]  ---@type number
 
-                        unit.unit_ps.publish("rad_computed_status", util.trinary(rtu_faulted, 2, 3))
                         unit.unit_ps.publish("radiation", unit.radiation)
                     else
-                        unit.radiation = { radiation = 0, unit = "nSv" }
-                        unit.unit_ps.publish("rad_computed_status", 1)
+                        unit.radiation = types.new_zero_radiation_reading()
                     end
                 else
                     log.debug(log_header .. "radiation monitor list not a table")

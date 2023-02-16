@@ -157,28 +157,29 @@ local function init(parent, id)
 
     local annunciator = Div{parent=main,width=23,height=18,x=22,y=3}
 
-    -- connectivity/basic state
+    -- connectivity
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
     local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
-    local r_active   = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
-    local r_auto     = IndicatorLight{parent=annunciator,label="Automatic Control",colors=cpair(colors.blue,colors.gray)}
-
-    annunciator.line_break()
-
-    local rad_mon = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
+    local rad_mon    = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
 
     u_ps.subscribe("PLCOnline", plc_online.update)
     u_ps.subscribe("PLCHeartbeat", plc_hbeat.update)
-    u_ps.subscribe("status", r_active.update)
-    u_ps.subscribe("AutoControl", r_auto.update)
-    u_ps.subscribe("rad_computed_status", rad_mon.update)
+    u_ps.subscribe("RadiationMonitor", rad_mon.update)
 
     annunciator.line_break()
 
-    -- non-RPS reactor annunciator panel
+    -- operating state
+    local r_active = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
+    local r_auto   = IndicatorLight{parent=annunciator,label="Automatic Control",colors=cpair(colors.white,colors.gray)}
+
+    u_ps.subscribe("status", r_active.update)
+    u_ps.subscribe("AutoControl", r_auto.update)
+
+    -- main unit transient/warning annunciator panel
     local r_scram = IndicatorLight{parent=annunciator,label="Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
     local r_mscrm = IndicatorLight{parent=annunciator,label="Manual Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
     local r_ascrm = IndicatorLight{parent=annunciator,label="Auto Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
+    local rad_wrn = IndicatorLight{parent=annunciator,label="Radiation Warning",colors=cpair(colors.yellow,colors.gray)}
     local r_rtrip = IndicatorLight{parent=annunciator,label="RCP Trip",colors=cpair(colors.red,colors.gray)}
     local r_cflow = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=cpair(colors.yellow,colors.gray)}
     local r_clow  = IndicatorLight{parent=annunciator,label="Coolant  Level Low",colors=cpair(colors.yellow,colors.gray)}
@@ -191,6 +192,7 @@ local function init(parent, id)
     u_ps.subscribe("ReactorSCRAM", r_scram.update)
     u_ps.subscribe("ManualReactorSCRAM", r_mscrm.update)
     u_ps.subscribe("AutoReactorSCRAM", r_ascrm.update)
+    u_ps.subscribe("RadiationWarning", rad_wrn.update)
     u_ps.subscribe("RCPTrip", r_rtrip.update)
     u_ps.subscribe("RCSFlowLow", r_cflow.update)
     u_ps.subscribe("CoolantLevelLow", r_clow.update)
@@ -233,14 +235,18 @@ local function init(parent, id)
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=2,y=1}
-    local rcs_tags = Div{parent=rcs,width=2,height=22,x=29,y=1}
+    local rcs_tags = Div{parent=rcs,width=2,height=13,x=29,y=9}
 
-    local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
-    local c_tbnt = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local c_flt   = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
+    local c_emg   = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.yellow}
+    local c_cfm   = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_brm   = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_sfm   = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_mwrf  = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
+    local c_tbnt  = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
+    u_ps.subscribe("RCSFault", c_flt.update)
+    u_ps.subscribe("EmergencyCoolant", c_emg.update)
     u_ps.subscribe("CoolantFeedMismatch", c_cfm.update)
     u_ps.subscribe("BoilRateMismatch", c_brm.update)
     u_ps.subscribe("SteamFeedMismatch", c_sfm.update)
@@ -252,7 +258,7 @@ local function init(parent, id)
     -- boiler annunciator panel(s)
 
     if unit.num_boilers > 0 then
-        TextBox{parent=rcs_tags,x=1,y=7,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[1].subscribe("WasterLevelLow", b1_wll.update)
 
@@ -273,7 +279,7 @@ local function init(parent, id)
     -- turbine annunciator panels
 
     if unit.num_boilers == 0 then
-        TextBox{parent=rcs_tags,y=7,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     else
         rcs_tags.line_break()
         rcs_annunc.line_break()
@@ -292,9 +298,6 @@ local function init(parent, id)
     t_ps[1].subscribe("TurbineTrip", t1_trp.update)
 
     if unit.num_turbines > 1 then
-        rcs_tags.line_break()
-        rcs_annunc.line_break()
-
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
@@ -309,9 +312,6 @@ local function init(parent, id)
     end
 
     if unit.num_turbines > 2 then
-        rcs_tags.line_break()
-        rcs_annunc.line_break()
-
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)

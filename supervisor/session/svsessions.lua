@@ -144,7 +144,7 @@ end
 ---@param sessions table
 local function _close(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct
+        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
         if session.open then
             _shutdown(session)
         end
@@ -156,7 +156,7 @@ end
 ---@param timer_event number
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct
+        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -399,6 +399,9 @@ function svsessions.iterate_all()
 
     -- iterate coordinator sessions
     _iterate(self.coord_sessions)
+
+    -- report RTU sessions to facility
+    self.facility.report_rtus(self.rtu_sessions)
 
     -- iterate facility
     self.facility.update()

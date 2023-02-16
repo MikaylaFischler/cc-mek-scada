@@ -90,9 +90,13 @@ local function new_view(root, x, y)
     facility.ps.subscribe("as_radiation", fac_rad_h.update)
     facility.ps.subscribe("as_gen_fault", gen_fault.update)
 
-    TextBox{parent=main,y=23,text="Radiation",height=1,width=21,fg_bg=style.label}
+    TextBox{parent=main,y=23,text="Radiation",height=1,width=13,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
     facility.ps.subscribe("radiation", radiation.update)
+
+    TextBox{parent=main,x=15,y=23,text="Linked RTUs",height=1,width=11,fg_bg=style.label}
+    local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=bw_fg_bg}
+    facility.ps.subscribe("rtu_count", rtu_count.update)
 
     ---------------------
     -- process control --

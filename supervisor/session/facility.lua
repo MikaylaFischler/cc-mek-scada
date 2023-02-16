@@ -60,6 +60,7 @@ function facility.new(num_reactors, cooling_conf)
         envd = {},
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
+        rtu_conn_count = 0,
         -- process control
         units_ready = false,
         mode = PROCESS.INACTIVE,
@@ -223,6 +224,12 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- UPDATE --
+
+    -- supervisor sessions reporting the list of active RTU sessions
+    ---@param rtu_sessions table session list of all connected RTUs
+    function public.report_rtus(rtu_sessions)
+        self.rtu_conn_count = #rtu_sessions
+    end
 
     -- update (iterate) the facility management
     function public.update()
@@ -800,6 +807,9 @@ function facility.new(num_reactors, cooling_conf)
     -- get RTU statuses
     function public.get_rtu_statuses()
         local status = {}
+
+        -- total count of all connected RTUs in the facility
+        status.count = self.rtu_conn_count
 
         -- power averages from induction matricies
         status.power = {

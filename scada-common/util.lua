@@ -14,7 +14,7 @@ util.TICK_TIME_MS = 50
 --#region
 
 -- trinary operator
----@param cond boolean condition
+---@param cond boolean|nil condition
 ---@param a any return if true
 ---@param b any return if false
 ---@return any value

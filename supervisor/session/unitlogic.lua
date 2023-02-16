@@ -1,4 +1,5 @@
 local log   = require("scada-common.log")
+local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
@@ -6,6 +7,8 @@ local ALARM_STATE = types.ALARM_STATE
 
 local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
+
+local IO = rsio.IO
 
 local aistate_string = {
     "INACTIVE",
@@ -19,6 +22,7 @@ local aistate_string = {
 -- background radiation 0.0000001 Sv/h (99.99 nSv/h)
 -- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
 -- damaging radiation 0.00006 Sv/h (60 uSv/h)
+local RADIATION_ALERT_LEVEL = 0.00001   -- 10 uSv/h
 local RADIATION_ALARM_LEVEL = 0.00005   -- 50 uSv/h, not yet damaging but this isn't good
 
 ---@class unit_logic_extension
@@ -32,6 +36,8 @@ function logic.update_annunciator(self)
 
     local num_boilers = self.num_boilers
     local num_turbines = self.num_turbines
+
+    self.db.annunciator.RCSFault = false
 
     -- variables for boiler, or reactor if no boilers used
     local total_boil_rate = 0.0
@@ -114,6 +120,29 @@ function logic.update_annunciator(self)
         self.plc_cache.ok = false
     end
 
+    ---------------
+    -- MISC RTUs --
+    ---------------
+
+    self.db.annunciator.RadiationMonitor = 1
+    self.db.annunciator.RadiationWarning = false
+    for i = 1, #self.envd do
+        local envd = self.envd[i]   ---@type unit_session
+        self.db.annunciator.RadiationMonitor = util.trinary(envd.is_faulted(), 2, 3)
+        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw > RADIATION_ALERT_LEVEL
+        break
+    end
+
+    self.db.annunciator.EmergencyCoolant = 1
+    for i = 1, #self.redstone do
+        local db = self.redstone[i].get_db()    ---@type redstone_session_db
+        local io = db.io[IO.U_EMER_COOL]        ---@type rs_db_dig_io|nil
+        if io ~= nil then
+            self.db.annunciator.EmergencyCoolant = util.trinary(io.read(), 3, 2)
+            break
+        end
+    end
+
     -------------
     -- BOILERS --
     -------------
@@ -132,6 +161,8 @@ function logic.update_annunciator(self)
         for i = 1, #self.boilers do
             local session = self.boilers[i] ---@type unit_session
             local boiler = session.get_db() ---@type boilerv_session_db
+
+            self.db.annunciator.RCSFault = self.db.annunciator.RCSFault or (not boiler.formed) or session.is_faulted()
 
             -- update ready state
             --  - must be formed
@@ -224,6 +255,8 @@ function logic.update_annunciator(self)
     for i = 1, #self.turbines do
         local session = self.turbines[i]    ---@type unit_session
         local turbine = session.get_db()    ---@type turbinev_session_db
+
+        self.db.annunciator.RCSFault = self.db.annunciator.RCSFault or (not turbine.formed) or session.is_faulted()
 
         -- update ready state
         --  - must be formed
