@@ -170,8 +170,8 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         session.in_queue.push_packet(packet)
                     else
                         -- unknown session, force a re-link
-                        log.debug("PLC_EST: no session but not an establish, force relink")
-                        _send_dev_establish((packet.scada_frame.seq_num() + 1), r_port, { ESTABLISH_ACK.DENY })
+                        log.debug("PLC_ESTABLISH: no session but not an establish, forcing relink")
+                        _send_dev_establish(packet.scada_frame.seq_num() + 1, r_port, { ESTABLISH_ACK.DENY })
                     end
                 elseif protocol == PROTOCOLS.SCADA_MGMT then
                     -- look for an associated session
@@ -194,7 +194,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                             if comms_v ~= comms.version then
                                 log.debug(util.c("dropping establish packet with incorrect comms version v", comms_v,
                                     " (expected v", comms.version, ")"))
-                                _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
                                 return
                             end
 
@@ -269,7 +269,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                             if comms_v ~= comms.version then
                                 log.debug(util.c("dropping establish packet with incorrect comms version v", comms_v,
                                     " (expected v", comms.version, ")"))
-                                _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
                                 return
                             elseif dev_type ~= DEVICE_TYPES.CRDN then
                                 log.debug(util.c("illegal establish packet for device ", dev_type, " on CRDN listening channel"))

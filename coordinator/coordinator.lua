@@ -204,7 +204,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
         sv_seq_num = 0,
         sv_r_seq_num = nil,
         modem = modem,
-        connected = false
+        connected = false,
+        last_est_ack = ESTABLISH_ACK.ALLOW
     }
 
     ---@class coord_comms
@@ -312,6 +313,16 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
         if terminated then
             coordinator.log_comms("supervisor connection attempt cancelled by user")
+        elseif not self.sv_linked then
+            if self.last_est_ack == ESTABLISH_ACK.DENY then
+                coordinator.log_comms("supervisor connection attempt denied")
+            elseif self.last_est_ack == ESTABLISH_ACK.COLLISION then
+                coordinator.log_comms("supervisor connection failed due to collision")
+            elseif self.last_est_ack == ESTABLISH_ACK.BAD_VERSION then
+                coordinator.log_comms("supervisor connection failed due to version mismatch")
+            else
+                coordinator.log_comms("supervisor connection failed with no valid response")
+            end
         end
 
         return self.sv_linked
@@ -538,12 +549,30 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     log.error("invalid supervisor configuration table received, establish failed")
                                 end
                             else
-                                log.debug("supervisor connection denied")
+                                log.debug("SCADA_MGMT establish packet reply (len = 2) unsupported")
                             end
-                        elseif packet.length == 1 and packet.data[1] == ESTABLISH_ACK.DENY then
-                            log.debug("supervisor connection denied")
-                        elseif packet.length == 1 and packet.data[1] == ESTABLISH_ACK.COLLISION then
-                            log.debug("supervisor connection denied due to collision")
+
+                            self.last_est_ack = est_ack
+                        elseif packet.length == 1 then
+                            local est_ack = packet.data[1]
+
+                            if est_ack == ESTABLISH_ACK.DENY then
+                                if self.last_est_ack ~= est_ack then
+                                    log.debug("supervisor connection denied")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                if self.last_est_ack ~= est_ack then
+                                    log.debug("supervisor connection denied due to collision")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                if self.last_est_ack ~= est_ack then
+                                    log.info("supervisor comms version mismatch")
+                                end
+                            else
+                                log.debug("SCADA_MGMT establish packet reply (len = 1) unsupported")
+                            end
+
+                            self.last_est_ack = est_ack
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end

@@ -175,7 +175,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         modem = modem,
         s_port = server_port,
         l_port = local_port,
-        conn_watchdog = conn_watchdog
+        conn_watchdog = conn_watchdog,
+        last_est_ack = ESTABLISH_ACK.ALLOW
     }
 
     ---@class rtu_comms
@@ -414,10 +415,21 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                             log.info("supervisor connection established")
                         else
                             -- establish denied
+                            if est_ack ~= self.last_est_ack then
+                                if est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                    -- version mismatch
+                                    println_ts("supervisor comms version mismatch (try updating), retrying...")
+                                    log.warning("supervisor connection denied due to comms version mismatch")
+                                else
+                                    println_ts("supervisor connection denied, retrying...")
+                                    log.warning("supervisor connection denied")
+                                end
+                            end
+
                             public.unlink(rtu_state)
-                            println_ts("supervisor connection denied")
-                            log.warning("supervisor connection denied by remote host")
                         end
+
+                        self.last_est_ack = est_ack
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end

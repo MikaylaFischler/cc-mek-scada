@@ -421,6 +421,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         reactor = reactor,
         scrammed = false,
         linked = false,
+        last_est_ack = ESTABLISH_ACK.ALLOW,
         resend_build = false,
         auto_ack_token = 0,
         status_cache = nil,
@@ -917,12 +918,18 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 println_ts("received unsolicited link collision, unlinking")
                                 log.warning("unsolicited establish request collision")
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                println_ts("received unsolicited link version mismatch, unlinking")
+                                log.warning("unsolicited establish request version mismatch")
                             else
                                 println_ts("invalid unsolicited link response")
                                 log.error("unsolicited unknown establish request response")
                             end
 
                             self.linked = est_ack == ESTABLISH_ACK.ALLOW
+
+                            -- clear this since this is for something that was unsolicited
+                            self.last_est_ack = ESTABLISH_ACK.ALLOW
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end
@@ -968,18 +975,24 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                             public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
 
                             log.debug("sent initial status data")
-                        elseif est_ack == ESTABLISH_ACK.DENY then
-                            println_ts("link request denied, retrying...")
-                            log.debug("establish request denied")
-                        elseif est_ack == ESTABLISH_ACK.COLLISION then
-                            println_ts("reactor PLC ID collision (check config), retrying...")
-                            log.warning("establish request collision")
-                        else
-                            println_ts("invalid link response, bad channel? retrying...")
-                            log.error("unknown establish request response")
+                        elseif self.last_est_ack ~= est_ack then
+                            if est_ack == ESTABLISH_ACK.DENY then
+                                println_ts("link request denied, retrying...")
+                                log.debug("establish request denied")
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                println_ts("reactor PLC ID collision (check config), retrying...")
+                                log.warning("establish request collision")
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                println_ts("supervisor version mismatch (try updating), retrying...")
+                                log.warning("establish request version mismatch")
+                            else
+                                println_ts("invalid link response, bad channel? retrying...")
+                                log.error("unknown establish request response")
+                            end
                         end
 
                         self.linked = est_ack == ESTABLISH_ACK.ALLOW
+                        self.last_est_ack = est_ack
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end

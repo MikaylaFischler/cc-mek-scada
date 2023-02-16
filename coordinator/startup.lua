@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.9.13"
+local COORDINATOR_VERSION = "beta-v0.9.14"
 
 local print = util.print
 local println = util.println
@@ -167,7 +167,7 @@ local function main()
 
         -- attempt to establish a connection with the supervisory computer
         if not coord_comms.sv_connect(60, tick_waiting, task_done) then
-            log_comms("supervisor connection failed")
+            log_sys("supervisor connection failed, shutting down...")
             log.fatal("failed to connect to supervisor")
             return false
         end

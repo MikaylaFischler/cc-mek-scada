@@ -14,7 +14,7 @@ local insert = table.insert
 
 local max_distance = nil
 
-comms.version = "1.3.2"
+comms.version = "1.3.3"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -68,7 +68,8 @@ local CAPI_TYPES = {
 local ESTABLISH_ACK = {
     ALLOW = 0,          -- link approved
     DENY = 1,           -- link denied
-    COLLISION = 2       -- link denied due to existing active link
+    COLLISION = 2,      -- link denied due to existing active link
+    BAD_VERSION = 3     -- link denied due to comms version mismatch
 }
 
 ---@alias DEVICE_TYPES integer
