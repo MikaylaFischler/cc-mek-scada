@@ -548,16 +548,16 @@ function iocontrol.update_unit_statuses(statuses)
                             unit.boiler_ps_tbl[id].publish("formed", data.formed)
                             unit.boiler_ps_tbl[id].publish("faulted", rtu_faulted)
 
-                            if data.formed then
-                                if rtu_faulted then
-                                    unit.boiler_ps_tbl[id].publish("computed_status", 3)    -- faulted
-                                elseif data.state.boil_rate > 0 then
+                            if rtu_faulted then
+                                unit.boiler_ps_tbl[id].publish("computed_status", 3)        -- faulted
+                            elseif data.formed then
+                                if data.state.boil_rate > 0 then
                                     unit.boiler_ps_tbl[id].publish("computed_status", 5)    -- active
                                 else
                                     unit.boiler_ps_tbl[id].publish("computed_status", 4)    -- idle
                                 end
                             else
-                                unit.boiler_ps_tbl[id].publish("computed_status", 2)    -- not formed
+                                unit.boiler_ps_tbl[id].publish("computed_status", 2)        -- not formed
                             end
 
                             for key, val in pairs(unit.boiler_data_tbl[id].state) do
@@ -596,11 +596,11 @@ function iocontrol.update_unit_statuses(statuses)
                             unit.turbine_ps_tbl[id].publish("formed", data.formed)
                             unit.turbine_ps_tbl[id].publish("faulted", rtu_faulted)
 
-                            if data.formed then
+                            if rtu_faulted then
+                                unit.turbine_ps_tbl[id].publish("computed_status", 3)       -- faulted
+                            elseif data.formed then
                                 if data.tanks.energy_fill >= 0.99 then
                                     unit.turbine_ps_tbl[id].publish("computed_status", 6)   -- trip
-                                elseif rtu_faulted then
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 3)   -- faulted
                                 elseif data.state.flow_rate < 100 then
                                     unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- idle
                                 else
