@@ -3,8 +3,8 @@ local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
 local config      = require("supervisor.config")
+local facility    = require("supervisor.facility")
 
-local facility    = require("supervisor.session.facility")
 local svqtypes    = require("supervisor.session.svqtypes")
 
 local coordinator = require("supervisor.session.coordinator")

@@ -3,6 +3,8 @@ local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
+local unit  = require("supervisor.unit")
+
 local rsctl = require("supervisor.session.rsctl")
 local unit  = require("supervisor.session.unit")
 
