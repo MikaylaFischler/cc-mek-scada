@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.2"
+local VERSION = "v0.3"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -107,16 +107,24 @@ if mode == "install" or mode == "update" then
     -- GET LOCAL MANIFEST --
     ------------------------
 
-    local imfile = fs.open("install_manifest.json")
-    local local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
-    imfile.close()
+    local imfile = fs.open("install_manifest.json", "r")
+    local local_ok = false
+    local local_manifest = {}
+
+    if imfile ~= nil then
+        local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+        imfile.close()
+    end
 
     local local_app_version = nil
     local local_comms_version = nil
     local local_boot_version = nil
 
     if not local_ok and mode == "update" then
+        term.setTextColor(colors.yellow)
         println("warning: failed to load local installation information")
+        term.setTextColor(colors.white)
+
         local_app_version = local_manifest.versions[app]
         local_comms_version = local_manifest.versions.comms
         local_boot_version = local_manifest.versions.bootloader
@@ -126,27 +134,53 @@ if mode == "install" or mode == "update" then
     local remote_comms_version = manifest.versions.comms
     local remote_boot_version = manifest.versions.bootloader
 
+    term.setTextColor(colors.green)
     if mode == "install" then
         println("installing " .. app .. " files...")
     elseif mode == "update" then
         println("updating " .. app .. " files... (keeping old config.lua)")
     end
+    term.setTextColor(colors.white)
 
     if local_boot_version ~= nil then
         if local_boot_version ~= remote_boot_version then
-            println("[bootldr] updating " .. local_boot_version .. " => " .. remote_boot_version)
+            print("[bootldr] updating ")
+            term.setTextColor(colors.blue)
+            print(local_boot_version)
+            term.setTextColor(colors.white)
+            print(" => ")
+            term.setTextColor(colors.blue)
+            println(remote_boot_version)
+            term.setTextColor(colors.white)
         end
     else
-        println("[bootldr] fresh install of " .. remote_boot_version)
+        println("[bootldr] new install of ")
+        term.setTextColor(colors.blue)
+        println(remote_boot_version)
+        term.setTextColor(colors.white)
     end
 
     if local_comms_version ~= nil then
         if local_comms_version ~= remote_comms_version then
-            println("[comms] updating " .. local_comms_version .. " => " .. remote_comms_version)
-            println("[comms] other devices on the network will require an update")
+            print("[comms] updating ")
+            term.setTextColor(colors.blue)
+            print(local_comms_version)
+            term.setTextColor(colors.white)
+            print(" => ")
+            term.setTextColor(colors.blue)
+            println(remote_comms_version)
+            term.setTextColor(colors.white)
+
+            print("[comms] ")
+            term.setTextColor(colors.yellow)
+            println("other devices on the network will require an update")
+            term.setTextColor(colors.white)
         end
     else
-        println("[comms] fresh install of " .. remote_comms_version)
+        println("[comms] new install of ")
+        term.setTextColor(colors.blue)
+        println(remote_comms_version)
+        term.setTextColor(colors.white)
     end
 
     if local_app_version ~= nil then
@@ -170,6 +204,8 @@ if mode == "install" or mode == "update" then
     local dependencies = manifest.depends[app]
     local config_file = app .. "/config.lua"
 
+    table.insert(dependencies, app)
+
     for _, dependency in pairs(dependencies) do
         local size = size_list[dependency]
         space_required = space_required + size
@@ -177,7 +213,9 @@ if mode == "install" or mode == "update" then
 
     if space_available < space_required then
         single_file_mode = true
+        term.setTextColor(colors.red)
         println("WARNING: Insuffienct space available for a full download!")
+        term.setTextColor(colors.white)
         println("Files will be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         println("Do you wish to continue? (y/N)")
 
@@ -199,13 +237,15 @@ if mode == "install" or mode == "update" then
             fs.makeDir(install_dir)
         end
 
+        term.setTextColor(colors.lightGray)
         for _, dependency in pairs(dependencies) do
             local files = file_list[dependency]
             for _, file in pairs(files) do
-                println("get:  " .. file)
+                println("get: " .. file)
                 local dl, err_c = http.get(repo_path .. file)
 
                 if dl == nil then
+                    term.setTextColor(colors.red)
                     println("get: error " .. err_c)
                     success = false
                     break
@@ -231,6 +271,8 @@ if mode == "install" or mode == "update" then
         fs.delete(install_dir)
 
         if success then
+            term.setTextColor(colors.green)
+
             -- if we made it here, then none of the file system functions threw exceptions
             -- that means everything is OK
             if mode == "install" then
@@ -240,8 +282,10 @@ if mode == "install" or mode == "update" then
             end
         else
             if mode == "install" then
+                term.setTextColor(colors.red)
                 println("installation failed")
             else
+                term.setTextColor(colors.orange)
                 println("update failed, existing files unmodified")
             end
         end
@@ -249,7 +293,7 @@ if mode == "install" or mode == "update" then
         for _, dependency in pairs(dependencies) do
             local files = file_list[dependency]
             for _, file in pairs(files) do
-                println("get:  " .. file)
+                println("get: " .. file)
                 local dl, err_c = http.get(repo_path .. file)
 
                 if dl == nil then
@@ -267,12 +311,14 @@ if mode == "install" or mode == "update" then
         if success then
             -- if we made it here, then none of the file system functions threw exceptions
             -- that means everything is OK
+            term.setTextColor(colors.green)
             if mode == "install" then
                 println("installation completed successfully")
             else
                 println("update completed successfully")
             end
         else
+            term.setTextColor(colors.red)
             if mode == "install" then
                 println("installation failed, files may have been skipped")
             else
@@ -286,9 +332,14 @@ elseif mode == "remove" or mode == "purge" then
     imfile.close()
 
     if not ok then
+        term.setTextColor(colors.red)
         println("error parsing local version manifest")
+        term.setTextColor(colors.white)
         return
-    elseif mode == "remove" then
+    end
+
+    term.setTextColor(colors.orange)
+    if mode == "remove" then
         println("removing all " .. app .. " files except for config.lua and log.txt...")
     elseif mode == "purge" then
         println("purging all " .. app .. " files including config.lua and log.txt...")
@@ -300,6 +351,10 @@ elseif mode == "remove" or mode == "purge" then
     local file_list = manifest.files
     local dependencies = manifest.depends[app]
     local config_file = app .. "/config.lua"
+
+    table.insert(dependencies, app)
+
+    term.setTextColor(colors.lightGray)
 
     -- delete all files except config unless purging
     for _, dependency in pairs(dependencies) do
@@ -320,5 +375,8 @@ elseif mode == "remove" or mode == "purge" then
         println("deleted " .. config.LOG_PATH)
     end
 
+    term.setTextColor(colors.green)
     println("done!")
 end
+
+term.setTextColor(colors.white)
