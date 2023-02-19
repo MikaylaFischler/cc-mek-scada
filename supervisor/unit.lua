@@ -74,10 +74,14 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         defs = { FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS },
+        -- rtus
         redstone = {},
         boilers = {},
         turbines = {},
         envd = {},
+        -- redstone control
+        io_ctl = nil,   ---@type rs_controller
+        valves = {},    ---@type unit_valves
         -- auto control
         ramp_target_br100 = 0,
         -- state tracking
@@ -151,7 +155,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- waste >85%
             ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.TIMELY },
             -- RPS trip occured
-            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.RPSTransient, tier = PRIO.URGENT },
+            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.RPSTransient, tier = PRIO.TIMELY },
             -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
             RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
             -- "It's just a routine turbin' trip!" -Bill Gibson, "The China Syndrome"
@@ -223,7 +227,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     }
 
     -- init redstone RTU I/O controller
-    local rs_rtu_io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone)
 
     -- init boiler table fields
     for _ = 1, num_boilers do
@@ -272,10 +276,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- get the delta t of a value
     ---@param key string value key
-    ---@return number
-    function self._get_dt(key)
-        if self.deltas[key] then return self.deltas[key].dt else return 0.0 end
-    end
+    ---@return number value value or 0 if not known
+    function self._get_dt(key) if self.deltas[key] then return self.deltas[key].dt else return 0.0 end end
 
     -- update all delta computations
     local function _dt__compute_all()
@@ -320,8 +322,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     --#region redstone I/O
 
-    local __rs_w = rs_rtu_io_ctl.digital_write
-    local __rs_r = rs_rtu_io_ctl.digital_read
+    local __rs_w = self.io_ctl.digital_write
+    local __rs_r = self.io_ctl.digital_read
 
     -- valves
     local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,    true) end, close = function () __rs_w(IO.WASTE_PU,    false) end }
@@ -329,6 +331,15 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     local waste_po  = { open = function () __rs_w(IO.WASTE_POPL,  true) end, close = function () __rs_w(IO.WASTE_POPL,  false) end }
     local waste_sps = { open = function () __rs_w(IO.WASTE_AM,    true) end, close = function () __rs_w(IO.WASTE_AM,    false) end }
     local emer_cool = { open = function () __rs_w(IO.U_EMER_COOL, true) end, close = function () __rs_w(IO.U_EMER_COOL, false) end }
+
+    ---@class unit_valves
+    self.valves = {
+        waste_pu = waste_pu,
+        waste_sna = waste_sna,
+        waste_po = waste_po,
+        waste_sps = waste_sps,
+        emer_cool = emer_cool
+    }
 
     --#endregion
 
@@ -480,13 +491,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- update status text
         logic.update_status_text(self)
 
-        -- check if emergency coolant is needed
-        if self.plc_cache.rps_status.no_cool then
-            emer_cool.open()
-        elseif not self.plc_cache.rps_trip then
-            -- can't turn off on sufficient coolant level since it might drop again
-            -- turn off once system is OK again
-            emer_cool.close()
+        -- handle redstone I/O
+        if #self.redstone > 0 then
+            logic.handle_redstone(self)
         end
     end
 
@@ -572,6 +579,13 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- queue a command to SCRAM the reactor
     function public.scram()
         if self.plc_s ~= nil then
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
+        end
+    end
+
+    -- queue a SCRAM command only if a manual SCRAM has not already occured
+    function public.cond_scram()
+        if self.plc_s ~= nil and not self.plc_cache.rps_status.manual then
             self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
         end
     end

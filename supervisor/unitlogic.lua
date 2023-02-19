@@ -3,12 +3,16 @@ local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
+local plc   = require("supervisor.session.plc")
+
 local ALARM_STATE = types.ALARM_STATE
 
 local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
 
 local IO = rsio.IO
+
+local PLC_S_CMDS = plc.PLC_S_CMDS
 
 local aistate_string = {
     "INACTIVE",
@@ -617,6 +621,73 @@ function logic.update_status_text(self)
         end
     else
         self.status_text = { "Reactor Off-line", "awaiting connection..." }
+    end
+end
+
+-- handle unit redstone I/O
+---@param self _unit_self unit instance
+function logic.handle_redstone(self)
+    -- reactor controls
+    if self.plc_s ~= nil then
+        if (not self.plc_cache.rps_status.manual) and self.io_ctl.digital_read(IO.R_SCRAM) then
+           -- reactor SCRAM requested but not yet done; perform it
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
+        end
+
+        if self.plc_cache.rps_trip and self.io_ctl.digital_read(IO.R_RESET) then
+           -- reactor RPS reset requested but not yet done; perform it
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
+        end
+
+        if (not self.db.annunciator.AutoControl) and (not self.plc_cache.active) and
+           (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ACTIVE) then
+           -- reactor enable requested and allowable, but not yet done; perform it
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
+        end
+    end
+
+    -- check for request to ack all alarms
+    if self.io_ctl.digital_read(IO.U_ACK) then
+        for i = 1, #self.db.alarm_states do
+            if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
+                self.db.alarm_states[i] = ALARM_STATE.ACKED
+            end
+        end
+    end
+
+    -- write reactor status outputs
+    self.io_ctl.digital_write(IO.R_ACTIVE, self.plc_cache.active)
+    self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.db.annunciator.AutoControl)
+    self.io_ctl.digital_write(IO.R_SCRAMMED, self.plc_cache.rps_trip)
+    self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
+    self.io_ctl.digital_write(IO.R_DMG_CRIT, self.plc_cache.rps_status.dmg_crit)
+    self.io_ctl.digital_write(IO.R_HIGH_TEMP, self.plc_cache.rps_status.high_temp)
+    self.io_ctl.digital_write(IO.R_NO_COOLANT, self.plc_cache.rps_status.no_cool)
+    self.io_ctl.digital_write(IO.R_EXCESS_HC, self.plc_cache.rps_status.ex_hcool)
+    self.io_ctl.digital_write(IO.R_EXCESS_WS, self.plc_cache.rps_status.ex_waste)
+    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, self.plc_cache.rps_status.no_fuel)
+    self.io_ctl.digital_write(IO.R_PLC_FAULT, self.plc_cache.rps_status.fault)
+    self.io_ctl.digital_write(IO.R_PLC_TIMEOUT, self.plc_cache.rps_status.timeout)
+
+    -- write unit outputs
+
+    local has_alarm = false
+    for i = 1, #self.db.alarm_states do
+        if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
+            has_alarm = true
+            break
+        end
+    end
+
+    self.io_ctl.digital_write(IO.U_ALARM, has_alarm)
+
+    -- check if emergency coolant is needed
+    if self.plc_cache.rps_status.no_cool then
+        self.valves.emer_cool.open()
+    elseif not self.plc_cache.rps_trip then
+        -- can't turn off on sufficient coolant level since it might drop again
+        -- turn off once system is OK again
+        self.valves.emer_cool.close()
     end
 end
 

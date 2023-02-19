@@ -6,10 +6,11 @@ local util  = require("scada-common.util")
 local unit  = require("supervisor.unit")
 
 local rsctl = require("supervisor.session.rsctl")
-local unit  = require("supervisor.session.unit")
 
 local PROCESS = types.PROCESS
 local PROCESS_NAMES = types.PROCESS_NAMES
+
+local IO = rsio.IO
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
@@ -57,12 +58,15 @@ local facility = {}
 function facility.new(num_reactors, cooling_conf)
     local self = {
         units = {},
+        status_text = { "START UP", "initializing..." },
+        all_sys_ok = false,
+        -- rtus
+        rtu_conn_count = 0,
         redstone = {},
         induction = {},
         envd = {},
-        status_text = { "START UP", "initializing..." },
-        all_sys_ok = false,
-        rtu_conn_count = 0,
+        -- redstone I/O control
+        io_ctl = nil,   ---@type rs_controller
         -- process control
         units_ready = false,
         mode = PROCESS.INACTIVE,
@@ -111,7 +115,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- init redstone RTU I/O controller
-    local rs_rtu_io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone)
 
     -- unlink disconnected units
     ---@param sessions table
@@ -655,6 +659,36 @@ function facility.new(num_reactors, cooling_conf)
         -- update last mode and set next mode
         self.last_mode = self.mode
         self.mode = next_mode
+
+        -------------------------
+        -- Handle Redstone I/O --
+        -------------------------
+
+        if #self.redstone > 0 then
+            -- handle facility SCRAM
+            if self.io_ctl.digital_read(IO.F_SCRAM) then
+                for i = 1, #self.units do
+                    local u = self.units[i] ---@type reactor_unit
+                    u.cond_scram()
+                end
+            end
+
+            -- handle facility ack
+            if self.io_ctl.digital_read(IO.F_ACK) then public.ack_all() end
+
+            -- update facility alarm output
+            local has_alarm = false
+            for i = 1, #self.units do
+                local u = self.units[i]     ---@type reactor_unit
+
+                if u.has_critical_alarm() then
+                    has_alarm = true
+                    return
+                end
+            end
+
+            self.io_ctl.digital_write(IO.F_ALARM, has_alarm)
+        end
     end
 
     -- call the update function of all units in the facility
