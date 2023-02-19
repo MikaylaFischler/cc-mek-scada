@@ -1,0 +1,326 @@
+--
+-- ComputerCraft Mekanism SCADA System Installer Utility
+--
+
+--[[
+
+Copyright © 2023 Mikayla Fischler
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the “Software”), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+]]--
+
+local util = require("scada-common.util")
+
+local print = util.print
+local println = util.println
+
+local VERSION = "v0.1"
+
+local install_dir = "/.install-cache"
+local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
+local install_manifest = repo_path .. "install_manifest.json"
+
+local opts = { ... }
+local mode = nil
+local app = nil
+
+--
+-- get and validate command line options
+--
+
+println("-- CC Mekanism SCADA Installer " .. VERSION .. " --")
+
+if #opts == 0 or opts[1] == "help" or #opts ~= 2 then
+    println("note: only modifies files that are part of the device application")
+    println("usage: installer <mode> <app>")
+    println("<mode>")
+    println(" install     - fresh install, overwrites config")
+    println(" update      - update files EXCEPT for config/logs")
+    println(" remove      - delete files EXCEPT for config/logs")
+    println(" purge       - delete files INCLUDING config/logs")
+    println("<app>")
+    println(" reactor-plc - reactor PLC firmware")
+    println(" rtu         - RTU firmware")
+    println(" supervisor  - supervisor server application")
+    println(" coordinator - coordinator application")
+    println(" pocket      - pocket application")
+    return
+else
+    for _, v in pairs({ "install", "update", "remove", "purge" }) do
+        if opts[1] == v then
+            mode = v
+            break
+        end
+    end
+
+    if mode == nil then
+        println("unrecognized mode")
+        return
+    end
+
+    for _, v in pairs({ "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" }) do
+        if opts[2] == v then
+            app = v
+            break
+        end
+    end
+
+    if app == nil then
+        println("unrecognized application")
+        return
+    end
+end
+
+--
+-- run selected mode
+--
+
+if mode == "install" or mode == "update" then
+    -------------------------
+    -- GET REMOTE MANIFEST --
+    -------------------------
+
+    local response, error = http.get(install_manifest)
+
+    if response == nil then
+        println("failed to get installation manifest from GitHub, cannot update or install")
+        println(util.c("http error ", error))
+        return
+    end
+
+    local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
+
+    if not ok then
+        println("error parsing remote version manifest")
+        return
+    end
+
+    ------------------------
+    -- GET LOCAL MANIFEST --
+    ------------------------
+
+    local imfile = fs.open("install_manifest.json")
+    local local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+    imfile.close()
+
+    local local_app_version = nil
+    local local_comms_version = nil
+    local local_boot_version = nil
+
+    if not local_ok and mode == "update" then
+        println("warning: failed to load local installation information")
+        local_app_version = local_manifest.versions[app]
+        local_comms_version = local_manifest.versions.comms
+        local_boot_version = local_manifest.versions.bootloader
+    end
+
+    local remote_app_version = manifest.versions[app]
+    local remote_comms_version = manifest.versions.comms
+    local remote_boot_version = manifest.versions.bootloader
+
+    if mode == "install" then
+        println("installing " .. app .. " files...")
+    elseif mode == "update" then
+        println("updating " .. app .. " files... (keeping old config.lua)")
+    end
+
+    if local_boot_version ~= nil then
+        if local_boot_version ~= remote_boot_version then
+            println("[bootldr] updating " .. local_boot_version .. " => " .. remote_boot_version)
+        end
+    else
+        println("[bootldr] fresh install of " .. remote_boot_version)
+    end
+
+    if local_comms_version ~= nil then
+        if local_comms_version ~= remote_comms_version then
+            println("[comms] updating " .. local_comms_version .. " => " .. remote_comms_version)
+            println("[comms] other devices on the network will require an update")
+        end
+    else
+        println("[comms] fresh install of " .. remote_comms_version)
+    end
+
+    if local_app_version ~= nil then
+        if local_app_version ~= remote_app_version then
+            println("[" .. app .. "] updating " .. local_app_version .. " => " .. remote_app_version)
+        end
+    else
+        println("[" .. app .. "] fresh install of " .. remote_app_version)
+    end
+
+    --------------------------
+    -- START INSTALL/UPDATE --
+    --------------------------
+
+    local space_required = 0
+    local space_available = fs.getFreeSpace("/")
+
+    local single_file_mode = false
+    local file_list = manifest.files
+    local size_list = manifest.sizes
+    local dependencies = manifest.depends[app]
+    local config_file = app .. "/config.lua"
+
+    for _, dependency in pairs(dependencies) do
+        local size = size_list[dependency]
+        space_required = space_required + size
+    end
+
+    if space_available < space_required then
+        single_file_mode = true
+        println("WARNING: Insuffienct space available for a full download!")
+        println("Files will be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
+        println("Do you wish to continue? (y/N)")
+
+        local confirm = read()
+        if confirm ~= "y" or confirm ~= "Y" then
+            println("installation cancelled")
+            return
+        end
+    end
+
+---@diagnostic disable-next-line: undefined-field
+    os.sleep(2)
+
+    local success = true
+
+    if not single_file_mode then
+        if fs.exists(install_dir) then
+            fs.delete(install_dir)
+            fs.makeDir(install_dir)
+        end
+
+        for _, dependency in pairs(dependencies) do
+            local files = file_list[dependency]
+            for _, file in pairs(files) do
+                println("get:  " .. file)
+                local dl, err_c = http.get(repo_path .. file)
+
+                if dl == nil then
+                    println("get: error " .. err_c)
+                    success = false
+                    break
+                else
+                    local handle = fs.open(install_dir .. "/" .. file, "w")
+                    handle.write(dl.readAll())
+                    handle.close()
+                end
+            end
+        end
+
+        if success then
+            for _, dependency in pairs(dependencies) do
+                local files = file_list[dependency]
+                for _, file in pairs(files) do
+                    if mode == "install" or file ~= config_file then
+                        fs.move(install_dir .. "/" .. file, file)
+                    end
+                end
+            end
+        end
+
+        fs.delete(install_dir)
+
+        if success then
+            -- if we made it here, then none of the file system functions threw exceptions
+            -- that means everything is OK
+            if mode == "install" then
+                println("installation completed successfully")
+            else
+                println("update completed successfully")
+            end
+        else
+            if mode == "install" then
+                println("installation failed")
+            else
+                println("update failed, existing files unmodified")
+            end
+        end
+    else
+        for _, dependency in pairs(dependencies) do
+            local files = file_list[dependency]
+            for _, file in pairs(files) do
+                println("get:  " .. file)
+                local dl, err_c = http.get(repo_path .. file)
+
+                if dl == nil then
+                    println("get: error " .. err_c)
+                    success = false
+                    break
+                else
+                    local handle = fs.open("/" .. file, "w")
+                    handle.write(dl.readAll())
+                    handle.close()
+                end
+            end
+        end
+
+        if success then
+            -- if we made it here, then none of the file system functions threw exceptions
+            -- that means everything is OK
+            if mode == "install" then
+                println("installation completed successfully")
+            else
+                println("update completed successfully")
+            end
+        else
+            if mode == "install" then
+                println("installation failed, files may have been skipped")
+            else
+                println("update failed, files may have been skipped")
+            end
+        end
+    end
+elseif mode == "remove" or mode == "purge" then
+    local imfile = fs.open("install_manifest.json")
+    local ok, manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+    imfile.close()
+
+    if not ok then
+        println("error parsing local version manifest")
+        return
+    elseif mode == "remove" then
+        println("removing all " .. app .. " files except for config.lua and log.txt...")
+    elseif mode == "purge" then
+        println("purging all " .. app .. " files including config.lua and log.txt...")
+    end
+
+---@diagnostic disable-next-line: undefined-field
+    os.sleep(2)
+
+    local file_list = manifest.files
+    local dependencies = manifest.depends[app]
+    local config_file = app .. "/config.lua"
+
+    -- delete all files except config unless purging
+    for _, dependency in pairs(dependencies) do
+        local files = file_list[dependency]
+        for _, file in pairs(files) do
+            if mode == "purge" or file ~= config_file then
+                fs.delete(file)
+                println("deleted " .. file)
+            end
+        end
+    end
+
+    -- delete log file if purging
+    if mode == "purge" then
+        println("deleting log file '" .. config_file .. "'...")
+        local config = require(config_file)
+        fs.delete(config.LOG_PATH)
+        println("deleted " .. config.LOG_PATH)
+    end
+
+    println("done!")
+end

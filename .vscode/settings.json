@@ -14,7 +14,8 @@
         "read",
         "periphemu",
         "mekanismEnergyHelper",
-        "_HOST"
+        "_HOST",
+        "http"
     ],
     "Lua.diagnostics.disable": [
         "duplicate-set-field"
