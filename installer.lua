@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.3"
+local VERSION = "v0.4"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -99,7 +99,7 @@ if mode == "install" or mode == "update" then
     local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
 
     if not ok then
-        println("error parsing remote version manifest")
+        println("error parsing remote installation manifest")
         return
     end
 
@@ -148,16 +148,31 @@ if mode == "install" or mode == "update" then
             term.setTextColor(colors.blue)
             print(local_boot_version)
             term.setTextColor(colors.white)
-            print(" => ")
+            print(" \xbb ")
             term.setTextColor(colors.blue)
             println(remote_boot_version)
             term.setTextColor(colors.white)
         end
     else
-        println("[bootldr] new install of ")
+        print("[bootldr] new install of ")
         term.setTextColor(colors.blue)
         println(remote_boot_version)
         term.setTextColor(colors.white)
+    end
+
+    if local_app_version ~= nil then
+        if local_app_version ~= remote_app_version then
+            print("[" .. app .. "] updating ")
+            term.setTextColor(colors.blue)
+            print(local_app_version)
+            term.setTextColor(colors.white)
+            print(" \xbb ")
+            term.setTextColor(colors.blue)
+            println(remote_app_version)
+            term.setTextColor(colors.white)
+        end
+    else
+        println("[" .. app .. "] fresh install of " .. remote_app_version)
     end
 
     if local_comms_version ~= nil then
@@ -166,7 +181,7 @@ if mode == "install" or mode == "update" then
             term.setTextColor(colors.blue)
             print(local_comms_version)
             term.setTextColor(colors.white)
-            print(" => ")
+            print(" \xbb ")
             term.setTextColor(colors.blue)
             println(remote_comms_version)
             term.setTextColor(colors.white)
@@ -177,18 +192,10 @@ if mode == "install" or mode == "update" then
             term.setTextColor(colors.white)
         end
     else
-        println("[comms] new install of ")
+        print("[comms] new install of ")
         term.setTextColor(colors.blue)
         println(remote_comms_version)
         term.setTextColor(colors.white)
-    end
-
-    if local_app_version ~= nil then
-        if local_app_version ~= remote_app_version then
-            println("[" .. app .. "] updating " .. local_app_version .. " => " .. remote_app_version)
-        end
-    else
-        println("[" .. app .. "] fresh install of " .. remote_app_version)
     end
 
     --------------------------
@@ -237,32 +244,59 @@ if mode == "install" or mode == "update" then
             fs.makeDir(install_dir)
         end
 
-        term.setTextColor(colors.lightGray)
         for _, dependency in pairs(dependencies) do
-            local files = file_list[dependency]
-            for _, file in pairs(files) do
-                println("get: " .. file)
-                local dl, err_c = http.get(repo_path .. file)
+            if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+                -- skip system package if unchanged, skip app package if not changed
+                -- skip packages that have no version if app version didn't change
+                print("skipping download of unchanged package ")
+                term.setTextColor(colors.blue)
+                println(dependency)
+            else
+                print("downloading package ")
+                term.setTextColor(colors.blue)
+                println(dependency)
 
-                if dl == nil then
-                    term.setTextColor(colors.red)
-                    println("get: error " .. err_c)
-                    success = false
-                    break
-                else
-                    local handle = fs.open(install_dir .. "/" .. file, "w")
-                    handle.write(dl.readAll())
-                    handle.close()
+                term.setTextColor(colors.lightGray)
+                local files = file_list[dependency]
+                for _, file in pairs(files) do
+                    println("get: " .. file)
+                    local dl, err_c = http.get(repo_path .. file)
+
+                    if dl == nil then
+                        term.setTextColor(colors.red)
+                        println("get: error " .. err_c)
+                        success = false
+                        break
+                    else
+                        local handle = fs.open(install_dir .. "/" .. file, "w")
+                        handle.write(dl.readAll())
+                        handle.close()
+                    end
                 end
             end
         end
 
         if success then
             for _, dependency in pairs(dependencies) do
-                local files = file_list[dependency]
-                for _, file in pairs(files) do
-                    if mode == "install" or file ~= config_file then
-                        fs.move(install_dir .. "/" .. file, file)
+                if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+                    -- skip system package if unchanged, skip app package if not changed
+                    -- skip packages that have no version if app version didn't change
+                    print("skipping install of unchanged package ")
+                    term.setTextColor(colors.blue)
+                    println(dependency)
+                else
+                    print("installing package ")
+                    term.setTextColor(colors.blue)
+                    println(dependency)
+
+                    term.setTextColor(colors.lightGray)
+                    local files = file_list[dependency]
+                    for _, file in pairs(files) do
+                        if mode == "install" or file ~= config_file then
+                            local temp_file = install_dir .. "/" .. file
+                            if fs.exists(temp_file) then fs.delete(temp_file) end
+                            fs.move(temp_file, file)
+                        end
                     end
                 end
             end
@@ -291,19 +325,32 @@ if mode == "install" or mode == "update" then
         end
     else
         for _, dependency in pairs(dependencies) do
-            local files = file_list[dependency]
-            for _, file in pairs(files) do
-                println("get: " .. file)
-                local dl, err_c = http.get(repo_path .. file)
+            if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+                -- skip system package if unchanged, skip app package if not changed
+                -- skip packages that have no version if app version didn't change
+                print("skipping install of unchanged package ")
+                term.setTextColor(colors.blue)
+                println(dependency)
+            else
+                print("installing package ")
+                term.setTextColor(colors.blue)
+                println(dependency)
 
-                if dl == nil then
-                    println("get: error " .. err_c)
-                    success = false
-                    break
-                else
-                    local handle = fs.open("/" .. file, "w")
-                    handle.write(dl.readAll())
-                    handle.close()
+                term.setTextColor(colors.lightGray)
+                local files = file_list[dependency]
+                for _, file in pairs(files) do
+                    println("get: " .. file)
+                    local dl, err_c = http.get(repo_path .. file)
+
+                    if dl == nil then
+                        println("get: error " .. err_c)
+                        success = false
+                        break
+                    else
+                        local handle = fs.open("/" .. file, "w")
+                        handle.write(dl.readAll())
+                        handle.close()
+                    end
                 end
             end
         end
@@ -333,7 +380,7 @@ elseif mode == "remove" or mode == "purge" then
 
     if not ok then
         term.setTextColor(colors.red)
-        println("error parsing local version manifest")
+        println("error parsing local installation manifest")
         term.setTextColor(colors.white)
         return
     end
@@ -356,6 +403,13 @@ elseif mode == "remove" or mode == "purge" then
 
     term.setTextColor(colors.lightGray)
 
+    -- delete log file if purging
+    if mode == "purge" then
+        local config = require(config_file)
+        fs.delete(config.LOG_PATH)
+        println("deleted log file " .. config.LOG_PATH)
+    end
+
     -- delete all files except config unless purging
     for _, dependency in pairs(dependencies) do
         local files = file_list[dependency]
@@ -365,14 +419,6 @@ elseif mode == "remove" or mode == "purge" then
                 println("deleted " .. file)
             end
         end
-    end
-
-    -- delete log file if purging
-    if mode == "purge" then
-        println("deleting log file '" .. config_file .. "'...")
-        local config = require(config_file)
-        fs.delete(config.LOG_PATH)
-        println("deleted " .. config.LOG_PATH)
     end
 
     term.setTextColor(colors.green)
