@@ -301,6 +301,7 @@ function facility.new(num_reactors, cooling_conf)
                 if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
                     -- auto clear ASCRAM
                     self.ascram = false
+                    self.ascram_reason = AUTO_SCRAM.NONE
                 end
 
                 local blade_count = nil
@@ -372,12 +373,18 @@ function facility.new(num_reactors, cooling_conf)
         if self.mode == PROCESS.INACTIVE then
             if not self.units_ready then
                 self.status_text = { "NOT READY", "assigned units not ready" }
-            elseif self.start_fail == START_STATUS.NO_UNITS and assign_count == 0 then
-                self.status_text = { "START FAILED", "no units were assigned" }
-            elseif self.start_fail == START_STATUS.BLADE_MISMATCH then
-                self.status_text = { "START FAILED", "turbine blade count mismatch" }
             else
-                self.status_text = { "IDLE", "control disengaged" }
+                -- clear ASCRAM once ready
+                self.ascram = false
+                self.ascram_reason = AUTO_SCRAM.NONE
+
+                if self.start_fail == START_STATUS.NO_UNITS and assign_count == 0 then
+                    self.status_text = { "START FAILED", "no units were assigned" }
+                elseif self.start_fail == START_STATUS.BLADE_MISMATCH then
+                    self.status_text = { "START FAILED", "turbine blade count mismatch" }
+                else
+                    self.status_text = { "IDLE", "control disengaged" }
+                end
             end
         elseif self.mode == PROCESS.MAX_BURN then
             -- run units at their limits
@@ -522,7 +529,7 @@ function facility.new(num_reactors, cooling_conf)
                 next_mode = self.return_mode
                 log.info("FAC: exiting matrix fault idle state due to fault resolution")
             elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
-                next_mode = PROCESS.INACTIVE
+                next_mode = PROCESS.SYSTEM_ALARM_IDLE
                 log.info("FAC: exiting matrix fault idle state due to critical unit alarm")
             end
         elseif self.mode == PROCESS.SYSTEM_ALARM_IDLE then
@@ -545,55 +552,54 @@ function facility.new(num_reactors, cooling_conf)
 
         local astatus = self.ascram_status
 
-        if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-            if self.induction[1] ~= nil then
-                local matrix = self.induction[1]    ---@type unit_session
-                local db = matrix.get_db()          ---@type imatrix_session_db
+        if self.induction[1] ~= nil then
+            local matrix = self.induction[1]    ---@type unit_session
+            local db = matrix.get_db()          ---@type imatrix_session_db
 
-                -- clear matrix disconnected
-                if astatus.matrix_dc then
-                    astatus.matrix_dc = false
-                    log.info("FAC: induction matrix reconnected, clearing ASCRAM condition")
-                end
-
-                -- check matrix fill too high
-                local was_fill = astatus.matrix_fill
-                astatus.matrix_fill = (db.tanks.energy_fill >= HIGH_CHARGE) or (astatus.matrix_fill and db.tanks.energy_fill > RE_ENABLE_CHARGE)
-
-                if was_fill and not astatus.matrix_fill then
-                    log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
-                end
-
-                -- check for critical unit alarms
-                for i = 1, #self.units do
-                    local u = self.units[i] ---@type reactor_unit
-
-                    if u.has_critical_alarm() then
-                        log.info(util.c("FAC: emergency exit of process control due to critical unit alarm (unit ", u.get_id(), ")"))
-                        break
-                    end
-                end
-
-                -- check for facility radiation
-                if self.envd[1] ~= nil then
-                    local envd = self.envd[1]   ---@type unit_session
-                    local e_db = envd.get_db()  ---@type envd_session_db
-
-                    astatus.radiation = e_db.radiation_raw > RADIATION_ALARM_LEVEL
-                else
-                    -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
-                    -- operator can restart the system or hit the stop/reset button
-                end
-
-                -- system not ready, will need to restart GEN_RATE mode
-                -- clears when we enter the fault waiting state
-                astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
-            else
-                astatus.matrix_dc = true
+            -- clear matrix disconnected
+            if astatus.matrix_dc then
+                astatus.matrix_dc = false
+                log.info("FAC: induction matrix reconnected, clearing ASCRAM condition")
             end
 
-            -- log.debug(util.c("dc: ", astatus.matrix_dc, " fill: ", astatus.matrix_fill, " crit: ", astatus.crit_alarm, " gen: ", astatus.gen_fault))
+            -- check matrix fill too high
+            local was_fill = astatus.matrix_fill
+            astatus.matrix_fill = (db.tanks.energy_fill >= HIGH_CHARGE) or (astatus.matrix_fill and db.tanks.energy_fill > RE_ENABLE_CHARGE)
 
+            if was_fill and not astatus.matrix_fill then
+                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
+            end
+
+            -- check for critical unit alarms
+            astatus.crit_alarm = false
+            for i = 1, #self.units do
+                local u = self.units[i] ---@type reactor_unit
+
+                if u.has_critical_alarm() then
+                    astatus.crit_alarm = true
+                    break
+                end
+            end
+
+            -- check for facility radiation
+            if self.envd[1] ~= nil then
+                local envd = self.envd[1]   ---@type unit_session
+                local e_db = envd.get_db()  ---@type envd_session_db
+
+                astatus.radiation = e_db.radiation_raw > RADIATION_ALARM_LEVEL
+            else
+                -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
+                -- operator can restart the system or hit the stop/reset button
+            end
+
+            -- system not ready, will need to restart GEN_RATE mode
+            -- clears when we enter the fault waiting state
+            astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
+        else
+            astatus.matrix_dc = true
+        end
+
+        if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
             local scram = astatus.matrix_dc or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
 
             if scram and not self.ascram then
@@ -611,6 +617,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.status_text = { "AUTOMATIC SCRAM", "critical unit alarm tripped" }
 
                     log.info("FAC: automatic SCRAM due to critical unit alarm")
+                    log.warning("FAC: emergency exit of process control due to critical unit alarm")
                 elseif astatus.radiation then
                     next_mode = PROCESS.SYSTEM_ALARM_IDLE
                     self.ascram_reason = AUTO_SCRAM.RADIATION

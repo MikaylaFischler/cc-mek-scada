@@ -8,7 +8,7 @@ local types = {}
 -- CLASSES --
 
 ---@class tank_fluid
----@field name string
+---@field name fluid
 ---@field amount integer
 
 -- create a new tank fluid
@@ -221,6 +221,19 @@ types.ALARM_STATE = {
 ---| "automatic"
 ---| "sys_fail"
 ---| "force_disabled"
+
+---@alias fluid
+---| "mekanism:empty_gas"
+---| "minecraft:water"
+---| "mekanism:sodium"
+---| "mekanism:superheated_sodium"
+
+types.fluid = {
+    empty_gas = "mekanism:empty_gas",
+    water = "minecraft:water",
+    sodium = "mekanism:sodium",
+    superheated_sodium = "mekanism:superheated_sodium"
+}
 
 ---@alias rtu_t string
 types.rtu_t = {

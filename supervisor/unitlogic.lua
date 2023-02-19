@@ -109,12 +109,26 @@ function logic.update_annunciator(self)
         self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
         self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
+        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.5
         self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
         self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
         self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= 0.01
         self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= 0.85
-        ---@todo this is dependent on setup, i.e. how much coolant is buffered and the turbine setup
-        self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and plc_db.mek_status.burn_rate > 40
+
+        -- this warning applies when no coolant is buffered (which we can't easily determine without running)
+        --[[
+            logic is that each tick, the heating rate worth of coolant steps between:
+                reactor tank
+                reactor heated coolant outflow tube
+                boiler/turbine tank
+                reactor cooled coolant return tube
+            so if there is a tick where coolant is no longer present in the reactor, then bad things happen.
+            such as when a burn rate consumes half the coolant in the tank, meaning that:
+                50% at some point will be in the boiler, and 50% in a tube, so that leaves 0% in the reactor
+        ]]--
+        local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.fluid.sodium, 200000, 20000)
+        local high_rate = (plc_db.mek_status.ccool_amnt / (plc_db.mek_status.burn_rate * heating_rate_conv)) < 4
+        self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and high_rate
 
         -- if no boilers, use reactor heating rate to check for boil rate mismatch
         if num_boilers == 0 then
