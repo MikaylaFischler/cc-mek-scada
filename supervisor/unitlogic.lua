@@ -108,7 +108,7 @@ function logic.update_annunciator(self)
         self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
         self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
-        self.db.annunciator.RCSFlowLow = plc_db.mek_status.ccool_fill < 0.75 or plc_db.mek_status.hcool_fill > 0.25
+        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < -2.0
         self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.5
         self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
         self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
