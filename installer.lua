@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.4"
+local VERSION = "v0.5"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -172,7 +172,9 @@ if mode == "install" or mode == "update" then
             term.setTextColor(colors.white)
         end
     else
-        println("[" .. app .. "] fresh install of " .. remote_app_version)
+        term.setTextColor(colors.blue)
+        println(remote_app_version)
+        term.setTextColor(colors.white)
     end
 
     if local_comms_version ~= nil then
@@ -248,10 +250,12 @@ if mode == "install" or mode == "update" then
             if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
                 -- skip system package if unchanged, skip app package if not changed
                 -- skip packages that have no version if app version didn't change
+                term.setTextColor(colors.white)
                 print("skipping download of unchanged package ")
                 term.setTextColor(colors.blue)
                 println(dependency)
             else
+                term.setTextColor(colors.white)
                 print("downloading package ")
                 term.setTextColor(colors.blue)
                 println(dependency)
@@ -281,10 +285,12 @@ if mode == "install" or mode == "update" then
                 if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
                     -- skip system package if unchanged, skip app package if not changed
                     -- skip packages that have no version if app version didn't change
+                    term.setTextColor(colors.white)
                     print("skipping install of unchanged package ")
                     term.setTextColor(colors.blue)
                     println(dependency)
                 else
+                    term.setTextColor(colors.white)
                     print("installing package ")
                     term.setTextColor(colors.blue)
                     println(dependency)
@@ -294,7 +300,7 @@ if mode == "install" or mode == "update" then
                     for _, file in pairs(files) do
                         if mode == "install" or file ~= config_file then
                             local temp_file = install_dir .. "/" .. file
-                            if fs.exists(temp_file) then fs.delete(temp_file) end
+                            if fs.exists(file) then fs.delete(file) end
                             fs.move(temp_file, file)
                         end
                     end
@@ -328,10 +334,12 @@ if mode == "install" or mode == "update" then
             if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
                 -- skip system package if unchanged, skip app package if not changed
                 -- skip packages that have no version if app version didn't change
+                term.setTextColor(colors.white)
                 print("skipping install of unchanged package ")
                 term.setTextColor(colors.blue)
                 println(dependency)
             else
+                term.setTextColor(colors.white)
                 print("installing package ")
                 term.setTextColor(colors.blue)
                 println(dependency)
