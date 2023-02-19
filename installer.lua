@@ -19,12 +19,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ]]--
 
-local util = require("scada-common.util")
+local function println(message) print(tostring(message)) end
+local function print(message) term.write(tostring(message)) end
 
-local print = util.print
-local println = util.println
-
-local VERSION = "v0.1"
+local VERSION = "v0.2"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -94,7 +92,7 @@ if mode == "install" or mode == "update" then
 
     if response == nil then
         println("failed to get installation manifest from GitHub, cannot update or install")
-        println(util.c("http error ", error))
+        println("http error " .. error)
         return
     end
 
