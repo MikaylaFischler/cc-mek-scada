@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.6"
+local VERSION = "v0.7"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -143,19 +143,23 @@ if mode == "install" or mode == "update" then
     local local_comms_version = nil
     local local_boot_version = nil
 
-    if not local_ok and mode == "update" then
-        term.setTextColor(colors.yellow)
-        println("warning: failed to load local installation information")
-        term.setTextColor(colors.white)
-
+    if not local_ok then
+        if mode == "update" then
+            term.setTextColor(colors.yellow)
+            println("warning: failed to load local installation information")
+            term.setTextColor(colors.white)
+        end
+    else
         local_app_version = local_manifest.versions[app]
         local_comms_version = local_manifest.versions.comms
         local_boot_version = local_manifest.versions.bootloader
-    elseif local_manifest.versions[app] == nil then
-        term.setTextColor(colors.red)
-        println("another application is already installed, please purge it before installing a new application")
-        term.setTextColor(colors.white)
-        return
+
+        if local_manifest.versions[app] == nil then
+            term.setTextColor(colors.red)
+            println("another application is already installed, please purge it before installing a new application")
+            term.setTextColor(colors.white)
+            return
+        end
     end
 
     local remote_app_version = manifest.versions[app]
