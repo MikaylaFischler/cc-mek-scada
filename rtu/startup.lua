@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "beta-v0.11.0"
+local RTU_VERSION = "beta-v0.11.1"
 
 local rtu_t = types.rtu_t
 
@@ -131,8 +131,8 @@ local function main()
             local io_reactor = rtu_redstone[entry_idx].for_reactor  ---@type integer
 
             -- CHECK: reactor ID must be >= to 1
-            if (not util.is_int(io_reactor)) or (io_reactor <= 0) then
-                println(util.c("configure> redstone entry #", entry_idx, " : ", io_reactor, " isn't an integer >= 1"))
+            if (not util.is_int(io_reactor)) or (io_reactor < 0) then
+                println(util.c("configure> redstone entry #", entry_idx, " : ", io_reactor, " isn't an integer >= 0"))
                 return false
             end
 
