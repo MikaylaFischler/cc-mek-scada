@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9d"
+local VERSION = "v0.9e"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -284,7 +284,7 @@ elseif mode == "install" or mode == "update" then
         elseif mode == "install" then
             print("[bootldr] reinstalling ")
             term.setTextColor(colors.blue)
-            print(local_boot_version)
+            println(local_boot_version)
             term.setTextColor(colors.white)
         end
     else
@@ -308,7 +308,7 @@ elseif mode == "install" or mode == "update" then
         elseif mode == "install" then
             print("[" .. app .. "] reinstalling ")
             term.setTextColor(colors.blue)
-            print(local_app_version)
+            println(local_app_version)
             term.setTextColor(colors.white)
         end
     else
@@ -336,7 +336,7 @@ elseif mode == "install" or mode == "update" then
         elseif mode == "install" then
             print("[comms] reinstalling ")
             term.setTextColor(colors.blue)
-            print(local_comms_version)
+            println(local_comms_version)
             term.setTextColor(colors.white)
         end
     else
@@ -411,12 +411,12 @@ elseif mode == "install" or mode == "update" then
                 term.setTextColor(colors.lightGray)
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("GET: " .. file)
+                    println("GET " .. file)
                     local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
                         term.setTextColor(colors.red)
-                        println("GET: HTTP Error " .. err)
+                        println("GET HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -497,11 +497,11 @@ elseif mode == "install" or mode == "update" then
                 term.setTextColor(colors.lightGray)
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("GET: " .. file)
+                    println("GET " .. file)
                     local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
-                        println("GET: HTTP Error " .. err)
+                        println("GET HTTP Error " .. err)
                         success = false
                         break
                     else
