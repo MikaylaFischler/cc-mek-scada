@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9c"
+local VERSION = "v0.9d"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -240,9 +240,10 @@ elseif mode == "install" or mode == "update" then
     -- try to find local versions
     if not local_ok then
         if mode == "update" then
-            term.setTextColor(colors.yellow)
-            println("warning: failed to load local installation information")
+            term.setTextColor(colors.red)
+            println("failed to load local installation information, cannot update")
             term.setTextColor(colors.white)
+            return
         end
     else
         local_app_version = local_manifest.versions[app]
