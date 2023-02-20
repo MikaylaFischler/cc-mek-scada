@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.8a"
+local VERSION = "v0.8b"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -32,6 +32,9 @@ local opts = { ... }
 local mode = nil
 local app = nil
 
+-- record the local installation manifest
+---@param manifest table
+---@param dependencies table
 local function write_install_manifest(manifest, dependencies)
     local versions = {}
     for key, value in pairs(manifest.versions) do
@@ -43,7 +46,7 @@ local function write_install_manifest(manifest, dependencies)
             end
         end
 
-        if key == app or is_dependency then
+        if key == app or key == "comms" or is_dependency then
             versions[key] = value
         end
     end
@@ -61,7 +64,7 @@ end
 
 println("-- CC Mekanism SCADA Installer " .. VERSION .. " --")
 
-if #opts == 0 or opts[1] == "help" or #opts ~= 2 then
+if #opts == 0 or opts[1] == "help" then
     println("note: only modifies files that are part of the device application")
     println("usage: ccmsi <mode> <app>")
     println("<mode>")
@@ -151,18 +154,19 @@ if mode == "check" then
     end
 
     for key, value in pairs(manifest.versions) do
-        term.setTextColor(colors.white)
-        print("[" .. key .. "]" )
+        term.setTextColor(colors.purple)
+        print(string.format("%-14s", "[" .. key .. "]"))
         term.setTextColor(colors.blue)
         print(value)
-        term.setTextColor(colors.lightGray)
-        if local_manifest.versions[key] ~= nil then
+        if local_ok and (local_manifest.versions[key] ~= nil) then
+            term.setTextColor(colors.white)
             print(" (current ")
             term.setTextColor(colors.blue)
             print(value)
             term.setTextColor(colors.white)
             println(")")
         else
+            term.setTextColor(colors.lightGray)
             println(" (not installed)")
         end
     end
@@ -553,19 +557,20 @@ elseif mode == "remove" or mode == "purge" then
             fs.delete(folder)
             println("deleted directory " .. folder)
         elseif dependency == app then
-            local folder = files[1]
-            while true do
-                local dir = fs.getDir(folder)
-                if dir == "" or dir == ".." or dir == app then
-                    break
-                else
-                    folder = dir
+            for _, folder in pairs(files) do
+                while true do
+                    local dir = fs.getDir(folder)
+                    if dir == "" or dir == ".." or dir == app then
+                        break
+                    else
+                        folder = dir
+                    end
                 end
-            end
 
-            if folder ~= app then
-                fs.delete(folder)
-                println("deleted app subdirectory " .. folder)
+                if folder ~= app and fs.exists(folder) then
+                    fs.delete(folder)
+                    println("deleted app subdirectory " .. folder)
+                end
             end
         end
     end
