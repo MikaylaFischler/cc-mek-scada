@@ -3,7 +3,6 @@
 --
 
 --[[
-
 Copyright © 2023 Mikayla Fischler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -16,13 +15,12 @@ LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE A
 IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 ]]--
 
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9a"
+local VERSION = "v0.9b"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -45,9 +43,7 @@ local function write_install_manifest(manifest, dependencies)
             end
         end
 
-        if key == app or key == "comms" or is_dependency then
-            versions[key] = value
-        end
+        if key == app or key == "comms" or is_dependency then versions[key] = value end
     end
 
     manifest.versions = versions
@@ -86,9 +82,10 @@ if #opts == 0 or opts[1] == "help" then
     term.setTextColor(colors.white)
     println("<tag/branch>")
     term.setTextColor(colors.yellow)
-    println(" second parameter instead of app when used with check")
+    println(" second parameter when used with check")
     term.setTextColor(colors.lightGray)
-    println(" target GitHub tag or branch name instead of main")
+    println(" note: defaults to main")
+    println(" target GitHub tag or branch name")
     return
 else
     for _, v in pairs({ "check", "install", "update", "remove", "purge" }) do
@@ -131,9 +128,10 @@ if mode == "check" then
     local response, error = http.get(install_manifest)
 
     if response == nil then
-        term.setTextColor(colors.red)
+        term.setTextColor(colors.orange)
         println("failed to get installation manifest from GitHub, cannot update or install")
-        println("http error " .. error)
+        term.setTextColor(colors.red)
+        println("HTTP error: " .. error)
         term.setTextColor(colors.white)
         return
     end
@@ -162,25 +160,37 @@ if mode == "check" then
 
     if not local_ok then
         term.setTextColor(colors.yellow)
-        println("warning: failed to load local installation information")
+        println("failed to load local installation information")
         term.setTextColor(colors.white)
     end
 
+    -- list all versions
     for key, value in pairs(manifest.versions) do
         term.setTextColor(colors.purple)
         print(string.format("%-14s", "[" .. key .. "]"))
-        term.setTextColor(colors.blue)
-        print(value)
         if local_ok and (local_manifest.versions[key] ~= nil) then
-            term.setTextColor(colors.white)
-            print(" (current ")
             term.setTextColor(colors.blue)
-            print(value)
-            term.setTextColor(colors.white)
-            println(")")
+            print(local_manifest.versions[key])
+            if value ~= local_manifest.versions[key] then
+                term.setTextColor(colors.white)
+                print(" (")
+                term.setTextColor(colors.cyan)
+                print(value)
+                term.setTextColor(colors.white)
+                println(" available)")
+            else
+                term.setTextColor(colors.green)
+                print(" (up to date)")
+            end
         else
             term.setTextColor(colors.lightGray)
-            println(" (not installed)")
+            println("not installed")
+            term.setTextColor(colors.white)
+            print(" (")
+            term.setTextColor(colors.cyan)
+            print(value)
+            term.setTextColor(colors.white)
+            println(" available)")
         end
     end
 elseif mode == "install" or mode == "update" then
@@ -194,9 +204,10 @@ elseif mode == "install" or mode == "update" then
     local response, error = http.get(install_manifest)
 
     if response == nil then
-        term.setTextColor(colors.red)
+        term.setTextColor(colors.orange)
         println("failed to get installation manifest from GitHub, cannot update or install")
-        println("http error " .. error)
+        term.setTextColor(colors.red)
+        println("HTTP error: " .. error)
         term.setTextColor(colors.white)
         return
     end
@@ -226,6 +237,7 @@ elseif mode == "install" or mode == "update" then
     local local_comms_version = nil
     local local_boot_version = nil
 
+    -- try to find local versions
     if not local_ok then
         if mode == "update" then
             term.setTextColor(colors.yellow)
@@ -257,6 +269,7 @@ elseif mode == "install" or mode == "update" then
     end
     term.setTextColor(colors.white)
 
+    -- display bootloader version change information
     if local_boot_version ~= nil then
         if local_boot_version ~= remote_boot_version then
             print("[bootldr] updating ")
@@ -267,6 +280,11 @@ elseif mode == "install" or mode == "update" then
             term.setTextColor(colors.blue)
             println(remote_boot_version)
             term.setTextColor(colors.white)
+        elseif mode == "install" then
+            print("[bootldr] reinstalling ")
+            term.setTextColor(colors.blue)
+            print(local_boot_version)
+            term.setTextColor(colors.white)
         end
     else
         print("[bootldr] new install of ")
@@ -275,6 +293,7 @@ elseif mode == "install" or mode == "update" then
         term.setTextColor(colors.white)
     end
 
+    -- display app version change information
     if local_app_version ~= nil then
         if local_app_version ~= remote_app_version then
             print("[" .. app .. "] updating ")
@@ -285,6 +304,11 @@ elseif mode == "install" or mode == "update" then
             term.setTextColor(colors.blue)
             println(remote_app_version)
             term.setTextColor(colors.white)
+        elseif mode == "install" then
+            print("[" .. app .. "] reinstalling ")
+            term.setTextColor(colors.blue)
+            print(local_app_version)
+            term.setTextColor(colors.white)
         end
     else
         print("[" .. app .. "] new install of ")
@@ -293,6 +317,7 @@ elseif mode == "install" or mode == "update" then
         term.setTextColor(colors.white)
     end
 
+    -- display comms version change information
     if local_comms_version ~= nil then
         if local_comms_version ~= remote_comms_version then
             print("[comms] updating ")
@@ -303,10 +328,14 @@ elseif mode == "install" or mode == "update" then
             term.setTextColor(colors.blue)
             println(remote_comms_version)
             term.setTextColor(colors.white)
-
             print("[comms] ")
             term.setTextColor(colors.yellow)
             println("other devices on the network will require an update")
+            term.setTextColor(colors.white)
+        elseif mode == "install" then
+            print("[comms] reinstalling ")
+            term.setTextColor(colors.blue)
+            print(local_comms_version)
             term.setTextColor(colors.white)
         end
     else
@@ -336,10 +365,11 @@ elseif mode == "install" or mode == "update" then
         space_required = space_required + size
     end
 
+    -- check space constraints
     if space_available < space_required then
         single_file_mode = true
-        term.setTextColor(colors.red)
-        println("WARNING: Insuffienct space available for a full download!")
+        term.setTextColor(colors.yellow)
+        println("WARNING: Insufficient space available for a full download!")
         term.setTextColor(colors.white)
         println("Files will be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         println("Do you wish to continue? (y/N)")
@@ -362,6 +392,7 @@ elseif mode == "install" or mode == "update" then
             fs.makeDir(install_dir)
         end
 
+        -- download all dependencies
         for _, dependency in pairs(dependencies) do
             if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
                 -- skip system package if unchanged, skip app package if not changed
@@ -379,12 +410,12 @@ elseif mode == "install" or mode == "update" then
                 term.setTextColor(colors.lightGray)
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("get: " .. file)
-                    local dl, err_c = http.get(repo_path .. file)
+                    println("GET: " .. file)
+                    local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
                         term.setTextColor(colors.red)
-                        println("get: error " .. err_c)
+                        println("GET: HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -396,6 +427,7 @@ elseif mode == "install" or mode == "update" then
             end
         end
 
+        -- copy in downloaded files (installation)
         if success then
             for _, dependency in pairs(dependencies) do
                 if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
@@ -446,6 +478,7 @@ elseif mode == "install" or mode == "update" then
             end
         end
     else
+        -- go through all files and replace one by one
         for _, dependency in pairs(dependencies) do
             if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
                 -- skip system package if unchanged, skip app package if not changed
@@ -463,11 +496,11 @@ elseif mode == "install" or mode == "update" then
                 term.setTextColor(colors.lightGray)
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("get: " .. file)
-                    local dl, err_c = http.get(repo_path .. file)
+                    println("GET: " .. file)
+                    local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
-                        println("get: error " .. err_c)
+                        println("GET: HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -513,7 +546,7 @@ elseif mode == "remove" or mode == "purge" then
         println("error parsing local installation manifest")
         term.setTextColor(colors.white)
         return
-    elseif manifest.versions[app] == nil then
+    elseif mode == "remove" and manifest.versions[app] == nil then
         term.setTextColor(colors.red)
         println(app .. " is not installed")
         term.setTextColor(colors.white)
@@ -551,7 +584,7 @@ elseif mode == "remove" or mode == "purge" then
         if not log_deleted then
             term.setTextColor(colors.red)
             println("failed to delete log file")
-            term.setTextColor(colors.white)
+            term.setTextColor(colors.lightGray)
 ---@diagnostic disable-next-line: undefined-field
             os.sleep(1)
         end
@@ -569,6 +602,7 @@ elseif mode == "remove" or mode == "purge" then
             end
         end
 
+        -- delete folders that we should be deleteing
         if mode == "purge" or dependency ~= app then
             local folder = files[1]
             while true do
@@ -603,9 +637,16 @@ elseif mode == "remove" or mode == "purge" then
         end
     end
 
+    -- only delete manifest if purging
     if mode == "purge" then
         fs.delete("install_manifest.json")
         println("deleted install_manifest.json")
+    else
+        -- remove all data from versions list to show nothing is installed
+        manifest.versions = {}
+        imfile = fs.open("install_manifest.json", "w")
+        imfile.write(textutils.serializeJSON(manifest))
+        imfile.close()
     end
 
     term.setTextColor(colors.green)
