@@ -22,11 +22,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.8b"
+local VERSION = "v0.9a"
 
 local install_dir = "/.install-cache"
-local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
-local install_manifest = repo_path .. "install_manifest.json"
+local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
 
 local opts = { ... }
 local mode = nil
@@ -65,20 +64,31 @@ end
 println("-- CC Mekanism SCADA Installer " .. VERSION .. " --")
 
 if #opts == 0 or opts[1] == "help" then
-    println("note: only modifies files that are part of the device application")
-    println("usage: ccmsi <mode> <app>")
+    println("usage: ccmsi <mode> <app> <tag/branch>")
     println("<mode>")
+    term.setTextColor(colors.lightGray)
     println(" check       - check latest versions avilable")
+    term.setTextColor(colors.yellow)
+    println("               ccmsi check <tag/branch> for target")
+    term.setTextColor(colors.lightGray)
     println(" install     - fresh install, overwrites config")
     println(" update      - update files EXCEPT for config/logs")
     println(" remove      - delete files EXCEPT for config/logs")
     println(" purge       - delete files INCLUDING config/logs")
+    term.setTextColor(colors.white)
     println("<app>")
+    term.setTextColor(colors.lightGray)
     println(" reactor-plc - reactor PLC firmware")
     println(" rtu         - RTU firmware")
     println(" supervisor  - supervisor server application")
     println(" coordinator - coordinator application")
     println(" pocket      - pocket application")
+    term.setTextColor(colors.white)
+    println("<tag/branch>")
+    term.setTextColor(colors.yellow)
+    println(" second parameter instead of app when used with check")
+    term.setTextColor(colors.lightGray)
+    println(" target GitHub tag or branch name instead of main")
     return
 else
     for _, v in pairs({ "check", "install", "update", "remove", "purge" }) do
@@ -114,6 +124,9 @@ if mode == "check" then
     -------------------------
     -- GET REMOTE MANIFEST --
     -------------------------
+
+    if opts[2] then repo_path = repo_path .. opts[2] .. "/" else repo_path = repo_path .. "main/" end
+    local install_manifest = repo_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
 
@@ -174,6 +187,9 @@ elseif mode == "install" or mode == "update" then
     -------------------------
     -- GET REMOTE MANIFEST --
     -------------------------
+
+    if opts[3] then repo_path = repo_path .. opts[3] .. "/" else repo_path = repo_path .. "main/" end
+    local install_manifest = repo_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
 
@@ -508,7 +524,7 @@ elseif mode == "remove" or mode == "purge" then
     if mode == "remove" then
         println("removing all " .. app .. " files except for config.lua and log.txt...")
     elseif mode == "purge" then
-        println("purging all " .. app .. " files including config.lua and log.txt...")
+        println("purging all " .. app .. " files...")
     end
 
 ---@diagnostic disable-next-line: undefined-field
@@ -523,11 +539,21 @@ elseif mode == "remove" or mode == "purge" then
     term.setTextColor(colors.lightGray)
 
     -- delete log file if purging
-    if mode == "purge" then
-        local config = require(app .. ".config")
-        if fs.exists(config.LOG_PATH) then
-            fs.delete(config.LOG_PATH)
-            println("deleted log file " .. config.LOG_PATH)
+    if mode == "purge" and fs.exists(config_file) then
+        local log_deleted = pcall(function ()
+            local config = require(app .. ".config")
+            if fs.exists(config.LOG_PATH) then
+                fs.delete(config.LOG_PATH)
+                println("deleted log file " .. config.LOG_PATH)
+            end
+        end)
+
+        if not log_deleted then
+            term.setTextColor(colors.red)
+            println("failed to delete log file")
+            term.setTextColor(colors.white)
+---@diagnostic disable-next-line: undefined-field
+            os.sleep(1)
         end
     end
 
@@ -554,8 +580,10 @@ elseif mode == "remove" or mode == "purge" then
                 end
             end
 
-            fs.delete(folder)
-            println("deleted directory " .. folder)
+            if fs.isDir(folder) then
+                fs.delete(folder)
+                println("deleted directory " .. folder)
+            end
         elseif dependency == app then
             for _, folder in pairs(files) do
                 while true do
@@ -567,7 +595,7 @@ elseif mode == "remove" or mode == "purge" then
                     end
                 end
 
-                if folder ~= app and fs.exists(folder) then
+                if folder ~= app and fs.isDir(folder) then
                     fs.delete(folder)
                     println("deleted app subdirectory " .. folder)
                 end
