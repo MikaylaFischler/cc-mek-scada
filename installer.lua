@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.5"
+local VERSION = "v0.6"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -31,6 +31,29 @@ local install_manifest = repo_path .. "install_manifest.json"
 local opts = { ... }
 local mode = nil
 local app = nil
+
+local function write_install_manifest(manifest, dependencies)
+    local versions = {}
+    for key, value in pairs(manifest.versions) do
+        local is_dependency = false
+        for _, dependency in pairs(dependencies) do
+            if key == "bootloader" and dependency == "system" then
+                is_dependency = true
+                break
+            end
+        end
+
+        if key == app or is_dependency then
+            versions[key] = value
+        end
+    end
+
+    manifest.versions = versions
+
+    local imfile = fs.open("install_manifest.json", "w")
+    imfile.write(textutils.serializeJSON(manifest))
+    imfile.close()
+end
 
 --
 -- get and validate command line options
@@ -128,6 +151,11 @@ if mode == "install" or mode == "update" then
         local_app_version = local_manifest.versions[app]
         local_comms_version = local_manifest.versions.comms
         local_boot_version = local_manifest.versions.bootloader
+    elseif local_manifest.versions[app] == nil then
+        term.setTextColor(colors.red)
+        println("another application is already installed, please purge it before installing a new application")
+        term.setTextColor(colors.white)
+        return
     end
 
     local remote_app_version = manifest.versions[app]
@@ -172,6 +200,7 @@ if mode == "install" or mode == "update" then
             term.setTextColor(colors.white)
         end
     else
+        print("[" .. app .. "] new install of ")
         term.setTextColor(colors.blue)
         println(remote_app_version)
         term.setTextColor(colors.white)
@@ -247,7 +276,7 @@ if mode == "install" or mode == "update" then
         end
 
         for _, dependency in pairs(dependencies) do
-            if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+            if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
                 -- skip system package if unchanged, skip app package if not changed
                 -- skip packages that have no version if app version didn't change
                 term.setTextColor(colors.white)
@@ -282,7 +311,7 @@ if mode == "install" or mode == "update" then
 
         if success then
             for _, dependency in pairs(dependencies) do
-                if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+                if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
                     -- skip system package if unchanged, skip app package if not changed
                     -- skip packages that have no version if app version didn't change
                     term.setTextColor(colors.white)
@@ -311,10 +340,10 @@ if mode == "install" or mode == "update" then
         fs.delete(install_dir)
 
         if success then
-            term.setTextColor(colors.green)
-
             -- if we made it here, then none of the file system functions threw exceptions
             -- that means everything is OK
+            write_install_manifest(manifest, dependencies)
+            term.setTextColor(colors.green)
             if mode == "install" then
                 println("installation completed successfully")
             else
@@ -331,7 +360,7 @@ if mode == "install" or mode == "update" then
         end
     else
         for _, dependency in pairs(dependencies) do
-            if (dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version) then
+            if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
                 -- skip system package if unchanged, skip app package if not changed
                 -- skip packages that have no version if app version didn't change
                 term.setTextColor(colors.white)
@@ -366,6 +395,7 @@ if mode == "install" or mode == "update" then
         if success then
             -- if we made it here, then none of the file system functions threw exceptions
             -- that means everything is OK
+            write_install_manifest(manifest, dependencies)
             term.setTextColor(colors.green)
             if mode == "install" then
                 println("installation completed successfully")
@@ -382,13 +412,23 @@ if mode == "install" or mode == "update" then
         end
     end
 elseif mode == "remove" or mode == "purge" then
-    local imfile = fs.open("install_manifest.json")
-    local ok, manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
-    imfile.close()
+    local imfile = fs.open("install_manifest.json", "r")
+    local ok = false
+    local manifest = {}
+
+    if imfile ~= nil then
+        ok, manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+        imfile.close()
+    end
 
     if not ok then
         term.setTextColor(colors.red)
         println("error parsing local installation manifest")
+        term.setTextColor(colors.white)
+        return
+    elseif manifest.versions[app] == nil then
+        term.setTextColor(colors.red)
+        println(app .. " is not installed")
         term.setTextColor(colors.white)
         return
     end
@@ -414,8 +454,10 @@ elseif mode == "remove" or mode == "purge" then
     -- delete log file if purging
     if mode == "purge" then
         local config = require(config_file)
-        fs.delete(config.LOG_PATH)
-        println("deleted log file " .. config.LOG_PATH)
+        if fs.exists(config.LOG_PATH) then
+            fs.delete(config.LOG_PATH)
+            println("deleted log file " .. config.LOG_PATH)
+        end
     end
 
     -- delete all files except config unless purging
@@ -423,10 +465,17 @@ elseif mode == "remove" or mode == "purge" then
         local files = file_list[dependency]
         for _, file in pairs(files) do
             if mode == "purge" or file ~= config_file then
-                fs.delete(file)
-                println("deleted " .. file)
+                if fs.exists(file) then
+                    fs.delete(file)
+                    println("deleted " .. file)
+                end
             end
         end
+    end
+
+    if mode == "purge" then
+        fs.delete("install_manifest.json")
+        println("deleted install_manifest.json")
     end
 
     term.setTextColor(colors.green)
