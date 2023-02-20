@@ -12,6 +12,7 @@ local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
 local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
 local UNIT_COMMANDS = comms.UNIT_COMMANDS
 local FAC_COMMANDS = comms.FAC_COMMANDS
+local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
 
 local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
@@ -24,13 +25,15 @@ local println_ts = util.println_ts
 -- retry time constants in ms
 local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
+local PARTIAL_RETRY_PERIOD = 2000
 
 local CRD_S_CMDS = {
-    RESEND_BUILDS = 1
 }
 
 local CRD_S_DATA = {
-    CMD_ACK = 1
+    CMD_ACK = 1,
+    RESEND_PLC_BUILD = 2,
+    RESEND_RTU_BUILD = 3
 }
 
 coordinator.CRD_S_CMDS = CRD_S_CMDS
@@ -129,7 +132,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             builds[unit.get_id()] = unit.get_build()
         end
 
-        _send(SCADA_CRDN_TYPES.UNIT_BUILDS, builds)
+        _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
     end
 
     -- send facility status
@@ -350,15 +353,6 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                         _handle_packet(message.message)
                     elseif message.qtype == mqueue.TYPE.COMMAND then
                         -- handle instruction
-                        local cmd = message.message
-                        if cmd == CRD_S_CMDS.RESEND_BUILDS then
-                            -- re-send builds
-                            self.retry_times.builds_packet = util.time() + RETRY_PERIOD
-                            _send_fac_builds()
-                            _send_unit_builds()
-                        else
-                            log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
-                        end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
                         local cmd = message.message ---@type queue_data
@@ -366,6 +360,41 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                         if cmd.key == CRD_S_DATA.CMD_ACK then
                             local ack = cmd.val ---@type coord_ack
                             _send(SCADA_CRDN_TYPES.UNIT_CMD, { ack.cmd, ack.unit, ack.ack })
+                        elseif cmd.key == CRD_S_DATA.RESEND_PLC_BUILD then
+                            -- re-send PLC build
+                            -- retry logic will be kept as-is, so as long as no retry is needed, this will be a small update
+                            self.retry_times.builds_packet = util.time() + PARTIAL_RETRY_PERIOD
+                            self.acks.unit_builds = false
+
+                            local unit_id = cmd.val
+                            local builds = {}
+
+                            local unit = self.units[unit_id]    ---@type reactor_unit
+                            builds[unit_id] = unit.get_build(true, false, false)
+
+                            _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
+                        elseif cmd.key == CRD_S_DATA.RESEND_RTU_BUILD then
+                            local unit_id = cmd.val.unit
+                            if unit_id > 0 then
+                                -- re-send unit RTU builds
+                                -- retry logic will be kept as-is, so as long as no retry is needed, this will be a small update
+                                self.retry_times.u_builds_packet = util.time() + PARTIAL_RETRY_PERIOD
+                                self.acks.unit_builds = false
+
+                                local builds = {}
+
+                                local unit = self.units[unit_id]    ---@type reactor_unit
+                                builds[unit_id] = unit.get_build(false, cmd.val.type == RTU_UNIT_TYPES.BOILER_VALVE, cmd.val.type == RTU_UNIT_TYPES.TURBINE_VALVE)
+
+                                _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
+                            else
+                                -- re-send facility RTU builds
+                                -- retry logic will be kept as-is, so as long as no retry is needed, this will be a small update
+                                self.retry_times.f_builds_packet = util.time() + PARTIAL_RETRY_PERIOD
+                                self.acks.fac_builds = false
+
+                                _send(SCADA_CRDN_TYPES.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPES.IMATRIX) })
+                            end
                         else
                             log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
                         end

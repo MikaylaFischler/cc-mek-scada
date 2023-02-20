@@ -465,11 +465,15 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             end
                         elseif packet.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
                             -- record builds
-                            if iocontrol.record_unit_builds(packet.data) then
-                                -- acknowledge receipt of builds
-                                _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_BUILDS, {})
+                            if packet.length == 1 then
+                                if iocontrol.record_unit_builds(packet.data[1]) then
+                                    -- acknowledge receipt of builds
+                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_BUILDS, {})
+                                else
+                                    log.error("received invalid UNIT_BUILDS packet")
+                                end
                             else
-                                log.error("received invalid UNIT_BUILDS packet")
+                                log.debug("UNIT_BUILDS packet length mismatch")
                             end
                         elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
                             -- update statuses

@@ -385,12 +385,12 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         _send_modbus(msg.message)
                     elseif msg.qtype == mqueue.TYPE.COMMAND then
                         -- handle instruction
-                        local cmd = msg.message
-                        if cmd == unit_session.RTU_US_CMDS.BUILD_CHANGED then
-                            self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
-                        end
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
+                        local cmd = msg.message ---@type queue_data
+                        if cmd.key == unit_session.RTU_US_DATA.BUILD_CHANGED then
+                            self.out_q.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
+                        end
                     end
                 end
             end

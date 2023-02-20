@@ -342,7 +342,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                     if status then
                         -- copied in structure data OK
                         self.received_struct = true
-                        self.out_q.push_command(svqtypes.SV_Q_CMDS.BUILD_CHANGED)
+                        self.out_q.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, for_reactor)
                     else
                         -- error copying structure data
                         log.error(log_header .. "failed to parse struct packet data")

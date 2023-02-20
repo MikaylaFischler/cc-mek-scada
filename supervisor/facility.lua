@@ -814,13 +814,16 @@ function facility.new(num_reactors, cooling_conf)
     -- READ STATES/PROPERTIES --
 
     -- get build properties of all machines
-    function public.get_build()
+    ---@param inc_imatrix boolean? true/nil to include induction matrix build, false to exclude
+    function public.get_build(inc_imatrix)
         local build = {}
 
-        build.induction = {}
-        for i = 1, #self.induction do
-            local matrix = self.induction[i]    ---@type unit_session
-            build.induction[matrix.get_device_idx()] = { matrix.get_db().formed, matrix.get_db().build }
+        if inc_imatrix ~= false then
+            build.induction = {}
+            for i = 1, #self.induction do
+                local matrix = self.induction[i]    ---@type unit_session
+                build.induction[matrix.get_device_idx()] = { matrix.get_db().formed, matrix.get_db().build }
+            end
         end
 
         return build

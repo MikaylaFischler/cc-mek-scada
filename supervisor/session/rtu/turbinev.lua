@@ -44,10 +44,10 @@ local PERIODICS = {
 }
 
 -- create a new turbinev rtu session runner
----@param session_id integer
----@param unit_id integer
----@param advert rtu_advertisement
----@param out_queue mqueue
+---@param session_id integer RTU session ID
+---@param unit_id integer RTU unit ID
+---@param advert rtu_advertisement RTU advertisement table
+---@param out_queue mqueue RTU unit message out queue
 function turbinev.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPES.TURBINE_VALVE then
@@ -192,7 +192,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_water_output = m_pkt.data[15]
                 self.has_build = true
 
-                out_queue.push_command(unit_session.RTU_US_CMDS.BUILD_CHANGED)
+                out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

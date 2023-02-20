@@ -4,8 +4,8 @@
         "comms": "1.3.3",
         "reactor-plc": "beta-v0.10.11",
         "rtu": "beta-v0.11.1",
-        "supervisor": "beta-v0.11.13",
-        "coordinator": "beta-v0.9.16",
+        "supervisor": "beta-v0.12.0",
+        "coordinator": "beta-v0.10.0",
         "pocket": "alpha-v0.0.0"
     },
     "files": {
@@ -180,10 +180,10 @@
         "common": 88049,
         "graphics": 99360,
         "lockbox": 100797,
-        "reactor-plc": 75956,
+        "reactor-plc": 75915,
         "rtu": 81676,
-        "supervisor": 261745,
-        "coordinator": 180622,
+        "supervisor": 265030,
+        "coordinator": 180849,
         "pocket": 335
     }
 }

@@ -13,10 +13,10 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
 local RTU_US_CMDS = {
-    BUILD_CHANGED = 1
 }
 
 local RTU_US_DATA = {
+    BUILD_CHANGED = 1
 }
 
 unit_session.RTU_US_CMDS = RTU_US_CMDS

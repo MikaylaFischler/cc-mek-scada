@@ -1,7 +1,6 @@
 local svqtypes = {}
 
 local SV_Q_CMDS = {
-    BUILD_CHANGED = 1
 }
 
 local SV_Q_DATA = {
@@ -10,7 +9,9 @@ local SV_Q_DATA = {
     RESET_RPS = 3,
     SET_BURN = 4,
     __END_PLC_CMDS__ = 5,
-    CRDN_ACK = 6
+    CRDN_ACK = 6,
+    PLC_BUILD_CHANGED = 7,
+    RTU_BUILD_CHANGED = 8
 }
 
 ---@class coord_ack

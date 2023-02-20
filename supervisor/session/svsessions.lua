@@ -62,11 +62,6 @@ local function _sv_handle_outq(session)
                 self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
-                local cmd = msg.message
-                if (cmd == SV_Q_CMDS.BUILD_CHANGED) and (svsessions.get_coord_session() ~= nil) then
-                    -- notify coordinator that a build has changed
-                    svsessions.get_coord_session().in_queue.push_command(CRD_S_CMDS.RESEND_BUILDS)
-                end
             elseif msg.qtype == mqueue.TYPE.DATA then
                 -- instruction/notification with body
                 local cmd = msg.message ---@type queue_data
@@ -89,11 +84,17 @@ local function _sv_handle_outq(session)
                         end
                     end
                 else
-                    if cmd.key == SV_Q_DATA.CRDN_ACK then
-                        -- ack to be sent to coordinator
-                        local crd_s = svsessions.get_coord_session()
-                        if crd_s ~= nil then
+                    local crd_s = svsessions.get_coord_session()
+                    if crd_s ~= nil then
+                        if cmd.key == SV_Q_DATA.CRDN_ACK then
+                            -- ack to be sent to coordinator
                             crd_s.in_queue.push_data(CRD_S_DATA.CMD_ACK, cmd.val)
+                        elseif cmd.key == SV_Q_DATA.PLC_BUILD_CHANGED then
+                            -- a PLC build has changed
+                            crd_s.in_queue.push_data(CRD_S_DATA.RESEND_PLC_BUILD, cmd.val)
+                        elseif cmd.key == SV_Q_DATA.RTU_BUILD_CHANGED then
+                            -- an RTU build has changed
+                            crd_s.in_queue.push_data(CRD_S_DATA.RESEND_RTU_BUILD, cmd.val)
                         end
                     end
                 end

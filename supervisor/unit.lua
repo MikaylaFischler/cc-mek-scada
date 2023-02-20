@@ -678,23 +678,32 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- get build properties of all machines
-    function public.get_build()
+    ---@param inc_plc boolean? true/nil to include PLC build, false to exclude
+    ---@param inc_boilers boolean? true/nil to include boiler builds, false to exclude
+    ---@param inc_turbines boolean? true/nil to include turbine builds, false to exclude
+    function public.get_build(inc_plc, inc_boilers, inc_turbines)
         local build = {}
 
-        if self.plc_i ~= nil then
-            build.reactor = self.plc_i.get_struct()
+        if inc_plc ~= false then
+            if self.plc_i ~= nil then
+                build.reactor = self.plc_i.get_struct()
+            end
         end
 
-        build.boilers = {}
-        for i = 1, #self.boilers do
-            local boiler = self.boilers[i]  ---@type unit_session
-            build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
+        if inc_boilers ~= false then
+            build.boilers = {}
+            for i = 1, #self.boilers do
+                local boiler = self.boilers[i]      ---@type unit_session
+                build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
+            end
         end
 
-        build.turbines = {}
-        for i = 1, #self.turbines do
-            local turbine = self.turbines[i]  ---@type unit_session
-            build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
+        if inc_turbines ~= false then
+            build.turbines = {}
+            for i = 1, #self.turbines do
+                local turbine = self.turbines[i]    ---@type unit_session
+                build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
+            end
         end
 
         return build
