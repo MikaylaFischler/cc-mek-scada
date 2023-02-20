@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.8"
+local VERSION = "v0.8a"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -78,7 +78,7 @@ if #opts == 0 or opts[1] == "help" or #opts ~= 2 then
     println(" pocket      - pocket application")
     return
 else
-    for _, v in pairs({ "install", "update", "remove", "purge" }) do
+    for _, v in pairs({ "check", "install", "update", "remove", "purge" }) do
         if opts[1] == v then
             mode = v
             break
@@ -97,7 +97,7 @@ else
         end
     end
 
-    if app == nil then
+    if app == nil and mode ~= "check" then
         println("unrecognized application")
         return
     end
@@ -115,8 +115,10 @@ if mode == "check" then
     local response, error = http.get(install_manifest)
 
     if response == nil then
+        term.setTextColor(colors.red)
         println("failed to get installation manifest from GitHub, cannot update or install")
         println("http error " .. error)
+        term.setTextColor(colors.white)
         return
     end
 
@@ -534,6 +536,36 @@ elseif mode == "remove" or mode == "purge" then
                     fs.delete(file)
                     println("deleted " .. file)
                 end
+            end
+        end
+
+        if mode == "purge" or dependency ~= app then
+            local folder = files[1]
+            while true do
+                local dir = fs.getDir(folder)
+                if dir == "" or dir == ".." then
+                    break
+                else
+                    folder = dir
+                end
+            end
+
+            fs.delete(folder)
+            println("deleted directory " .. folder)
+        elseif dependency == app then
+            local folder = files[1]
+            while true do
+                local dir = fs.getDir(folder)
+                if dir == "" or dir == ".." or dir == app then
+                    break
+                else
+                    folder = dir
+                end
+            end
+
+            if folder ~= app then
+                fs.delete(folder)
+                println("deleted app subdirectory " .. folder)
             end
         end
     end
