@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.7"
+local VERSION = "v0.8"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/devel/"
@@ -63,8 +63,9 @@ println("-- CC Mekanism SCADA Installer " .. VERSION .. " --")
 
 if #opts == 0 or opts[1] == "help" or #opts ~= 2 then
     println("note: only modifies files that are part of the device application")
-    println("usage: installer <mode> <app>")
+    println("usage: ccmsi <mode> <app>")
     println("<mode>")
+    println(" check       - check latest versions avilable")
     println(" install     - fresh install, overwrites config")
     println(" update      - update files EXCEPT for config/logs")
     println(" remove      - delete files EXCEPT for config/logs")
@@ -106,7 +107,7 @@ end
 -- run selected mode
 --
 
-if mode == "install" or mode == "update" then
+if mode == "check" then
     -------------------------
     -- GET REMOTE MANIFEST --
     -------------------------
@@ -122,8 +123,68 @@ if mode == "install" or mode == "update" then
     local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
 
     if not ok then
+        term.setTextColor(colors.red)
         println("error parsing remote installation manifest")
+        term.setTextColor(colors.white)
         return
+    end
+
+    ------------------------
+    -- GET LOCAL MANIFEST --
+    ------------------------
+
+    local imfile = fs.open("install_manifest.json", "r")
+    local local_ok = false
+    local local_manifest = {}
+
+    if imfile ~= nil then
+        local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+        imfile.close()
+    end
+
+    if not local_ok then
+        term.setTextColor(colors.yellow)
+        println("warning: failed to load local installation information")
+        term.setTextColor(colors.white)
+    end
+
+    for key, value in pairs(manifest.versions) do
+        term.setTextColor(colors.white)
+        print("[" .. key .. "]" )
+        term.setTextColor(colors.blue)
+        print(value)
+        term.setTextColor(colors.lightGray)
+        if local_manifest.versions[key] ~= nil then
+            print(" (current ")
+            term.setTextColor(colors.blue)
+            print(value)
+            term.setTextColor(colors.white)
+            println(")")
+        else
+            println(" (not installed)")
+        end
+    end
+elseif mode == "install" or mode == "update" then
+    -------------------------
+    -- GET REMOTE MANIFEST --
+    -------------------------
+
+    local response, error = http.get(install_manifest)
+
+    if response == nil then
+        term.setTextColor(colors.red)
+        println("failed to get installation manifest from GitHub, cannot update or install")
+        println("http error " .. error)
+        term.setTextColor(colors.white)
+        return
+    end
+
+    local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
+
+    if not ok then
+        term.setTextColor(colors.red)
+        println("error parsing remote installation manifest")
+        term.setTextColor(colors.white)
     end
 
     ------------------------
@@ -457,7 +518,7 @@ elseif mode == "remove" or mode == "purge" then
 
     -- delete log file if purging
     if mode == "purge" then
-        local config = require(config_file)
+        local config = require(app .. ".config")
         if fs.exists(config.LOG_PATH) then
             fs.delete(config.LOG_PATH)
             println("deleted log file " .. config.LOG_PATH)
