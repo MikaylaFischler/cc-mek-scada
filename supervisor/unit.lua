@@ -82,7 +82,10 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
+        emcool_opened = false,
         -- auto control
+        auto_engaged = false,
+        auto_was_alarmed = false,
         ramp_target_br100 = 0,
         -- state tracking
         deltas = {},
@@ -141,25 +144,25 @@ function unit.new(for_reactor, num_boilers, num_turbines)
             -- radiation monitor alarm for this unit
             ContainmentRadiation = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ContainmentRadiation, tier = PRIO.CRITICAL },
             -- reactor offline after being online
-            ReactorLost          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorLost, tier = PRIO.URGENT },
+            ReactorLost          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorLost, tier = PRIO.TIMELY },
             -- damage >100%
             CriticalDamage       = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.CriticalDamage, tier = PRIO.CRITICAL },
             -- reactor damage increasing
             ReactorDamage        = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorDamage, tier = PRIO.EMERGENCY },
             -- reactor >1200K
             ReactorOverTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorOverTemp, tier = PRIO.URGENT },
-            -- reactor >1100K
-            ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
+            -- reactor >1150K
+            ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
             -- waste = 100%
             ReactorWasteLeak     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorWasteLeak, tier = PRIO.EMERGENCY },
             -- waste >85%
-            ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.TIMELY },
+            ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.URGENT },
             -- RPS trip occured
-            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.RPSTransient, tier = PRIO.TIMELY },
+            RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.RPSTransient, tier = PRIO.TIMELY },
             -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
             RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
             -- "It's just a routine turbin' trip!" -Bill Gibson, "The China Syndrome"
-            TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
+            TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
         },
         ---@class unit_db
         db = {
@@ -488,12 +491,17 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         -- update alarm status
         logic.update_alarms(self)
 
+        -- if in auto mode, SCRAM on certain alarms
+        logic.update_auto_safety(public, self)
+
         -- update status text
         logic.update_status_text(self)
 
         -- handle redstone I/O
         if #self.redstone > 0 then
             logic.handle_redstone(self)
+        elseif not self.plc_cache.rps_trip then
+            self.emcool_opened = false
         end
     end
 
@@ -502,7 +510,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- engage automatic control
     function public.a_engage()
-        self.db.annunciator.AutoControl = true
+        self.auto_engaged = true
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(true)
         end
@@ -510,7 +518,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- disengage automatic control
     function public.a_disengage()
-        self.db.annunciator.AutoControl = false
+        self.auto_engaged = false
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(false)
             self.db.control.br100 = 0
@@ -533,7 +541,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- set the automatic burn rate based on the last set burn rate in 100ths
     ---@param ramp boolean true to ramp to rate, false to set right away
     function public.a_commit_br100(ramp)
-        if self.db.annunciator.AutoControl then
+        if self.auto_engaged then
             if self.plc_i ~= nil then
                 self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
 
@@ -562,7 +570,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- queue a command to clear timeout/auto-scram if set
     function public.a_cond_rps_reset()
-        if self.plc_s ~= nil and self.plc_i ~= nil then
+        if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.emcool_opened) then
             local rps = self.plc_i.get_rps()
             if rps.timeout or rps.automatic then
                 self.plc_i.auto_lock(true)  -- if it timed out/restarted, auto lock was lost, so re-lock it
@@ -668,8 +676,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
 
     -- check if a critical alarm is tripped
     function public.has_critical_alarm()
-        for _, data in pairs(self.alarms) do
-            if data.tier == PRIO.CRITICAL and (data.state == AISTATE.TRIPPED or data.state == AISTATE.ACKED) then
+        for _, alarm in pairs(self.alarms) do
+            if alarm.tier == PRIO.CRITICAL and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
                 return true
             end
         end

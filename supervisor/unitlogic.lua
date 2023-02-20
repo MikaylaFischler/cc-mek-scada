@@ -5,6 +5,7 @@ local util  = require("scada-common.util")
 
 local plc   = require("supervisor.session.plc")
 
+local PRIO = types.ALARM_PRIORITY
 local ALARM_STATE = types.ALARM_STATE
 
 local TRI_FAIL = types.TRI_FAIL
@@ -49,6 +50,8 @@ function logic.update_annunciator(self)
     -------------
     -- REACTOR --
     -------------
+
+    self.db.annunciator.AutoControl = self.auto_engaged
 
     -- check PLC status
     self.db.annunciator.PLCOnline = self.plc_i ~= nil
@@ -109,7 +112,7 @@ function logic.update_annunciator(self)
         self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
         self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < -2.0
-        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.5
+        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.4
         self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
         self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
         self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= 0.01
@@ -515,6 +518,37 @@ function logic.update_alarms(self)
     end
 end
 
+-- update the internal automatic safety control performed while in auto control mode
+---@param public reactor_unit reactor unit public functions
+---@param self _unit_self unit instance
+function logic.update_auto_safety(public, self)
+    local AISTATE = self.types.AISTATE
+
+    if self.auto_engaged then
+        local alarmed = false
+
+        for _, alarm in pairs(self.alarms) do
+            if alarm.tier <= PRIO.URGENT and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
+                if not self.auto_was_alarmed then
+                    log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.alarm_string[alarm.id], ") [PRIORITY ",
+                        types.alarm_prio_string[alarm.tier + 1],"]"))
+                end
+
+                alarmed = true
+                break
+            end
+        end
+
+        if alarmed and not self.plc_cache.rps_status.automatic then
+            public.a_scram()
+        end
+
+        self.auto_was_alarmed = alarmed
+    else
+        self.auto_was_alarmed = false
+    end
+end
+
 -- update the two unit status text messages
 ---@param self _unit_self unit instance
 function logic.update_status_text(self)
@@ -570,6 +604,8 @@ function logic.update_status_text(self)
         self.status_text = { "WASTE LEVEL HIGH", "waste accumulating in reactor" }
     elseif is_active(self.alarms.TurbineTrip) then
         self.status_text = { "TURBINE TRIP", "turbine stall occured" }
+    elseif self.emcool_opened then
+        self.status_text = { "EMERGENCY COOLANT OPENED", "reset RPS to close valve" }
     -- connection dependent states
     elseif self.plc_i ~= nil then
         local plc_db = self.plc_i.get_db()
@@ -641,6 +677,15 @@ end
 -- handle unit redstone I/O
 ---@param self _unit_self unit instance
 function logic.handle_redstone(self)
+    local AISTATE = self.types.AISTATE
+
+    -- check if an alarm is active (tripped or ack'd)
+    ---@param alarm table alarm entry
+    ---@return boolean active
+    local function is_active(alarm)
+        return alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED
+    end
+
     -- reactor controls
     if self.plc_s ~= nil then
         if (not self.plc_cache.rps_status.manual) and self.io_ctl.digital_read(IO.R_SCRAM) then
@@ -653,7 +698,7 @@ function logic.handle_redstone(self)
             self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
         end
 
-        if (not self.db.annunciator.AutoControl) and (not self.plc_cache.active) and
+        if (not self.auto_engaged) and (not self.plc_cache.active) and
            (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ACTIVE) then
            -- reactor enable requested and allowable, but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
@@ -671,7 +716,7 @@ function logic.handle_redstone(self)
 
     -- write reactor status outputs
     self.io_ctl.digital_write(IO.R_ACTIVE, self.plc_cache.active)
-    self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.db.annunciator.AutoControl)
+    self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.auto_engaged)
     self.io_ctl.digital_write(IO.R_SCRAMMED, self.plc_cache.rps_trip)
     self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
     self.io_ctl.digital_write(IO.R_DMG_CRIT, self.plc_cache.rps_status.dmg_crit)
@@ -695,13 +740,32 @@ function logic.handle_redstone(self)
 
     self.io_ctl.digital_write(IO.U_ALARM, has_alarm)
 
-    -- check if emergency coolant is needed
-    if self.plc_cache.rps_status.no_cool then
-        self.valves.emer_cool.open()
-    elseif not self.plc_cache.rps_trip then
+    -----------------------
+    -- Emergency Coolant --
+    -----------------------
+
+    local enable_emer_cool = self.plc_cache.rps_status.no_cool or
+        (self.auto_engaged and self.db.annunciator.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
+
+    if not self.plc_cache.rps_trip then
         -- can't turn off on sufficient coolant level since it might drop again
         -- turn off once system is OK again
+        -- if auto control is engaged, alarm check will SCRAM on reactor over temp so that's covered
         self.valves.emer_cool.close()
+
+        if self.db.annunciator.EmergencyCoolant > 1 and self.emcool_opened then
+            log.info(util.c("UNIT ", self.r_id, " emergency coolant valve closed"))
+        end
+
+        self.emcool_opened = false
+    elseif enable_emer_cool or self.emcool_opened then
+        self.valves.emer_cool.open()
+
+        if self.db.annunciator.EmergencyCoolant > 1 and not self.emcool_opened then
+            log.info(util.c("UNIT ", self.r_id, " emergency coolant valve opened"))
+        end
+
+        self.emcool_opened = true
     end
 end
 

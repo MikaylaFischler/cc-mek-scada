@@ -299,7 +299,7 @@ end
 ---@param level IO_LVL
 ---@return boolean|nil
 function rsio.digital_is_active(port, level)
-    if (not util.is_int(port)) or (port > IO_PORT.U_ACK) then
+    if not util.is_int(port) then
         return nil
     elseif level == IO_LVL.FLOATING or level == IO_LVL.DISCONNECT then
         return nil

@@ -29,7 +29,7 @@ local PCALL_START_MSG = "pcall: Reactor is already active."
 
 local MAX_DAMAGE_PERCENT      = 90
 local MAX_DAMAGE_TEMPERATURE  = 1200
-local MIN_COOLANT_FILL        = 0.02
+local MIN_COOLANT_FILL        = 0.10
 local MAX_WASTE_FILL          = 0.8
 local MAX_HEATED_COLLANT_FILL = 0.95
 
@@ -206,7 +206,7 @@ function plc.rps_init(reactor, is_formed)
         self.state[state_keys.manual] = true
     end
 
-    -- automatic SCRAM commanded by supervisor/coordinator
+    -- automatic SCRAM commanded by supervisor
     function public.trip_auto()
         self.state[state_keys.automatic] = true
     end
