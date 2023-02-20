@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9b"
+local VERSION = "v0.9c"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -180,17 +180,17 @@ if mode == "check" then
                 println(" available)")
             else
                 term.setTextColor(colors.green)
-                print(" (up to date)")
+                println(" (up to date)")
             end
         else
             term.setTextColor(colors.lightGray)
-            println("not installed")
+            print("not installed")
             term.setTextColor(colors.white)
-            print(" (")
+            print(" (latest ")
             term.setTextColor(colors.cyan)
             print(value)
             term.setTextColor(colors.white)
-            println(" available)")
+            println(")")
         end
     end
 elseif mode == "install" or mode == "update" then
