@@ -14,7 +14,7 @@ local insert = table.insert
 
 local max_distance = nil
 
-comms.version = "1.3.3"
+comms.version = "1.4.0"
 
 ---@alias PROTOCOLS integer
 local PROTOCOLS = {
@@ -51,12 +51,13 @@ local SCADA_MGMT_TYPES = {
 
 ---@alias SCADA_CRDN_TYPES integer
 local SCADA_CRDN_TYPES = {
-    FAC_BUILDS = 0,     -- facility RTU builds
-    FAC_STATUS = 1,     -- state of facility and facility devices
-    FAC_CMD = 2,        -- faility command
-    UNIT_BUILDS = 3,    -- build of each reactor unit (reactor + RTUs)
-    UNIT_STATUSES = 4,  -- state of each of the reactor units
-    UNIT_CMD = 5        -- command a reactor unit
+    INITIAL_BUILDS = 0, -- initial, complete builds packet to the coordinator
+    FAC_BUILDS = 1,     -- facility RTU builds
+    FAC_STATUS = 2,     -- state of facility and facility devices
+    FAC_CMD = 3,        -- faility command
+    UNIT_BUILDS = 4,    -- build of each reactor unit (reactor + RTUs)
+    UNIT_STATUSES = 5,  -- state of each of the reactor units
+    UNIT_CMD = 6        -- command a reactor unit
 }
 
 ---@alias CAPI_TYPES integer
@@ -532,7 +533,8 @@ function comms.crdn_packet()
 
     -- check that type is known
     local function _crdn_type_valid()
-        return self.type == SCADA_CRDN_TYPES.FAC_BUILDS or
+        return self.type == SCADA_CRDN_TYPES.INITIAL_BUILDS or
+                self.type == SCADA_CRDN_TYPES.FAC_BUILDS or
                 self.type == SCADA_CRDN_TYPES.FAC_STATUS or
                 self.type == SCADA_CRDN_TYPES.FAC_CMD or
                 self.type == SCADA_CRDN_TYPES.UNIT_BUILDS or

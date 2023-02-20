@@ -71,11 +71,13 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         },
         -- when to next retry one of these messages
         retry_times = {
+            builds_packet = 0,
             f_builds_packet = 0,
             u_builds_packet = 0
         },
         -- message acknowledgements
         acks = {
+            builds = false,
             fac_builds = false,
             unit_builds = false
         }
@@ -115,16 +117,25 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         self.seq_num = self.seq_num + 1
     end
 
+    -- send both facility and unit builds
+    local function _send_all_builds()
+        local unit_builds = {}
+
+        for i = 1, #self.units do
+            local unit = self.units[i]  ---@type reactor_unit
+            unit_builds[unit.get_id()] = unit.get_build()
+        end
+
+        _send(SCADA_CRDN_TYPES.INITIAL_BUILDS, { facility.get_build(), unit_builds })
+    end
+
     -- send facility builds
     local function _send_fac_builds()
-        self.acks.fac_builds = false
         _send(SCADA_CRDN_TYPES.FAC_BUILDS, { facility.get_build() })
     end
 
     -- send unit builds
     local function _send_unit_builds()
-        self.acks.unit_builds = false
-
         local builds = {}
 
         for i = 1, #self.units do
@@ -206,7 +217,10 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_CRDN then
-            if pkt.type == SCADA_CRDN_TYPES.FAC_BUILDS then
+            if pkt.type == SCADA_CRDN_TYPES.INITIAL_BUILDS then
+                -- acknowledgement to coordinator receiving builds
+                self.acks.builds = true
+            elseif pkt.type == SCADA_CRDN_TYPES.FAC_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.fac_builds = true
             elseif pkt.type == SCADA_CRDN_TYPES.FAC_CMD then
@@ -449,6 +463,13 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             local rtimes = self.retry_times
 
             -- builds packet retries
+
+            if not self.acks.builds then
+                if rtimes.builds_packet - util.time() <= 0 then
+                    _send_all_builds()
+                    rtimes.builds_packet = util.time() + RETRY_PERIOD
+                end
+            end
 
             if not self.acks.fac_builds then
                 if rtimes.f_builds_packet - util.time() <= 0 then

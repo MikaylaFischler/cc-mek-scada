@@ -422,7 +422,22 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                 -- handle packet
                 if protocol == PROTOCOLS.SCADA_CRDN then
                     if self.sv_linked then
-                        if packet.type == SCADA_CRDN_TYPES.FAC_BUILDS then
+                        if packet.type == SCADA_CRDN_TYPES.INITIAL_BUILDS then
+                            if packet.length == 2 then
+                                -- record builds
+                                local fac_builds = iocontrol.record_facility_builds(packet.data[1])
+                                local unit_builds = iocontrol.record_unit_builds(packet.data[2])
+
+                                if fac_builds and unit_builds then
+                                    -- acknowledge receipt of builds
+                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.INITIAL_BUILDS, {})
+                                else
+                                    log.error("received invalid INITIAL_BUILDS packet")
+                                end
+                            else
+                                log.debug("INITIAL_BUILDS packet length mismatch")
+                            end
+                        elseif packet.type == SCADA_CRDN_TYPES.FAC_BUILDS then
                             if packet.length == 1 then
                                 -- record facility builds
                                 if iocontrol.record_facility_builds(packet.data[1]) then
