@@ -15,7 +15,7 @@ local IO = rsio.IO
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
-local aistate_string = {
+local AISTATE_NAMES = {
     "INACTIVE",
     "TRIPPING",
     "TRIPPED",
@@ -368,7 +368,7 @@ local function _update_alarm_state(self, tripped, alarm)
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
                 log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
+                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
             end
         else
             alarm.trip_time = util.time_ms()
@@ -382,7 +382,7 @@ local function _update_alarm_state(self, tripped, alarm)
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
                 log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
+                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
             end
         elseif int_state == AISTATE.RING_BACK_TRIPPING then
             alarm.trip_time = 0
@@ -431,7 +431,7 @@ local function _update_alarm_state(self, tripped, alarm)
 
     -- check for state change
     if alarm.state ~= int_state then
-        local change_str = util.c(aistate_string[int_state + 1], " -> ", aistate_string[alarm.state + 1])
+        local change_str = util.c(AISTATE_NAMES[int_state], " -> ", AISTATE_NAMES[alarm.state])
         log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): ", change_str))
     end
 end
@@ -531,7 +531,7 @@ function logic.update_auto_safety(public, self)
             if alarm.tier <= PRIO.URGENT and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
                 if not self.auto_was_alarmed then
                     log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], ") [PRIORITY ",
-                        types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
+                        types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
                 end
 
                 alarmed = true

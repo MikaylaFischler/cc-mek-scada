@@ -41,14 +41,14 @@ local DT_KEYS = {
     TurbinePower = "TPR"
 }
 
----@alias ALARM_INT_STATE integer
+---@enum ALARM_INT_STATE
 local AISTATE = {
-    INACTIVE = 0,
-    TRIPPING = 1,
-    TRIPPED = 2,
-    ACKED = 3,
-    RING_BACK = 4,
-    RING_BACK_TRIPPING = 5
+    INACTIVE = 1,
+    TRIPPING = 2,
+    TRIPPED = 3,
+    ACKED = 4,
+    RING_BACK = 5,
+    RING_BACK_TRIPPING = 6
 }
 
 unit.FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS

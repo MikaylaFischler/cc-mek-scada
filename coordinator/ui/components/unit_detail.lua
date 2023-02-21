@@ -287,7 +287,7 @@ local function init(parent, id)
     end
 
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-    t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
+    t_ps[1].subscribe("SteamDumpOpen", t1_sdo.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -300,7 +300,7 @@ local function init(parent, id)
     if unit.num_turbines > 1 then
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
+        t_ps[2].subscribe("SteamDumpOpen", t2_sdo.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -314,7 +314,7 @@ local function init(parent, id)
     if unit.num_turbines > 2 then
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
+        t_ps[3].subscribe("SteamDumpOpen", t3_sdo.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}

@@ -293,7 +293,7 @@ function facility.new(num_reactors, cooling_conf)
         if state_changed then
             self.saturated = false
 
-            log.debug("FAC: state changed from " .. PROCESS_NAMES[self.last_mode + 1] .. " to " .. PROCESS_NAMES[self.mode + 1])
+            log.debug("FAC: state changed from " .. PROCESS_NAMES[self.last_mode] .. " to " .. PROCESS_NAMES[self.mode])
 
             if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
                 self.start_fail = START_STATUS.OK

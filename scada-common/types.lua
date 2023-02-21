@@ -114,21 +114,21 @@ end
 
 ---@enum TRI_FAIL
 types.TRI_FAIL = {
-    OK = 0,
-    PARTIAL = 1,
-    FULL = 2
+    OK = 1,
+    PARTIAL = 2,
+    FULL = 3
 }
 
 ---@enum PROCESS
 types.PROCESS = {
-    INACTIVE = 0,
-    MAX_BURN = 1,
-    BURN_RATE = 2,
-    CHARGE = 3,
-    GEN_RATE = 4,
-    MATRIX_FAULT_IDLE = 5,
-    SYSTEM_ALARM_IDLE = 6,
-    GEN_RATE_FAULT_IDLE = 7
+    INACTIVE = 1,
+    MAX_BURN = 2,
+    BURN_RATE = 3,
+    CHARGE = 4,
+    GEN_RATE = 5,
+    MATRIX_FAULT_IDLE = 6,
+    SYSTEM_ALARM_IDLE = 7,
+    GEN_RATE_FAULT_IDLE = 8
 }
 
 types.PROCESS_NAMES = {
@@ -148,6 +148,13 @@ types.WASTE_MODE = {
     PLUTONIUM = 2,
     POLONIUM = 3,
     ANTI_MATTER = 4
+}
+
+types.WASTE_MODE_NAMES = {
+    "AUTO",
+    "PLUTONIUM",
+    "POLONIUM",
+    "ANTI_MATTER"
 }
 
 ---@enum ALARM
@@ -183,10 +190,10 @@ types.ALARM_NAMES = {
 
 ---@enum ALARM_PRIORITY
 types.ALARM_PRIORITY = {
-    CRITICAL = 0,
-    EMERGENCY = 1,
-    URGENT = 2,
-    TIMELY = 3
+    CRITICAL = 1,
+    EMERGENCY = 2,
+    URGENT = 3,
+    TIMELY = 4
 }
 
 types.ALARM_PRIORITY_NAMES = {
@@ -198,10 +205,17 @@ types.ALARM_PRIORITY_NAMES = {
 
 ---@enum ALARM_STATE
 types.ALARM_STATE = {
-    INACTIVE = 0,
-    TRIPPED = 1,
-    ACKED = 2,
-    RING_BACK = 3
+    INACTIVE = 1,
+    TRIPPED = 2,
+    ACKED = 3,
+    RING_BACK = 4
+}
+
+types.ALARM_STATE_NAMES = {
+    "INACTIVE",
+    "TRIPPED",
+    "ACKED",
+    "RING_BACK"
 }
 
 --#endregion
