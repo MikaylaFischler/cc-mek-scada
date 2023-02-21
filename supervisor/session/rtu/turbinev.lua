@@ -92,7 +92,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 flow_rate = 0,
                 prod_rate = 0,
                 steam_input_rate = 0,
-                dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
+                dumping_mode = DUMPING_MODE.IDLE    ---@type dumping_mode
             },
             tanks = {
                 last_update = 0,
@@ -123,7 +123,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     end
 
     -- set the dumping mode
-    ---@param mode DUMPING_MODE
+    ---@param mode dumping_mode
     local function _set_dump_mode(mode)
         -- write holding register 1
         self.session.send_request(TXN_TYPES.SET_DUMP, MODBUS_FCODE.WRITE_SINGLE_HOLD_REG, { 1, mode })

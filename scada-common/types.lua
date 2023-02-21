@@ -257,7 +257,7 @@ types.RPS_TRIP_CAUSE = {
     FORCE_DISABLED = "force_disabled"
 }
 
----@alias DUMPING_MODE
+---@alias dumping_mode
 ---| "IDLE"
 ---| "DUMPING"
 ---| "DUMPING_EXCESS"
