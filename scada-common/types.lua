@@ -208,11 +208,11 @@ types.ALARM_STATE = {
 ---| "mekanism:sodium"
 ---| "mekanism:superheated_sodium"
 
-types.fluid = {
-    empty_gas = "mekanism:empty_gas",
-    water = "minecraft:water",
-    sodium = "mekanism:sodium",
-    superheated_sodium = "mekanism:superheated_sodium"
+types.FLUID = {
+    EMPTY_GAS = "mekanism:empty_gas",
+    WATER = "minecraft:water",
+    SODIUM = "mekanism:sodium",
+    SUPERHEATED_SODIUM = "mekanism:superheated_sodium"
 }
 
 ---@alias rtu_t string

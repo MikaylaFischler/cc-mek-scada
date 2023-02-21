@@ -129,7 +129,7 @@ function logic.update_annunciator(self)
             such as when a burn rate consumes half the coolant in the tank, meaning that:
                 50% at some point will be in the boiler, and 50% in a tube, so that leaves 0% in the reactor
         ]]--
-        local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.fluid.sodium, 200000, 20000)
+        local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
         local high_rate = (plc_db.mek_status.ccool_amnt / (plc_db.mek_status.burn_rate * heating_rate_conv)) < 4
         self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and high_rate
 
