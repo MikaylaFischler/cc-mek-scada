@@ -173,7 +173,6 @@ local function main()
                 log.debug("init> running without networking")
             end
 
----@diagnostic disable-next-line: param-type-mismatch
             util.push_event("clock_start")
 
             println("boot> completed")

@@ -367,8 +367,8 @@ local function _update_alarm_state(self, tripped, alarm)
             else
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.alarm_prio_string[alarm.tier + 1],"]"))
+                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
+                    types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
             end
         else
             alarm.trip_time = util.time_ms()
@@ -381,8 +381,8 @@ local function _update_alarm_state(self, tripped, alarm)
             if elapsed > (alarm.hold_time * 1000) then
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.alarm_prio_string[alarm.tier + 1],"]"))
+                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
+                    types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
             end
         elseif int_state == AISTATE.RING_BACK_TRIPPING then
             alarm.trip_time = 0
@@ -432,7 +432,7 @@ local function _update_alarm_state(self, tripped, alarm)
     -- check for state change
     if alarm.state ~= int_state then
         local change_str = util.c(aistate_string[int_state + 1], " -> ", aistate_string[alarm.state + 1])
-        log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): ", change_str))
+        log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): ", change_str))
     end
 end
 
@@ -530,8 +530,8 @@ function logic.update_auto_safety(public, self)
         for _, alarm in pairs(self.alarms) do
             if alarm.tier <= PRIO.URGENT and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
                 if not self.auto_was_alarmed then
-                    log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.alarm_string[alarm.id], ") [PRIORITY ",
-                        types.alarm_prio_string[alarm.tier + 1],"]"))
+                    log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], ") [PRIORITY ",
+                        types.ALARM_PRIORITY_NAMES[alarm.tier + 1],"]"))
                 end
 
                 alarmed = true

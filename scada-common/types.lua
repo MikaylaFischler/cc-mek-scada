@@ -12,12 +12,14 @@ local types = {}
 ---@field amount integer
 
 -- create a new tank fluid
+---@nodiscard
 ---@param n string name
 ---@param a integer amount
 ---@return radiation_reading
 function types.new_tank_fluid(n, a) return { name = n, amount = a } end
 
 -- create a new empty tank fluid
+---@nodiscard
 ---@return tank_fluid
 function types.new_empty_gas() return { type = "mekanism:empty_gas", amount = 0 } end
 
@@ -26,12 +28,14 @@ function types.new_empty_gas() return { type = "mekanism:empty_gas", amount = 0 
 ---@field unit string
 
 -- create a new radiation reading
+---@nodiscard
 ---@param r number radiaiton level
 ---@param u string radiation unit
 ---@return radiation_reading
 function types.new_radiation_reading(r, u) return { radiation = r, unit = u } end
 
 -- create a new zeroed radiation reading
+---@nodiscard
 ---@return radiation_reading
 function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv" } end
 
@@ -41,6 +45,7 @@ function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv"
 ---@field z integer
 
 -- create a new coordinate
+---@nodiscard
 ---@param x integer
 ---@param y integer
 ---@param z integer
@@ -48,11 +53,12 @@ function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv"
 function types.new_coordinate(x, y, z) return { x = x, y = y, z = z } end
 
 -- create a new zero coordinate
+---@nodiscard
 ---@return coordinate
 function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 
 ---@class rtu_advertisement
----@field type integer
+---@field type RTU_UNIT_TYPES
 ---@field index integer
 ---@field reactor integer
 ---@field rsio table|nil
@@ -62,15 +68,16 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 ---@alias color integer
 
 -- ENUMERATION TYPES --
+--#region
 
----@alias TRI_FAIL integer
+---@enum TRI_FAIL
 types.TRI_FAIL = {
     OK = 0,
     PARTIAL = 1,
     FULL = 2
 }
 
----@alias PROCESS integer
+---@enum PROCESS
 types.PROCESS = {
     INACTIVE = 0,
     MAX_BURN = 1,
@@ -93,7 +100,7 @@ types.PROCESS_NAMES = {
     "GEN_RATE_FAULT_IDLE"
 }
 
----@alias WASTE_MODE integer
+---@enum WASTE_MODE
 types.WASTE_MODE = {
     AUTO = 1,
     PLUTONIUM = 2,
@@ -101,7 +108,7 @@ types.WASTE_MODE = {
     ANTI_MATTER = 4
 }
 
----@alias ALARM integer
+---@enum ALARM
 types.ALARM = {
     ContainmentBreach = 1,
     ContainmentRadiation = 2,
@@ -117,7 +124,7 @@ types.ALARM = {
     TurbineTrip = 12
 }
 
-types.alarm_string = {
+types.ALARM_NAMES = {
     "ContainmentBreach",
     "ContainmentRadiation",
     "ReactorLost",
@@ -132,7 +139,7 @@ types.alarm_string = {
     "TurbineTrip"
 }
 
----@alias ALARM_PRIORITY integer
+---@enum ALARM_PRIORITY
 types.ALARM_PRIORITY = {
     CRITICAL = 0,
     EMERGENCY = 1,
@@ -140,30 +147,14 @@ types.ALARM_PRIORITY = {
     TIMELY = 3
 }
 
-types.alarm_prio_string = {
+types.ALARM_PRIORITY_NAMES = {
     "CRITICAL",
     "EMERGENCY",
     "URGENT",
     "TIMELY"
 }
 
--- map alarms to alarm priority
-types.ALARM_PRIO_MAP = {
-    types.ALARM_PRIORITY.CRITICAL,
-    types.ALARM_PRIORITY.CRITICAL,
-    types.ALARM_PRIORITY.URGENT,
-    types.ALARM_PRIORITY.CRITICAL,
-    types.ALARM_PRIORITY.EMERGENCY,
-    types.ALARM_PRIORITY.EMERGENCY,
-    types.ALARM_PRIORITY.TIMELY,
-    types.ALARM_PRIORITY.EMERGENCY,
-    types.ALARM_PRIORITY.TIMELY,
-    types.ALARM_PRIORITY.URGENT,
-    types.ALARM_PRIORITY.TIMELY,
-    types.ALARM_PRIORITY.URGENT
-}
-
----@alias ALARM_STATE integer
+---@enum ALARM_STATE
 types.ALARM_STATE = {
     INACTIVE = 0,
     TRIPPED = 1,
@@ -171,7 +162,10 @@ types.ALARM_STATE = {
     RING_BACK = 3
 }
 
+--#endregion
+
 -- STRING TYPES --
+--#region
 
 ---@alias os_event
 ---| "alarm"
@@ -206,21 +200,7 @@ types.ALARM_STATE = {
 ---| "websocket_failure"
 ---| "websocket_message"
 ---| "websocket_success"
-
----@alias rps_trip_cause
----| "ok"
----| "dmg_crit"
----| "high_temp"
----| "no_coolant"
----| "full_waste"
----| "heated_coolant_backup"
----| "no_fuel"
----| "fault"
----| "timeout"
----| "manual"
----| "automatic"
----| "sys_fail"
----| "force_disabled"
+---| "clock_start"          custom, added for reactor PLC
 
 ---@alias fluid
 ---| "mekanism:empty_gas"
@@ -246,6 +226,21 @@ types.rtu_t = {
     env_detector = "environment_detector"
 }
 
+---@alias rps_trip_cause
+---| "ok"
+---| "dmg_crit"
+---| "high_temp"
+---| "no_coolant"
+---| "full_waste"
+---| "heated_coolant_backup"
+---| "no_fuel"
+---| "fault"
+---| "timeout"
+---| "manual"
+---| "automatic"
+---| "sys_fail"
+---| "force_disabled"
+
 ---@alias rps_status_t rps_trip_cause
 types.rps_status_t = {
     ok = "ok",
@@ -263,18 +258,24 @@ types.rps_status_t = {
     force_disabled = "force_disabled"
 }
 
--- turbine steam dumping modes
----@alias DUMPING_MODE string
+---@alias DUMPING_MODE
+---| "IDLE"
+---| "DUMPING"
+---| "DUMPING_EXCESS"
+
 types.DUMPING_MODE = {
     IDLE = "IDLE",
     DUMPING = "DUMPING",
     DUMPING_EXCESS = "DUMPING_EXCESS"
 }
 
--- MODBUS
+--#endregion
 
--- modbus function codes
----@alias MODBUS_FCODE integer
+-- MODBUS --
+--#region
+
+-- MODBUS function codes
+---@enum MODBUS_FCODE
 types.MODBUS_FCODE = {
     READ_COILS = 0x01,
     READ_DISCRETE_INPUTS = 0x02,
@@ -287,8 +288,8 @@ types.MODBUS_FCODE = {
     ERROR_FLAG = 0x80
 }
 
--- modbus exception codes
----@alias MODBUS_EXCODE integer
+-- MODBUS exception codes
+---@enum MODBUS_EXCODE
 types.MODBUS_EXCODE = {
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDR = 0x02,
@@ -301,5 +302,7 @@ types.MODBUS_EXCODE = {
     GATEWAY_PATH_UNAVAILABLE = 0x0A,
     GATEWAY_TARGET_TIMEOUT = 0x0B
 }
+
+--#endregion
 
 return types

@@ -70,6 +70,7 @@ function crypto.init(password, server_port)
 end
 
 -- encrypt plaintext
+---@nodiscard
 ---@param plaintext string
 ---@return table initial_value, string ciphertext
 function crypto.encrypt(plaintext)
@@ -113,6 +114,7 @@ function crypto.encrypt(plaintext)
 end
 
 -- decrypt ciphertext
+---@nodiscard
 ---@param iv string CTR initial value
 ---@param ciphertext string ciphertext hex
 ---@return string plaintext
@@ -135,6 +137,7 @@ function crypto.decrypt(iv, ciphertext)
 end
 
 -- generate HMAC of message
+---@nodiscard
 ---@param message_hex string initial value concatenated with ciphertext
 function crypto.hmac(message_hex)
     local start = util.time()
@@ -201,11 +204,12 @@ function crypto.secure_modem(modem)
     end
 
     -- parse in a modem message as a network packet
-    ---@param side string
-    ---@param sender integer
-    ---@param reply_to integer
+    ---@nodiscard
+    ---@param side string modem side
+    ---@param sender integer sender port
+    ---@param reply_to integer reply port
     ---@param message any encrypted packet sent with secure_modem.transmit
-    ---@param distance integer
+    ---@param distance integer transmission distance
     ---@return string side, integer sender, integer reply_to, any plaintext_message, integer distance
     function public.receive(side, sender, reply_to, message, distance)
         local body = ""

@@ -5,6 +5,7 @@
 local psil = {}
 
 -- instantiate a new PSI layer
+---@nodiscard
 function psil.create()
     local self = {
         ic = {}
@@ -19,8 +20,7 @@ function psil.create()
     ---@class psil
     local public = {}
 
-    -- subscribe to a data object in the interconnect
-    --
+    -- subscribe to a data object in the interconnect<br>
     -- will call func() right away if a value is already avaliable
     ---@param key string data key
     ---@param func function function to call on change
