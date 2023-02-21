@@ -108,8 +108,8 @@ function logic.update_annunciator(self)
 
         -- update other annunciator fields
         self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
-        self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
-        self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
+        self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
+        self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
         self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < -2.0
         self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.4
@@ -636,9 +636,9 @@ function logic.update_status_text(self)
                 cause = "core temperature high"
             elseif plc_db.rps_trip_cause == "no_coolant" then
                 cause = "insufficient coolant"
-            elseif plc_db.rps_trip_cause == "full_waste" then
+            elseif plc_db.rps_trip_cause == "ex_waste" then
                 cause = "excess waste"
-            elseif plc_db.rps_trip_cause == "heated_coolant_backup" then
+            elseif plc_db.rps_trip_cause == "ex_heated_coolant" then
                 cause = "excess heated coolant"
             elseif plc_db.rps_trip_cause == "no_fuel" then
                 cause = "insufficient fuel"

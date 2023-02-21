@@ -231,8 +231,8 @@ types.rtu_t = {
 ---| "dmg_crit"
 ---| "high_temp"
 ---| "no_coolant"
----| "full_waste"
----| "heated_coolant_backup"
+---| "ex_waste"
+---| "ex_heated_coolant"
 ---| "no_fuel"
 ---| "fault"
 ---| "timeout"
@@ -241,21 +241,20 @@ types.rtu_t = {
 ---| "sys_fail"
 ---| "force_disabled"
 
----@alias rps_status_t rps_trip_cause
-types.rps_status_t = {
-    ok = "ok",
-    dmg_crit = "dmg_crit",
-    high_temp = "high_temp",
-    no_coolant = "no_coolant",
-    ex_waste = "full_waste",
-    ex_hcoolant = "heated_coolant_backup",
-    no_fuel = "no_fuel",
-    fault = "fault",
-    timeout = "timeout",
-    manual = "manual",
-    automatic = "automatic",
-    sys_fail = "sys_fail",
-    force_disabled = "force_disabled"
+types.RPS_TRIP_CAUSE = {
+    OK = "ok",
+    DMG_CRIT = "dmg_crit",
+    HIGH_TEMP = "high_temp",
+    NO_COOLANT = "no_coolant",
+    EX_WASTE = "ex_waste",
+    EX_HCOOLANT = "ex_heated_coolant",
+    NO_FUEL = "no_fuel",
+    FAULT = "fault",
+    TIMEOUT = "timeout",
+    MANUAL = "manual",
+    AUTOMATIC = "automatic",
+    SYS_FAIL = "sys_fail",
+    FORCE_DISABLED = "force_disabled"
 }
 
 ---@alias DUMPING_MODE

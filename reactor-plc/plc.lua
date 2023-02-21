@@ -6,7 +6,7 @@ local util  = require("scada-common.util")
 
 local plc = {}
 
-local rps_status_t = types.rps_status_t
+local RPS_TRIP_CAUSE = types.RPS_TRIP_CAUSE
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
@@ -260,7 +260,7 @@ function plc.rps_init(reactor, is_formed)
         -- clear automatic SCRAM if it was the cause
         if self.tripped and self.trip_cause == "automatic" then
             self.state[state_keys.automatic] = true
-            self.trip_cause = rps_status_t.ok
+            self.trip_cause = RPS_TRIP_CAUSE.OK
             self.tripped = false
 
             log.debug("RPS: cleared automatic SCRAM for re-activation")
@@ -270,9 +270,9 @@ function plc.rps_init(reactor, is_formed)
     end
 
     -- check all safety conditions
-    ---@return boolean tripped, rps_status_t trip_status, boolean first_trip
+    ---@return boolean tripped, rps_trip_cause trip_status, boolean first_trip
     function public.check()
-        local status = rps_status_t.ok
+        local status = RPS_TRIP_CAUSE.OK
         local was_tripped = self.tripped
         local first_trip = false
 
@@ -298,47 +298,47 @@ function plc.rps_init(reactor, is_formed)
             status = self.trip_cause
         elseif self.state[state_keys.sys_fail] then
             log.warning("RPS: system failure, reactor not formed")
-            status = rps_status_t.sys_fail
+            status = RPS_TRIP_CAUSE.SYS_FAIL
         elseif self.state[state_keys.force_disabled] then
             log.warning("RPS: reactor was force disabled")
-            status = rps_status_t.force_disabled
+            status = RPS_TRIP_CAUSE.FORCE_DISABLED
         elseif self.state[state_keys.dmg_crit] then
             log.warning("RPS: damage critical")
-            status = rps_status_t.dmg_crit
+            status = RPS_TRIP_CAUSE.DMG_CRIT
         elseif self.state[state_keys.high_temp] then
             log.warning("RPS: high temperature")
-            status = rps_status_t.high_temp
+            status = RPS_TRIP_CAUSE.HIGH_TEMP
         elseif self.state[state_keys.no_coolant] then
             log.warning("RPS: no coolant")
-            status = rps_status_t.no_coolant
+            status = RPS_TRIP_CAUSE.NO_COOLANT
         elseif self.state[state_keys.ex_waste] then
             log.warning("RPS: full waste")
-            status = rps_status_t.ex_waste
+            status = RPS_TRIP_CAUSE.EX_WASTE
         elseif self.state[state_keys.ex_hcoolant] then
             log.warning("RPS: heated coolant backup")
-            status = rps_status_t.ex_hcoolant
+            status = RPS_TRIP_CAUSE.EX_HCOOLANT
         elseif self.state[state_keys.no_fuel] then
             log.warning("RPS: no fuel")
-            status = rps_status_t.no_fuel
+            status = RPS_TRIP_CAUSE.NO_FUEL
         elseif self.state[state_keys.fault] then
             log.warning("RPS: reactor access fault")
-            status = rps_status_t.fault
+            status = RPS_TRIP_CAUSE.FAULT
         elseif self.state[state_keys.timeout] then
             log.warning("RPS: supervisor connection timeout")
-            status = rps_status_t.timeout
+            status = RPS_TRIP_CAUSE.TIMEOUT
         elseif self.state[state_keys.manual] then
             log.warning("RPS: manual SCRAM requested")
-            status = rps_status_t.manual
+            status = RPS_TRIP_CAUSE.MANUAL
         elseif self.state[state_keys.automatic] then
             log.warning("RPS: automatic SCRAM requested")
-            status = rps_status_t.automatic
+            status = RPS_TRIP_CAUSE.AUTOMATIC
         else
             self.tripped = false
-            self.trip_cause = rps_status_t.ok
+            self.trip_cause = RPS_TRIP_CAUSE.OK
         end
 
         -- if a new trip occured...
-        if (not was_tripped) and (status ~= rps_status_t.ok) then
+        if (not was_tripped) and (status ~= RPS_TRIP_CAUSE.OK) then
             first_trip = true
             self.tripped = true
             self.trip_cause = status
@@ -376,7 +376,7 @@ function plc.rps_init(reactor, is_formed)
     ---@param quiet? boolean true to suppress the info log message
     function public.reset(quiet)
         self.tripped = false
-        self.trip_cause = rps_status_t.ok
+        self.trip_cause = RPS_TRIP_CAUSE.OK
 
         for i = 1, #self.state do
             self.state[i] = false
@@ -390,8 +390,8 @@ function plc.rps_init(reactor, is_formed)
         self.state[state_keys.automatic] = false
         self.state[state_keys.timeout] = false
 
-        if self.trip_cause == rps_status_t.automatic or self.trip_cause == rps_status_t.timeout then
-            self.trip_cause = rps_status_t.ok
+        if self.trip_cause == RPS_TRIP_CAUSE.AUTOMATIC or self.trip_cause == RPS_TRIP_CAUSE.TIMEOUT then
+            self.trip_cause = RPS_TRIP_CAUSE.OK
             self.tripped = false
 
             log.info("RPS: auto reset")
@@ -693,7 +693,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     end
 
     -- send reactor protection system alarm
-    ---@param cause rps_status_t reactor protection system status
+    ---@param cause rps_trip_cause reactor protection system status
     function public.send_rps_alarm(cause)
         if self.linked then
             local rps_alarm = {
