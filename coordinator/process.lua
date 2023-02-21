@@ -4,8 +4,8 @@ local log   = require("scada-common.log")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
-local FAC_COMMANDS = comms.FAC_COMMANDS
-local UNIT_COMMANDS = comms.UNIT_COMMANDS
+local FAC_COMMAND = comms.FAC_COMMAND
+local UNIT_COMMAND = comms.UNIT_COMMAND
 
 local PROCESS = types.PROCESS
 
@@ -71,7 +71,7 @@ function process.init(iocontrol, comms)
 
     if type(waste_mode) == "table" then
         for id, mode in pairs(waste_mode) do
-            self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
+            self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
         end
 
         log.info("PROCESS: loaded waste mode settings from coord.settings")
@@ -81,7 +81,7 @@ function process.init(iocontrol, comms)
 
     if type(prio_groups) == "table" then
         for id, group in pairs(prio_groups) do
-            self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, id, group)
+            self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, id, group)
         end
 
         log.info("PROCESS: loaded priority groups settings from coord.settings")
@@ -90,13 +90,13 @@ end
 
 -- facility SCRAM command
 function process.fac_scram()
-    self.comms.send_fac_command(FAC_COMMANDS.SCRAM_ALL)
+    self.comms.send_fac_command(FAC_COMMAND.SCRAM_ALL)
     log.debug("FAC: SCRAM ALL")
 end
 
 -- facility alarm acknowledge command
 function process.fac_ack_alarms()
-    self.comms.send_fac_command(FAC_COMMANDS.ACK_ALL_ALARMS)
+    self.comms.send_fac_command(FAC_COMMAND.ACK_ALL_ALARMS)
     log.debug("FAC: ACK ALL ALARMS")
 end
 
@@ -104,7 +104,7 @@ end
 ---@param id integer unit ID
 function process.start(id)
     self.io.units[id].control_state = true
-    self.comms.send_unit_command(UNIT_COMMANDS.START, id)
+    self.comms.send_unit_command(UNIT_COMMAND.START, id)
     log.debug(util.c("UNIT[", id, "]: START"))
 end
 
@@ -112,14 +112,14 @@ end
 ---@param id integer unit ID
 function process.scram(id)
     self.io.units[id].control_state = false
-    self.comms.send_unit_command(UNIT_COMMANDS.SCRAM, id)
+    self.comms.send_unit_command(UNIT_COMMAND.SCRAM, id)
     log.debug(util.c("UNIT[", id, "]: SCRAM"))
 end
 
 -- reset reactor protection system
 ---@param id integer unit ID
 function process.reset_rps(id)
-    self.comms.send_unit_command(UNIT_COMMANDS.RESET_RPS, id)
+    self.comms.send_unit_command(UNIT_COMMAND.RESET_RPS, id)
     log.debug(util.c("UNIT[", id, "]: RESET RPS"))
 end
 
@@ -127,7 +127,7 @@ end
 ---@param id integer unit ID
 ---@param rate number burn rate
 function process.set_rate(id, rate)
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_BURN, id, rate)
+    self.comms.send_unit_command(UNIT_COMMAND.SET_BURN, id, rate)
     log.debug(util.c("UNIT[", id, "]: SET BURN = ", rate))
 end
 
@@ -138,7 +138,7 @@ function process.set_waste(id, mode)
     -- publish so that if it fails then it gets reset
     self.io.units[id].unit_ps.publish("U_WasteMode", mode)
 
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
+    self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
     log.debug(util.c("UNIT[", id, "]: SET WASTE = ", mode))
 
     local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
@@ -159,7 +159,7 @@ end
 -- acknowledge all alarms
 ---@param id integer unit ID
 function process.ack_all_alarms(id)
-    self.comms.send_unit_command(UNIT_COMMANDS.ACK_ALL_ALARMS, id)
+    self.comms.send_unit_command(UNIT_COMMAND.ACK_ALL_ALARMS, id)
     log.debug(util.c("UNIT[", id, "]: ACK ALL ALARMS"))
 end
 
@@ -167,7 +167,7 @@ end
 ---@param id integer unit ID
 ---@param alarm integer alarm ID
 function process.ack_alarm(id, alarm)
-    self.comms.send_unit_command(UNIT_COMMANDS.ACK_ALARM, id, alarm)
+    self.comms.send_unit_command(UNIT_COMMAND.ACK_ALARM, id, alarm)
     log.debug(util.c("UNIT[", id, "]: ACK ALARM ", alarm))
 end
 
@@ -175,7 +175,7 @@ end
 ---@param id integer unit ID
 ---@param alarm integer alarm ID
 function process.reset_alarm(id, alarm)
-    self.comms.send_unit_command(UNIT_COMMANDS.RESET_ALARM, id, alarm)
+    self.comms.send_unit_command(UNIT_COMMAND.RESET_ALARM, id, alarm)
     log.debug(util.c("UNIT[", id, "]: RESET ALARM ", alarm))
 end
 
@@ -183,7 +183,7 @@ end
 ---@param unit_id integer unit ID
 ---@param group_id integer|0 group ID or 0 for independent
 function process.set_group(unit_id, group_id)
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, unit_id, group_id)
+    self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, unit_id, group_id)
     log.debug(util.c("UNIT[", unit_id, "]: SET GROUP ", group_id))
 
     local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
@@ -207,7 +207,7 @@ end
 
 -- stop automatic process control
 function process.stop_auto()
-    self.comms.send_fac_command(FAC_COMMANDS.STOP)
+    self.comms.send_fac_command(FAC_COMMAND.STOP)
     log.debug("FAC: STOP AUTO")
 end
 

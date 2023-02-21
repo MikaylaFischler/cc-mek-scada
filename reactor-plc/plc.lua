@@ -8,11 +8,11 @@ local plc = {}
 
 local rps_status_t = types.rps_status_t
 
-local PROTOCOLS = comms.PROTOCOLS
-local DEVICE_TYPES = comms.DEVICE_TYPES
+local PROTOCOL = comms.PROTOCOL
+local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local RPLC_TYPES = comms.RPLC_TYPES
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local RPLC_TYPE = comms.RPLC_TYPE
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local print = util.print
@@ -444,28 +444,28 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     _conf_channels()
 
     -- send an RPLC packet
-    ---@param msg_type RPLC_TYPES
+    ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
         r_pkt.make(id, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
@@ -569,11 +569,11 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+        _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
-    ---@param msg_type RPLC_TYPES
+    ---@param msg_type RPLC_TYPE
     ---@param status boolean|integer
     local function _send_ack(msg_type, status)
         _send(msg_type, { status })
@@ -605,7 +605,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         parallel.waitForAll(table.unpack(tasks))
 
         if not self.reactor.__p_is_faulted() then
-            _send(RPLC_TYPES.MEK_STRUCT, mek_data)
+            _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
         else
             log.error("failed to send structure: PPM fault")
@@ -643,12 +643,12 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     function public.close()
         conn_watchdog.cancel()
         public.unlink()
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
     end
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
-        _send_mgmt(SCADA_MGMT_TYPES.ESTABLISH, { comms.version, version, DEVICE_TYPES.PLC, id })
+        _send_mgmt(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, id })
     end
 
     -- send live status information
@@ -677,7 +677,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 mek_data                        -- mekanism status data
             }
 
-            _send(RPLC_TYPES.STATUS, sys_status)
+            _send(RPLC_TYPE.STATUS, sys_status)
 
             if self.resend_build then
                 _send_struct()
@@ -688,7 +688,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     -- send reactor protection system status
     function public.send_rps_status()
         if self.linked then
-            _send(RPLC_TYPES.RPS_STATUS, { rps.is_tripped(), rps.get_trip_cause(), table.unpack(rps.status()) })
+            _send(RPLC_TYPE.RPS_STATUS, { rps.is_tripped(), rps.get_trip_cause(), table.unpack(rps.status()) })
         end
     end
 
@@ -701,7 +701,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 table.unpack(rps.status())
             }
 
-            _send(RPLC_TYPES.RPS_ALARM, rps_alarm)
+            _send(RPLC_TYPE.RPS_ALARM, rps_alarm)
         end
     end
 
@@ -721,13 +721,13 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
         if s_pkt.is_valid() then
             -- get as RPLC packet
-            if s_pkt.protocol() == PROTOCOLS.RPLC then
+            if s_pkt.protocol() == PROTOCOL.RPLC then
                 local rplc_pkt = comms.rplc_packet()
                 if rplc_pkt.decode(s_pkt) then
                     pkt = rplc_pkt.get()
                 end
             -- get as SCADA management packet
-            elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
                     pkt = mgmt_pkt.get()
@@ -762,18 +762,18 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
             local protocol = packet.scada_frame.protocol()
 
             -- handle packet
-            if protocol == PROTOCOLS.RPLC then
+            if protocol == PROTOCOL.RPLC then
                 if self.linked then
-                    if packet.type == RPLC_TYPES.STATUS then
+                    if packet.type == RPLC_TYPE.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
                         public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
                         log.debug("sent out status cache again, did supervisor miss it?")
-                    elseif packet.type == RPLC_TYPES.MEK_STRUCT then
+                    elseif packet.type == RPLC_TYPE.MEK_STRUCT then
                         -- request for physical structure
                         _send_struct()
                         log.debug("sent out structure again, did supervisor miss it?")
-                    elseif packet.type == RPLC_TYPES.MEK_BURN_RATE then
+                    elseif packet.type == RPLC_TYPE.MEK_BURN_RATE then
                         -- set the burn rate
                         if (packet.length == 2) and (type(packet.data[1]) == "number") then
                             local success = false
@@ -805,29 +805,29 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         else
                             log.debug("RPLC set burn rate packet length mismatch or non-numeric burn rate")
                         end
-                    elseif packet.type == RPLC_TYPES.RPS_ENABLE then
+                    elseif packet.type == RPLC_TYPE.RPS_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
                         _send_ack(packet.type, rps.activate())
-                    elseif packet.type == RPLC_TYPES.RPS_SCRAM then
+                    elseif packet.type == RPLC_TYPE.RPS_SCRAM then
                         -- disable the reactor per manual request
                         self.scrammed = true
                         rps.trip_manual()
                         _send_ack(packet.type, true)
-                    elseif packet.type == RPLC_TYPES.RPS_ASCRAM then
+                    elseif packet.type == RPLC_TYPE.RPS_ASCRAM then
                         -- disable the reactor per automatic request
                         self.scrammed = true
                         rps.trip_auto()
                         _send_ack(packet.type, true)
-                    elseif packet.type == RPLC_TYPES.RPS_RESET then
+                    elseif packet.type == RPLC_TYPE.RPS_RESET then
                         -- reset the RPS status
                         rps.reset()
                         _send_ack(packet.type, true)
-                    elseif packet.type == RPLC_TYPES.RPS_AUTO_RESET then
+                    elseif packet.type == RPLC_TYPE.RPS_AUTO_RESET then
                         -- reset automatic SCRAM and timeout trips
                         rps.auto_reset()
                         _send_ack(packet.type, true)
-                    elseif packet.type == RPLC_TYPES.AUTO_BURN_RATE then
+                    elseif packet.type == RPLC_TYPE.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate
                         if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
                             local ack = AUTO_ACK.FAIL
@@ -898,9 +898,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 else
                     log.debug("discarding RPLC packet before linked")
                 end
-            elseif protocol == PROTOCOLS.SCADA_MGMT then
+            elseif protocol == PROTOCOL.SCADA_MGMT then
                 if self.linked then
-                    if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- link request confirmation
                         if packet.length == 1 then
                             log.debug("received unsolicited establish response")
@@ -933,7 +933,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                    elseif packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]
@@ -949,7 +949,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         else
                             log.debug("SCADA_MGMT keep alive packet length/type mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                    elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
                         -- handle session close
                         conn_watchdog.cancel()
                         public.unlink()
@@ -958,7 +958,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                     else
                         log.warning("received unsupported SCADA_MGMT packet type " .. packet.type)
                     end
-                elseif packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                     -- link request confirmation
                     if packet.length == 1 then
                         local est_ack = packet.data[1]

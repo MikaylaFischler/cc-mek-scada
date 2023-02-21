@@ -16,8 +16,8 @@ local max_distance = nil
 
 comms.version = "1.4.0"
 
----@enum PROTOCOLS
-local PROTOCOLS = {
+---@enum PROTOCOL
+local PROTOCOL = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
     SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
@@ -25,8 +25,8 @@ local PROTOCOLS = {
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
----@enum RPLC_TYPES
-local RPLC_TYPES = {
+---@enum RPLC_TYPE
+local RPLC_TYPE = {
     STATUS = 0,         -- reactor/system status
     MEK_STRUCT = 1,     -- mekanism build structure
     MEK_BURN_RATE = 2,  -- set burn rate
@@ -40,8 +40,8 @@ local RPLC_TYPES = {
     AUTO_BURN_RATE = 10 -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
----@enum SCADA_MGMT_TYPES
-local SCADA_MGMT_TYPES = {
+---@enum SCADA_MGMT_TYPE
+local SCADA_MGMT_TYPE = {
     ESTABLISH = 0,      -- establish new connection
     KEEP_ALIVE = 1,     -- keep alive packet w/ RTT
     CLOSE = 2,          -- close a connection
@@ -49,8 +49,8 @@ local SCADA_MGMT_TYPES = {
     RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
 }
 
----@enum SCADA_CRDN_TYPES
-local SCADA_CRDN_TYPES = {
+---@enum SCADA_CRDN_TYPE
+local SCADA_CRDN_TYPE = {
     INITIAL_BUILDS = 0, -- initial, complete builds packet to the coordinator
     FAC_BUILDS = 1,     -- facility RTU builds
     FAC_STATUS = 2,     -- state of facility and facility devices
@@ -60,8 +60,8 @@ local SCADA_CRDN_TYPES = {
     UNIT_CMD = 6        -- command a reactor unit
 }
 
----@enum CAPI_TYPES
-local CAPI_TYPES = {
+---@enum CAPI_TYPE
+local CAPI_TYPE = {
 }
 
 ---@enum ESTABLISH_ACK
@@ -72,16 +72,16 @@ local ESTABLISH_ACK = {
     BAD_VERSION = 3     -- link denied due to comms version mismatch
 }
 
----@enum DEVICE_TYPES
-local DEVICE_TYPES = {
+---@enum DEVICE_TYPE
+local DEVICE_TYPE = {
     PLC = 0,            -- PLC device type for establish
     RTU = 1,            -- RTU device type for establish
     SV = 2,             -- supervisor device type for establish
     CRDN = 3            -- coordinator device type for establish
 }
 
----@enum RTU_UNIT_TYPES
-local RTU_UNIT_TYPES = {
+---@enum RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = {
     REDSTONE = 0,       -- redstone I/O
     BOILER_VALVE = 1,   -- boiler mekanism 10.1+
     TURBINE_VALVE = 2,  -- turbine, mekanism 10.1+
@@ -99,16 +99,16 @@ local PLC_AUTO_ACK = {
     ZERO_DIS_OK = 3     -- successfully disabled reactor with < 0.01 burn rate
 }
 
----@enum FAC_COMMANDS
-local FAC_COMMANDS = {
+---@enum FAC_COMMAND
+local FAC_COMMAND = {
     SCRAM_ALL = 0,      -- SCRAM all reactors
     STOP = 1,           -- stop automatic control
     START = 2,          -- start automatic control
     ACK_ALL_ALARMS = 3  -- acknowledge all alarms on all units
 }
 
----@enum UNIT_COMMANDS
-local UNIT_COMMANDS = {
+---@enum UNIT_COMMAND
+local UNIT_COMMAND = {
     SCRAM = 0,          -- SCRAM the reactor
     START = 1,          -- start the reactor
     RESET_RPS = 2,      -- reset the RPS
@@ -120,26 +120,26 @@ local UNIT_COMMANDS = {
     SET_GROUP = 8       -- assign this unit to a group
 }
 
-comms.PROTOCOLS = PROTOCOLS
+comms.PROTOCOL = PROTOCOL
 
-comms.RPLC_TYPES = RPLC_TYPES
-comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
-comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
-comms.CAPI_TYPES = CAPI_TYPES
+comms.RPLC_TYPE = RPLC_TYPE
+comms.SCADA_MGMT_TYPE = SCADA_MGMT_TYPE
+comms.SCADA_CRDN_TYPE = SCADA_CRDN_TYPE
+comms.CAPI_TYPE = CAPI_TYPE
 
 comms.ESTABLISH_ACK = ESTABLISH_ACK
-comms.DEVICE_TYPES = DEVICE_TYPES
-comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
+comms.DEVICE_TYPE = DEVICE_TYPE
+comms.RTU_UNIT_TYPE = RTU_UNIT_TYPE
 
 comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 
-comms.UNIT_COMMANDS = UNIT_COMMANDS
-comms.FAC_COMMANDS = FAC_COMMANDS
+comms.UNIT_COMMAND = UNIT_COMMAND
+comms.FAC_COMMAND = FAC_COMMAND
 
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
 
--- configure the maximum allowable message receive distance <br/>
+-- configure the maximum allowable message receive distance<br>
 -- packets received with distances greater than this will be silently discarded
 ---@param distance integer max modem message distance (less than 1 disables the limit)
 function comms.set_trusted_range(distance)
@@ -168,7 +168,7 @@ function comms.scada_packet()
 
     -- make a SCADA packet
     ---@param seq_num integer
-    ---@param protocol PROTOCOLS
+    ---@param protocol PROTOCOL
     ---@param payload table
     function public.make(seq_num, protocol, payload)
         self.valid = true
@@ -296,7 +296,7 @@ function comms.modbus_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.MODBUS_TCP then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
                 local size_ok = frame.length() >= 3
 
                 if size_ok then
@@ -359,22 +359,22 @@ function comms.rplc_packet()
 
     -- check that type is known
     local function _rplc_type_valid()
-        return self.type == RPLC_TYPES.STATUS or
-                self.type == RPLC_TYPES.MEK_STRUCT or
-                self.type == RPLC_TYPES.MEK_BURN_RATE or
-                self.type == RPLC_TYPES.RPS_ENABLE or
-                self.type == RPLC_TYPES.RPS_SCRAM or
-                self.type == RPLC_TYPES.RPS_ASCRAM or
-                self.type == RPLC_TYPES.RPS_STATUS or
-                self.type == RPLC_TYPES.RPS_ALARM or
-                self.type == RPLC_TYPES.RPS_RESET or
-                self.type == RPLC_TYPES.RPS_AUTO_RESET or
-                self.type == RPLC_TYPES.AUTO_BURN_RATE
+        return self.type == RPLC_TYPE.STATUS or
+                self.type == RPLC_TYPE.MEK_STRUCT or
+                self.type == RPLC_TYPE.MEK_BURN_RATE or
+                self.type == RPLC_TYPE.RPS_ENABLE or
+                self.type == RPLC_TYPE.RPS_SCRAM or
+                self.type == RPLC_TYPE.RPS_ASCRAM or
+                self.type == RPLC_TYPE.RPS_STATUS or
+                self.type == RPLC_TYPE.RPS_ALARM or
+                self.type == RPLC_TYPE.RPS_RESET or
+                self.type == RPLC_TYPE.RPS_AUTO_RESET or
+                self.type == RPLC_TYPE.AUTO_BURN_RATE
     end
 
     -- make an RPLC packet
     ---@param id integer
-    ---@param packet_type RPLC_TYPES
+    ---@param packet_type RPLC_TYPE
     ---@param data table
     function public.make(id, packet_type, data)
         if type(data) == "table" then
@@ -401,7 +401,7 @@ function comms.rplc_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.RPLC then
+            if frame.protocol() == PROTOCOL.RPLC then
                 local ok = frame.length() >= 2
 
                 if ok then
@@ -461,16 +461,16 @@ function comms.mgmt_packet()
 
     -- check that type is known
     local function _scada_type_valid()
-        return self.type == SCADA_MGMT_TYPES.ESTABLISH or
-                self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
-                self.type == SCADA_MGMT_TYPES.CLOSE or
-                self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
-                self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
-                self.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT
+        return self.type == SCADA_MGMT_TYPE.ESTABLISH or
+                self.type == SCADA_MGMT_TYPE.KEEP_ALIVE or
+                self.type == SCADA_MGMT_TYPE.CLOSE or
+                self.type == SCADA_MGMT_TYPE.REMOTE_LINKED or
+                self.type == SCADA_MGMT_TYPE.RTU_ADVERT or
+                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT
     end
 
     -- make a SCADA management packet
-    ---@param packet_type SCADA_MGMT_TYPES
+    ---@param packet_type SCADA_MGMT_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -496,7 +496,7 @@ function comms.mgmt_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.SCADA_MGMT then
+            if frame.protocol() == PROTOCOL.SCADA_MGMT then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -554,17 +554,17 @@ function comms.crdn_packet()
     -- check that type is known
     ---@nodiscard
     local function _crdn_type_valid()
-        return self.type == SCADA_CRDN_TYPES.INITIAL_BUILDS or
-                self.type == SCADA_CRDN_TYPES.FAC_BUILDS or
-                self.type == SCADA_CRDN_TYPES.FAC_STATUS or
-                self.type == SCADA_CRDN_TYPES.FAC_CMD or
-                self.type == SCADA_CRDN_TYPES.UNIT_BUILDS or
-                self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
-                self.type == SCADA_CRDN_TYPES.UNIT_CMD
+        return self.type == SCADA_CRDN_TYPE.INITIAL_BUILDS or
+                self.type == SCADA_CRDN_TYPE.FAC_BUILDS or
+                self.type == SCADA_CRDN_TYPE.FAC_STATUS or
+                self.type == SCADA_CRDN_TYPE.FAC_CMD or
+                self.type == SCADA_CRDN_TYPE.UNIT_BUILDS or
+                self.type == SCADA_CRDN_TYPE.UNIT_STATUSES or
+                self.type == SCADA_CRDN_TYPE.UNIT_CMD
     end
 
     -- make a coordinator packet
-    ---@param packet_type SCADA_CRDN_TYPES
+    ---@param packet_type SCADA_CRDN_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -590,7 +590,7 @@ function comms.crdn_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.SCADA_CRDN then
+            if frame.protocol() == PROTOCOL.SCADA_CRDN then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -652,7 +652,7 @@ function comms.capi_packet()
     end
 
     -- make a coordinator API packet
-    ---@param packet_type CAPI_TYPES
+    ---@param packet_type CAPI_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -678,7 +678,7 @@ function comms.capi_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.COORD_API then
+            if frame.protocol() == PROTOCOL.COORD_API then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -722,22 +722,22 @@ end
 -- convert rtu_t to RTU unit type
 ---@nodiscard
 ---@param type rtu_t
----@return RTU_UNIT_TYPES|nil
+---@return RTU_UNIT_TYPE|nil
 function comms.rtu_t_to_unit_type(type)
     if type == rtu_t.redstone then
-        return RTU_UNIT_TYPES.REDSTONE
+        return RTU_UNIT_TYPE.REDSTONE
     elseif type == rtu_t.boiler_valve then
-        return RTU_UNIT_TYPES.BOILER_VALVE
+        return RTU_UNIT_TYPE.BOILER_VALVE
     elseif type == rtu_t.turbine_valve then
-        return RTU_UNIT_TYPES.TURBINE_VALVE
+        return RTU_UNIT_TYPE.TURBINE_VALVE
     elseif type == rtu_t.induction_matrix then
-        return RTU_UNIT_TYPES.IMATRIX
+        return RTU_UNIT_TYPE.IMATRIX
     elseif type == rtu_t.sps then
-        return RTU_UNIT_TYPES.SPS
+        return RTU_UNIT_TYPE.SPS
     elseif type == rtu_t.sna then
-        return RTU_UNIT_TYPES.SNA
+        return RTU_UNIT_TYPE.SNA
     elseif type == rtu_t.env_detector then
-        return RTU_UNIT_TYPES.ENV_DETECTOR
+        return RTU_UNIT_TYPE.ENV_DETECTOR
     end
 
     return nil
@@ -745,22 +745,22 @@ end
 
 -- convert RTU unit type to rtu_t
 ---@nodiscard
----@param utype RTU_UNIT_TYPES
+---@param utype RTU_UNIT_TYPE
 ---@return rtu_t|nil
 function comms.advert_type_to_rtu_t(utype)
-    if utype == RTU_UNIT_TYPES.REDSTONE then
+    if utype == RTU_UNIT_TYPE.REDSTONE then
         return rtu_t.redstone
-    elseif utype == RTU_UNIT_TYPES.BOILER_VALVE then
+    elseif utype == RTU_UNIT_TYPE.BOILER_VALVE then
         return rtu_t.boiler_valve
-    elseif utype == RTU_UNIT_TYPES.TURBINE_VALVE then
+    elseif utype == RTU_UNIT_TYPE.TURBINE_VALVE then
         return rtu_t.turbine_valve
-    elseif utype == RTU_UNIT_TYPES.IMATRIX then
+    elseif utype == RTU_UNIT_TYPE.IMATRIX then
         return rtu_t.induction_matrix
-    elseif utype == RTU_UNIT_TYPES.SPS then
+    elseif utype == RTU_UNIT_TYPE.SPS then
         return rtu_t.sps
-    elseif utype == RTU_UNIT_TYPES.SNA then
+    elseif utype == RTU_UNIT_TYPE.SNA then
         return rtu_t.sna
-    elseif utype == RTU_UNIT_TYPES.ENV_DETECTOR then
+    elseif utype == RTU_UNIT_TYPE.ENV_DETECTOR then
         return rtu_t.env_detector
     end
 

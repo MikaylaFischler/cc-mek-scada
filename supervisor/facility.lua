@@ -12,7 +12,7 @@ local PROCESS_NAMES = types.PROCESS_NAMES
 
 local IO = rsio.IO
 
--- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
+-- 7.14 kJ per blade for 1 mB of fissile fuel<br>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
 local POWER_PER_BLADE = util.joules_to_fe(7140)
 

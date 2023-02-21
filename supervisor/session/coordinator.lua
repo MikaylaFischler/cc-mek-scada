@@ -7,12 +7,12 @@ local svqtypes = require("supervisor.session.svqtypes")
 
 local coordinator = {}
 
-local PROTOCOLS = comms.PROTOCOLS
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
-local UNIT_COMMANDS = comms.UNIT_COMMANDS
-local FAC_COMMANDS = comms.FAC_COMMANDS
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local PROTOCOL = comms.PROTOCOL
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
+local UNIT_COMMAND = comms.UNIT_COMMAND
+local FAC_COMMAND = comms.FAC_COMMAND
+local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
 
 local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
@@ -90,28 +90,28 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     end
 
     -- send a CRDN packet
-    ---@param msg_type SCADA_CRDN_TYPES
+    ---@param msg_type SCADA_CRDN_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local c_pkt = comms.crdn_packet()
 
         c_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_CRDN, c_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
 
         self.out_q.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         self.out_q.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -126,12 +126,12 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             unit_builds[unit.get_id()] = unit.get_build()
         end
 
-        _send(SCADA_CRDN_TYPES.INITIAL_BUILDS, { facility.get_build(), unit_builds })
+        _send(SCADA_CRDN_TYPE.INITIAL_BUILDS, { facility.get_build(), unit_builds })
     end
 
     -- send facility builds
     local function _send_fac_builds()
-        _send(SCADA_CRDN_TYPES.FAC_BUILDS, { facility.get_build() })
+        _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build() })
     end
 
     -- send unit builds
@@ -143,7 +143,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             builds[unit.get_id()] = unit.get_build()
         end
 
-        _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
+        _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
     end
 
     -- send facility status
@@ -153,7 +153,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             facility.get_rtu_statuses()
         }
 
-        _send(SCADA_CRDN_TYPES.FAC_STATUS, status)
+        _send(SCADA_CRDN_TYPE.FAC_STATUS, status)
     end
 
     -- send unit statuses
@@ -172,7 +172,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
             }
         end
 
-        _send(SCADA_CRDN_TYPES.UNIT_STATUSES, status)
+        _send(SCADA_CRDN_TYPE.UNIT_STATUSES, status)
     end
 
     -- handle a packet
@@ -192,8 +192,8 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         self.conn_watchdog.feed()
 
         -- process packet
-        if pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+        if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -210,30 +210,30 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
+            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
-        elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_CRDN then
-            if pkt.type == SCADA_CRDN_TYPES.INITIAL_BUILDS then
+        elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
+            if pkt.type == SCADA_CRDN_TYPE.INITIAL_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
-            elseif pkt.type == SCADA_CRDN_TYPES.FAC_BUILDS then
+            elseif pkt.type == SCADA_CRDN_TYPE.FAC_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.fac_builds = true
-            elseif pkt.type == SCADA_CRDN_TYPES.FAC_CMD then
+            elseif pkt.type == SCADA_CRDN_TYPE.FAC_CMD then
                 if pkt.length >= 1 then
                     local cmd = pkt.data[1]
 
-                    if cmd == FAC_COMMANDS.SCRAM_ALL then
+                    if cmd == FAC_COMMAND.SCRAM_ALL then
                         facility.scram_all()
-                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
-                    elseif cmd == FAC_COMMANDS.STOP then
+                        _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMAND.STOP then
                         facility.auto_stop()
-                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
-                    elseif cmd == FAC_COMMANDS.START then
+                        _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMAND.START then
                         if pkt.length == 6 then
                             ---@type coord_auto_config
                             local config = {
@@ -244,23 +244,23 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                                 limits = pkt.data[6]
                             }
 
-                            _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })
+                            _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })
                         else
                             log.debug(log_header .. "CRDN auto start (with configuration) packet length mismatch")
                         end
-                    elseif cmd == FAC_COMMANDS.ACK_ALL_ALARMS then
+                    elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                         facility.ack_all()
-                        _send(SCADA_CRDN_TYPES.FAC_CMD, { cmd, true })
+                        _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, true })
                     else
                         log.debug(log_header .. "CRDN facility command unknown")
                     end
                 else
                     log.debug(log_header .. "CRDN facility command packet length mismatch")
                 end
-            elseif pkt.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
+            elseif pkt.type == SCADA_CRDN_TYPE.UNIT_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.unit_builds = true
-            elseif pkt.type == SCADA_CRDN_TYPES.UNIT_CMD then
+            elseif pkt.type == SCADA_CRDN_TYPE.UNIT_CMD then
                 if pkt.length >= 2 then
                     -- get command and unit id
                     local cmd = pkt.data[1]
@@ -273,43 +273,43 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
                         local unit = self.units[uid]    ---@type reactor_unit
 
-                        if cmd == UNIT_COMMANDS.START then
+                        if cmd == UNIT_COMMAND.START then
                             self.out_q.push_data(SV_Q_DATA.START, data)
-                        elseif cmd == UNIT_COMMANDS.SCRAM then
+                        elseif cmd == UNIT_COMMAND.SCRAM then
                             self.out_q.push_data(SV_Q_DATA.SCRAM, data)
-                        elseif cmd == UNIT_COMMANDS.RESET_RPS then
+                        elseif cmd == UNIT_COMMAND.RESET_RPS then
                             self.out_q.push_data(SV_Q_DATA.RESET_RPS, data)
-                        elseif cmd == UNIT_COMMANDS.SET_BURN then
+                        elseif cmd == UNIT_COMMAND.SET_BURN then
                             if pkt.length == 3 then
                                 self.out_q.push_data(SV_Q_DATA.SET_BURN, data)
                             else
                                 log.debug(log_header .. "CRDN unit command burn rate missing option")
                             end
-                        elseif cmd == UNIT_COMMANDS.SET_WASTE then
+                        elseif cmd == UNIT_COMMAND.SET_WASTE then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
                                 unit.set_waste(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN unit command set waste missing option")
                             end
-                        elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
+                        elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             unit.ack_all()
-                            _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, true })
-                        elseif cmd == UNIT_COMMANDS.ACK_ALARM then
+                            _send(SCADA_CRDN_TYPE.UNIT_CMD, { cmd, uid, true })
+                        elseif cmd == UNIT_COMMAND.ACK_ALARM then
                             if pkt.length == 3 then
                                 unit.ack_alarm(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN unit command ack alarm missing alarm id")
                             end
-                        elseif cmd == UNIT_COMMANDS.RESET_ALARM then
+                        elseif cmd == UNIT_COMMAND.RESET_ALARM then
                             if pkt.length == 3 then
                                 unit.reset_alarm(pkt.data[3])
                             else
                                 log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
                             end
-                        elseif cmd == UNIT_COMMANDS.SET_GROUP then
+                        elseif cmd == UNIT_COMMAND.SET_GROUP then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
                                 facility.set_group(unit.get_id(), pkt.data[3])
-                                _send(SCADA_CRDN_TYPES.UNIT_CMD, { cmd, uid, pkt.data[3] })
+                                _send(SCADA_CRDN_TYPE.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
                                 log.debug(log_header .. "CRDN unit command set group missing group id")
                             end
@@ -342,7 +342,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
         println("connection to coordinator " .. id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
@@ -373,7 +373,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
                         if cmd.key == CRD_S_DATA.CMD_ACK then
                             local ack = cmd.val ---@type coord_ack
-                            _send(SCADA_CRDN_TYPES.UNIT_CMD, { ack.cmd, ack.unit, ack.ack })
+                            _send(SCADA_CRDN_TYPE.UNIT_CMD, { ack.cmd, ack.unit, ack.ack })
                         elseif cmd.key == CRD_S_DATA.RESEND_PLC_BUILD then
                             -- re-send PLC build
                             -- retry logic will be kept as-is, so as long as no retry is needed, this will be a small update
@@ -386,7 +386,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                             local unit = self.units[unit_id]    ---@type reactor_unit
                             builds[unit_id] = unit.get_build(true, false, false)
 
-                            _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
+                            _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                         elseif cmd.key == CRD_S_DATA.RESEND_RTU_BUILD then
                             local unit_id = cmd.val.unit
                             if unit_id > 0 then
@@ -398,16 +398,16 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                                 local builds = {}
 
                                 local unit = self.units[unit_id]    ---@type reactor_unit
-                                builds[unit_id] = unit.get_build(false, cmd.val.type == RTU_UNIT_TYPES.BOILER_VALVE, cmd.val.type == RTU_UNIT_TYPES.TURBINE_VALVE)
+                                builds[unit_id] = unit.get_build(false, cmd.val.type == RTU_UNIT_TYPE.BOILER_VALVE, cmd.val.type == RTU_UNIT_TYPE.TURBINE_VALVE)
 
-                                _send(SCADA_CRDN_TYPES.UNIT_BUILDS, { builds })
+                                _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                             else
                                 -- re-send facility RTU builds
                                 -- retry logic will be kept as-is, so as long as no retry is needed, this will be a small update
                                 self.retry_times.f_builds_packet = util.time() + PARTIAL_RETRY_PERIOD
                                 self.acks.fac_builds = false
 
-                                _send(SCADA_CRDN_TYPES.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPES.IMATRIX) })
+                                _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPE.IMATRIX) })
                             end
                         else
                             log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
@@ -441,7 +441,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { util.time() })
+                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 

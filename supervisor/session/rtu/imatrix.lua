@@ -7,7 +7,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local imatrix = {}
 
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local TXN_TYPES = {
@@ -38,7 +38,7 @@ local PERIODICS = {
 ---@param out_queue mqueue RTU unit message out queue
 function imatrix.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.IMATRIX then
+    if advert.type ~= RTU_UNIT_TYPE.IMATRIX then
         log.error("attempt to instantiate imatrix RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end

@@ -58,7 +58,7 @@ function types.new_coordinate(x, y, z) return { x = x, y = y, z = z } end
 function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 
 ---@class rtu_advertisement
----@field type RTU_UNIT_TYPES
+---@field type RTU_UNIT_TYPE
 ---@field index integer
 ---@field reactor integer
 ---@field rsio table|nil

@@ -14,13 +14,13 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-local PROTOCOLS = comms.PROTOCOLS
-local DEVICE_TYPES = comms.DEVICE_TYPES
+local PROTOCOL = comms.PROTOCOL
+local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local SCADA_CRDN_TYPES = comms.SCADA_CRDN_TYPES
-local UNIT_COMMANDS = comms.UNIT_COMMANDS
-local FAC_COMMANDS = comms.FAC_COMMANDS
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
+local UNIT_COMMAND = comms.UNIT_COMMAND
+local FAC_COMMAND = comms.FAC_COMMAND
 
 local coordinator = {}
 
@@ -225,15 +225,15 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     _conf_channels()
 
     -- send a packet to the supervisor
-    ---@param msg_type SCADA_MGMT_TYPES|SCADA_CRDN_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE|SCADA_CRDN_TYPE
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
         local pkt = nil ---@type mgmt_packet|crdn_packet
 
-        if protocol == PROTOCOLS.SCADA_MGMT then
+        if protocol == PROTOCOL.SCADA_MGMT then
             pkt = comms.mgmt_packet()
-        elseif protocol == PROTOCOLS.SCADA_CRDN then
+        elseif protocol == PROTOCOL.SCADA_CRDN then
             pkt = comms.crdn_packet()
         else
             return
@@ -248,13 +248,13 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
     -- attempt connection establishment
     local function _send_establish()
-        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.ESTABLISH, { comms.version, version, DEVICE_TYPES.CRDN })
+        _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRDN })
     end
 
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+        _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -271,7 +271,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     function public.close()
         sv_watchdog.cancel()
         self.sv_linked = false
-        _send_sv(PROTOCOLS.SCADA_MGMT, SCADA_MGMT_TYPES.CLOSE, {})
+        _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.CLOSE, {})
     end
 
     -- attempt to connect to the subervisor
@@ -300,7 +300,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
             elseif event == "modem_message" then
                 -- handle message
                 local packet = public.parse_packet(p1, p2, p3, p4, p5)
-                if packet ~= nil and packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                if packet ~= nil and packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                     public.handle_packet(packet)
                 end
             elseif event == "terminate" then
@@ -329,25 +329,25 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     end
 
     -- send a facility command
-    ---@param cmd FAC_COMMANDS command
+    ---@param cmd FAC_COMMAND command
     function public.send_fac_command(cmd)
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_CMD, { cmd })
+        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, { cmd })
     end
 
     -- send the auto process control configuration with a start command
     ---@param config coord_auto_config configuration
     function public.send_auto_start(config)
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_CMD, {
-            FAC_COMMANDS.START, config.mode, config.burn_target, config.charge_target, config.gen_target, config.limits
+        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, {
+            FAC_COMMAND.START, config.mode, config.burn_target, config.charge_target, config.gen_target, config.limits
         })
     end
 
     -- send a unit command
-    ---@param cmd UNIT_COMMANDS command
+    ---@param cmd UNIT_COMMAND command
     ---@param unit integer unit ID
     ---@param option any? optional option options for the optional options (like burn rate) (does option still look like a word?)
     function public.send_unit_command(cmd, unit, option)
-        _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_CMD, { cmd, unit, option })
+        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.UNIT_CMD, { cmd, unit, option })
     end
 
     -- parse a packet
@@ -366,19 +366,19 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
         if s_pkt.is_valid() then
             -- get as SCADA management packet
-            if s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+            if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
                     pkt = mgmt_pkt.get()
                 end
             -- get as coordinator packet
-            elseif s_pkt.protocol() == PROTOCOLS.SCADA_CRDN then
+            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
                 local crdn_pkt = comms.crdn_packet()
                 if crdn_pkt.decode(s_pkt) then
                     pkt = crdn_pkt.get()
                 end
             -- get as coordinator API packet
-            elseif s_pkt.protocol() == PROTOCOLS.COORD_API then
+            elseif s_pkt.protocol() == PROTOCOL.COORD_API then
                 local capi_pkt = comms.capi_packet()
                 if capi_pkt.decode(s_pkt) then
                     pkt = capi_pkt.get()
@@ -399,7 +399,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
             local l_port = packet.scada_frame.local_port()
 
             if l_port == api_listen then
-                if protocol == PROTOCOLS.COORD_API then
+                if protocol == PROTOCOL.COORD_API then
 ---@diagnostic disable-next-line: param-type-mismatch
                     apisessions.handle_packet(packet)
                 else
@@ -420,9 +420,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                 sv_watchdog.feed()
 
                 -- handle packet
-                if protocol == PROTOCOLS.SCADA_CRDN then
+                if protocol == PROTOCOL.SCADA_CRDN then
                     if self.sv_linked then
-                        if packet.type == SCADA_CRDN_TYPES.INITIAL_BUILDS then
+                        if packet.type == SCADA_CRDN_TYPE.INITIAL_BUILDS then
                             if packet.length == 2 then
                                 -- record builds
                                 local fac_builds = iocontrol.record_facility_builds(packet.data[1])
@@ -430,47 +430,47 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
                                 if fac_builds and unit_builds then
                                     -- acknowledge receipt of builds
-                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.INITIAL_BUILDS, {})
+                                    _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.INITIAL_BUILDS, {})
                                 else
                                     log.error("received invalid INITIAL_BUILDS packet")
                                 end
                             else
                                 log.debug("INITIAL_BUILDS packet length mismatch")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.FAC_BUILDS then
+                        elseif packet.type == SCADA_CRDN_TYPE.FAC_BUILDS then
                             if packet.length == 1 then
                                 -- record facility builds
                                 if iocontrol.record_facility_builds(packet.data[1]) then
                                     -- acknowledge receipt of builds
-                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.FAC_BUILDS, {})
+                                    _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_BUILDS, {})
                                 else
                                     log.error("received invalid FAC_BUILDS packet")
                                 end
                             else
                                 log.debug("FAC_BUILDS packet length mismatch")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.FAC_STATUS then
+                        elseif packet.type == SCADA_CRDN_TYPE.FAC_STATUS then
                             -- update facility status
                             if not iocontrol.update_facility_status(packet.data) then
                                 log.error("received invalid FAC_STATUS packet")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.FAC_CMD then
+                        elseif packet.type == SCADA_CRDN_TYPE.FAC_CMD then
                             -- facility command acknowledgement
                             if packet.length >= 2 then
                                 local cmd = packet.data[1]
                                 local ack = packet.data[2] == true
 
-                                if cmd == FAC_COMMANDS.SCRAM_ALL then
+                                if cmd == FAC_COMMAND.SCRAM_ALL then
                                     iocontrol.get_db().facility.scram_ack(ack)
-                                elseif cmd == FAC_COMMANDS.STOP then
+                                elseif cmd == FAC_COMMAND.STOP then
                                     iocontrol.get_db().facility.stop_ack(ack)
-                                elseif cmd == FAC_COMMANDS.START then
+                                elseif cmd == FAC_COMMAND.START then
                                     if packet.length == 7 then
                                         process.start_ack_handle({ table.unpack(packet.data, 2) })
                                     else
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
                                     end
-                                elseif cmd == FAC_COMMANDS.ACK_ALL_ALARMS then
+                                elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
@@ -478,24 +478,24 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             else
                                 log.debug("SCADA_CRDN facility command ack packet length mismatch")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_BUILDS then
+                        elseif packet.type == SCADA_CRDN_TYPE.UNIT_BUILDS then
                             -- record builds
                             if packet.length == 1 then
                                 if iocontrol.record_unit_builds(packet.data[1]) then
                                     -- acknowledge receipt of builds
-                                    _send_sv(PROTOCOLS.SCADA_CRDN, SCADA_CRDN_TYPES.UNIT_BUILDS, {})
+                                    _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.UNIT_BUILDS, {})
                                 else
                                     log.error("received invalid UNIT_BUILDS packet")
                                 end
                             else
                                 log.debug("UNIT_BUILDS packet length mismatch")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_STATUSES then
+                        elseif packet.type == SCADA_CRDN_TYPE.UNIT_STATUSES then
                             -- update statuses
                             if not iocontrol.update_unit_statuses(packet.data) then
                                 log.error("received invalid UNIT_STATUSES packet")
                             end
-                        elseif packet.type == SCADA_CRDN_TYPES.UNIT_CMD then
+                        elseif packet.type == SCADA_CRDN_TYPE.UNIT_CMD then
                             -- unit command acknowledgement
                             if packet.length == 3 then
                                 local cmd = packet.data[1]
@@ -505,19 +505,19 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                 local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_unit
 
                                 if unit ~= nil then
-                                    if cmd == UNIT_COMMANDS.SCRAM then
+                                    if cmd == UNIT_COMMAND.SCRAM then
                                         unit.scram_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.START then
+                                    elseif cmd == UNIT_COMMAND.START then
                                         unit.start_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.RESET_RPS then
+                                    elseif cmd == UNIT_COMMAND.RESET_RPS then
                                         unit.reset_rps_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.SET_BURN then
+                                    elseif cmd == UNIT_COMMAND.SET_BURN then
                                         unit.set_burn_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.SET_WASTE then
+                                    elseif cmd == UNIT_COMMAND.SET_WASTE then
                                         unit.set_waste_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.ACK_ALL_ALARMS then
+                                    elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
-                                    elseif cmd == UNIT_COMMANDS.SET_GROUP then
+                                    elseif cmd == UNIT_COMMAND.SET_GROUP then
                                         ---@todo how is this going to be handled?
                                     else
                                         log.debug(util.c("received unit command ack with unknown command ", cmd))
@@ -534,8 +534,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                     else
                         log.debug("discarding SCADA_CRDN packet before linked")
                     end
-                elseif protocol == PROTOCOLS.SCADA_MGMT then
-                    if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                elseif protocol == PROTOCOL.SCADA_MGMT then
+                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
                         if packet.length == 2 then
                             local est_ack = packet.data[1]
@@ -596,7 +596,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end
                     elseif self.sv_linked then
-                        if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                        if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
                                 local timestamp = packet.data[1]
@@ -614,7 +614,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             else
                                 log.debug("SCADA keep alive packet length mismatch")
                             end
-                        elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                        elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
                             -- handle session close
                             sv_watchdog.cancel()
                             self.sv_linked = false

@@ -8,7 +8,7 @@ local txnctrl = require("supervisor.session.rtu.txnctrl")
 
 local unit_session = {}
 
-local PROTOCOLS = comms.PROTOCOLS
+local PROTOCOL = comms.PROTOCOL
 local MODBUS_FCODE = types.MODBUS_FCODE
 local MODBUS_EXCODE = types.MODBUS_EXCODE
 
@@ -72,7 +72,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     ---@param m_pkt modbus_frame MODBUS packet
     ---@return integer|false txn_type, integer txn_id transaction type or false on error/busy, transaction ID
     function protected.try_resolve(m_pkt)
-        if m_pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
+        if m_pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
             if m_pkt.unit_id == self.unit_id then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
                 local txn_tag = " (" .. util.strval(self.txn_tags[txn_type]) ..  ")"

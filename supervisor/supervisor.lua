@@ -6,10 +6,10 @@ local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
 
-local PROTOCOLS = comms.PROTOCOLS
-local DEVICE_TYPES = comms.DEVICE_TYPES
+local PROTOCOL = comms.PROTOCOL
+local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
 local print = util.print
 local println = util.println
@@ -60,8 +60,8 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(SCADA_MGMT_TYPES.ESTABLISH, msg)
-        s_pkt.make(seq_id, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
+        s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         self.modem.transmit(dest, self.dev_listen, s_pkt.raw_sendable())
     end
@@ -74,8 +74,8 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
         local s_pkt = comms.scada_packet()
         local c_pkt = comms.mgmt_packet()
 
-        c_pkt.make(SCADA_MGMT_TYPES.ESTABLISH, msg)
-        s_pkt.make(seq_id, PROTOCOLS.SCADA_MGMT, c_pkt.raw_sendable())
+        c_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
+        s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, c_pkt.raw_sendable())
 
         self.modem.transmit(dest, self.coord_listen, s_pkt.raw_sendable())
     end
@@ -107,25 +107,25 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 
         if s_pkt.is_valid() then
             -- get as MODBUS TCP packet
-            if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
+            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
                 local m_pkt = comms.modbus_packet()
                 if m_pkt.decode(s_pkt) then
                     pkt = m_pkt.get()
                 end
             -- get as RPLC packet
-            elseif s_pkt.protocol() == PROTOCOLS.RPLC then
+            elseif s_pkt.protocol() == PROTOCOL.RPLC then
                 local rplc_pkt = comms.rplc_packet()
                 if rplc_pkt.decode(s_pkt) then
                     pkt = rplc_pkt.get()
                 end
             -- get as SCADA management packet
-            elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
                     pkt = mgmt_pkt.get()
                 end
             -- get as coordinator packet
-            elseif s_pkt.protocol() == PROTOCOLS.SCADA_CRDN then
+            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
                 local crdn_pkt = comms.crdn_packet()
                 if crdn_pkt.decode(s_pkt) then
                     pkt = crdn_pkt.get()
@@ -148,7 +148,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
 
             -- device (RTU/PLC) listening channel
             if l_port == self.dev_listen then
-                if protocol == PROTOCOLS.MODBUS_TCP then
+                if protocol == PROTOCOL.MODBUS_TCP then
                     -- look for an associated session
                     local session = svsessions.find_rtu_session(r_port)
 
@@ -160,7 +160,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         -- any other packet should be session related, discard it
                         log.debug("discarding MODBUS_TCP packet without a known session")
                     end
-                elseif protocol == PROTOCOLS.RPLC then
+                elseif protocol == PROTOCOL.RPLC then
                     -- look for an associated session
                     local session = svsessions.find_plc_session(r_port)
 
@@ -173,7 +173,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         log.debug("PLC_ESTABLISH: no session but not an establish, forcing relink")
                         _send_dev_establish(packet.scada_frame.seq_num() + 1, r_port, { ESTABLISH_ACK.DENY })
                     end
-                elseif protocol == PROTOCOLS.SCADA_MGMT then
+                elseif protocol == PROTOCOL.SCADA_MGMT then
                     -- look for an associated session
                     local session = svsessions.find_device_session(r_port)
 
@@ -181,7 +181,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local next_seq_id = packet.scada_frame.seq_num() + 1
 
@@ -198,7 +198,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                 return
                             end
 
-                            if dev_type == DEVICE_TYPES.PLC then
+                            if dev_type == DEVICE_TYPE.PLC then
                                 -- PLC linking request
                                 if packet.length == 4 and type(packet.data[4]) == "number" then
                                     local reactor_id = packet.data[4]
@@ -218,7 +218,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                     log.debug("PLC_ESTABLISH: packet length mismatch/bad parameter type")
                                     _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
                                 end
-                            elseif dev_type == DEVICE_TYPES.RTU then
+                            elseif dev_type == DEVICE_TYPE.RTU then
                                 if packet.length == 4 then
                                     -- this is an RTU advertisement for a new session
                                     local rtu_advert = packet.data[4]
@@ -251,12 +251,12 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                 -- look for an associated session
                 local session = svsessions.find_coord_session(r_port)
 
-                if protocol == PROTOCOLS.SCADA_MGMT then
+                if protocol == PROTOCOL.SCADA_MGMT then
                     -- SCADA management packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local next_seq_id = packet.scada_frame.seq_num() + 1
 
@@ -271,7 +271,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                     " (expected v", comms.version, ")"))
                                 _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
                                 return
-                            elseif dev_type ~= DEVICE_TYPES.CRDN then
+                            elseif dev_type ~= DEVICE_TYPE.CRDN then
                                 log.debug(util.c("illegal establish packet for device ", dev_type, " on CRDN listening channel"))
                                 _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
                                 return
@@ -302,7 +302,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                         -- any other packet should be session related, discard it
                         log.debug(r_port .. "->" .. l_port .. ": discarding SCADA_MGMT packet without a known session")
                     end
-                elseif protocol == PROTOCOLS.SCADA_CRDN then
+                elseif protocol == PROTOCOL.SCADA_CRDN then
                     -- coordinator packet
                     if session ~= nil then
                         -- pass the packet onto the session handler

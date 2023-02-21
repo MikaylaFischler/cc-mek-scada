@@ -7,11 +7,11 @@ local modbus = require("rtu.modbus")
 
 local rtu = {}
 
-local PROTOCOLS = comms.PROTOCOLS
-local DEVICE_TYPES = comms.DEVICE_TYPES
+local PROTOCOL = comms.PROTOCOL
+local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
 
 local print = util.print
 local println = util.println
@@ -197,14 +197,14 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     _conf_channels()
 
     -- send a scada management packet
-    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
@@ -213,7 +213,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send(SCADA_MGMT_TYPES.KEEP_ALIVE, { srv_time, util.time() })
+        _send(SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- generate device advertisement table
@@ -233,7 +233,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     unit.reactor
                 }
 
-                if type == RTU_UNIT_TYPES.REDSTONE then
+                if type == RTU_UNIT_TYPE.REDSTONE then
                     insert(advert, unit.device)
                 end
 
@@ -250,7 +250,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     ---@param m_pkt modbus_packet
     function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
-        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
         self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
@@ -275,25 +275,25 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     function public.close(rtu_state)
         self.conn_watchdog.cancel()
         public.unlink(rtu_state)
-        _send(SCADA_MGMT_TYPES.CLOSE, {})
+        _send(SCADA_MGMT_TYPE.CLOSE, {})
     end
 
     -- send establish request (includes advertisement)
     ---@param units table
     function public.send_establish(units)
-        _send(SCADA_MGMT_TYPES.ESTABLISH, { comms.version, self.version, DEVICE_TYPES.RTU, _generate_advertisement(units) })
+        _send(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, self.version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
     end
 
     -- send capability advertisement
     ---@param units table
     function public.send_advertisement(units)
-        _send(SCADA_MGMT_TYPES.RTU_ADVERT, _generate_advertisement(units))
+        _send(SCADA_MGMT_TYPE.RTU_ADVERT, _generate_advertisement(units))
     end
 
     -- notify that a peripheral was remounted
     ---@param unit_index integer RTU unit ID
     function public.send_remounted(unit_index)
-        _send(SCADA_MGMT_TYPES.RTU_DEV_REMOUNT, { unit_index })
+        _send(SCADA_MGMT_TYPE.RTU_DEV_REMOUNT, { unit_index })
     end
 
     -- parse a MODBUS/SCADA packet
@@ -312,13 +312,13 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
         if s_pkt.is_valid() then
             -- get as MODBUS TCP packet
-            if s_pkt.protocol() == PROTOCOLS.MODBUS_TCP then
+            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
                 local m_pkt = comms.modbus_packet()
                 if m_pkt.decode(s_pkt) then
                     pkt = m_pkt.get()
                 end
             -- get as SCADA management packet
-            elseif s_pkt.protocol() == PROTOCOLS.SCADA_MGMT then
+            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()
                 if mgmt_pkt.decode(s_pkt) then
                     pkt = mgmt_pkt.get()
@@ -352,7 +352,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
             local protocol = packet.scada_frame.protocol()
 
-            if protocol == PROTOCOLS.MODBUS_TCP then
+            if protocol == PROTOCOL.MODBUS_TCP then
                 if rtu_state.linked then
                     local return_code = false
 ---@diagnostic disable-next-line: param-type-mismatch
@@ -401,9 +401,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                 else
                     log.debug("discarding MODBUS packet before linked")
                 end
-            elseif protocol == PROTOCOLS.SCADA_MGMT then
+            elseif protocol == PROTOCOL.SCADA_MGMT then
                 -- SCADA management packet
-                if packet.type == SCADA_MGMT_TYPES.ESTABLISH then
+                if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                     if packet.length == 1 then
                         local est_ack = packet.data[1]
 
@@ -434,7 +434,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
                 elseif rtu_state.linked then
-                    if packet.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+                    if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]
@@ -450,13 +450,13 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         else
                             log.debug("SCADA_MGMT keep alive packet length/type mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPES.CLOSE then
+                    elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
                         -- close connection
                         self.conn_watchdog.cancel()
                         public.unlink(rtu_state)
                         println_ts("server connection closed by remote host")
                         log.warning("server connection closed by remote host")
-                    elseif packet.type == SCADA_MGMT_TYPES.RTU_ADVERT then
+                    elseif packet.type == SCADA_MGMT_TYPE.RTU_ADVERT then
                         -- request for capabilities again
                         public.send_advertisement(units)  
                     else

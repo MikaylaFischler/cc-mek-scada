@@ -9,7 +9,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local turbinev = {}
 
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
@@ -50,7 +50,7 @@ local PERIODICS = {
 ---@param out_queue mqueue RTU unit message out queue
 function turbinev.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.TURBINE_VALVE then
+    if advert.type ~= RTU_UNIT_TYPE.TURBINE_VALVE then
         log.error("attempt to instantiate turbinev RTU for type '" .. advert.type .. "'. this is a bug.")
         return nil
     end
