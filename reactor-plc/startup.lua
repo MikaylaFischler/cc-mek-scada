@@ -145,8 +145,7 @@ local function main()
         plc_state.no_modem = true
     end
 
-    -- PLC init
-    --- 
+    -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
         if plc_state.init_ok then
@@ -170,13 +169,13 @@ local function main()
                 log.debug("init> comms init")
             else
                 println("boot> starting in offline mode")
-                log.debug("init> running without networking")
+                log.info("init> running without networking")
             end
 
             util.push_event("clock_start")
 
             println("boot> completed")
-            log.debug("init> boot completed")
+            log.info("init> boot completed")
         else
             println("boot> system in degraded state, awaiting devices...")
             log.warning("init> booted in a degraded state, awaiting peripheral connections...")

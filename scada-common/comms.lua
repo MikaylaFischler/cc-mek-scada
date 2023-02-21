@@ -334,7 +334,7 @@ function comms.rplc_packet()
         frame = nil,
         raw = {},
         id = 0,
-        type = -1,
+        type = 0,   ---@type RPLC_TYPE
         length = 0,
         data = {}
     }
@@ -436,7 +436,7 @@ function comms.mgmt_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,   ---@type SCADA_MGMT_TYPE
         length = 0,
         data = {}
     }
@@ -528,7 +528,7 @@ function comms.crdn_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,   ---@type SCADA_CRDN_TYPE
         length = 0,
         data = {}
     }
@@ -617,13 +617,13 @@ function comms.crdn_packet()
 end
 
 -- coordinator API (CAPI) packet
----@todo implement for pocket access
+---@todo implement for pocket access, set enum type for self.type
 ---@nodiscard
 function comms.capi_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,
         length = 0,
         data = {}
     }

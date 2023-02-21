@@ -25,7 +25,7 @@ local println_ts = util.println_ts
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 local PCALL_START_MSG = "pcall: Reactor is already active."
 
--- RPS SAFETY CONSTANTS
+--#region RPS SAFETY CONSTANTS
 
 local MAX_DAMAGE_PERCENT      = 90
 local MAX_DAMAGE_TEMPERATURE  = 1200
@@ -33,13 +33,12 @@ local MIN_COOLANT_FILL        = 0.10
 local MAX_WASTE_FILL          = 0.8
 local MAX_HEATED_COLLANT_FILL = 0.95
 
--- END RPS SAFETY CONSTANTS
+--#endregion END RPS SAFETY CONSTANTS
 
---- RPS: Reactor Protection System
----
---- identifies dangerous states and SCRAMs reactor if warranted
----
---- autonomous from main SCADA supervisor/coordinator control
+-- RPS: Reactor Protection System<br>
+-- identifies dangerous states and SCRAMs reactor if warranted<br>
+-- autonomous from main SCADA supervisor/coordinator control
+---@nodiscard
 ---@param reactor table
 ---@param is_formed boolean
 function plc.rps_init(reactor, is_formed)
@@ -270,6 +269,7 @@ function plc.rps_init(reactor, is_formed)
     end
 
     -- check all safety conditions
+    ---@nodiscard
     ---@return boolean tripped, rps_trip_cause trip_status, boolean first_trip
     function public.check()
         local status = RPS_TRIP_CAUSE.OK
@@ -359,16 +359,23 @@ function plc.rps_init(reactor, is_formed)
         return self.tripped, status, first_trip
     end
 
+    ---@nodiscard
     function public.status() return self.state end
 
+    ---@nodiscard
     function public.is_tripped() return self.tripped end
+    ---@nodiscard
     function public.get_trip_cause() return self.trip_cause end
 
+    ---@nodiscard
     function public.is_active() return self.reactor_enabled end
+    ---@nodiscard
     function public.is_formed() return self.formed end
+    ---@nodiscard
     function public.is_force_disabled() return self.force_disabled end
 
     -- get the runtime of the reactor if active, or the last runtime if disabled
+    ---@nodiscard
     ---@return integer runtime time since last enable
     function public.get_runtime() return util.trinary(self.reactor_enabled, util.time_ms() - self.enabled_at, self.last_runtime) end
 
@@ -402,6 +409,7 @@ function plc.rps_init(reactor, is_formed)
 end
 
 -- Reactor PLC Communications
+---@nodiscard
 ---@param id integer reactor ID
 ---@param version string PLC version
 ---@param modem table modem device
@@ -416,8 +424,6 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         seq_num = 0,
         r_seq_num = nil,
         modem = modem,
-        s_port = server_port,
-        l_port = local_port,
         reactor = reactor,
         scrammed = false,
         linked = false,
@@ -428,9 +434,6 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         max_burn_rate = nil
     }
 
-    ---@class plc_comms
-    local public = {}
-
     comms.set_trusted_range(range)
 
     -- PRIVATE FUNCTIONS --
@@ -438,7 +441,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     -- configure modem channels
     local function _conf_channels()
         self.modem.closeAll()
-        self.modem.open(self.l_port)
+        self.modem.open(local_port)
     end
 
     _conf_channels()
@@ -453,7 +456,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         r_pkt.make(id, msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -467,7 +470,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        self.modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -614,6 +617,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
     -- PUBLIC FUNCTIONS --
 
+    ---@class plc_comms
+    local public = {}
+
     -- reconnect a newly connected modem
     ---@param modem table
 ---@diagnostic disable-next-line: redefined-local
@@ -679,9 +685,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
             _send(RPLC_TYPE.STATUS, sys_status)
 
-            if self.resend_build then
-                _send_struct()
-            end
+            if self.resend_build then _send_struct() end
         end
     end
 
@@ -696,12 +700,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     ---@param cause rps_trip_cause reactor protection system status
     function public.send_rps_alarm(cause)
         if self.linked then
-            local rps_alarm = {
-                cause,
-                table.unpack(rps.status())
-            }
-
-            _send(RPLC_TYPE.RPS_ALARM, rps_alarm)
+            _send(RPLC_TYPE.RPS_ALARM, { cause, table.unpack(rps.status()) })
         end
     end
 
@@ -745,7 +744,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     ---@param plc_state plc_state PLC state
     ---@param setpoints setpoints setpoint control table
     function public.handle_packet(packet, plc_state, setpoints)
-        if packet ~= nil and packet.scada_frame.local_port() == self.l_port then
+        if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -848,9 +847,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                         log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
                                         if rps.scram() then
                                             ack = AUTO_ACK.ZERO_DIS_OK
-                                            self.auto_last_disable = util.time_ms()
                                         else
-                                            log.debug("AUTO: automatic reactor stop failed")
+                                            log.warning("AUTO: automatic reactor stop failed")
                                         end
                                     else
                                         ack = AUTO_ACK.ZERO_DIS_OK
@@ -862,10 +860,10 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                                         self.reactor.setBurnRate(0.01)
                                         if self.reactor.__p_is_faulted() then
-                                            log.debug("AUTO: failed to reset burn rate for auto activation")
+                                            log.warning("AUTO: failed to reset burn rate for auto activation")
                                         else
                                             if not rps.auto_activate() then
-                                                log.debug("AUTO: automatic reactor activation failed")
+                                                log.warning("AUTO: automatic reactor activation failed")
                                             end
                                         end
                                     end
@@ -965,7 +963,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                         if est_ack == ESTABLISH_ACK.ALLOW then
                             println_ts("linked!")
-                            log.debug("supervisor establish request approved")
+                            log.info("supervisor establish request approved, PLC is linked")
 
                             -- reset remote sequence number and cache
                             self.r_seq_num = nil
@@ -978,16 +976,16 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         elseif self.last_est_ack ~= est_ack then
                             if est_ack == ESTABLISH_ACK.DENY then
                                 println_ts("link request denied, retrying...")
-                                log.debug("establish request denied")
+                                log.info("supervisor establish request denied, retrying")
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 println_ts("reactor PLC ID collision (check config), retrying...")
-                                log.warning("establish request collision")
+                                log.warning("establish request collision, retrying")
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 println_ts("supervisor version mismatch (try updating), retrying...")
-                                log.warning("establish request version mismatch")
+                                log.warning("establish request version mismatch, retrying")
                             else
                                 println_ts("invalid link response, bad channel? retrying...")
-                                log.error("unknown establish request response")
+                                log.error("unknown establish request response, retrying")
                             end
                         end
 
@@ -1006,7 +1004,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         end
     end
 
+    ---@nodiscard
     function public.is_scrammed() return self.scrammed end
+    ---@nodiscard
     function public.is_linked() return self.linked end
 
     return public
