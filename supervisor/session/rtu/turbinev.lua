@@ -1,4 +1,3 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
 local types        = require("scada-common.types")
@@ -9,7 +8,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local turbinev = {}
 
-local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
@@ -51,7 +50,7 @@ local PERIODICS = {
 function turbinev.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.TURBINE_VALVE then
-        log.error("attempt to instantiate turbinev RTU for type '" .. advert.type .. "'. this is a bug.")
+        log.error("attempt to instantiate turbinev RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 

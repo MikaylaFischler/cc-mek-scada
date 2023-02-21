@@ -1,4 +1,3 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
@@ -7,7 +6,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local envd = {}
 
-local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local TXN_TYPES = {
@@ -30,7 +29,7 @@ local PERIODICS = {
 function envd.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.ENV_DETECTOR then
-        log.error("attempt to instantiate envd RTU for type '" .. advert.type .. "'. this is a bug.")
+        log.error("attempt to instantiate envd RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 

@@ -1,6 +1,4 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
-local mqueue       = require("scada-common.mqueue")
 local rsio         = require("scada-common.rsio")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
@@ -9,7 +7,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local redstone = {}
 
-local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local IO_PORT = rsio.IO
@@ -54,7 +52,7 @@ local PERIODICS = {
 function redstone.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.REDSTONE then
-        log.error("attempt to instantiate redstone RTU for type '" .. advert.type .. "'. this is a bug.")
+        log.error("attempt to instantiate redstone RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 

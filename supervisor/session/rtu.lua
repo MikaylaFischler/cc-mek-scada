@@ -1,7 +1,7 @@
 local comms         = require("scada-common.comms")
 local log           = require("scada-common.log")
 local mqueue        = require("scada-common.mqueue")
-local rsio          = require("scada-common.rsio")
+local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
 local svqtypes      = require("supervisor.session.svqtypes")
@@ -20,7 +20,7 @@ local rtu = {}
 
 local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
-local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local print = util.print
 local println = util.println
@@ -113,7 +113,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             end
 
             local type_string = util.strval(u_type)
-            if type(u_type) == "number" then type_string = util.strval(comms.advert_type_to_rtu_t(u_type)) end
+            if type(u_type) == "number" then type_string = types.rtu_type_to_string(u_type) end
 
             -- create unit by type
 

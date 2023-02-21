@@ -1,6 +1,7 @@
 local comms  = require("scada-common.comms")
 local ppm    = require("scada-common.ppm")
 local log    = require("scada-common.log")
+local types  = require("scada-common.types")
 local util   = require("scada-common.util")
 
 local modbus = require("rtu.modbus")
@@ -11,7 +12,7 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
-local RTU_UNIT_TYPE = comms.RTU_UNIT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local print = util.print
 local println = util.println
@@ -223,12 +224,11 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         local advertisement = {}
 
         for i = 1, #units do
-            local unit = units[i]   --@type rtu_unit_registry_entry
-            local type = comms.rtu_t_to_unit_type(unit.type)
+            local unit = units[i]   ---@type rtu_unit_registry_entry
 
             if type ~= nil then
                 local advert = {
-                    type,
+                    unit.type,
                     unit.index,
                     unit.reactor
                 }

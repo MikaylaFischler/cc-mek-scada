@@ -3,12 +3,9 @@
 --
 
 local log   = require("scada-common.log")
-local types = require("scada-common.types")
 
 ---@class comms
 local comms = {}
-
-local rtu_t = types.rtu_t
 
 local insert = table.insert
 
@@ -80,17 +77,6 @@ local DEVICE_TYPE = {
     CRDN = 3            -- coordinator device type for establish
 }
 
----@enum RTU_UNIT_TYPE
-local RTU_UNIT_TYPE = {
-    REDSTONE = 0,       -- redstone I/O
-    BOILER_VALVE = 1,   -- boiler mekanism 10.1+
-    TURBINE_VALVE = 2,  -- turbine, mekanism 10.1+
-    IMATRIX = 3,        -- induction matrix
-    SPS = 4,            -- SPS
-    SNA = 5,            -- SNA
-    ENV_DETECTOR = 6    -- environment detector
-}
-
 ---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {
     FAIL = 0,           -- failed to set burn rate/burn rate invalid
@@ -129,7 +115,6 @@ comms.CAPI_TYPE = CAPI_TYPE
 
 comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.DEVICE_TYPE = DEVICE_TYPE
-comms.RTU_UNIT_TYPE = RTU_UNIT_TYPE
 
 comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 
@@ -717,54 +702,6 @@ function comms.capi_packet()
     end
 
     return public
-end
-
--- convert rtu_t to RTU unit type
----@nodiscard
----@param type rtu_t
----@return RTU_UNIT_TYPE|nil
-function comms.rtu_t_to_unit_type(type)
-    if type == rtu_t.redstone then
-        return RTU_UNIT_TYPE.REDSTONE
-    elseif type == rtu_t.boiler_valve then
-        return RTU_UNIT_TYPE.BOILER_VALVE
-    elseif type == rtu_t.turbine_valve then
-        return RTU_UNIT_TYPE.TURBINE_VALVE
-    elseif type == rtu_t.induction_matrix then
-        return RTU_UNIT_TYPE.IMATRIX
-    elseif type == rtu_t.sps then
-        return RTU_UNIT_TYPE.SPS
-    elseif type == rtu_t.sna then
-        return RTU_UNIT_TYPE.SNA
-    elseif type == rtu_t.env_detector then
-        return RTU_UNIT_TYPE.ENV_DETECTOR
-    end
-
-    return nil
-end
-
--- convert RTU unit type to rtu_t
----@nodiscard
----@param utype RTU_UNIT_TYPE
----@return rtu_t|nil
-function comms.advert_type_to_rtu_t(utype)
-    if utype == RTU_UNIT_TYPE.REDSTONE then
-        return rtu_t.redstone
-    elseif utype == RTU_UNIT_TYPE.BOILER_VALVE then
-        return rtu_t.boiler_valve
-    elseif utype == RTU_UNIT_TYPE.TURBINE_VALVE then
-        return rtu_t.turbine_valve
-    elseif utype == RTU_UNIT_TYPE.IMATRIX then
-        return rtu_t.induction_matrix
-    elseif utype == RTU_UNIT_TYPE.SPS then
-        return rtu_t.sps
-    elseif utype == RTU_UNIT_TYPE.SNA then
-        return rtu_t.sna
-    elseif utype == RTU_UNIT_TYPE.ENV_DETECTOR then
-        return rtu_t.env_detector
-    end
-
-    return nil
 end
 
 return comms

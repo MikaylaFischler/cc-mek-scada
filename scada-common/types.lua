@@ -70,6 +70,48 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 -- ENUMERATION TYPES --
 --#region
 
+---@enum RTU_UNIT_TYPE
+types.RTU_UNIT_TYPE = {
+    VIRTUAL = 0,        -- virtual device
+    REDSTONE = 1,       -- redstone I/O
+    BOILER_VALVE = 2,   -- boiler mekanism 10.1+
+    TURBINE_VALVE = 3,  -- turbine, mekanism 10.1+
+    IMATRIX = 4,        -- induction matrix
+    SPS = 5,            -- SPS
+    SNA = 6,            -- SNA
+    ENV_DETECTOR = 7    -- environment detector
+}
+
+types.RTU_UNIT_NAMES = {
+    "redstone",
+    "boiler_valve",
+    "turbine_valve",
+    "induction_matrix",
+    "sps",
+    "sna",
+    "environment_detector"
+}
+
+-- safe conversion of RTU UNIT TYPE to string
+---@nodiscard
+---@param utype RTU_UNIT_TYPE
+---@return string
+function types.rtu_type_to_string(utype)
+    if utype == types.RTU_UNIT_TYPE.VIRTUAL then
+        return "virtual"
+    elseif utype == types.RTU_UNIT_TYPE.REDSTONE or
+       utype == types.RTU_UNIT_TYPE.BOILER_VALVE or
+       utype == types.RTU_UNIT_TYPE.TURBINE_VALVE or
+       utype == types.RTU_UNIT_TYPE.IMATRIX or
+       utype == types.RTU_UNIT_TYPE.SPS or
+       utype == types.RTU_UNIT_TYPE.SNA or
+       utype == types.RTU_UNIT_TYPE.ENV_DETECTOR then
+        return types.RTU_UNIT_NAMES[utype]
+    else
+        return ""
+    end
+end
+
 ---@enum TRI_FAIL
 types.TRI_FAIL = {
     OK = 0,
@@ -213,17 +255,6 @@ types.FLUID = {
     WATER = "minecraft:water",
     SODIUM = "mekanism:sodium",
     SUPERHEATED_SODIUM = "mekanism:superheated_sodium"
-}
-
----@alias rtu_t string
-types.rtu_t = {
-    redstone = "redstone",
-    boiler_valve = "boiler_valve",
-    turbine_valve = "turbine_valve",
-    induction_matrix = "induction_matrix",
-    sps = "sps",
-    sna = "sna",
-    env_detector = "environment_detector"
 }
 
 ---@alias rps_trip_cause

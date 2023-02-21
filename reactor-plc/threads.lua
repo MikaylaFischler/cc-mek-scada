@@ -31,7 +31,8 @@ local MQ__COMM_CMD = {
 ---@param smem plc_shared_memory
 ---@param init function
 function threads.thread__main(smem, init)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -277,7 +278,8 @@ end
 -- RPS operation thread
 ---@param smem plc_shared_memory
 function threads.thread__rps(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -416,7 +418,8 @@ end
 -- communications sender thread
 ---@param smem plc_shared_memory
 function threads.thread__comms_tx(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -490,7 +493,8 @@ end
 -- communications handler thread
 ---@param smem plc_shared_memory
 function threads.thread__comms_rx(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -564,7 +568,8 @@ end
 -- apply setpoints
 ---@param smem plc_shared_memory
 function threads.thread__setpoint_control(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
