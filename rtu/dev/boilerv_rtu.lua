@@ -3,6 +3,7 @@ local rtu = require("rtu.rtu")
 local boilerv_rtu = {}
 
 -- create new boiler (mek 10.1+) device
+---@nodiscard
 ---@param boiler table
 function boilerv_rtu.new(boiler)
     local unit = rtu.init_unit()

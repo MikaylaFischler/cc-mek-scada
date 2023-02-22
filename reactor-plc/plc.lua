@@ -58,24 +58,20 @@ function plc.rps_init(reactor, is_formed)
     }
 
     local self = {
-        reactor = reactor,
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
         enabled_at = 0,
         formed = is_formed,
         force_disabled = false,
         tripped = false,
-        trip_cause = "ok"   ---@type rps_trip_cause
+        trip_cause = "ok"       ---@type rps_trip_cause
     }
-
-    ---@class rps
-    local public = {}
 
     -- PRIVATE FUNCTIONS --
 
     -- set reactor access fault flag
     local function _set_fault()
-        if self.reactor.__p_last_fault() ~= "Terminated" then
+        if reactor.__p_last_fault() ~= "Terminated" then
             self.state[state_keys.fault] = true
         end
     end
@@ -87,7 +83,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if the reactor is formed
     local function _is_formed()
-        local formed = self.reactor.isFormed()
+        local formed = reactor.isFormed()
         if formed == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -102,7 +98,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if the reactor is force disabled
     local function _is_force_disabled()
-        local disabled = self.reactor.isForceDisabled()
+        local disabled = reactor.isForceDisabled()
         if disabled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -117,7 +113,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check for critical damage
     local function _damage_critical()
-        local damage_percent = self.reactor.getDamagePercent()
+        local damage_percent = reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -129,7 +125,7 @@ function plc.rps_init(reactor, is_formed)
     -- check if the reactor is at a critically high temperature
     local function _high_temp()
         -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
-        local temp = self.reactor.getTemperature()
+        local temp = reactor.getTemperature()
         if temp == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -140,7 +136,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if there is no coolant (<2% filled)
     local function _no_coolant()
-        local coolant_filled = self.reactor.getCoolantFilledPercentage()
+        local coolant_filled = reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -151,7 +147,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check for excess waste (>80% filled)
     local function _excess_waste()
-        local w_filled = self.reactor.getWasteFilledPercentage()
+        local w_filled = reactor.getWasteFilledPercentage()
         if w_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -162,7 +158,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check for heated coolant backup (>95% filled)
     local function _excess_heated_coolant()
-        local hc_filled = self.reactor.getHeatedCoolantFilledPercentage()
+        local hc_filled = reactor.getHeatedCoolantFilledPercentage()
         if hc_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -173,7 +169,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if there is no fuel
     local function _insufficient_fuel()
-        local fuel = self.reactor.getFuel()
+        local fuel = reactor.getFuel()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
@@ -184,10 +180,13 @@ function plc.rps_init(reactor, is_formed)
 
     -- PUBLIC FUNCTIONS --
 
+    ---@class rps
+    local public = {}
+
     -- re-link a reactor after a peripheral re-connect
----@diagnostic disable-next-line: redefined-local
-    function public.reconnect_reactor(reactor)
-        self.reactor = reactor
+    ---@param new_reactor table reconnected reactor
+    function public.reconnect_reactor(new_reactor)
+        reactor = new_reactor
     end
 
     -- trip for lost peripheral
@@ -221,8 +220,8 @@ function plc.rps_init(reactor, is_formed)
     function public.scram()
         log.info("RPS: reactor SCRAM")
 
-        self.reactor.scram()
-        if self.reactor.__p_is_faulted() and (self.reactor.__p_last_fault() ~= PCALL_SCRAM_MSG) then
+        reactor.scram()
+        if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
             return false
         else
@@ -238,8 +237,8 @@ function plc.rps_init(reactor, is_formed)
         if not self.tripped then
             log.info("RPS: reactor start")
 
-            self.reactor.activate()
-            if self.reactor.__p_is_faulted() and (self.reactor.__p_last_fault() ~= PCALL_START_MSG) then
+            reactor.activate()
+            if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
             else
                 self.reactor_enabled = true
@@ -423,8 +422,6 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     local self = {
         seq_num = 0,
         r_seq_num = nil,
-        modem = modem,
-        reactor = reactor,
         scrammed = false,
         linked = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
@@ -440,8 +437,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
     -- configure modem channels
     local function _conf_channels()
-        self.modem.closeAll()
-        self.modem.open(local_port)
+        modem.closeAll()
+        modem.open(local_port)
     end
 
     _conf_channels()
@@ -456,7 +453,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         r_pkt.make(id, msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        self.modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -470,7 +467,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -503,21 +500,21 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         }
 
         local tasks = {
-            function () data_table[1]  = self.reactor.getStatus() end,
-            function () data_table[2]  = self.reactor.getBurnRate() end,
-            function () data_table[3]  = self.reactor.getActualBurnRate() end,
-            function () data_table[4]  = self.reactor.getTemperature() end,
-            function () data_table[5]  = self.reactor.getDamagePercent() end,
-            function () data_table[6]  = self.reactor.getBoilEfficiency() end,
-            function () data_table[7]  = self.reactor.getEnvironmentalLoss() end,
-            function () fuel           = self.reactor.getFuel() end,
-            function () data_table[9]  = self.reactor.getFuelFilledPercentage() end,
-            function () waste          = self.reactor.getWaste() end,
-            function () data_table[11] = self.reactor.getWasteFilledPercentage() end,
-            function () coolant        = self.reactor.getCoolant() end,
-            function () data_table[14] = self.reactor.getCoolantFilledPercentage() end,
-            function () hcoolant       = self.reactor.getHeatedCoolant() end,
-            function () data_table[17] = self.reactor.getHeatedCoolantFilledPercentage() end
+            function () data_table[1]  = reactor.getStatus() end,
+            function () data_table[2]  = reactor.getBurnRate() end,
+            function () data_table[3]  = reactor.getActualBurnRate() end,
+            function () data_table[4]  = reactor.getTemperature() end,
+            function () data_table[5]  = reactor.getDamagePercent() end,
+            function () data_table[6]  = reactor.getBoilEfficiency() end,
+            function () data_table[7]  = reactor.getEnvironmentalLoss() end,
+            function () fuel           = reactor.getFuel() end,
+            function () data_table[9]  = reactor.getFuelFilledPercentage() end,
+            function () waste          = reactor.getWaste() end,
+            function () data_table[11] = reactor.getWasteFilledPercentage() end,
+            function () coolant        = reactor.getCoolant() end,
+            function () data_table[14] = reactor.getCoolantFilledPercentage() end,
+            function () hcoolant       = reactor.getHeatedCoolant() end,
+            function () data_table[17] = reactor.getHeatedCoolantFilledPercentage() end
         }
 
         parallel.waitForAll(table.unpack(tasks))
@@ -540,7 +537,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
             data_table[16] = hcoolant.amount
         end
 
-        return data_table, self.reactor.__p_is_faulted()
+        return data_table, reactor.__p_is_faulted()
     end
 
     -- update the status cache if changed
@@ -590,24 +587,24 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         local mek_data = { false, 0, 0, 0, min_pos, max_pos, 0, 0, 0, 0, 0, 0, 0, 0 }
 
         local tasks = {
-            function () mek_data[1]  = self.reactor.getLength() end,
-            function () mek_data[2]  = self.reactor.getWidth() end,
-            function () mek_data[3]  = self.reactor.getHeight() end,
-            function () mek_data[4]  = self.reactor.getMinPos() end,
-            function () mek_data[5]  = self.reactor.getMaxPos() end,
-            function () mek_data[6]  = self.reactor.getHeatCapacity() end,
-            function () mek_data[7]  = self.reactor.getFuelAssemblies() end,
-            function () mek_data[8]  = self.reactor.getFuelSurfaceArea() end,
-            function () mek_data[9]  = self.reactor.getFuelCapacity() end,
-            function () mek_data[10] = self.reactor.getWasteCapacity() end,
-            function () mek_data[11] = self.reactor.getCoolantCapacity() end,
-            function () mek_data[12] = self.reactor.getHeatedCoolantCapacity() end,
-            function () mek_data[13] = self.reactor.getMaxBurnRate() end
+            function () mek_data[1]  = reactor.getLength() end,
+            function () mek_data[2]  = reactor.getWidth() end,
+            function () mek_data[3]  = reactor.getHeight() end,
+            function () mek_data[4]  = reactor.getMinPos() end,
+            function () mek_data[5]  = reactor.getMaxPos() end,
+            function () mek_data[6]  = reactor.getHeatCapacity() end,
+            function () mek_data[7]  = reactor.getFuelAssemblies() end,
+            function () mek_data[8]  = reactor.getFuelSurfaceArea() end,
+            function () mek_data[9]  = reactor.getFuelCapacity() end,
+            function () mek_data[10] = reactor.getWasteCapacity() end,
+            function () mek_data[11] = reactor.getCoolantCapacity() end,
+            function () mek_data[12] = reactor.getHeatedCoolantCapacity() end,
+            function () mek_data[13] = reactor.getMaxBurnRate() end
         }
 
         parallel.waitForAll(table.unpack(tasks))
 
-        if not self.reactor.__p_is_faulted() then
+        if not reactor.__p_is_faulted() then
             _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
         else
@@ -621,18 +618,16 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     local public = {}
 
     -- reconnect a newly connected modem
-    ---@param modem table
----@diagnostic disable-next-line: redefined-local
-    function public.reconnect_modem(modem)
-        self.modem = modem
+    ---@param new_modem table
+    function public.reconnect_modem(new_modem)
+        modem = new_modem
         _conf_channels()
     end
 
     -- reconnect a newly connected reactor
-    ---@param reactor table
----@diagnostic disable-next-line: redefined-local
-    function public.reconnect_reactor(reactor)
-        self.reactor = reactor
+    ---@param new_reactor table
+    function public.reconnect_reactor(new_reactor)
+        reactor = new_reactor
         self.status_cache = nil
         self.resend_build = true
         self.max_burn_rate = nil
@@ -670,7 +665,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                     mek_data = self.status_cache
                 end
 
-                heating_rate = self.reactor.getHeatingRate()
+                heating_rate = reactor.getHeatingRate()
             end
 
             local sys_status = {
@@ -705,6 +700,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     end
 
     -- parse an RPLC packet
+    ---@nodiscard
     ---@param side string
     ---@param sender integer
     ---@param reply_to integer
@@ -762,6 +758,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
             -- handle packet
             if protocol == PROTOCOL.RPLC then
+                ---@cast packet rplc_frame
                 if self.linked then
                     if packet.type == RPLC_TYPE.STATUS then
                         -- request of full status, clear cache first
@@ -781,7 +778,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                             -- if no known max burn rate, check again
                             if self.max_burn_rate == nil then
-                                self.max_burn_rate = self.reactor.getMaxBurnRate()
+                                self.max_burn_rate = reactor.getMaxBurnRate()
                             end
 
                             -- if we know our max burn rate, update current burn rate setpoint if in range
@@ -792,8 +789,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                         setpoints.burn_rate = burn_rate
                                         success = true
                                     else
-                                        self.reactor.setBurnRate(burn_rate)
-                                        success = not self.reactor.__p_is_faulted()
+                                        reactor.setBurnRate(burn_rate)
+                                        success = not reactor.__p_is_faulted()
                                     end
                                 else
                                     log.debug(burn_rate .. " rate outside of 0 < x <= " .. self.max_burn_rate)
@@ -836,7 +833,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                             -- if no known max burn rate, check again
                             if self.max_burn_rate == nil then
-                                self.max_burn_rate = self.reactor.getMaxBurnRate()
+                                self.max_burn_rate = reactor.getMaxBurnRate()
                             end
 
                             -- if we know our max burn rate, update current burn rate setpoint if in range
@@ -858,8 +855,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                         -- activate the reactor
                                         log.debug("AUTO: activating the reactor")
 
-                                        self.reactor.setBurnRate(0.01)
-                                        if self.reactor.__p_is_faulted() then
+                                        reactor.setBurnRate(0.01)
+                                        if reactor.__p_is_faulted() then
                                             log.warning("AUTO: failed to reset burn rate for auto activation")
                                         else
                                             if not rps.auto_activate() then
@@ -877,8 +874,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                             ack = AUTO_ACK.RAMP_SET_OK
                                         else
                                             log.debug(util.c("AUTO: setting burn rate directly to ", burn_rate))
-                                            self.reactor.setBurnRate(burn_rate)
-                                            ack = util.trinary(self.reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
+                                            reactor.setBurnRate(burn_rate)
+                                            ack = util.trinary(reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
                                         end
                                     end
                                 else
@@ -897,6 +894,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                     log.debug("discarding RPLC packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
+                ---@cast packet mgmt_frame
                 if self.linked then
                     if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- link request confirmation

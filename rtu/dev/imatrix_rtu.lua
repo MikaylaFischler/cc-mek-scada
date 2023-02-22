@@ -3,6 +3,7 @@ local rtu = require("rtu.rtu")
 local imatrix_rtu = {}
 
 -- create new induction matrix (mek 10.1+) device
+---@nodiscard
 ---@param imatrix table
 function imatrix_rtu.new(imatrix)
     local unit = rtu.init_unit()

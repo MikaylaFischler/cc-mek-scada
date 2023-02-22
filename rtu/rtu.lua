@@ -19,7 +19,8 @@ local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
--- create a new RTU
+-- create a new RTU unit
+---@nodiscard
 function rtu.init_unit()
     local self = {
         discrete_inputs = {},
@@ -153,14 +154,13 @@ function rtu.init_unit()
     -- public RTU device access
 
     -- get the public interface to this RTU
-    function protected.interface()
-        return public
-    end
+    function protected.interface() return public end
 
     return protected
 end
 
 -- RTU Communications
+---@nodiscard
 ---@param version string RTU version
 ---@param modem table modem device
 ---@param local_port integer local listening port
@@ -169,19 +169,11 @@ end
 ---@param conn_watchdog watchdog watchdog reference
 function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog)
     local self = {
-        version = version,
         seq_num = 0,
         r_seq_num = nil,
         txn_id = 0,
-        modem = modem,
-        s_port = server_port,
-        l_port = local_port,
-        conn_watchdog = conn_watchdog,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
-
-    ---@class rtu_comms
-    local public = {}
 
     local insert = table.insert
 
@@ -191,8 +183,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
     -- configure modem channels
     local function _conf_channels()
-        self.modem.closeAll()
-        self.modem.open(self.l_port)
+        modem.closeAll()
+        modem.open(local_port)
     end
 
     _conf_channels()
@@ -207,7 +199,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -218,6 +210,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     end
 
     -- generate device advertisement table
+    ---@nodiscard
     ---@param units table
     ---@return table advertisement
     local function _generate_advertisement(units)
@@ -227,11 +220,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             local unit = units[i]   ---@type rtu_unit_registry_entry
 
             if type ~= nil then
-                local advert = {
-                    unit.type,
-                    unit.index,
-                    unit.reactor
-                }
+                local advert = { unit.type, unit.index, unit.reactor }
 
                 if type == RTU_UNIT_TYPE.REDSTONE then
                     insert(advert, unit.device)
@@ -246,20 +235,22 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
     -- PUBLIC FUNCTIONS --
 
+    ---@class rtu_comms
+    local public = {}
+
     -- send a MODBUS TCP packet
     ---@param m_pkt modbus_packet
     function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
         s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        self.modem.transmit(self.s_port, self.l_port, s_pkt.raw_sendable())
+        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
     -- reconnect a newly connected modem
-    ---@param modem table
----@diagnostic disable-next-line: redefined-local
-    function public.reconnect_modem(modem)
-        self.modem = modem
+    ---@param new_modem table
+    function public.reconnect_modem(new_modem)
+        modem = new_modem
         _conf_channels()
     end
 
@@ -273,7 +264,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     -- close the connection to the server
     ---@param rtu_state rtu_state
     function public.close(rtu_state)
-        self.conn_watchdog.cancel()
+        conn_watchdog.cancel()
         public.unlink(rtu_state)
         _send(SCADA_MGMT_TYPE.CLOSE, {})
     end
@@ -281,7 +272,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     -- send establish request (includes advertisement)
     ---@param units table
     function public.send_establish(units)
-        _send(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, self.version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
+        _send(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
     end
 
     -- send capability advertisement
@@ -297,6 +288,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     end
 
     -- parse a MODBUS/SCADA packet
+    ---@nodiscard
     ---@param side string
     ---@param sender integer
     ---@param reply_to integer
@@ -333,10 +325,10 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
     -- handle a MODBUS/SCADA packet
     ---@param packet modbus_frame|mgmt_frame
-    ---@param units table
+    ---@param units table RTU units
     ---@param rtu_state rtu_state
     function public.handle_packet(packet, units, rtu_state)
-        if packet ~= nil and packet.scada_frame.local_port() == self.l_port then
+        if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -348,14 +340,14 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             end
 
             -- feed watchdog on valid sequence number
-            self.conn_watchdog.feed()
+            conn_watchdog.feed()
 
             local protocol = packet.scada_frame.protocol()
 
             if protocol == PROTOCOL.MODBUS_TCP then
+                ---@cast packet modbus_frame
                 if rtu_state.linked then
                     local return_code = false
----@diagnostic disable-next-line: param-type-mismatch
                     local reply = modbus.reply__neg_ack(packet)
 
                     -- handle MODBUS instruction
@@ -365,20 +357,17 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
 
                         if unit.name == "redstone_io" then
                             -- immediately execute redstone RTU requests
----@diagnostic disable-next-line: param-type-mismatch
                             return_code, reply = unit.modbus_io.handle_packet(packet)
                             if not return_code then
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
                             end
                         else
                             -- check validity then pass off to unit comms thread
----@diagnostic disable-next-line: param-type-mismatch
                             return_code, reply = unit.modbus_io.check_request(packet)
                             if return_code then
                                 -- check if there are more than 3 active transactions
                                 -- still queue the packet, but this may indicate a problem
                                 if unit.pkt_queue.length() > 3 then
----@diagnostic disable-next-line: param-type-mismatch
                                     reply = modbus.reply__srv_device_busy(packet)
                                     log.debug("queueing new request with " .. unit.pkt_queue.length() ..
                                         " transactions already in the queue" .. unit_dbg_tag)
@@ -392,7 +381,6 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         end
                     else
                         -- unit ID out of range?
----@diagnostic disable-next-line: param-type-mismatch
                         reply = modbus.reply__gw_unavailable(packet)
                         log.error("received MODBUS packet for non-existent unit")
                     end
@@ -402,6 +390,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     log.debug("discarding MODBUS packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
+                ---@cast packet mgmt_frame
                 -- SCADA management packet
                 if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                     if packet.length == 1 then
@@ -419,10 +408,10 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                                 if est_ack == ESTABLISH_ACK.BAD_VERSION then
                                     -- version mismatch
                                     println_ts("supervisor comms version mismatch (try updating), retrying...")
-                                    log.warning("supervisor connection denied due to comms version mismatch")
+                                    log.warning("supervisor connection denied due to comms version mismatch, retrying")
                                 else
                                     println_ts("supervisor connection denied, retrying...")
-                                    log.warning("supervisor connection denied")
+                                    log.warning("supervisor connection denied, retrying")
                                 end
                             end
 
@@ -452,13 +441,13 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         end
                     elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
                         -- close connection
-                        self.conn_watchdog.cancel()
+                        conn_watchdog.cancel()
                         public.unlink(rtu_state)
                         println_ts("server connection closed by remote host")
                         log.warning("server connection closed by remote host")
                     elseif packet.type == SCADA_MGMT_TYPE.RTU_ADVERT then
                         -- request for capabilities again
-                        public.send_advertisement(units)  
+                        public.send_advertisement(units)
                     else
                         -- not supported
                         log.warning("received unsupported SCADA_MGMT message type " .. packet.type)

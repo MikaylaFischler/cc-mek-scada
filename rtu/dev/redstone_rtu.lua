@@ -1,6 +1,6 @@
-local rtu  = require("rtu.rtu")
-
 local rsio = require("scada-common.rsio")
+
+local rtu  = require("rtu.rtu")
 
 local redstone_rtu = {}
 
@@ -10,14 +10,15 @@ local digital_read = rsio.digital_read
 local digital_write = rsio.digital_write
 
 -- create new redstone device
+---@nodiscard
 function redstone_rtu.new()
     local unit = rtu.init_unit()
 
     -- get RTU interface
     local interface = unit.interface()
 
+    -- extends rtu_device; fields added manually to please Lua diagnostics
     ---@class rtu_rs_device
-    --- extends rtu_device; fields added manually to please Lua diagnostics
     local public = {
         io_count = interface.io_count,
         read_coil = interface.read_coil,

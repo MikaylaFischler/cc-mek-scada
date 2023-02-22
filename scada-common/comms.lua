@@ -244,7 +244,7 @@ function comms.modbus_packet()
         txn_id = -1,
         length = 0,
         unit_id = -1,
-        func_code = 0,
+        func_code = 0x80,
         data = {}
     }
 

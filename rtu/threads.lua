@@ -1,17 +1,17 @@
-local log           = require("scada-common.log")
-local mqueue        = require("scada-common.mqueue")
-local ppm           = require("scada-common.ppm")
-local types         = require("scada-common.types")
-local util          = require("scada-common.util")
+local log          = require("scada-common.log")
+local mqueue       = require("scada-common.mqueue")
+local ppm          = require("scada-common.ppm")
+local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
-local boilerv_rtu   = require("rtu.dev.boilerv_rtu")
-local envd_rtu      = require("rtu.dev.envd_rtu")
-local imatrix_rtu   = require("rtu.dev.imatrix_rtu")
-local sna_rtu       = require("rtu.dev.sna_rtu")
-local sps_rtu       = require("rtu.dev.sps_rtu")
-local turbinev_rtu  = require("rtu.dev.turbinev_rtu")
+local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
+local envd_rtu     = require("rtu.dev.envd_rtu")
+local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
+local sna_rtu      = require("rtu.dev.sna_rtu")
+local sps_rtu      = require("rtu.dev.sps_rtu")
+local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local modbus        = require("rtu.modbus")
+local modbus       = require("rtu.modbus")
 
 local threads = {}
 
@@ -26,6 +26,7 @@ local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 function threads.thread__main(smem)
     ---@class parallel_thread
@@ -114,9 +115,9 @@ function threads.thread__main(smem)
                             rtu_comms.reconnect_modem(rtu_dev.modem)
 
                             println_ts("wireless modem reconnected.")
-                            log.info("comms modem reconnected.")
+                            log.info("comms modem reconnected")
                         else
-                            log.info("wired modem reconnected.")
+                            log.info("wired modem reconnected")
                         end
                     else
                         -- relink lost peripheral to correct unit entry
@@ -233,6 +234,7 @@ function threads.thread__main(smem)
 end
 
 -- communications handler thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 function threads.thread__comms(smem)
     ---@class parallel_thread
@@ -243,13 +245,13 @@ function threads.thread__comms(smem)
         log.debug("comms thread start")
 
         -- load in from shared memory
-        local rtu_state     = smem.rtu_state
-        local rtu_comms     = smem.rtu_sys.rtu_comms
-        local units         = smem.rtu_sys.units
+        local rtu_state   = smem.rtu_state
+        local rtu_comms   = smem.rtu_sys.rtu_comms
+        local units       = smem.rtu_sys.units
 
-        local comms_queue   = smem.q.mq_comms
+        local comms_queue = smem.q.mq_comms
 
-        local last_update   = util.time()
+        local last_update = util.time()
 
         -- thread loop
         while true do
@@ -306,6 +308,7 @@ function threads.thread__comms(smem)
 end
 
 -- per-unit communications handler thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 ---@param unit rtu_unit_registry_entry
 function threads.thread__unit_comms(smem, unit)
