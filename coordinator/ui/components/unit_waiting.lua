@@ -16,7 +16,6 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 local cpair = core.graphics.cpair
 
 -- create a unit waiting view
----@nodiscard
 ---@param parent graphics_element parent
 ---@param y integer y offset
 local function init(parent, y)

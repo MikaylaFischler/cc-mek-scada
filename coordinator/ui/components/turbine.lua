@@ -15,7 +15,6 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 
 -- new turbine view
----@nodiscard
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y

@@ -57,7 +57,6 @@ local waste_opts = {
 }
 
 -- create a unit view
----@nodiscard
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)

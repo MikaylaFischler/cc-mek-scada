@@ -29,7 +29,6 @@ local border = core.graphics.border
 local period = core.flasher.PERIOD
 
 -- new process control view
----@nodiscard
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y

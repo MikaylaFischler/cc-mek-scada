@@ -19,7 +19,6 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 local pipe = core.graphics.pipe
 
 -- make a new unit overview window
----@nodiscard
 ---@param parent graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
@@ -52,7 +51,7 @@ local function make(parent, x, y, unit)
     -- REACTOR --
     -------------
 
-    local _ = reactor_view(root, 1, 3, unit.reactor_data, unit.unit_ps)
+    reactor_view(root, 1, 3, unit.reactor_data, unit.unit_ps)
 
     if num_boilers > 0 then
         local coolant_pipes = {}
