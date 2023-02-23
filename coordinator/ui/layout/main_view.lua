@@ -30,6 +30,7 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 local cpair = core.graphics.cpair
 
 -- create new main view
+---@nodiscard
 ---@param monitor table main viewscreen
 local function init(monitor)
     local facility = iocontrol.get_db().facility
@@ -77,7 +78,7 @@ local function init(monitor)
         end
     end
 
-    -- command & control    
+    -- command & control
 
     cnc_y_start = cnc_y_start
 
@@ -90,7 +91,7 @@ local function init(monitor)
 
     cnc_bottom_align_start = cnc_bottom_align_start + 2
 
-    local process = process_ctl(main, 2, cnc_bottom_align_start)
+    local _ = process_ctl(main, 2, cnc_bottom_align_start)
 
     -- testing
     ---@fixme remove test code
@@ -123,7 +124,7 @@ local function init(monitor)
     SwitchButton{parent=audio,x=1,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
     SwitchButton{parent=audio,x=1,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
 
-    local imatrix_1 = imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
+    local _ = imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 
     return main
 end

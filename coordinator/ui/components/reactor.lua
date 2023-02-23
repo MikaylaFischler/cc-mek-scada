@@ -1,3 +1,5 @@
+local types          = require("scada-common.types")
+
 local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
@@ -13,6 +15,7 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 
 -- create new reactor view
+---@nodiscard
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
@@ -47,7 +50,7 @@ local function new_view(root, x, y, data, ps)
     local waste = HorizontalBar{parent=reactor_fills,x=8,y=5,show_percent=true,bar_fg_bg=cpair(colors.brown,colors.gray),height=1,width=14}
 
     ps.subscribe("ccool_type", function (type)
-        if type == "mekanism:sodium" then
+        if type == types.FLUID.SODIUM then
             ccool.recolor(cpair(colors.lightBlue, colors.gray))
         else
             ccool.recolor(cpair(colors.blue, colors.gray))
@@ -55,7 +58,7 @@ local function new_view(root, x, y, data, ps)
     end)
 
     ps.subscribe("hcool_type", function (type)
-        if type == "mekanism:superheated_sodium" then
+        if type == types.FLUID.SUPERHEATED_SODIUM then
             hcool.recolor(cpair(colors.orange, colors.gray))
         else
             hcool.recolor(cpair(colors.white, colors.gray))

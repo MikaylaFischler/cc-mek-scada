@@ -25,6 +25,7 @@ local FAC_COMMAND = comms.FAC_COMMAND
 local coordinator = {}
 
 -- request the user to select a monitor
+---@nodiscard
 ---@param names table available monitors
 ---@return boolean|string|nil
 local function ask_monitor(names)
@@ -64,9 +65,11 @@ function coordinator.configure_monitors(num_units)
     end
 
     -- we need a certain number of monitors (1 per unit + 1 primary display)
-    if #names < num_units + 1 then
-        println("not enough monitors connected (need " .. num_units + 1 .. ")")
-        log.warning("insufficient monitors present (need " .. num_units + 1 .. ")")
+    local num_displays_needed = num_units + 1
+    if #names < num_displays_needed then
+        local message = "not enough monitors connected (need " .. num_displays_needed .. ")"
+        println(message)
+        log.warning(message)
         return false
     end
 
@@ -125,7 +128,6 @@ function coordinator.configure_monitors(num_units)
     else
         -- make sure all displays are connected
         for i = 1, num_units do
----@diagnostic disable-next-line: need-check-nil
             local display = unit_displays[i]
 
             if not util.table_contains(names, display) then
@@ -183,14 +185,19 @@ function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
 
+-- log a message for communications connecting, providing access to progress indication control functions
+---@nodiscard
 ---@param message string
 ---@return function update, function done
 function coordinator.log_comms_connecting(message)
----@diagnostic disable-next-line: return-type-mismatch
-    return log_dmesg(message, "COMMS", true)
+    local update, done = log_dmesg(message, "COMMS", true)
+    ---@cast update function
+    ---@cast done function
+    return update, done
 end
 
 -- coordinator communications
+---@nodiscard
 ---@param version string coordinator version
 ---@param modem table modem device
 ---@param sv_port integer port of configured supervisor
@@ -203,13 +210,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
         sv_linked = false,
         sv_seq_num = 0,
         sv_r_seq_num = nil,
-        modem = modem,
         connected = false,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
-
-    ---@class coord_comms
-    local public = {}
 
     comms.set_trusted_range(range)
 
@@ -217,9 +220,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
     -- configure modem channels
     local function _conf_channels()
-        self.modem.closeAll()
-        self.modem.open(sv_listen)
-        self.modem.open(api_listen)
+        modem.closeAll()
+        modem.open(sv_listen)
+        modem.open(api_listen)
     end
 
     _conf_channels()
@@ -242,7 +245,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
         pkt.make(msg_type, msg)
         s_pkt.make(self.sv_seq_num, protocol, pkt.raw_sendable())
 
-        self.modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
+        modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
@@ -259,11 +262,13 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
     -- PUBLIC FUNCTIONS --
 
+    ---@class coord_comms
+    local public = {}
+
     -- reconnect a newly connected modem
-    ---@param modem table
----@diagnostic disable-next-line: redefined-local
-    function public.reconnect_modem(modem)
-        self.modem = modem
+    ---@param new_modem table
+    function public.reconnect_modem(new_modem)
+        modem = new_modem
         _conf_channels()
     end
 
@@ -275,6 +280,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     end
 
     -- attempt to connect to the subervisor
+    ---@nodiscard
     ---@param timeout_s number timeout in seconds
     ---@param tick_dmesg_waiting function callback to tick dmesg waiting
     ---@param task_done function callback to show done on dmesg
@@ -400,7 +406,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
             if l_port == api_listen then
                 if protocol == PROTOCOL.COORD_API then
----@diagnostic disable-next-line: param-type-mismatch
+                    ---@cast packet capi_frame
                     apisessions.handle_packet(packet)
                 else
                     log.debug("illegal packet type " .. protocol .. " on api listening channel", true)
@@ -421,6 +427,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
                 -- handle packet
                 if protocol == PROTOCOL.SCADA_CRDN then
+                    ---@cast packet crdn_frame
                     if self.sv_linked then
                         if packet.type == SCADA_CRDN_TYPE.INITIAL_BUILDS then
                             if packet.length == 2 then
@@ -432,7 +439,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     -- acknowledge receipt of builds
                                     _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.INITIAL_BUILDS, {})
                                 else
-                                    log.error("received invalid INITIAL_BUILDS packet")
+                                    log.debug("received invalid INITIAL_BUILDS packet")
                                 end
                             else
                                 log.debug("INITIAL_BUILDS packet length mismatch")
@@ -444,7 +451,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     -- acknowledge receipt of builds
                                     _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_BUILDS, {})
                                 else
-                                    log.error("received invalid FAC_BUILDS packet")
+                                    log.debug("received invalid FAC_BUILDS packet")
                                 end
                             else
                                 log.debug("FAC_BUILDS packet length mismatch")
@@ -452,7 +459,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                         elseif packet.type == SCADA_CRDN_TYPE.FAC_STATUS then
                             -- update facility status
                             if not iocontrol.update_facility_status(packet.data) then
-                                log.error("received invalid FAC_STATUS packet")
+                                log.debug("received invalid FAC_STATUS packet")
                             end
                         elseif packet.type == SCADA_CRDN_TYPE.FAC_CMD then
                             -- facility command acknowledgement
@@ -485,7 +492,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     -- acknowledge receipt of builds
                                     _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.UNIT_BUILDS, {})
                                 else
-                                    log.error("received invalid UNIT_BUILDS packet")
+                                    log.debug("received invalid UNIT_BUILDS packet")
                                 end
                             else
                                 log.debug("UNIT_BUILDS packet length mismatch")
@@ -518,7 +525,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
-                                        ---@todo how is this going to be handled?
+                                        -- UI will be updated to display current group if changed successfully
                                     else
                                         log.debug(util.c("received unit command ack with unknown command ", cmd))
                                     end
@@ -535,6 +542,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                         log.debug("discarding SCADA_CRDN packet before linked")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
+                    ---@cast packet mgmt_frame
                     if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
                         if packet.length == 2 then
@@ -562,10 +570,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
                                         self.sv_linked = true
                                     else
-                                        log.error("invalid supervisor configuration definitions received, establish failed")
+                                        log.debug("invalid supervisor configuration definitions received, establish failed")
                                     end
                                 else
-                                    log.error("invalid supervisor configuration table received, establish failed")
+                                    log.debug("invalid supervisor configuration table received, establish failed")
                                 end
                             else
                                 log.debug("SCADA_MGMT establish packet reply (len = 2) unsupported")
@@ -577,11 +585,11 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
                             if est_ack == ESTABLISH_ACK.DENY then
                                 if self.last_est_ack ~= est_ack then
-                                    log.debug("supervisor connection denied")
+                                    log.info("supervisor connection denied")
                                 end
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 if self.last_est_ack ~= est_ack then
-                                    log.debug("supervisor connection denied due to collision")
+                                    log.info("supervisor connection denied due to collision")
                                 end
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 if self.last_est_ack ~= est_ack then
@@ -619,9 +627,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             sv_watchdog.cancel()
                             self.sv_linked = false
                             println_ts("server connection closed by remote host")
-                            log.warning("server connection closed by remote host")
+                            log.info("server connection closed by remote host")
                         else
-                            log.warning("received unknown SCADA_MGMT packet type " .. packet.type)
+                            log.debug("received unknown SCADA_MGMT packet type " .. packet.type)
                         end
                     else
                         log.debug("discarding non-link SCADA_MGMT packet before linked")
@@ -636,6 +644,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     end
 
     -- check if the coordinator is still linked to the supervisor
+    ---@nodiscard
     function public.is_linked() return self.sv_linked end
 
     return public

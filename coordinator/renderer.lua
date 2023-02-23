@@ -1,3 +1,7 @@
+--
+-- Graphics Rendering Control
+--
+
 local log       = require("scada-common.log")
 local util      = require("scada-common.util")
 
@@ -56,6 +60,7 @@ function renderer.set_displays(monitors)
 end
 
 -- check if the renderer is configured to use a given monitor peripheral
+---@nodiscard
 ---@param periph table peripheral
 ---@return boolean is_used
 function renderer.is_monitor_used(periph)
@@ -87,6 +92,7 @@ function renderer.reset(recolor)
 end
 
 -- check main display width
+---@nodiscard
 ---@return boolean width_okay
 function renderer.validate_main_display_width()
     local w, _ = engine.monitors.primary.getSize()
@@ -94,6 +100,7 @@ function renderer.validate_main_display_width()
 end
 
 -- check display sizes
+---@nodiscard
 ---@return boolean valid all unit display dimensions OK
 function renderer.validate_unit_display_sizes()
     local valid = true
@@ -101,7 +108,7 @@ function renderer.validate_unit_display_sizes()
     for id, monitor in pairs(engine.monitors.unit_displays) do
         local w, h = monitor.getSize()
         if w ~= 79 or h ~= 52 then
-            log.warning(util.c("unit ", id, " display resolution not 79 wide by 52 tall: ", w, ", ", h))
+            log.warning(util.c("RENDERER: unit ", id, " display resolution not 79 wide by 52 tall: ", w, ", ", h))
             valid = false
         end
     end
@@ -171,6 +178,7 @@ function renderer.close_ui()
 end
 
 -- is the UI ready?
+---@nodiscard
 ---@return boolean ready
 function renderer.ui_ready() return engine.ui_ready end
 

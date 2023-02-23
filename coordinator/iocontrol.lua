@@ -1,3 +1,7 @@
+--
+-- I/O Control for Supervisor/Coordinator Integration
+--
+
 local log     = require("scada-common.log")
 local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
@@ -16,7 +20,6 @@ local io = {}
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
----@diagnostic disable-next-line: redefined-local
 function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
@@ -41,11 +44,11 @@ function iocontrol.init(conf, comms)
 
         radiation = types.new_zero_radiation_reading(),
 
-        save_cfg_ack = function (success) end,          ---@param success boolean
-        start_ack = function (success) end,             ---@param success boolean
-        stop_ack = function (success) end,              ---@param success boolean
-        scram_ack = function (success) end,             ---@param success boolean
-        ack_alarms_ack = function (success) end,        ---@param success boolean
+        save_cfg_ack = function (success) end,      ---@param success boolean
+        start_ack = function (success) end,         ---@param success boolean
+        stop_ack = function (success) end,          ---@param success boolean
+        scram_ack = function (success) end,         ---@param success boolean
+        ack_alarms_ack = function (success) end,    ---@param success boolean
 
         ps = psil.create(),
 
@@ -56,7 +59,7 @@ function iocontrol.init(conf, comms)
         env_d_data = {}
     }
 
-    -- create induction tables (max 1 per unit, preferably 1 total)
+    -- create induction tables (currently only 1 is supported)
     for _ = 1, conf.num_units do
         local data = {} ---@type imatrix_session_db
         table.insert(io.facility.induction_ps_tbl, psil.create())
@@ -170,6 +173,8 @@ end
 ---@param build table
 ---@return boolean valid
 function iocontrol.record_facility_builds(build)
+    local valid = true
+
     if type(build) == "table" then
         local fac = io.facility
 
@@ -187,96 +192,103 @@ function iocontrol.record_facility_builds(build)
                     end
                 else
                     log.debug(util.c("iocontrol.record_facility_builds: invalid induction matrix id ", id))
+                    valid = false
                 end
             end
         end
     else
-        log.error("facility builds not a table")
-        return false
+        log.debug("facility builds not a table")
+        valid = false
     end
 
-    return true
+    return valid
 end
 
 -- populate unit structure builds
 ---@param builds table
 ---@return boolean valid
 function iocontrol.record_unit_builds(builds)
+    local valid = true
+
     -- note: if not all units and RTUs are connected, some will be nil
     for id, build in pairs(builds) do
         local unit = io.units[id]    ---@type ioctl_unit
 
+        local log_header = util.c("iocontrol.record_unit_builds[UNIT ", id, "]: ")
+
         if type(build) ~= "table" then
-            log.error(util.c("corrupted unit builds provided, unit ", id, " not a table"))
-            return false
+            log.debug(log_header .. "build not a table")
+            valid = false
         elseif type(unit) ~= "table" then
-            log.error(util.c("corrupted unit builds provided, invalid unit ", id))
-            return false
-        end
+            log.debug(log_header .. "invalid unit id")
+            valid = false
+        else
+            -- reactor build
+            if type(build.reactor) == "table" then
+                unit.reactor_data.mek_struct = build.reactor    ---@type mek_struct
+                for key, val in pairs(unit.reactor_data.mek_struct) do
+                    unit.unit_ps.publish(key, val)
+                end
 
-        local log_header = util.c("iocontrol.record_unit_builds[unit ", id, "]: ")
-
-        -- reactor build
-        if type(build.reactor) == "table" then
-            unit.reactor_data.mek_struct = build.reactor    ---@type mek_struct
-            for key, val in pairs(unit.reactor_data.mek_struct) do
-                unit.unit_ps.publish(key, val)
-            end
-
-            if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
-                (type(unit.reactor_data.mek_struct.width) == "number")  and (unit.reactor_data.mek_struct.width ~= 0) then
-                unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
-            end
-        end
-
-        -- boiler builds
-        if type(build.boilers) == "table" then
-            for b_id, boiler in pairs(build.boilers) do
-                if type(unit.boiler_data_tbl[b_id]) == "table" then
-                    unit.boiler_data_tbl[b_id].formed = boiler[1] ---@type boolean
-                    unit.boiler_data_tbl[b_id].build  = boiler[2] ---@type table
-
-                    unit.boiler_ps_tbl[b_id].publish("formed", boiler[1])
-
-                    for key, val in pairs(unit.boiler_data_tbl[b_id].build) do
-                        unit.boiler_ps_tbl[b_id].publish(key, val)
-                    end
-                else
-                    log.debug(util.c(log_header, "invalid boiler id ", b_id))
+                if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
+                    (type(unit.reactor_data.mek_struct.width) == "number") and (unit.reactor_data.mek_struct.width ~= 0) then
+                    unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
                 end
             end
-        end
 
-        -- turbine builds
-        if type(build.turbines) == "table" then
-            for t_id, turbine in pairs(build.turbines) do
-                if type(unit.turbine_data_tbl[t_id]) == "table" then
-                    unit.turbine_data_tbl[t_id].formed = turbine[1]   ---@type boolean
-                    unit.turbine_data_tbl[t_id].build  = turbine[2]   ---@type table
+            -- boiler builds
+            if type(build.boilers) == "table" then
+                for b_id, boiler in pairs(build.boilers) do
+                    if type(unit.boiler_data_tbl[b_id]) == "table" then
+                        unit.boiler_data_tbl[b_id].formed = boiler[1] ---@type boolean
+                        unit.boiler_data_tbl[b_id].build  = boiler[2] ---@type table
 
-                    unit.turbine_ps_tbl[t_id].publish("formed", turbine[1])
+                        unit.boiler_ps_tbl[b_id].publish("formed", boiler[1])
 
-                    for key, val in pairs(unit.turbine_data_tbl[t_id].build) do
-                        unit.turbine_ps_tbl[t_id].publish(key, val)
+                        for key, val in pairs(unit.boiler_data_tbl[b_id].build) do
+                            unit.boiler_ps_tbl[b_id].publish(key, val)
+                        end
+                    else
+                        log.debug(util.c(log_header, "invalid boiler id ", b_id))
+                        valid = false
                     end
-                else
-                    log.debug(util.c(log_header, "invalid turbine id ", t_id))
+                end
+            end
+
+            -- turbine builds
+            if type(build.turbines) == "table" then
+                for t_id, turbine in pairs(build.turbines) do
+                    if type(unit.turbine_data_tbl[t_id]) == "table" then
+                        unit.turbine_data_tbl[t_id].formed = turbine[1]   ---@type boolean
+                        unit.turbine_data_tbl[t_id].build  = turbine[2]   ---@type table
+
+                        unit.turbine_ps_tbl[t_id].publish("formed", turbine[1])
+
+                        for key, val in pairs(unit.turbine_data_tbl[t_id].build) do
+                            unit.turbine_ps_tbl[t_id].publish(key, val)
+                        end
+                    else
+                        log.debug(util.c(log_header, "invalid turbine id ", t_id))
+                        valid = false
+                    end
                 end
             end
         end
     end
 
-    return true
+    return valid
 end
 
 -- update facility status
 ---@param status table
 ---@return boolean valid
 function iocontrol.update_facility_status(status)
+    local valid = true
     local log_header = util.c("iocontrol.update_facility_status: ")
+
     if type(status) ~= "table" then
-        log.debug(log_header .. "status not a table")
-        return false
+        log.debug(util.c(log_header, "status not a table"))
+        valid = false
     else
         local fac = io.facility
 
@@ -284,10 +296,17 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and (#ctl_status == 14) then
+        if type(ctl_status) == "table" and #ctl_status == 14 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
-            fac.auto_active = ctl_status[3] > 0
+
+            if type(ctl_status[3]) == "number" then
+                fac.auto_active = ctl_status[3] > 1
+            else
+                fac.auto_active = false
+                valid = false
+            end
+
             fac.auto_ramping = ctl_status[4]
             fac.auto_saturated = ctl_status[5]
 
@@ -327,6 +346,7 @@ function iocontrol.update_facility_status(status)
             end
         else
             log.debug(log_header .. "control status not a table or length mismatch")
+            valid = false
         end
 
         -- RTU statuses
@@ -334,10 +354,10 @@ function iocontrol.update_facility_status(status)
         local rtu_statuses = status[2]
 
         fac.rtu_count = 0
+
         if type(rtu_statuses) == "table" then
             -- connected RTU count
             fac.rtu_count = rtu_statuses.count
-            fac.ps.publish("rtu_count", fac.rtu_count)
 
             -- power statistics
             if type(rtu_statuses.power) == "table" then
@@ -346,6 +366,7 @@ function iocontrol.update_facility_status(status)
                 fac.induction_ps_tbl[1].publish("avg_outflow", rtu_statuses.power[3])
             else
                 log.debug(log_header .. "power statistics list not a table")
+                valid = false
             end
 
             -- induction matricies statuses
@@ -371,16 +392,16 @@ function iocontrol.update_facility_status(status)
 
                         if data.formed then
                             if rtu_faulted then
-                                fac.induction_ps_tbl[id].publish("computed_status", 3)    -- faulted
+                                fac.induction_ps_tbl[id].publish("computed_status", 3)  -- faulted
                             elseif data.tanks.energy_fill >= 0.99 then
-                                fac.induction_ps_tbl[id].publish("computed_status", 6)    -- full
+                                fac.induction_ps_tbl[id].publish("computed_status", 6)  -- full
                             elseif data.tanks.energy_fill <= 0.01 then
-                                fac.induction_ps_tbl[id].publish("computed_status", 5)    -- empty
+                                fac.induction_ps_tbl[id].publish("computed_status", 5)  -- empty
                             else
-                                fac.induction_ps_tbl[id].publish("computed_status", 4)    -- on-line
+                                fac.induction_ps_tbl[id].publish("computed_status", 4)  -- on-line
                             end
                         else
-                            fac.induction_ps_tbl[id].publish("computed_status", 2)    -- not formed
+                            fac.induction_ps_tbl[id].publish("computed_status", 2)      -- not formed
                         end
 
                         for key, val in pairs(fac.induction_data_tbl[id].state) do
@@ -396,6 +417,7 @@ function iocontrol.update_facility_status(status)
                 end
             else
                 log.debug(log_header .. "induction matrix list not a table")
+                valid = false
             end
 
             -- environment detector status
@@ -413,313 +435,324 @@ function iocontrol.update_facility_status(status)
                 end
             else
                 log.debug(log_header .. "radiation monitor list not a table")
-                return false
+                valid = false
             end
         else
             log.debug(log_header .. "rtu statuses not a table")
+            valid = false
         end
+
+        fac.ps.publish("rtu_count", fac.rtu_count)
     end
 
-    return true
+    return valid
 end
 
 -- update unit statuses
 ---@param statuses table
 ---@return boolean valid
 function iocontrol.update_unit_statuses(statuses)
+    local valid = true
+
     if type(statuses) ~= "table" then
         log.debug("iocontrol.update_unit_statuses: unit statuses not a table")
-        return false
+        valid = false
     elseif #statuses ~= #io.units then
         log.debug("iocontrol.update_unit_statuses: number of provided unit statuses does not match expected number of units")
-        return false
+        valid = false
     else
         local burn_rate_sum = 0.0
 
         -- get all unit statuses
         for i = 1, #statuses do
             local log_header = util.c("iocontrol.update_unit_statuses[unit ", i, "]: ")
+
             local unit = io.units[i]    ---@type ioctl_unit
             local status = statuses[i]
 
             if type(status) ~= "table" or #status ~= 5 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
-                return false
-            end
-
-            -- reactor PLC status
-
-            local reactor_status = status[1]
-
-            if type(reactor_status) ~= "table" then
-                reactor_status = {}
-                log.debug(log_header .. "reactor status not a table")
-            end
-
-            if #reactor_status == 0 then
-                unit.unit_ps.publish("computed_status", 1)   -- disconnected
-            elseif #reactor_status == 3 then
-                local mek_status = reactor_status[1]
-                local rps_status = reactor_status[2]
-                local gen_status = reactor_status[3]
-
-                if #gen_status == 6 then
-                    unit.reactor_data.last_status_update = gen_status[1]
-                    unit.reactor_data.control_state      = gen_status[2]
-                    unit.reactor_data.rps_tripped        = gen_status[3]
-                    unit.reactor_data.rps_trip_cause     = gen_status[4]
-                    unit.reactor_data.no_reactor         = gen_status[5]
-                    unit.reactor_data.formed             = gen_status[6]
-                else
-                    log.debug(log_header .. "reactor general status length mismatch")
-                end
-
-                unit.reactor_data.rps_status = rps_status   ---@type rps_status
-                unit.reactor_data.mek_status = mek_status   ---@type mek_status
-
-                -- if status hasn't been received, mek_status = {}
-                if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
-                    burn_rate_sum = burn_rate_sum + unit.reactor_data.mek_status.act_burn_rate
-                end
-
-                if unit.reactor_data.mek_status.status then
-                    unit.unit_ps.publish("computed_status", 5)       -- running
-                else
-                    if unit.reactor_data.no_reactor then
-                        unit.unit_ps.publish("computed_status", 3)   -- faulted
-                    elseif not unit.reactor_data.formed then
-                        unit.unit_ps.publish("computed_status", 2)   -- multiblock not formed
-                    elseif unit.reactor_data.rps_status.force_dis then
-                        unit.unit_ps.publish("computed_status", 7)   -- reactor force disabled
-                    elseif unit.reactor_data.rps_tripped and unit.reactor_data.rps_trip_cause ~= "manual" then
-                        unit.unit_ps.publish("computed_status", 6)   -- SCRAM
-                    else
-                        unit.unit_ps.publish("computed_status", 4)   -- disabled
-                    end
-                end
-
-                for key, val in pairs(unit.reactor_data) do
-                    if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                        unit.unit_ps.publish(key, val)
-                    end
-                end
-
-                if type(unit.reactor_data.rps_status) == "table" then
-                    for key, val in pairs(unit.reactor_data.rps_status) do
-                        unit.unit_ps.publish(key, val)
-                    end
-                end
-
-                if type(unit.reactor_data.mek_status) == "table" then
-                    for key, val in pairs(unit.reactor_data.mek_status) do
-                        unit.unit_ps.publish(key, val)
-                    end
-                end
+                valid = false
             else
-                log.debug(log_header .. "reactor status length mismatch")
-            end
+                -- reactor PLC status
+                local reactor_status = status[1]
 
-            -- RTU statuses
+                if type(reactor_status) ~= "table" then
+                    reactor_status = {}
+                    log.debug(log_header .. "reactor status not a table")
+                end
 
-            local rtu_statuses = status[2]
+                if #reactor_status == 0 then
+                    unit.unit_ps.publish("computed_status", 1)   -- disconnected
+                elseif #reactor_status == 3 then
+                    local mek_status = reactor_status[1]
+                    local rps_status = reactor_status[2]
+                    local gen_status = reactor_status[3]
 
-            if type(rtu_statuses) == "table" then
-                -- boiler statuses
-                if type(rtu_statuses.boilers) == "table" then
-                    for id = 1, #unit.boiler_ps_tbl do
-                        if rtu_statuses.boilers[i] == nil then
-                            -- disconnected
-                            unit.boiler_ps_tbl[id].publish("computed_status", 1)
+                    if #gen_status == 6 then
+                        unit.reactor_data.last_status_update = gen_status[1]
+                        unit.reactor_data.control_state      = gen_status[2]
+                        unit.reactor_data.rps_tripped        = gen_status[3]
+                        unit.reactor_data.rps_trip_cause     = gen_status[4]
+                        unit.reactor_data.no_reactor         = gen_status[5]
+                        unit.reactor_data.formed             = gen_status[6]
+                    else
+                        log.debug(log_header .. "reactor general status length mismatch")
+                    end
+
+                    unit.reactor_data.rps_status = rps_status   ---@type rps_status
+                    unit.reactor_data.mek_status = mek_status   ---@type mek_status
+
+                    -- if status hasn't been received, mek_status = {}
+                    if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
+                        burn_rate_sum = burn_rate_sum + unit.reactor_data.mek_status.act_burn_rate
+                    end
+
+                    if unit.reactor_data.mek_status.status then
+                        unit.unit_ps.publish("computed_status", 5)       -- running
+                    else
+                        if unit.reactor_data.no_reactor then
+                            unit.unit_ps.publish("computed_status", 3)   -- faulted
+                        elseif not unit.reactor_data.formed then
+                            unit.unit_ps.publish("computed_status", 2)   -- multiblock not formed
+                        elseif unit.reactor_data.rps_status.force_dis then
+                            unit.unit_ps.publish("computed_status", 7)   -- reactor force disabled
+                        elseif unit.reactor_data.rps_tripped and unit.reactor_data.rps_trip_cause ~= "manual" then
+                            unit.unit_ps.publish("computed_status", 6)   -- SCRAM
+                        else
+                            unit.unit_ps.publish("computed_status", 4)   -- disabled
                         end
                     end
 
-                    for id, boiler in pairs(rtu_statuses.boilers) do
-                        if type(unit.boiler_data_tbl[id]) == "table" then
-                            local rtu_faulted               = boiler[1] ---@type boolean
-                            unit.boiler_data_tbl[id].formed = boiler[2] ---@type boolean
-                            unit.boiler_data_tbl[id].state  = boiler[3] ---@type table
-                            unit.boiler_data_tbl[id].tanks  = boiler[4] ---@type table
+                    for key, val in pairs(unit.reactor_data) do
+                        if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
+                            unit.unit_ps.publish(key, val)
+                        end
+                    end
 
-                            local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
+                    if type(unit.reactor_data.rps_status) == "table" then
+                        for key, val in pairs(unit.reactor_data.rps_status) do
+                            unit.unit_ps.publish(key, val)
+                        end
+                    end
 
-                            unit.boiler_ps_tbl[id].publish("formed", data.formed)
-                            unit.boiler_ps_tbl[id].publish("faulted", rtu_faulted)
+                    if type(unit.reactor_data.mek_status) == "table" then
+                        for key, val in pairs(unit.reactor_data.mek_status) do
+                            unit.unit_ps.publish(key, val)
+                        end
+                    end
+                else
+                    log.debug(log_header .. "reactor status length mismatch")
+                    valid = false
+                end
 
-                            if rtu_faulted then
-                                unit.boiler_ps_tbl[id].publish("computed_status", 3)        -- faulted
-                            elseif data.formed then
-                                if data.state.boil_rate > 0 then
-                                    unit.boiler_ps_tbl[id].publish("computed_status", 5)    -- active
+                -- RTU statuses
+                local rtu_statuses = status[2]
+
+                if type(rtu_statuses) == "table" then
+                    -- boiler statuses
+                    if type(rtu_statuses.boilers) == "table" then
+                        for id = 1, #unit.boiler_ps_tbl do
+                            if rtu_statuses.boilers[i] == nil then
+                                -- disconnected
+                                unit.boiler_ps_tbl[id].publish("computed_status", 1)
+                            end
+                        end
+
+                        for id, boiler in pairs(rtu_statuses.boilers) do
+                            if type(unit.boiler_data_tbl[id]) == "table" then
+                                local rtu_faulted               = boiler[1] ---@type boolean
+                                unit.boiler_data_tbl[id].formed = boiler[2] ---@type boolean
+                                unit.boiler_data_tbl[id].state  = boiler[3] ---@type table
+                                unit.boiler_data_tbl[id].tanks  = boiler[4] ---@type table
+
+                                local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
+
+                                unit.boiler_ps_tbl[id].publish("formed", data.formed)
+                                unit.boiler_ps_tbl[id].publish("faulted", rtu_faulted)
+
+                                if rtu_faulted then
+                                    unit.boiler_ps_tbl[id].publish("computed_status", 3)        -- faulted
+                                elseif data.formed then
+                                    if data.state.boil_rate > 0 then
+                                        unit.boiler_ps_tbl[id].publish("computed_status", 5)    -- active
+                                    else
+                                        unit.boiler_ps_tbl[id].publish("computed_status", 4)    -- idle
+                                    end
                                 else
-                                    unit.boiler_ps_tbl[id].publish("computed_status", 4)    -- idle
+                                    unit.boiler_ps_tbl[id].publish("computed_status", 2)        -- not formed
+                                end
+
+                                for key, val in pairs(unit.boiler_data_tbl[id].state) do
+                                    unit.boiler_ps_tbl[id].publish(key, val)
+                                end
+
+                                for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
+                                    unit.boiler_ps_tbl[id].publish(key, val)
                                 end
                             else
-                                unit.boiler_ps_tbl[id].publish("computed_status", 2)        -- not formed
+                                log.debug(util.c(log_header, "invalid boiler id ", id))
+                                valid = false
                             end
-
-                            for key, val in pairs(unit.boiler_data_tbl[id].state) do
-                                unit.boiler_ps_tbl[id].publish(key, val)
-                            end
-
-                            for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
-                                unit.boiler_ps_tbl[id].publish(key, val)
-                            end
-                        else
-                            log.debug(util.c(log_header, "invalid boiler id ", id))
                         end
-                    end
-                else
-                    log.debug(log_header .. "boiler list not a table")
-                end
-
-                -- turbine statuses
-                if type(rtu_statuses.turbines) == "table" then
-                    for id = 1, #unit.turbine_ps_tbl do
-                        if rtu_statuses.turbines[i] == nil then
-                            -- disconnected
-                            unit.turbine_ps_tbl[id].publish("computed_status", 1)
-                        end
+                    else
+                        log.debug(log_header .. "boiler list not a table")
+                        valid = false
                     end
 
-                    for id, turbine in pairs(rtu_statuses.turbines) do
-                        if type(unit.turbine_data_tbl[id]) == "table" then
-                            local rtu_faulted                = turbine[1]   ---@type boolean
-                            unit.turbine_data_tbl[id].formed = turbine[2]   ---@type boolean
-                            unit.turbine_data_tbl[id].state  = turbine[3]   ---@type table
-                            unit.turbine_data_tbl[id].tanks  = turbine[4]   ---@type table
+                    -- turbine statuses
+                    if type(rtu_statuses.turbines) == "table" then
+                        for id = 1, #unit.turbine_ps_tbl do
+                            if rtu_statuses.turbines[i] == nil then
+                                -- disconnected
+                                unit.turbine_ps_tbl[id].publish("computed_status", 1)
+                            end
+                        end
 
-                            local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
+                        for id, turbine in pairs(rtu_statuses.turbines) do
+                            if type(unit.turbine_data_tbl[id]) == "table" then
+                                local rtu_faulted                = turbine[1]   ---@type boolean
+                                unit.turbine_data_tbl[id].formed = turbine[2]   ---@type boolean
+                                unit.turbine_data_tbl[id].state  = turbine[3]   ---@type table
+                                unit.turbine_data_tbl[id].tanks  = turbine[4]   ---@type table
 
-                            unit.turbine_ps_tbl[id].publish("formed", data.formed)
-                            unit.turbine_ps_tbl[id].publish("faulted", rtu_faulted)
+                                local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
 
-                            if rtu_faulted then
-                                unit.turbine_ps_tbl[id].publish("computed_status", 3)       -- faulted
-                            elseif data.formed then
-                                if data.tanks.energy_fill >= 0.99 then
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 6)   -- trip
-                                elseif data.state.flow_rate < 100 then
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- idle
+                                unit.turbine_ps_tbl[id].publish("formed", data.formed)
+                                unit.turbine_ps_tbl[id].publish("faulted", rtu_faulted)
+
+                                if rtu_faulted then
+                                    unit.turbine_ps_tbl[id].publish("computed_status", 3)       -- faulted
+                                elseif data.formed then
+                                    if data.tanks.energy_fill >= 0.99 then
+                                        unit.turbine_ps_tbl[id].publish("computed_status", 6)   -- trip
+                                    elseif data.state.flow_rate < 100 then
+                                        unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- idle
+                                    else
+                                        unit.turbine_ps_tbl[id].publish("computed_status", 5)   -- active
+                                    end
                                 else
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 5)   -- active
+                                    unit.turbine_ps_tbl[id].publish("computed_status", 2)       -- not formed
+                                end
+
+                                for key, val in pairs(unit.turbine_data_tbl[id].state) do
+                                    unit.turbine_ps_tbl[id].publish(key, val)
+                                end
+
+                                for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
+                                    unit.turbine_ps_tbl[id].publish(key, val)
                                 end
                             else
-                                unit.turbine_ps_tbl[id].publish("computed_status", 2)       -- not formed
+                                log.debug(util.c(log_header, "invalid turbine id ", id))
+                                valid = false
                             end
+                        end
+                    else
+                        log.debug(log_header .. "turbine list not a table")
+                        valid = false
+                    end
 
-                            for key, val in pairs(unit.turbine_data_tbl[id].state) do
-                                unit.turbine_ps_tbl[id].publish(key, val)
-                            end
+                    -- environment detector status
+                    if type(rtu_statuses.rad_mon) == "table" then
+                        if #rtu_statuses.rad_mon > 0 then
+                            local rad_mon = rtu_statuses.rad_mon[1]
+                            local rtu_faulted = rad_mon[1]  ---@type boolean
+                            unit.radiation    = rad_mon[2]  ---@type number
 
-                            for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
-                                unit.turbine_ps_tbl[id].publish(key, val)
-                            end
+                            unit.unit_ps.publish("radiation", unit.radiation)
                         else
-                            log.debug(util.c(log_header, "invalid turbine id ", id))
+                            unit.radiation = types.new_zero_radiation_reading()
+                        end
+                    else
+                        log.debug(log_header .. "radiation monitor list not a table")
+                        valid = false
+                    end
+                else
+                    log.debug(log_header .. "rtu list not a table")
+                    valid = false
+                end
+
+                -- annunciator
+                unit.annunciator = status[3]
+
+                if type(unit.annunciator) ~= "table" then
+                    unit.annunciator = {}
+                    log.debug(log_header .. "annunciator state not a table")
+                    valid = false
+                end
+
+                for key, val in pairs(unit.annunciator) do
+                    if key == "TurbineTrip" then
+                        -- split up turbine trip table for all turbines and a general OR combination
+                        local trips = val
+                        local any = false
+
+                        for id = 1, #trips do
+                            any = any or trips[id]
+                            unit.turbine_ps_tbl[id].publish(key, trips[id])
+                        end
+
+                        unit.unit_ps.publish("TurbineTrip", any)
+                    elseif key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
+                        -- split up array for all boilers
+                        for id = 1, #val do
+                            unit.boiler_ps_tbl[id].publish(key, val[id])
+                        end
+                    elseif key == "TurbineOnline" or key == "SteamDumpOpen" or key == "TurbineOverSpeed" then
+                        -- split up array for all turbines
+                        for id = 1, #val do
+                            unit.turbine_ps_tbl[id].publish(key, val[id])
+                        end
+                    elseif type(val) == "table" then
+                        -- we missed one of the tables?
+                        log.debug(log_header .. "unrecognized table found in annunciator list, this is a bug")
+                        valid = false
+                    else
+                        -- non-table fields
+                        unit.unit_ps.publish(key, val)
+                    end
+                end
+
+                -- alarms
+                local alarm_states = status[4]
+
+                if type(alarm_states) == "table" then
+                    for id = 1, #alarm_states do
+                        local state = alarm_states[id]
+
+                        unit.alarms[id] = state
+
+                        if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
+                            unit.unit_ps.publish("Alarm_" .. id, 2)
+                        elseif state == types.ALARM_STATE.RING_BACK then
+                            unit.unit_ps.publish("Alarm_" .. id, 3)
+                        else
+                            unit.unit_ps.publish("Alarm_" .. id, 1)
                         end
                     end
                 else
-                    log.debug(log_header .. "turbine list not a table")
-                    return false
+                    log.debug(log_header .. "alarm states not a table")
+                    valid = false
                 end
 
-                -- environment detector status
-                if type(rtu_statuses.rad_mon) == "table" then
-                    if #rtu_statuses.rad_mon > 0 then
-                        local rad_mon = rtu_statuses.rad_mon[1]
-                        local rtu_faulted = rad_mon[1]  ---@type boolean
-                        unit.radiation    = rad_mon[2]  ---@type number
+                -- unit state fields
+                local unit_state = status[5]
 
-                        unit.unit_ps.publish("radiation", unit.radiation)
+                if type(unit_state) == "table" then
+                    if #unit_state == 5 then
+                        unit.unit_ps.publish("U_StatusLine1", unit_state[1])
+                        unit.unit_ps.publish("U_StatusLine2", unit_state[2])
+                        unit.unit_ps.publish("U_WasteMode", unit_state[3])
+                        unit.unit_ps.publish("U_AutoReady", unit_state[4])
+                        unit.unit_ps.publish("U_AutoDegraded", unit_state[5])
                     else
-                        unit.radiation = types.new_zero_radiation_reading()
+                        log.debug(log_header .. "unit state length mismatch")
+                        valid = false
                     end
                 else
-                    log.debug(log_header .. "radiation monitor list not a table")
-                    return false
+                    log.debug(log_header .. "unit state not a table")
+                    valid = false
                 end
-            else
-                log.debug(log_header .. "rtu list not a table")
-            end
-
-            -- annunciator
-
-            unit.annunciator = status[3]
-
-            if type(unit.annunciator) ~= "table" then
-                unit.annunciator = {}
-                log.debug(log_header .. "annunciator state not a table")
-            end
-
-            for key, val in pairs(unit.annunciator) do
-                if key == "TurbineTrip" then
-                    -- split up turbine trip table for all turbines and a general OR combination
-                    local trips = val
-                    local any = false
-
-                    for id = 1, #trips do
-                        any = any or trips[id]
-                        unit.turbine_ps_tbl[id].publish(key, trips[id])
-                    end
-
-                    unit.unit_ps.publish("TurbineTrip", any)
-                elseif key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
-                    -- split up array for all boilers
-                    for id = 1, #val do
-                        unit.boiler_ps_tbl[id].publish(key, val[id])
-                    end
-                elseif key == "TurbineOnline" or key == "SteamDumpOpen" or key == "TurbineOverSpeed" then
-                    -- split up array for all turbines
-                    for id = 1, #val do
-                        unit.turbine_ps_tbl[id].publish(key, val[id])
-                    end
-                elseif type(val) == "table" then
-                    -- we missed one of the tables?
-                    log.error(log_header .. "unrecognized table found in annunciator list, this is a bug", true)
-                else
-                    -- non-table fields
-                    unit.unit_ps.publish(key, val)
-                end
-            end
-
-            -- alarms
-
-            local alarm_states = status[4]
-
-            if type(alarm_states) == "table" then
-                for id = 1, #alarm_states do
-                    local state = alarm_states[id]
-
-                    unit.alarms[id] = state
-
-                    if state == types.ALARM_STATE.TRIPPED or state == types.ALARM_STATE.ACKED then
-                        unit.unit_ps.publish("Alarm_" .. id, 2)
-                    elseif state == types.ALARM_STATE.RING_BACK then
-                        unit.unit_ps.publish("Alarm_" .. id, 3)
-                    else
-                        unit.unit_ps.publish("Alarm_" .. id, 1)
-                    end
-                end
-            else
-                log.debug(log_header .. "alarm states not a table")
-            end
-
-            -- unit state fields
-
-            local unit_state = status[5]
-
-            if type(unit_state) == "table" then
-                if #unit_state == 5 then
-                    unit.unit_ps.publish("U_StatusLine1", unit_state[1])
-                    unit.unit_ps.publish("U_StatusLine2", unit_state[2])
-                    unit.unit_ps.publish("U_WasteMode", unit_state[3])
-                    unit.unit_ps.publish("U_AutoReady", unit_state[4])
-                    unit.unit_ps.publish("U_AutoDegraded", unit_state[5])
-                else
-                    log.debug(log_header .. "unit state length mismatch")
-                end
-            else
-                log.debug(log_header .. "unit state not a table")
             end
         end
 
@@ -729,7 +762,7 @@ function iocontrol.update_unit_statuses(statuses)
         sounder.eval(io.units)
     end
 
-    return true
+    return valid
 end
 
 -- get the IO controller database

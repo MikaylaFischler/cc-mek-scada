@@ -14,7 +14,7 @@ local sounder = {}
 
 local _2_PI        = 2 * math.pi    -- 2 whole pies, hope you're hungry
 local _DRATE       = 48000          -- 48kHz audio
-local _MAX_VAL     = 127/2            -- max signed integer in this 8-bit audio
+local _MAX_VAL     = 127 / 2        -- max signed integer in this 8-bit audio
 local _MAX_SAMPLES = 0x20000        -- 128 * 1024 samples
 local _05s_SAMPLES = 24000          -- half a second worth of samples
 
@@ -26,7 +26,8 @@ local alarm_ctl = {
     playing = false,
     num_active = 0,
     next_block = 1,
-    quad_buffer = { {}, {}, {}, {} }    -- split audio up into 0.5s samples so specific components can be ended quicker
+    -- split audio up into 0.5s samples so specific components can be ended quicker
+    quad_buffer = { {}, {}, {}, {} }
 }
 
 -- sounds modeled after https://www.e2s.com/references-and-guidelines/listen-and-download-alarm-tones
@@ -52,6 +53,7 @@ local TONES = {
 }
 
 -- calculate how many samples are in the given number of milliseconds
+---@nodiscard
 ---@param ms integer milliseconds
 ---@return integer samples
 local function ms_to_samples(ms) return math.floor(ms * 48) end
@@ -224,6 +226,7 @@ end
 --#endregion
 
 -- hard audio limiter
+---@nodiscard
 ---@param output number output level
 ---@return number limited -128.0 to 127.0
 local function limit(output)
@@ -454,7 +457,7 @@ function sounder.test_power_scale()
         end
     end
 
-    log.debug("power rescale test took " .. (util.time_ms() - start) .. "ms")
+    log.debug("SOUNDER: power rescale test took " .. (util.time_ms() - start) .. "ms")
 end
 
 --#endregion

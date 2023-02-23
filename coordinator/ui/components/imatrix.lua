@@ -19,6 +19,7 @@ local border = core.graphics.border
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 -- new induction matrix view
+---@nodiscard
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
