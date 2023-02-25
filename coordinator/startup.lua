@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "v0.11.0"
+local COORDINATOR_VERSION = "v0.11.1"
 
 local print = util.print
 local println = util.println
@@ -314,9 +314,10 @@ local function main()
                 log_comms(msg)
                 println_ts(msg)
 
-                -- close connection and UI
+                -- close connection, UI, and stop sounder
                 coord_comms.close()
                 renderer.close_ui()
+                sounder.stop()
 
                 if not no_modem then
                     -- try to re-connect to the supervisor
@@ -341,9 +342,10 @@ local function main()
             if not coord_comms.is_linked() then
                 log_comms("supervisor closed connection")
 
-                -- close connection and UI
+                -- close connection, UI, and stop sounder
                 coord_comms.close()
                 renderer.close_ui()
+                sounder.stop()
 
                 if not no_modem then
                     -- try to re-connect to the supervisor

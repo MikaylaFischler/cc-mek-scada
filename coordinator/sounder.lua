@@ -296,6 +296,9 @@ end
 function sounder.reconnect(speaker)
     alarm_ctl.speaker = speaker
     alarm_ctl.playing = false
+    alarm_ctl.next_block = 1
+    alarm_ctl.num_active = 0
+    for id = 1, #TONES do TONES[id].active = false end
 end
 
 -- check alarm state to enable/disable alarms
