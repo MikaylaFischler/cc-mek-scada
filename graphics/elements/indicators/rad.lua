@@ -19,6 +19,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new radiation indicator
+---@nodiscard
 ---@param args rad_indicator_args
 ---@return graphics_element element, element_id id
 local function rad(args)

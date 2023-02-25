@@ -15,6 +15,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new vertical bar
+---@nodiscard
 ---@param args vbar_args
 ---@return graphics_element element, element_id id
 local function vbar(args)

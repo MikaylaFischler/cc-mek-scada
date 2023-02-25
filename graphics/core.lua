@@ -16,6 +16,7 @@ local events = {}
 ---@field y integer
 
 -- create a new touch event definition
+---@nodiscard
 ---@param monitor string
 ---@param x integer
 ---@param y integer
@@ -32,7 +33,7 @@ core.events = events
 
 local graphics = {}
 
----@alias TEXT_ALIGN integer
+---@enum TEXT_ALIGN
 graphics.TEXT_ALIGN = {
     LEFT = 1,
     CENTER = 2,
@@ -47,6 +48,7 @@ graphics.TEXT_ALIGN = {
 ---@alias element_id string|integer
 
 -- create a new border definition
+---@nodiscard
 ---@param width integer border width
 ---@param color color border color
 ---@param even? boolean whether to pad width extra to account for rectangular pixels, defaults to false
@@ -66,6 +68,7 @@ end
 ---@field h integer
 
 -- create a new graphics frame definition
+---@nodiscard
 ---@param x integer
 ---@param y integer
 ---@param w integer
@@ -91,6 +94,7 @@ end
 ---@field blit_bkg string
 
 -- create a new color pair definition
+---@nodiscard
 ---@param a color
 ---@param b color
 ---@return cpair
@@ -120,9 +124,9 @@ end
 ---@field thin boolean true for 1 subpixel, false (default) for 2
 ---@field align_tr boolean false to align bottom left (default), true to align top right
 
--- create a new pipe
---
+-- create a new pipe<br>
 -- note: pipe coordinate origin is (0, 0)
+---@nodiscard
 ---@param x1 integer starting x, origin is 0
 ---@param y1 integer starting y, origin is 0
 ---@param x2 integer ending x, origin is 0

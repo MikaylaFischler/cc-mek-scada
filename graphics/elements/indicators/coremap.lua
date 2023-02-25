@@ -14,6 +14,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 
 -- new core map box
+---@nodiscard
 ---@param args core_map_args
 ---@return graphics_element element, element_id id
 local function core_map(args)

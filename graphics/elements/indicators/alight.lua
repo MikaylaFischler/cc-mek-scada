@@ -20,6 +20,7 @@ local flasher = require("graphics.flasher")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new alarm indicator light
+---@nodiscard
 ---@param args alarm_indicator_light
 ---@return graphics_element element, element_id id
 local function alarm_indicator_light(args)

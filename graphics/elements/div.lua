@@ -13,6 +13,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new div element
+---@nodiscard
 ---@param args div_args
 ---@return graphics_element element, element_id id
 local function div(args)

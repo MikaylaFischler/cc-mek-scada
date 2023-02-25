@@ -19,6 +19,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new data indicator
+---@nodiscard
 ---@param args data_indicator_args
 ---@return graphics_element element, element_id id
 local function data(args)

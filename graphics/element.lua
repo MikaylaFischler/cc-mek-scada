@@ -47,6 +47,7 @@ local element = {}
 ---|tiling_args
 
 -- a base graphics element, should not be created on its own
+---@nodiscard
 ---@param args graphics_args arguments
 function element.new(args)
     local self = {
@@ -172,6 +173,7 @@ function element.new(args)
     end
 
     -- get value
+    ---@nodiscard
     function protected.get_value()
         return protected.value
     end
@@ -218,6 +220,7 @@ function element.new(args)
     end
 
     -- get public interface
+    ---@nodiscard
     ---@return graphics_element element, element_id id
     function protected.get() return public, self.id end
 
@@ -246,11 +249,13 @@ function element.new(args)
     ----------------------
 
     -- get the window object
+    ---@nodiscard
     function public.window() return protected.window end
 
     -- CHILD ELEMENTS --
 
     -- add a child element
+    ---@nodiscard
     ---@param key string|nil id
     ---@param child graphics_template
     ---@return integer|string key
@@ -271,6 +276,7 @@ function element.new(args)
     end
 
     -- get a child element
+    ---@nodiscard
     ---@return graphics_element
     function public.get_child(key) return self.children[key] end
 
@@ -279,6 +285,7 @@ function element.new(args)
     function public.remove(key) self.children[key] = nil end
 
     -- attempt to get a child element by ID (does not include this element itself)
+    ---@nodiscard
     ---@param id element_id
     ---@return graphics_element|nil element
     function public.get_element_by_id(id)
@@ -297,39 +304,49 @@ function element.new(args)
     -- AUTO-PLACEMENT --
 
     -- skip a line for automatically placed elements
-    function public.line_break() self.next_y = self.next_y + 1 end
+    function public.line_break()
+        self.next_y = self.next_y + 1
+    end
 
     -- PROPERTIES --
 
     -- get the foreground/background colors
+    ---@nodiscard
     ---@return cpair fg_bg
-    function public.get_fg_bg() return protected.fg_bg end
+    function public.get_fg_bg()
+        return protected.fg_bg
+    end
 
     -- get element x
+    ---@nodiscard
     ---@return integer x
     function public.get_x()
         return protected.frame.x
     end
 
     -- get element y
+    ---@nodiscard
     ---@return integer y
     function public.get_y()
         return protected.frame.y
     end
 
     -- get element width
+    ---@nodiscard
     ---@return integer width
     function public.width()
         return protected.frame.w
     end
 
     -- get element height
+    ---@nodiscard
     ---@return integer height
     function public.height()
         return protected.frame.h
     end
 
     -- get the element value
+    ---@nodiscard
     ---@return any value
     function public.get_value()
         return protected.get_value()
