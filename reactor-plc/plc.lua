@@ -162,7 +162,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- check if there is no fuel
     local function _insufficient_fuel()
-        local fuel = reactor.getFuel()
+        local fuel = reactor.getFuelFilledPercentage()
         if fuel == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
