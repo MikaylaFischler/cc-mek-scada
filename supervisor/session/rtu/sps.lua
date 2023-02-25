@@ -31,6 +31,7 @@ local PERIODICS = {
 }
 
 -- create a new sps rtu session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer RTU unit ID
 ---@param advert rtu_advertisement RTU advertisement table
@@ -112,7 +113,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
     -- query the tanks of the device
     local function _request_tanks()
         -- read input registers 11 through 19 (start = 11, count = 9)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 10, 12 })
+        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 11, 9 })
     end
 
     -- PUBLIC FUNCTIONS --
@@ -222,6 +223,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

@@ -12,7 +12,6 @@ local PROTOCOL = comms.PROTOCOL
 local RPLC_TYPE = comms.RPLC_TYPE
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
-
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
 local print = util.print
@@ -47,18 +46,16 @@ local PERIODICS = {
 }
 
 -- PLC supervisor session
+---@nodiscard
 ---@param id integer session ID
----@param for_reactor integer reactor ID
+---@param reactor_id integer reactor ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
+function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
-        for_reactor = for_reactor,
-        in_q = in_queue,
-        out_q = out_queue,
         commanded_state = false,
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
@@ -250,10 +247,10 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(for_reactor, msg_type, msg)
+        r_pkt.make(reactor_id, msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -267,11 +264,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- get an ACK status
+    ---@nodiscard
     ---@param pkt rplc_frame
     ---@return boolean|nil ack
     local function _get_ack(pkt)
@@ -299,8 +297,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.RPLC then
             -- check reactor ID
-            if pkt.id ~= for_reactor then
-                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. pkt.id)
+            if pkt.id ~= reactor_id then
+                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
                 return
             end
 
@@ -342,7 +340,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                     if status then
                         -- copied in structure data OK
                         self.received_struct = true
-                        self.out_q.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, for_reactor)
+                        out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
                     else
                         -- error copying structure data
                         log.error(log_header .. "failed to parse struct packet data")
@@ -360,8 +358,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
                     cmd = UNIT_COMMAND.SET_BURN,
                     ack = ack
                 })
@@ -375,8 +373,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
                     cmd = UNIT_COMMAND.START,
                     ack = ack
                 })
@@ -391,8 +389,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
                     cmd = UNIT_COMMAND.SCRAM,
                     ack = ack
                 })
@@ -443,8 +441,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
                     cmd = UNIT_COMMAND.RESET_RPS,
                     ack = ack
                 })
@@ -503,17 +501,22 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
+    ---@nodiscard
     function public.get_id() return id end
 
     -- get the session database
+    ---@nodiscard
     function public.get_db() return self.sDB end
 
     -- check if ramping is completed by first verifying auto command token ack
+    ---@nodiscard
     function public.is_ramp_complete()
         return (self.sDB.auto_ack_token == self.auto_cmd_token) and (self.commanded_burn_rate == self.sDB.mek_status.act_burn_rate)
     end
 
     -- get the reactor structure
+    ---@nodiscard
+    ---@return mek_struct|table struct struct or empty table
     function public.get_struct()
         if self.received_struct then
             return self.sDB.mek_struct
@@ -523,6 +526,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     end
 
     -- get the reactor status
+    ---@nodiscard
+    ---@return mek_status|table struct status or empty table
     function public.get_status()
         if self.received_status_cache then
             return self.sDB.mek_status
@@ -532,11 +537,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     end
 
     -- get the reactor RPS status
+    ---@nodiscard
     function public.get_rps()
         return self.sDB.rps_status
     end
 
     -- get the general status information
+    ---@nodiscard
     function public.get_general_status()
         return {
             self.sDB.last_status_update,
@@ -564,10 +571,11 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     ---@param ramp boolean true to ramp, false to not
     function public.auto_set_burn(rate, ramp)
         self.ramping_rate = ramp
-        self.in_q.push_data(PLC_S_DATA.AUTO_BURN_RATE, rate)
+        in_queue.push_data(PLC_S_DATA.AUTO_BURN_RATE, rate)
     end
 
     -- check if a timer matches this session's watchdog
+    ---@nodiscard
     function public.check_wd(timer)
         return self.plc_conn_watchdog.is_timer(timer) and self.connected
     end
@@ -576,11 +584,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
-        println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
+        println("connection to reactor " .. reactor_id .. " PLC closed by server")
         log.info(log_header .. "session closed by server")
     end
 
     -- iterate the session
+    ---@nodiscard
     ---@return boolean connected
     function public.iterate()
         if self.connected then
@@ -590,9 +599,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             local handle_start = util.time()
 
-            while self.in_q.ready() and self.connected do
+            while in_queue.ready() and self.connected do
                 -- get a new message to process
-                local message = self.in_q.pop()
+                local message = in_queue.pop()
 
                 if message ~= nil then
                     if message.qtype == mqueue.TYPE.PACKET then
@@ -688,7 +697,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to reactor " .. self.for_reactor .. " PLC closed by remote host")
+                println("connection to reactor " .. reactor_id .. " PLC closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end

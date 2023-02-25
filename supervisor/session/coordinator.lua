@@ -13,6 +13,7 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
+
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_CMDS = svqtypes.SV_Q_CMDS
@@ -46,6 +47,7 @@ local PERIODICS = {
 }
 
 -- coordinator supervisor session
+---@nodiscard
 ---@param id integer session ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
@@ -55,8 +57,6 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
-        in_q = in_queue,
-        out_q = out_queue,
         units = facility.get_units(),
         -- connection properties
         seq_num = 0,
@@ -100,7 +100,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         c_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -114,7 +114,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -275,14 +275,14 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                         local unit = self.units[uid]    ---@type reactor_unit
 
                         if cmd == UNIT_COMMAND.START then
-                            self.out_q.push_data(SV_Q_DATA.START, data)
+                            out_queue.push_data(SV_Q_DATA.START, data)
                         elseif cmd == UNIT_COMMAND.SCRAM then
-                            self.out_q.push_data(SV_Q_DATA.SCRAM, data)
+                            out_queue.push_data(SV_Q_DATA.SCRAM, data)
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
-                            self.out_q.push_data(SV_Q_DATA.RESET_RPS, data)
+                            out_queue.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
                             if pkt.length == 3 then
-                                self.out_q.push_data(SV_Q_DATA.SET_BURN, data)
+                                out_queue.push_data(SV_Q_DATA.SET_BURN, data)
                             else
                                 log.debug(log_header .. "CRDN unit command burn rate missing option")
                             end
@@ -333,9 +333,11 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local public = {}
 
     -- get the session ID
+    ---@nodiscard
     function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
+    ---@nodiscard
     function public.check_wd(timer)
         return self.conn_watchdog.is_timer(timer) and self.connected
     end
@@ -349,6 +351,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     end
 
     -- iterate the session
+    ---@nodiscard
     ---@return boolean connected
     function public.iterate()
         if self.connected then
@@ -358,9 +361,9 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
             local handle_start = util.time()
 
-            while self.in_q.ready() and self.connected do
+            while in_queue.ready() and self.connected do
                 -- get a new message to process
-                local message = self.in_q.pop()
+                local message = in_queue.pop()
 
                 if message ~= nil then
                     if message.qtype == mqueue.TYPE.PACKET then

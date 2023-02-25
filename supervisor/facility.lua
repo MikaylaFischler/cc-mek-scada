@@ -53,6 +53,7 @@ local rate_Kd = -1.0
 local facility = {}
 
 -- create a new facility management object
+---@nodiscard
 ---@param num_reactors integer number of reactor units
 ---@param cooling_conf table cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
@@ -124,6 +125,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- check if all auto-controlled units completed ramping
+    ---@nodiscard
     local function _all_units_ramped()
         local all_ramped = true
 
@@ -185,10 +187,7 @@ function facility.new(num_reactors, cooling_conf)
 
                     unallocated = math.max(0, unallocated - ctl.br100)
 
-                    if last ~= ctl.br100 then
-                        log.debug("unit " .. u.get_id() .. ": set to " .. ctl.br100 .. " (was " .. last .. ")")
-                        u.a_commit_br100(ramp)
-                    end
+                    if last ~= ctl.br100 then u.a_commit_br100(ramp) end
                 end
             end
         end
@@ -426,7 +425,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
-                local runtime = now - self.time_start
+                -- local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -441,8 +440,8 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
-                    runtime, avg_charge, error, integral, output, out_c, P, I, D))
+                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
+                --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
 
                 _allocate_burn_rate(out_c, true)
 
@@ -495,7 +494,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
-                local runtime = now - self.time_start
+                -- local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -513,8 +512,8 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-                    runtime, avg_inflow, error, integral, output, out_c, P, I, D))
+                -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
+                --     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
 
                 _allocate_burn_rate(out_c, false)
 
@@ -814,6 +813,7 @@ function facility.new(num_reactors, cooling_conf)
     -- READ STATES/PROPERTIES --
 
     -- get build properties of all machines
+    ---@nodiscard
     ---@param inc_imatrix boolean? true/nil to include induction matrix build, false to exclude
     function public.get_build(inc_imatrix)
         local build = {}
@@ -830,6 +830,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- get automatic process control status
+    ---@nodiscard
     function public.get_control_status()
         local astat = self.ascram_status
         return {
@@ -851,6 +852,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- get RTU statuses
+    ---@nodiscard
     function public.get_rtu_statuses()
         local status = {}
 
@@ -889,9 +891,9 @@ function facility.new(num_reactors, cooling_conf)
         return status
     end
 
-    function public.get_units()
-        return self.units
-    end
+    -- get the units in this facility
+    ---@nodiscard
+    function public.get_units() return self.units end
 
     return public
 end

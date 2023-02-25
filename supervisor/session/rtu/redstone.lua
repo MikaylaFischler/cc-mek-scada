@@ -45,6 +45,7 @@ local PERIODICS = {
 ---@field req IO_LVL
 
 -- create a new redstone rtu session runner
+---@nodiscard
 ---@param session_id integer
 ---@param unit_id integer
 ---@param advert rtu_advertisement
@@ -118,6 +119,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_dig_io
                 local io_f = {
+                    ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_in[port].phy) end,
                     ---@param active boolean
                     write = function (active) end
@@ -132,6 +134,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_dig_io
                 local io_f = {
+                    ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_out[port].phy) end,
                     ---@param active boolean
                     write = function (active)
@@ -149,6 +152,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_ana_io
                 local io_f = {
+                    ---@nodiscard
                     ---@return integer
                     read = function () return self.phy_io.analog_in[port].phy end,
                     ---@param value integer
@@ -164,6 +168,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_ana_io
                 local io_f = {
+                    ---@nodiscard
                     ---@return integer
                     read = function () return self.phy_io.analog_out[port].phy end,
                     ---@param value integer
@@ -378,6 +383,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

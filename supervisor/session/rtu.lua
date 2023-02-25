@@ -32,6 +32,7 @@ local PERIODICS = {
 }
 
 -- create a new RTU session
+---@nodiscard
 ---@param id integer session ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
@@ -42,8 +43,6 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
-        in_q = in_queue,
-        out_q = out_queue,
         modbus_q = mqueue.new(),
         advert = advertisement,
         fac_units = facility.get_units(),
@@ -196,7 +195,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
         s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -210,7 +209,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -262,10 +261,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             elseif pkt.type == SCADA_MGMT_TYPE.RTU_ADVERT then
                 -- RTU unit advertisement
                 log.debug(log_header .. "received updated advertisement")
-
-                -- copy advertisement and remove version tag
                 self.advert = pkt.data
-                table.remove(self.advert, 1)
 
                 -- handle advertisement; this will re-create all unit sub-sessions
                 _handle_advertisement()
@@ -291,6 +287,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
+    ---@nodiscard
     ---@param timer number
     function public.check_wd(timer)
         return self.rtu_conn_watchdog.is_timer(timer) and self.connected
@@ -305,6 +302,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     end
 
     -- iterate the session
+    ---@nodiscard
     ---@return boolean connected
     function public.iterate()
         if self.connected then
@@ -314,9 +312,9 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             local handle_start = util.time()
 
-            while self.in_q.ready() and self.connected do
+            while in_queue.ready() and self.connected do
                 -- get a new message to process
-                local msg = self.in_q.pop()
+                local msg = in_queue.pop()
 
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.PACKET then
@@ -389,7 +387,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data
                         if cmd.key == unit_session.RTU_US_DATA.BUILD_CHANGED then
-                            self.out_q.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
+                            out_queue.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
                         end
                     end
                 end

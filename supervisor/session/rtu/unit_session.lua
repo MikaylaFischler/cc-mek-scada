@@ -23,6 +23,7 @@ unit_session.RTU_US_CMDS = RTU_US_CMDS
 unit_session.RTU_US_DATA = RTU_US_DATA
 
 -- create a new unit session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer MODBUS unit ID
 ---@param advert rtu_advertisement RTU advertisement for this unit
@@ -31,12 +32,8 @@ unit_session.RTU_US_DATA = RTU_US_DATA
 ---@param txn_tags table transaction log tags
 function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_tags)
     local self = {
-        log_tag = log_tag,
-        txn_tags = txn_tags,
-        unit_id = unit_id,
         device_index = advert.index,
         reactor = advert.reactor,
-        out_q = out_queue,
         transaction_controller = txnctrl.new(),
         connected = true,
         device_fail = false
@@ -61,21 +58,22 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         local m_pkt = comms.modbus_packet()
         local txn_id = self.transaction_controller.create(txn_type)
 
-        m_pkt.make(txn_id, self.unit_id, f_code, register_param)
+        m_pkt.make(txn_id, unit_id, f_code, register_param)
 
-        self.out_q.push_packet(m_pkt)
+        out_queue.push_packet(m_pkt)
 
         return txn_id
     end
 
     -- try to resolve a MODBUS transaction
+    ---@nodiscard
     ---@param m_pkt modbus_frame MODBUS packet
     ---@return integer|false txn_type, integer txn_id transaction type or false on error/busy, transaction ID
     function protected.try_resolve(m_pkt)
         if m_pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
-            if m_pkt.unit_id == self.unit_id then
+            if m_pkt.unit_id == unit_id then
                 local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
-                local txn_tag = " (" .. util.strval(self.txn_tags[txn_type]) ..  ")"
+                local txn_tag = " (" .. util.strval(txn_tags[txn_type]) ..  ")"
 
                 if bit.band(m_pkt.func_code, MODBUS_FCODE.ERROR_FLAG) ~= 0 then
                     -- transaction incomplete or failed
@@ -135,26 +133,35 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     end
 
     -- get the public interface
+    ---@nodiscard
     function protected.get() return public end
 
     -- PUBLIC FUNCTIONS --
 
     -- get the unit ID
+    ---@nodiscard
     function public.get_session_id() return session_id end
     -- get the unit ID
-    function public.get_unit_id() return self.unit_id end
+    ---@nodiscard
+    function public.get_unit_id() return unit_id end
     -- get the device index
+    ---@nodiscard
     function public.get_device_idx() return self.device_index end
     -- get the reactor ID
+    ---@nodiscard
     function public.get_reactor() return self.reactor end
     -- get the command queue
+    ---@nodiscard
     function public.get_cmd_queue() return protected.in_q end
 
     -- close this unit
+    ---@nodiscard
     function public.close() self.connected = false end
     -- check if this unit is connected
+    ---@nodiscard
     function public.is_connected() return self.connected end
     -- check if this unit is faulted
+    ---@nodiscard
     function public.is_faulted() return self.device_fail end
 
     -- PUBLIC TEMPLATE FUNCTIONS --
@@ -179,6 +186,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db()
         log.debug("template unit_session.get_db() called", true)
         return {}

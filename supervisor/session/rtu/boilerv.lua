@@ -31,6 +31,7 @@ local PERIODICS = {
 }
 
 -- create a new boilerv rtu session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer RTU unit ID
 ---@param advert rtu_advertisement RTU advertisement table
@@ -238,6 +239,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

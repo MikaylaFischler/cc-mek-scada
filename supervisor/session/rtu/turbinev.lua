@@ -43,6 +43,7 @@ local PERIODICS = {
 }
 
 -- create a new turbinev rtu session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer RTU unit ID
 ---@param advert rtu_advertisement RTU advertisement table
@@ -309,6 +310,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

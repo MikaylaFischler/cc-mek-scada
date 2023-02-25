@@ -5,6 +5,7 @@
 local rsctl = {}
 
 -- create a new redstone RTU I/O controller
+---@nodiscard
 ---@param redstone_rtus table redstone RTU sessions
 function rsctl.new(redstone_rtus)
     ---@class rs_controller

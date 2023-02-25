@@ -5,11 +5,11 @@ local util  = require("scada-common.util")
 
 local plc   = require("supervisor.session.plc")
 
-local PRIO = types.ALARM_PRIORITY
-local ALARM_STATE = types.ALARM_STATE
-
 local TRI_FAIL = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
+
+local PRIO = types.ALARM_PRIORITY
+local ALARM_STATE = types.ALARM_STATE
 
 local IO = rsio.IO
 
@@ -555,6 +555,7 @@ function logic.update_status_text(self)
     local AISTATE = self.types.AISTATE
 
     -- check if an alarm is active (tripped or ack'd)
+    ---@nodiscard
     ---@param alarm table alarm entry
     ---@return boolean active
     local function is_active(alarm)
@@ -670,7 +671,7 @@ function logic.update_status_text(self)
             end
         end
     else
-        self.status_text = { "Reactor Off-line", "awaiting connection..." }
+        self.status_text = { "REACTOR OFF-LINE", "awaiting connection..." }
     end
 end
 
@@ -680,6 +681,7 @@ function logic.handle_redstone(self)
     local AISTATE = self.types.AISTATE
 
     -- check if an alarm is active (tripped or ack'd)
+    ---@nodiscard
     ---@param alarm table alarm entry
     ---@return boolean active
     local function is_active(alarm)

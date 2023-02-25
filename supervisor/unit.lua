@@ -11,14 +11,13 @@ local rsctl = require("supervisor.session.rsctl")
 ---@class reactor_control_unit
 local unit = {}
 
-local WASTE_MODE = types.WASTE_MODE
-
-local ALARM = types.ALARM
-local PRIO = types.ALARM_PRIORITY
-local ALARM_STATE = types.ALARM_STATE
-
-local TRI_FAIL = types.TRI_FAIL
+local WASTE_MODE   = types.WASTE_MODE
 local DUMPING_MODE = types.DUMPING_MODE
+
+local ALARM        = types.ALARM
+local PRIO         = types.ALARM_PRIORITY
+local ALARM_STATE  = types.ALARM_STATE
+local TRI_FAIL     = types.TRI_FAIL
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
@@ -61,13 +60,14 @@ unit.FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS
 ---@field tier integer alarm urgency tier (0 = highest)
 
 -- create a new reactor unit
----@param for_reactor integer reactor unit number
+---@nodiscard
+---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
-function unit.new(for_reactor, num_boilers, num_turbines)
+function unit.new(reactor_id, num_boilers, num_turbines)
     ---@class _unit_self
     local self = {
-        r_id = for_reactor,
+        r_id = reactor_id,
         plc_s = nil,    ---@class plc_session_struct
         plc_i = nil,    ---@class plc_session
         num_boilers = num_boilers,
@@ -278,6 +278,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     local function _reset_dt(key) self.deltas[key] = nil end
 
     -- get the delta t of a value
+    ---@nodiscard
     ---@param key string value key
     ---@return number value value or 0 if not known
     function self._get_dt(key) if self.deltas[key] then return self.deltas[key].dt else return 0.0 end end
@@ -326,7 +327,6 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     --#region redstone I/O
 
     local __rs_w = self.io_ctl.digital_write
-    local __rs_r = self.io_ctl.digital_read
 
     -- valves
     local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,    true) end, close = function () __rs_w(IO.WASTE_PU,    false) end }
@@ -525,9 +525,9 @@ function unit.new(for_reactor, num_boilers, num_turbines)
         end
     end
 
-    -- get the actual limit of this unit
-    --
+    -- get the actual limit of this unit<br>
     -- if it is degraded or not ready, the limit will be 0
+    ---@nodiscard
     ---@return integer lim_br100
     function public.a_get_effective_limit()
         if not self.db.control.ready or self.db.control.degraded or self.plc_cache.rps_trip then
@@ -551,6 +551,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- check if ramping is complete (burn rate is same as target)
+    ---@nodiscard
     ---@return boolean complete
     function public.a_ramp_complete()
         if self.plc_i ~= nil then
@@ -610,7 +611,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- acknowledge an alarm (if possible)
     ---@param id ALARM alarm ID
     function public.ack_alarm(id)
-        if (type(id) == "number") and (self.db.alarm_states[id] == ALARM_STATE.TRIPPED) then
+        if type(id) == "number" and self.db.alarm_states[id] == ALARM_STATE.TRIPPED then
             self.db.alarm_states[id] = ALARM_STATE.ACKED
         end
     end
@@ -618,7 +619,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     -- reset an alarm (if possible)
     ---@param id ALARM alarm ID
     function public.reset_alarm(id)
-        if (type(id) == "number") and (self.db.alarm_states[id] == ALARM_STATE.RING_BACK) then
+        if type(id) == "number" and self.db.alarm_states[id] == ALARM_STATE.RING_BACK then
             self.db.alarm_states[id] = ALARM_STATE.INACTIVE
         end
     end
@@ -675,6 +676,8 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     --#region
 
     -- check if a critical alarm is tripped
+    ---@nodiscard
+    ---@return boolean tripped
     function public.has_critical_alarm()
         for _, alarm in pairs(self.alarms) do
             if alarm.tier == PRIO.CRITICAL and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
@@ -686,6 +689,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- get build properties of all machines
+    ---@nodiscard
     ---@param inc_plc boolean? true/nil to include PLC build, false to exclude
     ---@param inc_boilers boolean? true/nil to include boiler builds, false to exclude
     ---@param inc_turbines boolean? true/nil to include turbine builds, false to exclude
@@ -718,6 +722,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- get reactor status
+    ---@nodiscard
     function public.get_reactor_status()
         local status = {}
         if self.plc_i ~= nil then
@@ -728,6 +733,7 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- get RTU statuses
+    ---@nodiscard
     function public.get_rtu_statuses()
         local status = {}
 
@@ -769,20 +775,25 @@ function unit.new(for_reactor, num_boilers, num_turbines)
     end
 
     -- get the annunciator status
+    ---@nodiscard
     function public.get_annunciator() return self.db.annunciator end
 
     -- get the alarm states
+    ---@nodiscard
     function public.get_alarms() return self.db.alarm_states end
 
     -- get information required for automatic reactor control
+    ---@nodiscard
     function public.get_control_inf() return self.db.control end
 
     -- get unit state
+    ---@nodiscard
     function public.get_state()
         return { self.status_text[1], self.status_text[2], self.waste_mode, self.db.control.ready, self.db.control.degraded }
     end
 
     -- get the reactor ID
+    ---@nodiscard
     function public.get_id() return self.r_id end
 
     --#endregion

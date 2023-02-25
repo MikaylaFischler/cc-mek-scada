@@ -22,6 +22,7 @@ local PERIODICS = {
 }
 
 -- create a new environment detector rtu session runner
+---@nodiscard
 ---@param session_id integer
 ---@param unit_id integer
 ---@param advert rtu_advertisement
@@ -99,6 +100,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public
