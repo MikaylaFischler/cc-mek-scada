@@ -1,3 +1,4 @@
+local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
@@ -16,15 +17,9 @@ local IO = rsio.IO
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
 local POWER_PER_BLADE = util.joules_to_fe(7140)
 
-local FLOW_STABILITY_DELAY_S = unit.FLOW_STABILITY_DELAY_MS / 1000
+local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
--- background radiation 0.0000001 Sv/h (99.99 nSv/h)
--- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
--- damaging radiation 0.00006 Sv/h (60 uSv/h)
-local RADIATION_ALARM_LEVEL = 0.00001
-
-local HIGH_CHARGE = 1.0
-local RE_ENABLE_CHARGE = 0.95
+local ALARM_LIMS = const.ALARM_LIMITS
 
 local AUTO_SCRAM = {
     NONE = 0,
@@ -563,10 +558,10 @@ function facility.new(num_reactors, cooling_conf)
 
             -- check matrix fill too high
             local was_fill = astatus.matrix_fill
-            astatus.matrix_fill = (db.tanks.energy_fill >= HIGH_CHARGE) or (astatus.matrix_fill and db.tanks.energy_fill > RE_ENABLE_CHARGE)
+            astatus.matrix_fill = (db.tanks.energy_fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.matrix_fill and db.tanks.energy_fill > ALARM_LIMS.CHARGE_RE_ENABLE)
 
             if was_fill and not astatus.matrix_fill then
-                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
+                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (ALARM_LIMS.CHARGE_RE_ENABLE * 100) .. "%")
             end
 
             -- check for critical unit alarms
@@ -585,7 +580,7 @@ function facility.new(num_reactors, cooling_conf)
                 local envd = self.envd[1]   ---@type unit_session
                 local e_db = envd.get_db()  ---@type envd_session_db
 
-                astatus.radiation = e_db.radiation_raw > RADIATION_ALARM_LEVEL
+                astatus.radiation = e_db.radiation_raw > ALARM_LIMS.FAC_HIGH_RAD
             else
                 -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
                 -- operator can restart the system or hit the stop/reset button

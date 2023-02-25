@@ -1,4 +1,5 @@
 local comms = require("scada-common.comms")
+local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local ppm   = require("scada-common.ppm")
 local types = require("scada-common.types")
@@ -15,6 +16,8 @@ local RPLC_TYPE = comms.RPLC_TYPE
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local AUTO_ACK = comms.PLC_AUTO_ACK
 
+local RPS_LIMITS = const.RPS_LIMITS
+
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
@@ -24,16 +27,6 @@ local println_ts = util.println_ts
 -- I wish they didn't change it to be like this
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 local PCALL_START_MSG = "pcall: Reactor is already active."
-
---#region RPS SAFETY CONSTANTS
-
-local MAX_DAMAGE_PERCENT      = 90
-local MAX_DAMAGE_TEMPERATURE  = 1200
-local MIN_COOLANT_FILL        = 0.10
-local MAX_WASTE_FILL          = 0.8
-local MAX_HEATED_COLLANT_FILL = 0.95
-
---#endregion END RPS SAFETY CONSTANTS
 
 -- RPS: Reactor Protection System<br>
 -- identifies dangerous states and SCRAMs reactor if warranted<br>
@@ -118,7 +111,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.dmg_crit] then
-            self.state[state_keys.dmg_crit] = damage_percent >= MAX_DAMAGE_PERCENT
+            self.state[state_keys.dmg_crit] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
         end
     end
 
@@ -130,7 +123,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.high_temp] then
-            self.state[state_keys.high_temp] = temp >= MAX_DAMAGE_TEMPERATURE
+            self.state[state_keys.high_temp] = temp >= RPS_LIMITS.MAX_DAMAGE_TEMPERATURE
         end
     end
 
@@ -141,7 +134,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.no_coolant] then
-            self.state[state_keys.no_coolant] = coolant_filled < MIN_COOLANT_FILL
+            self.state[state_keys.no_coolant] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
         end
     end
 
@@ -152,7 +145,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.ex_waste] then
-            self.state[state_keys.ex_waste] = w_filled > MAX_WASTE_FILL
+            self.state[state_keys.ex_waste] = w_filled > RPS_LIMITS.MAX_WASTE_FILL
         end
     end
 
@@ -163,7 +156,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.ex_hcoolant] then
-            self.state[state_keys.ex_hcoolant] = hc_filled > MAX_HEATED_COLLANT_FILL
+            self.state[state_keys.ex_hcoolant] = hc_filled > RPS_LIMITS.MAX_HEATED_COLLANT_FILL
         end
     end
 
@@ -174,7 +167,7 @@ function plc.rps_init(reactor, is_formed)
             -- lost the peripheral or terminated, handled later
             _set_fault()
         elseif not self.state[state_keys.no_fuel] then
-            self.state[state_keys.no_fuel] = fuel == 0
+            self.state[state_keys.no_fuel] = fuel <= RPS_LIMITS.NO_FUEL_FILL
         end
     end
 

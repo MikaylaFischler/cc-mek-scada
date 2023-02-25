@@ -12,8 +12,6 @@ local rsctl = require("supervisor.session.rsctl")
 local unit = {}
 
 local WASTE_MODE   = types.WASTE_MODE
-local DUMPING_MODE = types.DUMPING_MODE
-
 local ALARM        = types.ALARM
 local PRIO         = types.ALARM_PRIORITY
 local ALARM_STATE  = types.ALARM_STATE
@@ -22,8 +20,6 @@ local TRI_FAIL     = types.TRI_FAIL
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
 local IO = rsio.IO
-
-local FLOW_STABILITY_DELAY_MS = 15000
 
 local DT_KEYS = {
     ReactorBurnR = "RBR",
@@ -50,8 +46,6 @@ local AISTATE = {
     RING_BACK_TRIPPING = 6
 }
 
-unit.FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS
-
 ---@class alarm_def
 ---@field state ALARM_INT_STATE internal alarm state
 ---@field trip_time integer time (ms) when first tripped
@@ -73,7 +67,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         num_boilers = num_boilers,
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
-        defs = { FLOW_STABILITY_DELAY_MS = FLOW_STABILITY_DELAY_MS },
         -- rtus
         redstone = {},
         boilers = {},
