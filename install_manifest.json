@@ -3,9 +3,9 @@
         "bootloader": "0.2",
         "comms": "1.4.0",
         "reactor-plc": "v0.12.1",
-        "rtu": "v0.12.1",
-        "supervisor": "v0.13.1",
-        "coordinator": "v0.11.3",
+        "rtu": "v0.12.2",
+        "supervisor": "v0.13.2",
+        "coordinator": "v0.11.4",
         "pocket": "alpha-v0.0.0"
     },
     "files": {
@@ -183,8 +183,8 @@
         "lockbox": 100797,
         "reactor-plc": 75545,
         "rtu": 83090,
-        "supervisor": 269955,
-        "coordinator": 179370,
+        "supervisor": 271106,
+        "coordinator": 179369,
         "pocket": 335
     }
 }

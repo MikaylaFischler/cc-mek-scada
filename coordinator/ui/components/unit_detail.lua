@@ -238,7 +238,7 @@ local function init(parent, id)
     local rcs_tags = Div{parent=rcs,width=2,height=14,x=29,y=9}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
-    local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.yellow}
+    local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.green}
     local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}

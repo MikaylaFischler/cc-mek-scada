@@ -47,7 +47,7 @@ function turbinev_rtu.new(turbine)
     unit.connect_input_reg(turbine.getEnergyFilledPercentage)
 
     -- holding registers --
-    unit.connect_holding_reg(turbine.setDumpingMode, turbine.getDumpingMode)
+    unit.connect_holding_reg(turbine.getDumpingMode, turbine.setDumpingMode)
 
     return unit.interface()
 end

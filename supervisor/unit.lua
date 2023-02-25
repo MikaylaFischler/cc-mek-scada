@@ -523,7 +523,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@nodiscard
     ---@return integer lim_br100
     function public.a_get_effective_limit()
-        if not self.db.control.ready or self.db.control.degraded or self.plc_cache.rps_trip then
+        if (not self.db.control.ready) or self.db.control.degraded or self.plc_cache.rps_trip then
             self.db.control.br100 = 0
             return 0
         else

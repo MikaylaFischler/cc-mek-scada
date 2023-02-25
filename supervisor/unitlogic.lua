@@ -1,15 +1,19 @@
-local const = require("scada-common.constants")
-local log   = require("scada-common.log")
-local rsio  = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local const  = require("scada-common.constants")
+local log    = require("scada-common.log")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
-local plc   = require("supervisor.session.plc")
+local plc    = require("supervisor.session.plc")
+
+local qtypes = require("supervisor.session.rtu.qtypes")
 
 local TRI_FAIL     = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
 local PRIO         = types.ALARM_PRIORITY
 local ALARM_STATE  = types.ALARM_STATE
+
+local TBV_RTU_S_DATA = qtypes.TBV_RTU_S_DATA
 
 local IO = rsio.IO
 
@@ -754,16 +758,38 @@ function logic.handle_redstone(self)
         -- if auto control is engaged, alarm check will SCRAM on reactor over temp so that's covered
         self.valves.emer_cool.close()
 
+        -- set turbines to not dump steam
+        for i = 1, #self.turbines do
+            local session = self.turbines[i]    ---@type unit_session
+            local turbine = session.get_db()    ---@type turbinev_session_db
+
+            if turbine.state.dumping_mode ~= DUMPING_MODE.IDLE then
+                session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.IDLE)
+            end
+        end
+
         if self.db.annunciator.EmergencyCoolant > 1 and self.emcool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve closed"))
+            log.info(util.c("UNIT ", self.r_id, " turbines set to not dump steam"))
         end
 
         self.emcool_opened = false
     elseif enable_emer_cool or self.emcool_opened then
         self.valves.emer_cool.open()
 
+        -- set turbines to dump excess steam
+        for i = 1, #self.turbines do
+            local session = self.turbines[i]    ---@type unit_session
+            local turbine = session.get_db()    ---@type turbinev_session_db
+
+            if turbine.state.dumping_mode ~= DUMPING_MODE.DUMPING_EXCESS then
+                session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.DUMPING_EXCESS)
+            end
+        end
+
         if self.db.annunciator.EmergencyCoolant > 1 and not self.emcool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve opened"))
+            log.info(util.c("UNIT ", self.r_id, " turbines set to dump excess steam"))
         end
 
         self.emcool_opened = true
