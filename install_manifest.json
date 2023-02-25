@@ -2,10 +2,10 @@
     "versions": {
         "bootloader": "0.2",
         "comms": "1.4.0",
-        "reactor-plc": "v0.12.0",
+        "reactor-plc": "v0.12.1",
         "rtu": "v0.12.1",
         "supervisor": "v0.13.1",
-        "coordinator": "v0.11.0",
+        "coordinator": "v0.11.3",
         "pocket": "alpha-v0.0.0"
     },
     "files": {
@@ -20,6 +20,7 @@
             "scada-common/psil.lua",
             "scada-common/tcallbackdsp.lua",
             "scada-common/rsio.lua",
+            "scada-common/constants.lua",
             "scada-common/mqueue.lua",
             "scada-common/crash.lua",
             "scada-common/log.lua",
@@ -177,13 +178,13 @@
     },
     "sizes": {
         "system": 1982,
-        "common": 88565,
+        "common": 90500,
         "graphics": 99858,
         "lockbox": 100797,
-        "reactor-plc": 75621,
-        "rtu": 85496,
-        "supervisor": 270182,
-        "coordinator": 183279,
+        "reactor-plc": 75545,
+        "rtu": 83090,
+        "supervisor": 269955,
+        "coordinator": 179370,
         "pocket": 335
     }
 }

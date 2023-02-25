@@ -234,8 +234,8 @@ local function init(parent, id)
 
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
-    local rcs_annunc = Div{parent=rcs,width=27,height=22,x=2,y=1}
-    local rcs_tags = Div{parent=rcs,width=2,height=13,x=29,y=9}
+    local rcs_annunc = Div{parent=rcs,width=27,height=23,x=2,y=1}
+    local rcs_tags = Div{parent=rcs,width=2,height=14,x=29,y=9}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
     local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.yellow}
