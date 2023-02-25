@@ -2,10 +2,10 @@
     "versions": {
         "bootloader": "0.2",
         "comms": "1.4.0",
-        "reactor-plc": "beta-v0.11.1",
-        "rtu": "beta-v0.11.2",
-        "supervisor": "beta-v0.12.2",
-        "coordinator": "beta-v0.10.1",
+        "reactor-plc": "v0.12.0",
+        "rtu": "v0.12.1",
+        "supervisor": "v0.13.1",
+        "coordinator": "v0.11.0",
         "pocket": "alpha-v0.0.0"
     },
     "files": {
@@ -177,13 +177,13 @@
     },
     "sizes": {
         "system": 1982,
-        "common": 88163,
-        "graphics": 99360,
+        "common": 88565,
+        "graphics": 99858,
         "lockbox": 100797,
-        "reactor-plc": 75902,
-        "rtu": 81679,
-        "supervisor": 268416,
-        "coordinator": 181783,
+        "reactor-plc": 75621,
+        "rtu": 85496,
+        "supervisor": 270182,
+        "coordinator": 183279,
         "pocket": 335
     }
 }

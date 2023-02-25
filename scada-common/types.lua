@@ -121,14 +121,14 @@ types.TRI_FAIL = {
 
 ---@enum PROCESS
 types.PROCESS = {
-    INACTIVE = 1,
-    MAX_BURN = 2,
-    BURN_RATE = 3,
-    CHARGE = 4,
-    GEN_RATE = 5,
-    MATRIX_FAULT_IDLE = 6,
-    SYSTEM_ALARM_IDLE = 7,
-    GEN_RATE_FAULT_IDLE = 8
+    INACTIVE = 0,
+    MAX_BURN = 1,
+    BURN_RATE = 2,
+    CHARGE = 3,
+    GEN_RATE = 4,
+    MATRIX_FAULT_IDLE = 5,
+    SYSTEM_ALARM_IDLE = 6,
+    GEN_RATE_FAULT_IDLE = 7
 }
 
 types.PROCESS_NAMES = {

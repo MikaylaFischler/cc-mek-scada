@@ -219,10 +219,10 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         for i = 1, #units do
             local unit = units[i]   ---@type rtu_unit_registry_entry
 
-            if type ~= nil then
+            if unit.type ~= nil then
                 local advert = { unit.type, unit.index, unit.reactor }
 
-                if type == RTU_UNIT_TYPE.REDSTONE then
+                if unit.type == RTU_UNIT_TYPE.REDSTONE then
                     insert(advert, unit.device)
                 end
 
