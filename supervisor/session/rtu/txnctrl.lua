@@ -6,9 +6,10 @@ local util = require("scada-common.util")
 
 local txnctrl = {}
 
-local TIMEOUT = 2000 -- 2000ms max wait
+local TIMEOUT = 2000    -- 2000ms max wait
 
 -- create a new transaction controller
+---@nodiscard
 function txnctrl.new()
     local self = {
         list = {},
@@ -22,16 +23,19 @@ function txnctrl.new()
     local remove = table.remove
 
     -- get the length of the transaction list
+    ---@nodiscard
     function public.length()
         return #self.list
     end
 
     -- check if there are no active transactions
+    ---@nodiscard
     function public.empty()
         return #self.list == 0
     end
 
     -- create a new transaction of the given type
+    ---@nodiscard
     ---@param txn_type integer
     ---@return integer txn_id
     function public.create(txn_type)
@@ -49,6 +53,7 @@ function txnctrl.new()
     end
 
     -- mark a transaction as resolved to get its transaction type
+    ---@nodiscard
     ---@param txn_id integer
     ---@return integer txn_type
     function public.resolve(txn_id)

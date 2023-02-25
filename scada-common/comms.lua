@@ -3,12 +3,9 @@
 --
 
 local log   = require("scada-common.log")
-local types = require("scada-common.types")
 
 ---@class comms
 local comms = {}
-
-local rtu_t = types.rtu_t
 
 local insert = table.insert
 
@@ -16,8 +13,8 @@ local max_distance = nil
 
 comms.version = "1.4.0"
 
----@alias PROTOCOLS integer
-local PROTOCOLS = {
+---@enum PROTOCOL
+local PROTOCOL = {
     MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
     RPLC = 1,           -- reactor PLC protocol
     SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
@@ -25,8 +22,8 @@ local PROTOCOLS = {
     COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
 }
 
----@alias RPLC_TYPES integer
-local RPLC_TYPES = {
+---@enum RPLC_TYPE
+local RPLC_TYPE = {
     STATUS = 0,         -- reactor/system status
     MEK_STRUCT = 1,     -- mekanism build structure
     MEK_BURN_RATE = 2,  -- set burn rate
@@ -40,8 +37,8 @@ local RPLC_TYPES = {
     AUTO_BURN_RATE = 10 -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
----@alias SCADA_MGMT_TYPES integer
-local SCADA_MGMT_TYPES = {
+---@enum SCADA_MGMT_TYPE
+local SCADA_MGMT_TYPE = {
     ESTABLISH = 0,      -- establish new connection
     KEEP_ALIVE = 1,     -- keep alive packet w/ RTT
     CLOSE = 2,          -- close a connection
@@ -49,8 +46,8 @@ local SCADA_MGMT_TYPES = {
     RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
 }
 
----@alias SCADA_CRDN_TYPES integer
-local SCADA_CRDN_TYPES = {
+---@enum SCADA_CRDN_TYPE
+local SCADA_CRDN_TYPE = {
     INITIAL_BUILDS = 0, -- initial, complete builds packet to the coordinator
     FAC_BUILDS = 1,     -- facility RTU builds
     FAC_STATUS = 2,     -- state of facility and facility devices
@@ -60,12 +57,11 @@ local SCADA_CRDN_TYPES = {
     UNIT_CMD = 6        -- command a reactor unit
 }
 
----@alias CAPI_TYPES integer
-local CAPI_TYPES = {
-    ESTABLISH = 0       -- initial greeting
+---@enum CAPI_TYPE
+local CAPI_TYPE = {
 }
 
----@alias ESTABLISH_ACK integer
+---@enum ESTABLISH_ACK
 local ESTABLISH_ACK = {
     ALLOW = 0,          -- link approved
     DENY = 1,           -- link denied
@@ -73,26 +69,15 @@ local ESTABLISH_ACK = {
     BAD_VERSION = 3     -- link denied due to comms version mismatch
 }
 
----@alias DEVICE_TYPES integer
-local DEVICE_TYPES = {
+---@enum DEVICE_TYPE
+local DEVICE_TYPE = {
     PLC = 0,            -- PLC device type for establish
     RTU = 1,            -- RTU device type for establish
     SV = 2,             -- supervisor device type for establish
     CRDN = 3            -- coordinator device type for establish
 }
 
----@alias RTU_UNIT_TYPES integer
-local RTU_UNIT_TYPES = {
-    REDSTONE = 0,       -- redstone I/O
-    BOILER_VALVE = 1,   -- boiler mekanism 10.1+
-    TURBINE_VALVE = 2,  -- turbine, mekanism 10.1+
-    IMATRIX = 3,        -- induction matrix
-    SPS = 4,            -- SPS
-    SNA = 5,            -- SNA
-    ENV_DETECTOR = 6    -- environment detector
-}
-
----@alias PLC_AUTO_ACK integer
+---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {
     FAIL = 0,           -- failed to set burn rate/burn rate invalid
     DIRECT_SET_OK = 1,  -- successfully set burn rate
@@ -100,16 +85,16 @@ local PLC_AUTO_ACK = {
     ZERO_DIS_OK = 3     -- successfully disabled reactor with < 0.01 burn rate
 }
 
----@alias FAC_COMMANDS integer
-local FAC_COMMANDS = {
+---@enum FAC_COMMAND
+local FAC_COMMAND = {
     SCRAM_ALL = 0,      -- SCRAM all reactors
     STOP = 1,           -- stop automatic control
     START = 2,          -- start automatic control
     ACK_ALL_ALARMS = 3  -- acknowledge all alarms on all units
 }
 
----@alias UNIT_COMMANDS integer
-local UNIT_COMMANDS = {
+---@enum UNIT_COMMAND
+local UNIT_COMMAND = {
     SCRAM = 0,          -- SCRAM the reactor
     START = 1,          -- start the reactor
     RESET_RPS = 2,      -- reset the RPS
@@ -121,26 +106,25 @@ local UNIT_COMMANDS = {
     SET_GROUP = 8       -- assign this unit to a group
 }
 
-comms.PROTOCOLS = PROTOCOLS
+comms.PROTOCOL = PROTOCOL
 
-comms.RPLC_TYPES = RPLC_TYPES
-comms.SCADA_MGMT_TYPES = SCADA_MGMT_TYPES
-comms.SCADA_CRDN_TYPES = SCADA_CRDN_TYPES
-comms.CAPI_TYPES = CAPI_TYPES
+comms.RPLC_TYPE = RPLC_TYPE
+comms.SCADA_MGMT_TYPE = SCADA_MGMT_TYPE
+comms.SCADA_CRDN_TYPE = SCADA_CRDN_TYPE
+comms.CAPI_TYPE = CAPI_TYPE
 
 comms.ESTABLISH_ACK = ESTABLISH_ACK
-comms.DEVICE_TYPES = DEVICE_TYPES
-comms.RTU_UNIT_TYPES = RTU_UNIT_TYPES
+comms.DEVICE_TYPE = DEVICE_TYPE
 
 comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 
-comms.UNIT_COMMANDS = UNIT_COMMANDS
-comms.FAC_COMMANDS = FAC_COMMANDS
+comms.UNIT_COMMAND = UNIT_COMMAND
+comms.FAC_COMMAND = FAC_COMMAND
 
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
 
--- configure the maximum allowable message receive distance <br/>
+-- configure the maximum allowable message receive distance<br>
 -- packets received with distances greater than this will be silently discarded
 ---@param distance integer max modem message distance (less than 1 disables the limit)
 function comms.set_trusted_range(distance)
@@ -152,6 +136,7 @@ function comms.set_trusted_range(distance)
 end
 
 -- generic SCADA packet object
+---@nodiscard
 function comms.scada_packet()
     local self = {
         modem_msg_in = nil,
@@ -168,7 +153,7 @@ function comms.scada_packet()
 
     -- make a SCADA packet
     ---@param seq_num integer
-    ---@param protocol PROTOCOLS
+    ---@param protocol PROTOCOL
     ---@param payload table
     function public.make(seq_num, protocol, payload)
         self.valid = true
@@ -180,11 +165,12 @@ function comms.scada_packet()
     end
 
     -- parse in a modem message as a SCADA packet
-    ---@param side string
-    ---@param sender integer
-    ---@param reply_to integer
-    ---@param message any
-    ---@param distance integer
+    ---@param side string modem side
+    ---@param sender integer sender port
+    ---@param reply_to integer reply port
+    ---@param message any message body
+    ---@param distance integer transmission distance
+    ---@return boolean valid valid message received
     function public.receive(side, sender, reply_to, message, distance)
         self.modem_msg_in = {
             iface = side,
@@ -223,24 +209,34 @@ function comms.scada_packet()
 
     -- public accessors --
 
+    ---@nodiscard
     function public.modem_event() return self.modem_msg_in end
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
+    ---@nodiscard
     function public.local_port() return self.modem_msg_in.s_port end
+    ---@nodiscard
     function public.remote_port() return self.modem_msg_in.r_port end
 
+    ---@nodiscard
     function public.is_valid() return self.valid end
 
+    ---@nodiscard
     function public.seq_num() return self.seq_num end
+    ---@nodiscard
     function public.protocol() return self.protocol end
+    ---@nodiscard
     function public.length() return self.length end
+    ---@nodiscard
     function public.data() return self.payload end
 
     return public
 end
 
--- MODBUS packet
+-- MODBUS packet<br>
 -- modeled after MODBUS TCP packet
+---@nodiscard
 function comms.modbus_packet()
     local self = {
         frame = nil,
@@ -248,7 +244,7 @@ function comms.modbus_packet()
         txn_id = -1,
         length = 0,
         unit_id = -1,
-        func_code = 0,
+        func_code = 0x80,
         data = {}
     }
 
@@ -285,7 +281,7 @@ function comms.modbus_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.MODBUS_TCP then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
                 local size_ok = frame.length() >= 3
 
                 if size_ok then
@@ -309,9 +305,11 @@ function comms.modbus_packet()
     end
 
     -- get raw to send
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     -- get this packet as a frame with an immutable relation to this object
+    ---@nodiscard
     function public.get()
         ---@class modbus_frame
         local frame = {
@@ -330,12 +328,13 @@ function comms.modbus_packet()
 end
 
 -- reactor PLC packet
+---@nodiscard
 function comms.rplc_packet()
     local self = {
         frame = nil,
         raw = {},
         id = 0,
-        type = -1,
+        type = 0,   ---@type RPLC_TYPE
         length = 0,
         data = {}
     }
@@ -345,22 +344,22 @@ function comms.rplc_packet()
 
     -- check that type is known
     local function _rplc_type_valid()
-        return self.type == RPLC_TYPES.STATUS or
-                self.type == RPLC_TYPES.MEK_STRUCT or
-                self.type == RPLC_TYPES.MEK_BURN_RATE or
-                self.type == RPLC_TYPES.RPS_ENABLE or
-                self.type == RPLC_TYPES.RPS_SCRAM or
-                self.type == RPLC_TYPES.RPS_ASCRAM or
-                self.type == RPLC_TYPES.RPS_STATUS or
-                self.type == RPLC_TYPES.RPS_ALARM or
-                self.type == RPLC_TYPES.RPS_RESET or
-                self.type == RPLC_TYPES.RPS_AUTO_RESET or
-                self.type == RPLC_TYPES.AUTO_BURN_RATE
+        return self.type == RPLC_TYPE.STATUS or
+                self.type == RPLC_TYPE.MEK_STRUCT or
+                self.type == RPLC_TYPE.MEK_BURN_RATE or
+                self.type == RPLC_TYPE.RPS_ENABLE or
+                self.type == RPLC_TYPE.RPS_SCRAM or
+                self.type == RPLC_TYPE.RPS_ASCRAM or
+                self.type == RPLC_TYPE.RPS_STATUS or
+                self.type == RPLC_TYPE.RPS_ALARM or
+                self.type == RPLC_TYPE.RPS_RESET or
+                self.type == RPLC_TYPE.RPS_AUTO_RESET or
+                self.type == RPLC_TYPE.AUTO_BURN_RATE
     end
 
     -- make an RPLC packet
     ---@param id integer
-    ---@param packet_type RPLC_TYPES
+    ---@param packet_type RPLC_TYPE
     ---@param data table
     function public.make(id, packet_type, data)
         if type(data) == "table" then
@@ -387,7 +386,7 @@ function comms.rplc_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.RPLC then
+            if frame.protocol() == PROTOCOL.RPLC then
                 local ok = frame.length() >= 2
 
                 if ok then
@@ -410,9 +409,11 @@ function comms.rplc_packet()
     end
 
     -- get raw to send
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     -- get this packet as a frame with an immutable relation to this object
+    ---@nodiscard
     function public.get()
         ---@class rplc_frame
         local frame = {
@@ -430,11 +431,12 @@ function comms.rplc_packet()
 end
 
 -- SCADA management packet
+---@nodiscard
 function comms.mgmt_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,   ---@type SCADA_MGMT_TYPE
         length = 0,
         data = {}
     }
@@ -444,16 +446,16 @@ function comms.mgmt_packet()
 
     -- check that type is known
     local function _scada_type_valid()
-        return self.type == SCADA_MGMT_TYPES.ESTABLISH or
-                self.type == SCADA_MGMT_TYPES.KEEP_ALIVE or
-                self.type == SCADA_MGMT_TYPES.CLOSE or
-                self.type == SCADA_MGMT_TYPES.REMOTE_LINKED or
-                self.type == SCADA_MGMT_TYPES.RTU_ADVERT or
-                self.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT
+        return self.type == SCADA_MGMT_TYPE.ESTABLISH or
+                self.type == SCADA_MGMT_TYPE.KEEP_ALIVE or
+                self.type == SCADA_MGMT_TYPE.CLOSE or
+                self.type == SCADA_MGMT_TYPE.REMOTE_LINKED or
+                self.type == SCADA_MGMT_TYPE.RTU_ADVERT or
+                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT
     end
 
     -- make a SCADA management packet
-    ---@param packet_type SCADA_MGMT_TYPES
+    ---@param packet_type SCADA_MGMT_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -479,7 +481,7 @@ function comms.mgmt_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.SCADA_MGMT then
+            if frame.protocol() == PROTOCOL.SCADA_MGMT then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -500,9 +502,11 @@ function comms.mgmt_packet()
     end
 
     -- get raw to send
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     -- get this packet as a frame with an immutable relation to this object
+    ---@nodiscard
     function public.get()
         ---@class mgmt_frame
         local frame = {
@@ -519,11 +523,12 @@ function comms.mgmt_packet()
 end
 
 -- SCADA coordinator packet
+---@nodiscard
 function comms.crdn_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,   ---@type SCADA_CRDN_TYPE
         length = 0,
         data = {}
     }
@@ -532,18 +537,19 @@ function comms.crdn_packet()
     local public = {}
 
     -- check that type is known
+    ---@nodiscard
     local function _crdn_type_valid()
-        return self.type == SCADA_CRDN_TYPES.INITIAL_BUILDS or
-                self.type == SCADA_CRDN_TYPES.FAC_BUILDS or
-                self.type == SCADA_CRDN_TYPES.FAC_STATUS or
-                self.type == SCADA_CRDN_TYPES.FAC_CMD or
-                self.type == SCADA_CRDN_TYPES.UNIT_BUILDS or
-                self.type == SCADA_CRDN_TYPES.UNIT_STATUSES or
-                self.type == SCADA_CRDN_TYPES.UNIT_CMD
+        return self.type == SCADA_CRDN_TYPE.INITIAL_BUILDS or
+                self.type == SCADA_CRDN_TYPE.FAC_BUILDS or
+                self.type == SCADA_CRDN_TYPE.FAC_STATUS or
+                self.type == SCADA_CRDN_TYPE.FAC_CMD or
+                self.type == SCADA_CRDN_TYPE.UNIT_BUILDS or
+                self.type == SCADA_CRDN_TYPE.UNIT_STATUSES or
+                self.type == SCADA_CRDN_TYPE.UNIT_CMD
     end
 
     -- make a coordinator packet
-    ---@param packet_type SCADA_CRDN_TYPES
+    ---@param packet_type SCADA_CRDN_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -569,7 +575,7 @@ function comms.crdn_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.SCADA_CRDN then
+            if frame.protocol() == PROTOCOL.SCADA_CRDN then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -590,9 +596,11 @@ function comms.crdn_packet()
     end
 
     -- get raw to send
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     -- get this packet as a frame with an immutable relation to this object
+    ---@nodiscard
     function public.get()
         ---@class crdn_frame
         local frame = {
@@ -609,12 +617,13 @@ function comms.crdn_packet()
 end
 
 -- coordinator API (CAPI) packet
--- @todo
+---@todo implement for pocket access, set enum type for self.type
+---@nodiscard
 function comms.capi_packet()
     local self = {
         frame = nil,
         raw = {},
-        type = -1,
+        type = 0,
         length = 0,
         data = {}
     }
@@ -623,12 +632,12 @@ function comms.capi_packet()
     local public = {}
 
     local function _capi_type_valid()
-        -- @todo
+        ---@todo
         return false
     end
 
     -- make a coordinator API packet
-    ---@param packet_type CAPI_TYPES
+    ---@param packet_type CAPI_TYPE
     ---@param data table
     function public.make(packet_type, data)
         if type(data) == "table" then
@@ -654,7 +663,7 @@ function comms.capi_packet()
         if frame then
             self.frame = frame
 
-            if frame.protocol() == PROTOCOLS.COORD_API then
+            if frame.protocol() == PROTOCOL.COORD_API then
                 local ok = frame.length() >= 1
 
                 if ok then
@@ -675,9 +684,11 @@ function comms.capi_packet()
     end
 
     -- get raw to send
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     -- get this packet as a frame with an immutable relation to this object
+    ---@nodiscard
     function public.get()
         ---@class capi_frame
         local frame = {
@@ -691,52 +702,6 @@ function comms.capi_packet()
     end
 
     return public
-end
-
--- convert rtu_t to RTU unit type
----@param type rtu_t
----@return RTU_UNIT_TYPES|nil
-function comms.rtu_t_to_unit_type(type)
-    if type == rtu_t.redstone then
-        return RTU_UNIT_TYPES.REDSTONE
-    elseif type == rtu_t.boiler_valve then
-        return RTU_UNIT_TYPES.BOILER_VALVE
-    elseif type == rtu_t.turbine_valve then
-        return RTU_UNIT_TYPES.TURBINE_VALVE
-    elseif type == rtu_t.induction_matrix then
-        return RTU_UNIT_TYPES.IMATRIX
-    elseif type == rtu_t.sps then
-        return RTU_UNIT_TYPES.SPS
-    elseif type == rtu_t.sna then
-        return RTU_UNIT_TYPES.SNA
-    elseif type == rtu_t.env_detector then
-        return RTU_UNIT_TYPES.ENV_DETECTOR
-    end
-
-    return nil
-end
-
--- convert RTU unit type to rtu_t
----@param utype RTU_UNIT_TYPES
----@return rtu_t|nil
-function comms.advert_type_to_rtu_t(utype)
-    if utype == RTU_UNIT_TYPES.REDSTONE then
-        return rtu_t.redstone
-    elseif utype == RTU_UNIT_TYPES.BOILER_VALVE then
-        return rtu_t.boiler_valve
-    elseif utype == RTU_UNIT_TYPES.TURBINE_VALVE then
-        return rtu_t.turbine_valve
-    elseif utype == RTU_UNIT_TYPES.IMATRIX then
-        return rtu_t.induction_matrix
-    elseif utype == RTU_UNIT_TYPES.SPS then
-        return rtu_t.sps
-    elseif utype == RTU_UNIT_TYPES.SNA then
-        return rtu_t.sna
-    elseif utype == RTU_UNIT_TYPES.ENV_DETECTOR then
-        return rtu_t.env_detector
-    end
-
-    return nil
 end
 
 return comms

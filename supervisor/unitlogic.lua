@@ -1,3 +1,4 @@
+local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
@@ -5,17 +6,16 @@ local util  = require("scada-common.util")
 
 local plc   = require("supervisor.session.plc")
 
-local PRIO = types.ALARM_PRIORITY
-local ALARM_STATE = types.ALARM_STATE
-
-local TRI_FAIL = types.TRI_FAIL
+local TRI_FAIL     = types.TRI_FAIL
 local DUMPING_MODE = types.DUMPING_MODE
+local PRIO         = types.ALARM_PRIORITY
+local ALARM_STATE  = types.ALARM_STATE
 
 local IO = rsio.IO
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
-local aistate_string = {
+local AISTATE_NAMES = {
     "INACTIVE",
     "TRIPPING",
     "TRIPPED",
@@ -24,11 +24,10 @@ local aistate_string = {
     "RING_BACK_TRIPPING"
 }
 
--- background radiation 0.0000001 Sv/h (99.99 nSv/h)
--- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
--- damaging radiation 0.00006 Sv/h (60 uSv/h)
-local RADIATION_ALERT_LEVEL = 0.00001   -- 10 uSv/h
-local RADIATION_ALARM_LEVEL = 0.00005   -- 50 uSv/h, not yet damaging but this isn't good
+local FLOW_STABILITY_DELAY_MS = const.FLOW_STABILITY_DELAY_MS
+
+local ANNUNC_LIMS = const.ANNUNCIATOR_LIMITS
+local ALARM_LIMS = const.ALARM_LIMITS
 
 ---@class unit_logic_extension
 local logic = {}
@@ -108,15 +107,15 @@ function logic.update_annunciator(self)
 
         -- update other annunciator fields
         self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
-        self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.manual
-        self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.rps_status_t.automatic
+        self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
+        self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
-        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < -2.0
-        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < 0.4
-        self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > 1000
-        self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > 100
-        self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= 0.01
-        self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= 0.85
+        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < ANNUNC_LIMS.RCSFlowLow
+        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
+        self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
+        self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
+        self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
+        self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
         -- this warning applies when no coolant is buffered (which we can't easily determine without running)
         --[[
@@ -129,7 +128,7 @@ function logic.update_annunciator(self)
             such as when a burn rate consumes half the coolant in the tank, meaning that:
                 50% at some point will be in the boiler, and 50% in a tube, so that leaves 0% in the reactor
         ]]--
-        local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.fluid.sodium, 200000, 20000)
+        local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
         local high_rate = (plc_db.mek_status.ccool_amnt / (plc_db.mek_status.burn_rate * heating_rate_conv)) < 4
         self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and high_rate
 
@@ -150,7 +149,7 @@ function logic.update_annunciator(self)
     for i = 1, #self.envd do
         local envd = self.envd[i]   ---@type unit_session
         self.db.annunciator.RadiationMonitor = util.trinary(envd.is_faulted(), 2, 3)
-        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw > RADIATION_ALERT_LEVEL
+        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw > ANNUNC_LIMS.RadiationWarning
         break
     end
 
@@ -299,7 +298,7 @@ function logic.update_annunciator(self)
     self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
 
     -- check for steam feed mismatch and max return rate
-    local sfmismatch = math.abs(total_flow_rate - total_input_rate) > 10
+    local sfmismatch = math.abs(total_flow_rate - total_input_rate) > ANNUNC_LIMS.SteamFeedMismatch
     sfmismatch = sfmismatch or boiler_steam_dt_sum > 2.0 or boiler_water_dt_sum < -2.0
     self.db.annunciator.SteamFeedMismatch = sfmismatch
     self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
@@ -367,8 +366,8 @@ local function _update_alarm_state(self, tripped, alarm)
             else
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.alarm_prio_string[alarm.tier + 1],"]"))
+                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
+                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
             end
         else
             alarm.trip_time = util.time_ms()
@@ -381,8 +380,8 @@ local function _update_alarm_state(self, tripped, alarm)
             if elapsed > (alarm.hold_time * 1000) then
                 alarm.state = AISTATE.TRIPPED
                 self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.alarm_prio_string[alarm.tier + 1],"]"))
+                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
+                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
             end
         elseif int_state == AISTATE.RING_BACK_TRIPPING then
             alarm.trip_time = 0
@@ -431,8 +430,8 @@ local function _update_alarm_state(self, tripped, alarm)
 
     -- check for state change
     if alarm.state ~= int_state then
-        local change_str = util.c(aistate_string[int_state + 1], " -> ", aistate_string[alarm.state + 1])
-        log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.alarm_string[alarm.id], "): ", change_str))
+        local change_str = util.c(AISTATE_NAMES[int_state], " -> ", AISTATE_NAMES[alarm.state])
+        log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): ", change_str))
     end
 end
 
@@ -449,7 +448,7 @@ function logic.update_alarms(self)
     -- Containment Radiation
     local rad_alarm = false
     for i = 1, #self.envd do
-        rad_alarm = self.envd[i].get_db().radiation_raw > RADIATION_ALARM_LEVEL
+        rad_alarm = self.envd[i].get_db().radiation_raw > ALARM_LIMS.HIGH_RADIATION
         break
     end
     _update_alarm_state(self, rad_alarm, self.alarms.ContainmentRadiation)
@@ -469,14 +468,14 @@ function logic.update_alarms(self)
     _update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp)
 
     -- High Temperature
-    _update_alarm_state(self, plc_cache.temp > 1150, self.alarms.ReactorHighTemp)
+    _update_alarm_state(self, plc_cache.temp >= ALARM_LIMS.HIGH_TEMP, self.alarms.ReactorHighTemp)
 
     -- Waste Leak
-    _update_alarm_state(self, plc_cache.waste >= 0.99, self.alarms.ReactorWasteLeak)
+    _update_alarm_state(self, plc_cache.waste >= 1.0, self.alarms.ReactorWasteLeak)
 
     -- High Waste
     local rps_high_waste = plc_cache.rps_status.ex_waste and not self.last_rps_trips.ex_waste
-    _update_alarm_state(self, (plc_cache.waste > 0.50) or rps_high_waste, self.alarms.ReactorHighWaste)
+    _update_alarm_state(self, (plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste)
 
     -- RPS Transient (excludes timeouts and manual trips)
     local rps_alarm = false
@@ -501,7 +500,7 @@ function logic.update_alarms(self)
     -- annunciator indicators for these states may not indicate a real issue when:
     --  > flow is ramping up right after reactor start
     --  > flow is ramping down after reactor shutdown
-    if ((util.time_ms() - self.last_rate_change_ms) > self.defs.FLOW_STABILITY_DELAY_MS) and plc_cache.active then
+    if ((util.time_ms() - self.last_rate_change_ms) > FLOW_STABILITY_DELAY_MS) and plc_cache.active then
         rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
     end
 
@@ -530,8 +529,8 @@ function logic.update_auto_safety(public, self)
         for _, alarm in pairs(self.alarms) do
             if alarm.tier <= PRIO.URGENT and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
                 if not self.auto_was_alarmed then
-                    log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.alarm_string[alarm.id], ") [PRIORITY ",
-                        types.alarm_prio_string[alarm.tier + 1],"]"))
+                    log.info(util.c("UNIT ", self.r_id, " AUTO SCRAM due to ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], ") [PRIORITY ",
+                        types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
                 end
 
                 alarmed = true
@@ -555,6 +554,7 @@ function logic.update_status_text(self)
     local AISTATE = self.types.AISTATE
 
     -- check if an alarm is active (tripped or ack'd)
+    ---@nodiscard
     ---@param alarm table alarm entry
     ---@return boolean active
     local function is_active(alarm)
@@ -620,7 +620,7 @@ function logic.update_status_text(self)
                 self.status_text[2] = "insufficient fuel input rate"
             elseif self.db.annunciator.WasteLineOcclusion then
                 self.status_text[2] = "insufficient waste output rate"
-            elseif (util.time_ms() - self.last_rate_change_ms) <= self.defs.FLOW_STABILITY_DELAY_MS then
+            elseif (util.time_ms() - self.last_rate_change_ms) <= FLOW_STABILITY_DELAY_MS then
                 self.status_text[2] = "awaiting flow stability"
             else
                 self.status_text[2] = "system nominal"
@@ -636,9 +636,9 @@ function logic.update_status_text(self)
                 cause = "core temperature high"
             elseif plc_db.rps_trip_cause == "no_coolant" then
                 cause = "insufficient coolant"
-            elseif plc_db.rps_trip_cause == "full_waste" then
+            elseif plc_db.rps_trip_cause == "ex_waste" then
                 cause = "excess waste"
-            elseif plc_db.rps_trip_cause == "heated_coolant_backup" then
+            elseif plc_db.rps_trip_cause == "ex_heated_coolant" then
                 cause = "excess heated coolant"
             elseif plc_db.rps_trip_cause == "no_fuel" then
                 cause = "insufficient fuel"
@@ -670,7 +670,7 @@ function logic.update_status_text(self)
             end
         end
     else
-        self.status_text = { "Reactor Off-line", "awaiting connection..." }
+        self.status_text = { "REACTOR OFF-LINE", "awaiting connection..." }
     end
 end
 
@@ -680,6 +680,7 @@ function logic.handle_redstone(self)
     local AISTATE = self.types.AISTATE
 
     -- check if an alarm is active (tripped or ack'd)
+    ---@nodiscard
     ---@param alarm table alarm entry
     ---@return boolean active
     local function is_active(alarm)

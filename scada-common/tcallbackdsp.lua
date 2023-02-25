@@ -19,8 +19,6 @@ function tcallbackdsp.dispatch(time, f)
         duration = time,
         expiry = time + util.time_s()
     }
-
-    -- log.debug(util.c("TCD: queued callback for ", f, " [timer: ", timer, "]"))
 end
 
 -- request a function to be called after the specified time, aborting any registered instances of that function reference
@@ -45,8 +43,6 @@ function tcallbackdsp.dispatch_unique(time, f)
         duration = time,
         expiry = time + util.time_s()
     }
-
-    -- log.debug(util.c("TCD: queued callback for ", f, " [timer: ", timer, "]"))
 end
 
 -- abort a requested callback
@@ -72,8 +68,7 @@ function tcallbackdsp.handle(event)
     end
 end
 
--- identify any overdo callbacks
---
+-- identify any overdo callbacks<br>
 -- prints to log debug output
 function tcallbackdsp.diagnostics()
     for timer, entry in pairs(registry) do

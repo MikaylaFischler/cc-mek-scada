@@ -1,7 +1,7 @@
 local comms         = require("scada-common.comms")
 local log           = require("scada-common.log")
 local mqueue        = require("scada-common.mqueue")
-local rsio          = require("scada-common.rsio")
+local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
 local svqtypes      = require("supervisor.session.svqtypes")
@@ -18,9 +18,9 @@ local svrs_turbinev = require("supervisor.session.rtu.turbinev")
 
 local rtu = {}
 
-local PROTOCOLS = comms.PROTOCOLS
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local PROTOCOL = comms.PROTOCOL
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local print = util.print
 local println = util.println
@@ -32,6 +32,7 @@ local PERIODICS = {
 }
 
 -- create a new RTU session
+---@nodiscard
 ---@param id integer session ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
@@ -42,8 +43,6 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
-        in_q = in_queue,
-        out_q = out_queue,
         modbus_q = mqueue.new(),
         advert = advertisement,
         fac_units = facility.get_units(),
@@ -99,7 +98,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             advert_validator.assert_type_int(unit_advert.index)
             advert_validator.assert_type_int(unit_advert.reactor)
 
-            if u_type == RTU_UNIT_TYPES.REDSTONE then
+            if u_type == RTU_UNIT_TYPE.REDSTONE then
                 advert_validator.assert_type_table(unit_advert.rsio)
             end
 
@@ -113,7 +112,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             end
 
             local type_string = util.strval(u_type)
-            if type(u_type) == "number" then type_string = util.strval(comms.advert_type_to_rtu_t(u_type)) end
+            if type(u_type) == "number" then type_string = types.rtu_type_to_string(u_type) end
 
             -- create unit by type
 
@@ -124,19 +123,19 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                 if unit_advert.reactor > 0 then
                     local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
 
-                    if u_type == RTU_UNIT_TYPES.REDSTONE then
+                    if u_type == RTU_UNIT_TYPE.REDSTONE then
                         -- redstone
                         unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
-                    elseif u_type == RTU_UNIT_TYPES.BOILER_VALVE then
+                    elseif u_type == RTU_UNIT_TYPE.BOILER_VALVE then
                         -- boiler (Mekanism 10.1+)
                         unit = svrs_boilerv.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
-                    elseif u_type == RTU_UNIT_TYPES.TURBINE_VALVE then
+                    elseif u_type == RTU_UNIT_TYPE.TURBINE_VALVE then
                         -- turbine (Mekanism 10.1+)
                         unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
-                    elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                    elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_envd(unit) end
@@ -144,21 +143,21 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-specific RTU type ", type_string))
                     end
                 else
-                    if u_type == RTU_UNIT_TYPES.REDSTONE then
+                    if u_type == RTU_UNIT_TYPE.REDSTONE then
                         -- redstone
                         unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then facility.add_redstone(unit) end
-                    elseif u_type == RTU_UNIT_TYPES.IMATRIX then
+                    elseif u_type == RTU_UNIT_TYPE.IMATRIX then
                         -- induction matrix
                         unit = svrs_imatrix.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then facility.add_imatrix(unit) end
-                    elseif u_type == RTU_UNIT_TYPES.SPS then
+                    elseif u_type == RTU_UNIT_TYPE.SPS then
                         -- super-critical phase shifter
                         unit = svrs_sps.new(id, i, unit_advert, self.modbus_q)
-                    elseif u_type == RTU_UNIT_TYPES.SNA then
+                    elseif u_type == RTU_UNIT_TYPE.SNA then
                         -- solar neutron activator
                         unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
-                    elseif u_type == RTU_UNIT_TYPES.ENV_DETECTOR then
+                    elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then facility.add_envd(unit) end
@@ -194,23 +193,23 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     local function _send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
 
-        s_pkt.make(self.seq_num, PROTOCOLS.MODBUS_TCP, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -231,15 +230,15 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         self.rtu_conn_watchdog.feed()
 
         -- process packet
-        if pkt.scada_frame.protocol() == PROTOCOLS.MODBUS_TCP then
+        if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
             if self.units[pkt.unit_id] ~= nil then
                 local unit = self.units[pkt.unit_id]    ---@type unit_session
 ---@diagnostic disable-next-line: param-type-mismatch
                 unit.handle_packet(pkt)
             end
-        elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
+        elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             -- handle management packet
-            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -256,20 +255,17 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
+            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
-            elseif pkt.type == SCADA_MGMT_TYPES.RTU_ADVERT then
+            elseif pkt.type == SCADA_MGMT_TYPE.RTU_ADVERT then
                 -- RTU unit advertisement
                 log.debug(log_header .. "received updated advertisement")
-
-                -- copy advertisement and remove version tag
                 self.advert = pkt.data
-                table.remove(self.advert, 1)
 
                 -- handle advertisement; this will re-create all unit sub-sessions
                 _handle_advertisement()
-            elseif pkt.type == SCADA_MGMT_TYPES.RTU_DEV_REMOUNT then
+            elseif pkt.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT then
                 if pkt.length == 1 then
                     local unit_id = pkt.data[1]
                     if self.units[unit_id] ~= nil then
@@ -291,6 +287,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
+    ---@nodiscard
     ---@param timer number
     function public.check_wd(timer)
         return self.rtu_conn_watchdog.is_timer(timer) and self.connected
@@ -299,12 +296,13 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
+        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
         println(log_header .. "connection to RTU closed by server")
         log.info(log_header .. "session closed by server")
     end
 
     -- iterate the session
+    ---@nodiscard
     ---@return boolean connected
     function public.iterate()
         if self.connected then
@@ -314,9 +312,9 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             local handle_start = util.time()
 
-            while self.in_q.ready() and self.connected do
+            while in_queue.ready() and self.connected do
                 -- get a new message to process
-                local msg = self.in_q.pop()
+                local msg = in_queue.pop()
 
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.PACKET then
@@ -365,7 +363,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { util.time() })
+                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 
@@ -389,7 +387,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data
                         if cmd.key == unit_session.RTU_US_DATA.BUILD_CHANGED then
-                            self.out_q.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
+                            out_queue.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
                         end
                     end
                 end

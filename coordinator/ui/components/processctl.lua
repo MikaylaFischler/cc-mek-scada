@@ -16,11 +16,8 @@ local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local RadIndicator      = require("graphics.elements.indicators.rad")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
 
 local HazardButton      = require("graphics.elements.controls.hazard_button")
-local MultiButton       = require("graphics.elements.controls.multi_button")
-local PushButton        = require("graphics.elements.controls.push_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 

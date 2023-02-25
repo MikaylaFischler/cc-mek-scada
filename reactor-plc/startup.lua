@@ -14,7 +14,7 @@ local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "beta-v0.11.1"
+local R_PLC_VERSION = "v0.12.1"
 
 local print = util.print
 local println = util.println
@@ -116,15 +116,15 @@ local function main()
 
     -- we need a reactor, can at least do some things even if it isn't formed though
     if smem_dev.reactor == nil then
-        println("boot> fission reactor not found");
-        log.warning("no reactor on startup")
+        println("init> fission reactor not found");
+        log.warning("init> no reactor on startup")
 
         plc_state.init_ok = false
         plc_state.degraded = true
         plc_state.no_reactor = true
     elseif not smem_dev.reactor.isFormed() then
-        println("boot> fission reactor not formed");
-        log.warning("reactor logic adapter present, but reactor is not formed")
+        println("init> fission reactor not formed");
+        log.warning("init> reactor logic adapter present, but reactor is not formed")
 
         plc_state.degraded = true
         plc_state.reactor_formed = false
@@ -132,8 +132,8 @@ local function main()
 
     -- modem is required if networked
     if __shared_memory.networked and smem_dev.modem == nil then
-        println("boot> wireless modem not found")
-        log.warning("no wireless modem on startup")
+        println("init> wireless modem not found")
+        log.warning("init> no wireless modem on startup")
 
         -- scram reactor if present and enabled
         if (smem_dev.reactor ~= nil) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
@@ -145,8 +145,7 @@ local function main()
         plc_state.no_modem = true
     end
 
-    -- PLC init
-    --- 
+    -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
         if plc_state.init_ok then
@@ -169,18 +168,17 @@ local function main()
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
-                println("boot> starting in offline mode")
-                log.debug("init> running without networking")
+                println("init> starting in offline mode")
+                log.info("init> running without networking")
             end
 
----@diagnostic disable-next-line: param-type-mismatch
             util.push_event("clock_start")
 
-            println("boot> completed")
-            log.debug("init> boot completed")
+            println("init> completed")
+            log.info("init> startup completed")
         else
-            println("boot> system in degraded state, awaiting devices...")
-            log.warning("init> booted in a degraded state, awaiting peripheral connections...")
+            println("init> system in degraded state, awaiting devices...")
+            log.warning("init> started in a degraded state, awaiting peripheral connections...")
         end
     end
 

@@ -1,6 +1,4 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
-local mqueue       = require("scada-common.mqueue")
 local rsio         = require("scada-common.rsio")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
@@ -9,7 +7,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local redstone = {}
 
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local IO_PORT = rsio.IO
@@ -47,14 +45,15 @@ local PERIODICS = {
 ---@field req IO_LVL
 
 -- create a new redstone rtu session runner
+---@nodiscard
 ---@param session_id integer
 ---@param unit_id integer
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
 function redstone.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.REDSTONE then
-        log.error("attempt to instantiate redstone RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= RTU_UNIT_TYPE.REDSTONE then
+        log.error("attempt to instantiate redstone RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 
@@ -120,6 +119,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_dig_io
                 local io_f = {
+                    ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_in[port].phy) end,
                     ---@param active boolean
                     write = function (active) end
@@ -134,6 +134,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_dig_io
                 local io_f = {
+                    ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_out[port].phy) end,
                     ---@param active boolean
                     write = function (active)
@@ -151,6 +152,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_ana_io
                 local io_f = {
+                    ---@nodiscard
                     ---@return integer
                     read = function () return self.phy_io.analog_in[port].phy end,
                     ---@param value integer
@@ -166,6 +168,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                 ---@class rs_db_ana_io
                 local io_f = {
+                    ---@nodiscard
                     ---@return integer
                     read = function () return self.phy_io.analog_out[port].phy end,
                     ---@param value integer
@@ -380,6 +383,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

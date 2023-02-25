@@ -183,9 +183,10 @@ local function _free_closed(sessions)
 end
 
 -- find a session by remote port
+---@nodiscard
 ---@param list table
 ---@param port integer
----@return plc_session_struct|rtu_session_struct|nil
+---@return plc_session_struct|rtu_session_struct|coord_session_struct|nil
 local function _find_session(list, port)
     for i = 1, #list do
         if list[i].r_port == port then return list[i] end
@@ -212,54 +213,63 @@ function svsessions.relink_modem(modem)
 end
 
 -- find an RTU session by the remote port
+---@nodiscard
 ---@param remote_port integer
 ---@return rtu_session_struct|nil
 function svsessions.find_rtu_session(remote_port)
     -- check RTU sessions
----@diagnostic disable-next-line: return-type-mismatch
-    return _find_session(self.rtu_sessions, remote_port)
+    local session = _find_session(self.rtu_sessions, remote_port)
+    ---@cast session rtu_session_struct
+    return session
 end
 
 -- find a PLC session by the remote port
+---@nodiscard
 ---@param remote_port integer
 ---@return plc_session_struct|nil
 function svsessions.find_plc_session(remote_port)
     -- check PLC sessions
----@diagnostic disable-next-line: return-type-mismatch
-    return _find_session(self.plc_sessions, remote_port)
+    local session = _find_session(self.plc_sessions, remote_port)
+    ---@cast session plc_session_struct
+    return session
 end
 
 -- find a PLC/RTU session by the remote port
+---@nodiscard
 ---@param remote_port integer
 ---@return plc_session_struct|rtu_session_struct|nil
 function svsessions.find_device_session(remote_port)
     -- check RTU sessions
-    local s = _find_session(self.rtu_sessions, remote_port)
+    local session = _find_session(self.rtu_sessions, remote_port)
 
     -- check PLC sessions
-    if s == nil then s = _find_session(self.plc_sessions, remote_port) end
+    if session == nil then session = _find_session(self.plc_sessions, remote_port) end
+    ---@cast session plc_session_struct|rtu_session_struct|nil
 
-    return s
+    return session
 end
 
--- find a coordinator session by the remote port
---
+-- find a coordinator session by the remote port<br>
 -- only one coordinator is allowed, but this is kept to be consistent with all other session tables
+---@nodiscard
 ---@param remote_port integer
----@return nil
+---@return coord_session_struct|nil
 function svsessions.find_coord_session(remote_port)
     -- check coordinator sessions
----@diagnostic disable-next-line: return-type-mismatch
-    return _find_session(self.coord_sessions, remote_port)
+    local session = _find_session(self.coord_sessions, remote_port)
+    ---@cast session coord_session_struct
+    return session
 end
 
 -- get the a coordinator session if exists
+---@nodiscard
 ---@return coord_session_struct|nil
 function svsessions.get_coord_session()
     return self.coord_sessions[1]
 end
 
 -- get a session by reactor ID
+---@nodiscard
 ---@param reactor integer
 ---@return plc_session_struct|nil session
 function svsessions.get_reactor_session(reactor)
@@ -275,6 +285,7 @@ function svsessions.get_reactor_session(reactor)
 end
 
 -- establish a new PLC session
+---@nodiscard
 ---@param local_port integer
 ---@param remote_port integer
 ---@param for_reactor integer
@@ -314,6 +325,7 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
 end
 
 -- establish a new RTU session
+---@nodiscard
 ---@param local_port integer
 ---@param remote_port integer
 ---@param advertisement table
@@ -344,6 +356,7 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
 end
 
 -- establish a new coordinator session
+---@nodiscard
 ---@param local_port integer
 ---@param remote_port integer
 ---@param version string

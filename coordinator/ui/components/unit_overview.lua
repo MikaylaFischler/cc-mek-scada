@@ -101,16 +101,16 @@ local function make(parent, x, y, unit)
     local steam_pipes_b = {}
 
     if no_boilers then
-        table.insert(steam_pipes_b, pipe(0, 1, 3, 1, colors.white))     -- steam to turbine 1
-        table.insert(steam_pipes_b, pipe(0, 2, 3, 2, colors.blue))      -- water to turbine 1
+        table.insert(steam_pipes_b, pipe(0, 1, 3, 1, colors.white))         -- steam to turbine 1
+        table.insert(steam_pipes_b, pipe(0, 2, 3, 2, colors.blue))          -- water to turbine 1
 
         if num_turbines >= 2 then
-            table.insert(steam_pipes_b, pipe(1, 2, 3, 9, colors.white)) -- steam to turbine 2
-            table.insert(steam_pipes_b, pipe(2, 3, 3, 10, colors.blue)) -- water to turbine 2
+            table.insert(steam_pipes_b, pipe(1, 2, 3, 9, colors.white))     -- steam to turbine 2
+            table.insert(steam_pipes_b, pipe(2, 3, 3, 10, colors.blue))     -- water to turbine 2
         end
 
         if num_turbines >= 3 then
-            table.insert(steam_pipes_b, pipe(1, 9, 3, 17, colors.white))   -- steam boiler 1 to turbine 1 junction end
+            table.insert(steam_pipes_b, pipe(1, 9, 3, 17, colors.white))    -- steam boiler 1 to turbine 1 junction end
             table.insert(steam_pipes_b, pipe(2, 10, 3, 18, colors.blue))    -- water boiler 1 to turbine 1 junction start
         end
     else

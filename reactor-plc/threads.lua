@@ -28,10 +28,12 @@ local MQ__COMM_CMD = {
 }
 
 -- main thread
+---@nodiscard
 ---@param smem plc_shared_memory
 ---@param init function
 function threads.thread__main(smem, init)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -44,9 +46,9 @@ function threads.thread__main(smem, init)
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
-        local networked     = smem.networked
-        local plc_state     = smem.plc_state
-        local plc_dev       = smem.plc_dev
+        local networked = smem.networked
+        local plc_state = smem.plc_state
+        local plc_dev   = smem.plc_dev
 
         -- event loop
         while true do
@@ -266,7 +268,6 @@ function threads.thread__main(smem, init)
             -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
             if not plc_state.shutdown then
                 log.info("main thread restarting now...")
----@diagnostic disable-next-line: param-type-mismatch
                 util.push_event("clock_start")
             end
         end
@@ -276,9 +277,11 @@ function threads.thread__main(smem, init)
 end
 
 -- RPS operation thread
+---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__rps(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -297,10 +300,10 @@ function threads.thread__rps(smem)
         -- thread loop
         while true do
             -- get plc_sys fields (may have been set late due to degraded boot)
-            local rps         = smem.plc_sys.rps
-            local plc_comms   = smem.plc_sys.plc_comms
+            local rps       = smem.plc_sys.rps
+            local plc_comms = smem.plc_sys.plc_comms
             -- get reactor, may have changed do to disconnect/reconnect
-            local reactor     = plc_dev.reactor
+            local reactor   = plc_dev.reactor
 
             -- RPS checks
             if plc_state.init_ok then
@@ -415,9 +418,11 @@ function threads.thread__rps(smem)
 end
 
 -- communications sender thread
+---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__comms_tx(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -489,9 +494,11 @@ function threads.thread__comms_tx(smem)
 end
 
 -- communications handler thread
+---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__comms_rx(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -562,10 +569,12 @@ function threads.thread__comms_rx(smem)
     return public
 end
 
--- apply setpoints
+-- ramp control outputs to desired setpoints
+---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__setpoint_control(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()

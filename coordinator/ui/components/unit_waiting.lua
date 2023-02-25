@@ -1,5 +1,5 @@
 --
--- Reactor Unit SCADA Coordinator GUI
+-- Reactor Unit Waiting Spinner
 --
 
 local style       = require("coordinator.ui.style")

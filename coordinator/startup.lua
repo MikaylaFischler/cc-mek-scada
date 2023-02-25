@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "beta-v0.10.1"
+local COORDINATOR_VERSION = "v0.11.0"
 
 local print = util.print
 local println = util.println
@@ -81,7 +81,7 @@ local function main()
     -- setup monitors
     local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
     if not configured or monitors == nil then
-        println("boot> monitor setup failed")
+        println("startup> monitor setup failed")
         log.fatal("monitor configuration failed")
         return
     end
@@ -91,11 +91,11 @@ local function main()
     renderer.reset(config.RECOLOR)
 
     if not renderer.validate_main_display_width() then
-        println("boot> main display must be 8 blocks wide")
+        println("startup> main display must be 8 blocks wide")
         log.fatal("main display not wide enough")
         return
     elseif not renderer.validate_unit_display_sizes() then
-        println("boot> one or more unit display dimensions incorrect; they must be 4x4 blocks")
+        println("startup> one or more unit display dimensions incorrect; they must be 4x4 blocks")
         log.fatal("unit display dimensions incorrect")
         return
     end
@@ -116,7 +116,7 @@ local function main()
     local speaker = ppm.get_device("speaker")
     if speaker == nil then
         log_boot("annunciator alarm speaker not found")
-        println("boot> speaker not found")
+        println("startup> speaker not found")
         log.fatal("no annunciator alarm speaker found")
         return
     else
@@ -135,7 +135,7 @@ local function main()
     local modem = ppm.get_wireless_modem()
     if modem == nil then
         log_comms("wireless modem not found")
-        println("boot> wireless modem not found")
+        println("startup> wireless modem not found")
         log.fatal("no wireless modem on startup")
         return
     else
@@ -145,12 +145,12 @@ local function main()
     -- create connection watchdog
     local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
     conn_watchdog.cancel()
-    log.debug("boot> conn watchdog created")
+    log.debug("startup> conn watchdog created")
 
     -- start comms, open all channels
     local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_LISTEN,
                                             config.SCADA_API_LISTEN, config.TRUSTED_RANGE, conn_watchdog)
-    log.debug("boot> comms init")
+    log.debug("startup> comms init")
     log_comms("comms initialized")
 
     -- base loop clock (2Hz, 10 ticks)
@@ -176,7 +176,7 @@ local function main()
     end
 
     if not init_connect_sv() then
-        println("boot> failed to connect to supervisor")
+        println("startup> failed to connect to supervisor")
         log_sys("system shutdown")
         return
     else
@@ -199,7 +199,7 @@ local function main()
             renderer.close_ui()
             log_graphics(util.c("UI crashed: ", message))
             println_ts("UI crashed")
-            log.fatal(util.c("ui crashed with error ", message))
+            log.fatal(util.c("GUI crashed with error ", message))
         else
             log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
 
@@ -223,7 +223,7 @@ local function main()
     if ui_ok then
         -- start connection watchdog
         conn_watchdog.feed()
-        log.debug("boot> conn watchdog started")
+        log.debug("startup> conn watchdog started")
 
         log_sys("system started successfully")
     end
@@ -243,7 +243,6 @@ local function main()
                         no_modem = true
                         log_sys("comms modem disconnected")
                         println_ts("wireless modem disconnected!")
-                        log.error("comms modem disconnected!")
 
                         -- close out UI
                         renderer.close_ui()
@@ -252,20 +251,21 @@ local function main()
                         log_sys("awaiting comms modem reconnect...")
                     else
                         log_sys("non-comms modem disconnected")
-                        log.warning("non-comms modem disconnected")
                     end
                 elseif type == "monitor" then
                     if renderer.is_monitor_used(device) then
                         -- "halt and catch fire" style handling
-                        println_ts("lost a configured monitor, system will now exit")
-                        log_sys("lost a configured monitor, system will now exit")
+                        local msg = "lost a configured monitor, system will now exit"
+                        println_ts(msg)
+                        log_sys(msg)
                         break
                     else
                         log_sys("lost unused monitor, ignoring")
                     end
                 elseif type == "speaker" then
-                    println_ts("lost alarm sounder speaker")
-                    log_sys("lost alarm sounder speaker")
+                    local msg = "lost alarm sounder speaker"
+                    println_ts(msg)
+                    log_sys(msg)
                 end
             end
         elseif event == "peripheral" then
@@ -291,8 +291,9 @@ local function main()
                 elseif type == "monitor" then
                     -- not supported, system will exit on loss of in-use monitors
                 elseif type == "speaker" then
-                    println_ts("alarm sounder speaker reconnected")
-                    log_sys("alarm sounder speaker reconnected")
+                    local msg = "alarm sounder speaker reconnected"
+                    println_ts(msg)
+                    log_sys(msg)
                     sounder.reconnect(device)
                 end
             end
@@ -301,7 +302,7 @@ local function main()
                 -- main loop tick
 
                 -- free any closed sessions
-                --apisessions.free_all_closed()
+                apisessions.free_all_closed()
 
                 -- update date and time string for main display
                 iocontrol.get_db().facility.ps.publish("date_time", os.date(date_format))
@@ -326,7 +327,7 @@ local function main()
                 -- a non-clock/main watchdog timer event
 
                 --check API watchdogs
-                --apisessions.check_all_watchdogs(param1)
+                apisessions.check_all_watchdogs(param1)
 
                 -- notify timer callback dispatcher
                 tcallbackdsp.handle(param1)

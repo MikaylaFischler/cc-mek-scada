@@ -2,7 +2,8 @@ local rtu = require("rtu.rtu")
 
 local sps_rtu = {}
 
--- create new super-critical phase shifter (sps) device
+-- create new super-critical phase shifter (SPS) device
+---@nodiscard
 ---@param sps table
 function sps_rtu.new(sps)
     local unit = rtu.init_unit()

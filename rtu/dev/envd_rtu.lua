@@ -3,6 +3,7 @@ local rtu = require("rtu.rtu")
 local envd_rtu = {}
 
 -- create new environment detector device
+---@nodiscard
 ---@param envd table
 function envd_rtu.new(envd)
     local unit = rtu.init_unit()

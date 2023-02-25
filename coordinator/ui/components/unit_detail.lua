@@ -237,13 +237,13 @@ local function init(parent, id)
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=2,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=13,x=29,y=9}
 
-    local c_flt   = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
-    local c_emg   = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.yellow}
-    local c_cfm   = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_brm   = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_sfm   = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_mwrf  = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
-    local c_tbnt  = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
+    local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.yellow}
+    local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
+    local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
+    local c_tbnt = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     u_ps.subscribe("RCSFault", c_flt.update)
     u_ps.subscribe("EmergencyCoolant", c_emg.update)
@@ -287,7 +287,7 @@ local function init(parent, id)
     end
 
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-    t_ps[1].subscribe("SteamDumpOpen", function (val) t1_sdo.update(val + 1) end)
+    t_ps[1].subscribe("SteamDumpOpen", t1_sdo.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -300,7 +300,7 @@ local function init(parent, id)
     if unit.num_turbines > 1 then
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[2].subscribe("SteamDumpOpen", function (val) t2_sdo.update(val + 1) end)
+        t_ps[2].subscribe("SteamDumpOpen", t2_sdo.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
@@ -314,7 +314,7 @@ local function init(parent, id)
     if unit.num_turbines > 2 then
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-        t_ps[3].subscribe("SteamDumpOpen", function (val) t3_sdo.update(val + 1) end)
+        t_ps[3].subscribe("SteamDumpOpen", t3_sdo.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}

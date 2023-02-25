@@ -20,6 +20,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new icon indicator
+---@nodiscard
 ---@param args icon_indicator_args
 ---@return graphics_element element, element_id id
 local function icon(args)

@@ -89,6 +89,7 @@ rsio.IO = IO_PORT
 -----------------------
 
 -- port to string
+---@nodiscard
 ---@param port IO_PORT
 function rsio.to_string(port)
     local names = {
@@ -194,6 +195,7 @@ local RS_DIO_MAP = {
 }
 
 -- get the mode of a port
+---@nodiscard
 ---@param port IO_PORT
 ---@return IO_MODE
 function rsio.get_io_mode(port)
@@ -239,6 +241,7 @@ end
 local RS_SIDES = rs.getSides()
 
 -- check if a port is valid
+---@nodiscard
 ---@param port IO_PORT
 ---@return boolean valid
 function rsio.is_valid_port(port)
@@ -246,6 +249,7 @@ function rsio.is_valid_port(port)
 end
 
 -- check if a side is valid
+---@nodiscard
 ---@param side string
 ---@return boolean valid
 function rsio.is_valid_side(side)
@@ -258,6 +262,7 @@ function rsio.is_valid_side(side)
 end
 
 -- check if a color is a valid single color
+---@nodiscard
 ---@param color integer
 ---@return boolean valid
 function rsio.is_color(color)
@@ -269,22 +274,25 @@ end
 -----------------
 
 -- get digital I/O level reading from a redstone boolean input value
----@param rs_value boolean
+---@nodiscard
+---@param rs_value boolean raw value from redstone
 ---@return IO_LVL
 function rsio.digital_read(rs_value)
     if rs_value then return IO_LVL.HIGH else return IO_LVL.LOW end
 end
 
 -- get redstone boolean output value corresponding to a digital I/O level
----@param level IO_LVL
+---@nodiscard
+---@param level IO_LVL logic level
 ---@return boolean
 function rsio.digital_write(level)
     return level == IO_LVL.HIGH
 end
 
 -- returns the level corresponding to active
----@param port IO_PORT
----@param active boolean
+---@nodiscard
+---@param port IO_PORT port (to determine active high/low)
+---@param active boolean state to convert to logic level
 ---@return IO_LVL|false
 function rsio.digital_write_active(port, active)
     if (not util.is_int(port)) or (port < IO_PORT.F_ALARM) or (port > IO_PORT.U_EMER_COOL) then
@@ -295,9 +303,10 @@ function rsio.digital_write_active(port, active)
 end
 
 -- returns true if the level corresponds to active
----@param port IO_PORT
----@param level IO_LVL
----@return boolean|nil
+---@nodiscard
+---@param port IO_PORT port (to determine active low/high)
+---@param level IO_LVL logic level
+---@return boolean|nil state true for active, false for inactive, or nil if invalid port or level provided
 function rsio.digital_is_active(port, level)
     if not util.is_int(port) then
         return nil
@@ -313,6 +322,7 @@ end
 ----------------
 
 -- read an analog value scaled from min to max
+---@nodiscard
 ---@param rs_value number redstone reading (0 to 15)
 ---@param min number minimum of range
 ---@param max number maximum of range
@@ -323,6 +333,7 @@ function rsio.analog_read(rs_value, min, max)
 end
 
 -- write an analog value from the provided scale range
+---@nodiscard
 ---@param value number value to write (from min to max range)
 ---@param min number minimum of range
 ---@param max number maximum of range

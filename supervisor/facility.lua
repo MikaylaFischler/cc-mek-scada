@@ -1,3 +1,4 @@
+local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local rsio  = require("scada-common.rsio")
 local types = require("scada-common.types")
@@ -12,19 +13,13 @@ local PROCESS_NAMES = types.PROCESS_NAMES
 
 local IO = rsio.IO
 
--- 7.14 kJ per blade for 1 mB of fissile fuel<br/>
+-- 7.14 kJ per blade for 1 mB of fissile fuel<br>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
 local POWER_PER_BLADE = util.joules_to_fe(7140)
 
-local FLOW_STABILITY_DELAY_S = unit.FLOW_STABILITY_DELAY_MS / 1000
+local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
--- background radiation 0.0000001 Sv/h (99.99 nSv/h)
--- "green tint" radiation 0.00001 Sv/h (10 uSv/h)
--- damaging radiation 0.00006 Sv/h (60 uSv/h)
-local RADIATION_ALARM_LEVEL = 0.00001
-
-local HIGH_CHARGE = 1.0
-local RE_ENABLE_CHARGE = 0.95
+local ALARM_LIMS = const.ALARM_LIMITS
 
 local AUTO_SCRAM = {
     NONE = 0,
@@ -53,6 +48,7 @@ local rate_Kd = -1.0
 local facility = {}
 
 -- create a new facility management object
+---@nodiscard
 ---@param num_reactors integer number of reactor units
 ---@param cooling_conf table cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
@@ -124,6 +120,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- check if all auto-controlled units completed ramping
+    ---@nodiscard
     local function _all_units_ramped()
         local all_ramped = true
 
@@ -185,10 +182,7 @@ function facility.new(num_reactors, cooling_conf)
 
                     unallocated = math.max(0, unallocated - ctl.br100)
 
-                    if last ~= ctl.br100 then
-                        log.debug("unit " .. u.get_id() .. ": set to " .. ctl.br100 .. " (was " .. last .. ")")
-                        u.a_commit_br100(ramp)
-                    end
+                    if last ~= ctl.br100 then u.a_commit_br100(ramp) end
                 end
             end
         end
@@ -426,7 +420,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
-                local runtime = now - self.time_start
+                -- local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -441,8 +435,8 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
-                    runtime, avg_charge, error, integral, output, out_c, P, I, D))
+                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
+                --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
 
                 _allocate_burn_rate(out_c, true)
 
@@ -495,7 +489,7 @@ function facility.new(num_reactors, cooling_conf)
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
                 end
 
-                local runtime = now - self.time_start
+                -- local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -513,8 +507,8 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-                    runtime, avg_inflow, error, integral, output, out_c, P, I, D))
+                -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
+                --     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
 
                 _allocate_burn_rate(out_c, false)
 
@@ -564,10 +558,10 @@ function facility.new(num_reactors, cooling_conf)
 
             -- check matrix fill too high
             local was_fill = astatus.matrix_fill
-            astatus.matrix_fill = (db.tanks.energy_fill >= HIGH_CHARGE) or (astatus.matrix_fill and db.tanks.energy_fill > RE_ENABLE_CHARGE)
+            astatus.matrix_fill = (db.tanks.energy_fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.matrix_fill and db.tanks.energy_fill > ALARM_LIMS.CHARGE_RE_ENABLE)
 
             if was_fill and not astatus.matrix_fill then
-                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (RE_ENABLE_CHARGE * 100) .. "%")
+                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (ALARM_LIMS.CHARGE_RE_ENABLE * 100) .. "%")
             end
 
             -- check for critical unit alarms
@@ -586,7 +580,7 @@ function facility.new(num_reactors, cooling_conf)
                 local envd = self.envd[1]   ---@type unit_session
                 local e_db = envd.get_db()  ---@type envd_session_db
 
-                astatus.radiation = e_db.radiation_raw > RADIATION_ALARM_LEVEL
+                astatus.radiation = e_db.radiation_raw > ALARM_LIMS.FAC_HIGH_RAD
             else
                 -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
                 -- operator can restart the system or hit the stop/reset button
@@ -814,6 +808,7 @@ function facility.new(num_reactors, cooling_conf)
     -- READ STATES/PROPERTIES --
 
     -- get build properties of all machines
+    ---@nodiscard
     ---@param inc_imatrix boolean? true/nil to include induction matrix build, false to exclude
     function public.get_build(inc_imatrix)
         local build = {}
@@ -830,6 +825,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- get automatic process control status
+    ---@nodiscard
     function public.get_control_status()
         local astat = self.ascram_status
         return {
@@ -851,6 +847,7 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- get RTU statuses
+    ---@nodiscard
     function public.get_rtu_statuses()
         local status = {}
 
@@ -889,9 +886,9 @@ function facility.new(num_reactors, cooling_conf)
         return status
     end
 
-    function public.get_units()
-        return self.units
-    end
+    -- get the units in this facility
+    ---@nodiscard
+    function public.get_units() return self.units end
 
     return public
 end

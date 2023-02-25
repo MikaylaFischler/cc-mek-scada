@@ -1,4 +1,3 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
 local types        = require("scada-common.types")
@@ -9,7 +8,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local turbinev = {}
 
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local DUMPING_MODE = types.DUMPING_MODE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
@@ -44,14 +43,15 @@ local PERIODICS = {
 }
 
 -- create a new turbinev rtu session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer RTU unit ID
 ---@param advert rtu_advertisement RTU advertisement table
 ---@param out_queue mqueue RTU unit message out queue
 function turbinev.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.TURBINE_VALVE then
-        log.error("attempt to instantiate turbinev RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= RTU_UNIT_TYPE.TURBINE_VALVE then
+        log.error("attempt to instantiate turbinev RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 
@@ -92,7 +92,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 flow_rate = 0,
                 prod_rate = 0,
                 steam_input_rate = 0,
-                dumping_mode = DUMPING_MODE.IDLE    ---@type DUMPING_MODE
+                dumping_mode = DUMPING_MODE.IDLE    ---@type dumping_mode
             },
             tanks = {
                 last_update = 0,
@@ -123,7 +123,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     end
 
     -- set the dumping mode
-    ---@param mode DUMPING_MODE
+    ---@param mode dumping_mode
     local function _set_dump_mode(mode)
         -- write holding register 1
         self.session.send_request(TXN_TYPES.SET_DUMP, MODBUS_FCODE.WRITE_SINGLE_HOLD_REG, { 1, mode })
@@ -310,6 +310,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

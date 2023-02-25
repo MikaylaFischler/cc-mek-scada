@@ -8,12 +8,11 @@ local svqtypes = require("supervisor.session.svqtypes")
 
 local plc = {}
 
-local PROTOCOLS = comms.PROTOCOLS
-local RPLC_TYPES = comms.RPLC_TYPES
-local SCADA_MGMT_TYPES = comms.SCADA_MGMT_TYPES
+local PROTOCOL = comms.PROTOCOL
+local RPLC_TYPE = comms.RPLC_TYPE
+local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
-
-local UNIT_COMMANDS = comms.UNIT_COMMANDS
+local UNIT_COMMAND = comms.UNIT_COMMAND
 
 local print = util.print
 local println = util.println
@@ -47,18 +46,16 @@ local PERIODICS = {
 }
 
 -- PLC supervisor session
+---@nodiscard
 ---@param id integer session ID
----@param for_reactor integer reactor ID
+---@param reactor_id integer reactor ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
+function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
-        for_reactor = for_reactor,
-        in_q = in_queue,
-        out_q = out_queue,
         commanded_state = false,
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
@@ -244,34 +241,35 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     end
 
     -- send an RPLC packet
-    ---@param msg_type RPLC_TYPES
+    ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(for_reactor, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.RPLC, r_pkt.raw_sendable())
+        r_pkt.make(reactor_id, msg_type, msg)
+        s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPES
+    ---@param msg_type SCADA_MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOLS.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        self.out_q.push_packet(s_pkt)
+        out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- get an ACK status
+    ---@nodiscard
     ---@param pkt rplc_frame
     ---@return boolean|nil ack
     local function _get_ack(pkt)
@@ -297,10 +295,10 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
         end
 
         -- process packet
-        if pkt.scada_frame.protocol() == PROTOCOLS.RPLC then
+        if pkt.scada_frame.protocol() == PROTOCOL.RPLC then
             -- check reactor ID
-            if pkt.id ~= for_reactor then
-                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. self.for_reactor .. " != " .. pkt.id)
+            if pkt.id ~= reactor_id then
+                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
                 return
             end
 
@@ -308,7 +306,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
             self.plc_conn_watchdog.feed()
 
             -- handle packet by type
-            if pkt.type == RPLC_TYPES.STATUS then
+            if pkt.type == RPLC_TYPE.STATUS then
                 -- status packet received, update data
                 if pkt.length >= 5 then
                     self.sDB.last_status_update = pkt.data[1]
@@ -335,14 +333,14 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 else
                     log.debug(log_header .. "RPLC status packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.MEK_STRUCT then
+            elseif pkt.type == RPLC_TYPE.MEK_STRUCT then
                 -- received reactor structure, record it
                 if pkt.length == 14 then
                     local status = pcall(_copy_struct, pkt.data)
                     if status then
                         -- copied in structure data OK
                         self.received_struct = true
-                        self.out_q.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, for_reactor)
+                        out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
                     else
                         -- error copying structure data
                         log.error(log_header .. "failed to parse struct packet data")
@@ -350,7 +348,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 else
                     log.debug(log_header .. "RPLC struct packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.MEK_BURN_RATE then
+            elseif pkt.type == RPLC_TYPE.MEK_BURN_RATE then
                 -- burn rate acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -360,12 +358,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
-                    cmd = UNIT_COMMANDS.SET_BURN,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
+                    cmd = UNIT_COMMAND.SET_BURN,
                     ack = ack
                 })
-            elseif pkt.type == RPLC_TYPES.RPS_ENABLE then
+            elseif pkt.type == RPLC_TYPE.RPS_ENABLE then
                 -- enable acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -375,12 +373,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
-                    cmd = UNIT_COMMANDS.START,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
+                    cmd = UNIT_COMMAND.START,
                     ack = ack
                 })
-            elseif pkt.type == RPLC_TYPES.RPS_SCRAM then
+            elseif pkt.type == RPLC_TYPE.RPS_SCRAM then
                 -- manual SCRAM acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -391,12 +389,12 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
-                    cmd = UNIT_COMMANDS.SCRAM,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
+                    cmd = UNIT_COMMAND.SCRAM,
                     ack = ack
                 })
-            elseif pkt.type == RPLC_TYPES.RPS_ASCRAM then
+            elseif pkt.type == RPLC_TYPE.RPS_ASCRAM then
                 -- automatic SCRAM acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -405,7 +403,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 elseif ack == false then
                     log.debug(log_header .. " automatic SCRAM failed!")
                 end
-            elseif pkt.type == RPLC_TYPES.RPS_STATUS then
+            elseif pkt.type == RPLC_TYPE.RPS_STATUS then
                 -- RPS status packet received, copy data
                 if pkt.length == 14 then
                     local status = pcall(_copy_rps_status, pkt.data)
@@ -418,7 +416,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 else
                     log.debug(log_header .. "RPLC RPS status packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.RPS_ALARM then
+            elseif pkt.type == RPLC_TYPE.RPS_ALARM then
                 -- RPS alarm
                 if pkt.length == 13 then
                     local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
@@ -431,7 +429,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 else
                     log.debug(log_header .. "RPLC RPS alarm packet length mismatch")
                 end
-            elseif pkt.type == RPLC_TYPES.RPS_RESET then
+            elseif pkt.type == RPLC_TYPE.RPS_RESET then
                 -- RPS reset acknowledgement
                 local ack = _get_ack(pkt)
                 if ack then
@@ -443,18 +441,18 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 end
 
                 -- send acknowledgement to coordinator
-                self.out_q.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = self.for_reactor,
-                    cmd = UNIT_COMMANDS.RESET_RPS,
+                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                    unit = reactor_id,
+                    cmd = UNIT_COMMAND.RESET_RPS,
                     ack = ack
                 })
-            elseif pkt.type == RPLC_TYPES.RPS_AUTO_RESET then
+            elseif pkt.type == RPLC_TYPE.RPS_AUTO_RESET then
                 -- RPS auto control reset acknowledgement
                 local ack = _get_ack(pkt)
                 if not ack then
                     log.debug(log_header .. "RPS auto reset failed")
                 end
-            elseif pkt.type == RPLC_TYPES.AUTO_BURN_RATE then
+            elseif pkt.type == RPLC_TYPE.AUTO_BURN_RATE then
                 if pkt.length == 1 then
                     local ack = pkt.data[1]
 
@@ -473,8 +471,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
             else
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
-        elseif pkt.scada_frame.protocol() == PROTOCOLS.SCADA_MGMT then
-            if pkt.type == SCADA_MGMT_TYPES.KEEP_ALIVE then
+        elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -491,7 +489,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPES.CLOSE then
+            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
             else
@@ -503,17 +501,22 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     -- PUBLIC FUNCTIONS --
 
     -- get the session ID
+    ---@nodiscard
     function public.get_id() return id end
 
     -- get the session database
+    ---@nodiscard
     function public.get_db() return self.sDB end
 
     -- check if ramping is completed by first verifying auto command token ack
+    ---@nodiscard
     function public.is_ramp_complete()
         return (self.sDB.auto_ack_token == self.auto_cmd_token) and (self.commanded_burn_rate == self.sDB.mek_status.act_burn_rate)
     end
 
     -- get the reactor structure
+    ---@nodiscard
+    ---@return mek_struct|table struct struct or empty table
     function public.get_struct()
         if self.received_struct then
             return self.sDB.mek_struct
@@ -523,6 +526,8 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     end
 
     -- get the reactor status
+    ---@nodiscard
+    ---@return mek_status|table struct status or empty table
     function public.get_status()
         if self.received_status_cache then
             return self.sDB.mek_status
@@ -532,11 +537,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     end
 
     -- get the reactor RPS status
+    ---@nodiscard
     function public.get_rps()
         return self.sDB.rps_status
     end
 
     -- get the general status information
+    ---@nodiscard
     function public.get_general_status()
         return {
             self.sDB.last_status_update,
@@ -564,10 +571,11 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     ---@param ramp boolean true to ramp, false to not
     function public.auto_set_burn(rate, ramp)
         self.ramping_rate = ramp
-        self.in_q.push_data(PLC_S_DATA.AUTO_BURN_RATE, rate)
+        in_queue.push_data(PLC_S_DATA.AUTO_BURN_RATE, rate)
     end
 
     -- check if a timer matches this session's watchdog
+    ---@nodiscard
     function public.check_wd(timer)
         return self.plc_conn_watchdog.is_timer(timer) and self.connected
     end
@@ -575,12 +583,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPES.CLOSE, {})
-        println("connection to reactor " .. self.for_reactor .. " PLC closed by server")
+        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        println("connection to reactor " .. reactor_id .. " PLC closed by server")
         log.info(log_header .. "session closed by server")
     end
 
     -- iterate the session
+    ---@nodiscard
     ---@return boolean connected
     function public.iterate()
         if self.connected then
@@ -590,9 +599,9 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             local handle_start = util.time()
 
-            while self.in_q.ready() and self.connected do
+            while in_queue.ready() and self.connected do
                 -- get a new message to process
-                local message = self.in_q.pop()
+                local message = in_queue.pop()
 
                 if message ~= nil then
                     if message.qtype == mqueue.TYPE.PACKET then
@@ -604,27 +613,27 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                         if cmd == PLC_S_CMDS.ENABLE then
                             -- enable reactor
                             if not self.auto_lock then
-                                _send(RPLC_TYPES.RPS_ENABLE, {})
+                                _send(RPLC_TYPE.RPS_ENABLE, {})
                             end
                         elseif cmd == PLC_S_CMDS.SCRAM then
                             -- SCRAM reactor
                             self.acks.scram = false
                             self.retry_times.scram_req = util.time() + INITIAL_WAIT
-                            _send(RPLC_TYPES.RPS_SCRAM, {})
+                            _send(RPLC_TYPE.RPS_SCRAM, {})
                         elseif cmd == PLC_S_CMDS.ASCRAM then
                             -- SCRAM reactor
                             self.acks.ascram = false
                             self.retry_times.ascram_req = util.time() + INITIAL_WAIT
-                            _send(RPLC_TYPES.RPS_ASCRAM, {})
+                            _send(RPLC_TYPE.RPS_ASCRAM, {})
                         elseif cmd == PLC_S_CMDS.RPS_RESET then
                             -- reset RPS
                             self.acks.ascram = true
                             self.acks.rps_reset = false
                             self.retry_times.rps_reset_req = util.time() + INITIAL_WAIT
-                            _send(RPLC_TYPES.RPS_RESET, {})
+                            _send(RPLC_TYPE.RPS_RESET, {})
                         elseif cmd == PLC_S_CMDS.RPS_AUTO_RESET then
                             if self.sDB.rps_status.automatic or self.sDB.rps_status.timeout then
-                                _send(RPLC_TYPES.RPS_AUTO_RESET, {})
+                                _send(RPLC_TYPE.RPS_AUTO_RESET, {})
                             end
                         else
                             log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
@@ -642,7 +651,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                                     self.ramping_rate = false
                                     self.acks.burn_rate = false
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                    _send(RPLC_TYPE.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                                 end
                             end
                         elseif cmd.key == PLC_S_DATA.RAMP_BURN_RATE then
@@ -655,7 +664,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                                     self.ramping_rate = true
                                     self.acks.burn_rate = false
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
-                                    _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                                    _send(RPLC_TYPE.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                                 end
                             end
                         elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
@@ -670,7 +679,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                                     self.acks.burn_rate = not self.ramping_rate
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_AUTO_WAIT
 
-                                    _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
+                                    _send(RPLC_TYPE.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
                                 end
                             end
                         else
@@ -688,7 +697,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to reactor " .. self.for_reactor .. " PLC closed by remote host")
+                println("connection to reactor " .. reactor_id .. " PLC closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end
@@ -705,7 +714,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPES.KEEP_ALIVE, { util.time() })
+                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 
@@ -722,7 +731,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
                 if not self.received_struct then
                     if rtimes.struct_req - util.time() <= 0 then
-                        _send(RPLC_TYPES.MEK_STRUCT, {})
+                        _send(RPLC_TYPE.MEK_STRUCT, {})
                         rtimes.struct_req = util.time() + RETRY_PERIOD
                     end
                 end
@@ -731,7 +740,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
                 if not self.received_status_cache then
                     if rtimes.status_req - util.time() <= 0 then
-                        _send(RPLC_TYPES.MEK_STATUS, {})
+                        _send(RPLC_TYPE.MEK_STATUS, {})
                         rtimes.status_req = util.time() + RETRY_PERIOD
                     end
                 end
@@ -742,13 +751,13 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
                     if rtimes.burn_rate_req - util.time() <= 0 then
                         if self.auto_cmd_token > 0 then
                             if self.auto_lock then
-                                _send(RPLC_TYPES.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
+                                _send(RPLC_TYPE.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
                             else
                                 -- would have been an auto command, but disengaged, so stop retrying
                                 self.acks.burn_rate = true
                             end
                         elseif not self.auto_lock then
-                            _send(RPLC_TYPES.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
+                            _send(RPLC_TYPE.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                         else
                             -- shouldn't be in this state, just pretend it was acknowledged
                             self.acks.burn_rate = true
@@ -763,7 +772,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             if not self.acks.scram then
             if rtimes.scram_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.RPS_SCRAM, {})
+                    _send(RPLC_TYPE.RPS_SCRAM, {})
                     rtimes.scram_req = util.time() + RETRY_PERIOD
                 end
             end
@@ -772,7 +781,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             if not self.acks.ascram then
                 if rtimes.ascram_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.RPS_ASCRAM, {})
+                    _send(RPLC_TYPE.RPS_ASCRAM, {})
                     rtimes.ascram_req = util.time() + RETRY_PERIOD
                 end
             end
@@ -781,7 +790,7 @@ function plc.new_session(id, for_reactor, in_queue, out_queue, timeout)
 
             if not self.acks.rps_reset then
                 if rtimes.rps_reset_req - util.time() <= 0 then
-                    _send(RPLC_TYPES.RPS_RESET, {})
+                    _send(RPLC_TYPE.RPS_RESET, {})
                     rtimes.rps_reset_req = util.time() + RETRY_PERIOD
                 end
             end

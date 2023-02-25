@@ -21,8 +21,7 @@ local active = false
 local registry = { {}, {}, {} } -- one registry table per period
 local callback_counter = 0
 
--- blink registered indicators
---
+-- blink registered indicators<br>
 -- this assumes it is called every 250ms, it does no checking of time on its own
 local function callback_250ms()
     if active then
@@ -55,8 +54,7 @@ function flasher.clear()
     registry = { {}, {}, {} }
 end
 
--- register a function to be called on the selected blink period
---
+-- register a function to be called on the selected blink period<br>
 -- times are not strictly enforced, but all with a given period will be set at the same time
 ---@param f function function to call each period
 ---@param period PERIOD time period option (1, 2, or 3)

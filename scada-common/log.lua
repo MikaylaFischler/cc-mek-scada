@@ -18,7 +18,7 @@ log.MODE = MODE
 -- whether to log debug messages or not
 local LOG_DEBUG = true
 
-local _log_sys = {
+local log_sys = {
     path = "/log.txt",
     mode = MODE.APPEND,
     file = nil,
@@ -33,27 +33,25 @@ local free_space = fs.getFreeSpace
 ---@param write_mode MODE
 ---@param dmesg_redirect? table terminal/window to direct dmesg to
 function log.init(path, write_mode, dmesg_redirect)
-    _log_sys.path = path
-    _log_sys.mode = write_mode
+    log_sys.path = path
+    log_sys.mode = write_mode
 
-    if _log_sys.mode == MODE.APPEND then
-        _log_sys.file = fs.open(path, "a")
+    if log_sys.mode == MODE.APPEND then
+        log_sys.file = fs.open(path, "a")
     else
-        _log_sys.file = fs.open(path, "w")
+        log_sys.file = fs.open(path, "w")
     end
 
     if dmesg_redirect then
-        _log_sys.dmesg_out = dmesg_redirect
+        log_sys.dmesg_out = dmesg_redirect
     else
-        _log_sys.dmesg_out = term.current()
+        log_sys.dmesg_out = term.current()
     end
 end
 
 -- direct dmesg output to a monitor/window
 ---@param window table window or terminal reference
-function log.direct_dmesg(window)
-    _log_sys.dmesg_out = window
-end
+function log.direct_dmesg(window) log_sys.dmesg_out = window end
 
 -- private log write function
 ---@param msg string
@@ -64,8 +62,8 @@ local function _log(msg)
 
     -- attempt to write log
     local status, result = pcall(function ()
-        _log_sys.file.writeLine(stamped)
-        _log_sys.file.flush()
+        log_sys.file.writeLine(stamped)
+        log_sys.file.flush()
     end)
 
     -- if we don't have space, we need to create a new log file
@@ -80,18 +78,18 @@ local function _log(msg)
         end
     end
 
-    if out_of_space or (free_space(_log_sys.path) < 100) then
+    if out_of_space or (free_space(log_sys.path) < 100) then
         -- delete the old log file before opening a new one
-        _log_sys.file.close()
-        fs.delete(_log_sys.path)
+        log_sys.file.close()
+        fs.delete(log_sys.path)
 
         -- re-init logger and pass dmesg_out so that it doesn't change
-        log.init(_log_sys.path, _log_sys.mode, _log_sys.dmesg_out)
+        log.init(log_sys.path, log_sys.mode, log_sys.dmesg_out)
 
         -- leave a message
-        _log_sys.file.writeLine(time_stamp .. "recycled log file")
-        _log_sys.file.writeLine(stamped)
-        _log_sys.file.flush()
+        log_sys.file.writeLine(time_stamp .. "recycled log file")
+        log_sys.file.writeLine(stamped)
+        log_sys.file.flush()
     end
 end
 
@@ -109,7 +107,7 @@ function log.dmesg(msg, tag, tag_color)
     tag = util.strval(tag)
 
     local t_stamp = string.format("%12.2f", os.clock())
-    local out = _log_sys.dmesg_out
+    local out = log_sys.dmesg_out
 
     if out ~= nil then
         local out_w, out_h = out.getSize()
@@ -197,6 +195,7 @@ function log.dmesg(msg, tag, tag_color)
 end
 
 -- print a dmesg message, but then show remaining seconds instead of timestamp
+---@nodiscard
 ---@param msg string message
 ---@param tag? string log tag
 ---@param tag_color? integer log tag color
@@ -204,7 +203,7 @@ end
 function log.dmesg_working(msg, tag, tag_color)
     local ts_coord = log.dmesg(msg, tag, tag_color)
 
-    local out = _log_sys.dmesg_out
+    local out = log_sys.dmesg_out
     local width = (ts_coord.x2 - ts_coord.x1) + 1
 
     if out ~= nil then

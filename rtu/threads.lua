@@ -1,21 +1,21 @@
-local log           = require("scada-common.log")
-local mqueue        = require("scada-common.mqueue")
-local ppm           = require("scada-common.ppm")
-local types         = require("scada-common.types")
-local util          = require("scada-common.util")
+local log          = require("scada-common.log")
+local mqueue       = require("scada-common.mqueue")
+local ppm          = require("scada-common.ppm")
+local types        = require("scada-common.types")
+local util         = require("scada-common.util")
 
-local boilerv_rtu   = require("rtu.dev.boilerv_rtu")
-local envd_rtu      = require("rtu.dev.envd_rtu")
-local imatrix_rtu   = require("rtu.dev.imatrix_rtu")
-local sna_rtu       = require("rtu.dev.sna_rtu")
-local sps_rtu       = require("rtu.dev.sps_rtu")
-local turbinev_rtu  = require("rtu.dev.turbinev_rtu")
+local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
+local envd_rtu     = require("rtu.dev.envd_rtu")
+local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
+local sna_rtu      = require("rtu.dev.sna_rtu")
+local sps_rtu      = require("rtu.dev.sps_rtu")
+local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local modbus        = require("rtu.modbus")
+local modbus       = require("rtu.modbus")
 
 local threads = {}
 
-local rtu_t = types.rtu_t
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local print = util.print
 local println = util.println
@@ -26,9 +26,11 @@ local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 function threads.thread__main(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
@@ -93,8 +95,9 @@ function threads.thread__main(smem)
                                 -- we are going to let the PPM prevent crashes
                                 -- return fault flags/codes to MODBUS queries
                                 local unit = units[i]
-                                println_ts(util.c("lost the ", unit.type, " on interface ", unit.name))
-                                log.warning(util.c("lost the ", unit.type, " unit peripheral on interface ", unit.name))
+                                local type_name = types.rtu_type_to_string(unit.type)
+                                println_ts(util.c("lost the ", type_name, " on interface ", unit.name))
+                                log.warning(util.c("lost the ", type_name, " unit peripheral on interface ", unit.name))
                                 break
                             end
                         end
@@ -112,9 +115,9 @@ function threads.thread__main(smem)
                             rtu_comms.reconnect_modem(rtu_dev.modem)
 
                             println_ts("wireless modem reconnected.")
-                            log.info("comms modem reconnected.")
+                            log.info("comms modem reconnected")
                         else
-                            log.info("wired modem reconnected.")
+                            log.info("wired modem reconnected")
                         end
                     else
                         -- relink lost peripheral to correct unit entry
@@ -129,51 +132,51 @@ function threads.thread__main(smem)
                                 -- found, re-link
                                 unit.device = device
 
-                                if unit.type == "virtual" then
+                                if unit.type == RTU_UNIT_TYPE.VIRTUAL then
                                     resend_advert = true
                                     if type == "boilerValve" then
                                         -- boiler multiblock
-                                        unit.type = rtu_t.boiler_valve
+                                        unit.type = RTU_UNIT_TYPE.BOILER_VALVE
                                     elseif type == "turbineValve" then
                                         -- turbine multiblock
-                                        unit.type = rtu_t.turbine_valve
+                                        unit.type = RTU_UNIT_TYPE.TURBINE_VALVE
                                     elseif type == "inductionPort" then
                                         -- induction matrix multiblock
-                                        unit.type = rtu_t.induction_matrix
+                                        unit.type = RTU_UNIT_TYPE.IMATRIX
                                     elseif type == "spsPort" then
                                         -- SPS multiblock
-                                        unit.type = rtu_t.sps
+                                        unit.type = RTU_UNIT_TYPE.SPS
                                     elseif type == "solarNeutronActivator" then
                                         -- SNA
-                                        unit.type = rtu_t.sna
+                                        unit.type = RTU_UNIT_TYPE.SNA
                                     elseif type == "environmentDetector" then
                                         -- advanced peripherals environment detector
-                                        unit.type = rtu_t.env_detector
+                                        unit.type = RTU_UNIT_TYPE.ENV_DETECTOR
                                     else
                                         resend_advert = false
                                         log.error(util.c("virtual device '", unit.name, "' cannot init to an unknown type (", type, ")"))
                                     end
                                 end
 
-                                if unit.type == rtu_t.boiler_valve then
+                                if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
                                     unit.rtu = boilerv_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                elseif unit.type == rtu_t.turbine_valve then
+                                elseif unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
                                     unit.rtu = turbinev_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                elseif unit.type == rtu_t.induction_matrix then
+                                elseif unit.type == RTU_UNIT_TYPE.IMATRIX then
                                     unit.rtu = imatrix_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                elseif unit.type == rtu_t.sps then
+                                elseif unit.type == RTU_UNIT_TYPE.SPS then
                                     unit.rtu = sps_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                elseif unit.type == rtu_t.sna then
+                                elseif unit.type == RTU_UNIT_TYPE.SNA then
                                     unit.rtu = sna_rtu.new(device)
-                                elseif unit.type == rtu_t.env_detector then
+                                elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
                                     unit.rtu = envd_rtu.new(device)
                                 else
                                     log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
@@ -185,8 +188,10 @@ function threads.thread__main(smem)
 
                                 unit.modbus_io = modbus.new(unit.rtu, true)
 
-                                println_ts("reconnected the " .. unit.type .. " on interface " .. unit.name)
-                                log.info("reconnected the " .. unit.type .. " on interface " .. unit.name)
+                                local type_name = types.rtu_type_to_string(unit.type)
+                                local message = util.c("reconnected the ", type_name, " on interface ", unit.name)
+                                println_ts(message)
+                                log.info(message)
 
                                 if resend_advert then
                                     rtu_comms.send_advertisement(units)
@@ -229,22 +234,24 @@ function threads.thread__main(smem)
 end
 
 -- communications handler thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 function threads.thread__comms(smem)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
         log.debug("comms thread start")
 
         -- load in from shared memory
-        local rtu_state     = smem.rtu_state
-        local rtu_comms     = smem.rtu_sys.rtu_comms
-        local units         = smem.rtu_sys.units
+        local rtu_state   = smem.rtu_state
+        local rtu_comms   = smem.rtu_sys.rtu_comms
+        local units       = smem.rtu_sys.units
 
-        local comms_queue   = smem.q.mq_comms
+        local comms_queue = smem.q.mq_comms
 
-        local last_update   = util.time()
+        local last_update = util.time()
 
         -- thread loop
         while true do
@@ -301,14 +308,16 @@ function threads.thread__comms(smem)
 end
 
 -- per-unit communications handler thread
+---@nodiscard
 ---@param smem rtu_shared_memory
 ---@param unit rtu_unit_registry_entry
 function threads.thread__unit_comms(smem, unit)
-    local public = {}   ---@class thread
+    ---@class parallel_thread
+    local public = {}
 
     -- execute thread
     function public.exec()
-        log.debug("rtu unit thread start -> " .. unit.type .. "(" .. unit.name .. ")")
+        log.debug(util.c("rtu unit thread start -> ", types.rtu_type_to_string(unit.type), "(", unit.name, ")"))
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
@@ -319,8 +328,8 @@ function threads.thread__unit_comms(smem, unit)
 
         local last_f_check = 0
 
-        local detail_name  = util.c(unit.type, " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
-        local short_name   = util.c(unit.type, " (", unit.name, ")")
+        local detail_name  = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
+        local short_name   = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ")")
 
         if packet_queue == nil then
             log.error("rtu unit thread created without a message queue, exiting...", true)
@@ -368,25 +377,25 @@ function threads.thread__unit_comms(smem, unit)
                         local type, device = ppm.mount(iface)
 
                         if device ~= nil then
-                            if type == "boilerValve" and unit.type == rtu_t.boiler_valve then
+                            if type == "boilerValve" and unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
                                 -- boiler multiblock
                                 unit.device = device
                                 unit.rtu = boilerv_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "turbineValve" and unit.type == rtu_t.turbine_valve then
+                            elseif type == "turbineValve" and unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
                                 -- turbine multiblock
                                 unit.device = device
                                 unit.rtu = turbinev_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "inductionPort" and unit.type == rtu_t.induction_matrix then
+                            elseif type == "inductionPort" and unit.type == RTU_UNIT_TYPE.IMATRIX then
                                 -- induction matrix multiblock
                                 unit.device = device
                                 unit.rtu = imatrix_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "spsPort" and unit.type == rtu_t.sps then
+                            elseif type == "spsPort" and unit.type == RTU_UNIT_TYPE.SPS then
                                 -- SPS multiblock
                                 unit.device = device
                                 unit.rtu = sps_rtu.new(device)
@@ -433,7 +442,7 @@ function threads.thread__unit_comms(smem, unit)
             end
 
             if not rtu_state.shutdown then
-                log.info(util.c("rtu unit thread ", unit.type, "(", unit.name, " restarting in 5 seconds..."))
+                log.info(util.c("rtu unit thread ", types.rtu_type_to_string(unit.type), "(", unit.name, " restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end

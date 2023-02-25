@@ -18,6 +18,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new power indicator
+---@nodiscard
 ---@param args power_indicator_args
 ---@return graphics_element element, element_id id
 local function power(args)

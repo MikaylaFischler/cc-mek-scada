@@ -2,7 +2,8 @@ local rtu = require("rtu.rtu")
 
 local sna_rtu = {}
 
--- create new solar neutron activator (sna) device
+-- create new solar neutron activator (SNA) device
+---@nodiscard
 ---@param sna table
 function sna_rtu.new(sna)
     local unit = rtu.init_unit()

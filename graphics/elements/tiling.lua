@@ -60,7 +60,7 @@ local function tiling(args)
     -- create pattern
     for y = start_y, inner_height + (start_y - 1) do
         e.window.setCursorPos(start_x, y)
-        for x = 1, inner_width do
+        for _ = 1, inner_width do
             if alternator then
                 if even then
                     e.window.blit("  ", "00", fill_a .. fill_a)

@@ -14,6 +14,7 @@ util.TICK_TIME_MS = 50
 --#region
 
 -- trinary operator
+---@nodiscard
 ---@param cond boolean|nil condition
 ---@param a any return if true
 ---@param b any return if false
@@ -57,6 +58,7 @@ end
 --#region
 
 -- get a value as a string
+---@nodiscard
 ---@param val any
 ---@return string
 function util.strval(val)
@@ -69,6 +71,7 @@ function util.strval(val)
 end
 
 -- repeat a string n times
+---@nodiscard
 ---@param str string
 ---@param n integer
 ---@return string
@@ -81,6 +84,7 @@ function util.strrep(str, n)
 end
 
 -- repeat a space n times
+---@nodiscard
 ---@param n integer
 ---@return string
 function util.spaces(n)
@@ -88,6 +92,7 @@ function util.spaces(n)
 end
 
 -- pad text to a minimum width
+---@nodiscard
 ---@param str string text
 ---@param n integer minimum width
 ---@return string
@@ -100,6 +105,7 @@ function util.pad(str, n)
 end
 
 -- wrap a string into a table of lines, supporting single dash splits
+---@nodiscard
 ---@param str string
 ---@param limit integer line limit
 ---@return table lines
@@ -147,13 +153,12 @@ function util.strwrap(str, limit)
 end
 
 -- concatenation with built-in to string
+---@nodiscard
 ---@vararg any
 ---@return string
 function util.concat(...)
     local str = ""
-    for _, v in ipairs(arg) do
-        str = str .. util.strval(v)
-    end
+    for _, v in ipairs(arg) do str = str .. util.strval(v) end
     return str
 end
 
@@ -161,15 +166,16 @@ end
 util.c = util.concat
 
 -- sprintf implementation
+---@nodiscard
 ---@param format string
 ---@vararg any
 function util.sprintf(format, ...)
     return string.format(format, table.unpack(arg))
 end
 
--- format a number string with commas as the thousands separator
---
+-- format a number string with commas as the thousands separator<br>
 -- subtracts from spaces at the start if present for each comma used
+---@nodiscard
 ---@param num string number string
 ---@return string
 function util.comma_format(num)
@@ -196,6 +202,7 @@ end
 --#region
 
 -- is a value an integer
+---@nodiscard
 ---@param x any value
 ---@return boolean is_integer if the number is an integer
 function util.is_int(x)
@@ -203,6 +210,7 @@ function util.is_int(x)
 end
 
 -- get the sign of a number
+---@nodiscard
 ---@param x number value
 ---@return integer sign (-1 for < 0, 1 otherwise)
 function util.sign(x)
@@ -210,12 +218,14 @@ function util.sign(x)
 end
 
 -- round a number to an integer
+---@nodiscard
 ---@return integer rounded
 function util.round(x)
     return math.floor(x + 0.5)
 end
 
 -- get a new moving average object
+---@nodiscard
 ---@param length integer history length
 ---@param default number value to fill history with for first call to compute()
 function util.mov_avg(length, default)
@@ -249,6 +259,7 @@ function util.mov_avg(length, default)
     end
 
     -- compute the moving average
+    ---@nodiscard
     ---@return number average
     function public.compute()
         local sum = 0
@@ -264,6 +275,7 @@ end
 -- TIME --
 
 -- current time
+---@nodiscard
 ---@return integer milliseconds
 function util.time_ms()
 ---@diagnostic disable-next-line: undefined-field
@@ -271,6 +283,7 @@ function util.time_ms()
 end
 
 -- current time
+---@nodiscard
 ---@return number seconds
 function util.time_s()
 ---@diagnostic disable-next-line: undefined-field
@@ -278,10 +291,9 @@ function util.time_s()
 end
 
 -- current time
+---@nodiscard
 ---@return integer milliseconds
-function util.time()
-    return util.time_ms()
-end
+function util.time() return util.time_ms() end
 
 --#endregion
 
@@ -289,6 +301,7 @@ end
 --#region
 
 -- OS pull event raw wrapper with types
+---@nodiscard
 ---@param target_event? string event to wait for
 ---@return os_event event, any param1, any param2, any param3, any param4, any param5
 function util.pull_event(target_event)
@@ -309,6 +322,7 @@ function util.push_event(event, param1, param2, param3, param4, param5)
 end
 
 -- start an OS timer
+---@nodiscard
 ---@param t number timer duration in seconds
 ---@return integer timer ID
 function util.start_timer(t)
@@ -336,14 +350,12 @@ function util.psleep(t)
     pcall(os.sleep, t)
 end
 
--- no-op to provide a brief pause (1 tick) to yield
----
+-- no-op to provide a brief pause (1 tick) to yield<br>
 --- EVENT_CONSUMER: this function consumes events
-function util.nop()
-    util.psleep(0.05)
-end
+function util.nop() util.psleep(0.05) end
 
 -- attempt to maintain a minimum loop timing (duration of execution)
+---@nodiscard
 ---@param target_timing integer minimum amount of milliseconds to wait for
 ---@param last_update integer millisecond time of last update
 ---@return integer time_now
@@ -351,9 +363,7 @@ end
 function util.adaptive_delay(target_timing, last_update)
     local sleep_for = target_timing - (util.time() - last_update)
     -- only if >50ms since worker loops already yield 0.05s
-    if sleep_for >= 50 then
-        util.psleep(sleep_for / 1000.0)
-    end
+    if sleep_for >= 50 then util.psleep(sleep_for / 1000.0) end
     return util.time()
 end
 
@@ -362,8 +372,7 @@ end
 -- TABLE UTILITIES --
 --#region
 
--- delete elements from a table if the passed function returns false when passed a table element
---
+-- delete elements from a table if the passed function returns false when passed a table element<br>
 -- put briefly: deletes elements that return false, keeps elements that return true
 ---@param t table table to remove elements from
 ---@param f function should return false to delete an element when passed the element: f(elem) = true|false
@@ -388,6 +397,7 @@ function util.filter_table(t, f, on_delete)
 end
 
 -- check if a table contains the provided element
+---@nodiscard
 ---@param t table table to check
 ---@param element any element to check for
 function util.table_contains(t, element)
@@ -404,11 +414,13 @@ end
 --#region
 
 -- convert Joules to FE
+---@nodiscard
 ---@param J number Joules
 ---@return number FE Forge Energy
 function util.joules_to_fe(J) return (J * 0.4) end
 
 -- convert FE to Joules
+---@nodiscard
 ---@param FE number Forge Energy
 ---@return number J Joules
 function util.fe_to_joules(FE) return (FE * 2.5) end
@@ -418,10 +430,11 @@ local function MFE(fe) return fe / 1000000.0 end
 local function GFE(fe) return fe / 1000000000.0 end
 local function TFE(fe) return fe / 1000000000000.0 end
 local function PFE(fe) return fe / 1000000000000000.0 end
-local function EFE(fe) return fe / 1000000000000000000.0 end        -- if you accomplish this please touch grass
-local function ZFE(fe) return fe / 1000000000000000000000.0 end     -- please stop
+local function EFE(fe) return fe / 1000000000000000000.0 end    -- if you accomplish this please touch grass
+local function ZFE(fe) return fe / 1000000000000000000000.0 end -- please stop
 
 -- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE, PFE, EFE, ZFE)
+---@nodiscard
 ---@param fe number forge energy value
 ---@param combine_label? boolean if a label should be included in the string itself
 ---@param format? string format override
@@ -430,9 +443,7 @@ function util.power_format(fe, combine_label, format)
     local unit
     local value
 
-    if type(format) ~= "string" then
-        format = "%.2f"
-    end
+    if type(format) ~= "string" then format = "%.2f" end
 
     if fe < 1000.0 then
         unit = "FE"
@@ -474,10 +485,10 @@ end
 
 -- WATCHDOG --
 
--- ComputerCraft OS Timer based Watchdog
+-- OS timer based watchdog<br>
+-- triggers a timer event if not fed within 'timeout' seconds
+---@nodiscard
 ---@param timeout number timeout duration
----
---- triggers a timer event if not fed within 'timeout' seconds
 function util.new_watchdog(timeout)
     local self = {
         timeout = timeout,
@@ -487,10 +498,10 @@ function util.new_watchdog(timeout)
     ---@class watchdog
     local public = {}
 
+    -- check if a timer is this watchdog
+    ---@nodiscard
     ---@param timer number timer event timer ID
-    function public.is_timer(timer)
-        return self.wd_timer == timer
-    end
+    function public.is_timer(timer) return self.wd_timer == timer end
 
     -- satiate the beast
     function public.feed()
@@ -512,10 +523,10 @@ end
 
 -- LOOP CLOCK --
 
--- ComputerCraft OS Timer based Loop Clock
+-- OS timer based loop clock<br>
+-- fires a timer event at the specified period, does not start at construct time
+---@nodiscard
 ---@param period number clock period
----
---- fires a timer event at the specified period, does not start at construct time
 function util.new_clock(period)
     local self = {
         period = period,
@@ -525,24 +536,22 @@ function util.new_clock(period)
     ---@class clock
     local public = {}
 
+    -- check if a timer is this clock
+    ---@nodiscard
     ---@param timer number timer event timer ID
-    function public.is_clock(timer)
-        return self.timer == timer
-    end
+    function public.is_clock(timer) return self.timer == timer end
 
     -- start the clock
-    function public.start()
-        self.timer = util.start_timer(self.period)
-    end
+    function public.start() self.timer = util.start_timer(self.period) end
 
     return public
 end
 
 -- FIELD VALIDATOR --
 
--- create a new type validator
---
+-- create a new type validator<br>
 -- can execute sequential checks and check valid() to see if it is still valid
+---@nodiscard
 function util.new_validator()
     local valid = true
 
@@ -565,6 +574,8 @@ function util.new_validator()
 
     function public.assert_port(port) valid = valid and type(port) == "number" and port >= 0 and port <= 65535 end
 
+    -- check if all assertions passed successfully
+    ---@nodiscard
     function public.valid() return valid end
 
     return public

@@ -1,11 +1,14 @@
+--
+-- Process Control Management
+--
 
 local comms = require("scada-common.comms")
 local log   = require("scada-common.log")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
-local FAC_COMMANDS = comms.FAC_COMMANDS
-local UNIT_COMMANDS = comms.UNIT_COMMANDS
+local FAC_COMMAND = comms.FAC_COMMAND
+local UNIT_COMMAND = comms.UNIT_COMMAND
 
 local PROCESS = types.PROCESS
 
@@ -30,11 +33,11 @@ local self = {
 --------------------------
 
 -- initialize the process controller
----@param iocontrol ioctl
----@diagnostic disable-next-line: redefined-local
-function process.init(iocontrol, comms)
+---@param iocontrol ioctl iocontrl system
+---@param coord_comms coord_comms coordinator communications
+function process.init(iocontrol, coord_comms)
     self.io = iocontrol
-    self.comms = comms
+    self.comms = coord_comms
 
     for i = 1, self.io.facility.num_units do
         self.config.limits[i] = 0.1
@@ -71,7 +74,7 @@ function process.init(iocontrol, comms)
 
     if type(waste_mode) == "table" then
         for id, mode in pairs(waste_mode) do
-            self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
+            self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
         end
 
         log.info("PROCESS: loaded waste mode settings from coord.settings")
@@ -81,7 +84,7 @@ function process.init(iocontrol, comms)
 
     if type(prio_groups) == "table" then
         for id, group in pairs(prio_groups) do
-            self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, id, group)
+            self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, id, group)
         end
 
         log.info("PROCESS: loaded priority groups settings from coord.settings")
@@ -90,45 +93,45 @@ end
 
 -- facility SCRAM command
 function process.fac_scram()
-    self.comms.send_fac_command(FAC_COMMANDS.SCRAM_ALL)
-    log.debug("FAC: SCRAM ALL")
+    self.comms.send_fac_command(FAC_COMMAND.SCRAM_ALL)
+    log.debug("PROCESS: FAC SCRAM ALL")
 end
 
 -- facility alarm acknowledge command
 function process.fac_ack_alarms()
-    self.comms.send_fac_command(FAC_COMMANDS.ACK_ALL_ALARMS)
-    log.debug("FAC: ACK ALL ALARMS")
+    self.comms.send_fac_command(FAC_COMMAND.ACK_ALL_ALARMS)
+    log.debug("PROCESS: FAC ACK ALL ALARMS")
 end
 
 -- start reactor
 ---@param id integer unit ID
 function process.start(id)
     self.io.units[id].control_state = true
-    self.comms.send_unit_command(UNIT_COMMANDS.START, id)
-    log.debug(util.c("UNIT[", id, "]: START"))
+    self.comms.send_unit_command(UNIT_COMMAND.START, id)
+    log.debug(util.c("PROCESS: UNIT[", id, "] START"))
 end
 
 -- SCRAM reactor
 ---@param id integer unit ID
 function process.scram(id)
     self.io.units[id].control_state = false
-    self.comms.send_unit_command(UNIT_COMMANDS.SCRAM, id)
-    log.debug(util.c("UNIT[", id, "]: SCRAM"))
+    self.comms.send_unit_command(UNIT_COMMAND.SCRAM, id)
+    log.debug(util.c("PROCESS: UNIT[", id, "] SCRAM"))
 end
 
 -- reset reactor protection system
 ---@param id integer unit ID
 function process.reset_rps(id)
-    self.comms.send_unit_command(UNIT_COMMANDS.RESET_RPS, id)
-    log.debug(util.c("UNIT[", id, "]: RESET RPS"))
+    self.comms.send_unit_command(UNIT_COMMAND.RESET_RPS, id)
+    log.debug(util.c("PROCESS: UNIT[", id, "] RESET RPS"))
 end
 
 -- set burn rate
 ---@param id integer unit ID
 ---@param rate number burn rate
 function process.set_rate(id, rate)
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_BURN, id, rate)
-    log.debug(util.c("UNIT[", id, "]: SET BURN = ", rate))
+    self.comms.send_unit_command(UNIT_COMMAND.SET_BURN, id, rate)
+    log.debug(util.c("PROCESS: UNIT[", id, "] SET BURN ", rate))
 end
 
 -- set waste mode
@@ -138,14 +141,12 @@ function process.set_waste(id, mode)
     -- publish so that if it fails then it gets reset
     self.io.units[id].unit_ps.publish("U_WasteMode", mode)
 
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_WASTE, id, mode)
-    log.debug(util.c("UNIT[", id, "]: SET WASTE = ", mode))
+    self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
+    log.debug(util.c("PROCESS: UNIT[", id, "] SET WASTE ", mode))
 
     local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
 
-    if type(waste_mode) ~= "table" then
-        waste_mode = {}
-    end
+    if type(waste_mode) ~= "table" then waste_mode = {} end
 
     waste_mode[id] = mode
 
@@ -159,38 +160,36 @@ end
 -- acknowledge all alarms
 ---@param id integer unit ID
 function process.ack_all_alarms(id)
-    self.comms.send_unit_command(UNIT_COMMANDS.ACK_ALL_ALARMS, id)
-    log.debug(util.c("UNIT[", id, "]: ACK ALL ALARMS"))
+    self.comms.send_unit_command(UNIT_COMMAND.ACK_ALL_ALARMS, id)
+    log.debug(util.c("PROCESS: UNIT[", id, "] ACK ALL ALARMS"))
 end
 
 -- acknowledge an alarm
 ---@param id integer unit ID
 ---@param alarm integer alarm ID
 function process.ack_alarm(id, alarm)
-    self.comms.send_unit_command(UNIT_COMMANDS.ACK_ALARM, id, alarm)
-    log.debug(util.c("UNIT[", id, "]: ACK ALARM ", alarm))
+    self.comms.send_unit_command(UNIT_COMMAND.ACK_ALARM, id, alarm)
+    log.debug(util.c("PROCESS: UNIT[", id, "] ACK ALARM ", alarm))
 end
 
 -- reset an alarm
 ---@param id integer unit ID
 ---@param alarm integer alarm ID
 function process.reset_alarm(id, alarm)
-    self.comms.send_unit_command(UNIT_COMMANDS.RESET_ALARM, id, alarm)
-    log.debug(util.c("UNIT[", id, "]: RESET ALARM ", alarm))
+    self.comms.send_unit_command(UNIT_COMMAND.RESET_ALARM, id, alarm)
+    log.debug(util.c("PROCESS: UNIT[", id, "] RESET ALARM ", alarm))
 end
 
 -- assign a unit to a group
 ---@param unit_id integer unit ID
 ---@param group_id integer|0 group ID or 0 for independent
 function process.set_group(unit_id, group_id)
-    self.comms.send_unit_command(UNIT_COMMANDS.SET_GROUP, unit_id, group_id)
-    log.debug(util.c("UNIT[", unit_id, "]: SET GROUP ", group_id))
+    self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, unit_id, group_id)
+    log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
 
     local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
 
-    if type(prio_groups) ~= "table" then
-        prio_groups = {}
-    end
+    if type(prio_groups) ~= "table" then prio_groups = {} end
 
     prio_groups[unit_id] = group_id
 
@@ -207,14 +206,14 @@ end
 
 -- stop automatic process control
 function process.stop_auto()
-    self.comms.send_fac_command(FAC_COMMANDS.STOP)
-    log.debug("FAC: STOP AUTO")
+    self.comms.send_fac_command(FAC_COMMAND.STOP)
+    log.debug("PROCESS: STOP AUTO CTL")
 end
 
 -- start automatic process control
 function process.start_auto()
     self.comms.send_auto_start(self.config)
-    log.debug("FAC: START AUTO")
+    log.debug("PROCESS: START AUTO CTL")
 end
 
 -- save process control settings
@@ -246,8 +245,6 @@ function process.save(mode, burn_target, charge_target, gen_target, limits)
         log.warning("process.save(): failed to save coordinator settings file")
     end
 
-    log.debug("saved = " .. util.strval(saved))
-
     self.io.facility.save_cfg_ack(saved)
 end
 
@@ -271,20 +268,6 @@ function process.start_ack_handle(response)
     self.io.facility.ps.publish("gen_target", self.config.gen_target)
 
     self.io.facility.start_ack(ack)
-end
-
---------------------------
--- SUPERVISOR RESPONSES --
---------------------------
-
--- acknowledgement from the supervisor to assign a unit to a group
-function process.sv_assign(unit_id, group_id)
-    self.io.units[unit_id].group = group_id
-end
-
--- acknowledgement from the supervisor to assign a unit a burn rate limit
-function process.sv_limit(unit_id, limit)
-    self.io.units[unit_id].limit = limit
 end
 
 return process

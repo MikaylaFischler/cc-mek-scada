@@ -12,6 +12,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new root display box
+---@nodiscard
 ---@param args displaybox_args
 local function displaybox(args)
     -- create new graphics element base object

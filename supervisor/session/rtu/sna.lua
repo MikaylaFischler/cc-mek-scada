@@ -1,4 +1,3 @@
-local comms        = require("scada-common.comms")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
@@ -7,7 +6,7 @@ local unit_session = require("supervisor.session.rtu.unit_session")
 
 local sna = {}
 
-local RTU_UNIT_TYPES = comms.RTU_UNIT_TYPES
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
 local TXN_TYPES = {
@@ -29,14 +28,15 @@ local PERIODICS = {
 }
 
 -- create a new sna rtu session runner
+---@nodiscard
 ---@param session_id integer RTU session ID
 ---@param unit_id integer RTU unit ID
 ---@param advert rtu_advertisement RTU advertisement table
 ---@param out_queue mqueue RTU unit message out queue
 function sna.new(session_id, unit_id, advert, out_queue)
     -- type check
-    if advert.type ~= RTU_UNIT_TYPES.SNA then
-        log.error("attempt to instantiate sna RTU for type '" .. advert.type .. "'. this is a bug.")
+    if advert.type ~= RTU_UNIT_TYPE.SNA then
+        log.error("attempt to instantiate sna RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
         return nil
     end
 
@@ -176,6 +176,7 @@ function sna.new(session_id, unit_id, advert, out_queue)
     end
 
     -- get the unit session database
+    ---@nodiscard
     function public.get_db() return self.db end
 
     return public

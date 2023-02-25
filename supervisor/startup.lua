@@ -14,7 +14,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "beta-v0.12.2"
+local SUPERVISOR_VERSION = "v0.13.1"
 
 local print = util.print
 local println = util.println
@@ -81,7 +81,7 @@ local function main()
 
     local modem = ppm.get_wireless_modem()
     if modem == nil then
-        println("boot> wireless modem not found")
+        println("startup> wireless modem not found")
         log.fatal("no wireless modem on startup")
         return
     end
@@ -110,7 +110,7 @@ local function main()
                     -- we only care if this is our wireless modem
                     if device == modem then
                         println_ts("wireless modem disconnected!")
-                        log.error("comms modem disconnected!")
+                        log.warning("comms modem disconnected")
                     else
                         log.warning("non-comms modem disconnected")
                     end
@@ -127,9 +127,9 @@ local function main()
                         superv_comms.reconnect_modem(modem)
 
                         println_ts("wireless modem reconnected.")
-                        log.info("comms modem reconnected.")
+                        log.info("comms modem reconnected")
                     else
-                        log.info("wired modem reconnected.")
+                        log.info("wired modem reconnected")
                     end
                 end
             end

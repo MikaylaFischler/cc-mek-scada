@@ -17,6 +17,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 
 -- new horizontal bar
+---@nodiscard
 ---@param args hbar_args
 ---@return graphics_element element, element_id id
 local function hbar(args)

@@ -144,7 +144,7 @@ local function rectangle(args)
                     e.window.blit(spaces, blit_fg, blit_bg_top_bot)
                 end
             else
-                if (args.thin == true) then
+                if args.thin == true then
                     e.window.blit(p_s, blit_fg_sides, blit_bg_sides)
                 else
                     e.window.blit(p_s, blit_fg, blit_bg_sides)

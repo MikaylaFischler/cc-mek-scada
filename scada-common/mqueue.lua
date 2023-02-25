@@ -4,7 +4,7 @@
 
 local mqueue = {}
 
----@alias MQ_TYPE integer
+---@enum MQ_TYPE
 local TYPE = {
     COMMAND = 0,
     DATA = 1,
@@ -14,6 +14,7 @@ local TYPE = {
 mqueue.TYPE = TYPE
 
 -- create a new message queue
+---@nodiscard
 function mqueue.new()
     local queue = {}
 
@@ -35,10 +36,13 @@ function mqueue.new()
     function public.length() return #queue end
 
     -- check if queue is empty
+    ---@nodiscard
     ---@return boolean is_empty
     function public.empty() return #queue == 0 end
 
     -- check if queue has contents
+    ---@nodiscard
+    ---@return boolean has_contents
     function public.ready() return #queue ~= 0 end
 
     -- push a new item onto the queue
@@ -68,6 +72,7 @@ function mqueue.new()
     end
 
     -- get an item off the queue
+    ---@nodiscard
     ---@return queue_item|nil
     function public.pop()
         if #queue > 0 then

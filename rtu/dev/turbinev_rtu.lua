@@ -3,6 +3,7 @@ local rtu = require("rtu.rtu")
 local turbinev_rtu = {}
 
 -- create new turbine (mek 10.1+) device
+---@nodiscard
 ---@param turbine table
 function turbinev_rtu.new(turbine)
     local unit = rtu.init_unit()
