@@ -92,37 +92,6 @@ local function init(monitor)
 
     process_ctl(main, 2, cnc_bottom_align_start)
 
-    -- testing
-    ---@fixme remove test code
-
-    -- ColorMap{parent=main,x=98,y=(main.height()-1)}
-
-    local audio = Div{parent=main,width=23,height=23,x=107,y=cnc_bottom_align_start}
-
-    PushButton{parent=audio,x=16,y=1,text="TEST 1",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_1}
-    PushButton{parent=audio,x=16,text="TEST 2",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_2}
-    PushButton{parent=audio,x=16,text="TEST 3",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_3}
-    PushButton{parent=audio,x=16,text="TEST 4",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_4}
-    PushButton{parent=audio,x=16,text="TEST 5",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_5}
-    PushButton{parent=audio,x=16,text="TEST 6",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_6}
-    PushButton{parent=audio,x=16,text="TEST 7",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_7}
-    PushButton{parent=audio,x=16,text="TEST 8",min_width=8,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_8}
-    PushButton{parent=audio,x=16,text="STOP",min_width=8,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.stop}
-    PushButton{parent=audio,x=16,text="PSCALE",min_width=8,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_power_scale}
-
-    SwitchButton{parent=audio,x=1,y=12,text="CONTAINMENT BREACH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_breach}
-    SwitchButton{parent=audio,x=1,text="CONTAINMENT RADIATION",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rad}
-    SwitchButton{parent=audio,x=1,text="REACTOR LOST",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_lost}
-    SwitchButton{parent=audio,x=1,text="CRITICAL DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_crit}
-    SwitchButton{parent=audio,x=1,text="REACTOR DAMAGE",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_dmg}
-    SwitchButton{parent=audio,x=1,text="REACTOR OVER TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_overtemp}
-    SwitchButton{parent=audio,x=1,text="REACTOR HIGH TEMP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_hightemp}
-    SwitchButton{parent=audio,x=1,text="REACTOR WASTE LEAK",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_wasteleak}
-    SwitchButton{parent=audio,x=1,text="REACTOR WASTE HIGH",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_highwaste}
-    SwitchButton{parent=audio,x=1,text="RPS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rps}
-    SwitchButton{parent=audio,x=1,text="RCS TRANSIENT",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_rcs}
-    SwitchButton{parent=audio,x=1,text="TURBINE TRIP",min_width=23,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),callback=sounder.test_turbinet}
-
     imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 
     return main
