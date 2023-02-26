@@ -329,7 +329,7 @@ function sounder.eval(units)
         if alarms[ALARM.CriticalDamage] then
             new_states[T_660Hz_Int_125ms] = true
         else
-            -- EMERGENCY level alarms
+            -- EMERGENCY level alarms + URGENT over temp
             if alarms[ALARM.ReactorDamage] or alarms[ALARM.ReactorOverTemp] or alarms[ALARM.ReactorWasteLeak] then
                 new_states[T_544Hz_440Hz_Alt] = true
             -- URGENT level turbine trip
