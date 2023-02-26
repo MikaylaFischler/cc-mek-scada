@@ -185,6 +185,7 @@ function logic.update_annunciator(self)
         for i = 1, #self.boilers do
             local session = self.boilers[i] ---@type unit_session
             local boiler = session.get_db() ---@type boilerv_session_db
+            local idx = session.get_device_idx()
 
             self.db.annunciator.RCSFault = self.db.annunciator.RCSFault or (not boiler.formed) or session.is_faulted()
 
@@ -197,10 +198,11 @@ function logic.update_annunciator(self)
                             (boiler.tanks.last_update > 0)
 
             total_boil_rate = total_boil_rate + boiler.state.boil_rate
-            boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. self.boilers[i].get_device_idx())
-            boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. self.boilers[i].get_device_idx())
+            boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. idx)
+            boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. idx)
 
-            self.db.annunciator.BoilerOnline[session.get_device_idx()] = true
+            self.db.annunciator.BoilerOnline[idx] = true
+            self.db.annunciator.WaterLevelLow[idx] = boiler.tanks.water_fill < ANNUNC_LIMS.WaterLevelLow
         end
 
         -- check heating rate low
@@ -452,7 +454,7 @@ function logic.update_alarms(self)
     -- Containment Radiation
     local rad_alarm = false
     for i = 1, #self.envd do
-        rad_alarm = self.envd[i].get_db().radiation_raw > ALARM_LIMS.HIGH_RADIATION
+        rad_alarm = self.envd[i].get_db().radiation_raw >= ALARM_LIMS.HIGH_RADIATION
         break
     end
     _update_alarm_state(self, rad_alarm, self.alarms.ContainmentRadiation)
@@ -569,7 +571,7 @@ function logic.update_status_text(self)
     if is_active(self.alarms.ContainmentBreach) then
         -- boom? or was boom disabled
         if self.plc_i ~= nil and self.plc_i.get_rps().force_dis then
-            self.status_text = { "REACTOR FORCE DISABLED", "meltdown would have occured" }
+            self.status_text = { "REACTOR FORCE DISABLED", "meltdown would have occurred" }
         else
             self.status_text = { "CORE MELTDOWN", "reactor destroyed" }
         end
@@ -594,10 +596,6 @@ function logic.update_status_text(self)
         end
     elseif is_active(self.alarms.ContainmentRadiation) then
         self.status_text = { "RADIATION DETECTED", "radiation levels above normal" }
-    -- elseif is_active(self.alarms.RPSTransient) then
-        -- RPS status handled when checking reactor status
-    elseif is_active(self.alarms.RCSTransient) then
-        self.status_text = { "RCS TRANSIENT", "check coolant system" }
     elseif is_active(self.alarms.ReactorOverTemp) then
         self.status_text = { "CORE OVER TEMP", "reactor core temperature >=1200K" }
     elseif is_active(self.alarms.ReactorWasteLeak) then
@@ -607,7 +605,11 @@ function logic.update_status_text(self)
     elseif is_active(self.alarms.ReactorHighWaste) then
         self.status_text = { "WASTE LEVEL HIGH", "waste accumulating in reactor" }
     elseif is_active(self.alarms.TurbineTrip) then
-        self.status_text = { "TURBINE TRIP", "turbine stall occured" }
+        self.status_text = { "TURBINE TRIP", "turbine stall occurred" }
+    elseif is_active(self.alarms.RCSTransient) then
+        self.status_text = { "RCS TRANSIENT", "check coolant system" }
+    -- elseif is_active(self.alarms.RPSTransient) then
+        -- RPS status handled when checking reactor status
     elseif self.emcool_opened then
         self.status_text = { "EMERGENCY COOLANT OPENED", "reset RPS to close valve" }
     -- connection dependent states
@@ -635,7 +637,7 @@ function logic.update_status_text(self)
             if plc_db.rps_trip_cause == "ok" then
                 -- hmm...
             elseif plc_db.rps_trip_cause == "dmg_crit" then
-                cause = "core damage critical"
+                cause = "core damage high"
             elseif plc_db.rps_trip_cause == "high_temp" then
                 cause = "core temperature high"
             elseif plc_db.rps_trip_cause == "no_coolant" then
@@ -694,18 +696,18 @@ function logic.handle_redstone(self)
     -- reactor controls
     if self.plc_s ~= nil then
         if (not self.plc_cache.rps_status.manual) and self.io_ctl.digital_read(IO.R_SCRAM) then
-           -- reactor SCRAM requested but not yet done; perform it
+            -- reactor SCRAM requested but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
         end
 
         if self.plc_cache.rps_trip and self.io_ctl.digital_read(IO.R_RESET) then
-           -- reactor RPS reset requested but not yet done; perform it
+            -- reactor RPS reset requested but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
         end
 
         if (not self.auto_engaged) and (not self.plc_cache.active) and
            (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ACTIVE) then
-           -- reactor enable requested and allowable, but not yet done; perform it
+            -- reactor enable requested and allowable, but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
         end
     end

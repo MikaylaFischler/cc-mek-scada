@@ -34,6 +34,7 @@ annunc.ReactorTempHigh   = 1000     -- temp > 1000K
 annunc.ReactorHighDeltaT = 50       -- rate > 50K/s
 annunc.FuelLevelLow      = 0.05     -- fill <= 5%
 annunc.WasteLevelHigh    = 0.85     -- fill >= 85%
+annunc.WaterLevelLow     = 0.4      -- fill < 40%
 annunc.SteamFeedMismatch = 10       -- ±10mB difference between total coolant flow and total steam input rate
 annunc.RadiationWarning  = 0.00001  -- 10 uSv/h
 

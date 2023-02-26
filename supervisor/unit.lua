@@ -144,7 +144,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             ReactorDamage        = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorDamage, tier = PRIO.EMERGENCY },
             -- reactor >1200K
             ReactorOverTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorOverTemp, tier = PRIO.URGENT },
-            -- reactor >1150K
+            -- reactor >=1150K
             ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
             -- waste = 100%
             ReactorWasteLeak     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorWasteLeak, tier = PRIO.EMERGENCY },
