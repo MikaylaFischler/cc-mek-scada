@@ -2,10 +2,10 @@
     "versions": {
         "bootloader": "0.2",
         "comms": "1.4.0",
-        "reactor-plc": "v0.12.1",
-        "rtu": "v0.12.2",
-        "supervisor": "v0.13.3",
-        "coordinator": "v0.11.5",
+        "reactor-plc": "v0.12.2",
+        "rtu": "v0.12.3",
+        "supervisor": "v0.13.4",
+        "coordinator": "v0.11.6",
         "pocket": "alpha-v0.0.0"
     },
     "files": {

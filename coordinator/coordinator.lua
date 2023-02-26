@@ -610,8 +610,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                 local timestamp = packet.data[1]
                                 local trip_time = util.time() - timestamp
 
-                                if trip_time > 500 then
-                                    log.warning("coord KEEP_ALIVE trip time > 500ms (" .. trip_time .. "ms)")
+                                if trip_time > 750 then
+                                    log.warning("coord KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
                                 -- log.debug("coord RTT = " .. trip_time .. "ms")

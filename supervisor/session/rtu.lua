@@ -246,8 +246,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
-                    if self.last_rtt > 500 then
-                        log.warning(log_header .. "RTU KEEP_ALIVE round trip time > 500ms (" .. self.last_rtt .. "ms)")
+                    if self.last_rtt > 750 then
+                        log.warning(log_header .. "RTU KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
                     -- log.debug(log_header .. "RTU RTT = " .. self.last_rtt .. "ms")
