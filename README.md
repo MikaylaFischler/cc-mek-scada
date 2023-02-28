@@ -62,7 +62,7 @@ TBD, I am planning on AES symmetric encryption for security + HMAC to prevent re
 
 This is somewhat important here as otherwise anyone can just control your setup, which is undeseriable. Unlike normal Minecraft PVP chaos, it would be very difficult to identify who is messing with your system, as with an Ender Modem they can do it from effectively anywhere and the server operators would have to check every computer's filesystem to find suspicious code. 
 
-The only other possible security mitigation for commanding (no effect on monitoring) is to enforce a maximum authorized transmission range (which I will probably also do, or maybe fall back to), as modem message events contain the transmission distance.
+The other security mitigation for commanding (no effect on monitoring) is to enforce a maximum authorized transmission range, which has been added as a configurable feature.
 
 ## Known Issues
 
