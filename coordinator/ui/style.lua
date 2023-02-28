@@ -1,3 +1,6 @@
+--
+-- Graphics Style Options
+--
 
 local core = require("graphics.core")
 

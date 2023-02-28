@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "v0.11.6"
+local COORDINATOR_VERSION = "v0.11.7"
 
 local print = util.print
 local println = util.println
@@ -45,7 +45,6 @@ cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_UNITS)
-cfv.assert_type_bool(config.RECOLOR)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
@@ -88,7 +87,7 @@ local function main()
 
     -- init renderer
     renderer.set_displays(monitors)
-    renderer.reset(config.RECOLOR)
+    renderer.init_displays()
 
     if not renderer.validate_main_display_width() then
         println("startup> main display must be 8 blocks wide")

@@ -27,29 +27,18 @@ local ui = {
     unit_layouts = {}
 }
 
--- reset a display to the "default", but set text scale to 0.5
+-- init a display to the "default", but set text scale to 0.5
 ---@param monitor table monitor
----@param recolor? boolean override default color palette
-local function _reset_display(monitor, recolor)
+local function _init_display(monitor)
     monitor.setTextScale(0.5)
     monitor.setTextColor(colors.white)
     monitor.setBackgroundColor(colors.black)
     monitor.clear()
     monitor.setCursorPos(1, 1)
 
-    if recolor then
-        -- set overridden colors
-        for i = 1, #style.colors do
-            monitor.setPaletteColor(style.colors[i].c, style.colors[i].hex)
-        end
-    else
-        -- reset all colors
-        for _, val in pairs(colors) do
-            -- colors api has constants and functions, just get color constants
-            if type(val) == "number" then
-                monitor.setPaletteColor(val, term.nativePaletteColor(val))
-            end
-        end
+    -- set overridden colors
+    for i = 1, #style.colors do
+        monitor.setPaletteColor(style.colors[i].c, style.colors[i].hex)
     end
 end
 
@@ -79,15 +68,14 @@ function renderer.is_monitor_used(periph)
     return false
 end
 
--- reset all displays in use by the renderer
----@param recolor? boolean true to use color palette from style
-function renderer.reset(recolor)
-    -- reset primary monitor
-    _reset_display(engine.monitors.primary, recolor)
+-- init all displays in use by the renderer
+function renderer.init_displays()
+    -- init primary monitor
+    _init_display(engine.monitors.primary)
 
-    -- reset unit displays
+    -- init unit displays
     for _, monitor in pairs(engine.monitors.unit_displays) do
-        _reset_display(monitor, recolor)
+        _init_display(monitor)
     end
 end
 
