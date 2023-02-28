@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9e"
+local VERSION = "v0.9f"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -350,7 +350,7 @@ elseif mode == "install" or mode == "update" then
     -- START INSTALL/UPDATE --
     --------------------------
 
-    local space_required = 0
+    local space_required = manifest.sizes.manifest
     local space_available = fs.getFreeSpace("/")
 
     local single_file_mode = false
@@ -372,7 +372,7 @@ elseif mode == "install" or mode == "update" then
         term.setTextColor(colors.yellow)
         println("WARNING: Insufficient space available for a full download!")
         term.setTextColor(colors.white)
-        println("Files will be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
+        println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         println("Do you wish to continue? (y/N)")
 
         local confirm = read()

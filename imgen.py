@@ -42,54 +42,63 @@ def get_version(path, is_comms = False):
 
     return ver
 
-# installation manifest
-manifest = {
-    "versions" : {
-        "bootloader" : get_version("."),
-        "comms" : get_version("./scada-common/comms.lua", True),
-        "reactor-plc" : get_version("./reactor-plc"),
-        "rtu" : get_version("./rtu"),
-        "supervisor" : get_version("./supervisor"),
-        "coordinator" : get_version("./coordinator"),
-        "pocket" : get_version("./pocket")
-    },
-    "files" : {
-        # common files
-        "system" : [ "initenv.lua", "startup.lua" ],
-        "common" : list_files("./scada-common"),
-        "graphics" : list_files("./graphics"),
-        "lockbox" : list_files("./lockbox"),
-        # platform files
-        "reactor-plc" : list_files("./reactor-plc"),
-        "rtu" : list_files("./rtu"),
-        "supervisor" : list_files("./supervisor"),
-        "coordinator" : list_files("./coordinator"),
-        "pocket" : list_files("./pocket"),
-    },
-    "depends" : {
-        "reactor-plc" : [ "system", "common" ],
-        "rtu" : [ "system", "common" ],
-        "supervisor" : [ "system", "common" ],
-        "coordinator" : [ "system", "common", "graphics" ],
-        "pocket" : [ "system", "common", "graphics" ]
-    },
-    "sizes" : {
-        # common files
-        "system" : os.path.getsize("initenv.lua") + os.path.getsize("startup.lua"),
-        "common" : dir_size("./scada-common"),
-        "graphics" : dir_size("./graphics"),
-        "lockbox" : dir_size("./lockbox"),
-        # platform files
-        "reactor-plc" : dir_size("./reactor-plc"),
-        "rtu" : dir_size("./rtu"),
-        "supervisor" : dir_size("./supervisor"),
-        "coordinator" : dir_size("./coordinator"),
-        "pocket" : dir_size("./pocket"),
+# generate installation manifest object
+def make_manifest(size):
+    manifest = {
+        "versions" : {
+            "bootloader" : get_version("."),
+            "comms" : get_version("./scada-common/comms.lua", True),
+            "reactor-plc" : get_version("./reactor-plc"),
+            "rtu" : get_version("./rtu"),
+            "supervisor" : get_version("./supervisor"),
+            "coordinator" : get_version("./coordinator"),
+            "pocket" : get_version("./pocket")
+        },
+        "files" : {
+            # common files
+            "system" : [ "initenv.lua", "startup.lua" ],
+            "common" : list_files("./scada-common"),
+            "graphics" : list_files("./graphics"),
+            "lockbox" : list_files("./lockbox"),
+            # platform files
+            "reactor-plc" : list_files("./reactor-plc"),
+            "rtu" : list_files("./rtu"),
+            "supervisor" : list_files("./supervisor"),
+            "coordinator" : list_files("./coordinator"),
+            "pocket" : list_files("./pocket"),
+        },
+        "depends" : {
+            "reactor-plc" : [ "system", "common" ],
+            "rtu" : [ "system", "common" ],
+            "supervisor" : [ "system", "common" ],
+            "coordinator" : [ "system", "common", "graphics" ],
+            "pocket" : [ "system", "common", "graphics" ]
+        },
+        "sizes" : {
+            # manifest file estimate
+            "manifest" : size,
+            # common files
+            "system" : os.path.getsize("initenv.lua") + os.path.getsize("startup.lua"),
+            "common" : dir_size("./scada-common"),
+            "graphics" : dir_size("./graphics"),
+            "lockbox" : dir_size("./lockbox"),
+            # platform files
+            "reactor-plc" : dir_size("./reactor-plc"),
+            "rtu" : dir_size("./rtu"),
+            "supervisor" : dir_size("./supervisor"),
+            "coordinator" : dir_size("./coordinator"),
+            "pocket" : dir_size("./pocket"),
+        }
     }
-}
 
+    return manifest
+
+# write initial manifest with placeholder size
 f = open("install_manifest.json", "w")
+json.dump(make_manifest("-----"), f)
+f.close()
 
-json.dump(manifest, f)
-
+# calculate file size then regenerate with embedded size
+f = open("install_manifest.json", "w")
+json.dump(make_manifest(os.path.getsize("install_manifest.json")), f)
 f.close()
