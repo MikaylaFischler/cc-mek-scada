@@ -61,6 +61,7 @@ local waste_opts = {
 ---@param id integer
 local function init(parent, id)
     local unit = iocontrol.get_db().units[id]   ---@type ioctl_unit
+    local f_ps = iocontrol.get_db().facility.ps
     local u_ps = unit.unit_ps
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
@@ -504,12 +505,13 @@ local function init(parent, id)
         start_button_en_check()
 
         if auto_active then
-            set_grp_btn.disable()
             a_stb.update(unit.reactor_data.mek_status.status == false)
-        else
-            set_grp_btn.enable()
-            a_stb.update(false)
-        end
+        else a_stb.update(false) end
+    end)
+
+    -- can't change group if auto is engaged regardless of if this unit is part of auto control
+    f_ps.subscribe("auto_active", function (auto_active)
+        if auto_active then set_grp_btn.disable() else set_grp_btn.enable() end
     end)
 
     return main
