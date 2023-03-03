@@ -98,7 +98,9 @@ f = open("install_manifest.json", "w")
 json.dump(make_manifest("-----"), f)
 f.close()
 
+manifest_size = os.path.getsize("install_manifest.json")
+
 # calculate file size then regenerate with embedded size
 f = open("install_manifest.json", "w")
-json.dump(make_manifest(os.path.getsize("install_manifest.json")), f)
+json.dump(make_manifest(manifest_size), f)
 f.close()

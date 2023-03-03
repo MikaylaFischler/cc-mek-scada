@@ -117,7 +117,7 @@ function coordinator.configure_monitors(num_units)
 
             while display == nil and #names > 0 do
                 -- lets get a monitor
-                println("please select monitor for unit " .. i)
+                println("please select monitor for unit #" .. i)
                 display = ask_monitor(names)
             end
 
@@ -131,7 +131,8 @@ function coordinator.configure_monitors(num_units)
             local display = unit_displays[i]
 
             if not util.table_contains(names, display) then
-                local response = dialog.ask_y_n("unit display " .. i .. " is not connected, would you like to change it?", true)
+                println("unit #" .. i .. " display is not connected")
+                local response = dialog.ask_y_n("would you like to change it", true)
                 if response == false then return false end
                 display = nil
             end
@@ -210,6 +211,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
         sv_linked = false,
         sv_seq_num = 0,
         sv_r_seq_num = nil,
+        sv_config_err = false,
         connected = false,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
@@ -295,7 +297,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
         clock.start()
 
-        while (util.time_s() - start) < timeout_s and not self.sv_linked do
+        while (util.time_s() - start) < timeout_s and (not self.sv_linked) and (not self.sv_config_err) do
             local event, p1, p2, p3, p4, p5 = util.pull_event()
 
             if event == "timer" and clock.is_clock(p1) then
@@ -319,6 +321,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
         if terminated then
             coordinator.log_comms("supervisor connection attempt cancelled by user")
+        elseif self.sv_config_err then
+            coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
         elseif not self.sv_linked then
             if self.last_est_ack == ESTABLISH_ACK.DENY then
                 coordinator.log_comms("supervisor connection attempt denied")
@@ -569,8 +573,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                         iocontrol.init(conf, public)
 
                                         self.sv_linked = true
+                                        self.sv_config_err = false
                                     else
-                                        log.debug("invalid supervisor configuration definitions received, establish failed")
+                                        self.sv_config_err = true
+                                        log.warning("invalid supervisor configuration definitions received, establish failed")
                                     end
                                 else
                                     log.debug("invalid supervisor configuration table received, establish failed")
