@@ -669,12 +669,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- READ STATES/PROPERTIES --
     --#region
 
-    -- check if a critical alarm is tripped
+    -- check if an alarm of at least a certain priority level is tripped
     ---@nodiscard
+    ---@param min_prio ALARM_PRIORITY alarms with this priority or higher will be checked
     ---@return boolean tripped
-    function public.has_critical_alarm()
+    function public.has_alarm_min_prio(min_prio)
         for _, alarm in pairs(self.alarms) do
-            if alarm.tier == PRIO.CRITICAL and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
+            if alarm.tier <= min_prio and (alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED) then
                 return true
             end
         end

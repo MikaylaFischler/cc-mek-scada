@@ -10,6 +10,7 @@ local rsctl = require("supervisor.session.rsctl")
 
 local PROCESS = types.PROCESS
 local PROCESS_NAMES = types.PROCESS_NAMES
+local PRIO = types.ALARM_PRIORITY
 
 local IO = rsio.IO
 
@@ -569,7 +570,7 @@ function facility.new(num_reactors, cooling_conf)
             for i = 1, #self.units do
                 local u = self.units[i] ---@type reactor_unit
 
-                if u.has_critical_alarm() then
+                if u.has_alarm_min_prio(PRIO.CRITICAL) then
                     astatus.crit_alarm = true
                     break
                 end
@@ -677,12 +678,12 @@ function facility.new(num_reactors, cooling_conf)
             -- handle facility ack
             if self.io_ctl.digital_read(IO.F_ACK) then public.ack_all() end
 
-            -- update facility alarm output
+            -- update facility alarm output (check if emergency+ alarms are active)
             local has_alarm = false
             for i = 1, #self.units do
                 local u = self.units[i]     ---@type reactor_unit
 
-                if u.has_critical_alarm() then
+                if u.has_alarm_min_prio(PRIO.EMERGENCY) then
                     has_alarm = true
                     return
                 end
