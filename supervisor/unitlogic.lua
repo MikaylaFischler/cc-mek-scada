@@ -153,7 +153,7 @@ function logic.update_annunciator(self)
     for i = 1, #self.envd do
         local envd = self.envd[i]   ---@type unit_session
         self.db.annunciator.RadiationMonitor = util.trinary(envd.is_faulted(), 2, 3)
-        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw > ANNUNC_LIMS.RadiationWarning
+        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw >= ANNUNC_LIMS.RadiationWarning
         break
     end
 
