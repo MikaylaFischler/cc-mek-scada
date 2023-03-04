@@ -84,6 +84,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         deltas = {},
         last_heartbeat = 0,
         last_radiation = 0,
+        damage_decreasing = false,
         damage_initial = 0,
         damage_start = 0,
         damage_last = 0,

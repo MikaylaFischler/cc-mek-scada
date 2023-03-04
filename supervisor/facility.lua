@@ -685,7 +685,7 @@ function facility.new(num_reactors, cooling_conf)
 
                 if u.has_alarm_min_prio(PRIO.EMERGENCY) then
                     has_alarm = true
-                    return
+                    break
                 end
             end
 
