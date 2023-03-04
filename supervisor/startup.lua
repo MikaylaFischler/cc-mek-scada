@@ -14,7 +14,7 @@ local svsessions = require("supervisor.session.svsessions")
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "v0.13.4"
+local SUPERVISOR_VERSION = "v0.13.5"
 
 local print = util.print
 local println = util.println
@@ -43,15 +43,18 @@ cfv.assert_type_int(config.LOG_MODE)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
+cfv.assert_eq(#config.REACTOR_COOLING, config.NUM_REACTORS)
+assert(cfv.valid(), "config: number of cooling configs different than number of units")
+
 for i = 1, config.NUM_REACTORS do
     cfv.assert_type_table(config.REACTOR_COOLING[i])
-    assert(cfv.valid(), "missing cooling entry for reactor " .. i)
+    assert(cfv.valid(), "config: missing cooling entry for reactor " .. i)
     cfv.assert_type_int(config.REACTOR_COOLING[i].BOILERS)
     cfv.assert_type_int(config.REACTOR_COOLING[i].TURBINES)
-    assert(cfv.valid(), "missing boilers/turbines for reactor " .. i)
+    assert(cfv.valid(), "config: missing boilers/turbines for reactor " .. i)
     cfv.assert_min(config.REACTOR_COOLING[i].BOILERS, 0)
     cfv.assert_min(config.REACTOR_COOLING[i].TURBINES, 1)
-    assert(cfv.valid(), "bad number of boilers/turbines for reactor " .. i)
+    assert(cfv.valid(), "config: bad number of boilers/turbines for reactor " .. i)
 end
 
 ----------------------------------------

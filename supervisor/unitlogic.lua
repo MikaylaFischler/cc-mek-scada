@@ -706,7 +706,7 @@ function logic.handle_redstone(self)
         end
 
         if (not self.auto_engaged) and (not self.plc_cache.active) and
-           (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ACTIVE) then
+           (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ENABLE) then
             -- reactor enable requested and allowable, but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
         end
@@ -739,7 +739,7 @@ function logic.handle_redstone(self)
 
     local has_alarm = false
     for i = 1, #self.db.alarm_states do
-        if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
+        if self.db.alarm_states[i] == ALARM_STATE.TRIPPED or self.db.alarm_states[i] == ALARM_STATE.ACKED then
             has_alarm = true
             break
         end

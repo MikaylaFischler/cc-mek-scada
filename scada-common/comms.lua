@@ -141,9 +141,9 @@ function comms.scada_packet()
     local self = {
         modem_msg_in = nil,
         valid = false,
-        raw = { -1, -1, {} },
+        raw = { -1, PROTOCOL.SCADA_MGMT, {} },
         seq_num = -1,
-        protocol = -1,
+        protocol = PROTOCOL.SCADA_MGMT,
         length = 0,
         payload = {}
     }

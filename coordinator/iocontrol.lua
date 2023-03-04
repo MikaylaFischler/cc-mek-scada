@@ -11,6 +11,7 @@ local process = require("coordinator.process")
 local sounder = require("coordinator.sounder")
 
 local ALARM_STATE = types.ALARM_STATE
+local PROCESS = types.PROCESS
 
 local iocontrol = {}
 
@@ -301,7 +302,7 @@ function iocontrol.update_facility_status(status)
             fac.auto_ready = ctl_status[2]
 
             if type(ctl_status[3]) == "number" then
-                fac.auto_active = ctl_status[3] > 1
+                fac.auto_active = ctl_status[3] > PROCESS.INACTIVE
             else
                 fac.auto_active = false
                 valid = false

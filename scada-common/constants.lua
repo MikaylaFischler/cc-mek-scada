@@ -16,7 +16,7 @@ local rps = {}
 rps.MAX_DAMAGE_PERCENT      = 90    -- damage >= 90%
 rps.MAX_DAMAGE_TEMPERATURE  = 1200  -- temp >= 1200K
 rps.MIN_COOLANT_FILL        = 0.10  -- fill < 10%
-rps.MAX_WASTE_FILL          = 0.8   -- fill > 80%
+rps.MAX_WASTE_FILL          = 0.95  -- fill > 95%
 rps.MAX_HEATED_COLLANT_FILL = 0.95  -- fill > 95%
 rps.NO_FUEL_FILL            = 0.0   -- fill <= 0%
 
@@ -33,7 +33,7 @@ annunc.CoolantLevelLow   = 0.4      -- fill < 40%
 annunc.ReactorTempHigh   = 1000     -- temp > 1000K
 annunc.ReactorHighDeltaT = 50       -- rate > 50K/s
 annunc.FuelLevelLow      = 0.05     -- fill <= 5%
-annunc.WasteLevelHigh    = 0.85     -- fill >= 85%
+annunc.WasteLevelHigh    = 0.80     -- fill >= 80%
 annunc.WaterLevelLow     = 0.4      -- fill < 40%
 annunc.SteamFeedMismatch = 10       -- ±10mB difference between total coolant flow and total steam input rate
 annunc.RadiationWarning  = 0.00001  -- 10 uSv/h
@@ -49,7 +49,7 @@ local alarms = {}
 -- unit alarms
 
 alarms.HIGH_TEMP      = 1150        -- temp >= 1150K
-alarms.HIGH_WASTE     = 0.5         -- fill > 50%
+alarms.HIGH_WASTE     = 0.85        -- fill > 85%
 alarms.HIGH_RADIATION = 0.00005     -- 50 uSv/h, not yet damaging but this isn't good
 
 -- facility alarms

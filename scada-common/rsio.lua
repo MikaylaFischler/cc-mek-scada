@@ -52,7 +52,7 @@ local IO_PORT = {
     -- digital outputs --
 
     -- facility
-    F_ALARM       = 7,  -- active high, facility alarm (any high priority unit alarm)
+    F_ALARM       = 7,  -- active high, facility-wide alarm (any high priority unit alarm)
 
     -- waste
     WASTE_PU      = 8,  -- active low, waste -> plutonium -> pellets route
@@ -75,7 +75,7 @@ local IO_PORT = {
     R_PLC_TIMEOUT = 23, -- active high, if the reactor PLC has not been heard from
 
     -- unit outputs
-    U_ALARM       = 24,  -- active high, unit alarm
+    U_ALARM       = 24, -- active high, unit alarm
     U_EMER_COOL   = 25  -- active low, emergency coolant control
 }
 
