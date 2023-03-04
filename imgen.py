@@ -27,7 +27,6 @@ def get_version(path, is_comms = False):
     string = "comms.version = \""
 
     if not is_comms:
-        path = path + "/startup.lua"
         string = "_VERSION = \""
 
     f = open(path, "r")
@@ -46,13 +45,14 @@ def get_version(path, is_comms = False):
 def make_manifest(size):
     manifest = {
         "versions" : {
-            "bootloader" : get_version("."),
+            "installer" : get_version("./ccmsi.lua"),
+            "bootloader" : get_version("./startup.lua"),
             "comms" : get_version("./scada-common/comms.lua", True),
-            "reactor-plc" : get_version("./reactor-plc"),
-            "rtu" : get_version("./rtu"),
-            "supervisor" : get_version("./supervisor"),
-            "coordinator" : get_version("./coordinator"),
-            "pocket" : get_version("./pocket")
+            "reactor-plc" : get_version("./reactor-plc/startup.lua"),
+            "rtu" : get_version("./rtu/startup.lua"),
+            "supervisor" : get_version("./supervisor/startup.lua"),
+            "coordinator" : get_version("./coordinator/startup.lua"),
+            "pocket" : get_version("./pocket/startup.lua")
         },
         "files" : {
             # common files

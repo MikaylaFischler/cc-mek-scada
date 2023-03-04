@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9h"
+local CCMSI_VERSION = "v0.9i"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -57,7 +57,7 @@ end
 -- get and validate command line options
 --
 
-println("-- CC Mekanism SCADA Installer " .. VERSION .. " --")
+println("-- CC Mekanism SCADA Installer " .. CCMSI_VERSION .. " --")
 
 if #opts == 0 or opts[1] == "help" then
     println("usage: ccmsi <mode> <app> <tag/branch>")
@@ -256,6 +256,12 @@ elseif mode == "install" or mode == "update" then
             term.setTextColor(colors.white)
             return
         end
+    end
+
+    if manifest.versions.installer ~= local_manifest.versions.installer then
+        term.setTextColor(colors.orange)
+        println("a newer version of the installer is available, consider downloading it")
+        term.setTextColor(colors.white)
     end
 
     local remote_app_version = manifest.versions[app]
