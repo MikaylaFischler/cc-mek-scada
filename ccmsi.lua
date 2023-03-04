@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9g"
+local VERSION = "v0.9h"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -497,17 +497,19 @@ elseif mode == "install" or mode == "update" then
                 term.setTextColor(colors.lightGray)
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("GET " .. file)
-                    local dl, err = http.get(repo_path .. file)
+                    if mode == "install" or file ~= config_file then
+                        println("GET " .. file)
+                        local dl, err = http.get(repo_path .. file)
 
-                    if dl == nil then
-                        println("GET HTTP Error " .. err)
-                        success = false
-                        break
-                    else
-                        local handle = fs.open("/" .. file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
+                        if dl == nil then
+                            println("GET HTTP Error " .. err)
+                            success = false
+                            break
+                        else
+                            local handle = fs.open("/" .. file, "w")
+                            handle.write(dl.readAll())
+                            handle.close()
+                        end
                     end
                 end
             end
