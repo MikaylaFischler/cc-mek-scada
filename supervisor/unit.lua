@@ -83,6 +83,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         -- state tracking
         deltas = {},
         last_heartbeat = 0,
+        last_radiation = 0,
         damage_initial = 0,
         damage_start = 0,
         damage_last = 0,

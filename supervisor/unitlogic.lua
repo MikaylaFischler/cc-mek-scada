@@ -454,7 +454,8 @@ function logic.update_alarms(self)
     -- Containment Radiation
     local rad_alarm = false
     for i = 1, #self.envd do
-        rad_alarm = self.envd[i].get_db().radiation_raw >= ALARM_LIMS.HIGH_RADIATION
+        self.last_radiation = self.envd[i].get_db().radiation_raw
+        rad_alarm = self.last_radiation >= ALARM_LIMS.HIGH_RADIATION
         break
     end
     _update_alarm_state(self, rad_alarm, self.alarms.ContainmentRadiation)
@@ -595,7 +596,21 @@ function logic.update_status_text(self)
             self.status_text[2] = "estimating time to critical..."
         end
     elseif is_active(self.alarms.ContainmentRadiation) then
-        self.status_text = { "RADIATION DETECTED", "radiation levels above normal" }
+        self.status_text[1] = "RADIATION DETECTED"
+
+        if self.last_radiation >= const.EXTREME_RADIATION then
+            self.status_text[2] = "extremely high radiation level"
+        elseif self.last_radiation >= const.SEVERE_RADIATION then
+            self.status_text[2] = "severely high radiation level"
+        elseif self.last_radiation >= const.VERY_HIGH_RADIATION then
+            self.status_text[2] = "very high level of radiation"
+        elseif self.last_radiation >= const.HIGH_RADIATION then
+            self.status_text[2] = "high level of radiation"
+        elseif self.last_radiation >= const.HAZARD_RADIATION then
+            self.status_text[2] = "hazardous level of radiation"
+        else
+            self.status_text[2] = "elevated level of radiation"
+        end
     elseif is_active(self.alarms.ReactorOverTemp) then
         self.status_text = { "CORE OVER TEMP", "reactor core temperature >=1200K" }
     elseif is_active(self.alarms.ReactorWasteLeak) then
@@ -663,6 +678,9 @@ function logic.update_status_text(self)
             end
 
             self.status_text = { "RPS SCRAM", cause }
+        elseif self.db.annunciator.RadiationWarning then
+            -- elevated, non-hazardous level of radiation is low priority, so display it now if everything else was fine
+            self.status_text = { "RADIATION DETECTED", "elevated level of radiation" }
         else
             self.status_text[1] = "IDLE"
 
@@ -675,6 +693,9 @@ function logic.update_status_text(self)
                 self.status_text[2] = "core hot"
             end
         end
+    elseif self.db.annunciator.RadiationWarning then
+        -- in case PLC was disconnected but radiation is present
+        self.status_text = { "RADIATION DETECTED", "elevated level of radiation" }
     else
         self.status_text = { "REACTOR OFF-LINE", "awaiting connection..." }
     end
