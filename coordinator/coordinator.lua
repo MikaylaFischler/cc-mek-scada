@@ -47,6 +47,7 @@ end
 
 -- configure monitor layout
 ---@param num_units integer number of units expected
+---@return boolean success, monitors_struct? monitors
 function coordinator.configure_monitors(num_units)
     ---@class monitors_struct
     local monitors = {
@@ -58,10 +59,12 @@ function coordinator.configure_monitors(num_units)
 
     local monitors_avail = ppm.get_monitor_list()
     local names = {}
+    local available = {}
 
     -- get all interface names
     for iface, _ in pairs(monitors_avail) do
         table.insert(names, iface)
+        table.insert(available, iface)
     end
 
     -- we need a certain number of monitors (1 per unit + 1 primary display)
@@ -76,6 +79,15 @@ function coordinator.configure_monitors(num_units)
     -- attempt to load settings
     if not settings.load("/coord.settings") then
         log.warning("configure_monitors(): failed to load coordinator settings file (may not exist yet)")
+    else
+        local _primary = settings.get("PRIMARY_DISPLAY")
+        local _unitd = settings.get("UNIT_DISPLAYS")
+
+        -- filter out already assigned monitors
+        util.filter_table(available, function (x) return x ~= _primary end)
+        if type(_unitd) == "table" then
+            util.filter_table(available, function (x) return not util.table_contains(_unitd, x) end)
+        end
     end
 
     ---------------------
@@ -91,15 +103,15 @@ function coordinator.configure_monitors(num_units)
         iface_primary_display = nil
     end
 
-    while iface_primary_display == nil and #names > 0 do
+    while iface_primary_display == nil and #available > 0 do
         -- lets get a monitor
-        iface_primary_display = ask_monitor(names)
+        iface_primary_display = ask_monitor(available)
     end
 
     if type(iface_primary_display) ~= "string" then return false end
 
     settings.set("PRIMARY_DISPLAY", iface_primary_display)
-    util.filter_table(names, function (x) return x ~= iface_primary_display end)
+    util.filter_table(available, function (x) return x ~= iface_primary_display end)
 
     monitors.primary = ppm.get_periph(iface_primary_display)
     monitors.primary_name = iface_primary_display
@@ -115,10 +127,10 @@ function coordinator.configure_monitors(num_units)
         for i = 1, num_units do
             local display = nil
 
-            while display == nil and #names > 0 do
+            while display == nil and #available > 0 do
                 -- lets get a monitor
                 println("please select monitor for unit #" .. i)
-                display = ask_monitor(names)
+                display = ask_monitor(available)
             end
 
             if display == false then return false end
@@ -137,9 +149,9 @@ function coordinator.configure_monitors(num_units)
                 display = nil
             end
 
-            while display == nil and #names > 0 do
+            while display == nil and #available > 0 do
                 -- lets get a monitor
-                display = ask_monitor(names)
+                display = ask_monitor(available)
             end
 
             if display == false then return false end
