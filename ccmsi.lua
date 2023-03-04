@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local VERSION = "v0.9f"
+local VERSION = "v0.9g"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -376,7 +376,7 @@ elseif mode == "install" or mode == "update" then
         println("Do you wish to continue? (y/N)")
 
         local confirm = read()
-        if confirm ~= "y" or confirm ~= "Y" then
+        if confirm ~= "y" and confirm ~= "Y" then
             println("installation cancelled")
             return
         end
