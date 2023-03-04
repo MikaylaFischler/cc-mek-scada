@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v0.9i"
+local CCMSI_VERSION = "v0.9j"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -164,6 +164,8 @@ if mode == "check" then
         term.setTextColor(colors.white)
     end
 
+    local_manifest.versions.installer = CCMSI_VERSION
+
     -- list all versions
     for key, value in pairs(manifest.versions) do
         term.setTextColor(colors.purple)
@@ -256,12 +258,13 @@ elseif mode == "install" or mode == "update" then
             term.setTextColor(colors.white)
             return
         end
-    end
 
-    if manifest.versions.installer ~= local_manifest.versions.installer then
-        term.setTextColor(colors.orange)
-        println("a newer version of the installer is available, consider downloading it")
-        term.setTextColor(colors.white)
+        local_manifest.versions.installer = CCMSI_VERSION
+        if manifest.versions.installer ~= CCMSI_VERSION then
+            term.setTextColor(colors.yellow)
+            println("a newer version of the installer is available, consider downloading it")
+            term.setTextColor(colors.white)
+        end
     end
 
     local remote_app_version = manifest.versions[app]
