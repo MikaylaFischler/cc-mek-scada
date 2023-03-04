@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v0.9l"
+local CCMSI_VERSION = "v0.9m"
 
 local install_dir = "/.install-cache"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
@@ -163,7 +163,7 @@ if mode == "check" then
         println("failed to load local installation information")
         term.setTextColor(colors.white)
 
-        local_manifest.versions = { installer = CCMSI_VERSION }
+        local_manifest = { versions = { installer = CCMSI_VERSION } }
     else
         local_manifest.versions.installer = CCMSI_VERSION
     end
@@ -172,7 +172,7 @@ if mode == "check" then
     for key, value in pairs(manifest.versions) do
         term.setTextColor(colors.purple)
         print(string.format("%-14s", "[" .. key .. "]"))
-        if local_ok and (local_manifest.versions[key] ~= nil) then
+        if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
             term.setTextColor(colors.blue)
             print(local_manifest.versions[key])
             if value ~= local_manifest.versions[key] then
