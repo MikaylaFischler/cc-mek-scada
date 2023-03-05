@@ -221,7 +221,7 @@ local function init(parent, id)
     local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     u_ps.subscribe("rps_tripped", rps_trp.update)
-    u_ps.subscribe("dmg_high", rps_dmg.update)
+    u_ps.subscribe("high_dmg", rps_dmg.update)
     u_ps.subscribe("ex_hcool", rps_exh.update)
     u_ps.subscribe("ex_waste", rps_exw.update)
     u_ps.subscribe("high_temp", rps_tmp.update)

@@ -474,7 +474,7 @@ function logic.update_alarms(self)
     _update_alarm_state(self, plc_cache.damage >= 100, self.alarms.CriticalDamage)
 
     -- Reactor Damage
-    local rps_dmg_90 = plc_cache.rps_status.dmg_high and not self.last_rps_trips.dmg_high
+    local rps_dmg_90 = plc_cache.rps_status.high_dmg and not self.last_rps_trips.high_dmg
     _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage)
 
     -- Over-Temperature
@@ -676,7 +676,7 @@ function logic.update_status_text(self)
 
             if plc_db.rps_trip_cause == RPS_TRIP_CAUSE.OK then
                 -- hmm...
-            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.DMG_HIGH then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.HIGH_DMG then
                 cause = "core damage high"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.HIGH_TEMP then
                 cause = "core temperature high"
@@ -772,7 +772,7 @@ function logic.handle_redstone(self)
     self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.auto_engaged)
     self.io_ctl.digital_write(IO.R_SCRAMMED, self.plc_cache.rps_trip)
     self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
-    self.io_ctl.digital_write(IO.R_DMG_HIGH, self.plc_cache.rps_status.dmg_high)
+    self.io_ctl.digital_write(IO.R_HIGH_DMG, self.plc_cache.rps_status.high_dmg)
     self.io_ctl.digital_write(IO.R_HIGH_TEMP, self.plc_cache.rps_status.high_temp)
     self.io_ctl.digital_write(IO.R_LOW_COOLANT, self.plc_cache.rps_status.low_cool)
     self.io_ctl.digital_write(IO.R_EXCESS_HC, self.plc_cache.rps_status.ex_hcool)
