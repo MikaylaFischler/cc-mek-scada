@@ -111,12 +111,14 @@ function logic.update_annunciator(self)
             self.last_heartbeat = plc_db.last_status_update
         end
 
+        local flow_low = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, ANNUNC_LIMS.RCSFlowLow_NA, ANNUNC_LIMS.RCSFlowLow_H2O)
+
         -- update other annunciator fields
         self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
         self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
         self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
         self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
-        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < ANNUNC_LIMS.RCSFlowLow
+        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < flow_low
         self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
         self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
         self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
@@ -306,8 +308,10 @@ function logic.update_annunciator(self)
     self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
 
     -- check for steam feed mismatch and max return rate
+    local steam_dt_max = util.trinary(num_boilers > 0, ANNUNC_LIMS.SFM_MaxSteamDT_H20, ANNUNC_LIMS.SFM_MaxSteamDT_NA)
+    local water_dt_min = util.trinary(num_boilers > 0, ANNUNC_LIMS.SFM_MinWaterDT_H20, ANNUNC_LIMS.SFM_MinWaterDT_NA)
     local sfmismatch = math.abs(total_flow_rate - total_input_rate) > ANNUNC_LIMS.SteamFeedMismatch
-    sfmismatch = sfmismatch or boiler_steam_dt_sum > 2.0 or boiler_water_dt_sum < -2.0
+    sfmismatch = sfmismatch or boiler_steam_dt_sum > steam_dt_max or boiler_water_dt_sum < water_dt_min
     self.db.annunciator.SteamFeedMismatch = sfmismatch
     self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
 

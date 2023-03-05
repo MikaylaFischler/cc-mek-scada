@@ -23,15 +23,20 @@ constants.RPS_LIMITS = rps
 
 local annunc = {}
 
-annunc.RCSFlowLow        = -2.0     -- flow < -2.0 mB/s
-annunc.CoolantLevelLow   = 0.4      -- fill < 40%
-annunc.ReactorTempHigh   = 1000     -- temp > 1000K
-annunc.ReactorHighDeltaT = 50       -- rate > 50K/s
-annunc.FuelLevelLow      = 0.05     -- fill <= 5%
-annunc.WasteLevelHigh    = 0.80     -- fill >= 80%
-annunc.WaterLevelLow     = 0.4      -- fill < 40%
-annunc.SteamFeedMismatch = 10       -- ±10mB difference between total coolant flow and total steam input rate
-annunc.RadiationWarning  = 0.00001  -- 10 uSv/h
+annunc.RCSFlowLow_H2O     = -3.2    -- flow < -3.2 mB/s
+annunc.RCSFlowLow_NA      = -2.0    -- flow < -2.0 mB/s
+annunc.CoolantLevelLow    = 0.4     -- fill < 40%
+annunc.ReactorTempHigh    = 1000    -- temp > 1000K
+annunc.ReactorHighDeltaT  = 50      -- rate > 50K/s
+annunc.FuelLevelLow       = 0.05    -- fill <= 5%
+annunc.WasteLevelHigh     = 0.80    -- fill >= 80%
+annunc.WaterLevelLow      = 0.4     -- fill < 40%
+annunc.SteamFeedMismatch  = 10      -- ±10mB difference between total coolant flow and total steam input rate
+annunc.SFM_MaxSteamDT_H20 = 2.0     -- flow > 2.0 mB/s
+annunc.SFM_MinWaterDT_H20 = -3.0    -- flow < -3.0 mB/s
+annunc.SFM_MaxSteamDT_NA  = 2.0     -- flow > 2.0 mB/s
+annunc.SFM_MinWaterDT_NA  = -2.0    -- flow < -2.0 mB/s
+annunc.RadiationWarning   = 0.00001 -- 10 uSv/h
 
 constants.ANNUNCIATOR_LIMITS = annunc
 
