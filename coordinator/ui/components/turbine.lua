@@ -5,6 +5,7 @@ local style          = require("coordinator.ui.style")
 local core           = require("graphics.core")
 
 local Rectangle      = require("graphics.elements.rectangle")
+local TextBox        = require("graphics.elements.textbox")
 
 local DataIndicator  = require("graphics.elements.indicators.data")
 local PowerIndicator = require("graphics.elements.indicators.power")
@@ -33,9 +34,14 @@ local function new_view(root, x, y, ps)
     ps.subscribe("prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
     ps.subscribe("flow_rate", flow_rate.update)
 
-    local steam = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=5,width=2}
+    local steam  = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
+    local energy = VerticalBar{parent=turbine,x=3,y=1,fg_bg=cpair(colors.green,colors.gray),height=4,width=1}
+
+    TextBox{parent=turbine,text="S",x=2,y=5,height=1,width=1,fg_bg=text_fg_bg}
+    TextBox{parent=turbine,text="E",x=3,y=5,height=1,width=1,fg_bg=text_fg_bg}
 
     ps.subscribe("steam_fill", steam.update)
+    ps.subscribe("energy_fill", energy.update)
 end
 
 return new_view
