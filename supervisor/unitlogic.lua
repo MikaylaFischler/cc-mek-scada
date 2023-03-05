@@ -308,8 +308,8 @@ function logic.update_annunciator(self)
     self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
 
     -- check for steam feed mismatch and max return rate
-    local steam_dt_max = util.trinary(num_boilers > 0, ANNUNC_LIMS.SFM_MaxSteamDT_H20, ANNUNC_LIMS.SFM_MaxSteamDT_NA)
-    local water_dt_min = util.trinary(num_boilers > 0, ANNUNC_LIMS.SFM_MinWaterDT_H20, ANNUNC_LIMS.SFM_MinWaterDT_NA)
+    local steam_dt_max = util.trinary(num_boilers == 0, ANNUNC_LIMS.SFM_MaxSteamDT_H20, ANNUNC_LIMS.SFM_MaxSteamDT_NA)
+    local water_dt_min = util.trinary(num_boilers == 0, ANNUNC_LIMS.SFM_MinWaterDT_H20, ANNUNC_LIMS.SFM_MinWaterDT_NA)
     local sfmismatch = math.abs(total_flow_rate - total_input_rate) > ANNUNC_LIMS.SteamFeedMismatch
     sfmismatch = sfmismatch or boiler_steam_dt_sum > steam_dt_max or boiler_water_dt_sum < water_dt_min
     self.db.annunciator.SteamFeedMismatch = sfmismatch
@@ -508,13 +508,16 @@ function logic.update_alarms(self)
     for i = 1, #annunc.WaterLevelLow do any_low = any_low or annunc.WaterLevelLow[i] end
     for i = 1, #annunc.TurbineOverSpeed do any_over = any_over or annunc.TurbineOverSpeed[i] end
 
-    local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.RCSFlowLow or annunc.MaxWaterReturnFeed
+    local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.MaxWaterReturnFeed
+
+    -- only care about RCS flow low early with boilers
+    if self.num_boilers > 0 then rcs_trans = rcs_trans or annunc.RCSFlowLow end
 
     -- annunciator indicators for these states may not indicate a real issue when:
     --  > flow is ramping up right after reactor start
     --  > flow is ramping down after reactor shutdown
     if ((util.time_ms() - self.last_rate_change_ms) > FLOW_STABILITY_DELAY_MS) and plc_cache.active then
-        rcs_trans = rcs_trans or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
+        rcs_trans = rcs_trans or annunc.RCSFlowLow or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
     end
 
     _update_alarm_state(self, rcs_trans, self.alarms.RCSTransient)
