@@ -149,7 +149,7 @@ style.imatrix = {
             text = "LOW CHARGE"
         },
         {
-            color = cpair(colors.black, colors.red),
+            color = cpair(colors.black, colors.yellow),
             text = "HIGH  CHARGE"
         },
     }
