@@ -273,7 +273,7 @@ types.FLUID = {
 
 ---@alias rps_trip_cause
 ---| "ok"
----| "dmg_crit"
+---| "dmg_high"
 ---| "high_temp"
 ---| "no_coolant"
 ---| "ex_waste"
@@ -288,7 +288,7 @@ types.FLUID = {
 
 types.RPS_TRIP_CAUSE = {
     OK = "ok",
-    DMG_CRIT = "dmg_crit",
+    DMG_HIGH = "dmg_high",
     HIGH_TEMP = "high_temp",
     NO_COOLANT = "no_coolant",
     EX_WASTE = "ex_waste",

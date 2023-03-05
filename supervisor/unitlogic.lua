@@ -8,10 +8,11 @@ local plc    = require("supervisor.session.plc")
 
 local qtypes = require("supervisor.session.rtu.qtypes")
 
-local TRI_FAIL     = types.TRI_FAIL
-local DUMPING_MODE = types.DUMPING_MODE
-local PRIO         = types.ALARM_PRIORITY
-local ALARM_STATE  = types.ALARM_STATE
+local RPS_TRIP_CAUSE = types.RPS_TRIP_CAUSE
+local TRI_FAIL       = types.TRI_FAIL
+local DUMPING_MODE   = types.DUMPING_MODE
+local PRIO           = types.ALARM_PRIORITY
+local ALARM_STATE    = types.ALARM_STATE
 
 local TBV_RTU_S_DATA = qtypes.TBV_RTU_S_DATA
 
@@ -473,7 +474,7 @@ function logic.update_alarms(self)
     _update_alarm_state(self, plc_cache.damage >= 100, self.alarms.CriticalDamage)
 
     -- Reactor Damage
-    local rps_dmg_90 = plc_cache.rps_status.dmg_crit and not self.last_rps_trips.dmg_crit
+    local rps_dmg_90 = plc_cache.rps_status.dmg_high and not self.last_rps_trips.dmg_high
     _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage)
 
     -- Over-Temperature
@@ -673,31 +674,31 @@ function logic.update_status_text(self)
         elseif plc_db.rps_tripped then
             local cause = "unknown"
 
-            if plc_db.rps_trip_cause == "ok" then
+            if plc_db.rps_trip_cause == RPS_TRIP_CAUSE.OK then
                 -- hmm...
-            elseif plc_db.rps_trip_cause == "dmg_crit" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.DMG_HIGH then
                 cause = "core damage high"
-            elseif plc_db.rps_trip_cause == "high_temp" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.HIGH_TEMP then
                 cause = "core temperature high"
-            elseif plc_db.rps_trip_cause == "no_coolant" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.NO_COOLANT then
                 cause = "insufficient coolant"
-            elseif plc_db.rps_trip_cause == "ex_waste" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.EX_WASTE then
                 cause = "excess waste"
-            elseif plc_db.rps_trip_cause == "ex_heated_coolant" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.EX_HCOOLANT then
                 cause = "excess heated coolant"
-            elseif plc_db.rps_trip_cause == "no_fuel" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.NO_FUEL then
                 cause = "insufficient fuel"
-            elseif plc_db.rps_trip_cause == "fault" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.FAULT then
                 cause = "hardware fault"
-            elseif plc_db.rps_trip_cause == "timeout" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.TIMEOUT then
                 cause = "connection timed out"
-            elseif plc_db.rps_trip_cause == "manual" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.MANUAL then
                 cause = "manual operator SCRAM"
-            elseif plc_db.rps_trip_cause == "automatic" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.AUTOMATIC then
                 cause = "automated system SCRAM"
-            elseif plc_db.rps_trip_cause == "sys_fail" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.SYS_FAIL then
                 cause = "PLC system failure"
-            elseif plc_db.rps_trip_cause == "force_disabled" then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.FORCE_DISABLED then
                 cause = "reactor force disabled"
             end
 
@@ -771,7 +772,7 @@ function logic.handle_redstone(self)
     self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.auto_engaged)
     self.io_ctl.digital_write(IO.R_SCRAMMED, self.plc_cache.rps_trip)
     self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
-    self.io_ctl.digital_write(IO.R_DMG_CRIT, self.plc_cache.rps_status.dmg_crit)
+    self.io_ctl.digital_write(IO.R_DMG_HIGH, self.plc_cache.rps_status.dmg_high)
     self.io_ctl.digital_write(IO.R_HIGH_TEMP, self.plc_cache.rps_status.high_temp)
     self.io_ctl.digital_write(IO.R_NO_COOLANT, self.plc_cache.rps_status.no_cool)
     self.io_ctl.digital_write(IO.R_EXCESS_HC, self.plc_cache.rps_status.ex_hcool)

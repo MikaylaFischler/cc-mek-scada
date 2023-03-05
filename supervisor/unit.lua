@@ -96,7 +96,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         last_rate_change_ms = 0,
         ---@type rps_status
         last_rps_trips = {
-            dmg_crit = false,
+            dmg_high = false,
             high_temp = false,
             no_cool = false,
             ex_waste = false,
@@ -115,7 +115,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             rps_trip = false,
             ---@type rps_status
             rps_status = {
-                dmg_crit = false,
+                dmg_high = false,
                 high_temp = false,
                 no_cool = false,
                 ex_waste = false,

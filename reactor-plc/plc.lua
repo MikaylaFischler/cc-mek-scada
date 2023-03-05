@@ -36,7 +36,7 @@ local PCALL_START_MSG = "pcall: Reactor is already active."
 ---@param is_formed boolean
 function plc.rps_init(reactor, is_formed)
     local state_keys = {
-        dmg_crit = 1,
+        dmg_high = 1,
         high_temp = 2,
         no_coolant = 3,
         ex_waste = 4,
@@ -104,14 +104,14 @@ function plc.rps_init(reactor, is_formed)
         end
     end
 
-    -- check for critical damage
-    local function _damage_critical()
+    -- check for high damage
+    local function _damage_high()
         local damage_percent = reactor.getDamagePercent()
         if damage_percent == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-        elseif not self.state[state_keys.dmg_crit] then
-            self.state[state_keys.dmg_crit] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
+        elseif not self.state[state_keys.dmg_high] then
+            self.state[state_keys.dmg_high] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
         end
     end
 
@@ -273,7 +273,7 @@ function plc.rps_init(reactor, is_formed)
             parallel.waitForAll(
                 _is_formed,
                 _is_force_disabled,
-                _damage_critical,
+                _damage_high,
                 _high_temp,
                 _no_coolant,
                 _excess_waste,
@@ -294,9 +294,9 @@ function plc.rps_init(reactor, is_formed)
         elseif self.state[state_keys.force_disabled] then
             log.warning("RPS: reactor was force disabled")
             status = RPS_TRIP_CAUSE.FORCE_DISABLED
-        elseif self.state[state_keys.dmg_crit] then
-            log.warning("RPS: damage critical")
-            status = RPS_TRIP_CAUSE.DMG_CRIT
+        elseif self.state[state_keys.dmg_high] then
+            log.warning("RPS: damage level high")
+            status = RPS_TRIP_CAUSE.DMG_HIGH
         elseif self.state[state_keys.high_temp] then
             log.warning("RPS: high temperature")
             status = RPS_TRIP_CAUSE.HIGH_TEMP

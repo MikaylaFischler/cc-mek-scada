@@ -102,7 +102,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
             rps_trip_cause = "ok",  ---@type rps_trip_cause
             ---@class rps_status
             rps_status = {
-                dmg_crit = false,
+                dmg_high = false,
                 high_temp = false,
                 no_cool = false,
                 ex_waste = false,
@@ -169,7 +169,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     local function _copy_rps_status(rps_status)
         self.sDB.rps_tripped          = rps_status[1]
         self.sDB.rps_trip_cause       = rps_status[2]
-        self.sDB.rps_status.dmg_crit  = rps_status[3]
+        self.sDB.rps_status.dmg_high  = rps_status[3]
         self.sDB.rps_status.high_temp = rps_status[4]
         self.sDB.rps_status.no_cool   = rps_status[5]
         self.sDB.rps_status.ex_waste  = rps_status[6]
