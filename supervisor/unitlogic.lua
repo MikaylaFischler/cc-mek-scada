@@ -586,15 +586,19 @@ function logic.update_status_text(self)
         self.status_text[1] = "CONTAINMENT TAKING DAMAGE"
         if self.plc_cache.damage >= 100 then
             self.status_text[2] = "damage critical"
-        elseif self.plc_cache.damage < self.damage_last then
+        elseif (self.plc_cache.damage < self.damage_last) or ((self.plc_cache.damage - self.damage_initial) < 0) then
             self.damage_decreasing = true
             self.status_text = { "CONTAINMENT TOOK DAMAGE", "damage level lowering..." }
+
+            -- reset damage estimation data in case it goes back up again
+            self.damage_initial = self.plc_cache.damage
+            self.damage_start = util.time_s()
+            self.damage_est_last = 0
         elseif (not self.damage_decreasing) or (self.plc_cache.damage > self.damage_last) then
             self.damage_decreasing = false
 
             if (self.plc_cache.damage - self.damage_initial) > 0 then
                 if self.plc_cache.damage > self.damage_last then
-                    self.damage_last = self.plc_cache.damage
                     local rate = (self.plc_cache.damage - self.damage_initial) / (util.time_s() - self.damage_start)
                     self.damage_est_last = (100 - self.plc_cache.damage) / rate
                 end
@@ -606,6 +610,8 @@ function logic.update_status_text(self)
         else
             self.status_text = { "CONTAINMENT TOOK DAMAGE", "damage level lowering..." }
         end
+
+        self.damage_last = self.plc_cache.damage
     elseif is_active(self.alarms.ContainmentRadiation) then
         self.status_text[1] = "RADIATION DETECTED"
 
