@@ -210,12 +210,12 @@ local function init(parent, id)
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
     local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
     local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
     local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
-    local rps_noc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
+    local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
     local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
     local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
     local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
@@ -226,7 +226,7 @@ local function init(parent, id)
     u_ps.subscribe("ex_waste", rps_exw.update)
     u_ps.subscribe("high_temp", rps_tmp.update)
     u_ps.subscribe("no_fuel", rps_nof.update)
-    u_ps.subscribe("no_cool", rps_noc.update)
+    u_ps.subscribe("low_cool", rps_loc.update)
     u_ps.subscribe("fault", rps_flt.update)
     u_ps.subscribe("timeout", rps_tmo.update)
     u_ps.subscribe("sys_fail", rps_sfl.update)

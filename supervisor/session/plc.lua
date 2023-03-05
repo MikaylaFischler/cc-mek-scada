@@ -104,7 +104,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
             rps_status = {
                 dmg_high = false,
                 high_temp = false,
-                no_cool = false,
+                low_cool = false,
                 ex_waste = false,
                 ex_hcool = false,
                 no_fuel = false,
@@ -171,7 +171,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         self.sDB.rps_trip_cause       = rps_status[2]
         self.sDB.rps_status.dmg_high  = rps_status[3]
         self.sDB.rps_status.high_temp = rps_status[4]
-        self.sDB.rps_status.no_cool   = rps_status[5]
+        self.sDB.rps_status.low_cool  = rps_status[5]
         self.sDB.rps_status.ex_waste  = rps_status[6]
         self.sDB.rps_status.ex_hcool  = rps_status[7]
         self.sDB.rps_status.no_fuel   = rps_status[8]

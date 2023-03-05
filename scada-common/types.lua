@@ -275,7 +275,7 @@ types.FLUID = {
 ---| "ok"
 ---| "dmg_high"
 ---| "high_temp"
----| "no_coolant"
+---| "low_coolant"
 ---| "ex_waste"
 ---| "ex_heated_coolant"
 ---| "no_fuel"
@@ -290,7 +290,7 @@ types.RPS_TRIP_CAUSE = {
     OK = "ok",
     DMG_HIGH = "dmg_high",
     HIGH_TEMP = "high_temp",
-    NO_COOLANT = "no_coolant",
+    LOW_COOLANT = "low_coolant",
     EX_WASTE = "ex_waste",
     EX_HCOOLANT = "ex_heated_coolant",
     NO_FUEL = "no_fuel",

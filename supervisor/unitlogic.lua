@@ -118,7 +118,7 @@ function logic.update_annunciator(self)
         self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
         self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
         self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
-        self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.no_cool)
+        self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.low_cool)
         self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < flow_low
         self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
         self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
@@ -680,7 +680,7 @@ function logic.update_status_text(self)
                 cause = "core damage high"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.HIGH_TEMP then
                 cause = "core temperature high"
-            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.NO_COOLANT then
+            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.LOW_COOLANT then
                 cause = "insufficient coolant"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.EX_WASTE then
                 cause = "excess waste"
@@ -774,7 +774,7 @@ function logic.handle_redstone(self)
     self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
     self.io_ctl.digital_write(IO.R_DMG_HIGH, self.plc_cache.rps_status.dmg_high)
     self.io_ctl.digital_write(IO.R_HIGH_TEMP, self.plc_cache.rps_status.high_temp)
-    self.io_ctl.digital_write(IO.R_NO_COOLANT, self.plc_cache.rps_status.no_cool)
+    self.io_ctl.digital_write(IO.R_LOW_COOLANT, self.plc_cache.rps_status.low_cool)
     self.io_ctl.digital_write(IO.R_EXCESS_HC, self.plc_cache.rps_status.ex_hcool)
     self.io_ctl.digital_write(IO.R_EXCESS_WS, self.plc_cache.rps_status.ex_waste)
     self.io_ctl.digital_write(IO.R_INSUFF_FUEL, self.plc_cache.rps_status.no_fuel)
@@ -797,7 +797,7 @@ function logic.handle_redstone(self)
     -- Emergency Coolant --
     -----------------------
 
-    local enable_emer_cool = self.plc_cache.rps_status.no_cool or
+    local enable_emer_cool = self.plc_cache.rps_status.low_cool or
         (self.auto_engaged and self.db.annunciator.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
 
     if not self.plc_cache.rps_trip then

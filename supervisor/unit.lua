@@ -98,7 +98,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         last_rps_trips = {
             dmg_high = false,
             high_temp = false,
-            no_cool = false,
+            low_cool = false,
             ex_waste = false,
             ex_hcool = false,
             no_fuel = false,
@@ -117,7 +117,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             rps_status = {
                 dmg_high = false,
                 high_temp = false,
-                no_cool = false,
+                low_cool = false,
                 ex_waste = false,
                 ex_hcool = false,
                 no_fuel = false,

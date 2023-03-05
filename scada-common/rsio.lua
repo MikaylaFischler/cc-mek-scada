@@ -67,7 +67,7 @@ local IO_PORT = {
     R_AUTO_SCRAM  = 15, -- active high, if the reactor was automatically scrammed
     R_DMG_HIGH    = 16, -- active high, if the reactor damage is high
     R_HIGH_TEMP   = 17, -- active high, if the reactor is at a high temperature
-    R_NO_COOLANT  = 18, -- active high, if the reactor has no coolant
+    R_LOW_COOLANT = 18, -- active high, if the reactor has very low coolant
     R_EXCESS_HC   = 19, -- active high, if the reactor has excess heated coolant
     R_EXCESS_WS   = 20, -- active high, if the reactor has excess waste
     R_INSUFF_FUEL = 21, -- active high, if the reactor has insufficent fuel
@@ -110,7 +110,7 @@ function rsio.to_string(port)
         "R_AUTO_SCRAM",
         "R_DMG_HIGH",
         "R_HIGH_TEMP",
-        "R_NO_COOLANT",
+        "R_LOW_COOLANT",
         "R_EXCESS_HC",
         "R_EXCESS_WS",
         "R_INSUFF_FUEL",
@@ -175,7 +175,7 @@ local RS_DIO_MAP = {
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_HIGH_TEMP
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_NO_COOLANT
+    -- R_LOW_COOLANT
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     -- R_EXCESS_HC
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
@@ -217,7 +217,7 @@ function rsio.get_io_mode(port)
         IO_MODE.DIGITAL_OUT,    -- R_AUTO_SCRAM
         IO_MODE.DIGITAL_OUT,    -- R_DMG_HIGH
         IO_MODE.DIGITAL_OUT,    -- R_HIGH_TEMP
-        IO_MODE.DIGITAL_OUT,    -- R_NO_COOLANT
+        IO_MODE.DIGITAL_OUT,    -- R_LOW_COOLANT
         IO_MODE.DIGITAL_OUT,    -- R_EXCESS_HC
         IO_MODE.DIGITAL_OUT,    -- R_EXCESS_WS
         IO_MODE.DIGITAL_OUT,    -- R_INSUFF_FUEL

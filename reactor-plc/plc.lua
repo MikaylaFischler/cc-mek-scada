@@ -38,7 +38,7 @@ function plc.rps_init(reactor, is_formed)
     local state_keys = {
         dmg_high = 1,
         high_temp = 2,
-        no_coolant = 3,
+        low_coolant = 3,
         ex_waste = 4,
         ex_hcoolant = 5,
         no_fuel = 6,
@@ -127,14 +127,14 @@ function plc.rps_init(reactor, is_formed)
         end
     end
 
-    -- check if there is no coolant (<2% filled)
-    local function _no_coolant()
+    -- check if there is very low coolant
+    local function _low_coolant()
         local coolant_filled = reactor.getCoolantFilledPercentage()
         if coolant_filled == ppm.ACCESS_FAULT then
             -- lost the peripheral or terminated, handled later
             _set_fault()
-        elseif not self.state[state_keys.no_coolant] then
-            self.state[state_keys.no_coolant] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
+        elseif not self.state[state_keys.low_coolant] then
+            self.state[state_keys.low_coolant] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
         end
     end
 
@@ -275,7 +275,7 @@ function plc.rps_init(reactor, is_formed)
                 _is_force_disabled,
                 _damage_high,
                 _high_temp,
-                _no_coolant,
+                _low_coolant,
                 _excess_waste,
                 _excess_heated_coolant,
                 _insufficient_fuel
@@ -300,9 +300,9 @@ function plc.rps_init(reactor, is_formed)
         elseif self.state[state_keys.high_temp] then
             log.warning("RPS: high temperature")
             status = RPS_TRIP_CAUSE.HIGH_TEMP
-        elseif self.state[state_keys.no_coolant] then
-            log.warning("RPS: no coolant")
-            status = RPS_TRIP_CAUSE.NO_COOLANT
+        elseif self.state[state_keys.low_coolant] then
+            log.warning("RPS: low coolant")
+            status = RPS_TRIP_CAUSE.LOW_COOLANT
         elseif self.state[state_keys.ex_waste] then
             log.warning("RPS: full waste")
             status = RPS_TRIP_CAUSE.EX_WASTE
