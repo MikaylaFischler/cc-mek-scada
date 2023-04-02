@@ -316,12 +316,13 @@ function logic.update_annunciator(self)
     self.db.annunciator.SteamFeedMismatch = sfmismatch
     self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
 
-    -- check if steam dumps are open
+    -- turbine safety checks
     for i = 1, #self.turbines do
         local turbine = self.turbines[i]    ---@type unit_session
         local db = turbine.get_db()         ---@type turbinev_session_db
         local idx = turbine.get_device_idx()
 
+        -- check if steam dumps are open
         if db.state.dumping_mode == DUMPING_MODE.IDLE then
             self.db.annunciator.SteamDumpOpen[idx] = TRI_FAIL.OK
         elseif db.state.dumping_mode == DUMPING_MODE.DUMPING_EXCESS then
@@ -329,29 +330,28 @@ function logic.update_annunciator(self)
         else
             self.db.annunciator.SteamDumpOpen[idx] = TRI_FAIL.FULL
         end
-    end
 
-    -- check if turbines are at max speed but not keeping up
-    for i = 1, #self.turbines do
-        local turbine = self.turbines[i]    ---@type unit_session
-        local db = turbine.get_db()         ---@type turbinev_session_db
-        local idx = turbine.get_device_idx()
-
+        -- check if turbines are at max speed but not keeping up
         self.db.annunciator.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0.0)
-    end
 
-    --[[
-        Turbine Trip
-        a turbine trip is when the turbine stops, which means we are no longer receiving water and lose the ability to cool.
-        this can be identified by these conditions:
-        - the current flow rate is 0 mB/t and it should not be
-            - can initially catch this by detecting a 0 flow rate with a non-zero input rate, but eventually the steam will fill up
-            - can later identified by presence of steam in tank with a 0 flow rate
-    ]]--
-    for i = 1, #self.turbines do
-        local turbine = self.turbines[i]    ---@type unit_session
-        local db = turbine.get_db()         ---@type turbinev_session_db
+        --[[
+            Generator Trip
+            a generator trip is when a generator suddenly and unexpectedly loses it's external load
+            oftentimes this is when a power plant is disconnected from the grid for one reason or another
+            in this case we just:
+                - check if internal power storage of turbine is increasing
+            that means there is no external load and there will be a turbine trip soon if this is not resolved
+        ]]--
+        self.db.annunciator.GeneratorTrip[idx] = _get_dt(DT_KEYS.TurbinePower .. idx) > 0.0
 
+        --[[
+            Turbine Trip
+            a turbine trip is when the turbine stops, which means we are no longer receiving water and lose the ability to cool.
+            this can be identified by these conditions:
+            - the current flow rate is 0 mB/t and it should not be
+                - can initially catch this by detecting a 0 flow rate with a non-zero input rate, but eventually the steam will fill up
+                - can later identified by presence of steam in tank with a 0 flow rate
+        ]]--
         local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
         self.db.annunciator.TurbineTrip[turbine.get_device_idx()] = has_steam and db.state.flow_rate == 0
     end
@@ -506,10 +506,12 @@ function logic.update_alarms(self)
     -- RCS Transient
     local any_low = annunc.CoolantLevelLow
     local any_over = false
+    local gen_trip = false
     for i = 1, #annunc.WaterLevelLow do any_low = any_low or annunc.WaterLevelLow[i] end
     for i = 1, #annunc.TurbineOverSpeed do any_over = any_over or annunc.TurbineOverSpeed[i] end
+    for i = 1, #annunc.GeneratorTrip do gen_trip = gen_trip or annunc.GeneratorTrip[i] end
 
-    local rcs_trans = any_low or any_over or annunc.RCPTrip or annunc.MaxWaterReturnFeed
+    local rcs_trans = any_low or any_over or gen_trip or annunc.RCPTrip or annunc.MaxWaterReturnFeed
 
     -- only care about RCS flow low early with boilers
     if self.num_boilers > 0 then rcs_trans = rcs_trans or annunc.RCSFlowLow end
