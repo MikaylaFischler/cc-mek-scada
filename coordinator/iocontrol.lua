@@ -683,23 +683,13 @@ function iocontrol.update_unit_statuses(statuses)
                 end
 
                 for key, val in pairs(unit.annunciator) do
-                    if key == "TurbineTrip" then
-                        -- split up turbine trip table for all turbines and a general OR combination
-                        local trips = val
-                        local any = false
-
-                        for id = 1, #trips do
-                            any = any or trips[id]
-                            unit.turbine_ps_tbl[id].publish(key, trips[id])
-                        end
-
-                        unit.unit_ps.publish("TurbineTrip", any)
-                    elseif key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
+                    if key == "BoilerOnline" or key == "HeatingRateLow" or key == "WaterLevelLow" then
                         -- split up array for all boilers
                         for id = 1, #val do
                             unit.boiler_ps_tbl[id].publish(key, val[id])
                         end
-                    elseif key == "TurbineOnline" or key == "SteamDumpOpen" or key == "TurbineOverSpeed" then
+                    elseif key == "TurbineOnline" or key == "SteamDumpOpen" or key == "TurbineOverSpeed" or
+                           key == "GeneratorTrip" or key == "TurbineTrip" then
                         -- split up array for all turbines
                         for id = 1, #val do
                             unit.turbine_ps_tbl[id].publish(key, val[id])

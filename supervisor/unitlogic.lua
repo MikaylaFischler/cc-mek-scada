@@ -353,7 +353,7 @@ function logic.update_annunciator(self)
                 - can later identified by presence of steam in tank with a 0 flow rate
         ]]--
         local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
-        self.db.annunciator.TurbineTrip[turbine.get_device_idx()] = has_steam and db.state.flow_rate == 0
+        self.db.annunciator.TurbineTrip[idx] = has_steam and db.state.flow_rate == 0
     end
 
     -- update auto control ready state for this unit
