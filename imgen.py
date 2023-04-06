@@ -7,7 +7,7 @@ def list_files(path):
 
     for (root, dirs, files) in os.walk(path):
         for f in files:
-            list.append(root[2:] + "/" + f)
+            list.append((root[2:] + "/" + f).replace('\\','/'))
 
     return list
 
