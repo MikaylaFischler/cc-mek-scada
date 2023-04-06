@@ -5,8 +5,12 @@ local boilerv_rtu = {}
 -- create new boiler (mek 10.1+) device
 ---@nodiscard
 ---@param boiler table
+---@return rtu_device interface, boolean faulted
 function boilerv_rtu.new(boiler)
     local unit = rtu.init_unit()
+
+    -- disable auto fault clearing
+    boiler.__p_disable_afc()
 
     -- discrete inputs --
     unit.connect_di(boiler.isFormed)
@@ -50,7 +54,12 @@ function boilerv_rtu.new(boiler)
     -- holding registers --
     -- none
 
-    return unit.interface()
+    -- check if any calls faulted
+    local faulted = boiler.__p_is_faulted()
+    boiler.__p_clear_fault()
+    boiler.__p_enable_afc()
+
+    return unit.interface(), faulted
 end
 
 return boilerv_rtu

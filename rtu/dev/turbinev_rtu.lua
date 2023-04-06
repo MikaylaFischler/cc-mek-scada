@@ -5,8 +5,12 @@ local turbinev_rtu = {}
 -- create new turbine (mek 10.1+) device
 ---@nodiscard
 ---@param turbine table
+---@return rtu_device interface, boolean faulted
 function turbinev_rtu.new(turbine)
     local unit = rtu.init_unit()
+
+    -- disable auto fault clearing
+    turbine.__p_disable_afc()
 
     -- discrete inputs --
     unit.connect_di(turbine.isFormed)
@@ -49,7 +53,12 @@ function turbinev_rtu.new(turbine)
     -- holding registers --
     unit.connect_holding_reg(turbine.getDumpingMode, turbine.setDumpingMode)
 
-    return unit.interface()
+    -- check if any calls faulted
+    local faulted = turbine.__p_is_faulted()
+    turbine.__p_clear_fault()
+    turbine.__p_enable_afc()
+
+    return unit.interface(), faulted
 end
 
 return turbinev_rtu

@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v0.13.0"
+local RTU_VERSION = "v0.13.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
@@ -290,8 +290,9 @@ local function main()
             local type = nil            ---@type string|nil
             local rtu_iface = nil       ---@type rtu_device
             local rtu_type = nil        ---@type RTU_UNIT_TYPE
-            local is_multiblock = false
+            local is_multiblock = false ---@type boolean
             local formed = nil          ---@type boolean|nil
+            local faulted = nil         ---@type boolean|nil
 
             if device == nil then
                 local message = util.c("configure> '", name, "' not found, using placeholder")
@@ -307,7 +308,7 @@ local function main()
             if type == "boilerValve" then
                 -- boiler multiblock
                 rtu_type = RTU_UNIT_TYPE.BOILER_VALVE
-                rtu_iface = boilerv_rtu.new(device)
+                rtu_iface, faulted = boilerv_rtu.new(device)
                 is_multiblock = true
                 formed = device.isFormed()
 
@@ -319,7 +320,7 @@ local function main()
             elseif type == "turbineValve" then
                 -- turbine multiblock
                 rtu_type = RTU_UNIT_TYPE.TURBINE_VALVE
-                rtu_iface = turbinev_rtu.new(device)
+                rtu_iface, faulted = turbinev_rtu.new(device)
                 is_multiblock = true
                 formed = device.isFormed()
 
@@ -331,7 +332,7 @@ local function main()
             elseif type == "inductionPort" then
                 -- induction matrix multiblock
                 rtu_type = RTU_UNIT_TYPE.IMATRIX
-                rtu_iface = imatrix_rtu.new(device)
+                rtu_iface, faulted = imatrix_rtu.new(device)
                 is_multiblock = true
                 formed = device.isFormed()
 
@@ -343,7 +344,7 @@ local function main()
             elseif type == "spsPort" then
                 -- SPS multiblock
                 rtu_type = RTU_UNIT_TYPE.SPS
-                rtu_iface = sps_rtu.new(device)
+                rtu_iface, faulted = sps_rtu.new(device)
                 is_multiblock = true
                 formed = device.isFormed()
 
@@ -355,11 +356,11 @@ local function main()
             elseif type == "solarNeutronActivator" then
                 -- SNA
                 rtu_type = RTU_UNIT_TYPE.SNA
-                rtu_iface = sna_rtu.new(device)
+                rtu_iface, _ = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
                 rtu_type = RTU_UNIT_TYPE.ENV_DETECTOR
-                rtu_iface = envd_rtu.new(device)
+                rtu_iface, _ = envd_rtu.new(device)
             elseif type == ppm.VIRTUAL_DEVICE_TYPE then
                 -- placeholder device
                 rtu_type = RTU_UNIT_TYPE.VIRTUAL
@@ -391,8 +392,15 @@ local function main()
 
             table.insert(units, rtu_unit)
 
-            if is_multiblock and not formed then
-                log.info(util.c("configure> device '", name, "' is not formed"))
+            if is_multiblock then
+                if not formed then
+                    log.info(util.c("configure> device '", name, "' is not formed"))
+                elseif faulted then
+                    -- sometimes there is a race condition on server boot where it reports formed, but
+                    -- the other functions are not yet defined (that's the theory at least). mark as unformed to attempt connection later
+                    formed = false
+                    log.warning(util.c("configure> device '", name, "' is formed, but initialization had one or more faults: marked as unformed"))
+                end
             end
 
             local for_message = "facility"
