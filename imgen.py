@@ -68,7 +68,7 @@ def make_manifest(size):
             "pocket" : list_files("./pocket"),
         },
         "depends" : {
-            "reactor-plc" : [ "system", "common" ],
+            "reactor-plc" : [ "system", "common", "graphics" ],
             "rtu" : [ "system", "common" ],
             "supervisor" : [ "system", "common" ],
             "coordinator" : [ "system", "common", "graphics" ],

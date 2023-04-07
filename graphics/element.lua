@@ -32,6 +32,8 @@ local element = {}
 ---|data_indicator_args
 ---|hbar_args
 ---|icon_indicator_args
+---|indicator_led_args
+---|indicator_led_pair_args
 ---|indicator_light_args
 ---|power_indicator_args
 ---|rad_indicator_args
@@ -100,7 +102,13 @@ function element.new(args)
         else
             local w, h = self.p_window.getSize()
             protected.frame.x = args.x or 1
-            protected.frame.y = args.y or next_y
+
+            if args.parent ~= nil then
+                protected.frame.y = args.y or (next_y - offset_y)
+            else
+                protected.frame.y = args.y or next_y
+            end
+
             protected.frame.w = args.width or w
             protected.frame.h = args.height or h
         end
@@ -260,6 +268,11 @@ function element.new(args)
     ---@param child graphics_template
     ---@return integer|string key
     function public.__add_child(key, child)
+        -- offset first automatic placement
+        if self.next_y <= self.child_offset.y then
+            self.next_y = self.child_offset.y + 1
+        end
+
         child.prepare_template(self.child_offset.x, self.child_offset.y, self.next_y)
 
         self.next_y = child.frame.y + child.frame.h

@@ -8,13 +8,15 @@ local crash   = require("scada-common.crash")
 local log     = require("scada-common.log")
 local mqueue  = require("scada-common.mqueue")
 local ppm     = require("scada-common.ppm")
+local psil    = require("scada-common.psil")
 local util    = require("scada-common.util")
 
 local config  = require("reactor-plc.config")
 local plc     = require("reactor-plc.plc")
+local renderer = require("reactor-plc.renderer")
 local threads = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.0.0"
+local R_PLC_VERSION = "v1.1.0"
 
 local print = util.print
 local println = util.println
@@ -106,7 +108,10 @@ local function main()
             mq_rps = mqueue.new(),
             mq_comms_tx = mqueue.new(),
             mq_comms_rx = mqueue.new()
-        }
+        },
+
+        -- publisher/subscriber interface for front panel
+        fp_ps = psil.create()
     }
 
     local smem_dev = __shared_memory.plc_dev
@@ -148,6 +153,9 @@ local function main()
     -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
+        -- front panel time!
+        renderer.start_ui()
+
         if plc_state.init_ok then
             -- just booting up, no fission allowed (neutrons stay put thanks)
             if plc_state.reactor_formed and smem_dev.reactor.getStatus() then
@@ -177,7 +185,7 @@ local function main()
             println("init> completed")
             log.info("init> startup completed")
         else
-            println("init> system in degraded state, awaiting devices...")
+            -- println("init> system in degraded state, awaiting devices...")
             log.warning("init> started in a degraded state, awaiting peripheral connections...")
         end
     end
@@ -216,6 +224,8 @@ local function main()
         -- run threads, excluding comms
         parallel.waitForAll(main_thread.p_exec, rps_thread.p_exec)
     end
+
+    renderer.close_ui()
 
     println_ts("exited")
     log.info("exited")
