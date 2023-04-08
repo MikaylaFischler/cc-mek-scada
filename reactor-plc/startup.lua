@@ -4,19 +4,20 @@
 
 require("/initenv").init_env()
 
-local crash   = require("scada-common.crash")
-local log     = require("scada-common.log")
-local mqueue  = require("scada-common.mqueue")
-local ppm     = require("scada-common.ppm")
-local psil    = require("scada-common.psil")
-local util    = require("scada-common.util")
+local comms    = require("scada-common.comms")
+local crash    = require("scada-common.crash")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local ppm      = require("scada-common.ppm")
+local util     = require("scada-common.util")
 
-local config  = require("reactor-plc.config")
-local plc     = require("reactor-plc.plc")
+local config   = require("reactor-plc.config")
+local databus  = require("reactor-plc.databus")
+local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
-local threads = require("reactor-plc.threads")
+local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.0"
+local R_PLC_VERSION = "v1.1.1"
 
 local print = util.print
 local println = util.println
@@ -62,6 +63,10 @@ local function main()
     ----------------------------------------
     -- startup
     ----------------------------------------
+
+    -- record firmware versions and ID
+    databus.tx_versions(R_PLC_VERSION, comms.version)
+    databus.tx_id(config.REACTOR_ID)
 
     -- mount connected devices
     ppm.mount_all()
@@ -109,10 +114,7 @@ local function main()
             mq_rps = mqueue.new(),
             mq_comms_tx = mqueue.new(),
             mq_comms_rx = mqueue.new()
-        },
-
-        -- publisher/subscriber interface for front panel
-        fp_ps = psil.create()
+        }
     }
 
     local smem_dev = __shared_memory.plc_dev
@@ -152,9 +154,7 @@ local function main()
     end
 
     -- print a log message to the terminal as long as the UI isn't running
-    local function _print_no_fp(message)
-        if not plc_state.fp_ok then println(message) end
-    end
+    local function _println_no_fp(message) if not plc_state.fp_ok then println(message) end end
 
     -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
@@ -167,7 +167,7 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message = nil
-            plc_state.fp_ok, message = pcall(renderer.start_ui, __shared_memory.fp_ps)
+            plc_state.fp_ok, message = pcall(renderer.start_ui)
             if not plc_state.fp_ok then
                 renderer.close_ui()
                 println_ts(util.c("UI error: ", message))
@@ -192,23 +192,20 @@ local function main()
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
-                _print_no_fp("init> starting in offline mode")
+                _println_no_fp("init> starting in offline mode")
                 log.info("init> running without networking")
             end
 
             util.push_event("clock_start")
 
-            _print_no_fp("init> completed")
+            _println_no_fp("init> completed")
             log.info("init> startup completed")
         else
-            _print_no_fp("init> system in degraded state, awaiting devices...")
+            _println_no_fp("init> system in degraded state, awaiting devices...")
             log.warning("init> started in a degraded state, awaiting peripheral connections...")
         end
 
-        __shared_memory.fp_ps.publish("reactor_dev_state", util.trinary(plc_state.no_reactor, 1, util.trinary(plc_state.reactor_formed, 3, 2)))
-        __shared_memory.fp_ps.publish("has_modem", not plc_state.no_modem)
-        __shared_memory.fp_ps.publish("degraded", plc_state.degraded)
-        __shared_memory.fp_ps.publish("init_ok", plc_state.init_ok)
+        databus.tx_hw_status(plc_state)
     end
 
     ----------------------------------------

@@ -103,6 +103,7 @@ local function indicator_led_pair(args)
 
     -- write label and initial indicator light
     e.on_update(1)
+    e.window.setCursorPos(3, 1)
     e.window.write(args.label)
 
     return e.get()

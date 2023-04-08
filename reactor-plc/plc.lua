@@ -1,9 +1,10 @@
-local comms = require("scada-common.comms")
-local const = require("scada-common.constants")
-local log   = require("scada-common.log")
-local ppm   = require("scada-common.ppm")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local const   = require("scada-common.constants")
+local log     = require("scada-common.log")
+local ppm     = require("scada-common.ppm")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
+local databus = require("reactor-plc.databus")
 
 local plc = {}
 
@@ -17,11 +18,6 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local RPS_LIMITS = const.RPS_LIMITS
-
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- I sure hope the devs don't change this error message, not that it would have safety implications
 -- I wish they didn't change it to be like this
@@ -347,6 +343,9 @@ function plc.rps_init(reactor, is_formed)
                 log.warning("RPS: skipping SCRAM due to not being formed")
             end
         end
+
+        -- report RPS status
+        databus.tx_rps(self.tripped, self.state)
 
         return self.tripped, status, first_trip
     end
@@ -733,6 +732,11 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     ---@param plc_state plc_state PLC state
     ---@param setpoints setpoints setpoint control table
     function public.handle_packet(packet, plc_state, setpoints)
+        -- print a log message to the terminal as long as the UI isn't running
+        local function println(message) if not plc_state.fp_ok then util.println(message) end end
+        local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
+
+        -- handle packets now that we have prints setup
         if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -919,6 +923,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                             -- clear this since this is for something that was unsolicited
                             self.last_est_ack = ESTABLISH_ACK.ALLOW
+
+                            -- report link state
+                            databus.tx_link_state(est_ack + 1)
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end
@@ -982,6 +989,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                         self.linked = est_ack == ESTABLISH_ACK.ALLOW
                         self.last_est_ack = est_ack
+
+                        -- report link state
+                        databus.tx_link_state(est_ack + 1)
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end

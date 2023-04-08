@@ -5,6 +5,8 @@
 local style      = require("reactor-plc.panel.style")
 local panel_view = require("reactor-plc.panel.front_panel")
 
+local flasher    = require("graphics.flasher")
+
 local renderer = {}
 
 local ui = {
@@ -12,9 +14,9 @@ local ui = {
 }
 
 -- start the UI
----@param fp_ps psil front panel PSIL
-function renderer.start_ui(fp_ps)
+function renderer.start_ui()
     if ui.view == nil then
+        -- reset terminal
         term.setTextColor(colors.white)
         term.setBackgroundColor(colors.black)
         term.clear()
@@ -25,13 +27,19 @@ function renderer.start_ui(fp_ps)
             term.setPaletteColor(style.colors[i].c, style.colors[i].hex)
         end
 
+        -- start flasher callback task
+        flasher.run()
+
         -- init front panel view
-        ui.view = panel_view(term.current(), fp_ps)
+        ui.view = panel_view(term.current())
     end
 end
 
 -- close out the UI
 function renderer.close_ui()
+    -- stop blinking indicators
+    flasher.clear()
+
     if ui.view ~= nil then
         -- hide to stop animation callbacks
         ui.view.hide()
@@ -46,7 +54,11 @@ function renderer.close_ui()
         term.setPaletteColor(style.colors[i].c, r, g, b)
     end
 
+    -- reset terminal
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.black)
     term.clear()
+    term.setCursorPos(1, 1)
 end
 
 -- is the UI ready?

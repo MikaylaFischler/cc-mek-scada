@@ -34,6 +34,7 @@ local element = {}
 ---|icon_indicator_args
 ---|indicator_led_args
 ---|indicator_led_pair_args
+---|indicator_led_rgb_args
 ---|indicator_light_args
 ---|power_indicator_args
 ---|rad_indicator_args

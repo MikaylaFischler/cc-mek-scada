@@ -4,21 +4,21 @@
 
 local util          = require("scada-common.util")
 
+local databus       = require("reactor-plc.databus")
+
 local style         = require("reactor-plc.panel.style")
 
 local core          = require("graphics.core")
+local flasher       = require("graphics.flasher")
 
 local DisplayBox    = require("graphics.elements.displaybox")
 local Div           = require("graphics.elements.div")
 local Rectangle     = require("graphics.elements.rectangle")
 local TextBox       = require("graphics.elements.textbox")
-local ColorMap      = require("graphics.elements.colormap")
 
-local PushButton    = require("graphics.elements.controls.push_button")
-
-local DataIndicator = require("graphics.elements.indicators.data")
 local LED           = require("graphics.elements.indicators.led")
 local LEDPair       = require("graphics.elements.indicators.ledpair")
+local RGBLED        = require("graphics.elements.indicators.ledrgb")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
@@ -27,11 +27,11 @@ local border = core.graphics.border
 
 -- create new main view
 ---@param monitor table main viewscreen
----@param fp_ps psil front panel PSIL
-local function init(monitor, fp_ps)
+local function init(monitor)
     local panel = DisplayBox{window=monitor,fg_bg=style.root}
 
-    local _ = TextBox{parent=panel,y=1,text="REACTOR PLC",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    databus.rx_field("unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
@@ -39,17 +39,18 @@ local function init(monitor, fp_ps)
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
     system.line_break()
 
-    fp_ps.subscribe("init_ok", init_ok.update)
-    fp_ps.subscribe("heartbeat", heartbeat.update)
+    databus.rx_field("init_ok", init_ok.update)
+    databus.rx_field("heartbeat", heartbeat.update)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
-    local network = LEDPair{parent=system,label="NETWORK",off=colors.gray,c1=colors.yellow,c2=colors.green}
+    local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
+    network.update(5)
     system.line_break()
 
-    fp_ps.subscribe("reactor_dev_state", reactor.update)
-    fp_ps.subscribe("has_modem", modem.update)
-    fp_ps.subscribe("link_state", network.update)
+    databus.rx_field("reactor_dev_state", reactor.update)
+    databus.rx_field("has_modem", modem.update)
+    databus.rx_field("link_state", network.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=cpair(colors.green,colors.green_off)}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=cpair(colors.green,colors.green_off)}
@@ -58,24 +59,27 @@ local function init(monitor, fp_ps)
     local rt_sctl = LED{parent=system,label="RT SPCTL",colors=cpair(colors.green,colors.green_off)}
     system.line_break()
 
-    fp_ps.subscribe("routine__main", rt_main.update)
-    fp_ps.subscribe("routine__rps", rt_rps.update)
-    fp_ps.subscribe("routine__comms_tx", rt_cmtx.update)
-    fp_ps.subscribe("routine__comms_rx", rt_cmrx.update)
-    fp_ps.subscribe("routine__spctl", rt_sctl.update)
+    databus.rx_field("routine__main", rt_main.update)
+    databus.rx_field("routine__rps", rt_rps.update)
+    databus.rx_field("routine__comms_tx", rt_cmtx.update)
+    databus.rx_field("routine__comms_rx", rt_cmrx.update)
+    databus.rx_field("routine__spctl", rt_sctl.update)
 
-    local active = LED{parent=system,label="RCT ACTIVE",colors=cpair(colors.green,colors.green_off)}
-    local scram = LED{parent=system,label="RPS TRIP",colors=cpair(colors.red,colors.red_off)}
+    local status = Div{parent=panel,width=16,height=4,x=18,y=3}
+
+    local active = LED{parent=status,label="RCT ACTIVE",colors=cpair(colors.green,colors.green_off)}
+    local scram = LED{parent=status,label="RPS TRIP",colors=cpair(colors.red,colors.red_off),flash=true,period=flasher.PERIOD.BLINK_250_MS}
     system.line_break()
 
-    fp_ps.subscribe("reactor_active", active.update)
-    fp_ps.subscribe("rps_scram", scram.update)
+    databus.rx_field("reactor_active", active.update)
+    databus.rx_field("rps_scram", scram.update)
 
-    local about = Rectangle{parent=panel,width=16,height=4,x=18,y=15,border=border(1,colors.white),thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local _ = TextBox{parent=about,text="FW: v1.0.0",alignment=TEXT_ALIGN.LEFT,height=1}
-    local _ = TextBox{parent=about,text="NT: v1.4.0",alignment=TEXT_ALIGN.LEFT,height=1}
-    -- about.line_break()
-    -- local _ = TextBox{parent=about,text="SVTT: 10ms",alignment=TEXT_ALIGN.LEFT,height=1}
+    local about   = Rectangle{parent=panel,width=32,height=3,x=2,y=16,border=border(1,colors.ivory),thin=true,fg_bg=cpair(colors.black,colors.white)}
+    local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+
+    databus.rx_field("version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
+    databus.rx_field("comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
 
     local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,colors.lightGray),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=cpair(colors.red,colors.red_off)}
@@ -93,20 +97,17 @@ local function init(monitor, fp_ps)
     local rps_ccl  = LED{parent=rps,label="LO CCOOLANT",colors=cpair(colors.red,colors.red_off)}
     local rps_hcl  = LED{parent=rps,label="HI HCOOLANT",colors=cpair(colors.red,colors.red_off)}
 
-    fp_ps.subscribe("rps_manual", rps_man.update)
-    fp_ps.subscribe("rps_automatic", rps_auto.update)
-    fp_ps.subscribe("rps_timeout", rps_tmo.update)
-    fp_ps.subscribe("rps_fault", rps_flt.update)
-    fp_ps.subscribe("rps_sysfail", rps_fail.update)
-    fp_ps.subscribe("rps_damage", rps_dmg.update)
-    fp_ps.subscribe("rps_high_temp", rps_tmp.update)
-    fp_ps.subscribe("rps_no_fuel", rps_nof.update)
-    fp_ps.subscribe("rps_high_waste", rps_wst.update)
-    fp_ps.subscribe("rps_low_ccool", rps_ccl.update)
-    fp_ps.subscribe("rps_high_hcool", rps_hcl.update)
-
-    ColorMap{parent=panel,x=1,y=19}
-    -- facility.ps.subscribe("sv_ping", ping.update)
+    databus.rx_field("rps_manual", rps_man.update)
+    databus.rx_field("rps_automatic", rps_auto.update)
+    databus.rx_field("rps_timeout", rps_tmo.update)
+    databus.rx_field("rps_fault", rps_flt.update)
+    databus.rx_field("rps_sysfail", rps_fail.update)
+    databus.rx_field("rps_damage", rps_dmg.update)
+    databus.rx_field("rps_high_temp", rps_tmp.update)
+    databus.rx_field("rps_no_fuel", rps_nof.update)
+    databus.rx_field("rps_high_waste", rps_wst.update)
+    databus.rx_field("rps_low_ccool", rps_ccl.update)
+    databus.rx_field("rps_high_hcool", rps_hcl.update)
 
     return panel
 end
