@@ -76,6 +76,7 @@ local function main()
         ---@class plc_state
         plc_state = {
             init_ok = true,
+            fp_ok = false,
             shutdown = false,
             degraded = false,
             reactor_formed = true,
@@ -150,18 +151,33 @@ local function main()
         plc_state.no_modem = true
     end
 
+    -- print a log message to the terminal as long as the UI isn't running
+    local function _print_no_fp(message)
+        if not plc_state.fp_ok then println(message) end
+    end
+
     -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
+        -- just booting up, no fission allowed (neutrons stay put thanks)
+        if (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
+            smem_dev.reactor.scram()
+        end
+
         -- front panel time!
-        renderer.start_ui()
+        if not renderer.ui_ready() then
+            local message = nil
+            plc_state.fp_ok, message = pcall(renderer.start_ui, __shared_memory.fp_ps)
+            if not plc_state.fp_ok then
+                renderer.close_ui()
+                println_ts(util.c("UI error: ", message))
+                println("init> running without front panel")
+                log.error(util.c("GUI crashed with error ", message))
+                log.info("init> running in headless mode without front panel")
+            end
+        end
 
         if plc_state.init_ok then
-            -- just booting up, no fission allowed (neutrons stay put thanks)
-            if plc_state.reactor_formed and smem_dev.reactor.getStatus() then
-                smem_dev.reactor.scram()
-            end
-
             -- init reactor protection system
             smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed)
             log.debug("init> rps init")
@@ -176,18 +192,23 @@ local function main()
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
-                println("init> starting in offline mode")
+                _print_no_fp("init> starting in offline mode")
                 log.info("init> running without networking")
             end
 
             util.push_event("clock_start")
 
-            println("init> completed")
+            _print_no_fp("init> completed")
             log.info("init> startup completed")
         else
-            -- println("init> system in degraded state, awaiting devices...")
+            _print_no_fp("init> system in degraded state, awaiting devices...")
             log.warning("init> started in a degraded state, awaiting peripheral connections...")
         end
+
+        __shared_memory.fp_ps.publish("reactor_dev_state", util.trinary(plc_state.no_reactor, 1, util.trinary(plc_state.reactor_formed, 3, 2)))
+        __shared_memory.fp_ps.publish("has_modem", not plc_state.no_modem)
+        __shared_memory.fp_ps.publish("degraded", plc_state.degraded)
+        __shared_memory.fp_ps.publish("init_ok", plc_state.init_ok)
     end
 
     ----------------------------------------

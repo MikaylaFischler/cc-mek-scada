@@ -72,12 +72,21 @@ function threads.thread__main(smem, init)
                             smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
                         else
                             if ticks_to_update == 0 then
+                                smem.fp_ps.toggle("heartbeat")
                                 plc_comms.send_link_req()
                                 ticks_to_update = LINK_TICKS
                             else
                                 ticks_to_update = ticks_to_update - 1
                             end
                         end
+                    end
+                else
+                    -- use ticks to update just for heartbeat if not networked
+                    if ticks_to_update == 0 then
+                        smem.fp_ps.toggle("heartbeat")
+                        ticks_to_update = LINK_TICKS
+                    else
+                        ticks_to_update = ticks_to_update - 1
                     end
                 end
 
@@ -133,6 +142,12 @@ function threads.thread__main(smem, init)
                     -- reactor no longer formed
                     plc_state.reactor_formed = false
                 end
+
+                -- update indicators
+                smem.fp_ps.publish("init_ok", plc_state.init_ok)
+                smem.fp_ps.publish("reactor_dev_state", not plc_state.no_reactor)
+                smem.fp_ps.publish("has_modem", not plc_state.no_modem)
+                smem.fp_ps.publish("degraded", plc_state.degraded)
             elseif event == "modem_message" and networked and plc_state.init_ok and not plc_state.no_modem then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
@@ -174,6 +189,12 @@ function threads.thread__main(smem, init)
                         end
                     end
                 end
+
+                -- update indicators
+                smem.fp_ps.publish("has_reactor", not plc_state.no_reactor)
+                smem.fp_ps.publish("has_modem", not plc_state.no_modem)
+                smem.fp_ps.publish("degraded", plc_state.degraded)
+                smem.fp_ps.publish("init_ok", plc_state.init_ok)
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
@@ -237,6 +258,12 @@ function threads.thread__main(smem, init)
                     plc_state.init_ok = true
                     init()
                 end
+
+                -- update indicators
+                smem.fp_ps.publish("has_reactor", not plc_state.no_reactor)
+                smem.fp_ps.publish("has_modem", not plc_state.no_modem)
+                smem.fp_ps.publish("degraded", plc_state.degraded)
+                smem.fp_ps.publish("init_ok", plc_state.init_ok)
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock.start()

@@ -51,6 +51,19 @@ function psil.create()
         self.ic[key].value = value
     end
 
+    -- publish a toggled boolean value to a given key, passing it to all subscribers if it has changed<br>
+    -- this is intended to be used to toggle boolean indicators such as heartbeats without extra state variables
+    ---@param key string data key
+    function public.toggle(key)
+        if self.ic[key] == nil then alloc(key) end
+
+        self.ic[key].value = self.ic[key].value == false
+
+        for i = 1, #self.ic[key].subscribers do
+            self.ic[key].subscribers[i].notify(self.ic[key].value)
+        end
+    end
+
     return public
 end
 

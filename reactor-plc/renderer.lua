@@ -12,7 +12,8 @@ local ui = {
 }
 
 -- start the UI
-function renderer.start_ui()
+---@param fp_ps psil front panel PSIL
+function renderer.start_ui(fp_ps)
     if ui.view == nil then
         term.setTextColor(colors.white)
         term.setBackgroundColor(colors.black)
@@ -25,7 +26,7 @@ function renderer.start_ui()
         end
 
         -- init front panel view
-        ui.view = panel_view(term.current())
+        ui.view = panel_view(term.current(), fp_ps)
     end
 end
 
