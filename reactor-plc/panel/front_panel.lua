@@ -2,25 +2,25 @@
 -- Main SCADA Coordinator GUI
 --
 
-local util          = require("scada-common.util")
+local util       = require("scada-common.util")
 
-local databus       = require("reactor-plc.databus")
+local databus    = require("reactor-plc.databus")
 
-local style         = require("reactor-plc.panel.style")
+local style      = require("reactor-plc.panel.style")
 
-local core          = require("graphics.core")
-local flasher       = require("graphics.flasher")
+local core       = require("graphics.core")
+local flasher    = require("graphics.flasher")
 
-local DisplayBox    = require("graphics.elements.displaybox")
-local Div           = require("graphics.elements.div")
-local Rectangle     = require("graphics.elements.rectangle")
-local TextBox       = require("graphics.elements.textbox")
+local DisplayBox = require("graphics.elements.displaybox")
+local Div        = require("graphics.elements.div")
+local Rectangle  = require("graphics.elements.rectangle")
+local TextBox    = require("graphics.elements.textbox")
 
-local PushButton    = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.push_button")
 
-local LED           = require("graphics.elements.indicators.led")
-local LEDPair       = require("graphics.elements.indicators.ledpair")
-local RGBLED        = require("graphics.elements.indicators.ledrgb")
+local LED        = require("graphics.elements.indicators.led")
+local LEDPair    = require("graphics.elements.indicators.ledpair")
+local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 

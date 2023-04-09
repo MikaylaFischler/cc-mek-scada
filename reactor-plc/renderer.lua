@@ -66,7 +66,7 @@ end
 ---@return boolean ready
 function renderer.ui_ready() return ui.view ~= nil end
 
--- handle a touch event
+-- handle a mouse event
 ---@param event mouse_interaction
 function renderer.handle_mouse(event)
     ui.view.handle_mouse(event)

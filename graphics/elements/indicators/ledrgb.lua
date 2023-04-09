@@ -12,7 +12,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
--- new tri-state indicator light
+-- new RGB LED indicator light
 ---@nodiscard
 ---@param args indicator_led_rgb_args
 ---@return graphics_element element, element_id id

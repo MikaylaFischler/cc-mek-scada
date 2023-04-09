@@ -19,7 +19,7 @@ local flasher = require("graphics.flasher")
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
 
--- new tri-state indicator light
+-- new dual LED indicator light
 ---@nodiscard
 ---@param args indicator_led_pair_args
 ---@return graphics_element element, element_id id
