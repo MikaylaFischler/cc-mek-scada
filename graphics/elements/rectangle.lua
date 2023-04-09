@@ -83,8 +83,8 @@ local function rectangle(args)
                 p_a = util.strrep("\x83", inner_width + width_x2)
                 p_b = util.strrep("\x8f", inner_width + width_x2)
             else
-                p_a = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
-                p_b = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
+                p_a = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
+                p_b = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
             end
 
             p_s = spaces
