@@ -126,19 +126,10 @@ function logic.update_annunciator(self)
         self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
         self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
-        -- this warning applies when no coolant is buffered (which we can't easily determine without running)
-        --[[
-            logic is that each tick, the heating rate worth of coolant steps between:
-                reactor tank
-                reactor heated coolant outflow tube
-                boiler/turbine tank
-                reactor cooled coolant return tube
-            so if there is a tick where coolant is no longer present in the reactor, then bad things happen.
-            such as when a burn rate consumes half the coolant in the tank, meaning that:
-                50% at some point will be in the boiler, and 50% in a tube, so that leaves 0% in the reactor
-        ]]--
         local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
-        local high_rate = (plc_db.mek_status.ccool_amnt / (plc_db.mek_status.burn_rate * heating_rate_conv)) < 4
+        local high_rate = plc_db.mek_status.burn_rate >= (plc_db.mek_status.ccool_amnt * 0.27 / heating_rate_conv)
+        -- this advisory applies when no coolant is buffered (which we can't easily determine)<br>
+        -- it's a rough estimation, see GitHub cc-mek-scada/wiki/High-Rate-Calculation
         self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and high_rate
 
         -- if no boilers, use reactor heating rate to check for boil rate mismatch
