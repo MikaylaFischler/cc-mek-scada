@@ -7,6 +7,7 @@ local element = require("graphics.element")
 ---@class rectangle_args
 ---@field border? graphics_border
 ---@field thin? boolean true to use extra thin even borders
+---@field even_inner? boolean true to make the inner area of a border even
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -66,14 +67,27 @@ local function rectangle(args)
         local blit_bg_top_bot = util.strrep(border_blit, e.frame.w)
 
         -- partial bars
-        local p_a = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
-        local p_b = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
-        local p_s = spaces
-
+        local p_a, p_b, p_s
         if args.thin == true then
-            p_a = "\x97" .. util.strrep("\x83", inner_width) .. "\x94"
-            p_b = "\x8a" .. util.strrep("\x8f", inner_width) .. "\x85"
+            if args.even_inner == true then
+                p_a = "\x9c" .. util.strrep("\x8c", inner_width) .. "\x93"
+                p_b = "\x8d" .. util.strrep("\x8c", inner_width) .. "\x8e"
+            else
+                p_a = "\x97" .. util.strrep("\x83", inner_width) .. "\x94"
+                p_b = "\x8a" .. util.strrep("\x8f", inner_width) .. "\x85"
+            end
+
             p_s = "\x95" .. util.spaces(inner_width) .. "\x95"
+        else
+            if args.even_inner == true then
+                p_a = util.strrep("\x83", inner_width + width_x2)
+                p_b = util.strrep("\x8f", inner_width + width_x2)
+            else
+                p_a = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
+                p_b = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
+            end
+
+            p_s = spaces
         end
 
         local p_inv_fg = util.strrep(border_blit, border_width) .. util.strrep(e.fg_bg.blit_bkg, inner_width) ..
@@ -112,10 +126,13 @@ local function rectangle(args)
                     if args.thin == true then
                         e.window.blit(p_a, p_inv_bg, p_inv_fg)
                     else
+                        local _fg = util.trinary(args.even_inner == true, util.strrep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
+                        local _bg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
+
                         if width_x2 % 3 == 1 then
-                            e.window.blit(p_b, p_inv_bg, p_inv_fg)
+                            e.window.blit(p_b, _fg, _bg)
                         elseif width_x2 % 3 == 2 then
-                            e.window.blit(p_a, p_inv_bg, p_inv_fg)
+                            e.window.blit(p_a, _fg, _bg)
                         else
                             -- skip line
                             e.window.blit(spaces, blit_fg, blit_bg_sides)
@@ -129,12 +146,19 @@ local function rectangle(args)
                 -- partial pixel fill
                 if args.border.even and y == ((e.frame.h - border_width) + 1) then
                     if args.thin == true then
-                        e.window.blit(p_b, util.strrep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                        if args.even_inner == true then
+                            e.window.blit(p_b, blit_bg_top_bot, util.strrep(e.fg_bg.blit_bkg, e.frame.w))
+                        else
+                            e.window.blit(p_b, util.strrep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                        end
                     else
+                        local _fg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
+                        local _bg = util.trinary(args.even_inner == true, util.strrep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+
                         if width_x2 % 3 == 1 then
-                            e.window.blit(p_a, p_inv_fg, blit_bg_top_bot)
-                        elseif width_x2 % 3 == 2 or (args.thin == true) then
-                            e.window.blit(p_b, p_inv_fg, blit_bg_top_bot)
+                            e.window.blit(p_a, _fg, _bg)
+                        elseif width_x2 % 3 == 2 then
+                            e.window.blit(p_b, _fg, _bg)
                         else
                             -- skip line
                             e.window.blit(spaces, blit_fg, blit_bg_sides)
