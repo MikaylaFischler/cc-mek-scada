@@ -5,6 +5,10 @@ config.NETWORKED = true
 -- unique reactor ID
 config.REACTOR_ID = 1
 
+-- for offline mode, this redstone interface will turn off (open a valve)
+-- when emergency coolant is needed due to low coolant
+config.EMERGENCY_COOL = { side = "right", color = nil }
+
 -- port to send packets TO server
 config.SERVER_PORT = 16000
 -- port to listen to incoming packets FROM server

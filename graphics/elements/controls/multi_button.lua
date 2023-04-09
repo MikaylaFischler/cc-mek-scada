@@ -92,9 +92,10 @@ local function multi_button(args)
         end
     end
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
-    function e.handle_touch(event)
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
+---@diagnostic disable-next-line: unused-local
+    function e.handle_mouse(event)
         -- determine what was pressed
         if e.enabled and event.y == 1 then
             for i = 1, #args.options do

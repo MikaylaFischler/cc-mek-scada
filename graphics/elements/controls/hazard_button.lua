@@ -140,10 +140,10 @@ local function hazard_button(args)
         end
     end
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
 ---@diagnostic disable-next-line: unused-local
-    function e.handle_touch(event)
+    function e.handle_mouse(event)
         if e.enabled then
             -- change text color to indicate clicked
             e.window.setTextColor(args.accent)
@@ -178,7 +178,7 @@ local function hazard_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_touch(core.events.touch("", 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_type.VIRTUAL, 1, 1)) end
     end
 
     -- show the button as disabled

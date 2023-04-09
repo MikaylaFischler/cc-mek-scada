@@ -1,14 +1,15 @@
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local ppm    = require("scada-common.ppm")
-local util   = require("scada-common.util")
+local log          = require("scada-common.log")
+local mqueue       = require("scada-common.mqueue")
+local ppm          = require("scada-common.ppm")
+local tcallbackdsp = require("scada-common.tcallbackdsp")
+local util         = require("scada-common.util")
+
+local databus      = require("reactor-plc.databus")
+local renderer     = require("reactor-plc.renderer")
+
+local core         = require("graphics.core")
 
 local threads = {}
-
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 local MAIN_CLOCK    = 0.5 -- (2Hz,   10 ticks)
 local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
@@ -32,11 +33,16 @@ local MQ__COMM_CMD = {
 ---@param smem plc_shared_memory
 ---@param init function
 function threads.thread__main(smem, init)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not smem.plc_state.fp_ok then util.println(message) end end
+    local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
+
     ---@class parallel_thread
     local public = {}
 
     -- execute thread
     function public.exec()
+        databus.tx_rt_status("main", true)
         log.debug("main thread init, clock inactive")
 
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
@@ -61,6 +67,9 @@ function threads.thread__main(smem, init)
 
             -- handle event
             if event == "timer" and loop_clock.is_clock(param1) then
+                -- blink heartbeat indicator
+                databus.heartbeat()
+
                 -- core clock tick
                 if networked then
                     -- start next clock timer
@@ -133,6 +142,9 @@ function threads.thread__main(smem, init)
                     -- reactor no longer formed
                     plc_state.reactor_formed = false
                 end
+
+                -- update indicators
+                databus.tx_hw_status(plc_state)
             elseif event == "modem_message" and networked and plc_state.init_ok and not plc_state.no_modem then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
@@ -144,6 +156,9 @@ function threads.thread__main(smem, init)
                 -- haven't heard from server recently? shutdown reactor
                 plc_comms.unlink()
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
+            elseif event == "timer" then
+                -- notify timer callback dispatcher if no other timer case claimed this event
+                tcallbackdsp.handle(param1)
             elseif event == "peripheral_detach" then
                 -- peripheral disconnect
                 local type, device = ppm.handle_unmount(param1)
@@ -174,6 +189,9 @@ function threads.thread__main(smem, init)
                         end
                     end
                 end
+
+                -- update indicators
+                databus.tx_hw_status(plc_state)
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
@@ -237,6 +255,12 @@ function threads.thread__main(smem, init)
                     plc_state.init_ok = true
                     init()
                 end
+
+                -- update indicators
+                databus.tx_hw_status(plc_state)
+            elseif event == "mouse_click" then
+                -- handle a monitor touch event
+                renderer.handle_mouse(core.events.click(param1, param2, param3))
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock.start()
@@ -263,6 +287,8 @@ function threads.thread__main(smem, init)
                 log.fatal(util.strval(result))
             end
 
+            databus.tx_rt_status("main", false)
+
             -- if status is true, then we are probably exiting, so this won't matter
             -- if not, we need to restart the clock
             -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
@@ -280,11 +306,16 @@ end
 ---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__rps(smem)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not smem.plc_state.fp_ok then util.println(message) end end
+    local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
+
     ---@class parallel_thread
     local public = {}
 
     -- execute thread
     function public.exec()
+        databus.tx_rt_status("rps", true)
         log.debug("rps thread start")
 
         -- load in from shared memory
@@ -314,15 +345,20 @@ function threads.thread__rps(smem)
                         rps.trip_timeout()
                     end
                 else
-                    -- would do elseif not networked but there is no reason to do that extra operation
                     was_linked = true
                 end
 
-                -- if we tried to SCRAM but failed, keep trying
-                -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
+                if (not plc_state.no_reactor) and rps.is_formed() then
+                    -- check reactor status
 ---@diagnostic disable-next-line: need-check-nil
-                if (not plc_state.no_reactor) and rps.is_formed() and rps.is_tripped() and reactor.getStatus() then
-                    rps.scram()
+                    local reactor_status = reactor.getStatus()
+                    databus.tx_reactor_state(reactor_status)
+
+                    -- if we tried to SCRAM but failed, keep trying
+                    -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
+                    if rps.is_tripped() and reactor_status then
+                        rps.scram()
+                    end
                 end
 
                 -- if we are in standalone mode, continuously reset RPS
@@ -406,6 +442,8 @@ function threads.thread__rps(smem)
                 log.fatal(util.strval(result))
             end
 
+            databus.tx_rt_status("rps", false)
+
             if not plc_state.shutdown then
                 if plc_state.init_ok then smem.plc_sys.rps.scram() end
                 log.info("rps thread restarting in 5 seconds...")
@@ -426,6 +464,7 @@ function threads.thread__comms_tx(smem)
 
     -- execute thread
     function public.exec()
+        databus.tx_rt_status("comms_tx", true)
         log.debug("comms tx thread start")
 
         -- load in from shared memory
@@ -483,6 +522,8 @@ function threads.thread__comms_tx(smem)
                 log.fatal(util.strval(result))
             end
 
+            databus.tx_rt_status("comms_tx", false)
+
             if not plc_state.shutdown then
                 log.info("comms tx thread restarting in 5 seconds...")
                 util.psleep(5)
@@ -502,6 +543,7 @@ function threads.thread__comms_rx(smem)
 
     -- execute thread
     function public.exec()
+        databus.tx_rt_status("comms_rx", true)
         log.debug("comms rx thread start")
 
         -- load in from shared memory
@@ -559,6 +601,8 @@ function threads.thread__comms_rx(smem)
                 log.fatal(util.strval(result))
             end
 
+            databus.tx_rt_status("comms_rx", false)
+
             if not plc_state.shutdown then
                 log.info("comms rx thread restarting in 5 seconds...")
                 util.psleep(5)
@@ -578,6 +622,7 @@ function threads.thread__setpoint_control(smem)
 
     -- execute thread
     function public.exec()
+        databus.tx_rt_status("spctl", true)
         log.debug("setpoint control thread start")
 
         -- load in from shared memory
@@ -691,6 +736,8 @@ function threads.thread__setpoint_control(smem)
             if status == false then
                 log.fatal(util.strval(result))
             end
+
+            databus.tx_rt_status("spctl", false)
 
             if not plc_state.shutdown then
                 log.info("setpoint control thread restarting in 5 seconds...")

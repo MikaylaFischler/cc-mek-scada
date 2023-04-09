@@ -154,7 +154,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             ReactorHighWaste     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.ReactorHighWaste, tier = PRIO.URGENT },
             -- RPS trip occured
             RPSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.RPSTransient, tier = PRIO.TIMELY },
-            -- BoilRateMismatch, CoolantFeedMismatch, SteamFeedMismatch, MaxWaterReturnFeed
+            -- CoolantLevelLow, WaterLevelLow, TurbineOverSpeed, MaxWaterReturnFeed, RCPTrip, RCSFlowLow, BoilRateMismatch, CoolantFeedMismatch,
+            -- SteamFeedMismatch, MaxWaterReturnFeed, RCS hardware fault
             RCSTransient         = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 5, id = ALARM.RCSTransient, tier = PRIO.TIMELY },
             -- "It's just a routine turbin' trip!" -Bill Gibson, "The China Syndrome"
             TurbineTrip          = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 2, id = ALARM.TurbineTrip, tier = PRIO.URGENT }
@@ -195,6 +196,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
                 TurbineOnline = {},
                 SteamDumpOpen = {},
                 TurbineOverSpeed = {},
+                GeneratorTrip = {},
                 TurbineTrip = {}
             },
             ---@class alarms
@@ -238,6 +240,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         table.insert(self.db.annunciator.TurbineOnline, false)
         table.insert(self.db.annunciator.SteamDumpOpen, TRI_FAIL.OK)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
+        table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
     end
 
@@ -312,7 +315,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             local last_update_s = db.tanks.last_update / 1000.0
 
             _compute_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx(), db.tanks.steam.amount, last_update_s)
-            ---@todo unused currently?
             _compute_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx(), db.tanks.energy, last_update_s)
         end
     end

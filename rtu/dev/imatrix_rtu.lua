@@ -5,8 +5,12 @@ local imatrix_rtu = {}
 -- create new induction matrix (mek 10.1+) device
 ---@nodiscard
 ---@param imatrix table
+---@return rtu_device interface, boolean faulted
 function imatrix_rtu.new(imatrix)
     local unit = rtu.init_unit()
+
+    -- disable auto fault clearing
+    imatrix.__p_disable_afc()
 
     -- discrete inputs --
     unit.connect_di(imatrix.isFormed)
@@ -37,7 +41,12 @@ function imatrix_rtu.new(imatrix)
     -- holding registers --
     -- none
 
-    return unit.interface()
+    -- check if any calls faulted
+    local faulted = imatrix.__p_is_faulted()
+    imatrix.__p_clear_fault()
+    imatrix.__p_enable_afc()
+
+    return unit.interface(), faulted
 end
 
 return imatrix_rtu

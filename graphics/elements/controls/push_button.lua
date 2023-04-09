@@ -8,7 +8,7 @@ local element = require("graphics.element")
 ---@class push_button_args
 ---@field text string button text
 ---@field callback function function to call on touch
----@field min_width? integer text length + 2 if omitted
+---@field min_width? integer text length if omitted
 ---@field active_fg_bg? cpair foreground/background colors when pressed
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
@@ -47,10 +47,10 @@ local function push_button(args)
         e.window.write(args.text)
     end
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
 ---@diagnostic disable-next-line: unused-local
-    function e.handle_touch(event)
+    function e.handle_mouse(event)
         if e.enabled then
             if args.active_fg_bg ~= nil then
                 -- show as pressed
@@ -78,7 +78,7 @@ local function push_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_touch(core.events.touch("", 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_type.VIRTUAL, 1, 1)) end
     end
 
     -- show butten as enabled

@@ -127,9 +127,9 @@ local function spinbox(args)
     -- init with the default value
     show_num()
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
-    function e.handle_touch(event)
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
+    function e.handle_mouse(event)
         -- only handle if on an increment or decrement arrow
         if e.enabled and event.x ~= dec_point_x then
             local idx = util.trinary(event.x > dec_point_x, event.x - 1, event.x)

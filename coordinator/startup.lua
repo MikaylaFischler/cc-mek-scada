@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "v0.12.2"
+local COORDINATOR_VERSION = "v0.12.5"
 
 local print = util.print
 local println = util.println
@@ -354,7 +354,7 @@ local function main()
             end
         elseif event == "monitor_touch" then
             -- handle a monitor touch event
-            renderer.handle_touch(core.events.touch(param1, param2, param3))
+            renderer.handle_mouse(core.events.touch(param1, param2, param3))
         elseif event == "speaker_audio_empty" then
             -- handle speaker buffer emptied
             sounder.continue()

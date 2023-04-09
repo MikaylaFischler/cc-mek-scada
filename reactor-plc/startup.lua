@@ -4,17 +4,21 @@
 
 require("/initenv").init_env()
 
-local crash   = require("scada-common.crash")
-local log     = require("scada-common.log")
-local mqueue  = require("scada-common.mqueue")
-local ppm     = require("scada-common.ppm")
-local util    = require("scada-common.util")
+local comms    = require("scada-common.comms")
+local crash    = require("scada-common.crash")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local ppm      = require("scada-common.ppm")
+local rsio     = require("scada-common.rsio")
+local util     = require("scada-common.util")
 
-local config  = require("reactor-plc.config")
-local plc     = require("reactor-plc.plc")
-local threads = require("reactor-plc.threads")
+local config   = require("reactor-plc.config")
+local databus  = require("reactor-plc.databus")
+local plc      = require("reactor-plc.plc")
+local renderer = require("reactor-plc.renderer")
+local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.0.0"
+local R_PLC_VERSION = "v1.1.4"
 
 local print = util.print
 local println = util.println
@@ -39,6 +43,15 @@ cfv.assert_type_int(config.LOG_MODE)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
+-- check emergency coolant configuration
+if type(config.EMERGENCY_COOL) == "table" then
+    if not rsio.is_valid_side(config.EMERGENCY_COOL.side) then
+        assert(false, "bad config file: emergency coolant side unrecognized")
+    elseif config.EMERGENCY_COOL.color ~= nil and not rsio.is_color(config.EMERGENCY_COOL.color) then
+        assert(false, "bad config file: emergency coolant invalid redstone channel color provided")
+    end
+end
+
 ----------------------------------------
 -- log init
 ----------------------------------------
@@ -61,6 +74,10 @@ local function main()
     -- startup
     ----------------------------------------
 
+    -- record firmware versions and ID
+    databus.tx_versions(R_PLC_VERSION, comms.version)
+    databus.tx_id(config.REACTOR_ID)
+
     -- mount connected devices
     ppm.mount_all()
 
@@ -74,6 +91,7 @@ local function main()
         ---@class plc_state
         plc_state = {
             init_ok = true,
+            fp_ok = false,
             shutdown = false,
             degraded = false,
             reactor_formed = true,
@@ -145,17 +163,33 @@ local function main()
         plc_state.no_modem = true
     end
 
+    -- print a log message to the terminal as long as the UI isn't running
+    local function _println_no_fp(message) if not plc_state.fp_ok then println(message) end end
+
     -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
-        if plc_state.init_ok then
-            -- just booting up, no fission allowed (neutrons stay put thanks)
-            if plc_state.reactor_formed and smem_dev.reactor.getStatus() then
-                smem_dev.reactor.scram()
-            end
+        -- just booting up, no fission allowed (neutrons stay put thanks)
+        if (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
+            smem_dev.reactor.scram()
+        end
 
+        -- front panel time!
+        if not renderer.ui_ready() then
+            local message = nil
+            plc_state.fp_ok, message = pcall(renderer.start_ui)
+            if not plc_state.fp_ok then
+                renderer.close_ui()
+                println_ts(util.c("UI error: ", message))
+                println("init> running without front panel")
+                log.error(util.c("GUI crashed with error ", message))
+                log.info("init> running in headless mode without front panel")
+            end
+        end
+
+        if plc_state.init_ok then
             -- init reactor protection system
-            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed)
+            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed, config.EMERGENCY_COOL)
             log.debug("init> rps init")
 
             if __shared_memory.networked then
@@ -168,18 +202,26 @@ local function main()
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
-                println("init> starting in offline mode")
+                _println_no_fp("init> starting in offline mode")
                 log.info("init> running without networking")
+            end
+
+            -- notify user of emergency coolant configuration status
+            if config.EMERGENCY_COOL ~= nil then
+                println("init> emergency coolant control ready")
+                log.info("init> running with emergency coolant control available")
             end
 
             util.push_event("clock_start")
 
-            println("init> completed")
+            _println_no_fp("init> completed")
             log.info("init> startup completed")
         else
-            println("init> system in degraded state, awaiting devices...")
+            _println_no_fp("init> system in degraded state, awaiting devices...")
             log.warning("init> started in a degraded state, awaiting peripheral connections...")
         end
+
+        databus.tx_hw_status(plc_state)
     end
 
     ----------------------------------------
@@ -216,6 +258,8 @@ local function main()
         -- run threads, excluding comms
         parallel.waitForAll(main_thread.p_exec, rps_thread.p_exec)
     end
+
+    renderer.close_ui()
 
     println_ts("exited")
     log.info("exited")

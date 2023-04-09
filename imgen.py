@@ -7,7 +7,7 @@ def list_files(path):
 
     for (root, dirs, files) in os.walk(path):
         for f in files:
-            list.append(root[2:] + "/" + f)
+            list.append((root[2:] + "/" + f).replace('\\','/'))
 
     return list
 
@@ -68,7 +68,7 @@ def make_manifest(size):
             "pocket" : list_files("./pocket"),
         },
         "depends" : {
-            "reactor-plc" : [ "system", "common" ],
+            "reactor-plc" : [ "system", "common", "graphics" ],
             "rtu" : [ "system", "common" ],
             "supervisor" : [ "system", "common" ],
             "coordinator" : [ "system", "common", "graphics" ],

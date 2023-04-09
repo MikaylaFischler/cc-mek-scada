@@ -1,9 +1,11 @@
-local comms = require("scada-common.comms")
-local const = require("scada-common.constants")
-local log   = require("scada-common.log")
-local ppm   = require("scada-common.ppm")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local const   = require("scada-common.constants")
+local databus = require("reactor-plc.databus")
+local log     = require("scada-common.log")
+local ppm     = require("scada-common.ppm")
+local rsio    = require("scada-common.rsio")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
 local plc = {}
 
@@ -18,11 +20,6 @@ local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local RPS_LIMITS = const.RPS_LIMITS
 
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
-
 -- I sure hope the devs don't change this error message, not that it would have safety implications
 -- I wish they didn't change it to be like this
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
@@ -34,7 +31,8 @@ local PCALL_START_MSG = "pcall: Reactor is already active."
 ---@nodiscard
 ---@param reactor table
 ---@param is_formed boolean
-function plc.rps_init(reactor, is_formed)
+---@param emer_cool nil|table emergency coolant configuration
+function plc.rps_init(reactor, is_formed, emer_cool)
     local state_keys = {
         high_dmg = 1,
         high_temp = 2,
@@ -54,6 +52,7 @@ function plc.rps_init(reactor, is_formed)
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
         enabled_at = 0,
+        emer_cool_active = nil, ---@type boolean
         formed = is_formed,
         force_disabled = false,
         tripped = false,
@@ -72,6 +71,41 @@ function plc.rps_init(reactor, is_formed)
     -- clear reactor access fault flag
     local function _clear_fault()
         self.state[state_keys.fault] = false
+    end
+
+    -- set emergency coolant control (if configured)
+    ---@param state boolean true to enable emergency coolant, false to disable
+    local function _set_emer_cool(state)
+        -- check if this was configured: if it's a table, fields have already been validated.
+        if type(emer_cool) == "table" then
+            local level = rsio.digital_write_active(rsio.IO.U_EMER_COOL, state)
+
+            if level ~= false then
+                if rsio.is_color(emer_cool.color) then
+                    local output = rs.getBundledOutput(emer_cool.side)
+
+                    if rsio.digital_write(level) then
+                        output = colors.combine(output, emer_cool.color)
+                    else
+                        output = colors.subtract(output, emer_cool.color)
+                    end
+
+                    rs.setBundledOutput(emer_cool.side, output)
+                else
+                    rs.setOutput(emer_cool.side, rsio.digital_write(level))
+                end
+
+                if state ~= self.emer_cool_active then
+                    if state then
+                        log.info("RPS: emergency coolant valve OPENED")
+                    else
+                        log.info("RPS: emergency coolant valve CLOSED")
+                    end
+
+                    self.emer_cool_active = state
+                end
+            end
+        end
     end
 
     -- check if the reactor is formed
@@ -348,6 +382,12 @@ function plc.rps_init(reactor, is_formed)
             end
         end
 
+        -- update emergency coolant control if configured
+        _set_emer_cool(self.state[state_keys.low_coolant])
+
+        -- report RPS status
+        databus.tx_rps(self.tripped, self.state)
+
         return self.tripped, status, first_trip
     end
 
@@ -358,6 +398,8 @@ function plc.rps_init(reactor, is_formed)
     function public.is_tripped() return self.tripped end
     ---@nodiscard
     function public.get_trip_cause() return self.trip_cause end
+    ---@nodiscard
+    function public.is_low_coolant() return self.states[state_keys.low_coolant] end
 
     ---@nodiscard
     function public.is_active() return self.reactor_enabled end
@@ -396,6 +438,9 @@ function plc.rps_init(reactor, is_formed)
             log.info("RPS: auto reset")
         end
     end
+
+    -- link functions with databus
+    databus.link_rps(public.trip_manual, public.reset)
 
     return public
 end
@@ -733,6 +778,11 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     ---@param plc_state plc_state PLC state
     ---@param setpoints setpoints setpoint control table
     function public.handle_packet(packet, plc_state, setpoints)
+        -- print a log message to the terminal as long as the UI isn't running
+        local function println(message) if not plc_state.fp_ok then util.println(message) end end
+        local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
+
+        -- handle packets now that we have prints setup
         if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -919,6 +969,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                             -- clear this since this is for something that was unsolicited
                             self.last_est_ack = ESTABLISH_ACK.ALLOW
+
+                            -- report link state
+                            databus.tx_link_state(est_ack + 1)
                         else
                             log.debug("SCADA_MGMT establish packet length mismatch")
                         end
@@ -982,6 +1035,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                         self.linked = est_ack == ESTABLISH_ACK.ALLOW
                         self.last_est_ack = est_ack
+
+                        -- report link state
+                        databus.tx_link_state(est_ack + 1)
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end

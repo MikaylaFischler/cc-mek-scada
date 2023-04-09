@@ -235,8 +235,8 @@ local function init(parent, id)
 
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
-    local rcs_annunc = Div{parent=rcs,width=27,height=23,x=2,y=1}
-    local rcs_tags = Div{parent=rcs,width=2,height=14,x=29,y=9}
+    local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
+    local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
     local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.green}
@@ -244,7 +244,6 @@ local function init(parent, id)
     local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
     local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
-    local c_tbnt = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
     u_ps.subscribe("RCSFault", c_flt.update)
     u_ps.subscribe("EmergencyCoolant", c_emg.update)
@@ -252,11 +251,18 @@ local function init(parent, id)
     u_ps.subscribe("BoilRateMismatch", c_brm.update)
     u_ps.subscribe("SteamFeedMismatch", c_sfm.update)
     u_ps.subscribe("MaxWaterReturnFeed", c_mwrf.update)
-    u_ps.subscribe("TurbineTrip", c_tbnt.update)
 
-    rcs_annunc.line_break()
+    local available_space = 16 - (unit.num_boilers * 2 + unit.num_turbines * 4)
+
+    local function _add_space()
+        -- if we have some extra space, add padding
+        rcs_tags.line_break()
+        rcs_annunc.line_break()
+    end
 
     -- boiler annunciator panel(s)
+
+    if available_space > 0 then _add_space() end
 
     if unit.num_boilers > 0 then
         TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
@@ -268,6 +274,13 @@ local function init(parent, id)
         b_ps[1].subscribe("HeatingRateLow", b1_hr.update)
     end
     if unit.num_boilers > 1 then
+        -- note, can't (shouldn't for sure...) have 0 turbines
+        if (available_space > 2 and unit.num_turbines == 1) or
+           (available_space > 3 and unit.num_turbines == 2) or
+           (available_space > 4) then
+            _add_space()
+        end
+
         TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
         local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
         b_ps[2].subscribe("WasterLevelLow", b2_wll.update)
@@ -279,14 +292,9 @@ local function init(parent, id)
 
     -- turbine annunciator panels
 
-    if unit.num_boilers == 0 then
-        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
-    else
-        rcs_tags.line_break()
-        rcs_annunc.line_break()
-        TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
-    end
+    if available_space > 1 then _add_space() end
 
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
     t_ps[1].subscribe("SteamDumpOpen", t1_sdo.update)
 
@@ -295,10 +303,18 @@ local function init(parent, id)
     t_ps[1].subscribe("TurbineOverSpeed", t1_tos.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+    local t1_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+    t_ps[1].subscribe("GeneratorTrip", t1_gtrp.update)
+
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
     local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     t_ps[1].subscribe("TurbineTrip", t1_trp.update)
 
     if unit.num_turbines > 1 then
+        if (available_space > 2 and unit.num_turbines == 2) or available_space > 3 then
+            _add_space()
+        end
+
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[2].subscribe("SteamDumpOpen", t2_sdo.update)
@@ -308,11 +324,17 @@ local function init(parent, id)
         t_ps[2].subscribe("TurbineOverSpeed", t2_tos.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
+        local t2_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+        t_ps[2].subscribe("GeneratorTrip", t2_gtrp.update)
+
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
         local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
         t_ps[2].subscribe("TurbineTrip", t2_trp.update)
     end
 
     if unit.num_turbines > 2 then
+        if available_space > 3 then _add_space() end
+
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t_ps[3].subscribe("SteamDumpOpen", t3_sdo.update)
@@ -320,6 +342,10 @@ local function init(parent, id)
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
         t_ps[3].subscribe("TurbineOverSpeed", t3_tos.update)
+
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
+        local t3_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+        t_ps[3].subscribe("GeneratorTrip", t3_gtrp.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
         local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
