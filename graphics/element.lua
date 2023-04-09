@@ -166,9 +166,9 @@ function element.new(args)
         self.bounds.y2 = self.position.y + f.h - 1
     end
 
-    -- handle a touch event
-    ---@param event table monitor_touch event
-    function protected.handle_touch(event)
+    -- handle a mouse event
+    ---@param event mouse_interaction mouse interaction event
+    function protected.handle_mouse(event)
     end
 
     -- handle data value changes
@@ -410,20 +410,20 @@ function element.new(args)
 
     -- FUNCTION CALLBACKS --
 
-    -- handle a monitor touch
-    ---@param event monitor_touch monitor touch event
-    function public.handle_touch(event)
+    -- handle a monitor touch or mouse click
+    ---@param event mouse_interaction mouse interaction event
+    function public.handle_mouse(event)
         local in_x = event.x >= self.bounds.x1 and event.x <= self.bounds.x2
         local in_y = event.y >= self.bounds.y1 and event.y <= self.bounds.y2
 
         if in_x and in_y then
-            local event_T = core.events.touch(event.monitor, (event.x - self.position.x) + 1, (event.y - self.position.y) + 1)
+            local event_T = core.events.mouse_transposed(event, (event.x - self.position.x) + 1, (event.y - self.position.y) + 1)
 
             -- handle the touch event, transformed into the window frame
-            protected.handle_touch(event_T)
+            protected.handle_mouse(event_T)
 
             -- pass on touch event to children
-            for _, val in pairs(self.children) do val.handle_touch(event_T) end
+            for _, val in pairs(self.children) do val.handle_mouse(event_T) end
         end
     end
 

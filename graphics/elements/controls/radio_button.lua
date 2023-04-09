@@ -79,9 +79,9 @@ local function radio_button(args)
         end
     end
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
-    function e.handle_touch(event)
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
+    function e.handle_mouse(event)
         -- determine what was pressed
         if e.enabled then
             if args.options[event.y] ~= nil then

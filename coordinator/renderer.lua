@@ -171,15 +171,15 @@ end
 function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a touch event
----@param event monitor_touch
-function renderer.handle_touch(event)
+---@param event mouse_interaction
+function renderer.handle_mouse(event)
     if event.monitor == engine.monitors.primary_name then
-        ui.main_layout.handle_touch(event)
+        ui.main_layout.handle_mouse(event)
     else
         for id, monitor in pairs(engine.monitors.unit_name_map) do
             if event.monitor == monitor then
                 local layout = ui.unit_layouts[id]  ---@type graphics_element
-                layout.handle_touch(event)
+                layout.handle_mouse(event)
             end
         end
     end
