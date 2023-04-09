@@ -62,10 +62,10 @@ local function switch_button(args)
     -- initial draw
     draw_state()
 
-    -- handle touch
-    ---@param event monitor_touch monitor touch event
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
 ---@diagnostic disable-next-line: unused-local
-    function e.handle_touch(event)
+    function e.handle_mouse(event)
         if e.enabled then
             -- toggle state
             e.value = not e.value

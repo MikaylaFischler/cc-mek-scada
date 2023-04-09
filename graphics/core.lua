@@ -10,20 +10,76 @@ core.flasher = flasher
 
 local events = {}
 
----@class monitor_touch
+---@enum click_type
+events.click_type = {
+    VIRTUAL = 0,
+    LEFT_BUTTON = 1,
+    RIGHT_BUTTON = 2,
+    MID_BUTTON = 3
+}
+
+---@class mouse_interaction
 ---@field monitor string
+---@field button integer
 ---@field x integer
 ---@field y integer
 
--- create a new touch event definition
+-- create a new monitor touch mouse interaction event
 ---@nodiscard
 ---@param monitor string
 ---@param x integer
 ---@param y integer
----@return monitor_touch
+---@return mouse_interaction
 function events.touch(monitor, x, y)
     return {
         monitor = monitor,
+        button = events.click_type.LEFT_BUTTON,
+        x = x,
+        y = y
+    }
+end
+
+-- create a new mouse click mouse interaction event
+---@nodiscard
+---@param button click_type
+---@param x integer
+---@param y integer
+---@return mouse_interaction
+function events.click(button, x, y)
+    return {
+        monitor = "terminal",
+        button = button,
+        x = x,
+        y = y
+    }
+end
+
+-- create a new transposed mouse interaction event using the event's monitor/button fields
+---@nodiscard
+---@param event mouse_interaction
+---@param new_x integer
+---@param new_y integer
+---@return mouse_interaction
+function events.mouse_transposed(event, new_x, new_y)
+    return {
+        monitor = event.monitor,
+        button = event.button,
+        x = new_x,
+        y = new_y
+    }
+end
+
+-- create a new generic mouse interaction event
+---@nodiscard
+---@param monitor string
+---@param button click_type
+---@param x integer
+---@param y integer
+---@return mouse_interaction
+function events.mouse_generic(monitor, button, x, y)
+    return {
+        monitor = monitor,
+        button = button,
         x = x,
         y = y
     }
