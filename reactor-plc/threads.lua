@@ -5,6 +5,9 @@ local tcallbackdsp = require("scada-common.tcallbackdsp")
 local util         = require("scada-common.util")
 
 local databus      = require("reactor-plc.databus")
+local renderer     = require("reactor-plc.renderer")
+
+local core         = require("graphics.core")
 
 local threads = {}
 
@@ -255,6 +258,9 @@ function threads.thread__main(smem, init)
 
                 -- update indicators
                 databus.tx_hw_status(plc_state)
+            elseif event == "mouse_click" then
+                -- handle a monitor touch event
+                renderer.handle_mouse(core.events.click(param1, param2, param3))
             elseif event == "clock_start" then
                 -- start loop clock
                 loop_clock.start()

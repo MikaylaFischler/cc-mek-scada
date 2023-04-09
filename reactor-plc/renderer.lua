@@ -67,9 +67,9 @@ end
 function renderer.ui_ready() return ui.view ~= nil end
 
 -- handle a touch event
----@param event monitor_touch
-function renderer.handle_touch(event)
-    ui.view.handle_touch(event)
+---@param event mouse_interaction
+function renderer.handle_mouse(event)
+    ui.view.handle_mouse(event)
 end
 
 return renderer

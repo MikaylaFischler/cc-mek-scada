@@ -16,6 +16,8 @@ local Div           = require("graphics.elements.div")
 local Rectangle     = require("graphics.elements.rectangle")
 local TextBox       = require("graphics.elements.textbox")
 
+local PushButton    = require("graphics.elements.controls.push_button")
+
 local LED           = require("graphics.elements.indicators.led")
 local LEDPair       = require("graphics.elements.indicators.ledpair")
 local RGBLED        = require("graphics.elements.indicators.ledrgb")
@@ -65,11 +67,18 @@ local function init(monitor)
     databus.rx_field("routine__comms_rx", rt_cmrx.update)
     databus.rx_field("routine__spctl", rt_sctl.update)
 
-    local status = Div{parent=panel,width=16,height=4,x=18,y=3}
+    local status = Div{parent=panel,width=19,height=18,x=17,y=3}
 
-    local active = LED{parent=status,label="RCT ACTIVE",colors=cpair(colors.green,colors.green_off)}
-    local scram = LED{parent=status,label="RPS TRIP",colors=cpair(colors.red,colors.red_off),flash=true,period=flasher.PERIOD.BLINK_250_MS}
-    system.line_break()
+    local active = LED{parent=status,x=2,width=12,label="RCT ACTIVE",colors=cpair(colors.green,colors.green_off)}
+
+    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,y=2,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
+    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
+    local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=cpair(colors.red,colors.red_off),flash=true,period=flasher.PERIOD.BLINK_250_MS}
+
+    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,y=5,border=border(1,colors.white,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
+    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=cpair(colors.black,colors.white)}
+    PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
+    PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
     databus.rx_field("reactor_active", active.update)
     databus.rx_field("rps_scram", scram.update)

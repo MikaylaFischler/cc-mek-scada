@@ -13,6 +13,7 @@ local cpair = core.graphics.cpair
 -- remap global colors
 colors.ivory = colors.pink
 colors.red_off = colors.brown
+colors.yellow_off = colors.magenta
 colors.green_off = colors.lime
 
 style.root = cpair(colors.black, colors.ivory)
@@ -29,9 +30,9 @@ style.colors = {
     { c = colors.blue,      hex = 0x0096ff },
     { c = colors.purple,    hex = 0xb156ee },
     { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
-    { c = colors.magenta,   hex = 0xf9488a },
+    { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
     -- { c = colors.white,     hex = 0xdcd9ca },
-    { c = colors.lightGray, hex = 0x999f9b },
+    { c = colors.lightGray, hex = 0xb1b8b3 },
     { c = colors.gray,      hex = 0x575757 },
     -- { c = colors.black,     hex = 0x191919 },
     { c = colors.brown,     hex = 0x672223 }    -- RED OFF

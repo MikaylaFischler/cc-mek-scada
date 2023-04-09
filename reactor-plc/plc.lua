@@ -396,6 +396,9 @@ function plc.rps_init(reactor, is_formed)
         end
     end
 
+    -- link functions with databus
+    databus.link_rps(public.trip_manual, public.reset)
+
     return public
 end
 
