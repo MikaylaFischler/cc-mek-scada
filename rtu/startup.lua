@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v0.13.1"
+local RTU_VERSION = "v0.13.2"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
@@ -372,6 +372,17 @@ local function main()
                 return false
             end
 
+            if is_multiblock then
+                if not formed then
+                    log.info(util.c("configure> device '", name, "' is not formed"))
+                elseif faulted then
+                    -- sometimes there is a race condition on server boot where it reports formed, but
+                    -- the other functions are not yet defined (that's the theory at least). mark as unformed to attempt connection later
+                    formed = false
+                    log.warning(util.c("configure> device '", name, "' is formed, but initialization had one or more faults: marked as unformed"))
+                end
+            end
+
             ---@class rtu_unit_registry_entry
             local rtu_unit = {
                 uid = 0,                                ---@type integer
@@ -391,17 +402,6 @@ local function main()
             rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
 
             table.insert(units, rtu_unit)
-
-            if is_multiblock then
-                if not formed then
-                    log.info(util.c("configure> device '", name, "' is not formed"))
-                elseif faulted then
-                    -- sometimes there is a race condition on server boot where it reports formed, but
-                    -- the other functions are not yet defined (that's the theory at least). mark as unformed to attempt connection later
-                    formed = false
-                    log.warning(util.c("configure> device '", name, "' is formed, but initialization had one or more faults: marked as unformed"))
-                end
-            end
 
             local for_message = "facility"
             if for_reactor > 0 then
