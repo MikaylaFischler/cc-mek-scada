@@ -16,7 +16,7 @@ local MODE = {
 log.MODE = MODE
 
 -- whether to log debug messages or not
-local LOG_DEBUG = true
+local LOG_DEBUG = false
 
 local log_sys = {
     path = "/log.txt",
