@@ -375,37 +375,43 @@ function threads.thread__unit_comms(smem, unit)
                         ppm.unmount(unit.device)
 
                         local type, device = ppm.mount(iface)
+                        local faulted = false
 
                         if device ~= nil then
                             if type == "boilerValve" and unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
                                 -- boiler multiblock
                                 unit.device = device
-                                unit.rtu = boilerv_rtu.new(device)
+                                unit.rtu, faulted = boilerv_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
                             elseif type == "turbineValve" and unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
                                 -- turbine multiblock
                                 unit.device = device
-                                unit.rtu = turbinev_rtu.new(device)
+                                unit.rtu, faulted = turbinev_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
                             elseif type == "inductionPort" and unit.type == RTU_UNIT_TYPE.IMATRIX then
                                 -- induction matrix multiblock
                                 unit.device = device
-                                unit.rtu = imatrix_rtu.new(device)
+                                unit.rtu, faulted = imatrix_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
                             elseif type == "spsPort" and unit.type == RTU_UNIT_TYPE.SPS then
                                 -- SPS multiblock
                                 unit.device = device
-                                unit.rtu = sps_rtu.new(device)
+                                unit.rtu, faulted = sps_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
                             else
                                 log.error("illegal remount of non-multiblock RTU attempted for " .. short_name, true)
                             end
 
-                            rtu_comms.send_remounted(unit.uid)
+                            if unit.formed and faulted then
+                                -- something is still wrong = can't mark as formed yet
+                                unit.formed = false
+                            else
+                                rtu_comms.send_remounted(unit.uid)
+                            end
                         else
                             -- fully lost the peripheral now :(
                             log.error(util.c(unit.name, " lost (failed reconnect)"))

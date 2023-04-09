@@ -5,8 +5,12 @@ local sps_rtu = {}
 -- create new super-critical phase shifter (SPS) device
 ---@nodiscard
 ---@param sps table
+---@return rtu_device interface, boolean faulted
 function sps_rtu.new(sps)
     local unit = rtu.init_unit()
+
+    -- disable auto fault clearing
+    sps.__p_disable_afc()
 
     -- discrete inputs --
     unit.connect_di(sps.isFormed)
@@ -42,7 +46,12 @@ function sps_rtu.new(sps)
     -- holding registers --
     -- none
 
-    return unit.interface()
+    -- check if any calls faulted
+    local faulted = sps.__p_is_faulted()
+    sps.__p_clear_fault()
+    sps.__p_enable_afc()
+
+    return unit.interface(), faulted
 end
 
 return sps_rtu

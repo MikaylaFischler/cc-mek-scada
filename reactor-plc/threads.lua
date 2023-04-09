@@ -345,7 +345,6 @@ function threads.thread__rps(smem)
                         rps.trip_timeout()
                     end
                 else
-                    -- would do elseif not networked but there is no reason to do that extra operation
                     was_linked = true
                 end
 

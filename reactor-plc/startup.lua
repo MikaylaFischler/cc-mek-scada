@@ -9,6 +9,7 @@ local crash    = require("scada-common.crash")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
 local ppm      = require("scada-common.ppm")
+local rsio     = require("scada-common.rsio")
 local util     = require("scada-common.util")
 
 local config   = require("reactor-plc.config")
@@ -17,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.3"
+local R_PLC_VERSION = "v1.1.4"
 
 local print = util.print
 local println = util.println
@@ -41,6 +42,15 @@ cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+-- check emergency coolant configuration
+if type(config.EMERGENCY_COOL) == "table" then
+    if not rsio.is_valid_side(config.EMERGENCY_COOL.side) then
+        assert(false, "bad config file: emergency coolant side unrecognized")
+    elseif config.EMERGENCY_COOL.color ~= nil and not rsio.is_color(config.EMERGENCY_COOL.color) then
+        assert(false, "bad config file: emergency coolant invalid redstone channel color provided")
+    end
+end
 
 ----------------------------------------
 -- log init
@@ -179,7 +189,7 @@ local function main()
 
         if plc_state.init_ok then
             -- init reactor protection system
-            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed)
+            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed, config.EMERGENCY_COOL)
             log.debug("init> rps init")
 
             if __shared_memory.networked then
@@ -194,6 +204,12 @@ local function main()
             else
                 _println_no_fp("init> starting in offline mode")
                 log.info("init> running without networking")
+            end
+
+            -- notify user of emergency coolant configuration status
+            if config.EMERGENCY_COOL ~= nil then
+                println("init> emergency coolant control ready")
+                log.info("init> running with emergency coolant control available")
             end
 
             util.push_event("clock_start")

@@ -5,8 +5,12 @@ local sna_rtu = {}
 -- create new solar neutron activator (SNA) device
 ---@nodiscard
 ---@param sna table
+---@return rtu_device interface, boolean faulted
 function sna_rtu.new(sna)
     local unit = rtu.init_unit()
+
+    -- disable auto fault clearing
+    sna.__p_disable_afc()
 
     -- discrete inputs --
     -- none
@@ -32,7 +36,12 @@ function sna_rtu.new(sna)
     -- holding registers --
     -- none
 
-    return unit.interface()
+    -- check if any calls faulted
+    local faulted = sna.__p_is_faulted()
+    sna.__p_clear_fault()
+    sna.__p_enable_afc()
+
+    return unit.interface(), faulted
 end
 
 return sna_rtu

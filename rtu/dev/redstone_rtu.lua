@@ -11,6 +11,7 @@ local digital_write = rsio.digital_write
 
 -- create new redstone device
 ---@nodiscard
+---@return rtu_rs_device interface, boolean faulted
 function redstone_rtu.new()
     local unit = rtu.init_unit()
 
@@ -111,7 +112,7 @@ function redstone_rtu.new()
         )
     end
 
-    return public
+    return public, false
 end
 
 return redstone_rtu
