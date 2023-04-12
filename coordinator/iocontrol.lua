@@ -657,8 +657,8 @@ function iocontrol.update_unit_statuses(statuses)
                     if type(rtu_statuses.rad_mon) == "table" then
                         if #rtu_statuses.rad_mon > 0 then
                             local rad_mon = rtu_statuses.rad_mon[1]
-                            local rtu_faulted = rad_mon[1]  ---@type boolean
-                            unit.radiation    = rad_mon[2]  ---@type number
+                            -- local rtu_faulted = rad_mon[1]  ---@type boolean
+                            unit.radiation = rad_mon[2]  ---@type number
 
                             unit.unit_ps.publish("radiation", unit.radiation)
                         else

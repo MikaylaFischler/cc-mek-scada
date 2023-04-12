@@ -18,9 +18,8 @@ local border = core.graphics.border
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
----@param data reactor_db reactor data
 ---@param ps psil ps interface
-local function new_view(root, x, y, data, ps)
+local function new_view(root, x, y, ps)
     local reactor = Rectangle{parent=root,border=border(1, colors.gray, true),width=30,height=7,x=x,y=y}
 
     local text_fg_bg = cpair(colors.black, colors.lightGray)

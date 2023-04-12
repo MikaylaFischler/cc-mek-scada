@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 # list files in a directory
 def list_files(path):
@@ -100,7 +101,30 @@ f.close()
 
 manifest_size = os.path.getsize("install_manifest.json")
 
+final_manifest = make_manifest(manifest_size)
+
 # calculate file size then regenerate with embedded size
 f = open("install_manifest.json", "w")
-json.dump(make_manifest(manifest_size), f)
+json.dump(final_manifest, f)
 f.close()
+
+if sys.argv[1] == "shields":
+    # write all the JSON files for shields.io
+    for key, version in final_manifest["versions"].items():
+        f = open("./shields/" + key + ".json", "w")
+
+        if version.find("alpha") >= 0:
+            color = "yellow"
+        elif version.find("beta") >= 0:
+            color = "orange"
+        else:
+            color = "blue"
+
+        json.dump({
+            "schemaVersion": 1,
+            "label": key,
+            "message": "" + version,
+            "color": color
+        }, f)
+
+        f.close()

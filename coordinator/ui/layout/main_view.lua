@@ -5,7 +5,6 @@
 local util          = require("scada-common.util")
 
 local iocontrol     = require("coordinator.iocontrol")
-local sounder       = require("coordinator.sounder")
 
 local style         = require("coordinator.ui.style")
 
@@ -15,13 +14,8 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
-local ColorMap      = require("graphics.elements.colormap")
 local DisplayBox    = require("graphics.elements.displaybox")
-local Div           = require("graphics.elements.div")
 local TextBox       = require("graphics.elements.textbox")
-
-local PushButton    = require("graphics.elements.controls.push_button")
-local SwitchButton  = require("graphics.elements.controls.switch_button")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 

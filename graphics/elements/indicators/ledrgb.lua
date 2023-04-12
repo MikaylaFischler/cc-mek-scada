@@ -38,7 +38,7 @@ local function indicator_led_rgb(args)
         e.value = new_state
         e.window.setCursorPos(1, 1)
         if type(args.colors[new_state]) == "number" then
-            e.window.blit("\x8c", colors.toBlit(args.colors[new_state]), e.fg_bg.blit_bkg)            
+            e.window.blit("\x8c", colors.toBlit(args.colors[new_state]), e.fg_bg.blit_bkg)
         end
     end
 

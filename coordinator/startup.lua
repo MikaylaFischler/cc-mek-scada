@@ -21,9 +21,7 @@ local sounder      = require("coordinator.sounder")
 
 local COORDINATOR_VERSION = "v0.12.6"
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local log_graphics = coordinator.log_graphics
@@ -287,7 +285,7 @@ local function main()
                     else
                         log_sys("wired modem reconnected")
                     end
-                elseif type == "monitor" then
+                -- elseif type == "monitor" then
                     -- not supported, system will exit on loss of in-use monitors
                 elseif type == "speaker" then
                     local msg = "alarm sounder speaker reconnected"

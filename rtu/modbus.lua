@@ -347,11 +347,9 @@ function modbus.new(rtu_dev, use_parallel_read)
             response = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
         end
 
-        -- default is to echo back
-        local func_code = packet.func_code
-
-        -- echo back with error flag, on success the "error" will be acknowledgement
-        func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        -- default is to echo back<br>
+        -- but here we echo back with error flag, on success the "error" will be acknowledgement
+        local func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
 
         -- create reply
         local reply = comms.modbus_packet()
@@ -365,8 +363,8 @@ function modbus.new(rtu_dev, use_parallel_read)
     ---@param packet modbus_frame
     ---@return boolean return_code, modbus_packet reply
     function public.handle_packet(packet)
-        local return_code = true
-        local response = nil
+        local return_code   ---@type boolean
+        local response      ---@type table|MODBUS_EXCODE
 
         if packet.length >= 2 then
             -- handle  by function code

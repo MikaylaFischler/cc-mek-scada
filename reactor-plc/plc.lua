@@ -68,11 +68,6 @@ function plc.rps_init(reactor, is_formed, emer_cool)
         end
     end
 
-    -- clear reactor access fault flag
-    local function _clear_fault()
-        self.state[state_keys.fault] = false
-    end
-
     -- set emergency coolant control (if configured)
     ---@param state boolean true to enable emergency coolant, false to disable
     local function _set_emer_cool(state)
@@ -779,7 +774,6 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     ---@param setpoints setpoints setpoint control table
     function public.handle_packet(packet, plc_state, setpoints)
         -- print a log message to the terminal as long as the UI isn't running
-        local function println(message) if not plc_state.fp_ok then util.println(message) end end
         local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
 
         -- handle packets now that we have prints setup

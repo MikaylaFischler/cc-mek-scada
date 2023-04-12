@@ -12,7 +12,6 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 
 local IO_PORT = rsio.IO
 local IO_LVL = rsio.IO_LVL
-local IO_DIR = rsio.IO_DIR
 local IO_MODE = rsio.IO_MODE
 
 local TXN_READY = -1

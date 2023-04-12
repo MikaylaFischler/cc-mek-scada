@@ -73,7 +73,7 @@ local function core_map(args)
     local function draw_core(t)
         local i = 1
         local back_c = "F"
-        local text_c = "8"
+        local text_c    ---@type string
 
         -- determine fuel assembly coloring
         if t <= 300 then

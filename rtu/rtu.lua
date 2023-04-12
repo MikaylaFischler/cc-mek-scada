@@ -14,9 +14,6 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 -- create a new RTU unit
@@ -347,8 +344,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             if protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_frame
                 if rtu_state.linked then
-                    local return_code = false
-                    local reply = modbus.reply__neg_ack(packet)
+                    local return_code   ---@type boolean
+                    local reply         ---@type modbus_packet
 
                     -- handle MODBUS instruction
                     if packet.unit_id <= #units then

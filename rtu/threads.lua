@@ -17,9 +17,6 @@ local threads = {}
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)

@@ -16,16 +16,12 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- retry time constants in ms
-local INITIAL_WAIT = 1500
+-- local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
 local PARTIAL_RETRY_PERIOD = 2000
 
@@ -198,7 +194,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    local coord_send = pkt.data[2]
+                    -- local coord_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 

@@ -18,9 +18,9 @@ local renderer     = require("pocket.renderer")
 
 local POCKET_VERSION = "alpha-v0.1.0"
 
-local print = util.print
+-- local print = util.print
 local println = util.println
-local print_ts = util.print_ts
+-- local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 ----------------------------------------
