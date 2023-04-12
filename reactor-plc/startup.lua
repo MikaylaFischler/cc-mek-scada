@@ -18,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.4"
+local R_PLC_VERSION = "v1.1.5"
 
 local print = util.print
 local println = util.println
