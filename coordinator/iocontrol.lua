@@ -45,13 +45,13 @@ function iocontrol.init(conf, comms)
 
         radiation = types.new_zero_radiation_reading(),
 
-        --luacheck: push no unused args
+        --luacheck: no unused args
         save_cfg_ack = function (success) end,      ---@param success boolean
         start_ack = function (success) end,         ---@param success boolean
         stop_ack = function (success) end,          ---@param success boolean
         scram_ack = function (success) end,         ---@param success boolean
         ack_alarms_ack = function (success) end,    ---@param success boolean
-        --luacheck: pop
+        --luacheck: unused args
 
         ps = psil.create(),
 
@@ -98,14 +98,14 @@ function iocontrol.init(conf, comms)
 
             set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
 
-            --luacheck: push no unused args
+            -- luacheck: push no unused args
             start_ack = function (success) end,                         ---@param success boolean
             scram_ack = function (success) end,                         ---@param success boolean
             reset_rps_ack = function (success) end,                     ---@param success boolean
             ack_alarms_ack = function (success) end,                    ---@param success boolean
             set_burn_ack = function (success) end,                      ---@param success boolean
             set_waste_ack = function (success) end,                     ---@param success boolean
-            --luacheck: pop
+            -- luacheck: pop
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
