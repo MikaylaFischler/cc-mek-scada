@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - latest
+      - devel
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -15,4 +16,4 @@ jobs:
       - name: Luacheck
         uses: lunarmodules/luacheck@v1.1.0
         with:
-          args: . --no-max-line-length --globals _HOST term fs peripheral rs bit parallel colors textutils shell settings window read periphemu http
+          args: . --no-max-line-length --globals _HOST term fs peripheral rs bit parallel colors textutils shell settings window read periphemu http os.sleep
