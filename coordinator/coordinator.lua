@@ -541,9 +541,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                         unit.set_waste_ack(ack)
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
+---@diagnostic disable-next-line: empty-block
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
                                         -- UI will be updated to display current group if changed successfully
----@diagnostic disable-line: empty-block
                                     else
                                         log.debug(util.c("received unit command ack with unknown command ", cmd))
                                     end
