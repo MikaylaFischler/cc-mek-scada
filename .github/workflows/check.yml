@@ -1,0 +1,18 @@
+name: Lua Checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - latest
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Luacheck
+        uses: lunarmodules/luacheck@v1.1.0
+        with:
+          args: . --no-max-line-length --globals _HOST term fs peripheral rs bit parallel colors textutils shell settings window read periphemu http
