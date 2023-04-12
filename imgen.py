@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 # list files in a directory
 def list_files(path):
@@ -107,22 +108,23 @@ f = open("install_manifest.json", "w")
 json.dump(final_manifest, f)
 f.close()
 
-# write all the JSON files for shields.io
-for key, version in final_manifest["versions"].items():
-    f = open(".github/shields.io/" + key + ".json", "w")
+if sys.argv[1] == "shields":
+    # write all the JSON files for shields.io
+    for key, version in final_manifest["versions"].items():
+        f = open("shields-" + key + ".json", "w")
 
-    if version.find("alpha") >= 0:
-        color = "yellow"
-    elif version.find("beta") >= 0:
-        color = "orange"
-    else:
-        color = "blue"
+        if version.find("alpha") >= 0:
+            color = "yellow"
+        elif version.find("beta") >= 0:
+            color = "orange"
+        else:
+            color = "blue"
 
-    json.dump({
-        "schemaVersion": 1,
-        "label": key,
-        "message": "" + version,
-        "color": color
-    }, f)
+        json.dump({
+            "schemaVersion": 1,
+            "label": key,
+            "message": "" + version,
+            "color": color
+        }, f)
 
-    f.close()
+        f.close()
