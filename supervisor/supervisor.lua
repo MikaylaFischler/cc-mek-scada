@@ -11,10 +11,7 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- supervisory controller communications
 ---@nodiscard

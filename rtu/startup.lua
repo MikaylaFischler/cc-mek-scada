@@ -25,13 +25,11 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v0.13.2"
+local RTU_VERSION = "v0.13.3"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 ----------------------------------------
@@ -287,9 +285,9 @@ local function main()
 
             local device = ppm.get_periph(name)
 
-            local type = nil            ---@type string|nil
-            local rtu_iface = nil       ---@type rtu_device
-            local rtu_type = nil        ---@type RTU_UNIT_TYPE
+            local type                  ---@type string|nil
+            local rtu_iface             ---@type rtu_device
+            local rtu_type              ---@type RTU_UNIT_TYPE
             local is_multiblock = false ---@type boolean
             local formed = nil          ---@type boolean|nil
             local faulted = nil         ---@type boolean|nil
@@ -356,11 +354,11 @@ local function main()
             elseif type == "solarNeutronActivator" then
                 -- SNA
                 rtu_type = RTU_UNIT_TYPE.SNA
-                rtu_iface, _ = sna_rtu.new(device)
+                rtu_iface, faulted = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
                 rtu_type = RTU_UNIT_TYPE.ENV_DETECTOR
-                rtu_iface, _ = envd_rtu.new(device)
+                rtu_iface, faulted = envd_rtu.new(device)
             elseif type == ppm.VIRTUAL_DEVICE_TYPE then
                 -- placeholder device
                 rtu_type = RTU_UNIT_TYPE.VIRTUAL

@@ -11,7 +11,6 @@ local dialog      = require("coordinator.ui.dialog")
 
 local print = util.print
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local PROTOCOL = comms.PROTOCOL
@@ -246,7 +245,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
-        local pkt = nil ---@type mgmt_packet|crdn_packet
+        local pkt   ---@type mgmt_packet|crdn_packet
 
         if protocol == PROTOCOL.SCADA_MGMT then
             pkt = comms.mgmt_packet()

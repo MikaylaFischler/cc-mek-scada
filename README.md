@@ -1,6 +1,11 @@
 # cc-mek-scada
 Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fission reactors with a GUI, automatic safety features, waste processing control, and more! 
 
+![GitHub](https://img.shields.io/github/license/MikaylaFischler/cc-mek-scada)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/MikaylaFischler/cc-mek-scada?include_prereleases)
+![GitHub branch checks state](https://img.shields.io/github/checks-status/MikaylaFischler/cc-mek-scada/main?label=main)
+![GitHub branch checks state](https://img.shields.io/github/checks-status/MikaylaFischler/cc-mek-scada/devel?label=devel)
+
 Mod Requirements:
 - CC: Tweaked
 - Mekanism v10.1+

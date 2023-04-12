@@ -34,7 +34,6 @@ local MQ__COMM_CMD = {
 ---@param init function
 function threads.thread__main(smem, init)
     -- print a log message to the terminal as long as the UI isn't running
-    local function println(message) if not smem.plc_state.fp_ok then util.println(message) end end
     local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
 
     ---@class parallel_thread
@@ -307,7 +306,6 @@ end
 ---@param smem plc_shared_memory
 function threads.thread__rps(smem)
     -- print a log message to the terminal as long as the UI isn't running
-    local function println(message) if not smem.plc_state.fp_ok then util.println(message) end end
     local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
 
     ---@class parallel_thread
@@ -682,7 +680,7 @@ function threads.thread__setpoint_control(smem)
                             -- we yielded, check enable again
                             if setpoints.burn_rate_en and (type(current_burn_rate) == "number") and (current_burn_rate ~= setpoints.burn_rate) then
                                 -- calculate new burn rate
-                                local new_burn_rate = current_burn_rate
+                                local new_burn_rate ---@type number
 
                                 if setpoints.burn_rate > current_burn_rate then
                                     -- need to ramp up

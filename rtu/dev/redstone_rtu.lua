@@ -34,7 +34,7 @@ function redstone_rtu.new()
     ---@param side string
     ---@param color integer
     function public.link_di(side, color)
-        local f_read = nil
+        local f_read    ---@type function
 
         if color then
             f_read = function ()
@@ -53,8 +53,8 @@ function redstone_rtu.new()
     ---@param side string
     ---@param color integer
     function public.link_do(side, color)
-        local f_read = nil
-        local f_write = nil
+        local f_read    ---@type function
+        local f_write   ---@type function
 
         if color then
             f_read = function ()

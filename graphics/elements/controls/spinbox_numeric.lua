@@ -30,8 +30,7 @@ local function spinbox(args)
     assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
     assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
 
-    local fmt = ""
-    local fmt_init = ""
+    local fmt, fmt_init ---@type string, string
 
     if fr_prec > 0 then
         fmt = "%" .. (wn_prec + fr_prec + 1) .. "." .. fr_prec .. "f"
