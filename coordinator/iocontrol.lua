@@ -22,7 +22,6 @@ local io = {}
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
 function iocontrol.init(conf, comms)
-    --luacheck: no unused args
     ---@class ioctl_facility
     io.facility = {
         num_units = conf.num_units, ---@type integer

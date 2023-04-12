@@ -77,7 +77,6 @@ local function hazard_button(args)
             e.window.write(args.text)
         end
 
----@diagnostic disable-next-line: empty-block
         if n >= 4 then
             -- done
         elseif n % 2 == 0 then
@@ -120,7 +119,6 @@ local function hazard_button(args)
             e.window.write(args.text)
         end
 
----@diagnostic disable-next-line: empty-block
         if n >= 2 then
             -- done
         elseif n % 2 == 0 then

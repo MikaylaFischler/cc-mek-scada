@@ -245,9 +245,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
-
-        ---@type mgmt_packet|crdn_packet
-        local pkt
+        local pkt   ---@type mgmt_packet|crdn_packet
 
         if protocol == PROTOCOL.SCADA_MGMT then
             pkt = comms.mgmt_packet()
@@ -541,7 +539,6 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                         unit.set_waste_ack(ack)
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
----@diagnostic disable-next-line: empty-block
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
                                         -- UI will be updated to display current group if changed successfully
                                     else

@@ -168,19 +168,16 @@ function element.new(args)
 
     -- handle a mouse event
     ---@param event mouse_interaction mouse interaction event
----@diagnostic disable-next-line: unused-local
     function protected.handle_mouse(event)
     end
 
     -- handle data value changes
     ---@vararg any value(s)
----@diagnostic disable-next-line: unused-vararg
     function protected.on_update(...)
     end
 
     -- callback on control press responses
     ---@param result any
----@diagnostic disable-next-line: unused-local
     function protected.response_callback(result)
     end
 
@@ -192,19 +189,16 @@ function element.new(args)
 
     -- set value
     ---@param value any value to set
----@diagnostic disable-next-line: unused-local
     function protected.set_value(value)
     end
 
     -- set minimum input value
     ---@param min integer minimum allowed value
----@diagnostic disable-next-line: unused-local
     function protected.set_min(min)
     end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
----@diagnostic disable-next-line: unused-local
     function protected.set_max(max)
     end
 
@@ -218,13 +212,11 @@ function element.new(args)
 
     -- custom recolor command, varies by element if implemented
     ---@vararg cpair|color color(s)
----@diagnostic disable-next-line: unused-vararg
     function protected.recolor(...)
     end
 
     -- custom resize command, varies by element if implemented
     ---@vararg integer sizing
----@diagnostic disable-next-line: unused-vararg
     function protected.resize(...)
     end
 
