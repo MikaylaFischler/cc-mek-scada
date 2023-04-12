@@ -1,16 +1,172 @@
 --
--- SCADA Coordinator Access on a Pocket Computer
+-- SCADA System Access on a Pocket Computer
 --
 
 require("/initenv").init_env()
 
-local util = require("scada-common.util")
+local crash        = require("scada-common.crash")
+local log          = require("scada-common.log")
+local ppm          = require("scada-common.ppm")
+local tcallbackdsp = require("scada-common.tcallbackdsp")
+local util         = require("scada-common.util")
 
-local POCKET_VERSION = "alpha-v0.0.0"
+local core         = require("graphics.core")
+
+local config       = require("pocket.config")
+local pocket       = require("pocket.pocket")
+local renderer     = require("pocket.renderer")
+
+local POCKET_VERSION = "alpha-v0.1.0"
 
 local print = util.print
 local println = util.println
 local print_ts = util.print_ts
 local println_ts = util.println_ts
 
-println("Sorry, this isn't written yet :(")
+----------------------------------------
+-- config validation
+----------------------------------------
+
+local cfv = util.new_validator()
+
+cfv.assert_port(config.SCADA_SV_PORT)
+cfv.assert_port(config.SCADA_API_PORT)
+cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_type_int(config.TRUSTED_RANGE)
+cfv.assert_type_num(config.COMMS_TIMEOUT)
+cfv.assert_min(config.COMMS_TIMEOUT, 2)
+cfv.assert_type_str(config.LOG_PATH)
+cfv.assert_type_int(config.LOG_MODE)
+
+assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+----------------------------------------
+-- log init
+----------------------------------------
+
+log.init(config.LOG_PATH, config.LOG_MODE)
+
+log.info("========================================")
+log.info("BOOTING pocket.startup " .. POCKET_VERSION)
+log.info("========================================")
+
+crash.set_env("pocket", POCKET_VERSION)
+
+----------------------------------------
+-- main application
+----------------------------------------
+
+local function main()
+    ----------------------------------------
+    -- system startup
+    ----------------------------------------
+
+    -- mount connected devices
+    ppm.mount_all()
+
+    ----------------------------------------
+    -- setup communications
+    ----------------------------------------
+
+    -- get the communications modem
+    local modem = ppm.get_wireless_modem()
+    if modem == nil then
+        println("startup> wireless modem not found: please craft the pocket computer with a wireless modem")
+        log.fatal("no wireless modem on startup")
+        return
+    end
+
+    -- create connection watchdog
+    local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
+    conn_watchdog.cancel()
+    log.debug("startup> conn watchdog created")
+
+    -- start comms, open all channels
+    -- local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_API_PORT,
+    --                                         config.LISTEN_PORT, config.TRUSTED_RANGE, conn_watchdog)
+    -- log.debug("startup> comms init")
+
+    -- base loop clock (2Hz, 10 ticks)
+    local MAIN_CLOCK = 0.5
+    local loop_clock = util.new_clock(MAIN_CLOCK)
+
+    ----------------------------------------
+    -- start the UI
+    ----------------------------------------
+
+    local ui_ok, message = pcall(renderer.start_ui)
+    if not ui_ok then
+        renderer.close_ui()
+        println_ts(util.c("UI error: ", message))
+        log.error(util.c("GUI crashed with error ", message))
+    else
+        -- start clock
+        loop_clock.start()
+    end
+
+    ----------------------------------------
+    -- main event loop
+    ----------------------------------------
+
+    if ui_ok then
+        -- start connection watchdog
+        conn_watchdog.feed()
+        log.debug("startup> conn watchdog started")
+    end
+
+    -- main event loop
+    while ui_ok do
+        local event, param1, param2, param3, param4, param5 = util.pull_event()
+
+        -- handle event
+        if event == "timer" then
+            if loop_clock.is_clock(param1) then
+                -- main loop tick
+                loop_clock.start()
+            elseif conn_watchdog.is_timer(param1) then
+                -- supervisor watchdog timeout
+                log.info("server timeout")
+
+                -- pocket_comms.close()
+            else
+                -- a non-clock/main watchdog timer event
+
+                -- notify timer callback dispatcher
+                tcallbackdsp.handle(param1)
+            end
+        elseif event == "modem_message" then
+            -- got a packet
+            -- local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
+            -- pocket_comms.handle_packet(packet)
+
+            -- -- check if it was a disconnect
+            -- if not pocket_comms.is_linked() then
+            --     log_comms("supervisor closed connection")
+
+            --     -- close connection
+            --     pocket_comms.close()
+            -- end
+        elseif event == "mouse_click" then
+            -- handle a monitor touch event
+            renderer.handle_mouse(core.events.touch(param1, param2, param3))
+        end
+
+        -- check for termination request
+        if event == "terminate" or ppm.should_terminate() then
+            log.info("terminate requested, closing connections...")
+            -- pocket_comms.close()
+            log.info("supervisor connection closed")
+            break
+        end
+    end
+
+    renderer.close_ui()
+
+    println_ts("exited")
+    log.info("exited")
+end
+
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    crash.exit()
+end

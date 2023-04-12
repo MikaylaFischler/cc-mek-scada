@@ -25,6 +25,7 @@ local element = {}
 ---|multi_button_args
 ---|push_button_args
 ---|radio_button_args
+---|sidebar_args
 ---|spinbox_args
 ---|switch_button_args
 ---|alarm_indicator_light
