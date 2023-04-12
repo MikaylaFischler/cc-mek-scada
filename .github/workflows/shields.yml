@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload shields JSON
-          path: **-shields.json
+          path: ./**-shields.json
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
