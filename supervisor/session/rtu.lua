@@ -22,10 +22,7 @@ local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 local PERIODICS = {
     KEEP_ALIVE = 2000
@@ -78,9 +75,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         end
 
         for i = 1, #self.advert do
-            local unit     = nil ---@type unit_session|nil
-            local rs_in_q  = nil ---@type mqueue|nil
-            local tbv_in_q = nil ---@type mqueue|nil
+            local unit = nil    ---@type unit_session|nil
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -242,7 +237,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    local rtu_send = pkt.data[2]
+                    -- local rtu_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 

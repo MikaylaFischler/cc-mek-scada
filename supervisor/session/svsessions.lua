@@ -13,12 +13,10 @@ local rtu         = require("supervisor.session.rtu")
 
 -- Supervisor Sessions Handler
 
-local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 local PLC_S_DATA = plc.PLC_S_DATA
-local CRD_S_CMDS = coordinator.CRD_S_CMDS
 local CRD_S_DATA = coordinator.CRD_S_DATA
 
 local svsessions = {}
