@@ -111,7 +111,7 @@ f.close()
 if sys.argv[1] == "shields":
     # write all the JSON files for shields.io
     for key, version in final_manifest["versions"].items():
-        f = open(key + "-shields.json", "w")
+        f = open("shields/" + key + ".json", "w")
 
         if version.find("alpha") >= 0:
             color = "yellow"
