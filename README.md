@@ -3,8 +3,9 @@ Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fi
 
 ![GitHub](https://img.shields.io/github/license/MikaylaFischler/cc-mek-scada)
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/MikaylaFischler/cc-mek-scada?include_prereleases)
-![GitHub branch checks state](https://img.shields.io/github/checks-status/MikaylaFischler/cc-mek-scada/main?label=main)
-![GitHub branch checks state](https://img.shields.io/github/checks-status/MikaylaFischler/cc-mek-scada/devel?label=devel)
+![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/MikaylaFischler/cc-mek-scada/check.yml?branch=main&label=main)
+![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/MikaylaFischler/cc-mek-scada/check.yml?branch=latest&label=latest)
+![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/MikaylaFischler/cc-mek-scada/check.yml?branch=devel&label=devel)
 
 Mod Requirements:
 - CC: Tweaked
