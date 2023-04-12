@@ -11,7 +11,6 @@ local dialog      = require("coordinator.ui.dialog")
 
 local print = util.print
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local PROTOCOL = comms.PROTOCOL
@@ -246,7 +245,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local s_pkt = comms.scada_packet()
-        local pkt = nil ---@type mgmt_packet|crdn_packet
+
+        ---@type mgmt_packet|crdn_packet
+        local pkt
 
         if protocol == PROTOCOL.SCADA_MGMT then
             pkt = comms.mgmt_packet()
@@ -542,6 +543,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                         unit.ack_alarms_ack(ack)
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
                                         -- UI will be updated to display current group if changed successfully
+---@diagnostic disable-line: empty-block
                                     else
                                         log.debug(util.c("received unit command ack with unknown command ", cmd))
                                     end

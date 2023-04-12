@@ -1,3 +1,6 @@
+---@todo remove this once API is started
+---@diagnostic disable: unused-local
+
 local apisessions = {}
 
 ---@param packet capi_frame

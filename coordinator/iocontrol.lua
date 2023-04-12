@@ -45,11 +45,13 @@ function iocontrol.init(conf, comms)
 
         radiation = types.new_zero_radiation_reading(),
 
+---@diagnostic disable: unused-local
         save_cfg_ack = function (success) end,      ---@param success boolean
         start_ack = function (success) end,         ---@param success boolean
         stop_ack = function (success) end,          ---@param success boolean
         scram_ack = function (success) end,         ---@param success boolean
         ack_alarms_ack = function (success) end,    ---@param success boolean
+---@diagnostic enable: unused-local
 
         ps = psil.create(),
 
@@ -96,12 +98,14 @@ function iocontrol.init(conf, comms)
 
             set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
 
+---@diagnostic disable: unused-local
             start_ack = function (success) end,                         ---@param success boolean
             scram_ack = function (success) end,                         ---@param success boolean
             reset_rps_ack = function (success) end,                     ---@param success boolean
             ack_alarms_ack = function (success) end,                    ---@param success boolean
             set_burn_ack = function (success) end,                      ---@param success boolean
             set_waste_ack = function (success) end,                     ---@param success boolean
+---@diagnostic enable: unused-local
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
@@ -657,8 +661,8 @@ function iocontrol.update_unit_statuses(statuses)
                     if type(rtu_statuses.rad_mon) == "table" then
                         if #rtu_statuses.rad_mon > 0 then
                             local rad_mon = rtu_statuses.rad_mon[1]
-                            local rtu_faulted = rad_mon[1]  ---@type boolean
-                            unit.radiation    = rad_mon[2]  ---@type number
+                            -- local rtu_faulted = rad_mon[1]  ---@type boolean
+                            unit.radiation = rad_mon[2]  ---@type number
 
                             unit.unit_ps.publish("radiation", unit.radiation)
                         else

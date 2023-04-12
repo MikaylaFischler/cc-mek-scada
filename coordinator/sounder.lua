@@ -12,10 +12,11 @@ local ALARM_STATE = types.ALARM_STATE
 ---@class sounder
 local sounder = {}
 
+-- note: max samples = 0x20000 (128 * 1024 samples)
+
 local _2_PI        = 2 * math.pi    -- 2 whole pies, hope you're hungry
 local _DRATE       = 48000          -- 48kHz audio
 local _MAX_VAL     = 127 / 2        -- max signed integer in this 8-bit audio
-local _MAX_SAMPLES = 0x20000        -- 128 * 1024 samples
 local _05s_SAMPLES = 24000          -- half a second worth of samples
 
 local test_alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
