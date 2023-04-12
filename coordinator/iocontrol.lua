@@ -45,16 +45,13 @@ function iocontrol.init(conf, comms)
 
         radiation = types.new_zero_radiation_reading(),
 
----@diagnostic disable-next-line: unused-local
+        --luacheck: push no unused args
         save_cfg_ack = function (success) end,      ---@param success boolean
----@diagnostic disable-next-line: unused-local
         start_ack = function (success) end,         ---@param success boolean
----@diagnostic disable-next-line: unused-local
         stop_ack = function (success) end,          ---@param success boolean
----@diagnostic disable-next-line: unused-local
         scram_ack = function (success) end,         ---@param success boolean
----@diagnostic disable-next-line: unused-local
         ack_alarms_ack = function (success) end,    ---@param success boolean
+        --luacheck: pop
 
         ps = psil.create(),
 
@@ -101,18 +98,14 @@ function iocontrol.init(conf, comms)
 
             set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
 
----@diagnostic disable-next-line: unused-local
+            --luacheck: push no unused args
             start_ack = function (success) end,                         ---@param success boolean
----@diagnostic disable-next-line: unused-local
             scram_ack = function (success) end,                         ---@param success boolean
----@diagnostic disable-next-line: unused-local
             reset_rps_ack = function (success) end,                     ---@param success boolean
----@diagnostic disable-next-line: unused-local
             ack_alarms_ack = function (success) end,                    ---@param success boolean
----@diagnostic disable-next-line: unused-local
             set_burn_ack = function (success) end,                      ---@param success boolean
----@diagnostic disable-next-line: unused-local
             set_waste_ack = function (success) end,                     ---@param success boolean
+            --luacheck: pop
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
