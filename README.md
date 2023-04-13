@@ -22,20 +22,20 @@ There was also an apparent bug with boilers disconnecting and reconnecting when 
 
 ### Core
 
-![Bootloader](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Fbootloader.json)
-![Comms](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Fcomms.json)
+![Bootloader](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fbootloader.json)
+![Comms](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcomms.json)
 
 ### Utilities
 
-![Installer](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Finstaller.json)
+![Installer](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Finstaller.json)
 
 ### Applications
 
-![Reactor PLC](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Freactor-plc.json)
-![RTU](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Frtu.json)
-![Supervisor](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Fsupervisor.json)
-![Coordinator](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Fcoordinator.json)
-![Pocket](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fshields%2Fpocket.json)
+![Reactor PLC](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Freactor-plc.json)
+![RTU](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Frtu.json)
+![Supervisor](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fsupervisor.json)
+![Coordinator](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcoordinator.json)
+![Pocket](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fpocket.json)
 
 ## Installation
 
