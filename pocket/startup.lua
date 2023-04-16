@@ -16,7 +16,7 @@ local config       = require("pocket.config")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.1.0"
+local POCKET_VERSION = "alpha-v0.1.1"
 
 -- local print = util.print
 local println = util.println
