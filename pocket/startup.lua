@@ -16,11 +16,9 @@ local config       = require("pocket.config")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.1.1"
+local POCKET_VERSION = "alpha-v0.2.0"
 
--- local print = util.print
 local println = util.println
--- local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 ----------------------------------------
@@ -72,19 +70,25 @@ local function main()
     local modem = ppm.get_wireless_modem()
     if modem == nil then
         println("startup> wireless modem not found: please craft the pocket computer with a wireless modem")
-        log.fatal("no wireless modem on startup")
+        log.fatal("startup> no wireless modem on startup")
         return
     end
 
-    -- create connection watchdog
-    local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
-    conn_watchdog.cancel()
-    log.debug("startup> conn watchdog created")
+    -- create connection watchdogs
+    local conn_wd = {
+        sv = util.new_watchdog(config.COMMS_TIMEOUT),
+        api = util.new_watchdog(config.COMMS_TIMEOUT)
+    }
+
+    conn_wd.sv.cancel()
+    conn_wd.api.cancel()
+
+    log.debug("startup> conn watchdogs created")
 
     -- start comms, open all channels
-    -- local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_API_PORT,
-    --                                         config.LISTEN_PORT, config.TRUSTED_RANGE, conn_watchdog)
-    -- log.debug("startup> comms init")
+    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_API_PORT,
+                                        config.LISTEN_PORT, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
+    log.debug("startup> comms init")
 
     -- base loop clock (2Hz, 10 ticks)
     local MAIN_CLOCK = 0.5
@@ -98,7 +102,7 @@ local function main()
     if not ui_ok then
         renderer.close_ui()
         println_ts(util.c("UI error: ", message))
-        log.error(util.c("GUI crashed with error ", message))
+        log.error(util.c("startup> GUI crashed with error ", message))
     else
         -- start clock
         loop_clock.start()
@@ -109,8 +113,9 @@ local function main()
     ----------------------------------------
 
     if ui_ok then
-        -- start connection watchdog
-        conn_watchdog.feed()
+        -- start connection watchdogs
+        conn_wd.sv.feed()
+        conn_wd.api.feed()
         log.debug("startup> conn watchdog started")
     end
 
@@ -122,30 +127,37 @@ local function main()
         if event == "timer" then
             if loop_clock.is_clock(param1) then
                 -- main loop tick
-                loop_clock.start()
-            elseif conn_watchdog.is_timer(param1) then
-                -- supervisor watchdog timeout
-                log.info("server timeout")
 
-                -- pocket_comms.close()
+                -- relink if necessary
+                pocket_comms.link_update()
+
+                loop_clock.start()
+            elseif conn_wd.sv.is_timer(param1) then
+                -- supervisor watchdog timeout
+                log.info("supervisor server timeout")
+                pocket_comms.close_sv()
+            elseif conn_wd.api.is_timer(param1) then
+                -- coordinator watchdog timeout
+                log.info("coordinator api server timeout")
+                pocket_comms.close_api()
             else
                 -- a non-clock/main watchdog timer event
-
                 -- notify timer callback dispatcher
                 tcallbackdsp.handle(param1)
             end
         elseif event == "modem_message" then
             -- got a packet
-            -- local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
-            -- pocket_comms.handle_packet(packet)
+            local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
+            pocket_comms.handle_packet(packet)
 
-            -- -- check if it was a disconnect
-            -- if not pocket_comms.is_linked() then
-            --     log_comms("supervisor closed connection")
-
-            --     -- close connection
-            --     pocket_comms.close()
-            -- end
+            -- check if it was a disconnect
+            if not pocket_comms.is_sv_linked() then
+                log.info("supervisor closed connection")
+                pocket_comms.close_sv()
+            elseif not pocket_comms.is_api_linked() then
+                log.info("coordinator api closed connection")
+                pocket_comms.close_api()
+            end
         elseif event == "mouse_click" then
             -- handle a monitor touch event
             renderer.handle_mouse(core.events.touch(param1, param2, param3))
@@ -153,9 +165,9 @@ local function main()
 
         -- check for termination request
         if event == "terminate" or ppm.should_terminate() then
-            log.info("terminate requested, closing connections...")
-            -- pocket_comms.close()
-            log.info("supervisor connection closed")
+            log.info("terminate requested, closing server connections...")
+            pocket_comms.close()
+            log.info("connections closed")
             break
         end
     end

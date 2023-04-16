@@ -2,7 +2,7 @@
 -- Communications
 --
 
-local log   = require("scada-common.log")
+local log = require("scada-common.log")
 
 ---@class comms
 local comms = {}
@@ -74,7 +74,8 @@ local DEVICE_TYPE = {
     PLC = 0,            -- PLC device type for establish
     RTU = 1,            -- RTU device type for establish
     SV = 2,             -- supervisor device type for establish
-    CRDN = 3            -- coordinator device type for establish
+    CRDN = 3,           -- coordinator device type for establish
+    PKT = 4             -- pocket device type for establish
 }
 
 ---@enum PLC_AUTO_ACK
