@@ -1,22 +1,26 @@
 {
     "Lua.diagnostics.globals": [
-        "term",
-        "fs",
-        "peripheral",
-        "rs",
-        "bit",
-        "parallel",
-        "colors",
-        "textutils",
-        "shell",
-        "settings",
-        "window",
-        "read",
-        "periphemu",
         "_HOST",
-        "http"
+        "bit",
+        "colors",
+        "fs",
+        "http",
+        "parallel",
+        "periphemu",
+        "peripheral",
+        "read",
+        "rs",
+        "settings",
+        "shell",
+        "term",
+        "textutils",
+        "window"
     ],
-    "Lua.diagnostics.disable": [
-        "duplicate-set-field"
-    ]
+    "Lua.diagnostics.severity": {
+        "unused-local": "Information",
+        "unused-vararg": "Information",
+        "unused-function": "Information",
+        "unused-label": "Information"
+    },
+    "Lua.hint.setType": true
 }
