@@ -279,7 +279,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     end
 
     -- handle a packet
-    ---@param pkt rplc_frame
+    ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
@@ -293,6 +293,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.RPLC then
+            ---@cast pkt rplc_frame
             -- check reactor ID
             if pkt.id ~= reactor_id then
                 log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
@@ -469,6 +470,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then

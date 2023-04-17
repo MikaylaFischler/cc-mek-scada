@@ -123,7 +123,7 @@ local function _iterate(sessions)
 end
 
 -- cleanly close a session
----@param session plc_session_struct|rtu_session_struct
+---@param session plc_session_struct|rtu_session_struct|coord_session_struct
 local function _shutdown(session)
     session.open = false
     session.instance.close()
@@ -143,10 +143,8 @@ end
 ---@param sessions table
 local function _close(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
-        if session.open then
-            _shutdown(session)
-        end
+        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct|coord_session_struct
+        if session.open then _shutdown(session) end
     end
 end
 
@@ -155,7 +153,7 @@ end
 ---@param timer_event number
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
+        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct|coord_session_struct
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -172,6 +170,7 @@ end
 local function _free_closed(sessions)
     local f = function (session) return session.open end
 
+    ---@param session plc_session_struct|rtu_session_struct|coord_session_struct
     local on_delete = function (session)
         log.debug(util.c("free'ing closed ", session.s_type, " session ", session.instance.get_id(),
             " on remote port ", session.r_port))

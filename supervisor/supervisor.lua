@@ -22,6 +22,7 @@ local println = util.println
 ---@param dev_listen integer listening port for PLC/RTU devices
 ---@param coord_listen integer listening port for coordinator
 ---@param range integer trusted device connection range
+---@diagnostic disable-next-line: unused-local
 function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, coord_listen, range)
     local self = {
         last_est_acks = {}

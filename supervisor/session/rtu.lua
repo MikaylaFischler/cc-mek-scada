@@ -226,12 +226,13 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
+            ---@cast pkt modbus_frame
             if self.units[pkt.unit_id] ~= nil then
                 local unit = self.units[pkt.unit_id]    ---@type unit_session
----@diagnostic disable-next-line: param-type-mismatch
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             -- handle management packet
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply

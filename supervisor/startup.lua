@@ -9,12 +9,12 @@ local log        = require("scada-common.log")
 local ppm        = require("scada-common.ppm")
 local util       = require("scada-common.util")
 
-local svsessions = require("supervisor.session.svsessions")
-
 local config     = require("supervisor.config")
 local supervisor = require("supervisor.supervisor")
 
-local SUPERVISOR_VERSION = "v0.14.4"
+local svsessions = require("supervisor.session.svsessions")
+
+local SUPERVISOR_VERSION = "v0.14.5"
 
 local println = util.println
 local println_ts = util.println_ts
