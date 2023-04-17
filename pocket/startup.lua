@@ -16,7 +16,7 @@ local config       = require("pocket.config")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.2.0"
+local POCKET_VERSION = "alpha-v0.2.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -149,15 +149,6 @@ local function main()
             -- got a packet
             local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
             pocket_comms.handle_packet(packet)
-
-            -- check if it was a disconnect
-            if not pocket_comms.is_sv_linked() then
-                log.info("supervisor closed connection")
-                pocket_comms.close_sv()
-            elseif not pocket_comms.is_api_linked() then
-                log.info("coordinator api closed connection")
-                pocket_comms.close_api()
-            end
         elseif event == "mouse_click" then
             -- handle a monitor touch event
             renderer.handle_mouse(core.events.touch(param1, param2, param3))
