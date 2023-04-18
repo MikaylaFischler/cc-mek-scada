@@ -22,7 +22,7 @@ style.header = cpair(colors.black, colors.lightGray)
 style.colors = {
     { c = colors.red,       hex = 0xdf4949 },   -- RED ON
     { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xf9fb53 },
+    { c = colors.yellow,    hex = 0xf9fb53 },   -- YELLOW ON
     { c = colors.lime,      hex = 0x16665a },   -- GREEN OFF
     { c = colors.green,     hex = 0x6be551 },   -- GREEN ON
     { c = colors.cyan,      hex = 0x34bac8 },

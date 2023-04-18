@@ -6,8 +6,7 @@
 	"vscode": {
 		"extensions": [
 			"sumneko.lua",
-			"jackmacwindows.vscode-computercraft",
-			"jackmacwindows.craftos-pc"
+			"jackmacwindows.vscode-computercraft"
 		]
 	}
 }

@@ -381,7 +381,7 @@ function plc.rps_init(reactor, is_formed, emer_cool)
         _set_emer_cool(self.state[state_keys.low_coolant])
 
         -- report RPS status
-        databus.tx_rps(self.tripped, self.state)
+        databus.tx_rps(self.tripped, self.state, self.emer_cool_active)
 
         return self.tripped, status, first_trip
     end
