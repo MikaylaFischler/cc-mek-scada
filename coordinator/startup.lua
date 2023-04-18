@@ -19,7 +19,7 @@ local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "v0.12.6"
+local COORDINATOR_VERSION = "v0.13.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -40,8 +40,10 @@ cfv.assert_port(config.SCADA_SV_PORT)
 cfv.assert_port(config.SCADA_SV_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.COMMS_TIMEOUT)
-cfv.assert_min(config.COMMS_TIMEOUT, 2)
+cfv.assert_type_num(config.SV_TIMEOUT)
+cfv.assert_min(config.SV_TIMEOUT, 2)
+cfv.assert_type_num(config.API_TIMEOUT)
+cfv.assert_min(config.API_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
@@ -140,7 +142,7 @@ local function main()
     end
 
     -- create connection watchdog
-    local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
+    local conn_watchdog = util.new_watchdog(config.SV_TIMEOUT)
     conn_watchdog.cancel()
     log.debug("startup> conn watchdog created")
 
