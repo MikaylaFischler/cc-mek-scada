@@ -64,7 +64,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         connected = true,
         received_struct = false,
         received_status_cache = false,
-        plc_conn_watchdog = util.new_watchdog(timeout),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -233,7 +233,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
     -- mark this PLC session as closed, stop watchdog
     local function _close()
-        self.plc_conn_watchdog.cancel()
+        self.conn_watchdog.cancel()
         self.connected = false
     end
 
@@ -301,7 +301,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
             end
 
             -- feed watchdog
-            self.plc_conn_watchdog.feed()
+            self.conn_watchdog.feed()
 
             -- handle packet by type
             if pkt.type == RPLC_TYPE.STATUS then
@@ -576,7 +576,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     -- check if a timer matches this session's watchdog
     ---@nodiscard
     function public.check_wd(timer)
-        return self.plc_conn_watchdog.is_timer(timer) and self.connected
+        return self.conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection

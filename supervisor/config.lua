@@ -10,6 +10,7 @@ config.TRUSTED_RANGE = 0
 config.PLC_TIMEOUT = 5
 config.RTU_TIMEOUT = 5
 config.CRD_TIMEOUT = 5
+config.PKT_TIMEOUT = 5
 
 -- expected number of reactors
 config.NUM_REACTORS = 4

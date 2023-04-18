@@ -14,7 +14,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.14.5"
+local SUPERVISOR_VERSION = "v0.15.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -34,6 +34,8 @@ cfv.assert_type_num(config.RTU_TIMEOUT)
 cfv.assert_min(config.RTU_TIMEOUT, 2)
 cfv.assert_type_num(config.CRD_TIMEOUT)
 cfv.assert_min(config.CRD_TIMEOUT, 2)
+cfv.assert_type_num(config.PKT_TIMEOUT)
+cfv.assert_min(config.PKT_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_str(config.LOG_PATH)
