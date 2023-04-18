@@ -22,5 +22,8 @@
         "unused-function": "Information",
         "unused-label": "Information"
     },
-    "Lua.hint.setType": true
+    "Lua.hint.setType": true,
+    "Lua.diagnostics.disable": [
+        "duplicate-set-field"
+    ]
 }
