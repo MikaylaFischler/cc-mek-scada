@@ -13,6 +13,7 @@ local util         = require("scada-common.util")
 local core         = require("graphics.core")
 
 local config       = require("pocket.config")
+local coreio       = require("pocket.coreio")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
@@ -63,8 +64,10 @@ local function main()
     ppm.mount_all()
 
     ----------------------------------------
-    -- setup communications
+    -- setup communications & clocks
     ----------------------------------------
+
+    coreio.report_link_state(coreio.LINK_STATE.UNLINKED)
 
     -- get the communications modem
     local modem = ppm.get_wireless_modem()

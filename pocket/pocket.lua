@@ -1,12 +1,16 @@
-local comms = require("scada-common.comms")
-local log   = require("scada-common.log")
-local util  = require("scada-common.util")
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
+local util   = require("scada-common.util")
+
+local coreio = require("pocket.coreio")
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local CAPI_TYPE = comms.CAPI_TYPE
+
+local LINK_STATE = coreio.LINK_STATE
 
 local pocket = {}
 
@@ -205,10 +209,13 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     ---@param packet mgmt_frame|capi_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
-            local protocol = packet.scada_frame.protocol()
+            local l_port = packet.scada_frame.local_port()
             local r_port = packet.scada_frame.remote_port()
+            local protocol = packet.scada_frame.protocol()
 
-            if r_port == api_port then
+            if l_port ~= local_port then
+                log.debug("received packet on unconfigured channel " .. l_port, true)
+            elseif r_port == api_port then
                 -- check sequence number
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num()
@@ -235,6 +242,12 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                                 log.info("coordinator connection established")
                                 self.establish_delay_counter = 0
                                 self.api.linked = true
+
+                                if self.sv.linked then
+                                    coreio.report_link_state(LINK_STATE.LINKED)
+                                else
+                                    coreio.report_link_state(LINK_STATE.API_LINK_ONLY)
+                                end
                             elseif est_ack == ESTABLISH_ACK.DENY then
                                 if self.api.last_est_ack ~= est_ack then
                                     log.info("coordinator connection denied")
@@ -312,6 +325,12 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                                 log.info("supervisor connection established")
                                 self.establish_delay_counter = 0
                                 self.sv.linked = true
+
+                                if self.api.linked then
+                                    coreio.report_link_state(LINK_STATE.LINKED)
+                                else
+                                    coreio.report_link_state(LINK_STATE.SV_LINK_ONLY)
+                                end
                             elseif est_ack == ESTABLISH_ACK.DENY then
                                 if self.sv.last_est_ack ~= est_ack then
                                     log.info("supervisor connection denied")

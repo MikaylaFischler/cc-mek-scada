@@ -25,11 +25,11 @@ local function init(parent, y, is_api)
     local waiting_x = math.floor(parent.width() / 2) - 1
 
     if is_api then
-        TextBox{parent=root,text="Connecting to API",alignment=TEXT_ALIGN.CENTER,y=1,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
-        WaitingAnim{parent=root,x=waiting_x,y=3,fg_bg=cpair(colors.blue,style.root.bkg)}
+        WaitingAnim{parent=root,x=waiting_x,y=1,fg_bg=cpair(colors.blue,style.root.bkg)}
+        TextBox{parent=root,text="Connecting to API",alignment=TEXT_ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
     else
-        TextBox{parent=root,text="Connecting to Supervisor",alignment=TEXT_ALIGN.CENTER,y=1,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
-        WaitingAnim{parent=root,x=waiting_x,y=3,fg_bg=cpair(colors.green,style.root.bkg)}
+        WaitingAnim{parent=root,x=waiting_x,y=1,fg_bg=cpair(colors.green,style.root.bkg)}
+        TextBox{parent=root,text="Connecting to Supervisor",alignment=TEXT_ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
     end
 
     return root

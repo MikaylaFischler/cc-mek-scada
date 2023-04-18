@@ -4,6 +4,8 @@
 
 local util          = require("scada-common.util")
 
+local coreio        = require("pocket.coreio")
+
 local style         = require("pocket.ui.style")
 
 local conn_waiting  = require("pocket.ui.components.conn_waiting")
@@ -38,10 +40,36 @@ local function init(monitor)
     local main = DisplayBox{window=monitor,fg_bg=style.root}
 
     -- window header message
-    local header = TextBox{parent=main,y=1,text="",alignment=TEXT_ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="",alignment=TEXT_ALIGN.LEFT,height=1,fg_bg=style.header}
 
-    -- local api_wait = conn_waiting(main, 8, true)
-    -- local sv_wait = conn_waiting(main, 8, false)
+    --
+    -- root panel panes (connection screens + main screen)
+    --
+
+    local root_pane_div = Div{parent=main,x=1,y=2}
+
+    local conn_sv_wait = conn_waiting(root_pane_div, 6, false)
+    local conn_api_wait = conn_waiting(root_pane_div, 6, true)
+    local main_pane = Div{parent=main,x=1,y=2}
+    local root_panes = { conn_sv_wait, conn_api_wait, main_pane }
+
+    local root_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes=root_panes}
+
+    coreio.core_ps().subscribe("link_state", function (state)
+        if state == coreio.LINK_STATE.UNLINKED or state == coreio.LINK_STATE.API_LINK_ONLY then
+            root_pane.set_value(1)
+        elseif state == coreio.LINK_STATE.SV_LINK_ONLY then
+            root_pane.set_value(2)
+        else
+            root_pane.set_value(3)
+        end
+    end)
+
+    --
+    -- main page panel panes & sidebar
+    --
+
+    local page_div = Div{parent=main_pane,x=4,y=2}
 
     local sidebar_tabs = {
         {
@@ -66,19 +94,16 @@ local function init(monitor)
         }
     }
 
-    local mp_div = Div{parent=main,x=4,y=2}
-
-    local pane_1 = home_page(mp_div)
-    local pane_2 = unit_page(mp_div)
-    local pane_3 = reactor_page(mp_div)
-    local pane_4 = boiler_page(mp_div)
-    local pane_5 = turbine_page(mp_div)
-
+    local pane_1 = home_page(page_div)
+    local pane_2 = unit_page(page_div)
+    local pane_3 = reactor_page(page_div)
+    local pane_4 = boiler_page(page_div)
+    local pane_5 = turbine_page(page_div)
     local panes = { pane_1, pane_2, pane_3, pane_4, pane_5 }
 
-    local multipane = MultiPane{parent=mp_div,x=1,y=1,panes=panes}
+    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
-    local sidebar = Sidebar{parent=main,x=1,y=2,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=multipane.set_value}
+    Sidebar{parent=main_pane,x=1,y=2,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=page_pane.set_value}
 
     return main
 end

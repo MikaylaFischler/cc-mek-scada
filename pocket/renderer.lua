@@ -2,9 +2,6 @@
 -- Graphics Rendering Control
 --
 
-local log       = require("scada-common.log")
-local util      = require("scada-common.util")
-
 local main_view = require("pocket.ui.main")
 local style     = require("pocket.ui.style")
 
