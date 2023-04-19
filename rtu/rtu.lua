@@ -313,7 +313,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     pkt = mgmt_pkt.get()
                 end
             else
-                log.error("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -379,7 +379,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     else
                         -- unit ID out of range?
                         reply = modbus.reply__gw_unavailable(packet)
-                        log.error("received MODBUS packet for non-existent unit")
+                        log.debug("received MODBUS packet for non-existent unit")
                     end
 
                     public.send_modbus(reply)
@@ -447,7 +447,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         public.send_advertisement(units)
                     else
                         -- not supported
-                        log.warning("received unsupported SCADA_MGMT message type " .. packet.type)
+                        log.debug("received unsupported SCADA_MGMT message type " .. packet.type)
                     end
                 else
                     log.debug("discarding non-link SCADA_MGMT packet before linked")

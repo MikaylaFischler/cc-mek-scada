@@ -410,7 +410,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                                 _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPE.IMATRIX) })
                             end
                         else
-                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)
                         end
                     end
                 end

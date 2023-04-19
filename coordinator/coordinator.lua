@@ -515,7 +515,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                         elseif packet.type == SCADA_CRDN_TYPE.UNIT_STATUSES then
                             -- update statuses
                             if not iocontrol.update_unit_statuses(packet.data) then
-                                log.error("received invalid UNIT_STATUSES packet")
+                                log.debug("received invalid UNIT_STATUSES packet")
                             end
                         elseif packet.type == SCADA_CRDN_TYPE.UNIT_CMD then
                             -- unit command acknowledgement
@@ -551,7 +551,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                 log.debug("SCADA_CRDN unit command ack packet length mismatch")
                             end
                         else
-                            log.warning("received unknown SCADA_CRDN packet type " .. packet.type)
+                            log.debug("received unknown SCADA_CRDN packet type " .. packet.type)
                         end
                     else
                         log.debug("discarding SCADA_CRDN packet before linked")
@@ -606,11 +606,11 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                 end
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 if self.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied due to collision")
+                                    log.warning("supervisor connection denied due to collision")
                                 end
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 if self.last_est_ack ~= est_ack then
-                                    log.info("supervisor comms version mismatch")
+                                    log.warning("supervisor comms version mismatch")
                                 end
                             else
                                 log.debug("SCADA_MGMT establish packet reply (len = 1) unsupported")

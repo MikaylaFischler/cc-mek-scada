@@ -774,8 +774,10 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
 
+        local l_port = packet.scada_frame.local_port()
+
         -- handle packets now that we have prints setup
-        if packet.scada_frame.local_port() == local_port then
+        if l_port == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -1040,6 +1042,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 -- should be unreachable assuming packet is from parse_packet()
                 log.error("illegal packet type " .. protocol, true)
             end
+        else
+            log.debug("received packet on unconfigured channel " .. l_port, true)
         end
     end
 
