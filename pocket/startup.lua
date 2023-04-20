@@ -17,7 +17,7 @@ local coreio       = require("pocket.coreio")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.2.1"
+local POCKET_VERSION = "alpha-v0.2.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -89,8 +89,8 @@ local function main()
     log.debug("startup> conn watchdogs created")
 
     -- start comms, open all channels
-    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_API_PORT,
-                                        config.LISTEN_PORT, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
+    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.LISTEN_PORT, config.SCADA_SV_PORT,
+                                        config.SCADA_API_PORT, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
     log.debug("startup> comms init")
 
     -- base loop clock (2Hz, 10 ticks)

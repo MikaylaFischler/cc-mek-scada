@@ -2,8 +2,8 @@ local config = {}
 
 -- scada network listen for PLC's and RTU's
 config.SCADA_DEV_LISTEN = 16000
--- listen port for SCADA supervisor access by coordinators
-config.SCADA_SV_LISTEN = 16100
+-- listen port for SCADA supervisor access
+config.SCADA_SV_CTL_LISTEN = 16100
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
 -- time in seconds (>= 2) before assuming a remote device is no longer active

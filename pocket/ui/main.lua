@@ -69,7 +69,7 @@ local function init(monitor)
     -- main page panel panes & sidebar
     --
 
-    local page_div = Div{parent=main_pane,x=4,y=2}
+    local page_div = Div{parent=main_pane,x=4,y=1}
 
     local sidebar_tabs = {
         {
@@ -103,7 +103,7 @@ local function init(monitor)
 
     local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
-    Sidebar{parent=main_pane,x=1,y=2,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=page_pane.set_value}
+    Sidebar{parent=main_pane,x=1,y=1,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=page_pane.set_value}
 
     return main
 end

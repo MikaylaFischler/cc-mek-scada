@@ -242,6 +242,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
 
     _conf_channels()
 
+    -- link modem to apisessions
+    apisessions.init(modem)
+
     -- send a packet to the supervisor
     ---@param msg_type SCADA_MGMT_TYPE|SCADA_CRDN_TYPE
     ---@param msg table

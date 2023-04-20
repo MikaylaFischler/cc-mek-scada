@@ -3,7 +3,7 @@ local config = {}
 -- port of the SCADA supervisor
 config.SCADA_SV_PORT = 16100
 -- port to listen to incoming packets from supervisor
-config.SCADA_SV_LISTEN = 16101
+config.SCADA_SV_CTL_LISTEN = 16101
 -- listen port for SCADA coordinator API access
 config.SCADA_API_LISTEN = 16200
 -- max trusted modem message distance (0 to disable check)

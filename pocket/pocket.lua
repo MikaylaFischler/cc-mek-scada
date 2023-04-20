@@ -152,6 +152,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     -- attempt to re-link if any of the dependent links aren't active
     function public.link_update()
         if not self.sv.linked then
+            coreio.report_link_state(util.trinary(self.api.linked, LINK_STATE.API_LINK_ONLY, LINK_STATE.UNLINKED))
+
             if self.establish_delay_counter <= 0 then
                 _send_sv_establish()
                 self.establish_delay_counter = 4
@@ -159,6 +161,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                 self.establish_delay_counter = self.establish_delay_counter - 1
             end
         elseif not self.api.linked then
+            coreio.report_link_state(LINK_STATE.SV_LINK_ONLY)
+
             if self.establish_delay_counter <= 0 then
                 _send_api_establish()
                 self.establish_delay_counter = 4
@@ -167,6 +171,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
             end
         else
             -- linked, all good!
+            coreio.report_link_state(LINK_STATE.LINKED)
         end
     end
 

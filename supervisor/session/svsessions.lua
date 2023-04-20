@@ -216,7 +216,7 @@ end
 function svsessions.find_rtu_session(remote_port)
     -- check RTU sessions
     local session = _find_session(self.sessions.rtu, remote_port)
-    ---@cast session rtu_session_struct
+    ---@cast session rtu_session_struct|nil
     return session
 end
 
@@ -227,7 +227,7 @@ end
 function svsessions.find_plc_session(remote_port)
     -- check PLC sessions
     local session = _find_session(self.sessions.plc, remote_port)
-    ---@cast session plc_session_struct
+    ---@cast session plc_session_struct|nil
     return session
 end
 
@@ -246,15 +246,18 @@ function svsessions.find_device_session(remote_port)
     return session
 end
 
--- find a coordinator session by the remote port<br>
--- only one coordinator is allowed, but this is kept to be consistent with all other session tables
+-- find a coordinator or diagnostic access session by the remote port
 ---@nodiscard
 ---@param remote_port integer
----@return coord_session_struct|nil
-function svsessions.find_coord_session(remote_port)
+---@return coord_session_struct|diag_session_struct|nil
+function svsessions.find_svctl_session(remote_port)
     -- check coordinator sessions
     local session = _find_session(self.sessions.coord, remote_port)
-    ---@cast session coord_session_struct
+
+    -- check diagnostic sessions
+    if session == nil then session = _find_session(self.sessions.diag, remote_port) end
+    ---@cast session coord_session_struct|diag_session_struct|nil
+
     return session
 end
 

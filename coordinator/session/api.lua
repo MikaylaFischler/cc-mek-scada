@@ -46,6 +46,7 @@ function api.new_session(id, in_queue, out_queue, timeout)
         last_rtt = 0,
         -- periodic messages
         periodics = {
+            last_update = 0,
             keep_alive = 0
         },
         -- when to next retry one of these requests
@@ -109,6 +110,9 @@ function api.new_session(id, in_queue, out_queue, timeout)
         else
             self.r_seq_num = pkt.scada_frame.seq_num()
         end
+
+        -- feed watchdog
+        self.conn_watchdog.feed()
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.COORD_API then
