@@ -300,6 +300,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param new_modem table
     function public.reconnect_modem(new_modem)
         modem = new_modem
+        apisessions.relink_modem(new_modem)
         _conf_channels()
     end
 

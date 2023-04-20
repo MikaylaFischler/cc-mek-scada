@@ -11,7 +11,7 @@ local insert = table.insert
 
 local max_distance = nil
 
-comms.version = "1.4.0"
+comms.version = "1.4.1"
 
 ---@enum PROTOCOL
 local PROTOCOL = {

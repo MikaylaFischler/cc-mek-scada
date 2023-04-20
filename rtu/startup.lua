@@ -25,7 +25,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v0.13.4"
+local RTU_VERSION = "v0.13.5"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 

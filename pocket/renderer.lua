@@ -13,7 +13,7 @@ local ui = {
     view = nil
 }
 
--- start the coordinator GUI
+-- start the pocket GUI
 function renderer.start_ui()
     if ui.view == nil then
         -- reset screen
