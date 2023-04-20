@@ -337,7 +337,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")
                 end
             else
-                log.warning("received packet on unconfigured channel " .. l_port)
+                log.debug("received packet on unconfigured channel " .. l_port, true)
             end
         end
     end

@@ -273,7 +273,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         if pkt.length == 1 then
             return pkt.data[1]
         else
-            log.warning(log_header .. "RPLC ACK length mismatch")
+            log.debug(log_header .. "RPLC ACK length mismatch")
             return nil
         end
     end
@@ -296,7 +296,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
             ---@cast pkt rplc_frame
             -- check reactor ID
             if pkt.id ~= reactor_id then
-                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
+                log.warning(log_header .. "discarding RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
                 return
             end
 
@@ -635,7 +635,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                                 _send(RPLC_TYPE.RPS_AUTO_RESET, {})
                             end
                         else
-                            log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported command received in in_queue (this is a bug)", true)
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
@@ -682,7 +682,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                                 end
                             end
                         else
-                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)
                         end
                     end
                 end

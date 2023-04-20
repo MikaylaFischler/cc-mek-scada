@@ -381,7 +381,7 @@ function plc.rps_init(reactor, is_formed, emer_cool)
         _set_emer_cool(self.state[state_keys.low_coolant])
 
         -- report RPS status
-        databus.tx_rps(self.tripped, self.state)
+        databus.tx_rps(self.tripped, self.state, self.emer_cool_active)
 
         return self.tripped, status, first_trip
     end
@@ -640,8 +640,6 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         if not reactor.__p_is_faulted() then
             _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
-        else
-            log.error("failed to send structure: PPM fault")
         end
     end
 
@@ -761,7 +759,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                     pkt = mgmt_pkt.get()
                 end
             else
-                log.error("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -776,8 +774,10 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
 
+        local l_port = packet.scada_frame.local_port()
+
         -- handle packets now that we have prints setup
-        if packet.scada_frame.local_port() == local_port then
+        if l_port == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -925,7 +925,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                             log.debug("RPLC set automatic burn rate packet length mismatch or non-numeric burn rate")
                         end
                     else
-                        log.warning("received unknown RPLC packet type " .. packet.type)
+                        log.debug("received unknown RPLC packet type " .. packet.type)
                     end
                 else
                     log.debug("discarding RPLC packet before linked")
@@ -947,7 +947,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                 log.debug("re-sent initial status data")
                             elseif est_ack == ESTABLISH_ACK.DENY then
                                 println_ts("received unsolicited link denial, unlinking")
-                                log.info("unsolicited establish request denied")
+                                log.warning("unsolicited establish request denied")
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 println_ts("received unsolicited link collision, unlinking")
                                 log.warning("unsolicited establish request collision")
@@ -956,7 +956,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                 log.warning("unsolicited establish request version mismatch")
                             else
                                 println_ts("invalid unsolicited link response")
-                                log.error("unsolicited unknown establish request response")
+                                log.debug("unsolicited unknown establish request response")
                             end
 
                             self.linked = est_ack == ESTABLISH_ACK.ALLOW
@@ -992,7 +992,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                         println_ts("server connection closed by remote host")
                         log.warning("server connection closed by remote host")
                     else
-                        log.warning("received unsupported SCADA_MGMT packet type " .. packet.type)
+                        log.debug("received unsupported SCADA_MGMT packet type " .. packet.type)
                     end
                 elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                     -- link request confirmation
@@ -1042,6 +1042,8 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 -- should be unreachable assuming packet is from parse_packet()
                 log.error("illegal packet type " .. protocol, true)
             end
+        else
+            log.debug("received packet on unconfigured channel " .. l_port, true)
         end
     end
 
