@@ -173,7 +173,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     end
 
     -- handle a packet
-    ---@param pkt crdn_frame
+    ---@param pkt mgmt_frame|crdn_frame
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
@@ -190,6 +190,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
@@ -214,6 +215,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
+            ---@cast pkt crdn_frame
             if pkt.type == SCADA_CRDN_TYPE.INITIAL_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true

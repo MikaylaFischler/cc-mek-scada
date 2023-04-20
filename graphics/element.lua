@@ -25,6 +25,7 @@ local element = {}
 ---|multi_button_args
 ---|push_button_args
 ---|radio_button_args
+---|sidebar_args
 ---|spinbox_args
 ---|switch_button_args
 ---|alarm_indicator_light
@@ -44,6 +45,7 @@ local element = {}
 ---|colormap_args
 ---|displaybox_args
 ---|div_args
+---|multipane_args
 ---|pipenet_args
 ---|rectangle_args
 ---|textbox_args
@@ -166,6 +168,8 @@ function element.new(args)
         self.bounds.y2 = self.position.y + f.h - 1
     end
 
+---@diagnostic disable: unused-local, unused-vararg
+
     -- handle a mouse event
     ---@param event mouse_interaction mouse interaction event
     function protected.handle_mouse(event)
@@ -219,6 +223,8 @@ function element.new(args)
     ---@vararg integer sizing
     function protected.resize(...)
     end
+
+---@diagnostic enable: unused-local, unused-vararg
 
     -- start animations
     function protected.start_anim()

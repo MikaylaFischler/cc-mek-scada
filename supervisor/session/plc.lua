@@ -64,7 +64,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         connected = true,
         received_struct = false,
         received_status_cache = false,
-        plc_conn_watchdog = util.new_watchdog(timeout),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -233,7 +233,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
     -- mark this PLC session as closed, stop watchdog
     local function _close()
-        self.plc_conn_watchdog.cancel()
+        self.conn_watchdog.cancel()
         self.connected = false
     end
 
@@ -279,7 +279,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     end
 
     -- handle a packet
-    ---@param pkt rplc_frame
+    ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
@@ -293,6 +293,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.RPLC then
+            ---@cast pkt rplc_frame
             -- check reactor ID
             if pkt.id ~= reactor_id then
                 log.warning(log_header .. "discarding RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
@@ -300,7 +301,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
             end
 
             -- feed watchdog
-            self.plc_conn_watchdog.feed()
+            self.conn_watchdog.feed()
 
             -- handle packet by type
             if pkt.type == RPLC_TYPE.STATUS then
@@ -469,6 +470,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
@@ -574,7 +576,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     -- check if a timer matches this session's watchdog
     ---@nodiscard
     function public.check_wd(timer)
-        return self.plc_conn_watchdog.is_timer(timer) and self.connected
+        return self.conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection

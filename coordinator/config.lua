@@ -3,13 +3,14 @@ local config = {}
 -- port of the SCADA supervisor
 config.SCADA_SV_PORT = 16100
 -- port to listen to incoming packets from supervisor
-config.SCADA_SV_LISTEN = 16101
+config.SCADA_SV_CTL_LISTEN = 16101
 -- listen port for SCADA coordinator API access
 config.SCADA_API_LISTEN = 16200
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
 -- time in seconds (>= 2) before assuming a remote device is no longer active
-config.COMMS_TIMEOUT = 5
+config.SV_TIMEOUT = 5
+config.API_TIMEOUT = 5
 
 -- expected number of reactor units, used only to require that number of unit monitors
 config.NUM_UNITS = 4

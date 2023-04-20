@@ -18,6 +18,11 @@ local iocontrol = {}
 ---@class ioctl
 local io = {}
 
+-- placeholder acknowledge function for type hinting
+---@param success boolean
+---@diagnostic disable-next-line: unused-local
+local function __generic_ack(success) end
+
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
@@ -45,11 +50,11 @@ function iocontrol.init(conf, comms)
 
         radiation = types.new_zero_radiation_reading(),
 
-        save_cfg_ack = function (success) end,      ---@param success boolean
-        start_ack = function (success) end,         ---@param success boolean
-        stop_ack = function (success) end,          ---@param success boolean
-        scram_ack = function (success) end,         ---@param success boolean
-        ack_alarms_ack = function (success) end,    ---@param success boolean
+        save_cfg_ack = __generic_ack,
+        start_ack = __generic_ack,
+        stop_ack = __generic_ack,
+        scram_ack = __generic_ack,
+        ack_alarms_ack = __generic_ack,
 
         ps = psil.create(),
 
@@ -74,7 +79,6 @@ function iocontrol.init(conf, comms)
 
         ---@class ioctl_unit
         local entry = {
-            ---@type integer
             unit_id = i,
 
             num_boilers = 0,
@@ -85,7 +89,8 @@ function iocontrol.init(conf, comms)
             waste_control = 0,
             radiation = types.new_zero_radiation_reading(),
 
-            a_group = 0,                                                -- auto control group
+            -- auto control group
+            a_group = 0,
 
             start = function () process.start(i) end,
             scram = function () process.scram(i) end,
@@ -96,12 +101,12 @@ function iocontrol.init(conf, comms)
 
             set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
 
-            start_ack = function (success) end,                         ---@param success boolean
-            scram_ack = function (success) end,                         ---@param success boolean
-            reset_rps_ack = function (success) end,                     ---@param success boolean
-            ack_alarms_ack = function (success) end,                    ---@param success boolean
-            set_burn_ack = function (success) end,                      ---@param success boolean
-            set_waste_ack = function (success) end,                     ---@param success boolean
+            start_ack = __generic_ack,
+            scram_ack = __generic_ack,
+            reset_rps_ack = __generic_ack,
+            ack_alarms_ack = __generic_ack,
+            set_burn_ack = __generic_ack,
+            set_waste_ack = __generic_ack,
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
@@ -134,10 +139,10 @@ function iocontrol.init(conf, comms)
                 ALARM_STATE.INACTIVE    -- turbine trip
             },
 
-            annunciator = {},           ---@type annunciator
+            annunciator = {},   ---@type annunciator
 
             unit_ps = psil.create(),
-            reactor_data = {},          ---@type reactor_db
+            reactor_data = {},  ---@type reactor_db
 
             boiler_ps_tbl = {},
             boiler_data_tbl = {},

@@ -20,9 +20,10 @@ local println = util.println
 ---@param cooling_conf table cooling configuration table
 ---@param modem table modem device
 ---@param dev_listen integer listening port for PLC/RTU devices
----@param coord_listen integer listening port for coordinator
+---@param svctl_listen integer listening port for supervisor access
 ---@param range integer trusted device connection range
-function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, coord_listen, range)
+---@diagnostic disable-next-line: unused-local
+function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range)
     local self = {
         last_est_acks = {}
     }
@@ -35,7 +36,7 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
     local function _conf_channels()
         modem.closeAll()
         modem.open(dev_listen)
-        modem.open(coord_listen)
+        modem.open(svctl_listen)
     end
 
     _conf_channels()
@@ -56,18 +57,18 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
         modem.transmit(dest, dev_listen, s_pkt.raw_sendable())
     end
 
-    -- send coordinator connection establish response
+    -- send supervisor control access connection establish response
     ---@param seq_id integer
     ---@param dest integer
     ---@param msg table
-    local function _send_crdn_establish(seq_id, dest, msg)
+    local function _send_svctl_establish(seq_id, dest, msg)
         local s_pkt = comms.scada_packet()
         local c_pkt = comms.mgmt_packet()
 
         c_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
         s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, c_pkt.raw_sendable())
 
-        modem.transmit(dest, coord_listen, s_pkt.raw_sendable())
+        modem.transmit(dest, svctl_listen, s_pkt.raw_sendable())
     end
 
     -- PUBLIC FUNCTIONS --
@@ -250,9 +251,9 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                     log.debug("illegal packet type " .. protocol .. " on device listening channel")
                 end
             -- coordinator listening channel
-            elseif l_port == coord_listen then
+            elseif l_port == svctl_listen then
                 -- look for an associated session
-                local session = svsessions.find_coord_session(r_port)
+                local session = svsessions.find_svctl_session(r_port)
 
                 if protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
@@ -276,12 +277,9 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                     self.last_est_acks[r_port] = ESTABLISH_ACK.BAD_VERSION
                                 end
 
-                                _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
-                            elseif dev_type ~= DEVICE_TYPE.CRDN then
-                                log.debug(util.c("illegal establish packet for device ", dev_type, " on CRDN listening channel"))
-                                _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
-                            else
-                                -- this is an attempt to establish a new session
+                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
+                            elseif dev_type == DEVICE_TYPE.CRDN then
+                                -- this is an attempt to establish a new coordinator session
                                 local s_id = svsessions.establish_coord_session(l_port, r_port, firmware_v)
 
                                 if s_id ~= false then
@@ -291,23 +289,35 @@ function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen
                                         table.insert(config, cooling_conf[i].TURBINES)
                                     end
 
-                                    println(util.c("CRD (",firmware_v, ") [:", r_port, "] \xbb connected"))
-                                    log.info(util.c("CRDN_ESTABLISH: coordinator (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
+                                    println(util.c("CRD (", firmware_v, ") [:", r_port, "] \xbb connected"))
+                                    log.info(util.c("SVCTL_ESTABLISH: coordinator (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
 
-                                    _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW, config })
+                                    _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW, config })
                                     self.last_est_acks[r_port] = ESTABLISH_ACK.ALLOW
                                 else
                                     if self.last_est_acks[r_port] ~= ESTABLISH_ACK.COLLISION then
-                                        log.info("CRDN_ESTABLISH: denied new coordinator due to already being connected to another coordinator")
+                                        log.info("SVCTL_ESTABLISH: denied new coordinator due to already being connected to another coordinator")
                                         self.last_est_acks[r_port] = ESTABLISH_ACK.COLLISION
                                     end
 
-                                    _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.COLLISION })
+                                    _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.COLLISION })
                                 end
+                            elseif dev_type == DEVICE_TYPE.PKT then
+                                -- this is an attempt to establish a new pocket diagnostic session
+                                local s_id = svsessions.establish_diag_session(l_port, r_port, firmware_v)
+
+                                println(util.c("PKT (", firmware_v, ") [:", r_port, "] \xbb connected"))
+                                log.info(util.c("SVCTL_ESTABLISH: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
+
+                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
+                                self.last_est_acks[r_port] = ESTABLISH_ACK.ALLOW
+                            else
+                                log.debug(util.c("illegal establish packet for device ", dev_type, " on SVCTL listening channel"))
+                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
                             end
                         else
-                            log.debug("CRDN_ESTABLISH: establish packet length mismatch")
-                            _send_crdn_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                            log.debug("SVCTL_ESTABLISH: establish packet length mismatch")
+                            _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
                         end
                     else
                         -- any other packet should be session related, discard it

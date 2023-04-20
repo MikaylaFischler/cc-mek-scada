@@ -21,8 +21,12 @@ jobs:
       - name: Luacheck
         uses: lunarmodules/luacheck@v1.1.0
         with:
-          # -a = disable warning for unused arguments
-          # -i 121 = Setting a read-only global variable.
-          # -u 512 = Loop can be executed at most once.
-          # -i 542 = An empty if branch.
-          args: . --no-max-line-length -a -i 121 512 542 --exclude-files ./lockbox/* ./*/config.lua --globals _HOST term fs peripheral rs bit parallel colors textutils shell settings window read periphemu http os
+          # Argument Explanations
+          # -a     = Disable warning for unused arguments
+          # -i 121 = Setting a read-only global variable
+          #    512 = Loop can be executed at most once
+          #    542 = An empty if branch
+          # --no-max-line-length = Disable warnings for long line lengths
+          # --exclude-files ...  = Exclude lockbox library (external) and config files
+          # --globals ...        = Override all globals overridden in .vscode/settings.json AND 'os' since CraftOS 'os' differs from Lua's 'os'
+          args: . --no-max-line-length -a -i 121 512 542 --exclude-files ./lockbox/* ./*/config.lua --globals os _HOST bit colors fs http parallel periphemu peripheral read rs settings shell term textutils window

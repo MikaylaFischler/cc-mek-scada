@@ -9,6 +9,7 @@ local svqtypes    = require("supervisor.session.svqtypes")
 
 local coordinator = require("supervisor.session.coordinator")
 local plc         = require("supervisor.session.plc")
+local pocket      = require("supervisor.session.pocket")
 local rtu         = require("supervisor.session.rtu")
 
 -- Supervisor Sessions Handler
@@ -22,29 +23,28 @@ local CRD_S_DATA = coordinator.CRD_S_DATA
 local svsessions = {}
 
 local SESSION_TYPE = {
-    RTU_SESSION = 0,
-    PLC_SESSION = 1,
-    COORD_SESSION = 2
+    RTU_SESSION = 0,    -- RTU gateway
+    PLC_SESSION = 1,    -- reactor PLC
+    COORD_SESSION = 2,  -- coordinator
+    DIAG_SESSION = 3    -- pocket diagnostics
 }
 
 svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
-    modem = nil,
+    modem = nil,        ---@type table|nil
     num_reactors = 0,
-    facility = nil,     ---@type facility
-    rtu_sessions = {},
-    plc_sessions = {},
-    coord_sessions = {},
-    next_rtu_id = 0,
-    next_plc_id = 0,
-    next_coord_id = 0
+    facility = nil,     ---@type facility|nil
+    sessions = { rtu = {}, plc = {}, coord = {}, diag = {} },
+    next_ids = { rtu = 0, plc = 0, coord = 0, diag = 0 }
 }
+
+---@alias sv_session_structs plc_session_struct|rtu_session_struct|coord_session_struct|diag_session_struct
 
 -- PRIVATE FUNCTIONS --
 
 -- handle a session output queue
----@param session plc_session_struct|rtu_session_struct|coord_session_struct
+---@param session sv_session_structs
 local function _sv_handle_outq(session)
     -- record handler start time
     local handle_start = util.time()
@@ -112,7 +112,7 @@ end
 ---@param sessions table
 local function _iterate(sessions)
     for i = 1, #sessions do
-        local session = sessions[i] ---@type plc_session_struct|rtu_session_struct|coord_session_struct
+        local session = sessions[i] ---@type sv_session_structs
 
         if session.open and session.instance.iterate() then
             _sv_handle_outq(session)
@@ -123,7 +123,7 @@ local function _iterate(sessions)
 end
 
 -- cleanly close a session
----@param session plc_session_struct|rtu_session_struct
+---@param session sv_session_structs
 local function _shutdown(session)
     session.open = false
     session.instance.close()
@@ -143,10 +143,8 @@ end
 ---@param sessions table
 local function _close(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
-        if session.open then
-            _shutdown(session)
-        end
+        local session = sessions[i]  ---@type sv_session_structs
+        if session.open then _shutdown(session) end
     end
 end
 
@@ -155,7 +153,7 @@ end
 ---@param timer_event number
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type plc_session_struct|rtu_session_struct
+        local session = sessions[i]  ---@type sv_session_structs
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -172,6 +170,7 @@ end
 local function _free_closed(sessions)
     local f = function (session) return session.open end
 
+    ---@param session sv_session_structs
     local on_delete = function (session)
         log.debug(util.c("free'ing closed ", session.s_type, " session ", session.instance.get_id(),
             " on remote port ", session.r_port))
@@ -184,7 +183,7 @@ end
 ---@nodiscard
 ---@param list table
 ---@param port integer
----@return plc_session_struct|rtu_session_struct|coord_session_struct|nil
+---@return sv_session_structs|nil
 local function _find_session(list, port)
     for i = 1, #list do
         if list[i].r_port == port then return list[i] end
@@ -216,8 +215,8 @@ end
 ---@return rtu_session_struct|nil
 function svsessions.find_rtu_session(remote_port)
     -- check RTU sessions
-    local session = _find_session(self.rtu_sessions, remote_port)
-    ---@cast session rtu_session_struct
+    local session = _find_session(self.sessions.rtu, remote_port)
+    ---@cast session rtu_session_struct|nil
     return session
 end
 
@@ -227,8 +226,8 @@ end
 ---@return plc_session_struct|nil
 function svsessions.find_plc_session(remote_port)
     -- check PLC sessions
-    local session = _find_session(self.plc_sessions, remote_port)
-    ---@cast session plc_session_struct
+    local session = _find_session(self.sessions.plc, remote_port)
+    ---@cast session plc_session_struct|nil
     return session
 end
 
@@ -238,24 +237,27 @@ end
 ---@return plc_session_struct|rtu_session_struct|nil
 function svsessions.find_device_session(remote_port)
     -- check RTU sessions
-    local session = _find_session(self.rtu_sessions, remote_port)
+    local session = _find_session(self.sessions.rtu, remote_port)
 
     -- check PLC sessions
-    if session == nil then session = _find_session(self.plc_sessions, remote_port) end
+    if session == nil then session = _find_session(self.sessions.plc, remote_port) end
     ---@cast session plc_session_struct|rtu_session_struct|nil
 
     return session
 end
 
--- find a coordinator session by the remote port<br>
--- only one coordinator is allowed, but this is kept to be consistent with all other session tables
+-- find a coordinator or diagnostic access session by the remote port
 ---@nodiscard
 ---@param remote_port integer
----@return coord_session_struct|nil
-function svsessions.find_coord_session(remote_port)
+---@return coord_session_struct|diag_session_struct|nil
+function svsessions.find_svctl_session(remote_port)
     -- check coordinator sessions
-    local session = _find_session(self.coord_sessions, remote_port)
-    ---@cast session coord_session_struct
+    local session = _find_session(self.sessions.coord, remote_port)
+
+    -- check diagnostic sessions
+    if session == nil then session = _find_session(self.sessions.diag, remote_port) end
+    ---@cast session coord_session_struct|diag_session_struct|nil
+
     return session
 end
 
@@ -263,7 +265,7 @@ end
 ---@nodiscard
 ---@return coord_session_struct|nil
 function svsessions.get_coord_session()
-    return self.coord_sessions[1]
+    return self.sessions.coord[1]
 end
 
 -- get a session by reactor ID
@@ -273,9 +275,9 @@ end
 function svsessions.get_reactor_session(reactor)
     local session = nil
 
-    for i = 1, #self.plc_sessions do
-        if self.plc_sessions[i].reactor == reactor then
-            session = self.plc_sessions[i]
+    for i = 1, #self.sessions.plc do
+        if self.sessions.plc[i].reactor == reactor then
+            session = self.sessions.plc[i]
         end
     end
 
@@ -304,15 +306,15 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
             instance = nil  ---@type plc_session
         }
 
-        plc_s.instance = plc.new_session(self.next_plc_id, for_reactor, plc_s.in_queue, plc_s.out_queue, config.PLC_TIMEOUT)
-        table.insert(self.plc_sessions, plc_s)
+        plc_s.instance = plc.new_session(self.next_ids.plc, for_reactor, plc_s.in_queue, plc_s.out_queue, config.PLC_TIMEOUT)
+        table.insert(self.sessions.plc, plc_s)
 
         local units = self.facility.get_units()
         units[for_reactor].link_plc_session(plc_s)
 
-        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_plc_id, " for reactor ", for_reactor))
+        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_ids.plc, " for reactor ", for_reactor))
 
-        self.next_plc_id = self.next_plc_id + 1
+        self.next_ids.plc = self.next_ids.plc + 1
 
         -- success
         return plc_s.instance.get_id()
@@ -342,12 +344,12 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
         instance = nil  ---@type rtu_session
     }
 
-    rtu_s.instance = rtu.new_session(self.next_rtu_id, rtu_s.in_queue, rtu_s.out_queue, config.RTU_TIMEOUT, advertisement, self.facility)
-    table.insert(self.rtu_sessions, rtu_s)
+    rtu_s.instance = rtu.new_session(self.next_ids.rtu, rtu_s.in_queue, rtu_s.out_queue, config.RTU_TIMEOUT, advertisement, self.facility)
+    table.insert(self.sessions.rtu, rtu_s)
 
-    log.debug("established new RTU session to " .. remote_port .. " with ID " .. self.next_rtu_id)
+    log.debug("established new RTU session to " .. remote_port .. " with ID " .. self.next_ids.rtu)
 
-    self.next_rtu_id = self.next_rtu_id + 1
+    self.next_ids.rtu = self.next_ids.rtu + 1
 
     -- success
     return rtu_s.instance.get_id()
@@ -373,12 +375,12 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
             instance = nil  ---@type coord_session
         }
 
-        coord_s.instance = coordinator.new_session(self.next_coord_id, coord_s.in_queue, coord_s.out_queue, config.CRD_TIMEOUT, self.facility)
-        table.insert(self.coord_sessions, coord_s)
+        coord_s.instance = coordinator.new_session(self.next_ids.coord, coord_s.in_queue, coord_s.out_queue, config.CRD_TIMEOUT, self.facility)
+        table.insert(self.sessions.coord, coord_s)
 
-        log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_coord_id)
+        log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_ids.coord)
 
-        self.next_coord_id = self.next_coord_id + 1
+        self.next_ids.coord = self.next_ids.coord + 1
 
         -- success
         return coord_s.instance.get_id()
@@ -388,32 +390,49 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
     end
 end
 
+-- establish a new pocket diagnostics session
+---@nodiscard
+---@param local_port integer
+---@param remote_port integer
+---@param version string
+---@return integer|false session_id
+function svsessions.establish_diag_session(local_port, remote_port, version)
+    ---@class diag_session_struct
+    local diag_s = {
+        s_type = "pkt",
+        open = true,
+        version = version,
+        l_port = local_port,
+        r_port = remote_port,
+        in_queue = mqueue.new(),
+        out_queue = mqueue.new(),
+        instance = nil  ---@type diag_session
+    }
+
+    diag_s.instance = pocket.new_session(self.next_ids.diag, diag_s.in_queue, diag_s.out_queue, config.PKT_TIMEOUT)
+    table.insert(self.sessions.diag, diag_s)
+
+    log.debug("established new pocket diagnostics session to " .. remote_port .. " with ID " .. self.next_ids.diag)
+
+    self.next_ids.diag = self.next_ids.diag + 1
+
+    -- success
+    return diag_s.instance.get_id()
+end
+
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
 function svsessions.check_all_watchdogs(timer_event)
-    -- check RTU session watchdogs
-    _check_watchdogs(self.rtu_sessions, timer_event)
-
-    -- check PLC session watchdogs
-    _check_watchdogs(self.plc_sessions, timer_event)
-
-    -- check coordinator session watchdogs
-    _check_watchdogs(self.coord_sessions, timer_event)
+    for _, list in pairs(self.sessions) do _check_watchdogs(list, timer_event) end
 end
 
--- iterate all sessions
+-- iterate all sessions, and update facility/unit data & process control logic
 function svsessions.iterate_all()
-    -- iterate RTU sessions
-    _iterate(self.rtu_sessions)
-
-    -- iterate PLC sessions
-    _iterate(self.plc_sessions)
-
-    -- iterate coordinator sessions
-    _iterate(self.coord_sessions)
+    -- iterate sessions
+    for _, list in pairs(self.sessions) do _iterate(list) end
 
     -- report RTU sessions to facility
-    self.facility.report_rtus(self.rtu_sessions)
+    self.facility.report_rtus(self.sessions.rtu)
 
     -- iterate facility
     self.facility.update()
@@ -424,22 +443,15 @@ end
 
 -- delete all closed sessions
 function svsessions.free_all_closed()
-    -- free closed RTU sessions
-    _free_closed(self.rtu_sessions)
-
-    -- free closed PLC sessions
-    _free_closed(self.plc_sessions)
-
-    -- free closed coordinator sessions
-    _free_closed(self.coord_sessions)
+    for _, list in pairs(self.sessions) do _free_closed(list) end
 end
 
 -- close all open connections
 function svsessions.close_all()
     -- close sessions
-    _close(self.rtu_sessions)
-    _close(self.plc_sessions)
-    _close(self.coord_sessions)
+    for _, list in pairs(self.sessions) do
+        _close(list)
+    end
 
     -- free sessions
     svsessions.free_all_closed()

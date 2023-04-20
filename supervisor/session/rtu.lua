@@ -47,7 +47,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         seq_num = 0,
         r_seq_num = nil,
         connected = true,
-        rtu_conn_watchdog = util.new_watchdog(timeout),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -174,7 +174,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
     -- mark this RTU session as closed, stop watchdog
     local function _close()
-        self.rtu_conn_watchdog.cancel()
+        self.conn_watchdog.cancel()
         self.connected = false
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
@@ -222,16 +222,17 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         end
 
         -- feed watchdog
-        self.rtu_conn_watchdog.feed()
+        self.conn_watchdog.feed()
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
+            ---@cast pkt modbus_frame
             if self.units[pkt.unit_id] ~= nil then
                 local unit = self.units[pkt.unit_id]    ---@type unit_session
----@diagnostic disable-next-line: param-type-mismatch
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             -- handle management packet
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
@@ -285,7 +286,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     ---@nodiscard
     ---@param timer number
     function public.check_wd(timer)
-        return self.rtu_conn_watchdog.is_timer(timer) and self.connected
+        return self.conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
