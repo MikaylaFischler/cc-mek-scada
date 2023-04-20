@@ -73,16 +73,16 @@ function api.new_session(id, in_queue, out_queue, timeout)
     -- send a CAPI packet
     ---@param msg_type CAPI_TYPE
     ---@param msg table
-    local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local c_pkt = comms.capi_packet()
+    -- local function _send(msg_type, msg)
+    --     local s_pkt = comms.scada_packet()
+    --     local c_pkt = comms.capi_packet()
 
-        c_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.COORD_API, c_pkt.raw_sendable())
+    --     c_pkt.make(msg_type, msg)
+    --     s_pkt.make(self.seq_num, PROTOCOL.COORD_API, c_pkt.raw_sendable())
 
-        out_queue.push_packet(s_pkt)
-        self.seq_num = self.seq_num + 1
-    end
+    --     out_queue.push_packet(s_pkt)
+    --     self.seq_num = self.seq_num + 1
+    -- end
 
     -- send a SCADA management packet
     ---@param msg_type SCADA_MGMT_TYPE

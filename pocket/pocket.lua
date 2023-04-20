@@ -8,7 +8,7 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
-local CAPI_TYPE = comms.CAPI_TYPE
+-- local CAPI_TYPE = comms.CAPI_TYPE
 
 local LINK_STATE = coreio.LINK_STATE
 
@@ -84,16 +84,16 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     -- send a packet to the coordinator API
     ---@param msg_type CAPI_TYPE
     ---@param msg table
-    local function _send_api(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local pkt = comms.capi_packet()
+    -- local function _send_api(msg_type, msg)
+    --     local s_pkt = comms.scada_packet()
+    --     local pkt = comms.capi_packet()
 
-        pkt.make(msg_type, msg)
-        s_pkt.make(self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
+    --     pkt.make(msg_type, msg)
+    --     s_pkt.make(self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
 
-        modem.transmit(api_port, local_port, s_pkt.raw_sendable())
-        self.api.seq_num = self.api.seq_num + 1
-    end
+    --     modem.transmit(api_port, local_port, s_pkt.raw_sendable())
+    --     self.api.seq_num = self.api.seq_num + 1
+    -- end
 
     -- attempt supervisor connection establishment
     local function _send_sv_establish()

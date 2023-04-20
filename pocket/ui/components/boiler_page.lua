@@ -1,11 +1,11 @@
-local style   = require("pocket.ui.style")
+-- local style   = require("pocket.ui.style")
 
 local core    = require("graphics.core")
 
 local Div     = require("graphics.elements.div")
 local TextBox = require("graphics.elements.textbox")
 
-local cpair = core.graphics.cpair
+-- local cpair = core.graphics.cpair
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 

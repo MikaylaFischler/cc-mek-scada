@@ -2,8 +2,6 @@
 -- Pocket GUI Root
 --
 
-local util          = require("scada-common.util")
-
 local coreio        = require("pocket.coreio")
 
 local style         = require("pocket.ui.style")
@@ -18,17 +16,12 @@ local turbine_page  = require("pocket.ui.components.turbine_page")
 
 local core          = require("graphics.core")
 
-local ColorMap      = require("graphics.elements.colormap")
 local DisplayBox    = require("graphics.elements.displaybox")
 local Div           = require("graphics.elements.div")
 local MultiPane     = require("graphics.elements.multipane")
 local TextBox       = require("graphics.elements.textbox")
 
-local PushButton    = require("graphics.elements.controls.push_button")
-local SwitchButton  = require("graphics.elements.controls.switch_button")
 local Sidebar       = require("graphics.elements.controls.sidebar")
-
-local DataIndicator = require("graphics.elements.indicators.data")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 

@@ -19,7 +19,7 @@
     "Lua.diagnostics.severity": {
         "unused-local": "Information",
         "unused-vararg": "Information",
-        "unused-function": "Information",
+        "unused-function": "Warning",
         "unused-label": "Information"
     },
     "Lua.hint.setType": true,
