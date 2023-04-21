@@ -24,7 +24,7 @@ local function indicator_led_rgb(args)
     args.height = 1
 
     -- determine width
-    args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
+    args.width = math.max(args.min_label_width or 0, string.len(args.label)) + 2
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -48,8 +48,10 @@ local function indicator_led_rgb(args)
 
     -- write label and initial indicator light
     e.on_update(1)
-    e.window.setCursorPos(3, 1)
-    e.window.write(args.label)
+    if string.len(args.label) > 0 then
+        e.window.setCursorPos(3, 1)
+        e.window.write(args.label)
+    end
 
     return e.get()
 end

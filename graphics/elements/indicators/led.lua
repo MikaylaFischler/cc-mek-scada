@@ -33,7 +33,7 @@ local function indicator_led(args)
     args.height = 1
 
     -- determine width
-    args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
+    args.width = math.max(args.min_label_width or 0, string.len(args.label)) + 2
 
     -- flasher state
     local flash_on = true
@@ -89,8 +89,10 @@ local function indicator_led(args)
 
     -- write label and initial indicator light
     e.on_update(false)
-    e.window.setCursorPos(3, 1)
-    e.window.write(args.label)
+    if string.len(args.label) > 0 then
+        e.window.setCursorPos(3, 1)
+        e.window.write(args.label)
+    end
 
     return e.get()
 end

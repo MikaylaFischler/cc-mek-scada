@@ -70,7 +70,7 @@ def make_manifest(size):
         },
         "depends" : {
             "reactor-plc" : [ "system", "common", "graphics" ],
-            "rtu" : [ "system", "common" ],
+            "rtu" : [ "system", "common", "graphics" ],
             "supervisor" : [ "system", "common" ],
             "coordinator" : [ "system", "common", "graphics" ],
             "pocket" : [ "system", "common", "graphics" ]
@@ -108,7 +108,7 @@ f = open("install_manifest.json", "w")
 json.dump(final_manifest, f)
 f.close()
 
-if sys.argv[1] == "shields":
+if len(sys.argv) > 1 and sys.argv[1] == "shields":
     # write all the JSON files for shields.io
     for key, version in final_manifest["versions"].items():
         f = open("./shields/" + key + ".json", "w")

@@ -451,19 +451,13 @@ function element.new(args)
     function public.show()
         protected.window.setVisible(true)
         protected.start_anim()
-
-        for i = 1, #self.children do
-            self.children[i].show()
-        end
+        for _, child in pairs(self.children) do child.show() end
     end
 
     -- hide the element
     function public.hide()
         protected.stop_anim()
-        for i = 1, #self.children do
-            self.children[i].hide()
-        end
-
+        for _, child in pairs(self.children) do child.hide() end
         protected.window.setVisible(false)
     end
 
