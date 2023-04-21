@@ -506,7 +506,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                 -- check sequence number
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and self.sv_r_seq_num >= packet.scada_frame.seq_num() then
+                elseif self.connected and ((self.sv_r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 else

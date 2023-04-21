@@ -284,7 +284,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
+        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else

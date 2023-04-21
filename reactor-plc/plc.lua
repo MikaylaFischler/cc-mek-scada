@@ -782,7 +782,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
+            elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else

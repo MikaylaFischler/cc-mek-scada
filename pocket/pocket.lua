@@ -224,7 +224,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                 -- check sequence number
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and self.api.r_seq_num >= packet.scada_frame.seq_num() then
+                elseif self.connected and ((self.api.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order: last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 else
@@ -308,7 +308,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                 -- check sequence number
                 if self.sv.r_seq_num == nil then
                     self.sv.r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and self.sv.r_seq_num >= packet.scada_frame.seq_num() then
+                elseif self.connected and ((self.sv.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order: last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 else

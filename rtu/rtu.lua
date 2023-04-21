@@ -331,7 +331,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
-            elseif rtu_state.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
+            elseif rtu_state.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else
