@@ -1,10 +1,11 @@
-local comms  = require("scada-common.comms")
-local ppm    = require("scada-common.ppm")
-local log    = require("scada-common.log")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local ppm     = require("scada-common.ppm")
+local log     = require("scada-common.log")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
-local modbus = require("rtu.modbus")
+local databus = require("rtu.databus")
+local modbus  = require("rtu.modbus")
 
 local rtu = {}
 
@@ -13,8 +14,6 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-
-local println_ts = util.println_ts
 
 -- create a new RTU unit
 ---@nodiscard
@@ -325,6 +324,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     ---@param units table RTU units
     ---@param rtu_state rtu_state
     function public.handle_packet(packet, units, rtu_state)
+        -- print a log message to the terminal as long as the UI isn't running
+        local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
+
         if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
@@ -416,6 +418,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         end
 
                         self.last_est_ack = est_ack
+
+                        -- report link state
+                        databus.tx_link_state(est_ack + 1)
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
