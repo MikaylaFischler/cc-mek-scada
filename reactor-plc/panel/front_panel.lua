@@ -28,7 +28,7 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 
 -- create new main view
----@param panel table main displaybox
+---@param panel graphics_element main displaybox
 local function init(panel)
     local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
     databus.rx_field("unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
@@ -137,8 +137,6 @@ local function init(panel)
     databus.rx_field("rps_high_waste", rps_wst.update)
     databus.rx_field("rps_low_ccool", rps_ccl.update)
     databus.rx_field("rps_high_hcool", rps_hcl.update)
-
-    return panel
 end
 
 return init

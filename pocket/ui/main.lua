@@ -4,34 +4,31 @@
 
 local coreio        = require("pocket.coreio")
 
-local style         = require("pocket.ui.style")
+local style        = require("pocket.ui.style")
 
-local conn_waiting  = require("pocket.ui.components.conn_waiting")
+local conn_waiting = require("pocket.ui.components.conn_waiting")
 
-local home_page     = require("pocket.ui.components.home_page")
-local unit_page     = require("pocket.ui.components.unit_page")
-local reactor_page  = require("pocket.ui.components.reactor_page")
-local boiler_page   = require("pocket.ui.components.boiler_page")
-local turbine_page  = require("pocket.ui.components.turbine_page")
+local home_page    = require("pocket.ui.components.home_page")
+local unit_page    = require("pocket.ui.components.unit_page")
+local reactor_page = require("pocket.ui.components.reactor_page")
+local boiler_page  = require("pocket.ui.components.boiler_page")
+local turbine_page = require("pocket.ui.components.turbine_page")
 
-local core          = require("graphics.core")
+local core         = require("graphics.core")
 
-local DisplayBox    = require("graphics.elements.displaybox")
-local Div           = require("graphics.elements.div")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.div")
+local MultiPane    = require("graphics.elements.multipane")
+local TextBox      = require("graphics.elements.textbox")
 
-local Sidebar       = require("graphics.elements.controls.sidebar")
+local Sidebar      = require("graphics.elements.controls.sidebar")
 
 local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 
 local cpair = core.graphics.cpair
 
 -- create new main view
----@param monitor table main viewscreen
-local function init(monitor)
-    local main = DisplayBox{window=monitor,fg_bg=style.root}
-
+---@param main graphics_element main displaybox
+local function init(main)
     -- window header message
     TextBox{parent=main,y=1,text="",alignment=TEXT_ALIGN.LEFT,height=1,fg_bg=style.header}
 
@@ -97,8 +94,6 @@ local function init(monitor)
     local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
     Sidebar{parent=main_pane,x=1,y=1,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=page_pane.set_value}
-
-    return main
 end
 
 return init

@@ -33,7 +33,7 @@ local UNIT_TYPE_LABELS = {
 
 
 -- create new main view
----@param panel table main displaybox
+---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)
     TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
@@ -116,8 +116,6 @@ local function init(panel, units)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
         TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=cpair(colors.lightGray,colors.ivory)}
     end
-
-    return panel
 end
 
 return init

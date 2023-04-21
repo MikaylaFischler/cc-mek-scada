@@ -29,12 +29,12 @@ function renderer.start_ui()
             term.setPaletteColor(style.colors[i].c, style.colors[i].hex)
         end
 
-        -- start flasher callback task
-        flasher.run()
-
         -- init front panel view
         ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
         panel_view(ui.display)
+
+        -- start flasher callback task
+        flasher.run()
     end
 end
 
