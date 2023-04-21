@@ -14,7 +14,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.15.3"
+local SUPERVISOR_VERSION = "v0.15.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -169,4 +169,4 @@ local function main()
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() end
+if not xpcall(main, crash.handler) then crash.exit() else log.close() end

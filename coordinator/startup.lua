@@ -20,7 +20,7 @@ local sounder      = require("coordinator.sounder")
 
 local apisessions  = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.13.4"
+local COORDINATOR_VERSION = "v0.13.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -389,4 +389,6 @@ if not xpcall(main, crash.handler) then
     pcall(renderer.close_ui)
     pcall(sounder.stop)
     crash.exit()
+else
+    log.close()
 end

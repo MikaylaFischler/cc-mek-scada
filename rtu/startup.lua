@@ -28,7 +28,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.0.0"
+local RTU_VERSION = "v1.0.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -497,4 +497,4 @@ local function main()
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() end
+if not xpcall(main, crash.handler) then crash.exit() else log.close() end
