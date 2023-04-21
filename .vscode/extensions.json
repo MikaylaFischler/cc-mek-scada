@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "sumneko.lua",
-        "jackmacwindows.vscode-computercraft"
+        "jackmacwindows.vscode-computercraft",
+        "ms-python.python"
     ]
 }
