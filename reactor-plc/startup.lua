@@ -18,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.13"
+local R_PLC_VERSION = "v1.1.14"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -264,4 +264,9 @@ local function main()
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() else log.close() end
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    crash.exit()
+else
+    log.close()
+end
