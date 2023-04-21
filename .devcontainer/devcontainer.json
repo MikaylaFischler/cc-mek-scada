@@ -1,13 +1,15 @@
 {
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {
-},
-"customizations": {
-	"vscode": {
-		"extensions": [
-			"sumneko.lua",
-			"jackmacwindows.vscode-computercraft"
-		]
+	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"features": {
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"sumneko.lua",
+				"jackmacwindows.vscode-computercraft",
+				"Catppuccin.catppuccin-vsc-icons",
+				"melishev.feather-vscode"
+			]
+		}
 	}
-}
 }
