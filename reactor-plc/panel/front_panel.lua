@@ -12,7 +12,6 @@ local style      = require("reactor-plc.panel.style")
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
-local DisplayBox = require("graphics.elements.displaybox")
 local Div        = require("graphics.elements.div")
 local Rectangle  = require("graphics.elements.rectangle")
 local TextBox    = require("graphics.elements.textbox")
@@ -29,10 +28,8 @@ local cpair = core.graphics.cpair
 local border = core.graphics.border
 
 -- create new main view
----@param monitor table main viewscreen
-local function init(monitor)
-    local panel = DisplayBox{window=monitor,fg_bg=style.root}
-
+---@param panel table main displaybox
+local function init(panel)
     local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
     databus.rx_field("unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
 

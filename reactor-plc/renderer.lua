@@ -2,20 +2,22 @@
 -- Graphics Rendering Control
 --
 
-local style      = require("reactor-plc.panel.style")
 local panel_view = require("reactor-plc.panel.front_panel")
+local style      = require("reactor-plc.panel.style")
 
 local flasher    = require("graphics.flasher")
+
+local DisplayBox = require("graphics.elements.displaybox")
 
 local renderer = {}
 
 local ui = {
-    view = nil
+    display = nil
 }
 
 -- start the UI
 function renderer.start_ui()
-    if ui.view == nil then
+    if ui.display == nil then
         -- reset terminal
         term.setTextColor(colors.white)
         term.setBackgroundColor(colors.black)
@@ -31,7 +33,8 @@ function renderer.start_ui()
         flasher.run()
 
         -- init front panel view
-        ui.view = panel_view(term.current())
+        ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
+        panel_view(ui.display)
     end
 end
 
@@ -40,13 +43,13 @@ function renderer.close_ui()
     -- stop blinking indicators
     flasher.clear()
 
-    if ui.view ~= nil then
+    if ui.display ~= nil then
         -- hide to stop animation callbacks
-        ui.view.hide()
+        ui.display.hide()
     end
 
     -- clear root UI elements
-    ui.view = nil
+    ui.display = nil
 
     -- restore colors
     for i = 1, #style.colors do
@@ -64,12 +67,14 @@ end
 -- is the UI ready?
 ---@nodiscard
 ---@return boolean ready
-function renderer.ui_ready() return ui.view ~= nil end
+function renderer.ui_ready() return ui.display ~= nil end
 
 -- handle a mouse event
 ---@param event mouse_interaction
 function renderer.handle_mouse(event)
-    ui.view.handle_mouse(event)
+    if ui.display ~= nil then
+        ui.display.handle_mouse(event)
+    end
 end
 
 return renderer
