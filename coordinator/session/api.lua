@@ -71,8 +71,8 @@ function api.new_session(id, in_queue, out_queue, timeout)
     end
 
     -- send a CAPI packet
-    ---@param msg_type CAPI_TYPE
-    ---@param msg table
+    -----@param msg_type CAPI_TYPE
+    -----@param msg table
     -- local function _send(msg_type, msg)
     --     local s_pkt = comms.scada_packet()
     --     local c_pkt = comms.capi_packet()

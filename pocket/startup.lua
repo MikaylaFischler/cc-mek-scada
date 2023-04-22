@@ -104,7 +104,7 @@ local function main()
     local ui_ok, message = pcall(renderer.start_ui)
     if not ui_ok then
         renderer.close_ui()
-        println_ts(util.c("UI error: ", message))
+        println(util.c("UI error: ", message))
         log.error(util.c("startup> GUI crashed with error ", message))
     else
         -- start clock

@@ -82,8 +82,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     end
 
     -- send a packet to the coordinator API
-    ---@param msg_type CAPI_TYPE
-    ---@param msg table
+    -----@param msg_type CAPI_TYPE
+    -----@param msg table
     -- local function _send_api(msg_type, msg)
     --     local s_pkt = comms.scada_packet()
     --     local pkt = comms.capi_packet()

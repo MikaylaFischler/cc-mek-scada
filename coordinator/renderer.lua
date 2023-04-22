@@ -57,7 +57,7 @@ function renderer.is_monitor_used(periph)
         if engine.monitors.primary == periph then
             return true
         else
-            for _, monitor in ipairs(engine.monitors.units) do
+            for _, monitor in ipairs(engine.monitors.unit_displays) do
                 if monitor == periph then return true end
             end
         end
@@ -72,7 +72,7 @@ function renderer.init_displays()
     _init_display(engine.monitors.primary)
 
     -- init unit displays
-    for _, monitor in ipairs(engine.monitors.units) do
+    for _, monitor in ipairs(engine.monitors.unit_displays) do
         _init_display(monitor)
     end
 end
@@ -91,7 +91,7 @@ end
 function renderer.validate_unit_display_sizes()
     local valid = true
 
-    for id, monitor in ipairs(engine.monitors.units) do
+    for id, monitor in ipairs(engine.monitors.unit_displays) do
         local w, h = monitor.getSize()
         if w ~= 79 or h ~= 52 then
             log.warning(util.c("RENDERER: unit ", id, " display resolution not 79 wide by 52 tall: ", w, ", ", h))
@@ -120,8 +120,8 @@ function renderer.start_ui()
         main_view(engine.ui.main_display)
 
         -- show unit views on unit displays
-        for i = 1, #engine.monitors.units do
-            engine.ui.unit_displays[i] = DisplayBox{window=engine.monitors.units[i],fg_bg=style.root}
+        for i = 1, #engine.monitors.unit_displays do
+            engine.ui.unit_displays[i] = DisplayBox{window=engine.monitors.unit_displays[i],fg_bg=style.root}
             unit_view(engine.ui.unit_displays[i], i)
         end
 
@@ -150,7 +150,7 @@ function renderer.close_ui()
     engine.ui.unit_displays = {}
 
     -- clear unit monitors
-    for _, monitor in ipairs(engine.monitors.units) do monitor.clear() end
+    for _, monitor in ipairs(engine.monitors.unit_displays) do monitor.clear() end
 
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)

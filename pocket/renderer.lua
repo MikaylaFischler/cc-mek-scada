@@ -40,28 +40,28 @@ end
 
 -- close out the UI
 function renderer.close_ui()
-    -- stop blinking indicators
-    flasher.clear()
-
     if ui.display ~= nil then
+        -- stop blinking indicators
+        flasher.clear()
+
         -- hide to stop animation callbacks
         ui.display.hide()
+
+        -- clear root UI elements
+        ui.display = nil
+
+        -- restore colors
+        for i = 1, #style.colors do
+            local r, g, b = term.nativePaletteColor(style.colors[i].c)
+            term.setPaletteColor(style.colors[i].c, r, g, b)
+        end
+
+        -- reset terminal
+        term.setTextColor(colors.white)
+        term.setBackgroundColor(colors.black)
+        term.clear()
+        term.setCursorPos(1, 1)
     end
-
-    -- clear root UI elements
-    ui.display = nil
-
-    -- restore colors
-    for i = 1, #style.colors do
-        local r, g, b = term.nativePaletteColor(style.colors[i].c)
-        term.setPaletteColor(style.colors[i].c, r, g, b)
-    end
-
-    -- reset terminal
-    term.setTextColor(colors.white)
-    term.setBackgroundColor(colors.black)
-    term.clear()
-    term.setCursorPos(1, 1)
 end
 
 -- is the UI ready?
