@@ -4,6 +4,7 @@
 
 require("/initenv").init_env()
 
+local comms        = require("scada-common.comms")
 local crash        = require("scada-common.crash")
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
@@ -13,7 +14,9 @@ local types        = require("scada-common.types")
 local util         = require("scada-common.util")
 
 local config       = require("rtu.config")
+local databus      = require("rtu.databus")
 local modbus       = require("rtu.modbus")
+local renderer     = require("rtu.renderer")
 local rtu          = require("rtu.rtu")
 local threads      = require("rtu.threads")
 
@@ -25,13 +28,12 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v0.13.2"
+local RTU_VERSION = "v1.0.5"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 ----------------------------------------
@@ -73,6 +75,9 @@ local function main()
     -- startup
     ----------------------------------------
 
+    -- record firmware versions and ID
+    databus.tx_versions(RTU_VERSION, comms.version)
+
     -- mount connected devices
     ppm.mount_all()
 
@@ -81,6 +86,7 @@ local function main()
         -- RTU system state flags
         ---@class rtu_state
         rtu_state = {
+            fp_ok = false,
             linked = false,
             shutdown = false
         },
@@ -112,6 +118,8 @@ local function main()
         log.fatal("no wireless modem on startup")
         return
     end
+
+    databus.tx_hw_modem(true)
 
     ----------------------------------------
     -- interpret config and init units
@@ -252,6 +260,8 @@ local function main()
                 log.info(util.c("configure> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for ", for_message))
 
                 unit.uid = #units
+
+                databus.tx_unit_hw_status(unit.uid, RTU_UNIT_HW_STATE.OK)
             end
         end
 
@@ -287,9 +297,9 @@ local function main()
 
             local device = ppm.get_periph(name)
 
-            local type = nil            ---@type string|nil
-            local rtu_iface = nil       ---@type rtu_device
-            local rtu_type = nil        ---@type RTU_UNIT_TYPE
+            local type                  ---@type string|nil
+            local rtu_iface             ---@type rtu_device
+            local rtu_type              ---@type RTU_UNIT_TYPE
             local is_multiblock = false ---@type boolean
             local formed = nil          ---@type boolean|nil
             local faulted = nil         ---@type boolean|nil
@@ -356,11 +366,11 @@ local function main()
             elseif type == "solarNeutronActivator" then
                 -- SNA
                 rtu_type = RTU_UNIT_TYPE.SNA
-                rtu_iface, _ = sna_rtu.new(device)
+                rtu_iface, faulted = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
                 rtu_type = RTU_UNIT_TYPE.ENV_DETECTOR
-                rtu_iface, _ = envd_rtu.new(device)
+                rtu_iface, faulted = envd_rtu.new(device)
             elseif type == ppm.VIRTUAL_DEVICE_TYPE then
                 -- placeholder device
                 rtu_type = RTU_UNIT_TYPE.VIRTUAL
@@ -411,6 +421,20 @@ local function main()
             log.info(util.c("configure> initialized RTU unit #", #units, ": ", name, " (", types.rtu_type_to_string(rtu_type), ") [", index, "] for ", for_message))
 
             rtu_unit.uid = #units
+
+            -- report hardware status
+            if rtu_unit.type == RTU_UNIT_TYPE.VIRTUAL then
+                databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.OFFLINE)
+            else
+                if rtu_unit.is_multiblock then
+                    databus.tx_unit_hw_status(rtu_unit.uid, util.trinary(rtu_unit.formed == true, RTU_UNIT_HW_STATE.OK, RTU_UNIT_HW_STATE.UNFORMED))
+                elseif faulted then
+                    databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.FAULTED)
+                else
+                    databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.OK)
+                end
+            end
+
         end
 
         -- we made it through all that trusting-user-to-write-a-config-file chaos
@@ -421,9 +445,23 @@ local function main()
     -- start system
     ----------------------------------------
 
+    local rtu_state = __shared_memory.rtu_state
+
     log.debug("boot> running configure()")
 
     if configure() then
+        -- start UI
+        local message
+        rtu_state.fp_ok, message = pcall(renderer.start_ui, units)
+
+        if not rtu_state.fp_ok then
+            renderer.close_ui()
+            println_ts(util.c("UI error: ", message))
+            println("init> running without front panel")
+            log.error(util.c("GUI crashed with error ", message))
+            log.info("init> running in headless mode without front panel")
+        end
+
         -- start connection watchdog
         smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
         log.debug("startup> conn watchdog started")
@@ -453,8 +491,15 @@ local function main()
         println("configuration failed, exiting...")
     end
 
+    renderer.close_ui()
+
     println_ts("exited")
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() end
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    crash.exit()
+else
+    log.close()
+end

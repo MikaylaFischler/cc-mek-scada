@@ -5,7 +5,6 @@
 local util          = require("scada-common.util")
 
 local iocontrol     = require("coordinator.iocontrol")
-local sounder       = require("coordinator.sounder")
 
 local style         = require("coordinator.ui.style")
 
@@ -15,13 +14,7 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
-local ColorMap      = require("graphics.elements.colormap")
-local DisplayBox    = require("graphics.elements.displaybox")
-local Div           = require("graphics.elements.div")
 local TextBox       = require("graphics.elements.textbox")
-
-local PushButton    = require("graphics.elements.controls.push_button")
-local SwitchButton  = require("graphics.elements.controls.switch_button")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
@@ -30,12 +23,10 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 local cpair = core.graphics.cpair
 
 -- create new main view
----@param monitor table main viewscreen
-local function init(monitor)
+---@param main graphics_element main displaybox
+local function init(main)
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
-
-    local main = DisplayBox{window=monitor,fg_bg=style.root}
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
@@ -93,8 +84,6 @@ local function init(monitor)
     process_ctl(main, 2, cnc_bottom_align_start)
 
     imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
-
-    return main
 end
 
 return init

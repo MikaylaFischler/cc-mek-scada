@@ -76,7 +76,8 @@ end
 -- transmit RPS data across the bus
 ---@param tripped boolean RPS tripped
 ---@param status table RPS status
-function databus.tx_rps(tripped, status)
+---@param emer_cool_active boolean RPS activated the emergency coolant
+function databus.tx_rps(tripped, status, emer_cool_active)
     dbus_iface.ps.publish("rps_scram", tripped)
     dbus_iface.ps.publish("rps_damage", status[1])
     dbus_iface.ps.publish("rps_high_temp", status[2])
@@ -89,6 +90,7 @@ function databus.tx_rps(tripped, status)
     dbus_iface.ps.publish("rps_manual", status[9])
     dbus_iface.ps.publish("rps_automatic", status[10])
     dbus_iface.ps.publish("rps_sysfail", status[11])
+    dbus_iface.ps.publish("emer_cool", emer_cool_active)
 end
 
 -- link a function to receive data from the bus

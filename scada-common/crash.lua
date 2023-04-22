@@ -39,6 +39,7 @@ end
 
 -- final error print on failed xpcall, app exits here
 function crash.exit()
+    log.close()
     util.println("fatal error occured in main application:")
     error(err, 0)
 end

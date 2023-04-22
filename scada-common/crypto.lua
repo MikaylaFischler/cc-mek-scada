@@ -5,7 +5,6 @@
 local aes128   = require("lockbox.cipher.aes128")
 local ctr_mode = require("lockbox.cipher.mode.ctr")
 local sha1     = require("lockbox.digest.sha1")
-local sha2_224 = require("lockbox.digest.sha2_224")
 local sha2_256 = require("lockbox.digest.sha2_256")
 local pbkdf2   = require("lockbox.kdf.pbkdf2")
 local hmac     = require("lockbox.mac.hmac")
@@ -157,10 +156,6 @@ end
 -- wrap a modem as a secure modem to send encrypted traffic
 ---@param modem table modem to wrap
 function crypto.secure_modem(modem)
-    local self = {
-        modem = modem
-    }
-
     ---@class secure_modem
     ---@field open function
     ---@field isOpen function
@@ -177,17 +172,17 @@ function crypto.secure_modem(modem)
     local public = {}
 
     -- wrap a modem
-    ---@param modem table
+    ---@param reconnected_modem table
 ---@diagnostic disable-next-line: redefined-local
-    function public.wrap(modem)
-        self.modem = modem
-        for key, func in pairs(self.modem) do
+    function public.wrap(reconnected_modem)
+        modem = reconnected_modem
+        for key, func in pairs(modem) do
             public[key] = func
         end
     end
 
     -- wrap modem functions, then we replace transmit
-    public.wrap(self.modem)
+    public.wrap(modem)
 
     -- send a packet with encryption
     ---@param channel integer
@@ -198,9 +193,9 @@ function crypto.secure_modem(modem)
 
         local iv, ciphertext = crypto.encrypt(plaintext)
 ---@diagnostic disable-next-line: redefined-local
-        local hmac = crypto.hmac(iv .. ciphertext)
+        local computed_hmac = crypto.hmac(iv .. ciphertext)
 
-        self.modem.transmit(channel, reply_channel, { hmac, iv, ciphertext })
+        modem.transmit(channel, reply_channel, { computed_hmac, iv, ciphertext })
     end
 
     -- parse in a modem message as a network packet
@@ -217,13 +212,13 @@ function crypto.secure_modem(modem)
         if type(message) == "table" then
             if #message == 3 then
 ---@diagnostic disable-next-line: redefined-local
-                local hmac = message[1]
+                local rx_hmac = message[1]
                 local iv = message[2]
                 local ciphertext = message[3]
 
                 local computed_hmac = crypto.hmac(iv .. ciphertext)
 
-                if hmac == computed_hmac then
+                if rx_hmac == computed_hmac then
                     -- message intact
                     local plaintext = crypto.decrypt(iv, ciphertext)
                     body = textutils.unserialize(plaintext)

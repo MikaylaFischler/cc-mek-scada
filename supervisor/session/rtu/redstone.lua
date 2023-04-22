@@ -12,7 +12,6 @@ local MODBUS_FCODE = types.MODBUS_FCODE
 
 local IO_PORT = rsio.IO
 local IO_LVL = rsio.IO_LVL
-local IO_DIR = rsio.IO_DIR
 local IO_MODE = rsio.IO_MODE
 
 local TXN_READY = -1
@@ -122,6 +121,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                     ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_in[port].phy) end,
                     ---@param active boolean
+---@diagnostic disable-next-line: unused-local
                     write = function (active) end
                 }
 
@@ -156,6 +156,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                     ---@return integer
                     read = function () return self.phy_io.analog_in[port].phy end,
                     ---@param value integer
+---@diagnostic disable-next-line: unused-local
                     write = function (value) end
                 }
 

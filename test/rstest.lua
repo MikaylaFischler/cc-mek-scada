@@ -10,7 +10,6 @@ local println = util.println
 
 local IO = rsio.IO
 local IO_LVL = rsio.IO_LVL
-local IO_DIR = rsio.IO_DIR
 local IO_MODE = rsio.IO_MODE
 
 println("starting RSIO tester")

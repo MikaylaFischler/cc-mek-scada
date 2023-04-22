@@ -24,19 +24,18 @@ local pipe = core.graphics.pipe
 ---@param y integer top left y
 ---@param unit ioctl_unit unit database entry
 local function make(parent, x, y, unit)
-    local height = 0
     local num_boilers = #unit.boiler_data_tbl
     local num_turbines = #unit.turbine_data_tbl
 
     assert(num_boilers  >= 0 and num_boilers  <= 2, "minimum 0 boilers, maximum 2 boilers")
     assert(num_turbines >= 1 and num_turbines <= 3, "minimum 1 turbine, maximum 3 turbines")
 
+    local height = 25
+
     if num_boilers == 0 and num_turbines == 1 then
         height = 9
     elseif num_boilers == 1 and num_turbines <= 2 then
         height = 17
-    else
-        height = 25
     end
 
     assert(parent.height() >= (y + height), "main display not of sufficient vertical resolution (add an additional row of monitors)")
@@ -51,7 +50,7 @@ local function make(parent, x, y, unit)
     -- REACTOR --
     -------------
 
-    reactor_view(root, 1, 3, unit.reactor_data, unit.unit_ps)
+    reactor_view(root, 1, 3, unit.unit_ps)
 
     if num_boilers > 0 then
         local coolant_pipes = {}

@@ -16,7 +16,7 @@ local MODE = {
 log.MODE = MODE
 
 -- whether to log debug messages or not
-local LOG_DEBUG = false
+local LOG_DEBUG = true
 
 local log_sys = {
     path = "/log.txt",
@@ -28,30 +28,9 @@ local log_sys = {
 ---@type function
 local free_space = fs.getFreeSpace
 
--- initialize logger
----@param path string file path
----@param write_mode MODE
----@param dmesg_redirect? table terminal/window to direct dmesg to
-function log.init(path, write_mode, dmesg_redirect)
-    log_sys.path = path
-    log_sys.mode = write_mode
-
-    if log_sys.mode == MODE.APPEND then
-        log_sys.file = fs.open(path, "a")
-    else
-        log_sys.file = fs.open(path, "w")
-    end
-
-    if dmesg_redirect then
-        log_sys.dmesg_out = dmesg_redirect
-    else
-        log_sys.dmesg_out = term.current()
-    end
-end
-
--- direct dmesg output to a monitor/window
----@param window table window or terminal reference
-function log.direct_dmesg(window) log_sys.dmesg_out = window end
+-----------------------
+-- PRIVATE FUNCTIONS --
+-----------------------
 
 -- private log write function
 ---@param msg string
@@ -92,6 +71,40 @@ local function _log(msg)
         log_sys.file.flush()
     end
 end
+
+----------------------
+-- PUBLIC FUNCTIONS --
+----------------------
+
+-- initialize logger
+---@param path string file path
+---@param write_mode MODE
+---@param dmesg_redirect? table terminal/window to direct dmesg to
+function log.init(path, write_mode, dmesg_redirect)
+    log_sys.path = path
+    log_sys.mode = write_mode
+
+    if log_sys.mode == MODE.APPEND then
+        log_sys.file = fs.open(path, "a")
+    else
+        log_sys.file = fs.open(path, "w")
+    end
+
+    if dmesg_redirect then
+        log_sys.dmesg_out = dmesg_redirect
+    else
+        log_sys.dmesg_out = term.current()
+    end
+end
+
+-- close the log file handle
+function log.close()
+    log_sys.file.close()
+end
+
+-- direct dmesg output to a monitor/window
+---@param window table window or terminal reference
+function log.direct_dmesg(window) log_sys.dmesg_out = window end
 
 -- dmesg style logging for boot because I like linux-y things
 ---@param msg string message

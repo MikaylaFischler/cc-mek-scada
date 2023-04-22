@@ -14,10 +14,7 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- retry time constants in ms
 local INITIAL_WAIT      = 1500
@@ -67,7 +64,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         connected = true,
         received_struct = false,
         received_status_cache = false,
-        plc_conn_watchdog = util.new_watchdog(timeout),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -236,7 +233,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
     -- mark this PLC session as closed, stop watchdog
     local function _close()
-        self.plc_conn_watchdog.cancel()
+        self.conn_watchdog.cancel()
         self.connected = false
     end
 
@@ -276,18 +273,18 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
         if pkt.length == 1 then
             return pkt.data[1]
         else
-            log.warning(log_header .. "RPLC ACK length mismatch")
+            log.debug(log_header .. "RPLC ACK length mismatch")
             return nil
         end
     end
 
     -- handle a packet
-    ---@param pkt rplc_frame
+    ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
+        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
@@ -296,14 +293,15 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.RPLC then
+            ---@cast pkt rplc_frame
             -- check reactor ID
             if pkt.id ~= reactor_id then
-                log.warning(log_header .. "RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
+                log.warning(log_header .. "discarding RPLC packet with ID not matching reactor ID: reactor " .. reactor_id .. " != " .. pkt.id)
                 return
             end
 
             -- feed watchdog
-            self.plc_conn_watchdog.feed()
+            self.conn_watchdog.feed()
 
             -- handle packet by type
             if pkt.type == RPLC_TYPE.STATUS then
@@ -472,11 +470,12 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                 log.debug(log_header .. "handler received unsupported RPLC packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    local plc_send = pkt.data[2]
+                    -- local plc_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
@@ -577,7 +576,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     -- check if a timer matches this session's watchdog
     ---@nodiscard
     function public.check_wd(timer)
-        return self.plc_conn_watchdog.is_timer(timer) and self.connected
+        return self.conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
@@ -636,7 +635,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                                 _send(RPLC_TYPE.RPS_AUTO_RESET, {})
                             end
                         else
-                            log.warning(log_header .. "unsupported command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported command received in in_queue (this is a bug)", true)
                         end
                     elseif message.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
@@ -683,7 +682,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
                                 end
                             end
                         else
-                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)
                         end
                     end
                 end

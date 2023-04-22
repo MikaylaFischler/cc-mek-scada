@@ -12,18 +12,17 @@ local util         = require("scada-common.util")
 
 local core         = require("graphics.core")
 
-local apisessions  = require("coordinator.apisessions")
 local config       = require("coordinator.config")
 local coordinator  = require("coordinator.coordinator")
 local iocontrol    = require("coordinator.iocontrol")
 local renderer     = require("coordinator.renderer")
 local sounder      = require("coordinator.sounder")
 
-local COORDINATOR_VERSION = "v0.12.5"
+local apisessions  = require("coordinator.session.apisessions")
 
-local print = util.print
+local COORDINATOR_VERSION = "v0.13.8"
+
 local println = util.println
-local print_ts = util.print_ts
 local println_ts = util.println_ts
 
 local log_graphics = coordinator.log_graphics
@@ -39,11 +38,13 @@ local log_comms_connecting = coordinator.log_comms_connecting
 local cfv = util.new_validator()
 
 cfv.assert_port(config.SCADA_SV_PORT)
-cfv.assert_port(config.SCADA_SV_LISTEN)
+cfv.assert_port(config.SCADA_SV_CTL_LISTEN)
 cfv.assert_port(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.COMMS_TIMEOUT)
-cfv.assert_min(config.COMMS_TIMEOUT, 2)
+cfv.assert_type_num(config.SV_TIMEOUT)
+cfv.assert_min(config.SV_TIMEOUT, 2)
+cfv.assert_type_num(config.API_TIMEOUT)
+cfv.assert_min(config.API_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_UNITS)
 cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
@@ -142,12 +143,12 @@ local function main()
     end
 
     -- create connection watchdog
-    local conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
+    local conn_watchdog = util.new_watchdog(config.SV_TIMEOUT)
     conn_watchdog.cancel()
     log.debug("startup> conn watchdog created")
 
     -- start comms, open all channels
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_LISTEN,
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_CTL_LISTEN,
                                             config.SCADA_API_LISTEN, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
@@ -287,7 +288,7 @@ local function main()
                     else
                         log_sys("wired modem reconnected")
                     end
-                elseif type == "monitor" then
+                -- elseif type == "monitor" then
                     -- not supported, system will exit on loss of in-use monitors
                 elseif type == "speaker" then
                     local msg = "alarm sounder speaker reconnected"
@@ -299,6 +300,9 @@ local function main()
         elseif event == "timer" then
             if loop_clock.is_clock(param1) then
                 -- main loop tick
+
+                -- iterate sessions
+                apisessions.iterate_all()
 
                 -- free any closed sessions
                 apisessions.free_all_closed()
@@ -326,7 +330,7 @@ local function main()
             else
                 -- a non-clock/main watchdog timer event
 
-                --check API watchdogs
+                -- check API watchdogs
                 apisessions.check_all_watchdogs(param1)
 
                 -- notify timer callback dispatcher
@@ -385,4 +389,6 @@ if not xpcall(main, crash.handler) then
     pcall(renderer.close_ui)
     pcall(sounder.stop)
     crash.exit()
+else
+    log.close()
 end

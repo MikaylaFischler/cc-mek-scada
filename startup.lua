@@ -7,7 +7,7 @@ local println_ts = util.println_ts
 
 println("SCADA BOOTLOADER V" .. BOOTLOADER_VERSION)
 
-local exit_code = false
+local exit_code ---@type boolean
 
 println_ts("BOOT> SCANNING FOR APPLICATIONS...")
 

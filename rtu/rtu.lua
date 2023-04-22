@@ -1,10 +1,11 @@
-local comms  = require("scada-common.comms")
-local ppm    = require("scada-common.ppm")
-local log    = require("scada-common.log")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local ppm     = require("scada-common.ppm")
+local log     = require("scada-common.log")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
-local modbus = require("rtu.modbus")
+local databus = require("rtu.databus")
+local modbus  = require("rtu.modbus")
 
 local rtu = {}
 
@@ -13,11 +14,6 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-
-local print = util.print
-local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- create a new RTU unit
 ---@nodiscard
@@ -316,7 +312,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     pkt = mgmt_pkt.get()
                 end
             else
-                log.error("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 
@@ -328,11 +324,14 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     ---@param units table RTU units
     ---@param rtu_state rtu_state
     function public.handle_packet(packet, units, rtu_state)
+        -- print a log message to the terminal as long as the UI isn't running
+        local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
+
         if packet.scada_frame.local_port() == local_port then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
-            elseif rtu_state.linked and self.r_seq_num >= packet.scada_frame.seq_num() then
+            elseif rtu_state.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             else
@@ -347,8 +346,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             if protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_frame
                 if rtu_state.linked then
-                    local return_code = false
-                    local reply = modbus.reply__neg_ack(packet)
+                    local return_code   ---@type boolean
+                    local reply         ---@type modbus_packet
 
                     -- handle MODBUS instruction
                     if packet.unit_id <= #units then
@@ -382,7 +381,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                     else
                         -- unit ID out of range?
                         reply = modbus.reply__gw_unavailable(packet)
-                        log.error("received MODBUS packet for non-existent unit")
+                        log.debug("received MODBUS packet for non-existent unit")
                     end
 
                     public.send_modbus(reply)
@@ -419,6 +418,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         end
 
                         self.last_est_ack = est_ack
+
+                        -- report link state
+                        databus.tx_link_state(est_ack + 1)
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
@@ -450,7 +452,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         public.send_advertisement(units)
                     else
                         -- not supported
-                        log.warning("received unsupported SCADA_MGMT message type " .. packet.type)
+                        log.debug("received unsupported SCADA_MGMT message type " .. packet.type)
                     end
                 else
                     log.debug("discarding non-link SCADA_MGMT packet before linked")

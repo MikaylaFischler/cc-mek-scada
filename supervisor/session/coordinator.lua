@@ -16,16 +16,12 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local SV_Q_CMDS = svqtypes.SV_Q_CMDS
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 -- retry time constants in ms
-local INITIAL_WAIT = 1500
+-- local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
 local PARTIAL_RETRY_PERIOD = 2000
 
@@ -177,12 +173,12 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     end
 
     -- handle a packet
-    ---@param pkt crdn_frame
+    ---@param pkt mgmt_frame|crdn_frame
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
+        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
@@ -194,11 +190,12 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    local coord_send = pkt.data[2]
+                    -- local coord_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
@@ -218,6 +215,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
+            ---@cast pkt crdn_frame
             if pkt.type == SCADA_CRDN_TYPE.INITIAL_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
@@ -414,7 +412,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
                                 _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPE.IMATRIX) })
                             end
                         else
-                            log.warning(log_header .. "unsupported data command received in in_queue (this is a bug)")
+                            log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)
                         end
                     end
                 end

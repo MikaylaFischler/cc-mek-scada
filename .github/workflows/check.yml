@@ -6,13 +6,27 @@ on:
     branches:
       - main
       - latest
+      - devel
+  pull_request:
+    branches:
+      - main
+      - latest
+      - devel
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.5.1
       - name: Luacheck
         uses: lunarmodules/luacheck@v1.1.0
         with:
-          args: . --no-max-line-length --globals _HOST term fs peripheral rs bit parallel colors textutils shell settings window read periphemu http
+          # Argument Explanations
+          # -a     = Disable warning for unused arguments
+          # -i 121 = Setting a read-only global variable
+          #    512 = Loop can be executed at most once
+          #    542 = An empty if branch
+          # --no-max-line-length = Disable warnings for long line lengths
+          # --exclude-files ...  = Exclude lockbox library (external) and config files
+          # --globals ...        = Override all globals overridden in .vscode/settings.json AND 'os' since CraftOS 'os' differs from Lua's 'os'
+          args: . --no-max-line-length -a -i 121 512 542 --exclude-files ./lockbox/* ./*/config.lua --globals os _HOST bit colors fs http parallel periphemu peripheral read rs settings shell term textutils window

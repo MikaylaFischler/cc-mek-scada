@@ -22,10 +22,7 @@ local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local print = util.print
 local println = util.println
-local print_ts = util.print_ts
-local println_ts = util.println_ts
 
 local PERIODICS = {
     KEEP_ALIVE = 2000
@@ -50,7 +47,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         seq_num = 0,
         r_seq_num = nil,
         connected = true,
-        rtu_conn_watchdog = util.new_watchdog(timeout),
+        conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -78,9 +75,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         end
 
         for i = 1, #self.advert do
-            local unit     = nil ---@type unit_session|nil
-            local rs_in_q  = nil ---@type mqueue|nil
-            local tbv_in_q = nil ---@type mqueue|nil
+            local unit = nil    ---@type unit_session|nil
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -179,7 +174,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
     -- mark this RTU session as closed, stop watchdog
     local function _close()
-        self.rtu_conn_watchdog.cancel()
+        self.conn_watchdog.cancel()
         self.connected = false
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
@@ -219,7 +214,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         -- check sequence number
         if self.r_seq_num == nil then
             self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif self.r_seq_num >= pkt.scada_frame.seq_num() then
+        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
@@ -227,22 +222,23 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         end
 
         -- feed watchdog
-        self.rtu_conn_watchdog.feed()
+        self.conn_watchdog.feed()
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
+            ---@cast pkt modbus_frame
             if self.units[pkt.unit_id] ~= nil then
                 local unit = self.units[pkt.unit_id]    ---@type unit_session
----@diagnostic disable-next-line: param-type-mismatch
                 unit.handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+            ---@cast pkt mgmt_frame
             -- handle management packet
             if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    local rtu_send = pkt.data[2]
+                    -- local rtu_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
@@ -290,7 +286,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     ---@nodiscard
     ---@param timer number
     function public.check_wd(timer)
-        return self.rtu_conn_watchdog.is_timer(timer) and self.connected
+        return self.conn_watchdog.is_timer(timer) and self.connected
     end
 
     -- close the connection
