@@ -17,7 +17,7 @@ local coreio       = require("pocket.coreio")
 local pocket       = require("pocket.pocket")
 local renderer     = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.2.6"
+local POCKET_VERSION = "alpha-v0.2.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -120,53 +120,53 @@ local function main()
         conn_wd.sv.feed()
         conn_wd.api.feed()
         log.debug("startup> conn watchdog started")
-    end
 
-    -- main event loop
-    while ui_ok do
-        local event, param1, param2, param3, param4, param5 = util.pull_event()
+        -- main event loop
+        while true do
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
-        -- handle event
-        if event == "timer" then
-            if loop_clock.is_clock(param1) then
-                -- main loop tick
+            -- handle event
+            if event == "timer" then
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
 
-                -- relink if necessary
-                pocket_comms.link_update()
+                    -- relink if necessary
+                    pocket_comms.link_update()
 
-                loop_clock.start()
-            elseif conn_wd.sv.is_timer(param1) then
-                -- supervisor watchdog timeout
-                log.info("supervisor server timeout")
-                pocket_comms.close_sv()
-            elseif conn_wd.api.is_timer(param1) then
-                -- coordinator watchdog timeout
-                log.info("coordinator api server timeout")
-                pocket_comms.close_api()
-            else
-                -- a non-clock/main watchdog timer event
-                -- notify timer callback dispatcher
-                tcallbackdsp.handle(param1)
+                    loop_clock.start()
+                elseif conn_wd.sv.is_timer(param1) then
+                    -- supervisor watchdog timeout
+                    log.info("supervisor server timeout")
+                    pocket_comms.close_sv()
+                elseif conn_wd.api.is_timer(param1) then
+                    -- coordinator watchdog timeout
+                    log.info("coordinator api server timeout")
+                    pocket_comms.close_api()
+                else
+                    -- a non-clock/main watchdog timer event
+                    -- notify timer callback dispatcher
+                    tcallbackdsp.handle(param1)
+                end
+            elseif event == "modem_message" then
+                -- got a packet
+                local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
+                pocket_comms.handle_packet(packet)
+            elseif event == "mouse_click" then
+                -- handle a monitor touch event
+                renderer.handle_mouse(core.events.touch(param1, param2, param3))
             end
-        elseif event == "modem_message" then
-            -- got a packet
-            local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
-            pocket_comms.handle_packet(packet)
-        elseif event == "mouse_click" then
-            -- handle a monitor touch event
-            renderer.handle_mouse(core.events.touch(param1, param2, param3))
+
+            -- check for termination request
+            if event == "terminate" or ppm.should_terminate() then
+                log.info("terminate requested, closing server connections...")
+                pocket_comms.close()
+                log.info("connections closed")
+                break
+            end
         end
 
-        -- check for termination request
-        if event == "terminate" or ppm.should_terminate() then
-            log.info("terminate requested, closing server connections...")
-            pocket_comms.close()
-            log.info("connections closed")
-            break
-        end
+        renderer.close_ui()
     end
-
-    renderer.close_ui()
 
     println_ts("exited")
     log.info("exited")
