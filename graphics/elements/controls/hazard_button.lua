@@ -141,9 +141,7 @@ local function hazard_button(args)
     end
 
     -- handle mouse interaction
-    ---@param event mouse_interaction mouse event
----@diagnostic disable-next-line: unused-local
-    function e.handle_mouse(event)
+    function e.handle_mouse(_)
         if e.enabled then
             -- change text color to indicate clicked
             e.window.setTextColor(args.accent)
