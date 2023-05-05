@@ -22,7 +22,6 @@ jobs:
         uses: lunarmodules/luacheck@v1.1.0
         with:
           # Argument Explanations
-          # -a     = Disable warning for unused arguments
           # -i 121 = Setting a read-only global variable
           #    512 = Loop can be executed at most once
           #    542 = An empty if branch
