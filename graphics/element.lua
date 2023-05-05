@@ -168,6 +168,7 @@ function element.new(args)
         self.bounds.y2 = self.position.y + f.h - 1
     end
 
+-- luacheck: push ignore
 ---@diagnostic disable: unused-local, unused-vararg
 
     -- handle a mouse event
@@ -224,6 +225,7 @@ function element.new(args)
     function protected.resize(...)
     end
 
+-- luacheck: pop
 ---@diagnostic enable: unused-local, unused-vararg
 
     -- start animations
