@@ -8,7 +8,8 @@ local pocket = {}
 local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
-local println = util.println
+-- local println = util.println
+local println = function (str) end
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500

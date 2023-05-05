@@ -18,7 +18,8 @@ local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
-local println = util.println
+-- local println = util.println
+local println = function (str) end
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500

@@ -22,7 +22,8 @@ local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local println = util.println
+-- local println = util.println
+local println = function (str) end
 
 local PERIODICS = {
     KEEP_ALIVE = 2000

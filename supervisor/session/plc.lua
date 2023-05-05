@@ -14,7 +14,8 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
-local println = util.println
+-- local println = util.println
+local println = function (str) end
 
 -- retry time constants in ms
 local INITIAL_WAIT      = 1500

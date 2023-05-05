@@ -5,16 +5,21 @@
 require("/initenv").init_env()
 
 local crash      = require("scada-common.crash")
+local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local ppm        = require("scada-common.ppm")
 local util       = require("scada-common.util")
 
+local core       = require("graphics.core")
+
 local config     = require("supervisor.config")
+local databus    = require("supervisor.databus")
+local renderer   = require("supervisor.renderer")
 local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.15.5"
+local SUPERVISOR_VERSION = "v0.16.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -79,6 +84,9 @@ local function main()
     -- startup
     ----------------------------------------
 
+    -- record firmware versions and ID
+    databus.tx_versions(SUPERVISOR_VERSION, comms.version)
+
     -- mount connected devices
     ppm.mount_all()
 
@@ -89,84 +97,113 @@ local function main()
         return
     end
 
-    -- start comms, open all channels
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem,
-                                            config.SCADA_DEV_LISTEN, config.SCADA_SV_CTL_LISTEN, config.TRUSTED_RANGE)
+    databus.tx_hw_modem(true)
 
-    -- base loop clock (6.67Hz, 3 ticks)
-    local MAIN_CLOCK = 0.15
-    local loop_clock = util.new_clock(MAIN_CLOCK)
+    -- start UI
+    local fp_ok, message = pcall(renderer.start_ui)
 
-    -- start clock
-    loop_clock.start()
+    if not fp_ok then
+        renderer.close_ui()
+        println_ts(util.c("UI error: ", message))
+        log.error(util.c("GUI crashed with error ", message))
+    else
+        -- start comms, open all channels
+        local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem,
+                                                config.SCADA_DEV_LISTEN, config.SCADA_SV_CTL_LISTEN, config.TRUSTED_RANGE)
 
-    -- event loop
-    while true do
-        local event, param1, param2, param3, param4, param5 = util.pull_event()
+        -- base loop clock (6.67Hz, 3 ticks)
+        local MAIN_CLOCK = 0.15
+        local loop_clock = util.new_clock(MAIN_CLOCK)
 
-        -- handle event
-        if event == "peripheral_detach" then
-            local type, device = ppm.handle_unmount(param1)
+        -- start clock
+        loop_clock.start()
 
-            if type ~= nil and device ~= nil then
-                if type == "modem" then
-                    -- we only care if this is our wireless modem
-                    if device == modem then
-                        println_ts("wireless modem disconnected!")
-                        log.warning("comms modem disconnected")
-                    else
-                        log.warning("non-comms modem disconnected")
+        -- event loop
+        while true do
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
+
+            -- handle event
+            if event == "peripheral_detach" then
+                local type, device = ppm.handle_unmount(param1)
+
+                if type ~= nil and device ~= nil then
+                    if type == "modem" then
+                        -- we only care if this is our wireless modem
+                        if device == modem then
+                            log.warning("comms modem disconnected")
+                            databus.tx_hw_modem(false)
+                        else
+                            log.warning("non-comms modem disconnected")
+                        end
                     end
                 end
-            end
-        elseif event == "peripheral" then
-            local type, device = ppm.mount(param1)
+            elseif event == "peripheral" then
+                local type, device = ppm.mount(param1)
 
-            if type ~= nil and device ~= nil then
-                if type == "modem" then
-                    if device.isWireless() then
-                        -- reconnected modem
-                        modem = device
-                        superv_comms.reconnect_modem(modem)
+                if type ~= nil and device ~= nil then
+                    if type == "modem" then
+                        if device.isWireless() then
+                            -- reconnected modem
+                            modem = device
+                            superv_comms.reconnect_modem(modem)
 
-                        println_ts("wireless modem reconnected.")
-                        log.info("comms modem reconnected")
-                    else
-                        log.info("wired modem reconnected")
+                            log.info("comms modem reconnected")
+
+                            databus.tx_hw_modem(true)
+                        else
+                            log.info("wired modem reconnected")
+                        end
                     end
                 end
+            elseif event == "timer" and loop_clock.is_clock(param1) then
+                -- main loop tick
+                databus.heartbeat()
+
+                -- iterate sessions
+                svsessions.iterate_all()
+
+                -- free any closed sessions
+                svsessions.free_all_closed()
+
+                loop_clock.start()
+            elseif event == "timer" then
+                -- a non-clock timer event, check watchdogs
+                svsessions.check_all_watchdogs(param1)
+            elseif event == "modem_message" then
+                -- got a packet
+                local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
+                superv_comms.handle_packet(packet)
+            elseif event == "mouse_click" then
+                -- handle a monitor touch event
+                renderer.handle_mouse(core.events.touch(param1, param2, param3))
+                log.debug(util.sprintf("mouse_click: %s [%d, %d]", param1, param2, param3))
+            elseif event == "mouse_drag" then
+                log.debug(util.sprintf("mouse_drag: %s [%d, %d]", param1, param2, param3))
+            elseif event == "mouse_scroll" then
+                log.debug(util.sprintf("mouse_scroll: %s [%d, %d]", param1, param2, param3))
+            elseif event == "mouse_up" then
+                log.debug(util.sprintf("mouse_up: %s [%d, %d]", param1, param2, param3))
             end
-        elseif event == "timer" and loop_clock.is_clock(param1) then
-            -- main loop tick
 
-            -- iterate sessions
-            svsessions.iterate_all()
-
-            -- free any closed sessions
-            svsessions.free_all_closed()
-
-            loop_clock.start()
-        elseif event == "timer" then
-            -- a non-clock timer event, check watchdogs
-            svsessions.check_all_watchdogs(param1)
-        elseif event == "modem_message" then
-            -- got a packet
-            local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
-            superv_comms.handle_packet(packet)
+            -- check for termination request
+            if event == "terminate" or ppm.should_terminate() then
+                log.info("terminate requested, closing sessions...")
+                svsessions.close_all()
+                log.info("sessions closed")
+                break
+            end
         end
 
-        -- check for termination request
-        if event == "terminate" or ppm.should_terminate() then
-            println_ts("closing sessions...")
-            log.info("terminate requested, closing sessions...")
-            svsessions.close_all()
-            log.info("sessions closed")
-            break
-        end
+        renderer.close_ui()
     end
 
     println_ts("exited")
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() else log.close() end
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    crash.exit()
+else
+    log.close()
+end

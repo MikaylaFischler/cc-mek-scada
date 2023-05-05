@@ -22,6 +22,7 @@ local CRD_S_DATA = coordinator.CRD_S_DATA
 
 local svsessions = {}
 
+---@enum SESSION_TYPE
 local SESSION_TYPE = {
     RTU_SESSION = 0,    -- RTU gateway
     PLC_SESSION = 1,    -- reactor PLC
