@@ -113,7 +113,7 @@ end
 ---@return table lines
 function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 
--- luacheck push no unused varargs
+-- luacheck push no unused args
 
 -- concatenation with built-in to string
 ---@nodiscard

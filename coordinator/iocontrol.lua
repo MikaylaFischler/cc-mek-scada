@@ -18,7 +18,7 @@ local iocontrol = {}
 ---@class ioctl
 local io = {}
 
--- luacheck push ignore
+-- luacheck push ignore success
 
 -- placeholder acknowledge function for type hinting
 ---@param success boolean
