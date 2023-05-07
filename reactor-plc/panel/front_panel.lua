@@ -22,10 +22,10 @@ local LED        = require("graphics.elements.indicators.led")
 local LEDPair    = require("graphics.elements.indicators.ledpair")
 local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 -- create new main view
 ---@param panel graphics_element main displaybox

@@ -26,7 +26,7 @@ local function core_map(args)
     args.height = 18
 
     -- inherit only foreground color
-    args.fg_bg = core.graphics.cpair(args.parent.get_fg_bg().fgd, colors.gray)
+    args.fg_bg = core.cpair(args.parent.get_fg_bg().fgd, colors.gray)
 
     -- create new graphics element base object
     local e = element.new(args)

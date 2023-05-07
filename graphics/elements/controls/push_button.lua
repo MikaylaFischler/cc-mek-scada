@@ -76,7 +76,7 @@ local function push_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_type.VIRTUAL, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_button.VIRTUAL, core.events.click_type.UP, 1, 1)) end
     end
 
     -- show butten as enabled

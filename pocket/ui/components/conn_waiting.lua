@@ -11,9 +11,9 @@ local TextBox     = require("graphics.elements.textbox")
 
 local WaitingAnim = require("graphics.elements.animations.waiting")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- create a waiting view
 ---@param parent graphics_element parent

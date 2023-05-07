@@ -73,8 +73,8 @@ function element.new(args)
         enabled = true,
         value = nil,    ---@type any
         window = nil,   ---@type table
-        fg_bg = core.graphics.cpair(colors.white, colors.black),
-        frame = core.graphics.gframe(1, 1, 1, 1)
+        fg_bg = core.cpair(colors.white, colors.black),
+        frame = core.gframe(1, 1, 1, 1)
     }
 
     -- element as string

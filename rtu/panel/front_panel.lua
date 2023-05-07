@@ -16,9 +16,9 @@ local TextBox    = require("graphics.elements.textbox")
 local LED        = require("graphics.elements.indicators.led")
 local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 local UNIT_TYPE_LABELS = {
     "UNKNOWN",

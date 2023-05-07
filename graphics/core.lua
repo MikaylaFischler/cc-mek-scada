@@ -1,26 +1,33 @@
 --
--- Graphics Core Functions and Objects
+-- Graphics Core Types, Checks, and Constructors
 --
 
 local core = {}
 
-local flasher = require("graphics.flasher")
-
-core.flasher = flasher
+-- Core Events
 
 local events = {}
 
----@enum click_type
-events.click_type = {
+---@enum click_button
+events.click_button = {
     VIRTUAL = 0,
     LEFT_BUTTON = 1,
     RIGHT_BUTTON = 2,
     MID_BUTTON = 3
 }
 
+---@enum click_type
+events.click_type = {
+    TAP = 0,
+    DOWN = 1,
+    DRAG = 2,
+    UP = 3
+}
+
 ---@class mouse_interaction
 ---@field monitor string
----@field button integer
+---@field button click_button
+---@field type click_type
 ---@field x integer
 ---@field y integer
 
@@ -33,7 +40,8 @@ events.click_type = {
 function events.touch(monitor, x, y)
     return {
         monitor = monitor,
-        button = events.click_type.LEFT_BUTTON,
+        button = events.click_button.LEFT_BUTTON,
+        type = events.click_type.TAP,
         x = x,
         y = y
     }
@@ -41,7 +49,7 @@ end
 
 -- create a new mouse click mouse interaction event
 ---@nodiscard
----@param button click_type
+---@param button click_button
 ---@param x integer
 ---@param y integer
 ---@return mouse_interaction
@@ -49,6 +57,7 @@ function events.click(button, x, y)
     return {
         monitor = "terminal",
         button = button,
+        type = events.click_type.UP,
         x = x,
         y = y
     }
@@ -64,6 +73,7 @@ function events.mouse_transposed(event, new_x, new_y)
     return {
         monitor = event.monitor,
         button = event.button,
+        type = event.type,
         x = new_x,
         y = new_y
     }
@@ -72,14 +82,16 @@ end
 -- create a new generic mouse interaction event
 ---@nodiscard
 ---@param monitor string
----@param button click_type
+---@param button click_button
+---@param type click_type
 ---@param x integer
 ---@param y integer
 ---@return mouse_interaction
-function events.mouse_generic(monitor, button, x, y)
+function events.mouse_generic(monitor, button, type, x, y)
     return {
         monitor = monitor,
         button = button,
+        type = type,
         x = x,
         y = y
     }
@@ -87,10 +99,10 @@ end
 
 core.events = events
 
-local graphics = {}
+-- Core Types
 
 ---@enum TEXT_ALIGN
-graphics.TEXT_ALIGN = {
+core.TEXT_ALIGN = {
     LEFT = 1,
     CENTER = 2,
     RIGHT = 3
@@ -109,7 +121,7 @@ graphics.TEXT_ALIGN = {
 ---@param color color border color
 ---@param even? boolean whether to pad width extra to account for rectangular pixels, defaults to false
 ---@return graphics_border
-function graphics.border(width, color, even)
+function core.border(width, color, even)
     return {
         width = width,
         color = color,
@@ -130,7 +142,7 @@ end
 ---@param w integer
 ---@param h integer
 ---@return graphics_frame
-function graphics.gframe(x, y, w, h)
+function core.gframe(x, y, w, h)
     return {
         x = x,
         y = y,
@@ -154,7 +166,7 @@ end
 ---@param a color
 ---@param b color
 ---@return cpair
-function graphics.cpair(a, b)
+function core.cpair(a, b)
     return {
         -- color pairs
         color_a = a,
@@ -191,7 +203,7 @@ end
 ---@param thin? boolean true for 1 subpixel, false (default) for 2
 ---@param align_tr? boolean false to align bottom left (default), true to align top right
 ---@return pipe
-function graphics.pipe(x1, y1, x2, y2, color, thin, align_tr)
+function core.pipe(x1, y1, x2, y2, color, thin, align_tr)
     return {
         x1 = x1,
         y1 = y1,
@@ -204,7 +216,5 @@ function graphics.pipe(x1, y1, x2, y2, color, thin, align_tr)
         align_tr = align_tr or false
     }
 end
-
-core.graphics = graphics
 
 return core

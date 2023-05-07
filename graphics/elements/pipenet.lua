@@ -37,7 +37,7 @@ local function pipenet(args)
     args.y = args.y or 1
 
     if args.bg ~= nil then
-        args.fg_bg = core.graphics.cpair(args.bg, args.bg)
+        args.fg_bg = core.cpair(args.bg, args.bg)
     end
 
     -- create new graphics element base object
@@ -55,7 +55,7 @@ local function pipenet(args)
 
         e.window.setCursorPos(x, y)
 
-        local c = core.graphics.cpair(pipe.color, e.fg_bg.bkg)
+        local c = core.cpair(pipe.color, e.fg_bg.bkg)
 
         if pipe.align_tr then
             -- cross width then height
