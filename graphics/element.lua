@@ -59,10 +59,10 @@ function element.new(args)
         id = -1,
         elem_type = debug.getinfo(2).name,
         define_completed = false,
-        p_window = nil, ---@type table
-        position = { x = 1, y = 1 },
+        p_window = nil,                                 ---@type table
+        position = { x = 1, y = 1 },                    ---@type coordinate_2d
         child_offset = { x = 0, y = 0 },
-        bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1},
+        bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,
         children = {},
         mt = {}
@@ -77,9 +77,20 @@ function element.new(args)
         frame = core.gframe(1, 1, 1, 1)
     }
 
+    local name_brief = "graphics.element{" .. self.elem_type .. "}: "
+
     -- element as string
     function self.mt.__tostring()
         return "graphics.element{" .. self.elem_type .. "} @ " .. tostring(self)
+    end
+
+    -- check if a coordinate is within the bounds of this element
+    ---@param x integer
+    ---@param y integer
+    local function _in_bounds(x, y)
+        local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
+        local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
+        return in_x and in_y
     end
 
     ---@class graphics_element
@@ -138,10 +149,10 @@ function element.new(args)
         end
 
         -- check frame
-        assert(f.x >= 1, "graphics.element{" .. self.elem_type .. "}: frame x not >= 1")
-        assert(f.y >= 1, "graphics.element{" .. self.elem_type .. "}: frame y not >= 1")
-        assert(f.w >= 1, "graphics.element{" .. self.elem_type .. "}: frame width not >= 1")
-        assert(f.h >= 1, "graphics.element{" .. self.elem_type .. "}: frame height not >= 1")
+        assert(f.x >= 1, name_brief .. "frame x not >= 1")
+        assert(f.y >= 1, name_brief .. "frame y not >= 1")
+        assert(f.w >= 1, name_brief .. "frame width not >= 1")
+        assert(f.h >= 1, name_brief .. "frame height not >= 1")
 
         -- create window
         protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, true)
@@ -252,7 +263,7 @@ function element.new(args)
     end
 
     -- check window
-    assert(self.p_window, "graphics.element{" .. self.elem_type .. "}: no parent window provided")
+    assert(self.p_window, name_brief .. "no parent window provided")
 
     -- prepare the template
     if args.parent == nil then
@@ -421,17 +432,18 @@ function element.new(args)
     -- handle a monitor touch or mouse click
     ---@param event mouse_interaction mouse interaction event
     function public.handle_mouse(event)
-        local in_x = event.x >= self.bounds.x1 and event.x <= self.bounds.x2
-        local in_y = event.y >= self.bounds.y1 and event.y <= self.bounds.y2
+        local x_ini, y_ini, x_cur, y_cur = event.initial.x, event.initial.y, event.current.x, event.current.y
 
-        if in_x and in_y then
-            local event_T = core.events.mouse_transposed(event, (event.x - self.position.x) + 1, (event.y - self.position.y) + 1)
+        local ini_in = _in_bounds(x_ini, y_ini)
+        local cur_in = _in_bounds(x_cur, y_cur)
 
-            -- handle the touch event, transformed into the window frame
+        if ini_in then
+            local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
+            if not cur_in then event_T.type = core.events.CLICK_TYPE.EXITED end
+
+            -- handle the mouse event then pass to children
             protected.handle_mouse(event_T)
-
-            -- pass on touch event to children
-            for _, val in pairs(self.children) do val.handle_mouse(event_T) end
+            for _, child in pairs(self.children) do child.handle_mouse(event_T) end
         end
     end
 
