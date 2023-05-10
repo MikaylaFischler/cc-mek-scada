@@ -6,6 +6,8 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local CLICK_TYPE = core.events.CLICK_TYPE
+
 ---@class hazard_button_args
 ---@field text string text to show on button
 ---@field accent color accent color for hazard border
@@ -141,23 +143,26 @@ local function hazard_button(args)
     end
 
     -- handle mouse interaction
-    function e.handle_mouse(_)
+    ---@param event mouse_interaction
+    function e.handle_mouse(event)
         if e.enabled then
-            -- change text color to indicate clicked
-            e.window.setTextColor(args.accent)
-            e.window.setCursorPos(3, 2)
-            e.window.write(args.text)
+            if event.type == CLICK_TYPE.TAP or event.type == CLICK_TYPE.UP then
+                -- change text color to indicate clicked
+                e.window.setTextColor(args.accent)
+                e.window.setCursorPos(3, 2)
+                e.window.write(args.text)
 
-            -- abort any other callbacks
-            tcd.abort(on_timeout)
-            tcd.abort(on_success)
-            tcd.abort(on_failure)
+                -- abort any other callbacks
+                tcd.abort(on_timeout)
+                tcd.abort(on_success)
+                tcd.abort(on_failure)
 
-            -- 1.5 second timeout
-            tcd.dispatch(1.5, on_timeout)
+                -- 1.5 second timeout
+                tcd.dispatch(1.5, on_timeout)
 
-            -- call the touch callback
-            args.callback()
+                -- call the touch callback
+                args.callback()
+            end
         end
     end
 
@@ -165,18 +170,13 @@ local function hazard_button(args)
     ---@param result boolean true for success, false for failure
     function e.response_callback(result)
         tcd.abort(on_timeout)
-
-        if result then
-            on_success()
-        else
-            on_failure(0)
-        end
+        if result then on_success() else on_failure(0) end
     end
 
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_button.VIRTUAL, core.events.click_type.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
     end
 
     -- show the button as disabled

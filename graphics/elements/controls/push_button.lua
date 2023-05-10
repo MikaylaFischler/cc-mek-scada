@@ -5,6 +5,8 @@ local tcd     = require("scada-common.tcallbackdsp")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local CLICK_TYPE = core.events.CLICK_TYPE
+
 ---@class push_button_args
 ---@field text string button text
 ---@field callback function function to call on touch
@@ -47,36 +49,50 @@ local function push_button(args)
         e.window.write(args.text)
     end
 
+    -- draw the button as pressed (if active_fg_bg set)
+    local function show_pressed()
+        if e.enabled and args.active_fg_bg ~= nil then
+            e.value = true
+            e.window.setTextColor(args.active_fg_bg.fgd)
+            e.window.setBackgroundColor(args.active_fg_bg.bkg)
+            draw()
+        end
+    end
+
+    -- draw the button as unpressed (if active_fg_bg set)
+    local function show_unpressed()
+        if e.enabled and args.active_fg_bg ~= nil then
+            e.value = false
+            e.window.setTextColor(e.fg_bg.fgd)
+            e.window.setBackgroundColor(e.fg_bg.bkg)
+            draw()
+        end
+    end
+
     -- handle mouse interaction
-    function e.handle_mouse(_)
+    ---@param event mouse_interaction
+    function e.handle_mouse(event)
         if e.enabled then
-            if args.active_fg_bg ~= nil then
-                -- show as pressed
-                e.value = true
-                e.window.setTextColor(args.active_fg_bg.fgd)
-                e.window.setBackgroundColor(args.active_fg_bg.bkg)
-                draw()
-
+            if event.type == CLICK_TYPE.TAP then
+                show_pressed()
                 -- show as unpressed in 0.25 seconds
-                tcd.dispatch(0.25, function ()
-                    e.value = false
-                    if e.enabled then
-                        e.window.setTextColor(e.fg_bg.fgd)
-                        e.window.setBackgroundColor(e.fg_bg.bkg)
-                    end
-                    draw()
-                end)
+                if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_unpressed) end
+                args.callback()
+            elseif event.type == CLICK_TYPE.DOWN then
+                show_pressed()
+            elseif event.type == CLICK_TYPE.UP then
+                show_unpressed()
+                args.callback()
+            elseif event.type == CLICK_TYPE.EXITED then
+                show_unpressed()
             end
-
-            -- call the touch callback
-            args.callback()
         end
     end
 
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_button.VIRTUAL, core.events.click_type.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
     end
 
     -- show butten as enabled
