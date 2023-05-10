@@ -70,7 +70,7 @@ local function push_button(args)
     end
 
     -- handle mouse interaction
-    ---@param event mouse_interaction
+    ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
             if event.type == CLICK_TYPE.TAP then

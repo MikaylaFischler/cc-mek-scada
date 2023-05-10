@@ -141,7 +141,7 @@ local function hazard_button(args)
     end
 
     -- handle mouse interaction
-    ---@param event mouse_interaction
+    ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
             if core.events.was_clicked(event.type) then

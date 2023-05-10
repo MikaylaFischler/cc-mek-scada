@@ -1,5 +1,6 @@
 -- Button Graphics Element
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class switch_button_args
@@ -63,8 +64,9 @@ local function switch_button(args)
     draw_state()
 
     -- handle mouse interaction
-    function e.handle_mouse(_)
-        if e.enabled then
+    ---@param event mouse_interaction mouse event
+    function e.handle_mouse(event)
+        if e.enabled and core.events.was_clicked(event.type) then
             -- toggle state
             e.value = not e.value
             draw_state()

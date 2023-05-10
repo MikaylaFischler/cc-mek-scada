@@ -1,5 +1,6 @@
 -- Radio Button Graphics Element
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class radio_button_args
@@ -82,10 +83,10 @@ local function radio_button(args)
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
-        -- determine what was pressed
-        if e.enabled then
-            if args.options[event.y] ~= nil then
-                e.value = event.y
+        if e.enabled and core.events.was_clicked(event.type) and (event.initial.y == event.current.y) then
+            -- determine what was pressed
+            if args.options[event.current.y] ~= nil then
+                e.value = event.current.y
                 draw()
                 args.callback(e.value)
             end

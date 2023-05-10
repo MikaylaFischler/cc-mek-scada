@@ -28,6 +28,7 @@ local element = {}
 ---|sidebar_args
 ---|spinbox_args
 ---|switch_button_args
+---|tabbar_args
 ---|alarm_indicator_light
 ---|core_map_args
 ---|data_indicator_args
