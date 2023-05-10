@@ -49,6 +49,7 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 cfv.assert_type_table(config.RTU_DEVICES)
 cfv.assert_type_table(config.RTU_REDSTONE)
 assert(cfv.valid(), "bad config file: missing/invalid fields")
@@ -57,7 +58,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING rtu.startup " .. RTU_VERSION)

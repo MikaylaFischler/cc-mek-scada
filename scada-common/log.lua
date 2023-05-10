@@ -15,12 +15,10 @@ local MODE = {
 
 log.MODE = MODE
 
--- whether to log debug messages or not
-local LOG_DEBUG = true
-
-local log_sys = {
+local logger = {
     path = "/log.txt",
     mode = MODE.APPEND,
+    debug = false,
     file = nil,
     dmesg_out = nil
 }
@@ -41,8 +39,8 @@ local function _log(msg)
 
     -- attempt to write log
     local status, result = pcall(function ()
-        log_sys.file.writeLine(stamped)
-        log_sys.file.flush()
+        logger.file.writeLine(stamped)
+        logger.file.flush()
     end)
 
     -- if we don't have space, we need to create a new log file
@@ -57,18 +55,18 @@ local function _log(msg)
         end
     end
 
-    if out_of_space or (free_space(log_sys.path) < 100) then
+    if out_of_space or (free_space(logger.path) < 100) then
         -- delete the old log file before opening a new one
-        log_sys.file.close()
-        fs.delete(log_sys.path)
+        logger.file.close()
+        fs.delete(logger.path)
 
         -- re-init logger and pass dmesg_out so that it doesn't change
-        log.init(log_sys.path, log_sys.mode, log_sys.dmesg_out)
+        log.init(logger.path, logger.mode, logger.debug, logger.dmesg_out)
 
         -- leave a message
-        log_sys.file.writeLine(time_stamp .. "recycled log file")
-        log_sys.file.writeLine(stamped)
-        log_sys.file.flush()
+        logger.file.writeLine(time_stamp .. "recycled log file")
+        logger.file.writeLine(stamped)
+        logger.file.flush()
     end
 end
 
@@ -78,33 +76,35 @@ end
 
 -- initialize logger
 ---@param path string file path
----@param write_mode MODE
+---@param write_mode MODE file write mode
+---@param include_debug boolean whether or not to include debug logs
 ---@param dmesg_redirect? table terminal/window to direct dmesg to
-function log.init(path, write_mode, dmesg_redirect)
-    log_sys.path = path
-    log_sys.mode = write_mode
+function log.init(path, write_mode, include_debug, dmesg_redirect)
+    logger.path = path
+    logger.mode = write_mode
+    logger.debug = include_debug
 
-    if log_sys.mode == MODE.APPEND then
-        log_sys.file = fs.open(path, "a")
+    if logger.mode == MODE.APPEND then
+        logger.file = fs.open(path, "a")
     else
-        log_sys.file = fs.open(path, "w")
+        logger.file = fs.open(path, "w")
     end
 
     if dmesg_redirect then
-        log_sys.dmesg_out = dmesg_redirect
+        logger.dmesg_out = dmesg_redirect
     else
-        log_sys.dmesg_out = term.current()
+        logger.dmesg_out = term.current()
     end
 end
 
 -- close the log file handle
 function log.close()
-    log_sys.file.close()
+    logger.file.close()
 end
 
 -- direct dmesg output to a monitor/window
 ---@param window table window or terminal reference
-function log.direct_dmesg(window) log_sys.dmesg_out = window end
+function log.direct_dmesg(window) logger.dmesg_out = window end
 
 -- dmesg style logging for boot because I like linux-y things
 ---@param msg string message
@@ -120,7 +120,7 @@ function log.dmesg(msg, tag, tag_color)
     tag = util.strval(tag)
 
     local t_stamp = string.format("%12.2f", os.clock())
-    local out = log_sys.dmesg_out
+    local out = logger.dmesg_out
 
     if out ~= nil then
         local out_w, out_h = out.getSize()
@@ -216,7 +216,7 @@ end
 function log.dmesg_working(msg, tag, tag_color)
     local ts_coord = log.dmesg(msg, tag, tag_color)
 
-    local out = log_sys.dmesg_out
+    local out = logger.dmesg_out
     local width = (ts_coord.x2 - ts_coord.x1) + 1
 
     if out ~= nil then
@@ -275,7 +275,7 @@ end
 ---@param msg string message
 ---@param trace? boolean include file trace
 function log.debug(msg, trace)
-    if LOG_DEBUG then
+    if logger.debug then
         local dbg_info = ""
 
         if trace then
