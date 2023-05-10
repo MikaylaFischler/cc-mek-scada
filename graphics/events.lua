@@ -109,6 +109,11 @@ function events.mouse_transposed(event, elem_pos_x, elem_pos_y)
     }
 end
 
+-- check if an event qualifies as a click (tap or up)
+---@nodiscard
+---@param t CLICK_TYPE
+function events.was_clicked(t) return t == events.CLICK_TYPE.TAP or t == events.CLICK_TYPE.UP end
+
 -- create a new mouse event to pass onto graphics renderer<br>
 -- supports: mouse_click, mouse_up, mouse_drag, mouse_scroll, and monitor_touch
 ---@param event_type os_event OS event to handle

@@ -6,8 +6,6 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
-
 ---@class hazard_button_args
 ---@field text string text to show on button
 ---@field accent color accent color for hazard border
@@ -146,7 +144,7 @@ local function hazard_button(args)
     ---@param event mouse_interaction
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP or event.type == CLICK_TYPE.UP then
+            if core.events.was_clicked(event.type) then
                 -- change text color to indicate clicked
                 e.window.setTextColor(args.accent)
                 e.window.setCursorPos(3, 2)
