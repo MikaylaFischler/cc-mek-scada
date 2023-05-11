@@ -24,5 +24,7 @@ config.LOG_PATH = "/log.txt"
 --  0 = APPEND (adds to existing file on start)
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
+-- true to log verbose debug messages
+config.LOG_DEBUG = false
 
 return config
