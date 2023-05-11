@@ -14,9 +14,9 @@ local Div          = require("graphics.elements.div")
 local PipeNetwork  = require("graphics.elements.pipenet")
 local TextBox      = require("graphics.elements.textbox")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local pipe = core.graphics.pipe
+local pipe = core.pipe
 
 -- make a new unit overview window
 ---@param parent graphics_element parent

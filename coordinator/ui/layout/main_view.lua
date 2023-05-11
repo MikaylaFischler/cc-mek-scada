@@ -18,9 +18,9 @@ local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- create new main view
 ---@param main graphics_element main displaybox

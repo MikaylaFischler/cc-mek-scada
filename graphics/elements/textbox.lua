@@ -5,7 +5,7 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
 ---@class textbox_args
 ---@field text string text to show

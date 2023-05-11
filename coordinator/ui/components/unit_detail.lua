@@ -26,10 +26,10 @@ local PushButton        = require("graphics.elements.controls.push_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 local period = core.flasher.PERIOD
 

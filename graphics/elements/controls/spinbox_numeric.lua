@@ -2,6 +2,7 @@
 
 local util    = require("scada-common.util")
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class spinbox_args
@@ -130,19 +131,22 @@ local function spinbox(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- only handle if on an increment or decrement arrow
-        if e.enabled and event.x ~= dec_point_x then
-            local idx = util.trinary(event.x > dec_point_x, event.x - 1, event.x)
-            if digits[idx] ~= nil then
-                if event.y == 1 then
-                    -- increment
-                    digits[idx] = digits[idx] + 1
-                elseif event.y == 3 then
-                    -- decrement
-                    digits[idx] = digits[idx] - 1
-                end
+        if e.enabled and core.events.was_clicked(event.type) and
+                (event.current.x ~= dec_point_x) and (event.current.y ~= 2) then
+            if event.current.x == event.initial.x and event.current.y == event.initial.y then
+                local idx = util.trinary(event.current.x > dec_point_x, event.current.x - 1, event.current.x)
+                if digits[idx] ~= nil then
+                    if event.current.y == 1 then
+                        -- increment
+                        digits[idx] = digits[idx] + 1
+                    elseif event.current.y == 3 then
+                        -- decrement
+                        digits[idx] = digits[idx] - 1
+                    end
 
-                update_value()
-                show_num()
+                    update_value()
+                    show_num()
+                end
             end
         end
     end

@@ -39,6 +39,10 @@ function types.new_radiation_reading(r, u) return { radiation = r, unit = u } en
 ---@return radiation_reading
 function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv" } end
 
+---@class coordinate_2d
+---@field x integer
+---@field y integer
+
 ---@class coordinate
 ---@field x integer
 ---@field y integer
