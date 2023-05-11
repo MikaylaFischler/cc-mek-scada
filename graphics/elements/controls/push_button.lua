@@ -26,6 +26,8 @@ local CLICK_TYPE = core.events.CLICK_TYPE
 local function push_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.push_button: text is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.push_button: callback is a required field")
+    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
+        "graphics.elements.controls.push_button: min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
 

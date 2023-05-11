@@ -105,7 +105,7 @@ local function multi_button(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- if enabled and the button row was pressed...
-        if e.enabled and core.events.was_clicked(event.type) and (event.initial.y == 1) and (event.current.y == 1) then
+        if e.enabled and core.events.was_clicked(event.type) then
             -- a button may have been pressed, which one was it?
             local button_ini = which_button(event.initial.x)
             local button_cur = which_button(event.current.x)

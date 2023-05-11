@@ -25,6 +25,12 @@ events.CLICK_TYPE = {
     EXITED = 7          -- cursor exited bounds of element
 }
 
+-- create a new 2D coordinate
+---@param x integer
+---@param y integer
+---@return coordinate_2d
+local function _coord2d(x, y) return { x = x, y = y } end
+
 ---@class mouse_interaction
 ---@field monitor string
 ---@field button CLICK_BUTTON
@@ -33,14 +39,13 @@ events.CLICK_TYPE = {
 ---@field current coordinate_2d
 
 local handler = {
-    button_down = { { 0, 0 }, { 0, 0 }, { 0, 0 } }  -- left, right, middle button down tracking
+    -- left, right, middle button down tracking
+    button_down = {
+        _coord2d(0, 0),
+        _coord2d(0, 0),
+        _coord2d(0, 0)
+    }
 }
-
--- create a new 2D coordinate
----@param x integer
----@param y integer
----@return coordinate_2d
-local function _coord2d(x, y) return { x = x, y = y } end
 
 -- create a new monitor touch mouse interaction event
 ---@nodiscard
@@ -124,7 +129,7 @@ function events.was_clicked(t) return t == events.CLICK_TYPE.TAP or t == events.
 function events.new_mouse_event(event_type, opt, x, y)
     if event_type == "mouse_click" then
         ---@cast opt 1|2|3
-        handler.button_down[opt] = { x, y }
+        handler.button_down[opt] = _coord2d(x, y)
         return _mouse_event(opt, events.CLICK_TYPE.DOWN, x, y, x, y)
     elseif event_type == "mouse_up" then
         ---@cast opt 1|2|3

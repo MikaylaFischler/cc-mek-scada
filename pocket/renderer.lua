@@ -70,9 +70,9 @@ end
 function renderer.ui_ready() return ui.display ~= nil end
 
 -- handle a mouse event
----@param event mouse_interaction
+---@param event mouse_interaction|nil
 function renderer.handle_mouse(event)
-    if ui.display ~= nil then
+    if ui.display ~= nil and event ~= nil then
         ui.display.handle_mouse(event)
     end
 end
