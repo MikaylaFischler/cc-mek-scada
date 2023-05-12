@@ -22,7 +22,7 @@ println("")
 
 -- RTU init --
 
-log.init("/log.txt", log.MODE.NEW)
+log.init("/log.txt", log.MODE.NEW, true)
 
 print(">>> init turbine RTU: ")
 
