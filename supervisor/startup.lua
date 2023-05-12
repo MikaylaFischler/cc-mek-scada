@@ -174,16 +174,9 @@ local function main()
                 -- got a packet
                 local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
                 superv_comms.handle_packet(packet)
-            elseif event == "mouse_click" then
-                -- handle a monitor touch event
-                renderer.handle_mouse(core.events.touch(param1, param2, param3))
-                log.debug(util.sprintf("mouse_click: %s [%d, %d]", param1, param2, param3))
-            elseif event == "mouse_drag" then
-                log.debug(util.sprintf("mouse_drag: %s [%d, %d]", param1, param2, param3))
-            elseif event == "mouse_scroll" then
-                log.debug(util.sprintf("mouse_scroll: %s [%d, %d]", param1, param2, param3))
-            elseif event == "mouse_up" then
-                log.debug(util.sprintf("mouse_up: %s [%d, %d]", param1, param2, param3))
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+                -- handle a mouse event
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             end
 
             -- check for termination request
