@@ -9,8 +9,8 @@ local DataIndicator  = require("graphics.elements.indicators.data")
 local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 -- new boiler view
 ---@param root graphics_element parent

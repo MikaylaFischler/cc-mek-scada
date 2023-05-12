@@ -18,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.17"
+local R_PLC_VERSION = "v1.2.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -38,6 +38,7 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -54,7 +55,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)

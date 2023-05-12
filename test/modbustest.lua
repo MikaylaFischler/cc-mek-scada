@@ -63,6 +63,7 @@ mbt.test_error__check_request(MODBUS_EXCODE.NEG_ACKNOWLEDGE)
 println("PASS")
 
 print("99 {1,2}: ")
+---@diagnostic disable-next-line: param-type-mismatch
 mbt.pkt_set(99, {1, 2})
 mbt.test_error__check_request(MODBUS_EXCODE.ILLEGAL_FUNCTION)
 println("PASS")

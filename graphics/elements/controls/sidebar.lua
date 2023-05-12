@@ -2,7 +2,10 @@
 
 local tcd     = require("scada-common.tcallbackdsp")
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
+
+local CLICK_TYPE = core.events.CLICK_TYPE
 
 ---@class sidebar_tab
 ---@field char string character identifier
@@ -39,7 +42,10 @@ local function sidebar(args)
 
     -- show the button state
     ---@param pressed boolean if the currently selected tab should appear as actively pressed
-    local function draw(pressed)
+    ---@param pressed_idx? integer optional index to show as held (that is not yet selected)
+    local function draw(pressed, pressed_idx)
+        pressed_idx = pressed_idx or e.value
+
         for i = 1, #args.tabs do
             local tab = args.tabs[i] ---@type sidebar_tab
 
@@ -47,7 +53,7 @@ local function sidebar(args)
 
             e.window.setCursorPos(1, y)
 
-            if pressed and e.value == i then
+            if pressed and i == pressed_idx then
                 e.window.setTextColor(e.fg_bg.fgd)
                 e.window.setBackgroundColor(e.fg_bg.bkg)
             else
@@ -74,16 +80,27 @@ local function sidebar(args)
     function e.handle_mouse(event)
         -- determine what was pressed
         if e.enabled then
-            local idx = math.ceil(event.y / 3)
+            local cur_idx = math.ceil(event.current.y / 3)
+            local ini_idx = math.ceil(event.initial.y / 3)
 
-            if args.tabs[idx] ~= nil then
-                e.value = idx
-                draw(true)
-
-                -- show as unpressed in 0.25 seconds
-                tcd.dispatch(0.25, function () draw(false) end)
-
-                args.callback(e.value)
+            if args.tabs[cur_idx] ~= nil then
+                if event.type == CLICK_TYPE.TAP then
+                    e.value = cur_idx
+                    draw(true)
+                    -- show as unpressed in 0.25 seconds
+                    tcd.dispatch(0.25, function () draw(false) end)
+                    args.callback(e.value)
+                elseif event.type == CLICK_TYPE.DOWN then
+                    draw(true, cur_idx)
+                elseif event.type == CLICK_TYPE.UP then
+                    if cur_idx == ini_idx then
+                        e.value = cur_idx
+                        draw(false)
+                        args.callback(e.value)
+                    else draw(false) end
+                elseif event.type == CLICK_TYPE.EXITED then
+                    draw(false)
+                end
             end
         end
     end

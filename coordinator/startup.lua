@@ -20,7 +20,7 @@ local sounder      = require("coordinator.sounder")
 
 local apisessions  = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.13.8"
+local COORDINATOR_VERSION = "v0.14.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -50,6 +50,7 @@ cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -57,7 +58,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
@@ -358,7 +359,7 @@ local function main()
             end
         elseif event == "monitor_touch" then
             -- handle a monitor touch event
-            renderer.handle_mouse(core.events.touch(param1, param2, param3))
+            renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then
             -- handle speaker buffer emptied
             sounder.continue()

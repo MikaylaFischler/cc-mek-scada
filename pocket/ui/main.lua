@@ -22,9 +22,9 @@ local TextBox      = require("graphics.elements.textbox")
 
 local Sidebar      = require("graphics.elements.controls.sidebar")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- create new main view
 ---@param main graphics_element main displaybox

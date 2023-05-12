@@ -163,9 +163,9 @@ end
 function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a touch event
----@param event mouse_interaction
+---@param event mouse_interaction|nil
 function renderer.handle_mouse(event)
-    if engine.ui_ready then
+    if engine.ui_ready and event ~= nil then
         if event.monitor == engine.monitors.primary_name then
             engine.ui.main_display.handle_mouse(event)
         else

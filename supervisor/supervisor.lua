@@ -16,7 +16,7 @@ local println = function (str) end
 
 -- supervisory controller communications
 ---@nodiscard
----@param version string supervisor version
+---@param _version string supervisor version
 ---@param num_reactors integer number of reactors
 ---@param cooling_conf table cooling configuration table
 ---@param modem table modem device
@@ -24,7 +24,7 @@ local println = function (str) end
 ---@param svctl_listen integer listening port for supervisor access
 ---@param range integer trusted device connection range
 ---@diagnostic disable-next-line: unused-local
-function supervisor.comms(version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range)
+function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range)
     local self = {
         last_est_acks = {}
     }

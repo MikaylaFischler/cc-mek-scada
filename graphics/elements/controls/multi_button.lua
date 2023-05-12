@@ -2,13 +2,13 @@
 
 local util    = require("scada-common.util")
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class button_option
 ---@field text string
 ---@field fg_bg cpair
 ---@field active_fg_bg cpair
----@field _lpad integer automatically calculated left pad
 ---@field _start_x integer starting touch x range (inclusive)
 ---@field _end_x integer ending touch x range (inclusive)
 
@@ -62,9 +62,7 @@ local function multi_button(args)
     local next_x = 2
     for i = 1, #args.options do
         local opt = args.options[i] ---@type button_option
-        local w = string.len(opt.text)
 
-        opt._lpad = math.floor((e.frame.w - w) / 2)
         opt._start_x = next_x
         opt._end_x = next_x + button_width - 1
 
@@ -92,20 +90,32 @@ local function multi_button(args)
         end
     end
 
+    -- check which button a given x is within
+    ---@return integer|nil button index or nil if not within a button
+    local function which_button(x)
+        for i = 1, #args.options do
+            local opt = args.options[i] ---@type button_option
+            if x >= opt._start_x and x <= opt._end_x then return i end
+        end
+
+        return nil
+    end
+
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
----@diagnostic disable-next-line: unused-local
     function e.handle_mouse(event)
-        -- determine what was pressed
-        if e.enabled and event.y == 1 then
-            for i = 1, #args.options do
-                local opt = args.options[i] ---@type button_option
+        -- if enabled and the button row was pressed...
+        if e.enabled and core.events.was_clicked(event.type) then
+            -- a button may have been pressed, which one was it?
+            local button_ini = which_button(event.initial.x)
+            local button_cur = which_button(event.current.x)
 
-                if event.x >= opt._start_x and event.x <= opt._end_x then
-                    e.value = i
-                    draw()
-                    args.callback(e.value)
-                end
+            -- mouse up must always have started with a mouse down on the same button to count as a click
+            -- tap always has identical coordinates, so this always passes for taps
+            if button_ini == button_cur and button_cur ~= nil then
+                e.value = button_cur
+                draw()
+                args.callback(e.value)
             end
         end
     end

@@ -1,5 +1,6 @@
 -- Button Graphics Element
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class switch_button_args
@@ -22,13 +23,15 @@ local function switch_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.switch_button: text is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.switch_button: callback is a required field")
     assert(type(args.active_fg_bg) == "table", "graphics.elements.controls.switch_button: active_fg_bg is a required field")
+    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
+        "graphics.elements.controls.switch_button: min_width must be nil or a number > 0")
 
-    -- single line
-    args.height = 1
-
-    -- determine widths
     local text_width = string.len(args.text)
-    args.width = math.max(text_width + 2, args.min_width)
+
+    -- single line height, calculate width
+    args.height = 1
+    args.min_width = args.min_width or 0
+    args.width = math.max(text_width, args.min_width)
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -64,9 +67,8 @@ local function switch_button(args)
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
----@diagnostic disable-next-line: unused-local
     function e.handle_mouse(event)
-        if e.enabled then
+        if e.enabled and core.events.was_clicked(event.type) then
             -- toggle state
             e.value = not e.value
             draw_state()

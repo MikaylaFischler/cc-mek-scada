@@ -229,9 +229,9 @@ function threads.thread__main(smem)
                         end
                     end
                 end
-            elseif event == "mouse_click" then
-                -- handle a monitor touch event
-                renderer.handle_mouse(core.events.click(param1, param2, param3))
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+                -- handle a mouse event
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             end
 
             -- check for termination request

@@ -45,6 +45,7 @@ cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -66,7 +67,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)

@@ -28,7 +28,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.0.6"
+local RTU_VERSION = "v1.1.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -49,6 +49,7 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 cfv.assert_type_table(config.RTU_DEVICES)
 cfv.assert_type_table(config.RTU_REDSTONE)
 assert(cfv.valid(), "bad config file: missing/invalid fields")
@@ -57,7 +58,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING rtu.startup " .. RTU_VERSION)

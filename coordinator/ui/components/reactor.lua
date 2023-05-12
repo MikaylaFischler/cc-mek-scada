@@ -11,8 +11,8 @@ local DataIndicator  = require("graphics.elements.indicators.data")
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
 local StateIndicator = require("graphics.elements.indicators.state")
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 -- create new reactor view
 ---@param root graphics_element parent

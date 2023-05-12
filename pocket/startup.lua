@@ -36,6 +36,7 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
+cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -43,7 +44,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
 
 log.info("========================================")
 log.info("BOOTING pocket.startup " .. POCKET_VERSION)
@@ -151,9 +152,9 @@ local function main()
                 -- got a packet
                 local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
                 pocket_comms.handle_packet(packet)
-            elseif event == "mouse_click" then
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
                 -- handle a monitor touch event
-                renderer.handle_mouse(core.events.touch(param1, param2, param3))
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             end
 
             -- check for termination request

@@ -113,10 +113,13 @@ end
 ---@return table lines
 function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 
+-- luacheck: no unused args
+
 -- concatenation with built-in to string
 ---@nodiscard
 ---@vararg any
 ---@return string
+---@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
     local str = ""
     for _, v in ipairs(arg) do str = str .. util.strval(v) end
@@ -130,9 +133,12 @@ util.c = util.concat
 ---@nodiscard
 ---@param format string
 ---@vararg any
+---@diagnostic disable-next-line: unused-vararg
 function util.sprintf(format, ...)
     return string.format(format, table.unpack(arg))
 end
+
+-- luacheck: unused args
 
 -- format a number string with commas as the thousands separator<br>
 -- subtracts from spaces at the start if present for each comma used

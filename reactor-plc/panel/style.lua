@@ -6,7 +6,7 @@ local core = require("graphics.core")
 
 local style = {}
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- GLOBAL --
 
