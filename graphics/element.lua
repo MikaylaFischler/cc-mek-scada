@@ -3,6 +3,7 @@
 --
 
 local core = require("graphics.core")
+local log  = require("scada-common.log")
 
 local element = {}
 
@@ -46,11 +47,17 @@ local element = {}
 ---|colormap_args
 ---|displaybox_args
 ---|div_args
+---|listbox_args
 ---|multipane_args
 ---|pipenet_args
 ---|rectangle_args
 ---|textbox_args
 ---|tiling_args
+
+---@class element_subscription
+---@field ps psil ps used
+---@field key string data key
+---@field func function callback
 
 -- a base graphics element, should not be created on its own
 ---@nodiscard
@@ -66,6 +73,7 @@ function element.new(args)
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,
         children = {},
+        subscriptions = {},
         mt = {}
     }
 
@@ -183,6 +191,17 @@ function element.new(args)
 -- luacheck: push ignore
 ---@diagnostic disable: unused-local, unused-vararg
 
+    -- dynamically insert a child element
+    ---@param id string|integer element identifier
+    ---@param elem graphics_element element
+    function protected.insert(id, elem)
+    end
+
+    -- dynamically remove a child element
+    ---@param id string|integer element identifier
+    function protected.remove(id)
+    end
+
     -- handle a mouse event
     ---@param event mouse_interaction mouse interaction event
     function protected.handle_mouse(event)
@@ -281,7 +300,25 @@ function element.new(args)
     ---@nodiscard
     function public.window() return protected.window end
 
-    -- CHILD ELEMENTS --
+    -- delete this element (hide and unsubscribe from PSIL)
+    function public.delete()
+        -- hide + stop animations
+        public.hide()
+
+        -- unsubscribe from PSIL
+        for i = 1, #self.subscriptions do
+            local s = self.subscriptions[i] ---@type element_subscription
+            s.ps.unsubscribe(s.key, s.func)
+        end
+
+        -- delete all children
+        for k, v in pairs(self.children) do
+            v.delete()
+            self.children[k] = nil
+        end
+    end
+
+    -- ELEMENT TREE --
 
     -- add a child element
     ---@nodiscard
@@ -311,12 +348,18 @@ function element.new(args)
 
     -- get a child element
     ---@nodiscard
+    ---@param id element_id
     ---@return graphics_element
-    function public.get_child(key) return self.children[key] end
+    function public.get_child(id) return self.children[id] end
 
-    -- remove child
-    ---@param key string|integer
-    function public.remove(key) self.children[key] = nil end
+    -- remove a child element
+    ---@param id element_id
+    function public.remove(id)
+        if self.children[id] ~= nil then
+            self.children[id].delete()
+            self.children[id] = nil
+        end
+    end
 
     -- attempt to get a child element by ID (does not include this element itself)
     ---@nodiscard
@@ -333,6 +376,25 @@ function element.new(args)
         end
 
         return nil
+    end
+
+    -- DYNAMIC CHILD ELEMENTS --
+
+    -- insert an element as a contained child<br>
+    -- this is intended to be used dynamically, and depends on the target element type.<br>
+    -- not all elements support dynamic children.
+    ---@param id string|integer element identifier
+    ---@param elem graphics_element element
+    function public.insert_element(id, elem)
+        protected.insert(id, elem)
+    end
+
+    -- remove an element from contained children<br>
+    -- this is intended to be used dynamically, and depends on the target element type.<br>
+    -- not all elements support dynamic children.
+    ---@param id string|integer element identifier
+    function public.remove_element(id)
+        protected.remove(id)
     end
 
     -- AUTO-PLACEMENT --
@@ -458,6 +520,16 @@ function element.new(args)
     ---@param result any
     function public.on_response(result)
         protected.response_callback(result)
+    end
+
+    -- register a callback with a PSIL, allowing for automatic unregister on delete<br>
+    -- do not use graphics elements directly with PSIL subscribe()
+    ---@param ps psil PSIL to subscribe to
+    ---@param key string key to subscribe to
+    ---@param func function function to link
+    function public.register(ps, key, func)
+        table.insert(self.subscriptions, { ps = ps, key = key, func = func })
+        ps.subscribe(key, func)
     end
 
     -- VISIBILITY --
