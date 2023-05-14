@@ -138,9 +138,9 @@ function renderer.close_ui()
     -- stop blinking indicators
     flasher.clear()
 
-    -- hide to stop animation callbacks
-    if engine.ui.main_display ~= nil then engine.ui.main_display.hide() end
-    for _, display in ipairs(engine.ui.unit_displays) do display.hide() end
+    -- delete element trees
+    if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
+    for _, display in ipairs(engine.ui.unit_displays) do display.delete() end
 
     -- report ui as not ready
     engine.ui_ready = false

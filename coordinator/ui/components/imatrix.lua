@@ -50,15 +50,15 @@ local function new_view(root, x, y, data, ps, id)
     local avg_in   = PowerIndicator{parent=rect,x=7,y=9,lu_colors=lu_col,label="Avg. In: ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
     local avg_out  = PowerIndicator{parent=rect,x=7,y=10,lu_colors=lu_col,label="Avg. Out:",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
 
-    ps.subscribe("computed_status", status.update)
-    ps.subscribe("energy", function (val) energy.update(util.joules_to_fe(val)) end)
-    ps.subscribe("max_energy", function (val) capacity.update(util.joules_to_fe(val)) end)
-    ps.subscribe("last_input", function (val) input.update(util.joules_to_fe(val)) end)
-    ps.subscribe("last_output", function (val) output.update(util.joules_to_fe(val)) end)
+    status.register(ps, "computed_status", status.update)
+    energy.register(ps, "energy", function (val) energy.update(util.joules_to_fe(val)) end)
+    capacity.register(ps, "max_energy", function (val) capacity.update(util.joules_to_fe(val)) end)
+    input.register(ps, "last_input", function (val) input.update(util.joules_to_fe(val)) end)
+    output.register(ps, "last_output", function (val) output.update(util.joules_to_fe(val)) end)
 
-    ps.subscribe("avg_charge", avg_chg.update)
-    ps.subscribe("avg_inflow", avg_in.update)
-    ps.subscribe("avg_outflow", avg_out.update)
+    avg_chg.register(ps, "avg_charge", avg_chg.update)
+    avg_in.register(ps, "avg_inflow", avg_in.update)
+    avg_out.register(ps, "avg_outflow", avg_out.update)
 
     local fill      = DataIndicator{parent=rect,x=11,y=12,lu_colors=lu_col,label="Fill:",unit="%",format="%8.2f",value=0,width=18,fg_bg=text_fg_bg}
 
@@ -68,10 +68,10 @@ local function new_view(root, x, y, data, ps, id)
     TextBox{parent=rect,text="Transfer Capacity",x=11,y=17,height=1,width=17,fg_bg=label_fg_bg}
     local trans_cap = PowerIndicator{parent=rect,x=19,y=18,lu_colors=lu_col,label="",format="%5.2f",rate=true,value=0,width=12,fg_bg=text_fg_bg}
 
-    ps.subscribe("cells", cells.update)
-    ps.subscribe("providers", providers.update)
-    ps.subscribe("energy_fill", function (val) fill.update(val * 100) end)
-    ps.subscribe("transfer_cap", function (val) trans_cap.update(util.joules_to_fe(val)) end)
+    cells.register(ps, "cells", cells.update)
+    providers.register(ps, "providers", providers.update)
+    fill.register(ps, "energy_fill", function (val) fill.update(val * 100) end)
+    trans_cap.register(ps, "transfer_cap", function (val) trans_cap.update(util.joules_to_fe(val)) end)
 
     local charge  = VerticalBar{parent=rect,x=2,y=2,fg_bg=cpair(colors.green,colors.gray),height=17,width=4}
     local in_cap  = VerticalBar{parent=rect,x=7,y=12,fg_bg=cpair(colors.red,colors.gray),height=7,width=1}
@@ -88,9 +88,9 @@ local function new_view(root, x, y, data, ps, id)
         end
     end
 
-    ps.subscribe("energy_fill", charge.update)
-    ps.subscribe("last_input", function (val) in_cap.update(calc_saturation(val)) end)
-    ps.subscribe("last_output", function (val) out_cap.update(calc_saturation(val)) end)
+    charge.register(ps, "energy_fill", charge.update)
+    in_cap.register(ps, "last_input", function (val) in_cap.update(calc_saturation(val)) end)
+    out_cap.register(ps, "last_output", function (val) out_cap.update(calc_saturation(val)) end)
 end
 
 return new_view
