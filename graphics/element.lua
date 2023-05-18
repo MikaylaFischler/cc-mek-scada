@@ -93,15 +93,6 @@ function element.new(args)
         return "graphics.element{" .. self.elem_type .. "} @ " .. tostring(self)
     end
 
-    -- check if a coordinate is within the bounds of this element
-    ---@param x integer
-    ---@param y integer
-    local function _in_bounds(x, y)
-        local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
-        local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
-        return in_x and in_y
-    end
-
     ---@class graphics_element
     local public = {}
 
@@ -186,6 +177,15 @@ function element.new(args)
         self.bounds.x2 = self.position.x + f.w - 1
         self.bounds.y1 = self.position.y
         self.bounds.y2 = self.position.y + f.h - 1
+    end
+
+    -- check if a coordinate is within the bounds of this element
+    ---@param x integer
+    ---@param y integer
+    function protected.in_bounds(x, y)
+        local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
+        local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
+        return in_x and in_y
     end
 
 -- luacheck: push ignore
@@ -495,14 +495,12 @@ function element.new(args)
     -- handle a monitor touch or mouse click
     ---@param event mouse_interaction mouse interaction event
     function public.handle_mouse(event)
-        local x_ini, y_ini, x_cur, y_cur = event.initial.x, event.initial.y, event.current.x, event.current.y
+        local x_ini, y_ini = event.initial.x, event.initial.y
 
-        local ini_in = _in_bounds(x_ini, y_ini)
-        local cur_in = _in_bounds(x_cur, y_cur)
+        local ini_in = protected.in_bounds(x_ini, y_ini)
 
         if ini_in then
             local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
-            if not cur_in then event_T.type = core.events.CLICK_TYPE.EXITED end
 
             -- handle the mouse event then pass to children
             protected.handle_mouse(event_T)
