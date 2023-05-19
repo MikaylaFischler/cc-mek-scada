@@ -93,14 +93,14 @@ local function sidebar(args)
                 elseif event.type == CLICK_TYPE.DOWN then
                     draw(true, cur_idx)
                 elseif event.type == CLICK_TYPE.UP then
-                    if cur_idx == ini_idx then
+                    if cur_idx == ini_idx and e.in_bounds(event.current.x, event.current.y) then
                         e.value = cur_idx
                         draw(false)
                         args.callback(e.value)
                     else draw(false) end
-                elseif event.type == CLICK_TYPE.EXITED then
-                    draw(false)
                 end
+            elseif event.type == CLICK_TYPE.UP then
+                draw(false)
             end
         end
     end

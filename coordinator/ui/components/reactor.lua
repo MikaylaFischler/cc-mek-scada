@@ -30,10 +30,10 @@ local function new_view(root, x, y, ps)
     local burn_r    = DataIndicator{parent=reactor,x=2,y=4,lu_colors=lu_col,label="Burn Rate:",unit="mB/t",format="%10.2f",value=0,width=26,fg_bg=text_fg_bg}
     local heating_r = DataIndicator{parent=reactor,x=2,y=5,lu_colors=lu_col,label="Heating:",unit="mB/t",format="%12.0f",value=0,commas=true,width=26,fg_bg=text_fg_bg}
 
-    ps.subscribe("computed_status", status.update)
-    ps.subscribe("temp", core_temp.update)
-    ps.subscribe("act_burn_rate", burn_r.update)
-    ps.subscribe("heating_rate", heating_r.update)
+    status.register(ps, "computed_status", status.update)
+    core_temp.register(ps, "temp", core_temp.update)
+    burn_r.register(ps, "act_burn_rate", burn_r.update)
+    heating_r.register(ps, "heating_rate", heating_r.update)
 
     local reactor_fills = Rectangle{parent=root,border=border(1, colors.gray, true),width=24,height=7,x=(x + 29),y=y}
 
@@ -47,7 +47,7 @@ local function new_view(root, x, y, ps)
     local hcool = HorizontalBar{parent=reactor_fills,x=8,y=4,show_percent=true,bar_fg_bg=cpair(colors.white,colors.gray),height=1,width=14}
     local waste = HorizontalBar{parent=reactor_fills,x=8,y=5,show_percent=true,bar_fg_bg=cpair(colors.brown,colors.gray),height=1,width=14}
 
-    ps.subscribe("ccool_type", function (type)
+    ccool.register(ps, "ccool_type", function (type)
         if type == types.FLUID.SODIUM then
             ccool.recolor(cpair(colors.lightBlue, colors.gray))
         else
@@ -55,7 +55,7 @@ local function new_view(root, x, y, ps)
         end
     end)
 
-    ps.subscribe("hcool_type", function (type)
+    hcool.register(ps, "hcool_type", function (type)
         if type == types.FLUID.SUPERHEATED_SODIUM then
             hcool.recolor(cpair(colors.orange, colors.gray))
         else
@@ -63,10 +63,10 @@ local function new_view(root, x, y, ps)
         end
     end)
 
-    ps.subscribe("fuel_fill", fuel.update)
-    ps.subscribe("ccool_fill", ccool.update)
-    ps.subscribe("hcool_fill", hcool.update)
-    ps.subscribe("waste_fill", waste.update)
+    fuel.register(ps, "fuel_fill", fuel.update)
+    ccool.register(ps, "ccool_fill", ccool.update)
+    hcool.register(ps, "hcool_fill", hcool.update)
+    waste.register(ps, "waste_fill", waste.update)
 end
 
 return new_view

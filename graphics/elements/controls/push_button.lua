@@ -84,9 +84,9 @@ local function push_button(args)
                 show_pressed()
             elseif event.type == CLICK_TYPE.UP then
                 show_unpressed()
-                args.callback()
-            elseif event.type == CLICK_TYPE.EXITED then
-                show_unpressed()
+                if e.in_bounds(event.current.x, event.current.y) then
+                    args.callback()
+                end
             end
         end
     end
