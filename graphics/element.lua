@@ -46,7 +46,6 @@ local element = {}
 ---|colormap_args
 ---|displaybox_args
 ---|div_args
----|listbox_args
 ---|multipane_args
 ---|pipenet_args
 ---|rectangle_args
