@@ -522,15 +522,11 @@ local function init(parent, id)
     end)
 
     -- enable/disable controls based on group assignment (start button is separate)
-    -- REGISTER_NOTE: register to parent element for brevity
-    burn_control.register(u_ps, "auto_group_id", function (gid)
-        if gid == 0 then
-            burn_rate.enable()
-            set_burn_btn.enable()
-        else
-            burn_rate.disable()
-            set_burn_btn.disable()
-        end
+    burn_rate.register(u_ps, "auto_group_id", function (gid)
+        if gid == 0 then burn_rate.enable() else burn_rate.disable() end
+    end)
+    set_burn_btn.register(u_ps, "auto_group_id", function (gid)
+        if gid == 0 then set_burn_btn.enable() else set_burn_btn.disable() end
     end)
 
     -- can't change group if auto is engaged regardless of if this unit is part of auto control
