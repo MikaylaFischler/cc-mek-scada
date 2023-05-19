@@ -3,7 +3,6 @@
 --
 
 local core = require("graphics.core")
-local log  = require("scada-common.log")
 
 local element = {}
 
