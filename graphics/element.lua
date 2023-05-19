@@ -490,6 +490,14 @@ function element.new(args)
         protected.resize(...)
     end
 
+    -- reposition the element window<br>
+    -- offsets relative to parent frame are where (1, 1) would be on top of the parent's top left corner
+    ---@param x integer x position relative to parent frame
+    ---@param y integer y position relative to parent frame
+    function public.reposition(x, y)
+        protected.window.reposition(x, y)
+    end
+
     -- FUNCTION CALLBACKS --
 
     -- handle a monitor touch or mouse click
