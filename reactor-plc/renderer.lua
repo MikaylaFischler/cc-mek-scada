@@ -44,10 +44,8 @@ function renderer.close_ui()
         -- stop blinking indicators
         flasher.clear()
 
-        -- hide to stop animation callbacks
-        ui.display.hide()
-
-        -- clear root UI elements
+        -- delete element tree
+        ui.display.delete()
         ui.display = nil
 
         -- restore colors

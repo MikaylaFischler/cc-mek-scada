@@ -21,8 +21,7 @@ events.CLICK_TYPE = {
     UP = 3,             -- button up (completed a click)
     DRAG = 4,           -- mouse dragged
     SCROLL_DOWN = 5,    -- scroll down
-    SCROLL_UP = 6,      -- scroll up
-    EXITED = 7          -- cursor exited bounds of element
+    SCROLL_UP = 6       -- scroll up
 }
 
 -- create a new 2D coordinate

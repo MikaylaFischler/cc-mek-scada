@@ -31,7 +31,7 @@ local border = core.border
 ---@param panel graphics_element main displaybox
 local function init(panel)
     local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
-    databus.rx_field("unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
+    header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
 
     --
     -- system indicators
@@ -43,8 +43,8 @@ local function init(panel)
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
     system.line_break()
 
-    databus.rx_field("init_ok", init_ok.update)
-    databus.rx_field("heartbeat", heartbeat.update)
+    init_ok.register(databus.ps, "init_ok", init_ok.update)
+    heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
@@ -52,9 +52,9 @@ local function init(panel)
     network.update(5)
     system.line_break()
 
-    databus.rx_field("reactor_dev_state", reactor.update)
-    databus.rx_field("has_modem", modem.update)
-    databus.rx_field("link_state", network.update)
+    reactor.register(databus.ps, "reactor_dev_state", reactor.update)
+    modem.register(databus.ps, "has_modem", modem.update)
+    network.register(databus.ps, "link_state", network.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=cpair(colors.green,colors.green_off)}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=cpair(colors.green,colors.green_off)}
@@ -63,11 +63,11 @@ local function init(panel)
     local rt_sctl = LED{parent=system,label="RT SPCTL",colors=cpair(colors.green,colors.green_off)}
     system.line_break()
 
-    databus.rx_field("routine__main", rt_main.update)
-    databus.rx_field("routine__rps", rt_rps.update)
-    databus.rx_field("routine__comms_tx", rt_cmtx.update)
-    databus.rx_field("routine__comms_rx", rt_cmrx.update)
-    databus.rx_field("routine__spctl", rt_sctl.update)
+    rt_main.register(databus.ps, "routine__main", rt_main.update)
+    rt_rps.register(databus.ps, "routine__rps", rt_rps.update)
+    rt_cmtx.register(databus.ps, "routine__comms_tx", rt_cmtx.update)
+    rt_cmrx.register(databus.ps, "routine__comms_rx", rt_cmrx.update)
+    rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
 
     --
     -- status & controls
@@ -80,7 +80,7 @@ local function init(panel)
     -- only show emergency coolant LED if emergency coolant is configured for this device
     if type(config.EMERGENCY_COOL) == "table" then
         local emer_cool = LED{parent=status,x=2,width=14,label="EMER COOLANT",colors=cpair(colors.yellow,colors.yellow_off)}
-        databus.rx_field("emer_cool", emer_cool.update)
+        emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
     local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
@@ -92,8 +92,8 @@ local function init(panel)
     PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
     PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
-    databus.rx_field("reactor_active", active.update)
-    databus.rx_field("rps_scram", scram.update)
+    active.register(databus.ps, "reactor_active", active.update)
+    scram.register(databus.ps, "rps_scram", scram.update)
 
     --
     -- about footer
@@ -103,8 +103,8 @@ local function init(panel)
     local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
     local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
 
-    databus.rx_field("version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    databus.rx_field("comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
+    fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
+    comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
 
     --
     -- rps list
@@ -126,17 +126,17 @@ local function init(panel)
     local rps_ccl  = LED{parent=rps,label="LO CCOOLANT",colors=cpair(colors.red,colors.red_off)}
     local rps_hcl  = LED{parent=rps,label="HI HCOOLANT",colors=cpair(colors.red,colors.red_off)}
 
-    databus.rx_field("rps_manual", rps_man.update)
-    databus.rx_field("rps_automatic", rps_auto.update)
-    databus.rx_field("rps_timeout", rps_tmo.update)
-    databus.rx_field("rps_fault", rps_flt.update)
-    databus.rx_field("rps_sysfail", rps_fail.update)
-    databus.rx_field("rps_damage", rps_dmg.update)
-    databus.rx_field("rps_high_temp", rps_tmp.update)
-    databus.rx_field("rps_no_fuel", rps_nof.update)
-    databus.rx_field("rps_high_waste", rps_wst.update)
-    databus.rx_field("rps_low_ccool", rps_ccl.update)
-    databus.rx_field("rps_high_hcool", rps_hcl.update)
+    rps_man.register(databus.ps, "rps_manual", rps_man.update)
+    rps_auto.register(databus.ps, "rps_automatic", rps_auto.update)
+    rps_tmo.register(databus.ps, "rps_timeout", rps_tmo.update)
+    rps_flt.register(databus.ps, "rps_fault", rps_flt.update)
+    rps_fail.register(databus.ps, "rps_sysfail", rps_fail.update)
+    rps_dmg.register(databus.ps, "rps_damage", rps_dmg.update)
+    rps_tmp.register(databus.ps, "rps_high_temp", rps_tmp.update)
+    rps_nof.register(databus.ps, "rps_no_fuel", rps_nof.update)
+    rps_wst.register(databus.ps, "rps_high_waste", rps_wst.update)
+    rps_ccl.register(databus.ps, "rps_low_ccool", rps_ccl.update)
+    rps_hcl.register(databus.ps, "rps_high_hcool", rps_hcl.update)
 end
 
 return init

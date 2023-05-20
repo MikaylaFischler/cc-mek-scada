@@ -52,6 +52,11 @@ local element = {}
 ---|textbox_args
 ---|tiling_args
 
+---@class element_subscription
+---@field ps psil ps used
+---@field key string data key
+---@field func function callback
+
 -- a base graphics element, should not be created on its own
 ---@nodiscard
 ---@param args graphics_args arguments
@@ -66,6 +71,7 @@ function element.new(args)
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,
         children = {},
+        subscriptions = {},
         mt = {}
     }
 
@@ -83,15 +89,6 @@ function element.new(args)
     -- element as string
     function self.mt.__tostring()
         return "graphics.element{" .. self.elem_type .. "} @ " .. tostring(self)
-    end
-
-    -- check if a coordinate is within the bounds of this element
-    ---@param x integer
-    ---@param y integer
-    local function _in_bounds(x, y)
-        local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
-        local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
-        return in_x and in_y
     end
 
     ---@class graphics_element
@@ -180,8 +177,28 @@ function element.new(args)
         self.bounds.y2 = self.position.y + f.h - 1
     end
 
+    -- check if a coordinate is within the bounds of this element
+    ---@param x integer
+    ---@param y integer
+    function protected.in_bounds(x, y)
+        local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
+        local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
+        return in_x and in_y
+    end
+
 -- luacheck: push ignore
 ---@diagnostic disable: unused-local, unused-vararg
+
+    -- dynamically insert a child element
+    ---@param id string|integer element identifier
+    ---@param elem graphics_element element
+    function protected.insert(id, elem)
+    end
+
+    -- dynamically remove a child element
+    ---@param id string|integer element identifier
+    function protected.remove(id)
+    end
 
     -- handle a mouse event
     ---@param event mouse_interaction mouse interaction event
@@ -281,7 +298,25 @@ function element.new(args)
     ---@nodiscard
     function public.window() return protected.window end
 
-    -- CHILD ELEMENTS --
+    -- delete this element (hide and unsubscribe from PSIL)
+    function public.delete()
+        -- hide + stop animations
+        public.hide()
+
+        -- unsubscribe from PSIL
+        for i = 1, #self.subscriptions do
+            local s = self.subscriptions[i] ---@type element_subscription
+            s.ps.unsubscribe(s.key, s.func)
+        end
+
+        -- delete all children
+        for k, v in pairs(self.children) do
+            v.delete()
+            self.children[k] = nil
+        end
+    end
+
+    -- ELEMENT TREE --
 
     -- add a child element
     ---@nodiscard
@@ -311,12 +346,18 @@ function element.new(args)
 
     -- get a child element
     ---@nodiscard
+    ---@param id element_id
     ---@return graphics_element
-    function public.get_child(key) return self.children[key] end
+    function public.get_child(id) return self.children[id] end
 
-    -- remove child
-    ---@param key string|integer
-    function public.remove(key) self.children[key] = nil end
+    -- remove a child element
+    ---@param id element_id
+    function public.remove(id)
+        if self.children[id] ~= nil then
+            self.children[id].delete()
+            self.children[id] = nil
+        end
+    end
 
     -- attempt to get a child element by ID (does not include this element itself)
     ---@nodiscard
@@ -333,6 +374,25 @@ function element.new(args)
         end
 
         return nil
+    end
+
+    -- DYNAMIC CHILD ELEMENTS --
+
+    -- insert an element as a contained child<br>
+    -- this is intended to be used dynamically, and depends on the target element type.<br>
+    -- not all elements support dynamic children.
+    ---@param id string|integer element identifier
+    ---@param elem graphics_element element
+    function public.insert_element(id, elem)
+        protected.insert(id, elem)
+    end
+
+    -- remove an element from contained children<br>
+    -- this is intended to be used dynamically, and depends on the target element type.<br>
+    -- not all elements support dynamic children.
+    ---@param id string|integer element identifier
+    function public.remove_element(id)
+        protected.remove(id)
     end
 
     -- AUTO-PLACEMENT --
@@ -428,19 +488,25 @@ function element.new(args)
         protected.resize(...)
     end
 
+    -- reposition the element window<br>
+    -- offsets relative to parent frame are where (1, 1) would be on top of the parent's top left corner
+    ---@param x integer x position relative to parent frame
+    ---@param y integer y position relative to parent frame
+    function public.reposition(x, y)
+        protected.window.reposition(x, y)
+    end
+
     -- FUNCTION CALLBACKS --
 
     -- handle a monitor touch or mouse click
     ---@param event mouse_interaction mouse interaction event
     function public.handle_mouse(event)
-        local x_ini, y_ini, x_cur, y_cur = event.initial.x, event.initial.y, event.current.x, event.current.y
+        local x_ini, y_ini = event.initial.x, event.initial.y
 
-        local ini_in = _in_bounds(x_ini, y_ini)
-        local cur_in = _in_bounds(x_cur, y_cur)
+        local ini_in = protected.in_bounds(x_ini, y_ini)
 
         if ini_in then
             local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
-            if not cur_in then event_T.type = core.events.CLICK_TYPE.EXITED end
 
             -- handle the mouse event then pass to children
             protected.handle_mouse(event_T)
@@ -458,6 +524,16 @@ function element.new(args)
     ---@param result any
     function public.on_response(result)
         protected.response_callback(result)
+    end
+
+    -- register a callback with a PSIL, allowing for automatic unregister on delete<br>
+    -- do not use graphics elements directly with PSIL subscribe()
+    ---@param ps psil PSIL to subscribe to
+    ---@param key string key to subscribe to
+    ---@param func function function to link
+    function public.register(ps, key, func)
+        table.insert(self.subscriptions, { ps = ps, key = key, func = func })
+        ps.subscribe(key, func)
     end
 
     -- VISIBILITY --

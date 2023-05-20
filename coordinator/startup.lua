@@ -20,7 +20,7 @@ local sounder      = require("coordinator.sounder")
 
 local apisessions  = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.14.0"
+local COORDINATOR_VERSION = "v0.15.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -50,7 +50,6 @@ cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -58,7 +57,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)

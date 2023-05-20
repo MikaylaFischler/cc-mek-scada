@@ -45,7 +45,7 @@ local function init(main)
 
     local root_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes=root_panes}
 
-    coreio.core_ps().subscribe("link_state", function (state)
+    root_pane.register(coreio.core_ps(), "link_state", function (state)
         if state == coreio.LINK_STATE.UNLINKED or state == coreio.LINK_STATE.API_LINK_ONLY then
             root_pane.set_value(1)
         elseif state == coreio.LINK_STATE.SV_LINK_ONLY then

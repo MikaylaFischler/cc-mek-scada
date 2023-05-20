@@ -172,7 +172,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             end
 
             if unit ~= nil then
-                table.insert(self.units, unit)
+                self.units[i] = unit
             elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
                 _reset_config()
                 log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
@@ -187,9 +187,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         self.connected = false
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
-        for i = 1, #self.units do
-            self.units[i].close()
-        end
+        for _, unit in pairs(self.units) do unit.close() end
     end
 
     -- send a MODBUS packet
@@ -352,9 +350,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             local time_now = util.time()
 
-            for i = 1, #self.units do
-                self.units[i].update(time_now)
-            end
+            for _, unit in pairs(self.units) do unit.update(time_now) end
 
             ----------------------
             -- update periodics --

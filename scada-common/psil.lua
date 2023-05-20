@@ -2,6 +2,8 @@
 -- Publisher-Subscriber Interconnect Layer
 --
 
+local util = require("scada-common.util")
+
 local psil = {}
 
 -- instantiate a new PSI layer
@@ -36,6 +38,15 @@ function psil.create()
         table.insert(self.ic[key].subscribers, { notify = func })
     end
 
+    -- unsubscribe a function from a given key
+    ---@param key string data key
+    ---@param func function function to unsubscribe
+    function public.unsubscribe(key, func)
+        if self.ic[key] ~= nil then
+            util.filter_table(self.ic[key].subscribers, function (s) return s.notify ~= func end)
+        end
+    end
+
     -- publish data to a given key, passing it to all subscribers if it has changed
     ---@param key string data key
     ---@param value any data value
@@ -63,6 +74,9 @@ function psil.create()
             self.ic[key].subscribers[i].notify(self.ic[key].value)
         end
     end
+
+    -- clear the contents of the interconnect
+    function public.purge() self.ic = nil end
 
     return public
 end
