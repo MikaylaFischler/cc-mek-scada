@@ -18,10 +18,14 @@ local iocontrol = {}
 ---@class ioctl
 local io = {}
 
+-- luacheck: no unused args
+
 -- placeholder acknowledge function for type hinting
 ---@param success boolean
 ---@diagnostic disable-next-line: unused-local
 local function __generic_ack(success) end
+
+-- luacheck: unused args
 
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration

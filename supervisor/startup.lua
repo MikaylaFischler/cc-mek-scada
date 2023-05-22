@@ -14,7 +14,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.15.5"
+local SUPERVISOR_VERSION = "v0.15.9"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -61,7 +61,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)

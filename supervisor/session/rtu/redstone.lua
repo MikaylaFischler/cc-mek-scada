@@ -120,9 +120,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                 local io_f = {
                     ---@nodiscard
                     read = function () return rsio.digital_is_active(port, self.phy_io.digital_in[port].phy) end,
-                    ---@param active boolean
----@diagnostic disable-next-line: unused-local
-                    write = function (active) end
+                    write = function () end
                 }
 
                 self.db.io[port] = io_f
@@ -155,9 +153,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                     ---@nodiscard
                     ---@return integer
                     read = function () return self.phy_io.analog_in[port].phy end,
-                    ---@param value integer
----@diagnostic disable-next-line: unused-local
-                    write = function (value) end
+                    write = function () end
                 }
 
                 self.db.io[port] = io_f

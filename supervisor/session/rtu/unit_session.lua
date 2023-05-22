@@ -166,6 +166,8 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
     -- PUBLIC TEMPLATE FUNCTIONS --
 
+-- luacheck: no unused args
+
     -- handle a packet
     ---@param m_pkt modbus_frame
 ---@diagnostic disable-next-line: unused-local
@@ -179,6 +181,8 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     function public.update(time_now)
         log.debug("template unit_session.update() called", true)
     end
+
+-- luacheck: unused args
 
     -- invalidate build cache
     function public.invalidate_cache()

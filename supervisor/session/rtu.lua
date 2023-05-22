@@ -118,26 +118,31 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                 if unit_advert.reactor > 0 then
                     local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
 
+                    -- unit RTUs
                     if u_type == RTU_UNIT_TYPE.REDSTONE then
                         -- redstone
                         unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
                     elseif u_type == RTU_UNIT_TYPE.BOILER_VALVE then
-                        -- boiler (Mekanism 10.1+)
+                        -- boiler
                         unit = svrs_boilerv.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
                     elseif u_type == RTU_UNIT_TYPE.TURBINE_VALVE then
-                        -- turbine (Mekanism 10.1+)
+                        -- turbine
                         unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
                     elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_envd(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.VIRTUAL then
+                        -- skip virtual units
+                        log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
                     else
                         log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-specific RTU type ", type_string))
                     end
                 else
+                    -- facility RTUs
                     if u_type == RTU_UNIT_TYPE.REDSTONE then
                         -- redstone
                         unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
@@ -156,6 +161,9 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then facility.add_envd(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.VIRTUAL then
+                        -- skip virtual units
+                        log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
                     else
                         log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-independent RTU type ", type_string))
                     end
@@ -163,8 +171,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
             end
 
             if unit ~= nil then
-                table.insert(self.units, unit)
-            else
+                self.units[i] = unit
+            elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
                 _reset_config()
                 log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
                 break
@@ -178,9 +186,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         self.connected = false
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
-        for i = 1, #self.units do
-            self.units[i].close()
-        end
+        for _, unit in pairs(self.units) do unit.close() end
     end
 
     -- send a MODBUS packet
@@ -343,9 +349,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             local time_now = util.time()
 
-            for i = 1, #self.units do
-                self.units[i].update(time_now)
-            end
+            for _, unit in pairs(self.units) do unit.update(time_now) end
 
             ----------------------
             -- update periodics --

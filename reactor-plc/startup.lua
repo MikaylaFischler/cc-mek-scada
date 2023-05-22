@@ -18,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.1.17"
+local R_PLC_VERSION = "v1.3.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -54,7 +54,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)

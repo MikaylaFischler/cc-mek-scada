@@ -18,9 +18,9 @@ local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -34,8 +34,8 @@ local function init(main)
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
     local datetime = TextBox{parent=main,x=(header.width()-42),y=1,text="",alignment=TEXT_ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
 
-    facility.ps.subscribe("sv_ping", ping.update)
-    facility.ps.subscribe("date_time", datetime.set_value)
+    ping.register(facility.ps, "sv_ping", ping.update)
+    datetime.register(facility.ps, "date_time", datetime.set_value)
 
     local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
 
