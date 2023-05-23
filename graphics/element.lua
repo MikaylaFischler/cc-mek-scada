@@ -177,12 +177,21 @@ function element.new(args)
         self.bounds.y2 = self.position.y + f.h - 1
     end
 
-    -- check if a coordinate is within the bounds of this element
+    -- check if a coordinate relative to the parent is within the bounds of this element
     ---@param x integer
     ---@param y integer
-    function protected.in_bounds(x, y)
+    function protected.in_window_bounds(x, y)
         local in_x = x >= self.bounds.x1 and x <= self.bounds.x2
         local in_y = y >= self.bounds.y1 and y <= self.bounds.y2
+        return in_x and in_y
+    end
+
+    -- check if a coordinate relative to this window is within the bounds of this element
+    ---@param x integer
+    ---@param y integer
+    function protected.in_frame_bounds(x, y)
+        local in_x = x >= 1 and x <= protected.frame.w
+        local in_y = y >= 1 and y <= protected.frame.h
         return in_x and in_y
     end
 
@@ -503,7 +512,7 @@ function element.new(args)
     function public.handle_mouse(event)
         local x_ini, y_ini = event.initial.x, event.initial.y
 
-        local ini_in = protected.in_bounds(x_ini, y_ini)
+        local ini_in = protected.in_window_bounds(x_ini, y_ini)
 
         if ini_in then
             local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
