@@ -3,6 +3,7 @@ local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
 local config      = require("supervisor.config")
+local databus     = require("supervisor.databus")
 local facility    = require("supervisor.facility")
 
 local svqtypes    = require("supervisor.session.svqtypes")
@@ -317,6 +318,8 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
 
         self.next_ids.plc = self.next_ids.plc + 1
 
+        databus.tx_plc_connected(for_reactor, version, remote_port)
+
         -- success
         return plc_s.instance.get_id()
     else
@@ -382,6 +385,8 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
         log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_ids.coord)
 
         self.next_ids.coord = self.next_ids.coord + 1
+
+        databus.tx_crd_connected(version, remote_port)
 
         -- success
         return coord_s.instance.get_id()

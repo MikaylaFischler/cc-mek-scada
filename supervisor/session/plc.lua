@@ -4,6 +4,8 @@ local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
+local databus  = require("supervisor.databus")
+
 local svqtypes = require("supervisor.session.svqtypes")
 
 local plc = {}
@@ -236,6 +238,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_plc_disconnected(reactor_id)
     end
 
     -- send an RPLC packet
@@ -486,6 +489,8 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
                     -- log.debug(log_header .. "PLC RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "PLC TT  = " .. (srv_now - plc_send) .. "ms")
+
+                    databus.tx_plc_rtt(reactor_id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

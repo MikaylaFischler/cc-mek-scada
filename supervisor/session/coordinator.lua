@@ -4,6 +4,8 @@ local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
+local databus  = require("supervisor.databus")
+
 local svqtypes = require("supervisor.session.svqtypes")
 
 local coordinator = {}
@@ -85,6 +87,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_crd_disconnected()
     end
 
     -- send a CRDN packet
@@ -206,6 +209,8 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
                     -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
+
+                    databus.tx_crd_rtt(self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
