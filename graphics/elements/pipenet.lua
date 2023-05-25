@@ -12,6 +12,7 @@ local element = require("graphics.element")
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
+---@field hidden? boolean true to hide on initial draw
 
 -- new pipe network
 ---@param args pipenet_args

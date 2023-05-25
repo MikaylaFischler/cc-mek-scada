@@ -23,6 +23,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new multi button (latch selection, exclusively one button at a time)
 ---@param args multi_button_args

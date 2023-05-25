@@ -21,6 +21,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new tab selector
 ---@param args tabbar_args

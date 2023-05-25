@@ -18,6 +18,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field height? integer 1 if omitted, must be an odd number
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new state indicator
 ---@nodiscard

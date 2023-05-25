@@ -18,6 +18,7 @@ local element = {}
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 ---@alias graphics_args graphics_args_generic
 ---|waiting_args
@@ -153,7 +154,7 @@ function element.new(args)
         assert(f.h >= 1, name_brief .. "frame height not >= 1")
 
         -- create window
-        protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, true)
+        protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, args.hidden ~= true)
 
         -- init colors
         if args.fg_bg ~= nil then
@@ -385,25 +386,6 @@ function element.new(args)
         return nil
     end
 
-    -- DYNAMIC CHILD ELEMENTS --
-
-    -- insert an element as a contained child<br>
-    -- this is intended to be used dynamically, and depends on the target element type.<br>
-    -- not all elements support dynamic children.
-    ---@param id string|integer element identifier
-    ---@param elem graphics_element element
-    function public.insert_element(id, elem)
-        protected.insert(id, elem)
-    end
-
-    -- remove an element from contained children<br>
-    -- this is intended to be used dynamically, and depends on the target element type.<br>
-    -- not all elements support dynamic children.
-    ---@param id string|integer element identifier
-    function public.remove_element(id)
-        protected.remove(id)
-    end
-
     -- AUTO-PLACEMENT --
 
     -- skip a line for automatically placed elements
@@ -545,20 +527,44 @@ function element.new(args)
         ps.subscribe(key, func)
     end
 
-    -- VISIBILITY --
+    -- VISIBILITY & ANIMATIONS --
 
-    -- show the element
-    function public.show()
+    -- show the element and enables animations by default
+    ---@param animate? boolean true (default) to automatically resume animations
+    function public.show(animate)
         protected.window.setVisible(true)
-        protected.start_anim()
-        for _, child in pairs(self.children) do child.show() end
+        if animate ~= false then public.animate_all() end
     end
 
-    -- hide the element
+    -- hide the element and disables animations
     function public.hide()
-        protected.stop_anim()
-        for _, child in pairs(self.children) do child.hide() end
+        public.freeze_all() -- stop animations for efficiency/performance
         protected.window.setVisible(false)
+    end
+
+    -- start/resume animation(s)
+    function public.animate()
+        protected.start_anim()
+    end
+
+    -- start/resume animation(s) for this element and all its children<br>
+    -- only animates if a window is visible
+    function public.animate_all()
+        if protected.window.isVisible() then
+            public.animate()
+            for _, child in pairs(self.children) do child.animate_all() end
+        end
+    end
+
+    -- freeze animation(s)
+    function public.freeze()
+        protected.stop_anim()
+    end
+
+    -- freeze animation(s) for this element and all its children
+    function public.freeze_all()
+        public.freeze()
+        for _, child in pairs(self.children) do child.freeze_all() end
     end
 
     -- re-draw the element

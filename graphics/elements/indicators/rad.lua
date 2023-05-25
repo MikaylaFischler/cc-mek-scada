@@ -17,6 +17,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field width integer length
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new radiation indicator
 ---@nodiscard
