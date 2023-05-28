@@ -20,9 +20,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.0"
+local CCMSI_VERSION = "v1.1"
 
 local install_dir = "/.install-cache"
+local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
 
 local opts = { ... }
@@ -123,7 +124,8 @@ if mode == "check" then
     -------------------------
 
     if opts[2] then repo_path = repo_path .. opts[2] .. "/" else repo_path = repo_path .. "main/" end
-    local install_manifest = repo_path .. "install_manifest.json"
+    if opts[2] then manifest_path = manifest_path .. opts[2] .. "/" else manifest_path = manifest_path .. "main/" end
+    local install_manifest = manifest_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
 
@@ -203,7 +205,8 @@ elseif mode == "install" or mode == "update" then
     -------------------------
 
     if opts[3] then repo_path = repo_path .. opts[3] .. "/" else repo_path = repo_path .. "main/" end
-    local install_manifest = repo_path .. "install_manifest.json"
+    if opts[3] then manifest_path = manifest_path .. opts[3] .. "/" else manifest_path = manifest_path .. "main/" end
+    local install_manifest = manifest_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
 
