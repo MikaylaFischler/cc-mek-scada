@@ -68,21 +68,22 @@ function element.new(args)
         define_completed = false,
         p_window = nil,                                 ---@type table
         position = { x = 1, y = 1 },                    ---@type coordinate_2d
-        child_offset = { x = 0, y = 0 },
+        child_offset = { x = 0, y = 0 },                ---@type coordinate_2d
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,
-        children = {},
         subscriptions = {},
         mt = {}
     }
 
-    ---@class graphics_template
+    ---@class graphics_base
     local protected = {
         enabled = true,
-        value = nil,    ---@type any
-        window = nil,   ---@type table
+        value = nil,            ---@type any
+        window = nil,           ---@type table
+        content_window = nil,   ---@type table|nil
         fg_bg = core.cpair(colors.white, colors.black),
-        frame = core.gframe(1, 1, 1, 1)
+        frame = core.gframe(1, 1, 1, 1),
+        children = {}
     }
 
     local name_brief = "graphics.element{" .. self.elem_type .. "}: "
@@ -199,15 +200,15 @@ function element.new(args)
 -- luacheck: push ignore
 ---@diagnostic disable: unused-local, unused-vararg
 
-    -- dynamically insert a child element
+    -- handle a child element having been added
     ---@param id string|integer element identifier
-    ---@param elem graphics_element element
-    function protected.insert(id, elem)
+    ---@param child graphics_element child element
+    function protected.on_added(id, child)
     end
 
-    -- dynamically remove a child element
+    -- handle a child element having been removed
     ---@param id string|integer element identifier
-    function protected.remove(id)
+    function protected.on_removed(id)
     end
 
     -- handle a mouse event
@@ -280,6 +281,14 @@ function element.new(args)
     ---@return graphics_element element, element_id id
     function protected.get() return public, self.id end
 
+    -- report completion of element instantiation and get the public interface
+    ---@nodiscard
+    ---@return graphics_element element, element_id id
+    function protected.complete()
+        if args.parent ~= nil then args.parent.__child_ready(self.id, public) end
+        return public, self.id
+    end
+
     -----------
     -- SETUP --
     -----------
@@ -306,11 +315,19 @@ function element.new(args)
 
     -- get the window object
     ---@nodiscard
-    function public.window() return protected.window end
+    function public.window() return protected.content_window or protected.window end
 
     -- delete this element (hide and unsubscribe from PSIL)
     function public.delete()
-        -- hide + stop animations
+        -- grab parent fg/bg so we can clear cleanly
+        if args.parent ~= nil then
+            local fg_bg = args.parent.get_fg_bg()
+            protected.window.setBackgroundColor(fg_bg.bkg)
+            protected.window.setTextColor(fg_bg.fgd)
+        end
+
+        -- clear, hide, and stop animations
+        protected.window.clear()
         public.hide()
 
         -- unsubscribe from PSIL
@@ -320,9 +337,9 @@ function element.new(args)
         end
 
         -- delete all children
-        for k, v in pairs(self.children) do
+        for k, v in pairs(protected.children) do
             v.delete()
-            self.children[k] = nil
+            protected.children[k] = nil
         end
     end
 
@@ -331,7 +348,7 @@ function element.new(args)
     -- add a child element
     ---@nodiscard
     ---@param key string|nil id
-    ---@param child graphics_template
+    ---@param child graphics_base
     ---@return integer|string key
     function public.__add_child(key, child)
         -- offset first automatic placement
@@ -346,26 +363,34 @@ function element.new(args)
         local child_element = child.get()
 
         if key == nil then
-            table.insert(self.children, child_element)
-            return #self.children
+            table.insert(protected.children, child_element)
+            return #protected.children
         else
-            self.children[key] = child_element
+            protected.children[key] = child_element
             return key
         end
+    end
+
+    -- actions to take upon a child element becoming ready (initial draw/construction completed)
+    ---@param key string|integer id
+    ---@param child graphics_element
+    function public.__child_ready(key, child)
+        protected.on_added(key, child)
     end
 
     -- get a child element
     ---@nodiscard
     ---@param id element_id
     ---@return graphics_element
-    function public.get_child(id) return self.children[id] end
+    function public.get_child(id) return protected.children[id] end
 
     -- remove a child element
     ---@param id element_id
     function public.remove(id)
-        if self.children[id] ~= nil then
-            self.children[id].delete()
-            self.children[id] = nil
+        if protected.children[id] ~= nil then
+            protected.children[id].delete()
+            protected.children[id] = nil
+            protected.on_removed(id)
         end
     end
 
@@ -374,13 +399,13 @@ function element.new(args)
     ---@param id element_id
     ---@return graphics_element|nil element
     function public.get_element_by_id(id)
-        if self.children[id] == nil then
-            for _, child in pairs(self.children) do
+        if protected.children[id] == nil then
+            for _, child in pairs(protected.children) do
                 local elem = child.get_element_by_id(id)
                 if elem ~= nil then return elem end
             end
         else
-            return self.children[id]
+            return protected.children[id]
         end
 
         return nil
@@ -419,14 +444,14 @@ function element.new(args)
     -- get element width
     ---@nodiscard
     ---@return integer width
-    function public.width()
+    function public.get_width()
         return protected.frame.w
     end
 
     -- get element height
     ---@nodiscard
     ---@return integer height
-    function public.height()
+    function public.get_height()
         return protected.frame.h
     end
 
@@ -501,7 +526,7 @@ function element.new(args)
 
             -- handle the mouse event then pass to children
             protected.handle_mouse(event_T)
-            for _, child in pairs(self.children) do child.handle_mouse(event_T) end
+            for _, child in pairs(protected.children) do child.handle_mouse(event_T) end
         end
     end
 
@@ -536,7 +561,9 @@ function element.new(args)
         if animate ~= false then public.animate_all() end
     end
 
-    -- hide the element and disables animations
+    -- hide the element and disables animations<br>
+    -- this alone does not cause an element to be fully hidden, it only prevents updates from being shown<br>
+    ---@see graphics_element.content_redraw
     function public.hide()
         public.freeze_all() -- stop animations for efficiency/performance
         protected.window.setVisible(false)
@@ -552,7 +579,7 @@ function element.new(args)
     function public.animate_all()
         if protected.window.isVisible() then
             public.animate()
-            for _, child in pairs(self.children) do child.animate_all() end
+            for _, child in pairs(protected.children) do child.animate_all() end
         end
     end
 
@@ -564,12 +591,20 @@ function element.new(args)
     -- freeze animation(s) for this element and all its children
     function public.freeze_all()
         public.freeze()
-        for _, child in pairs(self.children) do child.freeze_all() end
+        for _, child in pairs(protected.children) do child.freeze_all() end
     end
 
     -- re-draw the element
     function public.redraw()
         protected.window.redraw()
+    end
+
+    -- if a content window is set, clears it then re-draws all children
+    function public.content_redraw()
+        if protected.content_window ~= nil then
+            protected.content_window.clear()
+            for _, child in pairs(protected.children) do child.redraw() end
+        end
     end
 
     return protected

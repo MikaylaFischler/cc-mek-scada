@@ -95,7 +95,7 @@ local function indicator_led(args)
         e.window.write(args.label)
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return indicator_led

@@ -28,7 +28,7 @@ local function colormap(args)
     e.window.setCursorPos(1, 1)
     e.window.blit(spaces, bkg, bkg)
 
-    return e.get()
+    return e.complete()
 end
 
 return colormap

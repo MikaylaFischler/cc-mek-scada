@@ -19,7 +19,7 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function div(args)
     -- create new graphics element base object
-    return element.new(args).get()
+    return element.new(args).complete()
 end
 
 return div

@@ -189,7 +189,7 @@ local function spinbox(args)
     e.value = 0
     set_digits()
 
-    return e.get()
+    return e.complete()
 end
 
 return spinbox

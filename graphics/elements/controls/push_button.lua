@@ -121,7 +121,7 @@ local function push_button(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return push_button

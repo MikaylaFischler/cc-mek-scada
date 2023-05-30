@@ -65,7 +65,7 @@ local function textbox(args)
         display_text(val)
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return textbox

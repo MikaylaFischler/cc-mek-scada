@@ -82,7 +82,7 @@ local function tiling(args)
         if inner_width % 2 == 0 then alternator = not alternator end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return tiling

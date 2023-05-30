@@ -69,7 +69,7 @@ local function icon(args)
     -- initial icon draw
     e.on_update(args.value or 1)
 
-    return e.get()
+    return e.complete()
 end
 
 return icon

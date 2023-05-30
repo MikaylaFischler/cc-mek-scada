@@ -116,7 +116,7 @@ local function sidebar(args)
     -- initial draw
     draw(false)
 
-    return e.get()
+    return e.complete()
 end
 
 return sidebar

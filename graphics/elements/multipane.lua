@@ -37,7 +37,7 @@ local function multipane(args)
 
     e.set_value(1)
 
-    return e.get()
+    return e.complete()
 end
 
 return multipane

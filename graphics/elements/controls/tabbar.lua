@@ -125,7 +125,7 @@ local function tabbar(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return tabbar

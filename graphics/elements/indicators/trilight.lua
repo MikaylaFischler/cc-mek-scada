@@ -106,7 +106,7 @@ local function tristate_indicator_light(args)
     e.on_update(1)
     e.window.write(args.label)
 
-    return e.get()
+    return e.complete()
 end
 
 return tristate_indicator_light

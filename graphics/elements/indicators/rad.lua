@@ -85,7 +85,7 @@ local function rad(args)
     -- initial value draw
     e.on_update(types.new_zero_radiation_reading())
 
-    return e.get()
+    return e.complete()
 end
 
 return rad

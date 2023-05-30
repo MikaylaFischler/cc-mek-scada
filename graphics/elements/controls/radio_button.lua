@@ -104,7 +104,7 @@ local function radio_button(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return radio_button

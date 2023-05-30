@@ -103,7 +103,7 @@ local function waiting(args)
 
     e.start_anim()
 
-    return e.get()
+    return e.complete()
 end
 
 return waiting

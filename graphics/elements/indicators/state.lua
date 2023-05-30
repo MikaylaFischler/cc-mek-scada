@@ -75,7 +75,7 @@ local function state_indicator(args)
     -- initial draw
     e.on_update(args.value or 1)
 
-    return e.get()
+    return e.complete()
 end
 
 return state_indicator

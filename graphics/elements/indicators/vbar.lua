@@ -100,7 +100,7 @@ local function vbar(args)
     ---@param val number 0.0 to 1.0
     function e.set_value(val) e.on_update(val) end
 
-    return e.get()
+    return e.complete()
 end
 
 return vbar

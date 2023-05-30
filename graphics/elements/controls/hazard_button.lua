@@ -199,7 +199,7 @@ local function hazard_button(args)
     -- initial draw of border
     draw_border(args.accent)
 
-    return e.get()
+    return e.complete()
 end
 
 return hazard_button

@@ -87,7 +87,7 @@ local function switch_button(args)
         draw_state()
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return switch_button

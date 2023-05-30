@@ -93,7 +93,7 @@ local function indicator_light(args)
     e.window.setCursorPos(3, 1)
     e.window.write(args.label)
 
-    return e.get()
+    return e.complete()
 end
 
 return indicator_light
