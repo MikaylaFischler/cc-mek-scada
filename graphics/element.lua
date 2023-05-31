@@ -12,8 +12,6 @@ local element = {}
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer next line if omitted
----@field offset_x? integer 0 if omitted
----@field offset_y? integer 0 if omitted
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
@@ -103,10 +101,8 @@ function element.new(args)
     -------------------------
 
     -- prepare the template
-    ---@param offset_x integer x offset
-    ---@param offset_y integer y offset
     ---@param next_y integer next line if no y was provided
-    function protected.prepare_template(offset_x, offset_y, next_y)
+    function protected.prepare_template(next_y)
         -- get frame coordinates/size
         if args.gframe ~= nil then
             protected.frame.x = args.gframe.x
@@ -116,36 +112,18 @@ function element.new(args)
         else
             local w, h = self.p_window.getSize()
             protected.frame.x = args.x or 1
-
-            if args.parent ~= nil then
-                protected.frame.y = args.y or (next_y - offset_y)
-            else
                 protected.frame.y = args.y or next_y
-            end
-
             protected.frame.w = args.width or w
             protected.frame.h = args.height or h
         end
 
-        -- inner offsets
-        if args.offset_x ~= nil then self.child_offset.x = args.offset_x end
-        if args.offset_y ~= nil then self.child_offset.y = args.offset_y end
-
         -- adjust window frame if applicable
         local f = protected.frame
-        local x = f.x
-        local y = f.y
-
-        -- apply offsets
         if args.parent ~= nil then
             -- constrain to parent inner width/height
             local w, h = self.p_window.getSize()
-            f.w = math.min(f.w, w - ((2 * offset_x) + (f.x - 1)))
-            f.h = math.min(f.h, h - ((2 * offset_y) + (f.y - 1)))
-
-            -- offset x/y
-            f.x = x + offset_x
-            f.y = y + offset_y
+            f.w = math.min(f.w, w - (f.x - 1))
+            f.h = math.min(f.h, h - (f.y - 1))
         end
 
         -- check frame
@@ -304,7 +282,7 @@ function element.new(args)
 
     -- prepare the template
     if args.parent == nil then
-        protected.prepare_template(0, 0, 1)
+        protected.prepare_template(1)
     else
         self.id = args.parent.__add_child(args.id, protected)
     end
@@ -319,14 +297,16 @@ function element.new(args)
 
     -- delete this element (hide and unsubscribe from PSIL)
     function public.delete()
-        -- grab parent fg/bg so we can clear cleanly
+        local fg_bg = protected.fg_bg
+
         if args.parent ~= nil then
-            local fg_bg = args.parent.get_fg_bg()
-            protected.window.setBackgroundColor(fg_bg.bkg)
-            protected.window.setTextColor(fg_bg.fgd)
+            -- grab parent fg/bg so we can clear cleanly as a child element
+            fg_bg = args.parent.get_fg_bg()
         end
 
         -- clear, hide, and stop animations
+        protected.window.setBackgroundColor(fg_bg.bkg)
+        protected.window.setTextColor(fg_bg.fgd)
         protected.window.clear()
         public.hide()
 
@@ -351,12 +331,7 @@ function element.new(args)
     ---@param child graphics_base
     ---@return integer|string key
     function public.__add_child(key, child)
-        -- offset first automatic placement
-        if self.next_y <= self.child_offset.y then
-            self.next_y = self.child_offset.y + 1
-        end
-
-        child.prepare_template(self.child_offset.x, self.child_offset.y, self.next_y)
+        child.prepare_template(self.next_y)
 
         self.next_y = child.frame.y + child.frame.h
 

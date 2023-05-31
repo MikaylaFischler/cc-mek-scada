@@ -4,6 +4,7 @@ local element = require("graphics.element")
 
 ---@class displaybox_args
 ---@field window table
+---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field width? integer parent width if omitted
@@ -15,6 +16,7 @@ local element = require("graphics.element")
 -- new root display box
 ---@nodiscard
 ---@param args displaybox_args
+---@return graphics_element element, element_id id
 local function displaybox(args)
     -- create new graphics element base object
     return element.new(args).complete()
