@@ -1,5 +1,5 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy Installation Manifests and Component Versions
+name: Deploy Installation Manifests and Versions
 
 on:
   workflow_dispatch:
@@ -42,11 +42,11 @@ jobs:
       - name: Create outputs folder
         shell: bash
         run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/${{ steps.extract_branch.outputs.branch }}
-      - name: Generate manifest and shields for master
-        if: github.event.pull_request.base.ref == 'master'
+      - name: Generate manifest and shields for main branch
+        if: github.event.pull_request.base.ref == 'main'
         run: python imgen.py gh_actions
-      - name: Generate manifest
-        if: github.event.pull_request.base.ref != 'master'
+      - name: Generate only manifest for non-main branches
+        if: github.event.pull_request.base.ref != 'main'
         run: python imgen.py
       - name: Move manifest
         run: mv install_manifest.json deploy/manifests/${{ steps.extract_branch.outputs.branch }}
