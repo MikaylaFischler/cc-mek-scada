@@ -47,7 +47,7 @@ jobs:
         run: python imgen.py gh_actions
       - name: Generate manifest
         if: github.event.pull_request.base.ref != 'master'
-        run: python imgen.p
+        run: python imgen.py
       - name: Move manifest
         run: mv install_manifest.json deploy/manifests/${{ steps.extract_branch.outputs.branch }}
       - name: Upload artifacts
