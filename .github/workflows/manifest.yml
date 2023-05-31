@@ -1,14 +1,9 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy Installation Manifests
+name: Deploy Installation Manifests and Component Versions
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - latest
-      - devel
-  pull_request:
     branches:
       - main
       - latest
@@ -46,16 +41,20 @@ jobs:
         id: extract_branch
       - name: Create outputs folder
         shell: bash
-        run: mkdir temp; mkdir temp/manifests; mkdir temp/manifests/${{ steps.extract_branch.outputs.branch }}
+        run: mkdir deploy; mkdir deploy/manifests; mkdir temp/manifests/${{ steps.extract_branch.outputs.branch }}
+      - name: Generate manifest and shields for master
+        if: github.event.pull_request.base.ref == 'master'
+        run: python imgen.py gh_actions
       - name: Generate manifest
-        run: python imgen.py
+        if: github.event.pull_request.base.ref != 'master'
+        run: python imgen.p
       - name: Move manifest
-        run: mv install_manifest.json temp/manifests/${{ steps.extract_branch.outputs.branch }}
-      - name: Upload artifact
+        run: mv install_manifest.json deploy/manifests/${{ steps.extract_branch.outputs.branch }}
+      - name: Upload artifacts
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload manifest JSON
-          path: 'temp/'
+          path: 'deploy/'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2

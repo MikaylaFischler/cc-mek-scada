@@ -108,10 +108,10 @@ f = open("install_manifest.json", "w")
 json.dump(final_manifest, f)
 f.close()
 
-if len(sys.argv) > 1 and sys.argv[1] == "shields":
+if len(sys.argv) > 1 and sys.argv[1] == "gh_actions":
     # write all the JSON files for shields.io
     for key, version in final_manifest["versions"].items():
-        f = open("./shields/" + key + ".json", "w")
+        f = open("./deploy/" + key + ".json", "w")
 
         if version.find("alpha") >= 0:
             color = "yellow"
