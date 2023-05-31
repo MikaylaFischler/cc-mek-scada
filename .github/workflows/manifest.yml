@@ -41,7 +41,7 @@ jobs:
         id: extract_branch
       - name: Create outputs folder
         shell: bash
-        run: mkdir deploy; mkdir deploy/manifests; mkdir temp/manifests/${{ steps.extract_branch.outputs.branch }}
+        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/${{ steps.extract_branch.outputs.branch }}
       - name: Generate manifest and shields for master
         if: github.event.pull_request.base.ref == 'master'
         run: python imgen.py gh_actions
