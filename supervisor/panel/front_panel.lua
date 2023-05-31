@@ -74,7 +74,7 @@ local function init(panel)
 
     -- plc page
 
-    local plc_page = Div{parent=page_div,x=1,y=1}
+    local plc_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local plc_list = Div{parent=plc_page,x=2,y=2,width=49}
 
     for i = 1, config.NUM_REACTORS do
@@ -106,12 +106,19 @@ local function init(panel)
 
     -- rtu page
 
-    local rtu_page = Div{parent=page_div,x=1,y=1}
-    local rtu_list = Div{parent=rtu_page,x=2,y=2,width=49}
+    local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local rtu_list = ListBox{parent=rtu_page,x=2,y=2,height=15,width=49,scroll_height=1000,item_pad=1,fg_bg=cpair(colors.black,colors.white)}
+
+    local item_1 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.red),hidden=true}
+    local item_2 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.orange),hidden=true}
+    local item_3 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.yellow),hidden=true}
+    local item_4 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.green),hidden=true}
+    local item_5 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.blue),hidden=true}
+    local item_6 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.purple),hidden=true}
 
     -- coordinator page
 
-    local crd_page = Div{parent=page_div,x=1,y=1}
+    local crd_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local crd_box = Div{parent=crd_page,x=2,y=2,width=49,height=4,fg_bg=cpair(colors.black,colors.white)}
 
     local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green,colors.green_off)}
@@ -133,7 +140,7 @@ local function init(panel)
 
     -- pocket page
 
-    local pkt_page = Div{parent=page_div,x=1,y=1}
+    local pkt_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local pkt_box = Div{parent=pkt_page,x=2,y=2,width=49}
 
     local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page }

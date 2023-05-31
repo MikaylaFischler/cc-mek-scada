@@ -45,6 +45,7 @@ local element = {}
 ---|colormap_args
 ---|displaybox_args
 ---|div_args
+---|listbox_args
 ---|multipane_args
 ---|pipenet_args
 ---|rectangle_args
@@ -66,7 +67,6 @@ function element.new(args)
         define_completed = false,
         p_window = nil,                                 ---@type table
         position = { x = 1, y = 1 },                    ---@type coordinate_2d
-        child_offset = { x = 0, y = 0 },                ---@type coordinate_2d
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,
         subscriptions = {},
@@ -112,7 +112,7 @@ function element.new(args)
         else
             local w, h = self.p_window.getSize()
             protected.frame.x = args.x or 1
-                protected.frame.y = args.y or next_y
+            protected.frame.y = args.y or next_y
             protected.frame.w = args.width or w
             protected.frame.h = args.height or h
         end
