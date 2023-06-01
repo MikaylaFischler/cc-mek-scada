@@ -62,7 +62,7 @@ local element = {}
 ---@param args graphics_args arguments
 function element.new(args)
     local self = {
-        id = -1,
+        id = nil,                                       ---@type element_id|nil
         elem_type = debug.getinfo(2).name,
         define_completed = false,
         p_window = nil,                                 ---@type table
@@ -179,13 +179,13 @@ function element.new(args)
 ---@diagnostic disable: unused-local, unused-vararg
 
     -- handle a child element having been added
-    ---@param id string|integer element identifier
+    ---@param id element_id element identifier
     ---@param child graphics_element child element
     function protected.on_added(id, child)
     end
 
     -- handle a child element having been removed
-    ---@param id string|integer element identifier
+    ---@param id element_id element identifier
     function protected.on_removed(id)
     end
 
@@ -282,6 +282,7 @@ function element.new(args)
 
     -- prepare the template
     if args.parent == nil then
+        self.id = args.id or "__ROOT__"
         protected.prepare_template(1)
     else
         self.id = args.parent.__add_child(args.id, protected)
@@ -321,6 +322,8 @@ function element.new(args)
             v.delete()
             protected.children[k] = nil
         end
+
+        args.parent.__remove_child(self.id)
     end
 
     -- ELEMENT TREE --
@@ -346,8 +349,17 @@ function element.new(args)
         end
     end
 
+    -- remove a child element
+    ---@param key element_id id
+    function public.__remove_child(key)
+        if protected.children[key] ~= nil then
+            protected.on_removed(key)
+            protected.children[key] = nil
+        end
+    end
+
     -- actions to take upon a child element becoming ready (initial draw/construction completed)
-    ---@param key string|integer id
+    ---@param key element_id id
     ---@param child graphics_element
     function public.__child_ready(key, child)
         protected.on_added(key, child)
@@ -364,8 +376,8 @@ function element.new(args)
     function public.remove(id)
         if protected.children[id] ~= nil then
             protected.children[id].delete()
-            protected.children[id] = nil
             protected.on_removed(id)
+            protected.children[id] = nil
         end
     end
 
