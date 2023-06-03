@@ -35,6 +35,7 @@ svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
     modem = nil,        ---@type table|nil
+    fp_ok = false,
     num_reactors = 0,
     facility = nil,     ---@type facility|nil
     sessions = { rtu = {}, plc = {}, coord = {}, pdg = {} },
@@ -196,11 +197,13 @@ end
 -- PUBLIC FUNCTIONS --
 
 -- initialize svsessions
----@param modem table
----@param num_reactors integer
----@param cooling_conf table
-function svsessions.init(modem, num_reactors, cooling_conf)
+---@param modem table modem device
+---@param fp_ok boolean front panel active
+---@param num_reactors integer number of reactors
+---@param cooling_conf table cooling configuration definition
+function svsessions.init(modem, fp_ok, num_reactors, cooling_conf)
     self.modem = modem
+    self.fp_ok = fp_ok
     self.num_reactors = num_reactors
     self.facility = facility.new(num_reactors, cooling_conf)
 end
@@ -308,13 +311,15 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
             instance = nil  ---@type plc_session
         }
 
-        plc_s.instance = plc.new_session(self.next_ids.plc, for_reactor, plc_s.in_queue, plc_s.out_queue, config.PLC_TIMEOUT)
+        plc_s.instance = plc.new_session(self.next_ids.plc, for_reactor, plc_s.in_queue, plc_s.out_queue,
+                                         config.PLC_TIMEOUT, self.fp_ok)
         table.insert(self.sessions.plc, plc_s)
 
         local units = self.facility.get_units()
         units[for_reactor].link_plc_session(plc_s)
 
-        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_ids.plc, " for reactor ", for_reactor))
+        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_ids.plc, 
+                            " for reactor ", for_reactor))
 
         databus.tx_plc_connected(for_reactor, version, remote_port)
 
@@ -348,7 +353,8 @@ function svsessions.establish_rtu_session(local_port, remote_port, advertisement
         instance = nil  ---@type rtu_session
     }
 
-    rtu_s.instance = rtu.new_session(self.next_ids.rtu, rtu_s.in_queue, rtu_s.out_queue, config.RTU_TIMEOUT, advertisement, self.facility)
+    rtu_s.instance = rtu.new_session(self.next_ids.rtu, rtu_s.in_queue, rtu_s.out_queue, config.RTU_TIMEOUT, advertisement,
+                                        self.facility, self.fp_ok)
     table.insert(self.sessions.rtu, rtu_s)
 
     log.debug("established new RTU session to " .. remote_port .. " with ID " .. self.next_ids.rtu)
@@ -381,7 +387,8 @@ function svsessions.establish_coord_session(local_port, remote_port, version)
             instance = nil  ---@type coord_session
         }
 
-        coord_s.instance = coordinator.new_session(self.next_ids.coord, coord_s.in_queue, coord_s.out_queue, config.CRD_TIMEOUT, self.facility)
+        coord_s.instance = coordinator.new_session(self.next_ids.coord, coord_s.in_queue, coord_s.out_queue, config.CRD_TIMEOUT,
+                                                    self.facility, self.fp_ok)
         table.insert(self.sessions.coord, coord_s)
 
         log.debug("established new coordinator session to " .. remote_port .. " with ID " .. self.next_ids.coord)
@@ -417,7 +424,7 @@ function svsessions.establish_pdg_session(local_port, remote_port, version)
         instance = nil  ---@type pdg_session
     }
 
-    pdg_s.instance = pocket.new_session(self.next_ids.pdg, pdg_s.in_queue, pdg_s.out_queue, config.PKT_TIMEOUT)
+    pdg_s.instance = pocket.new_session(self.next_ids.pdg, pdg_s.in_queue, pdg_s.out_queue, config.PKT_TIMEOUT, self.fp_ok)
     table.insert(self.sessions.pdg, pdg_s)
 
     log.debug("established new pocket diagnostics session to " .. remote_port .. " with ID " .. self.next_ids.pdg)

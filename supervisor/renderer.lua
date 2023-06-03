@@ -3,6 +3,7 @@
 --
 
 local panel_view = require("supervisor.panel.front_panel")
+local pgi        = require("supervisor.panel.pgi")
 local style      = require("supervisor.panel.style")
 
 local flasher    = require("graphics.flasher")
@@ -43,6 +44,9 @@ function renderer.close_ui()
     if ui.display ~= nil then
         -- stop blinking indicators
         flasher.clear()
+
+        -- disable PGI
+        pgi.unlink()
 
         -- hide to stop animation callbacks
         ui.display.hide()

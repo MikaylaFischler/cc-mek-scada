@@ -9,9 +9,6 @@ local pocket = {}
 local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
--- local println = util.println
-local println = function (str) end
-
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
 -- local RETRY_PERIOD = 1000
@@ -35,7 +32,11 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function pocket.new_session(id, in_queue, out_queue, timeout)
+---@param fp_ok boolean if the front panel UI is running
+function pocket.new_session(id, in_queue, out_queue, timeout, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "pdg_session(" .. id .. "): "
 
     local self = {

@@ -28,6 +28,14 @@ function pgi.link_elements(rtu_list, rtu_entry, pdg_list, pdg_entry)
     data.pdg_entry = pdg_entry
 end
 
+-- unlink all fields, disabling the PGI
+function pgi.unlink()
+    data.rtu_list = nil
+    data.pdg_list = nil
+    data.rtu_entry = nil
+    data.pdg_entry = nil
+end
+
 -- add an RTU entry to the RTU list
 ---@param session_id integer RTU session
 function pgi.create_rtu_entry(session_id)

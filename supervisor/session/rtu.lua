@@ -24,9 +24,6 @@ local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
--- local println = util.println
-local println = function (str) end
-
 local PERIODICS = {
     KEEP_ALIVE = 2000
 }
@@ -39,7 +36,11 @@ local PERIODICS = {
 ---@param timeout number communications timeout
 ---@param advertisement table RTU device advertisement
 ---@param facility facility facility data table
-function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facility)
+---@param fp_ok boolean if the front panel UI is running
+function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facility, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {

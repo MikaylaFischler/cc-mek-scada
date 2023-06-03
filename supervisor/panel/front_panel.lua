@@ -18,21 +18,16 @@ local core          = require("graphics.core")
 local Div           = require("graphics.elements.div")
 local ListBox       = require("graphics.elements.listbox")
 local MultiPane     = require("graphics.elements.multipane")
-local Rectangle     = require("graphics.elements.rectangle")
 local TextBox       = require("graphics.elements.textbox")
 
-local PushButton    = require("graphics.elements.controls.push_button")
 local TabBar        = require("graphics.elements.controls.tabbar")
 
 local LED           = require("graphics.elements.indicators.led")
-local LEDPair       = require("graphics.elements.indicators.ledpair")
-local RGBLED        = require("graphics.elements.indicators.ledrgb")
 local DataIndicator = require("graphics.elements.indicators.data")
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
 local cpair = core.cpair
-local border = core.border
 
 -- create new main view
 ---@param panel graphics_element main displaybox

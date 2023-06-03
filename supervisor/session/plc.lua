@@ -16,9 +16,6 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
--- local println = util.println
-local println = function (str) end
-
 -- retry time constants in ms
 local INITIAL_WAIT      = 1500
 local INITIAL_AUTO_WAIT = 1000
@@ -52,7 +49,11 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
+---@param fp_ok boolean if the front panel UI is running
+function plc.new_session(id, reactor_id, in_queue, out_queue, timeout, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {

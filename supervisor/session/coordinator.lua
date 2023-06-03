@@ -20,9 +20,6 @@ local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
--- local println = util.println
-local println = function (str) end
-
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
@@ -52,7 +49,11 @@ local PERIODICS = {
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param facility facility facility data table
-function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
+---@param fp_ok boolean if the front panel UI is running
+function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
