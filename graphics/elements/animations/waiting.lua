@@ -1,6 +1,6 @@
 -- Loading/Waiting Animation Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 
 local element = require("graphics.element")
 

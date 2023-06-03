@@ -8,7 +8,7 @@ local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local ppm        = require("scada-common.ppm")
-local tcd        = require("scada-common.tcallbackdsp")
+local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
@@ -20,7 +20,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.16.6"
+local SUPERVISOR_VERSION = "v0.16.7"
 
 local println = util.println
 local println_ts = util.println_ts

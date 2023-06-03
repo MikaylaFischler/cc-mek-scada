@@ -1,6 +1,7 @@
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
 local ppm          = require("scada-common.ppm")
+local tcd          = require("scada-common.tcd")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
 
@@ -82,6 +83,9 @@ function threads.thread__main(smem)
             elseif event == "timer" and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? unlink
                 rtu_comms.unlink(rtu_state)
+            elseif event == "timer" then
+                -- notify timer callback dispatcher if no other timer case claimed this event
+                tcd.handle(param1)
             elseif event == "peripheral_detach" then
                 -- handle loss of a device
                 local type, device = ppm.handle_unmount(param1)

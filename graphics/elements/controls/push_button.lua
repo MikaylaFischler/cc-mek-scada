@@ -1,6 +1,6 @@
 -- Button Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")

@@ -1,6 +1,6 @@
 -- Hazard-bordered Button Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 local util    = require("scada-common.util")
 
 local core    = require("graphics.core")

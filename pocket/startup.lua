@@ -4,20 +4,20 @@
 
 require("/initenv").init_env()
 
-local crash        = require("scada-common.crash")
-local log          = require("scada-common.log")
-local ppm          = require("scada-common.ppm")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
-local util         = require("scada-common.util")
+local crash    = require("scada-common.crash")
+local log      = require("scada-common.log")
+local ppm      = require("scada-common.ppm")
+local tcd      = require("scada-common.tcd")
+local util     = require("scada-common.util")
 
-local core         = require("graphics.core")
+local core     = require("graphics.core")
 
-local config       = require("pocket.config")
-local coreio       = require("pocket.coreio")
-local pocket       = require("pocket.pocket")
-local renderer     = require("pocket.renderer")
+local config   = require("pocket.config")
+local coreio   = require("pocket.coreio")
+local pocket   = require("pocket.pocket")
+local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.3.6"
+local POCKET_VERSION = "alpha-v0.3.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -145,7 +145,7 @@ local function main()
                 else
                     -- a non-clock/main watchdog timer event
                     -- notify timer callback dispatcher
-                    tcallbackdsp.handle(param1)
+                    tcd.handle(param1)
                 end
             elseif event == "modem_message" then
                 -- got a packet

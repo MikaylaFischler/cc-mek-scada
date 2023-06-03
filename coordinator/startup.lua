@@ -4,23 +4,23 @@
 
 require("/initenv").init_env()
 
-local crash        = require("scada-common.crash")
-local log          = require("scada-common.log")
-local ppm          = require("scada-common.ppm")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
-local util         = require("scada-common.util")
+local crash       = require("scada-common.crash")
+local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
+local tcd         = require("scada-common.tcd")
+local util        = require("scada-common.util")
 
-local core         = require("graphics.core")
+local core        = require("graphics.core")
 
-local config       = require("coordinator.config")
-local coordinator  = require("coordinator.coordinator")
-local iocontrol    = require("coordinator.iocontrol")
-local renderer     = require("coordinator.renderer")
-local sounder      = require("coordinator.sounder")
+local config      = require("coordinator.config")
+local coordinator = require("coordinator.coordinator")
+local iocontrol   = require("coordinator.iocontrol")
+local renderer    = require("coordinator.renderer")
+local sounder     = require("coordinator.sounder")
 
-local apisessions  = require("coordinator.session.apisessions")
+local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.15.6"
+local COORDINATOR_VERSION = "v0.15.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -334,7 +334,7 @@ local function main()
                 apisessions.check_all_watchdogs(param1)
 
                 -- notify timer callback dispatcher
-                tcallbackdsp.handle(param1)
+                tcd.handle(param1)
             end
         elseif event == "modem_message" then
             -- got a packet
