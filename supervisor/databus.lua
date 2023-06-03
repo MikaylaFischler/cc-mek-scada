@@ -15,10 +15,10 @@ databus.ps = psil.create()
 function databus.heartbeat() databus.ps.toggle("heartbeat") end
 
 -- transmit firmware versions across the bus
----@param plc_v string supervisor version
+---@param sv_v string supervisor version
 ---@param comms_v string comms version
-function databus.tx_versions(plc_v, comms_v)
-    databus.ps.publish("version", plc_v)
+function databus.tx_versions(sv_v, comms_v)
+    databus.ps.publish("version", sv_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
@@ -38,7 +38,7 @@ function databus.tx_plc_connected(reactor_id, fw, channel)
     databus.ps.publish("plc_" .. reactor_id .. "_chan", tostring(channel))
 end
 
--- transmit PLC session connection state
+-- transmit PLC disconnected
 ---@param reactor_id integer reactor unit ID
 function databus.tx_plc_disconnected(reactor_id)
     databus.ps.publish("plc_" .. reactor_id .. "_fw", " ------- ")
@@ -110,7 +110,7 @@ function databus.tx_crd_connected(fw, channel)
     databus.ps.publish("crd_chan", tostring(channel))
 end
 
--- transmit coordinator session connection state
+-- transmit coordinator disconnected
 function databus.tx_crd_disconnected()
     databus.ps.publish("crd_fw", " ------- ")
     databus.ps.publish("crd_conn", false)
@@ -133,7 +133,7 @@ function databus.tx_crd_rtt(rtt)
     end
 end
 
--- transmit PDG firmware version and session connection state
+-- transmit PKT firmware version and PDG session connection state
 ---@param session_id integer PDG session
 ---@param fw string firmware version
 ---@param channel integer PDG remote port
@@ -143,7 +143,7 @@ function databus.tx_pdg_connected(session_id, fw, channel)
     pgi.create_pdg_entry(session_id)
 end
 
--- transmit PDG disconnected
+-- transmit PDG session disconnected
 ---@param session_id integer PDG session
 function databus.tx_pdg_disconnected(session_id)
     pgi.delete_pdg_entry(session_id)

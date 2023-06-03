@@ -44,16 +44,15 @@ local function data(args)
     e.window.setCursorPos(1, 1)
     e.window.write(args.label)
 
-    local label_len = string.len(args.label)
-    local data_start = 1
+    local value_color = e.fg_bg.fgd
+    local label_len   = string.len(args.label)
+    local data_start  = 1
     local clear_width = args.width
 
     if label_len > 0 then
         data_start = data_start + (label_len + 1)
         clear_width = args.width - (label_len + 1)
     end
-
-    local value_color = e.fg_bg.fgd
 
     -- on state change
     ---@param value any new value

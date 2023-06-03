@@ -56,7 +56,7 @@ local function listbox(args)
     local mouse_last_y    = 0           -- last reported y coordinate of drag
 
     -- draw scroll bar arrows, optionally showing one of them as pressed
-    ---@param pressed_arrow? integer arrow to show as pressed (1 = scroll up, 0 = neither, -1 = scroll down)
+    ---@param pressed_arrow? 1|0|-1 arrow to show as pressed (1 = scroll up, 0 = neither, -1 = scroll down)
     local function draw_arrows(pressed_arrow)
         local nav_fg_bg = args.nav_fg_bg or e.fg_bg
         local active_fg_bg = args.nav_active or nav_fg_bg
@@ -200,7 +200,7 @@ local function listbox(args)
     end
 
     -- handle a child element having been added to the list
-    ---@param id string|integer element identifier
+    ---@param id element_id element identifier
     ---@param child graphics_element child element
     function e.on_added(id, child)
         table.insert(list, { id = id, e = child, y = 0, h = child.get_height() })
@@ -208,7 +208,7 @@ local function listbox(args)
     end
 
     -- handle a child element having been removed from the list
-    ---@param id string|integer element identifier
+    ---@param id element_id element identifier
     function e.on_removed(id)
         for idx, elem in ipairs(list) do
             if elem.id == id then

@@ -195,7 +195,7 @@ local function main()
 
         -- check for termination request
         if event == "terminate" or ppm.should_terminate() then
-            println_ts("closing sesssions...")
+            println_ts("closing sessions...")
             log.info("terminate requested, closing sessions...")
             svsessions.close_all()
             log.info("sessions closed")

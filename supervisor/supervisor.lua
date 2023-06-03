@@ -308,7 +308,7 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
                                 -- this is an attempt to establish a new pocket diagnostic session
                                 local s_id = svsessions.establish_pdg_session(l_port, r_port, firmware_v)
 
-                                println(util.c("PDG (", firmware_v, ") [:", r_port, "] \xbb connected"))
+                                println(util.c("PKT (", firmware_v, ") [:", r_port, "] \xbb connected"))
                                 log.info(util.c("SVCTL_ESTABLISH: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
 
                                 _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
