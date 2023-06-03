@@ -44,7 +44,7 @@ local function init(panel, units)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
-    local on = LED{parent=system,label="POWER",colors=cpair(colors.green,colors.red)}
+    local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
     on.update(true)
     system.line_break()
