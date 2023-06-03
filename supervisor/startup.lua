@@ -8,6 +8,7 @@ local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local ppm        = require("scada-common.ppm")
+local tcd        = require("scada-common.tcallbackdsp")
 local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
@@ -19,7 +20,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.16.5"
+local SUPERVISOR_VERSION = "v0.16.6"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -169,6 +170,9 @@ local function main()
             elseif event == "timer" then
                 -- a non-clock timer event, check watchdogs
                 svsessions.check_all_watchdogs(param1)
+
+                -- notify timer callback dispatcher
+                tcd.handle(param1)
             elseif event == "modem_message" then
                 -- got a packet
                 local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)

@@ -7,7 +7,11 @@ local util          = require("scada-common.util")
 local config        = require("supervisor.config")
 local databus       = require("supervisor.databus")
 
+local pgi           = require("supervisor.panel.pgi")
 local style         = require("supervisor.panel.style")
+
+local pdg_entry     = require("supervisor.panel.components.pdg_entry")
+local rtu_entry     = require("supervisor.panel.components.rtu_entry")
 
 local core          = require("graphics.core")
 
@@ -45,7 +49,7 @@ local function init(panel)
 
     local system = Div{parent=main_page,width=14,height=17,x=2,y=2}
 
-    local on = LED{parent=system,label="POWER",colors=cpair(colors.green,colors.red)}
+    local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
     on.update(true)
     system.line_break()
@@ -107,14 +111,8 @@ local function init(panel)
     -- rtu page
 
     local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local rtu_list = ListBox{parent=rtu_page,x=2,y=2,height=15,width=49,scroll_height=1000,item_pad=1,fg_bg=cpair(colors.black,colors.white)}
-
-    local item_1 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.red),hidden=true}
-    local item_2 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.orange),hidden=true}
-    local item_3 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.yellow),hidden=true}
-    local item_4 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.green),hidden=true}
-    local item_5 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.blue),hidden=true}
-    local item_6 = Div{parent=rtu_list,height=3,fg_bg=cpair(colors.black,colors.purple),hidden=true}
+    local rtu_list = ListBox{parent=rtu_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local _ = Div{parent=rtu_list,height=1,hidden=true} -- padding
 
     -- coordinator page
 
@@ -138,10 +136,13 @@ local function init(panel)
     crd_rtt.register(databus.ps, "crd_rtt", crd_rtt.update)
     crd_rtt.register(databus.ps, "crd_rtt_color", crd_rtt.recolor)
 
-    -- pocket page
+    -- pocket diagnostics page
 
     local pkt_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local pkt_box = Div{parent=pkt_page,x=2,y=2,width=49}
+    local pdg_list = ListBox{parent=pkt_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local _ = Div{parent=pdg_list,height=1,hidden=true} -- padding
+
+    -- assemble page panes
 
     local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page }
 
@@ -156,6 +157,9 @@ local function init(panel)
     }
 
     TabBar{parent=panel,y=2,tabs=tabs,min_width=9,callback=page_pane.set_value,fg_bg=cpair(colors.black,colors.white)}
+
+    -- link RTU/PDG list management to PGI
+    pgi.link_elements(rtu_list, rtu_entry, pdg_list, pdg_entry)
 end
 
 return init

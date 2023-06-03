@@ -323,7 +323,10 @@ function element.new(args)
             protected.children[k] = nil
         end
 
-        args.parent.__remove_child(self.id)
+        if args.parent ~= nil then
+            -- remove self from parent
+            args.parent.__remove_child(self.id)
+        end
     end
 
     -- ELEMENT TREE --

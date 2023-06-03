@@ -4,6 +4,8 @@ local mqueue        = require("scada-common.mqueue")
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
+local databus       = require("supervisor.databus")
+
 local svqtypes      = require("supervisor.session.svqtypes")
 
 -- supervisor rtu sessions (svrs)
@@ -67,6 +69,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
     -- parse the recorded advertisement and create unit sub-sessions
     local function _handle_advertisement()
+        local unit_count = 0
+
         _reset_config()
 
         for i = 1, #self.fac_units do
@@ -173,18 +177,22 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             if unit ~= nil then
                 self.units[i] = unit
+                unit_count = unit_count + 1
             elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
                 _reset_config()
                 log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
                 break
             end
         end
+
+        databus.tx_rtu_units(id, unit_count)
     end
 
     -- mark this RTU session as closed, stop watchdog
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_rtu_disconnected(id)
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
         for _, unit in pairs(self.units) do unit.close() end
@@ -255,6 +263,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
                     -- log.debug(log_header .. "RTU RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "RTU TT  = " .. (srv_now - rtu_send) .. "ms")
+
+                    databus.tx_rtu_rtt(id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

@@ -4,14 +4,12 @@
 
 local psil = require("scada-common.psil")
 
+local pgi  = require("supervisor.panel.pgi")
+
 local databus = {}
 
 -- databus PSIL
 databus.ps = psil.create()
-
-local dbus_iface = {
-    session_entries = { rtu = {}, diag = {} }
-}
 
 -- call to toggle heartbeat signal
 function databus.heartbeat() databus.ps.toggle("heartbeat") end
@@ -65,6 +63,44 @@ function databus.tx_plc_rtt(reactor_id, rtt)
     end
 end
 
+-- transmit RTU firmware version and session connection state
+---@param session_id integer RTU session
+---@param fw string firmware version
+---@param channel integer RTU remote port
+function databus.tx_rtu_connected(session_id, fw, channel)
+    databus.ps.publish("rtu_" .. session_id .. "_fw", fw)
+    databus.ps.publish("rtu_" .. session_id .. "_chan", tostring(channel))
+    pgi.create_rtu_entry(session_id)
+end
+
+-- transmit RTU disconnected
+---@param session_id integer RTU session
+function databus.tx_rtu_disconnected(session_id)
+    pgi.delete_rtu_entry(session_id)
+end
+
+-- transmit RTU session RTT
+---@param session_id integer RTU session
+---@param rtt integer round trip time
+function databus.tx_rtu_rtt(session_id, rtt)
+    databus.ps.publish("rtu_" .. session_id .. "_rtt", rtt)
+
+    if rtt > 700 then
+        databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.red)
+    elseif rtt > 300 then
+        databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.yellow_hc)
+    else
+        databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.green)
+    end
+end
+
+-- transmit RTU session unit count
+---@param session_id integer RTU session
+---@param units integer unit count
+function databus.tx_rtu_units(session_id, units)
+    databus.ps.publish("rtu_" .. session_id .. "_units", units)
+end
+
 -- transmit coordinator firmware version and session connection state
 ---@param fw string firmware version
 ---@param channel integer coordinator remote port
@@ -94,6 +130,37 @@ function databus.tx_crd_rtt(rtt)
         databus.ps.publish("crd_rtt_color", colors.yellow_hc)
     else
         databus.ps.publish("crd_rtt_color", colors.green)
+    end
+end
+
+-- transmit PDG firmware version and session connection state
+---@param session_id integer PDG session
+---@param fw string firmware version
+---@param channel integer PDG remote port
+function databus.tx_pdg_connected(session_id, fw, channel)
+    databus.ps.publish("pdg_" .. session_id .. "_fw", fw)
+    databus.ps.publish("pdg_" .. session_id .. "_chan", tostring(channel))
+    pgi.create_pdg_entry(session_id)
+end
+
+-- transmit PDG disconnected
+---@param session_id integer PDG session
+function databus.tx_pdg_disconnected(session_id)
+    pgi.delete_pdg_entry(session_id)
+end
+
+-- transmit PDG session RTT
+---@param session_id integer PDG session
+---@param rtt integer round trip time
+function databus.tx_pdg_rtt(session_id, rtt)
+    databus.ps.publish("pdg_" .. session_id .. "_rtt", rtt)
+
+    if rtt > 700 then
+        databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.red)
+    elseif rtt > 300 then
+        databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.yellow_hc)
+    else
+        databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.green)
     end
 end
 
