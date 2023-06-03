@@ -4,6 +4,8 @@ local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
+local databus  = require("supervisor.databus")
+
 local svqtypes = require("supervisor.session.svqtypes")
 
 local plc = {}
@@ -13,8 +15,6 @@ local RPLC_TYPE = comms.RPLC_TYPE
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
-
-local println = util.println
 
 -- retry time constants in ms
 local INITIAL_WAIT      = 1500
@@ -49,7 +49,11 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
+---@param fp_ok boolean if the front panel UI is running
+function plc.new_session(id, reactor_id, in_queue, out_queue, timeout, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "plc_session(" .. id .. "): "
 
     local self = {
@@ -235,6 +239,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_plc_disconnected(reactor_id)
     end
 
     -- send an RPLC packet
@@ -485,6 +490,8 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout)
 
                     -- log.debug(log_header .. "PLC RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "PLC TT  = " .. (srv_now - plc_send) .. "ms")
+
+                    databus.tx_plc_rtt(reactor_id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

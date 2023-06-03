@@ -11,8 +11,6 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
-local println = util.println
-
 -- supervisory controller communications
 ---@nodiscard
 ---@param _version string supervisor version
@@ -22,8 +20,12 @@ local println = util.println
 ---@param dev_listen integer listening port for PLC/RTU devices
 ---@param svctl_listen integer listening port for supervisor access
 ---@param range integer trusted device connection range
+---@param fp_ok boolean if the front panel UI is running
 ---@diagnostic disable-next-line: unused-local
-function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range)
+function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local self = {
         last_est_acks = {}
     }
@@ -41,8 +43,8 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
 
     _conf_channels()
 
-    -- link modem to svsessions
-    svsessions.init(modem, num_reactors, cooling_conf)
+    -- pass modem, status, and config data to svsessions
+    svsessions.init(modem, fp_ok, num_reactors, cooling_conf)
 
     -- send an establish request response to a PLC/RTU
     ---@param dest integer
@@ -304,7 +306,7 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
                                 end
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- this is an attempt to establish a new pocket diagnostic session
-                                local s_id = svsessions.establish_diag_session(l_port, r_port, firmware_v)
+                                local s_id = svsessions.establish_pdg_session(l_port, r_port, firmware_v)
 
                                 println(util.c("PKT (", firmware_v, ") [:", r_port, "] \xbb connected"))
                                 log.info(util.c("SVCTL_ESTABLISH: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))

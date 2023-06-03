@@ -25,7 +25,7 @@ local function init(parent, y, is_api)
     -- bounding box div
     local box = Div{parent=root,x=1,y=y,height=5}
 
-    local waiting_x = math.floor(parent.width() / 2) - 1
+    local waiting_x = math.floor(parent.get_width() / 2) - 1
 
     if is_api then
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.blue,style.root.bkg)}

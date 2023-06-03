@@ -18,6 +18,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new spinbox control (minimum value is 0)
 ---@param args spinbox_args
@@ -188,7 +189,7 @@ local function spinbox(args)
     e.value = 0
     set_digits()
 
-    return e.get()
+    return e.complete()
 end
 
 return spinbox

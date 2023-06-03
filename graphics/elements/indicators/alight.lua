@@ -18,6 +18,7 @@ local flasher = require("graphics.flasher")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new alarm indicator light
 ---@nodiscard
@@ -108,7 +109,7 @@ local function alarm_indicator_light(args)
     e.on_update(1)
     e.window.write(args.label)
 
-    return e.get()
+    return e.complete()
 end
 
 return alarm_indicator_light

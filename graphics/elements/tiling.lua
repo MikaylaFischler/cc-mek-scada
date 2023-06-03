@@ -16,6 +16,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new tiling box
 ---@param args tiling_args
@@ -81,7 +82,7 @@ local function tiling(args)
         if inner_width % 2 == 0 then alternator = not alternator end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return tiling

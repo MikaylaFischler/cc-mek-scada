@@ -38,7 +38,7 @@ local function make(parent, x, y, unit)
         height = 17
     end
 
-    assert(parent.height() >= (y + height), "main display not of sufficient vertical resolution (add an additional row of monitors)")
+    assert(parent.get_height() >= (y + height), "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
     -- bounding box div
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}

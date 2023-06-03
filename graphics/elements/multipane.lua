@@ -12,6 +12,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new multipane element
 ---@nodiscard
@@ -36,7 +37,7 @@ local function multipane(args)
 
     e.set_value(1)
 
-    return e.get()
+    return e.complete()
 end
 
 return multipane
