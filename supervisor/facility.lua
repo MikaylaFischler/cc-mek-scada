@@ -128,7 +128,7 @@ function facility.new(num_reactors, cooling_conf)
         for i = 1, #self.prio_defs do
             local units = self.prio_defs[i]
             for u = 1, #units do
-                all_ramped = all_ramped and units[u].a_ramp_complete()
+                all_ramped = all_ramped and units[u].auto_ramp_complete()
             end
         end
 
@@ -159,7 +159,7 @@ function facility.new(num_reactors, cooling_conf)
                     local u = units[id] ---@type reactor_unit
 
                     local ctl = u.get_control_inf()
-                    local lim_br100 = u.a_get_effective_limit()
+                    local lim_br100 = u.auto_get_effective_limit()
 
                     if abort_on_fault and (lim_br100 ~= ctl.lim_br100) then
                         -- effective limit differs from set limit, unit is degraded
@@ -183,7 +183,7 @@ function facility.new(num_reactors, cooling_conf)
 
                     unallocated = math.max(0, unallocated - ctl.br100)
 
-                    if last ~= ctl.br100 then u.a_commit_br100(ramp) end
+                    if last ~= ctl.br100 then u.auto_commit_br100(ramp) end
                 end
             end
         end
@@ -320,7 +320,7 @@ function facility.new(num_reactors, cooling_conf)
                             self.start_fail = START_STATUS.BLADE_MISMATCH
                         end
 
-                        if self.start_fail == START_STATUS.OK then u.a_engage() end
+                        if self.start_fail == START_STATUS.OK then u.auto_engage() end
 
                         self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br100 / 100.0)
                     end
@@ -340,7 +340,7 @@ function facility.new(num_reactors, cooling_conf)
                     -- use manual SCRAM since inactive was requested, and automatic SCRAM trips an alarm
                     for _, u in pairs(self.prio_defs[i]) do
                         u.scram()
-                        u.a_disengage()
+                        u.auto_disengage()
                     end
                 end
 
@@ -601,7 +601,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- SCRAM all units
                 for i = 1, #self.prio_defs do
                     for _, u in pairs(self.prio_defs[i]) do
-                        u.a_scram()
+                        u.auto_scram()
                     end
                 end
 
@@ -653,7 +653,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- reset PLC RPS trips if we should
                 for i = 1, #self.units do
                     local u = self.units[i] ---@type reactor_unit
-                    u.a_cond_rps_reset()
+                    u.auto_cond_rps_reset()
                 end
             end
         end
