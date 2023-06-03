@@ -56,7 +56,7 @@ local function init(panel)
 
     modem.register(databus.ps, "has_modem", modem.update)
 
-    --  
+    --
     -- about footer
     --
 

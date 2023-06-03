@@ -318,7 +318,7 @@ function svsessions.establish_plc_session(local_port, remote_port, for_reactor, 
         local units = self.facility.get_units()
         units[for_reactor].link_plc_session(plc_s)
 
-        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_ids.plc, 
+        log.debug(util.c("established new PLC session to ", remote_port, " with ID ", self.next_ids.plc,
                             " for reactor ", for_reactor))
 
         databus.tx_plc_connected(for_reactor, version, remote_port)
