@@ -4,23 +4,23 @@
 
 require("/initenv").init_env()
 
-local crash        = require("scada-common.crash")
-local log          = require("scada-common.log")
-local ppm          = require("scada-common.ppm")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
-local util         = require("scada-common.util")
+local crash       = require("scada-common.crash")
+local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
+local tcd         = require("scada-common.tcd")
+local util        = require("scada-common.util")
 
-local core         = require("graphics.core")
+local core        = require("graphics.core")
 
-local config       = require("coordinator.config")
-local coordinator  = require("coordinator.coordinator")
-local iocontrol    = require("coordinator.iocontrol")
-local renderer     = require("coordinator.renderer")
-local sounder      = require("coordinator.sounder")
+local config      = require("coordinator.config")
+local coordinator = require("coordinator.coordinator")
+local iocontrol   = require("coordinator.iocontrol")
+local renderer    = require("coordinator.renderer")
+local sounder     = require("coordinator.sounder")
 
-local apisessions  = require("coordinator.session.apisessions")
+local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.13.8"
+local COORDINATOR_VERSION = "v0.15.8"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -50,7 +50,6 @@ cfv.assert_type_num(config.SOUNDER_VOLUME)
 cfv.assert_type_bool(config.TIME_24_HOUR)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -58,7 +57,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
@@ -335,7 +334,7 @@ local function main()
                 apisessions.check_all_watchdogs(param1)
 
                 -- notify timer callback dispatcher
-                tcallbackdsp.handle(param1)
+                tcd.handle(param1)
             end
         elseif event == "modem_message" then
             -- got a packet
@@ -359,7 +358,7 @@ local function main()
             end
         elseif event == "monitor_touch" then
             -- handle a monitor touch event
-            renderer.handle_mouse(core.events.touch(param1, param2, param3))
+            renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then
             -- handle speaker buffer emptied
             sounder.continue()

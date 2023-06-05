@@ -335,12 +335,13 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                 tick_dmesg_waiting(math.max(0, timeout_s - (util.time_s() - start)))
                 _send_establish()
                 clock.start()
+            elseif event == "timer" then
+                -- keep checking watchdog timers
+                apisessions.check_all_watchdogs(p1)
             elseif event == "modem_message" then
                 -- handle message
                 local packet = public.parse_packet(p1, p2, p3, p4, p5)
-                if packet ~= nil and packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                    public.handle_packet(packet)
-                end
+                public.handle_packet(packet)
             elseif event == "terminate" then
                 terminated = true
                 break

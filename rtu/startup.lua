@@ -28,7 +28,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.0.5"
+local RTU_VERSION = "v1.2.8"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -49,7 +49,6 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.LOG_DEBUG)
 cfv.assert_type_table(config.RTU_DEVICES)
 cfv.assert_type_table(config.RTU_REDSTONE)
 assert(cfv.valid(), "bad config file: missing/invalid fields")
@@ -58,7 +57,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING rtu.startup " .. RTU_VERSION)
@@ -458,9 +457,9 @@ local function main()
         if not rtu_state.fp_ok then
             renderer.close_ui()
             println_ts(util.c("UI error: ", message))
-            println("init> running without front panel")
+            println("startup> running without front panel")
             log.error(util.c("GUI crashed with error ", message))
-            log.info("init> running in headless mode without front panel")
+            log.info("startup> running in headless mode without front panel")
         end
 
         -- start connection watchdog

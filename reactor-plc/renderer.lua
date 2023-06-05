@@ -44,10 +44,8 @@ function renderer.close_ui()
         -- stop blinking indicators
         flasher.clear()
 
-        -- hide to stop animation callbacks
-        ui.display.hide()
-
-        -- clear root UI elements
+        -- delete element tree
+        ui.display.delete()
         ui.display = nil
 
         -- restore colors
@@ -70,9 +68,9 @@ end
 function renderer.ui_ready() return ui.display ~= nil end
 
 -- handle a mouse event
----@param event mouse_interaction
+---@param event mouse_interaction|nil
 function renderer.handle_mouse(event)
-    if ui.display ~= nil then
+    if ui.display ~= nil and event ~= nil then
         ui.display.handle_mouse(event)
     end
 end

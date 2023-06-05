@@ -1,9 +1,11 @@
 -- Button Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
+
+local CLICK_TYPE = core.events.CLICK_TYPE
 
 ---@class push_button_args
 ---@field text string button text
@@ -17,6 +19,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new push button
 ---@param args push_button_args
@@ -24,6 +27,8 @@ local element = require("graphics.element")
 local function push_button(args)
     assert(type(args.text) == "string", "graphics.elements.controls.push_button: text is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.push_button: callback is a required field")
+    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
+        "graphics.elements.controls.push_button: min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
 
@@ -47,36 +52,50 @@ local function push_button(args)
         e.window.write(args.text)
     end
 
+    -- draw the button as pressed (if active_fg_bg set)
+    local function show_pressed()
+        if e.enabled and args.active_fg_bg ~= nil then
+            e.value = true
+            e.window.setTextColor(args.active_fg_bg.fgd)
+            e.window.setBackgroundColor(args.active_fg_bg.bkg)
+            draw()
+        end
+    end
+
+    -- draw the button as unpressed (if active_fg_bg set)
+    local function show_unpressed()
+        if e.enabled and args.active_fg_bg ~= nil then
+            e.value = false
+            e.window.setTextColor(e.fg_bg.fgd)
+            e.window.setBackgroundColor(e.fg_bg.bkg)
+            draw()
+        end
+    end
+
     -- handle mouse interaction
-    function e.handle_mouse(_)
+    ---@param event mouse_interaction mouse event
+    function e.handle_mouse(event)
         if e.enabled then
-            if args.active_fg_bg ~= nil then
-                -- show as pressed
-                e.value = true
-                e.window.setTextColor(args.active_fg_bg.fgd)
-                e.window.setBackgroundColor(args.active_fg_bg.bkg)
-                draw()
-
+            if event.type == CLICK_TYPE.TAP then
+                show_pressed()
                 -- show as unpressed in 0.25 seconds
-                tcd.dispatch(0.25, function ()
-                    e.value = false
-                    if e.enabled then
-                        e.window.setTextColor(e.fg_bg.fgd)
-                        e.window.setBackgroundColor(e.fg_bg.bkg)
-                    end
-                    draw()
-                end)
+                if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_unpressed) end
+                args.callback()
+            elseif event.type == CLICK_TYPE.DOWN then
+                show_pressed()
+            elseif event.type == CLICK_TYPE.UP then
+                show_unpressed()
+                if e.in_frame_bounds(event.current.x, event.current.y) then
+                    args.callback()
+                end
             end
-
-            -- call the touch callback
-            args.callback()
         end
     end
 
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic("", core.events.click_type.VIRTUAL, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
     end
 
     -- show butten as enabled
@@ -102,7 +121,7 @@ local function push_button(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return push_button

@@ -14,9 +14,9 @@ local Div          = require("graphics.elements.div")
 local PipeNetwork  = require("graphics.elements.pipenet")
 local TextBox      = require("graphics.elements.textbox")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local pipe = core.graphics.pipe
+local pipe = core.pipe
 
 -- make a new unit overview window
 ---@param parent graphics_element parent
@@ -38,7 +38,7 @@ local function make(parent, x, y, unit)
         height = 17
     end
 
-    assert(parent.height() >= (y + height), "main display not of sufficient vertical resolution (add an additional row of monitors)")
+    assert(parent.get_height() >= (y + height), "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
     -- bounding box div
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}

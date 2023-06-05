@@ -1,4 +1,4 @@
-local tcd               = require("scada-common.tcallbackdsp")
+local tcd               = require("scada-common.tcd")
 local util              = require("scada-common.util")
 
 local iocontrol         = require("coordinator.iocontrol")
@@ -21,10 +21,10 @@ local HazardButton      = require("graphics.elements.controls.hazard_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 local period = core.flasher.PERIOD
 
@@ -33,7 +33,7 @@ local period = core.flasher.PERIOD
 ---@param x integer top left x
 ---@param y integer top left y
 local function new_view(root, x, y)
-    assert(root.height() >= (y + 24), "main display not of sufficient vertical resolution (add an additional row of monitors)")
+    assert(root.get_height() >= (y + 24), "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
@@ -55,9 +55,9 @@ local function new_view(root, x, y)
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
 
-    facility.ps.subscribe("all_sys_ok", all_ok.update)
-    facility.induction_ps_tbl[1].subscribe("computed_status", function (status) ind_mat.update(status > 1) end)
-    facility.ps.subscribe("rad_computed_status", rad_mon.update)
+    all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
+    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
+    rad_mon.register(facility.ps, "rad_computed_status", rad_mon.update)
 
     main.line_break()
 
@@ -66,10 +66,10 @@ local function new_view(root, x, y)
     local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
     local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
 
-    facility.ps.subscribe("auto_ready", auto_ready.update)
-    facility.ps.subscribe("auto_active", auto_act.update)
-    facility.ps.subscribe("auto_ramping", auto_ramp.update)
-    facility.ps.subscribe("auto_saturated", auto_sat.update)
+    auto_ready.register(facility.ps, "auto_ready", auto_ready.update)
+    auto_act.register(facility.ps, "auto_active", auto_act.update)
+    auto_ramp.register(facility.ps, "auto_ramping", auto_ramp.update)
+    auto_sat.register(facility.ps, "auto_saturated", auto_sat.update)
 
     main.line_break()
 
@@ -80,20 +80,20 @@ local function new_view(root, x, y)
     local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
     local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
 
-    facility.ps.subscribe("auto_scram", auto_scram.update)
-    facility.ps.subscribe("as_matrix_dc", matrix_dc.update)
-    facility.ps.subscribe("as_matrix_fill", matrix_fill.update)
-    facility.ps.subscribe("as_crit_alarm", unit_crit.update)
-    facility.ps.subscribe("as_radiation", fac_rad_h.update)
-    facility.ps.subscribe("as_gen_fault", gen_fault.update)
+    auto_scram.register(facility.ps, "auto_scram", auto_scram.update)
+    matrix_dc.register(facility.ps, "as_matrix_dc", matrix_dc.update)
+    matrix_fill.register(facility.ps, "as_matrix_fill", matrix_fill.update)
+    unit_crit.register(facility.ps, "as_crit_alarm", unit_crit.update)
+    fac_rad_h.register(facility.ps, "as_radiation", fac_rad_h.update)
+    gen_fault.register(facility.ps, "as_gen_fault", gen_fault.update)
 
     TextBox{parent=main,y=23,text="Radiation",height=1,width=13,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
-    facility.ps.subscribe("radiation", radiation.update)
+    radiation.register(facility.ps, "radiation", radiation.update)
 
     TextBox{parent=main,x=15,y=23,text="Linked RTUs",height=1,width=11,fg_bg=style.label}
     local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=bw_fg_bg}
-    facility.ps.subscribe("rtu_count", rtu_count.update)
+    rtu_count.register(facility.ps, "rtu_count", rtu_count.update)
 
     ---------------------
     -- process control --
@@ -115,8 +115,8 @@ local function new_view(root, x, y)
     TextBox{parent=burn_target,x=18,y=2,text="mB/t"}
     local burn_sum = DataIndicator{parent=targets,x=9,y=4,label="",format="%18.1f",value=0,unit="mB/t",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
 
-    facility.ps.subscribe("process_burn_target", b_target.set_value)
-    facility.ps.subscribe("burn_sum", burn_sum.update)
+    b_target.register(facility.ps, "process_burn_target", b_target.set_value)
+    burn_sum.register(facility.ps, "burn_sum", burn_sum.update)
 
     local chg_tag = Div{parent=targets,x=1,y=6,width=8,height=4,fg_bg=cpair(colors.black,colors.purple)}
     TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
@@ -126,8 +126,8 @@ local function new_view(root, x, y)
     TextBox{parent=chg_target,x=18,y=2,text="MFE"}
     local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="MFE",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
 
-    facility.ps.subscribe("process_charge_target", c_target.set_value)
-    facility.induction_ps_tbl[1].subscribe("energy", function (j) cur_charge.update(util.joules_to_fe(j) / 1000000) end)
+    c_target.register(facility.ps, "process_charge_target", c_target.set_value)
+    cur_charge.register(facility.induction_ps_tbl[1], "energy", function (j) cur_charge.update(util.joules_to_fe(j) / 1000000) end)
 
     local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=cpair(colors.black,colors.purple)}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
@@ -137,8 +137,8 @@ local function new_view(root, x, y)
     TextBox{parent=gen_target,x=18,y=2,text="kFE/t"}
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="kFE/t",commas=true,lu_colors=cpair(colors.black,colors.black),width=23,fg_bg=cpair(colors.black,colors.brown)}
 
-    facility.ps.subscribe("process_gen_target", g_target.set_value)
-    facility.induction_ps_tbl[1].subscribe("last_input", function (j) cur_gen.update(util.round(util.joules_to_fe(j) / 1000)) end)
+    g_target.register(facility.ps, "process_gen_target", g_target.set_value)
+    cur_gen.register(facility.induction_ps_tbl[1], "last_input", function (j) cur_gen.update(util.round(util.joules_to_fe(j) / 1000)) end)
 
     -----------------
     -- unit limits --
@@ -160,12 +160,12 @@ local function new_view(root, x, y)
         rate_limits[i] = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
         TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1}
 
-        unit.unit_ps.subscribe("max_burn", rate_limits[i].set_max)
-        unit.unit_ps.subscribe("burn_limit", rate_limits[i].set_value)
+        rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
+        rate_limits[i].register(unit.unit_ps, "burn_limit", rate_limits[i].set_value)
 
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(colors.black,colors.black),width=14,fg_bg=cpair(colors.black,colors.brown)}
 
-        unit.unit_ps.subscribe("act_burn_rate", cur_burn.update)
+        cur_burn.register(unit.unit_ps, "act_burn_rate", cur_burn.update)
     end
 
     -------------------
@@ -186,8 +186,8 @@ local function new_view(root, x, y)
         local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(colors.green,colors.gray)}
         local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
 
-        unit.unit_ps.subscribe("U_AutoReady", ready.update)
-        unit.unit_ps.subscribe("U_AutoDegraded", degraded.update)
+        ready.register(unit.unit_ps, "U_AutoReady", ready.update)
+        degraded.register(unit.unit_ps, "U_AutoDegraded", degraded.update)
     end
 
     -------------------------
@@ -197,14 +197,14 @@ local function new_view(root, x, y)
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
     local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.purple,colors.black),radio_bg=colors.gray}
 
-    facility.ps.subscribe("process_mode", mode.set_value)
+    mode.register(facility.ps, "process_mode", mode.set_value)
 
     local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,x=1,y=16,fg_bg=bw_fg_bg}
     local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
     local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
 
-    facility.ps.subscribe("status_line_1", stat_line_1.set_value)
-    facility.ps.subscribe("status_line_2", stat_line_2.set_value)
+    stat_line_1.register(facility.ps, "status_line_1", stat_line_1.set_value)
+    stat_line_2.register(facility.ps, "status_line_2", stat_line_2.set_value)
 
     local auto_controls = Div{parent=proc,x=1,y=20,width=31,height=5,fg_bg=cpair(colors.gray,colors.white)}
 
@@ -233,11 +233,14 @@ local function new_view(root, x, y)
         tcd.dispatch(0.2, function () save.on_response(ack) end)
     end
 
-    facility.ps.subscribe("auto_ready", function (ready)
+    start.register(facility.ps, "auto_ready", function (ready)
         if ready and (not facility.auto_active) then start.enable() else start.disable() end
     end)
 
-    facility.ps.subscribe("auto_active", function (active)
+    -- REGISTER_NOTE: for optimization/brevity, due to not deleting anything but the whole element tree when it comes
+    -- to the process control display and coordinator GUI as a whole, child elements will not directly be registered here
+    -- (preventing garbage collection until the parent 'proc' is deleted)
+    proc.register(facility.ps, "auto_active", function (active)
         if active then
             b_target.disable()
             c_target.disable()
@@ -246,9 +249,7 @@ local function new_view(root, x, y)
             mode.disable()
             start.disable()
 
-            for i = 1, #rate_limits do
-                rate_limits[i].disable()
-            end
+            for i = 1, #rate_limits do rate_limits[i].disable() end
         else
             b_target.enable()
             c_target.enable()
@@ -257,9 +258,7 @@ local function new_view(root, x, y)
             mode.enable()
             if facility.auto_ready then start.enable() end
 
-            for i = 1, #rate_limits do
-                rate_limits[i].enable()
-            end
+            for i = 1, #rate_limits do rate_limits[i].enable() end
         end
     end)
 end

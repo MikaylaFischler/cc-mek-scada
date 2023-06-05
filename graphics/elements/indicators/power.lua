@@ -16,6 +16,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field width integer length
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new power indicator
 ---@nodiscard
@@ -79,7 +80,7 @@ local function power(args)
     -- initial value draw
     e.on_update(args.value)
 
-    return e.get()
+    return e.complete()
 end
 
 return power

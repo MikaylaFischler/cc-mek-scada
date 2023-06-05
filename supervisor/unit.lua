@@ -506,7 +506,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     --#region
 
     -- engage automatic control
-    function public.a_engage()
+    function public.auto_engage()
         self.auto_engaged = true
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(true)
@@ -514,7 +514,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     end
 
     -- disengage automatic control
-    function public.a_disengage()
+    function public.auto_disengage()
         self.auto_engaged = false
         if self.plc_i ~= nil then
             self.plc_i.auto_lock(false)
@@ -526,7 +526,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- if it is degraded or not ready, the limit will be 0
     ---@nodiscard
     ---@return integer lim_br100
-    function public.a_get_effective_limit()
+    function public.auto_get_effective_limit()
         if (not self.db.control.ready) or self.db.control.degraded or self.plc_cache.rps_trip then
             self.db.control.br100 = 0
             return 0
@@ -537,7 +537,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     -- set the automatic burn rate based on the last set burn rate in 100ths
     ---@param ramp boolean true to ramp to rate, false to set right away
-    function public.a_commit_br100(ramp)
+    function public.auto_commit_br100(ramp)
         if self.auto_engaged then
             if self.plc_i ~= nil then
                 self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
@@ -550,16 +550,16 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- check if ramping is complete (burn rate is same as target)
     ---@nodiscard
     ---@return boolean complete
-    function public.a_ramp_complete()
+    function public.auto_ramp_complete()
         if self.plc_i ~= nil then
             return self.plc_i.is_ramp_complete() or
                 (self.plc_i.get_status().act_burn_rate == 0 and self.db.control.br100 == 0) or
-                public.a_get_effective_limit() == 0
+                public.auto_get_effective_limit() == 0
         else return true end
     end
 
     -- perform an automatic SCRAM
-    function public.a_scram()
+    function public.auto_scram()
         if self.plc_s ~= nil then
             self.db.control.br100 = 0
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ASCRAM)
@@ -567,7 +567,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     end
 
     -- queue a command to clear timeout/auto-scram if set
-    function public.a_cond_rps_reset()
+    function public.auto_cond_rps_reset()
         if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.emcool_opened) then
             local rps = self.plc_i.get_rps()
             if rps.timeout or rps.automatic then

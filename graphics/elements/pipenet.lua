@@ -12,6 +12,7 @@ local element = require("graphics.element")
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
+---@field hidden? boolean true to hide on initial draw
 
 -- new pipe network
 ---@param args pipenet_args
@@ -37,7 +38,7 @@ local function pipenet(args)
     args.y = args.y or 1
 
     if args.bg ~= nil then
-        args.fg_bg = core.graphics.cpair(args.bg, args.bg)
+        args.fg_bg = core.cpair(args.bg, args.bg)
     end
 
     -- create new graphics element base object
@@ -55,7 +56,7 @@ local function pipenet(args)
 
         e.window.setCursorPos(x, y)
 
-        local c = core.graphics.cpair(pipe.color, e.fg_bg.bkg)
+        local c = core.cpair(pipe.color, e.fg_bg.bkg)
 
         if pipe.align_tr then
             -- cross width then height
@@ -141,7 +142,7 @@ local function pipenet(args)
 
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return pipenet

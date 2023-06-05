@@ -8,11 +8,11 @@ local style        = require("pocket.ui.style")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
-local home_page    = require("pocket.ui.components.home_page")
-local unit_page    = require("pocket.ui.components.unit_page")
-local reactor_page = require("pocket.ui.components.reactor_page")
-local boiler_page  = require("pocket.ui.components.boiler_page")
-local turbine_page = require("pocket.ui.components.turbine_page")
+local home_page    = require("pocket.ui.pages.home_page")
+local unit_page    = require("pocket.ui.pages.unit_page")
+local reactor_page = require("pocket.ui.pages.reactor_page")
+local boiler_page  = require("pocket.ui.pages.boiler_page")
+local turbine_page = require("pocket.ui.pages.turbine_page")
 
 local core         = require("graphics.core")
 
@@ -22,9 +22,9 @@ local TextBox      = require("graphics.elements.textbox")
 
 local Sidebar      = require("graphics.elements.controls.sidebar")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
-local cpair = core.graphics.cpair
+local cpair = core.cpair
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -45,7 +45,7 @@ local function init(main)
 
     local root_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes=root_panes}
 
-    coreio.core_ps().subscribe("link_state", function (state)
+    root_pane.register(coreio.core_ps(), "link_state", function (state)
         if state == coreio.LINK_STATE.UNLINKED or state == coreio.LINK_STATE.API_LINK_ONLY then
             root_pane.set_value(1)
         elseif state == coreio.LINK_STATE.SV_LINK_ONLY then

@@ -5,14 +5,14 @@
 local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
-local tcallbackdsp = {}
+local tcd = {}
 
 local registry = {}
 
 -- request a function to be called after the specified time
 ---@param time number seconds
 ---@param f function callback function
-function tcallbackdsp.dispatch(time, f)
+function tcd.dispatch(time, f)
     local timer = util.start_timer(time)
     registry[timer] = {
         callback = f,
@@ -24,7 +24,7 @@ end
 -- request a function to be called after the specified time, aborting any registered instances of that function reference
 ---@param time number seconds
 ---@param f function callback function
-function tcallbackdsp.dispatch_unique(time, f)
+function tcd.dispatch_unique(time, f)
     -- cancel if already registered
     for timer, entry in pairs(registry) do
         if entry.callback == f then
@@ -47,7 +47,7 @@ end
 
 -- abort a requested callback
 ---@param f function callback function
-function tcallbackdsp.abort(f)
+function tcd.abort(f)
     for timer, entry in pairs(registry) do
         if entry.callback == f then
             -- cancel event and remove from registry (even if it fires it won't call)
@@ -59,7 +59,7 @@ end
 
 -- lookup a timer event and execute the callback if found
 ---@param event integer timer event timer ID
-function tcallbackdsp.handle(event)
+function tcd.handle(event)
     if registry[event] ~= nil then
         local callback = registry[event].callback
         -- clear first so that dispatch_unique call from inside callback won't throw a debug message
@@ -70,7 +70,7 @@ end
 
 -- identify any overdo callbacks<br>
 -- prints to log debug output
-function tcallbackdsp.diagnostics()
+function tcd.diagnostics()
     for timer, entry in pairs(registry) do
         if entry.expiry < util.time_s() then
             local overtime = util.time_s() - entry.expiry
@@ -82,4 +82,4 @@ function tcallbackdsp.diagnostics()
     end
 end
 
-return tcallbackdsp
+return tcd

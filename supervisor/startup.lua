@@ -5,16 +5,22 @@
 require("/initenv").init_env()
 
 local crash      = require("scada-common.crash")
+local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local ppm        = require("scada-common.ppm")
+local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
+local core       = require("graphics.core")
+
 local config     = require("supervisor.config")
+local databus    = require("supervisor.databus")
+local renderer   = require("supervisor.renderer")
 local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.16.0"
+local SUPERVISOR_VERSION = "v0.17.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -43,7 +49,6 @@ cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -65,7 +70,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)
@@ -83,6 +88,9 @@ local function main()
     -- startup
     ----------------------------------------
 
+    -- record firmware versions and ID
+    databus.tx_versions(SUPERVISOR_VERSION, comms.version)
+
     -- mount connected devices
     ppm.mount_all()
 
@@ -93,7 +101,20 @@ local function main()
         return
     end
 
-    -- start comms
+    databus.tx_hw_modem(true)
+
+    -- start UI
+    local fp_ok, message = pcall(renderer.start_ui)
+
+    if not fp_ok then
+        renderer.close_ui()
+        println_ts(util.c("UI error: ", message))
+        log.error(util.c("GUI crashed with error ", message))
+    else
+        -- redefine println_ts local to not print as we have the front panel running
+        println_ts = function (_) end
+    end
+
     ---@class sv_channel_list
     local channels = {
         SVR = config.SVR_CHANNEL,
@@ -102,8 +123,10 @@ local function main()
         CRD = config.CRD_CHANNEL,
         PKT = config.PKT_CHANNEL
     }
+
+    -- start comms
     local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem, 
-                                            channels, config.TRUSTED_RANGE)
+                                            channels, config.TRUSTED_RANGE, fp_ok)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15
@@ -111,6 +134,9 @@ local function main()
 
     -- start clock
     loop_clock.start()
+
+    -- halve the rate heartbeat LED flash
+    local heartbeat_toggle = true
 
     -- event loop
     while true do
@@ -126,6 +152,7 @@ local function main()
                     if device == modem then
                         println_ts("wireless modem disconnected!")
                         log.warning("comms modem disconnected")
+                        databus.tx_hw_modem(false)
                     else
                         log.warning("non-comms modem disconnected")
                     end
@@ -143,6 +170,8 @@ local function main()
 
                         println_ts("wireless modem reconnected.")
                         log.info("comms modem reconnected")
+
+                        databus.tx_hw_modem(true)
                     else
                         log.info("wired modem reconnected")
                     end
@@ -150,6 +179,9 @@ local function main()
             end
         elseif event == "timer" and loop_clock.is_clock(param1) then
             -- main loop tick
+
+            if heartbeat_toggle then databus.heartbeat() end
+            heartbeat_toggle = not heartbeat_toggle
 
             -- iterate sessions
             svsessions.iterate_all()
@@ -161,10 +193,16 @@ local function main()
         elseif event == "timer" then
             -- a non-clock timer event, check watchdogs
             svsessions.check_all_watchdogs(param1)
+
+            -- notify timer callback dispatcher
+            tcd.handle(param1)
         elseif event == "modem_message" then
             -- got a packet
             local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
             superv_comms.handle_packet(packet)
+        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+            -- handle a mouse event
+            renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         end
 
         -- check for termination request
@@ -177,8 +215,15 @@ local function main()
         end
     end
 
-    println_ts("exited")
+    renderer.close_ui()
+
+    util.println_ts("exited")
     log.info("exited")
 end
 
-if not xpcall(main, crash.handler) then crash.exit() else log.close() end
+if not xpcall(main, crash.handler) then
+    pcall(renderer.close_ui)
+    crash.exit()
+else
+    log.close()
+end

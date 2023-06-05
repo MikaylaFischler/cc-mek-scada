@@ -17,6 +17,7 @@ local element = require("graphics.element")
 ---@field y? integer 1 if omitted
 ---@field width integer length
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new data indicator
 ---@nodiscard
@@ -43,8 +44,9 @@ local function data(args)
     e.window.setCursorPos(1, 1)
     e.window.write(args.label)
 
-    local label_len = string.len(args.label)
-    local data_start = 1
+    local value_color = e.fg_bg.fgd
+    local label_len   = string.len(args.label)
+    local data_start  = 1
     local clear_width = args.width
 
     if label_len > 0 then
@@ -64,7 +66,7 @@ local function data(args)
         -- write data
         local data_str = util.sprintf(args.format, value)
         e.window.setCursorPos(data_start, 1)
-        e.window.setTextColor(e.fg_bg.fgd)
+        e.window.setTextColor(value_color)
         if args.commas then
             e.window.write(util.comma_format(data_str))
         else
@@ -84,10 +86,17 @@ local function data(args)
     ---@param val any new value
     function e.set_value(val) e.on_update(val) end
 
+    -- change the foreground color of the value, or all text if no label/unit colors provided
+    ---@param c color
+    function e.recolor(c)
+        value_color = c
+        e.on_update(e.value)
+    end
+
     -- initial value draw
     e.on_update(args.value)
 
-    return e.get()
+    return e.complete()
 end
 
 return data

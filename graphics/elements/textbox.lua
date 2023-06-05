@@ -5,7 +5,7 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local TEXT_ALIGN = core.graphics.TEXT_ALIGN
+local TEXT_ALIGN = core.TEXT_ALIGN
 
 ---@class textbox_args
 ---@field text string text to show
@@ -18,6 +18,7 @@ local TEXT_ALIGN = core.graphics.TEXT_ALIGN
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new text box
 ---@param args textbox_args
@@ -64,7 +65,7 @@ local function textbox(args)
         display_text(val)
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return textbox

@@ -16,6 +16,7 @@ local flasher = require("graphics.flasher")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new indicator light
 ---@nodiscard
@@ -92,7 +93,7 @@ local function indicator_light(args)
     e.window.setCursorPos(3, 1)
     e.window.write(args.label)
 
-    return e.get()
+    return e.complete()
 end
 
 return indicator_light

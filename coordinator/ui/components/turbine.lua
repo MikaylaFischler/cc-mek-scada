@@ -12,8 +12,8 @@ local PowerIndicator = require("graphics.elements.indicators.power")
 local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 -- new turbine view
 ---@param root graphics_element parent
@@ -30,9 +30,9 @@ local function new_view(root, x, y, ps)
     local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",format="%10.2f",value=0,rate=true,width=16,fg_bg=text_fg_bg}
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg_bg}
 
-    ps.subscribe("computed_status", status.update)
-    ps.subscribe("prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
-    ps.subscribe("flow_rate", flow_rate.update)
+    status.register(ps, "computed_status", status.update)
+    prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
+    flow_rate.register(ps, "flow_rate", flow_rate.update)
 
     local steam  = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local energy = VerticalBar{parent=turbine,x=3,y=1,fg_bg=cpair(colors.green,colors.gray),height=4,width=1}
@@ -40,8 +40,8 @@ local function new_view(root, x, y, ps)
     TextBox{parent=turbine,text="S",x=2,y=5,height=1,width=1,fg_bg=text_fg_bg}
     TextBox{parent=turbine,text="E",x=3,y=5,height=1,width=1,fg_bg=text_fg_bg}
 
-    ps.subscribe("steam_fill", steam.update)
-    ps.subscribe("energy_fill", energy.update)
+    steam.register(ps, "steam_fill", steam.update)
+    energy.register(ps, "energy_fill", energy.update)
 end
 
 return new_view

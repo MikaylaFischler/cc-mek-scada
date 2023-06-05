@@ -4,20 +4,20 @@
 
 require("/initenv").init_env()
 
-local crash        = require("scada-common.crash")
-local log          = require("scada-common.log")
-local ppm          = require("scada-common.ppm")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
-local util         = require("scada-common.util")
+local crash    = require("scada-common.crash")
+local log      = require("scada-common.log")
+local ppm      = require("scada-common.ppm")
+local tcd      = require("scada-common.tcd")
+local util     = require("scada-common.util")
 
-local core         = require("graphics.core")
+local core     = require("graphics.core")
 
-local config       = require("pocket.config")
-local coreio       = require("pocket.coreio")
-local pocket       = require("pocket.pocket")
-local renderer     = require("pocket.renderer")
+local config   = require("pocket.config")
+local coreio   = require("pocket.coreio")
+local pocket   = require("pocket.pocket")
+local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.2.6"
+local POCKET_VERSION = "alpha-v0.3.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -36,7 +36,6 @@ cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
-cfv.assert_type_bool(config.LOG_DEBUG)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
@@ -44,7 +43,7 @@ assert(cfv.valid(), "bad config file: missing/invalid fields")
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG)
+log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
 
 log.info("========================================")
 log.info("BOOTING pocket.startup " .. POCKET_VERSION)
@@ -121,53 +120,53 @@ local function main()
         conn_wd.sv.feed()
         conn_wd.api.feed()
         log.debug("startup> conn watchdog started")
-    end
 
-    -- main event loop
-    while ui_ok do
-        local event, param1, param2, param3, param4, param5 = util.pull_event()
+        -- main event loop
+        while true do
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
-        -- handle event
-        if event == "timer" then
-            if loop_clock.is_clock(param1) then
-                -- main loop tick
+            -- handle event
+            if event == "timer" then
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
 
-                -- relink if necessary
-                pocket_comms.link_update()
+                    -- relink if necessary
+                    pocket_comms.link_update()
 
-                loop_clock.start()
-            elseif conn_wd.sv.is_timer(param1) then
-                -- supervisor watchdog timeout
-                log.info("supervisor server timeout")
-                pocket_comms.close_sv()
-            elseif conn_wd.api.is_timer(param1) then
-                -- coordinator watchdog timeout
-                log.info("coordinator api server timeout")
-                pocket_comms.close_api()
-            else
-                -- a non-clock/main watchdog timer event
-                -- notify timer callback dispatcher
-                tcallbackdsp.handle(param1)
+                    loop_clock.start()
+                elseif conn_wd.sv.is_timer(param1) then
+                    -- supervisor watchdog timeout
+                    log.info("supervisor server timeout")
+                    pocket_comms.close_sv()
+                elseif conn_wd.api.is_timer(param1) then
+                    -- coordinator watchdog timeout
+                    log.info("coordinator api server timeout")
+                    pocket_comms.close_api()
+                else
+                    -- a non-clock/main watchdog timer event
+                    -- notify timer callback dispatcher
+                    tcd.handle(param1)
+                end
+            elseif event == "modem_message" then
+                -- got a packet
+                local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
+                pocket_comms.handle_packet(packet)
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+                -- handle a monitor touch event
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             end
-        elseif event == "modem_message" then
-            -- got a packet
-            local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
-            pocket_comms.handle_packet(packet)
-        elseif event == "mouse_click" then
-            -- handle a monitor touch event
-            renderer.handle_mouse(core.events.touch(param1, param2, param3))
+
+            -- check for termination request
+            if event == "terminate" or ppm.should_terminate() then
+                log.info("terminate requested, closing server connections...")
+                pocket_comms.close()
+                log.info("connections closed")
+                break
+            end
         end
 
-        -- check for termination request
-        if event == "terminate" or ppm.should_terminate() then
-            log.info("terminate requested, closing server connections...")
-            pocket_comms.close()
-            log.info("connections closed")
-            break
-        end
+        renderer.close_ui()
     end
-
-    renderer.close_ui()
 
     println_ts("exited")
     log.info("exited")

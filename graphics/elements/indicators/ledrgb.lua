@@ -11,6 +11,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new RGB LED indicator light
 ---@nodiscard
@@ -53,7 +54,7 @@ local function indicator_led_rgb(args)
         e.window.write(args.label)
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return indicator_led_rgb

@@ -4,6 +4,8 @@ local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
+local databus  = require("supervisor.databus")
+
 local svqtypes = require("supervisor.session.svqtypes")
 
 local coordinator = {}
@@ -17,8 +19,6 @@ local FAC_COMMAND = comms.FAC_COMMAND
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
-
-local println = util.println
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -49,7 +49,11 @@ local PERIODICS = {
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param facility facility facility data table
-function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
+---@param fp_ok boolean if the front panel UI is running
+function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
@@ -84,6 +88,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_crd_disconnected()
     end
 
     -- send a CRDN packet
@@ -205,6 +210,8 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
                     -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
+
+                    databus.tx_crd_rtt(self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

@@ -117,8 +117,6 @@ function api.new_session(id, in_queue, out_queue, timeout)
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.COORD_API then
             ---@cast pkt capi_frame
-            -- feed watchdog
-            self.conn_watchdog.feed()
 
             -- handle packet by type
             if pkt.type == nil then

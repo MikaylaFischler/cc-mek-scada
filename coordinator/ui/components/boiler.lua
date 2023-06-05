@@ -9,8 +9,8 @@ local DataIndicator  = require("graphics.elements.indicators.data")
 local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
 
-local cpair = core.graphics.cpair
-local border = core.graphics.border
+local cpair = core.cpair
+local border = core.border
 
 -- new boiler view
 ---@param root graphics_element parent
@@ -27,9 +27,9 @@ local function new_view(root, x, y, ps)
     local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
     local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 
-    ps.subscribe("computed_status", status.update)
-    ps.subscribe("temperature", temp.update)
-    ps.subscribe("boil_rate", boil_r.update)
+    status.register(ps, "computed_status", status.update)
+    temp.register(ps, "temperature", temp.update)
+    boil_r.register(ps, "boil_rate", boil_r.update)
 
     TextBox{parent=boiler,text="H",x=2,y=5,height=1,width=1,fg_bg=text_fg_bg}
     TextBox{parent=boiler,text="W",x=3,y=5,height=1,width=1,fg_bg=text_fg_bg}
@@ -41,10 +41,10 @@ local function new_view(root, x, y, ps)
     local steam = VerticalBar{parent=boiler,x=27,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local ccool = VerticalBar{parent=boiler,x=28,y=1,fg_bg=cpair(colors.lightBlue,colors.gray),height=4,width=1}
 
-    ps.subscribe("hcool_fill", hcool.update)
-    ps.subscribe("water_fill", water.update)
-    ps.subscribe("steam_fill", steam.update)
-    ps.subscribe("ccool_fill", ccool.update)
+    hcool.register(ps, "hcool_fill", hcool.update)
+    water.register(ps, "water_fill", water.update)
+    steam.register(ps, "steam_fill", steam.update)
+    ccool.register(ps, "ccool_fill", ccool.update)
 end
 
 return new_view

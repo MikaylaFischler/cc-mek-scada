@@ -16,6 +16,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new rectangle
 ---@param args rectangle_args
@@ -30,27 +31,35 @@ local function rectangle(args)
     end
 
     -- offset children
+    local offset_x = 0
+    local offset_y = 0
     if args.border ~= nil then
-        args.offset_x = args.border.width
-        args.offset_y = args.border.width
+        offset_x = args.border.width
+        offset_y = args.border.width
 
         -- slightly different y offset if the border is set to even
         if args.border.even then
             local width_x2 = (2 * args.border.width)
-            args.offset_y = math.floor(width_x2 / 3) + util.trinary(width_x2 % 3 > 0, 1, 0)
+            offset_y = math.floor(width_x2 / 3) + util.trinary(width_x2 % 3 > 0, 1, 0)
         end
     end
 
     -- create new graphics element base object
     local e = element.new(args)
 
+    -- create content window for child elements
+    e.content_window = window.create(e.window, 1 + offset_x, 1 + offset_y, e.frame.w - (2 * offset_x), e.frame.h - (2 * offset_y))
+    e.content_window.setBackgroundColor(e.fg_bg.bkg)
+    e.content_window.setTextColor(e.fg_bg.fgd)
+    e.content_window.clear()
+
     -- draw bordered box if requested
     -- element constructor will have drawn basic colored rectangle regardless
     if args.border ~= nil then
         e.window.setCursorPos(1, 1)
 
-        local border_width = args.offset_x
-        local border_height = args.offset_y
+        local border_width = offset_x
+        local border_height = offset_y
         local border_blit = colors.toBlit(args.border.color)
         local width_x2 = border_width * 2
         local inner_width = e.frame.w - width_x2
@@ -177,7 +186,7 @@ local function rectangle(args)
         end
     end
 
-    return e.get()
+    return e.complete()
 end
 
 return rectangle
