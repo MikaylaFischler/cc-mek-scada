@@ -4,14 +4,17 @@
 
 local log = require("scada-common.log")
 
+local insert = table.insert
+
+---@diagnostic disable-next-line: undefined-field
+local C_ID = os.getComputerID() ---@type integer computer ID
+
+local max_distance = nil        ---@type integer|nil maximum acceptable transmission distance
+
 ---@class comms
 local comms = {}
 
-local insert = table.insert
-
-local max_distance = nil
-
-comms.version = "1.4.1"
+comms.version = "2.0.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -122,6 +125,9 @@ comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 comms.UNIT_COMMAND = UNIT_COMMAND
 comms.FAC_COMMAND = FAC_COMMAND
 
+-- destination broadcast address (to all devices)
+comms.BROADCAST = -1
+
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet|capi_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame|capi_frame
 
@@ -129,20 +135,18 @@ comms.FAC_COMMAND = FAC_COMMAND
 -- packets received with distances greater than this will be silently discarded
 ---@param distance integer max modem message distance (less than 1 disables the limit)
 function comms.set_trusted_range(distance)
-    if distance < 1 then
-        max_distance = nil
-    else
-        max_distance = distance
-    end
+    if distance < 1 then max_distance = nil else max_distance = distance end
 end
 
 -- generic SCADA packet object
 ---@nodiscard
 function comms.scada_packet()
     local self = {
-        modem_msg_in = nil,
+        modem_msg_in = nil, ---@type modem_message|nil
         valid = false,
-        raw = { -1, PROTOCOL.SCADA_MGMT, {} },
+        raw = {},
+        src_addr = comms.BROADCAST,
+        dest_addr = comms.BROADCAST,
         seq_num = -1,
         protocol = PROTOCOL.SCADA_MGMT,
         length = 0,
@@ -153,34 +157,40 @@ function comms.scada_packet()
     local public = {}
 
     -- make a SCADA packet
-    ---@param seq_num integer
+    ---@param dest_addr integer destination computer address (ID)
+    ---@param seq_num integer sequence number
     ---@param protocol PROTOCOL
     ---@param payload table
-    function public.make(seq_num, protocol, payload)
+    function public.make(dest_addr, seq_num, protocol, payload)
         self.valid = true
+---@diagnostic disable-next-line: undefined-field
+        self.src_addr = C_ID
+        self.dest_addr = dest_addr
         self.seq_num = seq_num
         self.protocol = protocol
         self.length = #payload
         self.payload = payload
-        self.raw = { self.seq_num, self.protocol, self.payload }
+        self.raw = { self.src_addr, self.dest_addr, self.seq_num, self.protocol, self.payload }
     end
 
     -- parse in a modem message as a SCADA packet
     ---@param side string modem side
-    ---@param sender integer sender port
-    ---@param reply_to integer reply port
+    ---@param sender integer sender channel
+    ---@param reply_to integer reply channel
     ---@param message any message body
     ---@param distance integer transmission distance
     ---@return boolean valid valid message received
     function public.receive(side, sender, reply_to, message, distance)
+        ---@class modem_message
         self.modem_msg_in = {
             iface = side,
-            s_port = sender,
-            r_port = reply_to,
+            s_channel = sender,
+            r_channel = reply_to,
             msg = message,
             dist = distance
         }
 
+        self.valid = false
         self.raw = self.modem_msg_in.msg
 
         if (type(max_distance) == "number") and (distance > max_distance) then
@@ -188,20 +198,31 @@ function comms.scada_packet()
             -- log.debug("comms.scada_packet.receive(): discarding packet with distance " .. distance .. " outside of trusted range")
         else
             if type(self.raw) == "table" then
-                if #self.raw >= 3 then
-                    self.seq_num = self.raw[1]
-                    self.protocol = self.raw[2]
+                if #self.raw == 5 then
+                    self.src_addr = self.raw[1]
+                    self.dest_addr = self.raw[2]
+                    self.seq_num = self.raw[3]
+                    self.protocol = self.raw[4]
 
-                    -- element 3 must be a table
-                    if type(self.raw[3]) == "table" then
-                        self.length = #self.raw[3]
-                        self.payload = self.raw[3]
+                    -- element 5 must be a table
+                    if type(self.raw[5]) == "table" then
+                        self.length = #self.raw[5]
+                        self.payload = self.raw[5]
                     end
+                else
+                    self.src_addr = nil
+                    self.dest_addr = nil
+                    self.seq_num = nil
+                    self.protocol = nil
+                    self.length = 0
+                    self.payload = {}
                 end
 
-                self.valid = type(self.seq_num) == "number" and
-                             type(self.protocol) == "number" and
-                             type(self.payload) == "table"
+                -- check if this packet is destined for this device
+                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == C_ID)
+
+                self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
+                             type(self.seq_num) == "number" and type(self.protocol) == "number" and type(self.payload) == "table"
             end
         end
 
@@ -216,13 +237,17 @@ function comms.scada_packet()
     function public.raw_sendable() return self.raw end
 
     ---@nodiscard
-    function public.local_port() return self.modem_msg_in.s_port end
+    function public.local_channel() return self.modem_msg_in.s_channel end
     ---@nodiscard
-    function public.remote_port() return self.modem_msg_in.r_port end
+    function public.remote_channel() return self.modem_msg_in.r_channel end
 
     ---@nodiscard
     function public.is_valid() return self.valid end
 
+    ---@nodiscard
+    function public.src_addr() return self.src_addr end
+    ---@nodiscard
+    function public.dest_addr() return self.dest_addr end
     ---@nodiscard
     function public.seq_num() return self.seq_num end
     ---@nodiscard

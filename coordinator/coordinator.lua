@@ -435,8 +435,8 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param packet mgmt_frame|crdn_frame|capi_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
-            local l_port = packet.scada_frame.local_port()
-            local r_port = packet.scada_frame.remote_port()
+            local l_port = packet.scada_frame.local_channel()
+            local r_port = packet.scada_frame.remote_channel()
             local protocol = packet.scada_frame.protocol()
 
             if l_port == api_listen then

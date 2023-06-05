@@ -14,7 +14,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.15.7"
+local SUPERVISOR_VERSION = "v0.16.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -25,8 +25,11 @@ local println_ts = util.println_ts
 
 local cfv = util.new_validator()
 
-cfv.assert_port(config.SCADA_DEV_LISTEN)
-cfv.assert_port(config.SCADA_SV_CTL_LISTEN)
+cfv.assert_channel(config.SVR_CHANNEL)
+cfv.assert_channel(config.PLC_CHANNEL)
+cfv.assert_channel(config.RTU_CHANNEL)
+cfv.assert_channel(config.CRD_CHANNEL)
+cfv.assert_channel(config.PKT_CHANNEL)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.PLC_TIMEOUT)
 cfv.assert_min(config.PLC_TIMEOUT, 2)
@@ -90,9 +93,17 @@ local function main()
         return
     end
 
-    -- start comms, open all channels
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem,
-                                            config.SCADA_DEV_LISTEN, config.SCADA_SV_CTL_LISTEN, config.TRUSTED_RANGE)
+    -- start comms
+    ---@class sv_channel_list
+    local channels = {
+        SVR = config.SVR_CHANNEL,
+        PLC = config.PLC_CHANNEL,
+        RTU = config.RTU_CHANNEL,
+        CRD = config.CRD_CHANNEL,
+        PKT = config.PKT_CHANNEL
+    }
+    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem, 
+                                            channels, config.TRUSTED_RANGE)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15

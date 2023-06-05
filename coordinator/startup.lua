@@ -37,9 +37,9 @@ local log_comms_connecting = coordinator.log_comms_connecting
 
 local cfv = util.new_validator()
 
-cfv.assert_port(config.SCADA_SV_PORT)
-cfv.assert_port(config.SCADA_SV_CTL_LISTEN)
-cfv.assert_port(config.SCADA_API_LISTEN)
+cfv.assert_channel(config.SCADA_SV_PORT)
+cfv.assert_channel(config.SCADA_SV_CTL_LISTEN)
+cfv.assert_channel(config.SCADA_API_LISTEN)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.SV_TIMEOUT)
 cfv.assert_min(config.SV_TIMEOUT, 2)
