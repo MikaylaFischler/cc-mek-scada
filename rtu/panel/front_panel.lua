@@ -67,6 +67,10 @@ local function init(panel, units)
     rt_main.register(databus.ps, "routine__main", rt_main.update)
     rt_comm.register(databus.ps, "routine__comms", rt_comm.update)
 
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("(%d)", os.getComputerID())
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+
     --
     -- about label
     --

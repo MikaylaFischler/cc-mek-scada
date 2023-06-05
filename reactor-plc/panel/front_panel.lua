@@ -70,6 +70,10 @@ local function init(panel)
     rt_cmrx.register(databus.ps, "routine__comms_rx", rt_cmrx.update)
     rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
 
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("(%d)", os.getComputerID())
+    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+
     --
     -- status & controls
     --

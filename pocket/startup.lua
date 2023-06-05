@@ -17,7 +17,7 @@ local coreio   = require("pocket.coreio")
 local pocket   = require("pocket.pocket")
 local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.3.7"
+local POCKET_VERSION = "alpha-v0.4.0"
 
 local println = util.println
 local println_ts = util.println_ts

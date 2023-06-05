@@ -251,7 +251,7 @@ end
 ---@return pdg_session_struct|nil
 function svsessions.find_pdg_session(source_addr)
     -- check diagnostic sessions
-    local session = _find_session(self.sessions.diag, source_addr)
+    local session = _find_session(self.sessions.pdg, source_addr)
     ---@cast session pdg_session_struct|nil
     return session
 end

@@ -31,11 +31,11 @@ end
 -- transmit PLC firmware version and session connection state
 ---@param reactor_id integer reactor unit ID
 ---@param fw string firmware version
----@param channel integer PLC remote port
-function databus.tx_plc_connected(reactor_id, fw, channel)
+---@param s_addr integer PLC computer ID
+function databus.tx_plc_connected(reactor_id, fw, s_addr)
     databus.ps.publish("plc_" .. reactor_id .. "_fw", fw)
     databus.ps.publish("plc_" .. reactor_id .. "_conn", true)
-    databus.ps.publish("plc_" .. reactor_id .. "_chan", tostring(channel))
+    databus.ps.publish("plc_" .. reactor_id .. "_addr", tostring(s_addr))
 end
 
 -- transmit PLC disconnected
@@ -43,7 +43,7 @@ end
 function databus.tx_plc_disconnected(reactor_id)
     databus.ps.publish("plc_" .. reactor_id .. "_fw", " ------- ")
     databus.ps.publish("plc_" .. reactor_id .. "_conn", false)
-    databus.ps.publish("plc_" .. reactor_id .. "_chan", " --- ")
+    databus.ps.publish("plc_" .. reactor_id .. "_addr", " --- ")
     databus.ps.publish("plc_" .. reactor_id .. "_rtt", 0)
     databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.lightGray)
 end
@@ -66,10 +66,10 @@ end
 -- transmit RTU firmware version and session connection state
 ---@param session_id integer RTU session
 ---@param fw string firmware version
----@param channel integer RTU remote port
-function databus.tx_rtu_connected(session_id, fw, channel)
+---@param s_addr integer RTU computer ID
+function databus.tx_rtu_connected(session_id, fw, s_addr)
     databus.ps.publish("rtu_" .. session_id .. "_fw", fw)
-    databus.ps.publish("rtu_" .. session_id .. "_chan", tostring(channel))
+    databus.ps.publish("rtu_" .. session_id .. "_addr", tostring(s_addr))
     pgi.create_rtu_entry(session_id)
 end
 
@@ -103,18 +103,18 @@ end
 
 -- transmit coordinator firmware version and session connection state
 ---@param fw string firmware version
----@param channel integer coordinator remote port
-function databus.tx_crd_connected(fw, channel)
+---@param s_addr integer coordinator computer ID
+function databus.tx_crd_connected(fw, s_addr)
     databus.ps.publish("crd_fw", fw)
     databus.ps.publish("crd_conn", true)
-    databus.ps.publish("crd_chan", tostring(channel))
+    databus.ps.publish("crd_addr", tostring(s_addr))
 end
 
 -- transmit coordinator disconnected
 function databus.tx_crd_disconnected()
     databus.ps.publish("crd_fw", " ------- ")
     databus.ps.publish("crd_conn", false)
-    databus.ps.publish("crd_chan", "---")
+    databus.ps.publish("crd_addr", "---")
     databus.ps.publish("crd_rtt", 0)
     databus.ps.publish("crd_rtt_color", colors.lightGray)
 end
@@ -136,10 +136,10 @@ end
 -- transmit PKT firmware version and PDG session connection state
 ---@param session_id integer PDG session
 ---@param fw string firmware version
----@param channel integer PDG remote port
-function databus.tx_pdg_connected(session_id, fw, channel)
+---@param s_addr integer PDG computer ID
+function databus.tx_pdg_connected(session_id, fw, s_addr)
     databus.ps.publish("pdg_" .. session_id .. "_fw", fw)
-    databus.ps.publish("pdg_" .. session_id .. "_chan", tostring(channel))
+    databus.ps.publish("pdg_" .. session_id .. "_addr", tostring(s_addr))
     pgi.create_pdg_entry(session_id)
 end
 
