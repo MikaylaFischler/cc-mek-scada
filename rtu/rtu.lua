@@ -257,6 +257,7 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
         rtu_state.linked = false
         self.sv_addr = comms.BROADCAST
         self.r_seq_num = nil
+        databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
     -- close the connection to the server

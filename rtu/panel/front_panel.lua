@@ -2,6 +2,7 @@
 -- Main SCADA Coordinator GUI
 --
 
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local databus    = require("rtu.databus")
@@ -53,7 +54,7 @@ local function init(panel, units)
 
     local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
     local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(5)
+    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
     system.line_break()
 
     modem.register(databus.ps, "has_modem", modem.update)

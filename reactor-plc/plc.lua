@@ -672,6 +672,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
         self.linked = false
         self.r_seq_num = nil
         self.status_cache = nil
+        databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
     -- close the connection to the server
