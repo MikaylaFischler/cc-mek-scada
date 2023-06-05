@@ -115,18 +115,8 @@ local function main()
         println_ts = function (_) end
     end
 
-    ---@class sv_channel_list
-    local channels = {
-        SVR = config.SVR_CHANNEL,
-        PLC = config.PLC_CHANNEL,
-        RTU = config.RTU_CHANNEL,
-        CRD = config.CRD_CHANNEL,
-        PKT = config.PKT_CHANNEL
-    }
-
     -- start comms
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, config.NUM_REACTORS, config.REACTOR_COOLING, modem, 
-                                            channels, config.TRUSTED_RANGE, fp_ok)
+    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, modem, fp_ok)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15

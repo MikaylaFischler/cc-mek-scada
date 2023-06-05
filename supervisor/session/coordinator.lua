@@ -45,12 +45,13 @@ local PERIODICS = {
 -- coordinator supervisor session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
-function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_ok)
+function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facility, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -99,7 +100,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_
         local c_pkt = comms.crdn_packet()
 
         c_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -113,7 +114,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -334,7 +335,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility, fp_
         end
     end
 
-    ---@class coord_session
+    ---@class crd_session
     local public = {}
 
     -- get the session ID
