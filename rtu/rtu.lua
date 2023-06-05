@@ -330,12 +330,19 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
 
-        if packet.scada_frame.local_channel() == rtu_channel then
+        local protocol = packet.scada_frame.protocol()
+        local l_chan   = packet.scada_frame.local_channel()
+        local src_addr = packet.scada_frame.src_addr()
+
+        if l_chan == rtu_channel then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
             elseif rtu_state.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                return
+            elseif rtu_state.linked and src_addr ~= self.sv_addr then
+                log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -344,8 +351,7 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
             -- feed watchdog on valid sequence number
             conn_watchdog.feed()
 
-            local protocol = packet.scada_frame.protocol()
-
+            -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_frame
                 if rtu_state.linked then
@@ -465,6 +471,8 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
                 -- should be unreachable assuming packet is from parse_packet()
                 log.error("illegal packet type " .. protocol, true)
             end
+        else
+            log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
 

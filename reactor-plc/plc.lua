@@ -778,6 +778,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
 
+        local protocol = packet.scada_frame.protocol()
         local l_chan   = packet.scada_frame.local_channel()
         local src_addr = packet.scada_frame.src_addr()
 
@@ -789,14 +790,15 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
             elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
+            elseif self.linked and src_addr ~= self.sv_addr then
+                log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
+                return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
             end
 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
             conn_watchdog.feed()
-
-            local protocol = packet.scada_frame.protocol()
 
             -- handle packet
             if protocol == PROTOCOL.RPLC then
