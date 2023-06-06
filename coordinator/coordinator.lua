@@ -213,14 +213,15 @@ end
 ---@nodiscard
 ---@param version string coordinator version
 ---@param modem table modem device
----@param sv_port integer port of configured supervisor
----@param sv_listen integer listening port for supervisor replys
----@param api_listen integer listening port for pocket API
+---@param crd_channel integer port of configured supervisor
+---@param svr_channel integer listening port for supervisor replys
+---@param pkt_channel integer listening port for pocket API
 ---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range, sv_watchdog)
+function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
     local self = {
         sv_linked = false,
+        sv_addr = comms.BROADCAST,
         sv_seq_num = 0,
         sv_r_seq_num = nil,
         sv_config_err = false,
@@ -236,8 +237,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     -- configure modem channels
     local function _conf_channels()
         modem.closeAll()
-        modem.open(sv_listen)
-        modem.open(api_listen)
+        modem.open(crd_channel)
     end
 
     _conf_channels()
@@ -261,23 +261,24 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
         end
 
         pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_seq_num, protocol, pkt.raw_sendable())
+        s_pkt.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
 
-        modem.transmit(sv_port, sv_listen, s_pkt.raw_sendable())
+        modem.transmit(svr_channel, crd_channel, s_pkt.raw_sendable())
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
     -- send an API establish request response
-    ---@param dest integer
-    ---@param msg table
-    local function _send_api_establish_ack(seq_id, dest, msg)
+    ---@param packet scada_packet
+    ---@param ack ESTABLISH_ACK
+    local function _send_api_establish_ack(packet, ack)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
-        s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, { ack })
+        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(dest, api_listen, s_pkt.raw_sendable())
+        modem.transmit(pkt_channel, crd_channel, s_pkt.raw_sendable())
+        self.last_api_est_acks[packet.src_addr()] = ack
     end
 
     -- attempt connection establishment
@@ -307,7 +308,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     -- close the connection to the server
     function public.close()
         sv_watchdog.cancel()
+        self.sv_addr = comms.BROADCAST
         self.sv_linked = false
+        self.sv_r_seq_num = nil
         _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.CLOSE, {})
     end
 
@@ -436,15 +439,18 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
     ---@param packet mgmt_frame|crdn_frame|capi_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
-            local l_port = packet.scada_frame.local_channel()
-            local r_port = packet.scada_frame.remote_channel()
+            local l_chan = packet.scada_frame.local_channel()
+            local r_chan = packet.scada_frame.remote_channel()
+            local src_addr = packet.scada_frame.src_addr()
             local protocol = packet.scada_frame.protocol()
 
-            if l_port == api_listen then
+            if l_chan ~= crd_channel then
+                log.debug("received packet on unconfigured channel " .. l_chan, true)
+            elseif r_chan == pkt_channel then
                 if protocol == PROTOCOL.COORD_API then
                     ---@cast packet capi_frame
                     -- look for an associated session
-                    local session = apisessions.find_session(r_port)
+                    local session = apisessions.find_session(src_addr)
 
                     -- API packet
                     if session ~= nil then
@@ -457,7 +463,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                 elseif protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
                     -- look for an associated session
-                    local session = apisessions.find_session(r_port)
+                    local session = apisessions.find_session(src_addr)
 
                     -- SCADA management packet
                     if session ~= nil then
@@ -465,8 +471,6 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                         session.in_queue.push_packet(packet)
                     elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- establish a new session
-                        local next_seq_id = packet.scada_frame.seq_num() + 1
-
                         -- validate packet and continue
                         if packet.length == 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
                             local comms_v = packet.data[1]
@@ -474,41 +478,42 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                             local dev_type = packet.data[3]
 
                             if comms_v ~= comms.version then
-                                if self.last_api_est_acks[r_port] ~= ESTABLISH_ACK.BAD_VERSION then
+                                if self.last_api_est_acks[src_addr] ~= ESTABLISH_ACK.BAD_VERSION then
                                     log.info(util.c("dropping API establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
-                                    self.last_api_est_acks[r_port] = ESTABLISH_ACK.BAD_VERSION
                                 end
 
-                                _send_api_establish_ack(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- pocket linking request
-                                local id = apisessions.establish_session(l_port, r_port, firmware_v)
-                                println(util.c("API: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", id))
-                                coordinator.log_comms(util.c("API: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", id))
+                                local id = apisessions.establish_session(src_addr, firmware_v)
+                                println(util.c("[API] pocket (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                                coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
-                                _send_api_establish_ack(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
-                                self.last_api_est_acks[r_port] = ESTABLISH_ACK.ALLOW
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW)
                             else
-                                log.debug(util.c("illegal establish packet for device ", dev_type, " on API listening channel"))
-                                _send_api_establish_ack(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                log.debug(util.c("API_ESTABLISH: illegal establish packet for device ", dev_type, " on pocket channel"))
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.DENY)
                             end
                         else
                             log.debug("invalid establish packet (on API listening channel)")
-                            _send_api_establish_ack(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                            _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.DENY)
                         end
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(util.c(r_port, "->", l_port, ": discarding SCADA_MGMT packet without a known session"))
+                        log.debug(util.c("discarding pocket SCADA_MGMT packet without a known session from computer ", src_addr))
                     end
                 else
-                    log.debug("illegal packet type " .. protocol .. " on api listening channel", true)
+                    log.debug("illegal packet type " .. protocol .. " on pocket channel", true)
                 end
-            elseif l_port == sv_listen then
+            elseif r_chan == svr_channel then
                 -- check sequence number
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
                 elseif self.connected and ((self.sv_r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    return
+                elseif self.sv_linked and src_addr ~= self.sv_addr then
+                    log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
                     return
                 else
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
@@ -660,6 +665,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                         -- init io controller
                                         iocontrol.init(conf, public)
 
+                                        self.sv_addr = src_addr
                                         self.sv_linked = true
                                         self.sv_config_err = false
                                     else
@@ -705,10 +711,10 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                                 local trip_time = util.time() - timestamp
 
                                 if trip_time > 750 then
-                                    log.warning("coord KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
+                                    log.warning("coordinator KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
-                                -- log.debug("coord RTT = " .. trip_time .. "ms")
+                                -- log.debug("coordinator RTT = " .. trip_time .. "ms")
 
                                 iocontrol.get_db().facility.ps.publish("sv_ping", trip_time)
 
@@ -719,7 +725,9 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                         elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
                             -- handle session close
                             sv_watchdog.cancel()
+                            self.sv_addr = comms.BROADCAST
                             self.sv_linked = false
+                            self.sv_r_seq_num = nil
                             println_ts("server connection closed by remote host")
                             log.info("server connection closed by remote host")
                         else
@@ -732,7 +740,7 @@ function coordinator.comms(version, modem, sv_port, sv_listen, api_listen, range
                     log.debug("illegal packet type " .. protocol .. " on supervisor listening channel", true)
                 end
             else
-                log.debug("received packet on unconfigured channel " .. l_port, true)
+                log.debug("received packet for unknown channel " .. r_chan, true)
             end
         end
     end

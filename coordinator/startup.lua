@@ -20,7 +20,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.15.8"
+local COORDINATOR_VERSION = "v0.16.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -37,9 +37,9 @@ local log_comms_connecting = coordinator.log_comms_connecting
 
 local cfv = util.new_validator()
 
-cfv.assert_channel(config.SCADA_SV_PORT)
-cfv.assert_channel(config.SCADA_SV_CTL_LISTEN)
-cfv.assert_channel(config.SCADA_API_LISTEN)
+cfv.assert_channel(config.SVR_CHANNEL)
+cfv.assert_channel(config.CRD_CHANNEL)
+cfv.assert_channel(config.PKT_CHANNEL)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.SV_TIMEOUT)
 cfv.assert_min(config.SV_TIMEOUT, 2)
@@ -148,8 +148,8 @@ local function main()
     log.debug("startup> conn watchdog created")
 
     -- start comms, open all channels
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.SCADA_SV_PORT, config.SCADA_SV_CTL_LISTEN,
-                                            config.SCADA_API_LISTEN, config.TRUSTED_RANGE, conn_watchdog)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.CRD_CHANNEL, config.SVR_CHANNEL,
+                                            config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 
@@ -163,7 +163,7 @@ local function main()
 
     -- attempt to connect to the supervisor or exit
     local function init_connect_sv()
-        local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SCADA_SV_PORT)
+        local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_CHANNEL)
 
         -- attempt to establish a connection with the supervisory computer
         if not coord_comms.sv_connect(60, tick_waiting, task_done) then

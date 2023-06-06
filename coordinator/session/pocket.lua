@@ -3,7 +3,7 @@ local log    = require("scada-common.log")
 local mqueue = require("scada-common.mqueue")
 local util   = require("scada-common.util")
 
-local api = {}
+local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
 -- local CAPI_TYPE = comms.CAPI_TYPE
@@ -21,8 +21,8 @@ local API_S_CMDS = {
 local API_S_DATA = {
 }
 
-api.API_S_CMDS = API_S_CMDS
-api.API_S_DATA = API_S_DATA
+pocket.API_S_CMDS = API_S_CMDS
+pocket.API_S_DATA = API_S_DATA
 
 local PERIODICS = {
     KEEP_ALIVE = 2000
@@ -31,11 +31,12 @@ local PERIODICS = {
 -- pocket API session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function api.new_session(id, in_queue, out_queue, timeout)
-    local log_header = "api_session(" .. id .. "): "
+function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
+    local log_header = "pkt_session(" .. id .. "): "
 
     local self = {
         -- connection properties
@@ -61,10 +62,10 @@ function api.new_session(id, in_queue, out_queue, timeout)
         }
     }
 
-    ---@class api_session
+    ---@class pkt_session
     local public = {}
 
-    -- mark this API session as closed, stop watchdog
+    -- mark this pocket session as closed, stop watchdog
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
@@ -92,7 +93,7 @@ function api.new_session(id, in_queue, out_queue, timeout)
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -134,11 +135,11 @@ function api.new_session(id, in_queue, out_queue, timeout)
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "API KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_header .. "PKT KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "API RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "API TT  = " .. (srv_now - api_send) .. "ms")
+                    -- log.debug(log_header .. "PKT RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "PKT TT  = " .. (srv_now - api_send) .. "ms")
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
@@ -171,7 +172,7 @@ function api.new_session(id, in_queue, out_queue, timeout)
     function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
-        println("connection to API session " .. id .. " closed by server")
+        println("connection to pocket session " .. id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
 
@@ -210,7 +211,7 @@ function api.new_session(id, in_queue, out_queue, timeout)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to API session " .. id .. " closed by remote host")
+                println("connection to pocket session " .. id .. " closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end
@@ -246,4 +247,4 @@ function api.new_session(id, in_queue, out_queue, timeout)
     return public
 end
 
-return api
+return pocket
