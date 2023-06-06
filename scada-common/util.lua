@@ -65,7 +65,8 @@ end
 ---@return string
 function util.strval(val)
     local t = type(val)
-    if t == "table" or t == "function" then
+    -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
+    if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
         return "[" .. tostring(val) .. "]"
     else
         return tostring(val)
