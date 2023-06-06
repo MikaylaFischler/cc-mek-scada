@@ -311,7 +311,7 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
 
         local mt = {
             ---@param s plc_session_struct
-            __to_string = function (s)  return util.c("PLC [", s.instance.get_id(), "] for reactor #", s.reactor,
+            __tostring = function (s)  return util.c("PLC [", s.instance.get_id(), "] for reactor #", s.reactor,
                                                         " (@", s.s_addr, ")") end
         }
 
@@ -357,7 +357,7 @@ function svsessions.establish_rtu_session(source_addr, advertisement, version)
 
     local mt = {
         ---@param s rtu_session_struct
-        __to_string = function (s)  return util.c("RTU [", s.instance.get_id(), "] (@", s.s_addr, ")") end
+        __tostring = function (s)  return util.c("RTU [", s.instance.get_id(), "] (@", s.s_addr, ")") end
     }
 
     setmetatable(rtu_s, mt)
@@ -398,7 +398,7 @@ function svsessions.establish_crd_session(source_addr, version)
 
         local mt = {
             ---@param s crd_session_struct
-            __to_string = function (s)  return util.c("CRD [", s.instance.get_id(), "] (@", s.s_addr, ")") end
+            __tostring = function (s)  return util.c("CRD [", s.instance.get_id(), "] (@", s.s_addr, ")") end
         }
 
         setmetatable(crd_s, mt)
@@ -441,7 +441,7 @@ function svsessions.establish_pdg_session(source_addr, version)
 
     local mt = {
         ---@param s pdg_session_struct
-        __to_string = function (s)  return util.c("PDG [", s.instance.get_id(), "] (@", s.s_addr, ")") end
+        __tostring = function (s)  return util.c("PDG [", s.instance.get_id(), "] (@", s.s_addr, ")") end
     }
 
     setmetatable(pdg_s, mt)
