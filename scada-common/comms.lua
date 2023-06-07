@@ -9,7 +9,7 @@ local insert = table.insert
 ---@diagnostic disable-next-line: undefined-field
 local C_ID = os.getComputerID() ---@type integer computer ID
 
-local max_distance = nil        ---@type integer|nil maximum acceptable transmission distance
+local max_distance = nil        ---@type number|nil maximum acceptable transmission distance
 
 ---@class comms
 local comms = {}
@@ -133,9 +133,9 @@ comms.BROADCAST = -1
 
 -- configure the maximum allowable message receive distance<br>
 -- packets received with distances greater than this will be silently discarded
----@param distance integer max modem message distance (less than 1 disables the limit)
+---@param distance integer max modem message distance (0 disables the limit)
 function comms.set_trusted_range(distance)
-    if distance < 1 then max_distance = nil else max_distance = distance end
+    if distance == 0 then max_distance = nil else max_distance = distance end
 end
 
 -- generic SCADA packet object
