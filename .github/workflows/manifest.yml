@@ -47,6 +47,7 @@ jobs:
         run: mv install_manifest.json deploy/manifests/main
       # Generate manifest for latest branch
       - name: Checkout latest
+        if: success() || failure()
         uses: actions/checkout@v3
         with:
           ref: 'latest'
@@ -56,6 +57,7 @@ jobs:
         run: mv install_manifest.json deploy/manifests/latest
       # Generate manifest for devel branch
       - name: Checkout devel
+        if: success() || failure()
         uses: actions/checkout@v3
         with:
           ref: 'devel'
@@ -65,6 +67,7 @@ jobs:
         run: mv install_manifest.json deploy/manifests/devel
       # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
+        if: success() || failure()
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload manifest JSON
