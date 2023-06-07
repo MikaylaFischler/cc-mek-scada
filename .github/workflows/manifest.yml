@@ -78,10 +78,10 @@ jobs:
         run: echo ${{ steps.checkout-devel.outcome }} == 'success'
       - name: test2
         if: always()
-        run: echo steps.checkout-devel.outcome
+        run: echo ${{ steps.checkout-devel.outcome }}
       - name: Generate manifest for devel
         id: manifest-devel
-        if: always() && steps.checkout-devel.outcome == 'success'
+        if: ${{ always() && steps.checkout-devel.outcome == 'success' }}
         run: python imgen.py
       - name: Save devel's manifest
         if: ${{ steps.checkout-devel.success }}
