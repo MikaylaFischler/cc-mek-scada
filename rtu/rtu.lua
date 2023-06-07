@@ -354,7 +354,7 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
             -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_frame
-                if rtu_state.linked then
+                if rtu_state.linked and (src_addr == self.sv_addr) then
                     local return_code   ---@type boolean
                     local reply         ---@type modbus_packet
 
@@ -394,8 +394,10 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
                     end
 
                     public.send_modbus(reply)
-                else
+                elseif not rtu_state.linked then
                     log.debug("discarding MODBUS packet before linked")
+                else
+                    log.debug("discarding MODBUS packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_frame
@@ -434,7 +436,7 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
-                elseif rtu_state.linked then
+                elseif rtu_state.linked and (src_addr == self.sv_addr) then
                     if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
@@ -464,8 +466,10 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
                         -- not supported
                         log.debug("received unsupported SCADA_MGMT message type " .. packet.type)
                     end
-                else
+                elseif not rtu_state.linked then
                     log.debug("discarding non-link SCADA_MGMT packet before linked")
+                else
+                    log.debug("discarding non-link SCADA_MGMT packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()

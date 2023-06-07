@@ -314,7 +314,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                     elseif not self.api.linked then
                         log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
                     else
-                        log.debug("discarding SCADA_MGMT from different coordinator (src_addr " .. src_addr .. " ≠ " .. self.api.addr .. ")")
+                        log.debug("discarding non-link SCADA_MGMT packet from different coordinator (src_addr " .. src_addr .. " ≠ " .. self.api.addr .. ")")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from coordinator", true)
@@ -405,7 +405,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                     elseif not self.sv.linked then
                         log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")
                     else
-                        log.debug("discarding SCADA_MGMT from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv.addr .. ")")
+                        log.debug("discarding non-link SCADA_MGMT from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv.addr .. ")")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from supervisor", true)

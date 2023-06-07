@@ -938,7 +938,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                 elseif not self.linked then
                     log.debug("discarding RPLC packet before linked")
                 else
-                    log.debug("discarding RPLC from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. "sv_addr)")
+                    log.debug("discarding RPLC packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_frame
@@ -1057,8 +1057,10 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
-                else
+                elseif not self.linked then
                     log.debug("discarding non-link SCADA_MGMT packet before linked")
+                else
+                    log.debug("discarding non-link SCADA_MGMT packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()
