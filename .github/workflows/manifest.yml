@@ -33,16 +33,16 @@ jobs:
         uses: actions/configure-pages@v3
       - name: Setup Python
         uses: actions/setup-python@v3.1.3
-      - name: Create outputs folders
-        shell: bash
-        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
       # Generate manifest + shields files for main branch
       - name: Checkout main
         id: checkout-main
         uses: actions/checkout@v3
         with:
           ref: 'main'
-          clean: 'false'
+          clean: false
+      - name: Create outputs folders
+        shell: bash
+        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
       - name: Generate manifest and shields for main branch
         id: manifest-main
         if: ${{ steps.checkout-main.outcome }} == 'success'
@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: 'latest'
-          clean: 'false'
+          clean: false
       - name: Generate manifest for latest
         id: manifest-latest
         if: ${{ steps.checkout-latest.outcome }} == 'success'
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: 'devel'
-          clean: 'false'
+          clean: false
       - name: Generate manifest for devel
         id: manifest-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
