@@ -74,8 +74,10 @@ jobs:
           ref: 'devel'
           clean: false
       - name: test
+        if: always()
         run: echo ${{ steps.checkout-devel.success }}
       - name: test2
+        if: always()
         run: echo ${{ steps.checkout-devel.outcome }}
       - name: Generate manifest for devel
         id: manifest-devel
