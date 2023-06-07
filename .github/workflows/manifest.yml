@@ -45,10 +45,10 @@ jobs:
           clean: false
       - name: Generate manifest and shields for main branch
         id: manifest-main
-        if: steps.checkout-main.outcome == 'success'
+        if: ${{ steps.checkout-main.outcome }} == 'success'
         run: python imgen.py shields
       - name: Save main's manifest
-        if: steps.manifest-main.outcome == 'success'
+        if: ${{ steps.manifest-main.outcome }} == 'success'
         run: mv install_manifest.json deploy/manifests/main
       # Generate manifest for latest branch
       - name: Checkout latest
@@ -60,10 +60,10 @@ jobs:
           clean: false
       - name: Generate manifest for latest
         id: manifest-latest
-        if: steps.checkout-latest.outcome == 'success'
+        if: ${{ steps.checkout-latest.outcome }} == 'success'
         run: python imgen.py
       - name: Save latest's manifest
-        if: steps.manifest-latest.outcome == 'success'
+        if: ${{ steps.manifest-latest.outcome }} == 'success'
         run: mv install_manifest.json deploy/manifests/latest
       # Generate manifest for devel branch
       - name: Checkout devel
@@ -75,10 +75,10 @@ jobs:
           clean: false
       - name: Generate manifest for devel
         id: manifest-devel
-        if: steps.checkout-devel.outcome == 'success'
+        if: ${{ steps.checkout-devel.outcome }} == 'success'
         run: python imgen.py
       - name: Save devel's manifest
-        if: steps.manifest-devel.outcome == 'success'
+        if: ${{ steps.manifest-devel.outcome }} == 'success'
         run: mv install_manifest.json deploy/manifests/devel
       # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
