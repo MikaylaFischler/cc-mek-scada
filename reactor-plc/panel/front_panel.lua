@@ -2,6 +2,7 @@
 -- Main SCADA Coordinator GUI
 --
 
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local config     = require("reactor-plc.config")
@@ -49,7 +50,7 @@ local function init(panel)
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
     local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(5)
+    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
     system.line_break()
 
     reactor.register(databus.ps, "reactor_dev_state", reactor.update)
@@ -68,6 +69,10 @@ local function init(panel)
     rt_cmtx.register(databus.ps, "routine__comms_tx", rt_cmtx.update)
     rt_cmrx.register(databus.ps, "routine__comms_rx", rt_cmrx.update)
     rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
+
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("(%d)", os.getComputerID())
+    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
 
     --
     -- status & controls

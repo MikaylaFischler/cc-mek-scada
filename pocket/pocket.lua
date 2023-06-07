@@ -18,22 +18,24 @@ local pocket = {}
 ---@nodiscard
 ---@param version string pocket version
 ---@param modem table modem device
----@param local_port integer local pocket port
----@param sv_port integer port of supervisor
----@param api_port integer port of coordinator API
+---@param pkt_channel integer pocket comms channel
+---@param svr_channel integer supervisor access channel
+---@param crd_channel integer coordinator access channel
 ---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
 ---@param api_watchdog watchdog
-function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_watchdog, api_watchdog)
+function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, range, sv_watchdog, api_watchdog)
     local self = {
         sv = {
             linked = false,
+            addr = comms.BROADCAST,
             seq_num = 0,
             r_seq_num = nil,    ---@type nil|integer
             last_est_ack = ESTABLISH_ACK.ALLOW
         },
         api = {
             linked = false,
+            addr = comms.BROADCAST,
             seq_num = 0,
             r_seq_num = nil,    ---@type nil|integer
             last_est_ack = ESTABLISH_ACK.ALLOW
@@ -48,7 +50,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     -- configure modem channels
     local function _conf_channels()
         modem.closeAll()
-        modem.open(local_port)
+        modem.open(pkt_channel)
     end
 
     _conf_channels()
@@ -61,9 +63,9 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
         local pkt = comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        s_pkt.make(self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        s_pkt.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        modem.transmit(sv_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(svr_channel, pkt_channel, s_pkt.raw_sendable())
         self.sv.seq_num = self.sv.seq_num + 1
     end
 
@@ -75,9 +77,9 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
         local pkt = comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        s_pkt.make(self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        modem.transmit(api_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(crd_channel, pkt_channel, s_pkt.raw_sendable())
         self.api.seq_num = self.api.seq_num + 1
     end
 
@@ -89,9 +91,9 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     --     local pkt = comms.capi_packet()
 
     --     pkt.make(msg_type, msg)
-    --     s_pkt.make(self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
+    --     s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
 
-    --     modem.transmit(api_port, local_port, s_pkt.raw_sendable())
+    --     modem.transmit(crd_channel, pkt_channel, s_pkt.raw_sendable())
     --     self.api.seq_num = self.api.seq_num + 1
     -- end
 
@@ -133,6 +135,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     function public.close_sv()
         sv_watchdog.cancel()
         self.sv.linked = false
+        self.sv.r_seq_num = nil
+        self.sv.addr = comms.BROADCAST
         _send_sv(SCADA_MGMT_TYPE.CLOSE, {})
     end
 
@@ -140,6 +144,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     function public.close_api()
         api_watchdog.cancel()
         self.api.linked = false
+        self.api.r_seq_num = nil
+        self.api.addr = comms.BROADCAST
         _send_crd(SCADA_MGMT_TYPE.CLOSE, {})
     end
 
@@ -214,18 +220,23 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
     ---@param packet mgmt_frame|capi_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
-            local l_port = packet.scada_frame.local_port()
-            local r_port = packet.scada_frame.remote_port()
+            local l_chan   = packet.scada_frame.local_channel()
+            local r_chan   = packet.scada_frame.remote_channel()
             local protocol = packet.scada_frame.protocol()
+            local src_addr = packet.scada_frame.src_addr()
 
-            if l_port ~= local_port then
-                log.debug("received packet on unconfigured channel " .. l_port, true)
-            elseif r_port == api_port then
+            if l_chan ~= pkt_channel then
+                log.debug("received packet on unconfigured channel " .. l_chan, true)
+            elseif r_chan == crd_channel then
                 -- check sequence number
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num()
                 elseif self.connected and ((self.api.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                    log.warning("sequence out-of-order: last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    return
+                elseif self.api.linked and (src_addr ~= self.api.addr) then
+                    log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
+                                "); channel in use by another system?")
                     return
                 else
                     self.api.r_seq_num = packet.scada_frame.seq_num()
@@ -247,6 +258,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                                 log.info("coordinator connection established")
                                 self.establish_delay_counter = 0
                                 self.api.linked = true
+                                self.api.addr = src_addr
 
                                 if self.sv.linked then
                                     coreio.report_link_state(LINK_STATE.LINKED)
@@ -294,6 +306,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                             -- handle session close
                             api_watchdog.cancel()
                             self.api.linked = false
+                            self.api.r_seq_num = nil
+                            self.api.addr = comms.BROADCAST
                             log.info("coordinator server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from coordinator")
@@ -304,12 +318,16 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                 else
                     log.debug("illegal packet type " .. protocol .. " from coordinator", true)
                 end
-            elseif r_port == sv_port then
+            elseif r_chan == svr_channel then
                 -- check sequence number
                 if self.sv.r_seq_num == nil then
                     self.sv.r_seq_num = packet.scada_frame.seq_num()
                 elseif self.connected and ((self.sv.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                    log.warning("sequence out-of-order: last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    return
+                elseif self.sv.linked and (src_addr ~= self.sv.addr) then
+                    log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
+                                "); channel in use by another system?")
                     return
                 else
                     self.sv.r_seq_num = packet.scada_frame.seq_num()
@@ -330,6 +348,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                                 log.info("supervisor connection established")
                                 self.establish_delay_counter = 0
                                 self.sv.linked = true
+                                self.sv.addr = src_addr
 
                                 if self.api.linked then
                                     coreio.report_link_state(LINK_STATE.LINKED)
@@ -377,6 +396,8 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                             -- handle session close
                             sv_watchdog.cancel()
                             self.sv.linked = false
+                            self.sv.r_seq_num = nil
+                            self.sv.addr = comms.BROADCAST
                             log.info("supervisor server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from supervisor")
@@ -388,7 +409,7 @@ function pocket.comms(version, modem, local_port, sv_port, api_port, range, sv_w
                     log.debug("illegal packet type " .. protocol .. " from supervisor", true)
                 end
             else
-                log.debug("received packet from unconfigured channel " .. r_port, true)
+                log.debug("received packet from unconfigured channel " .. r_chan, true)
             end
         end
     end

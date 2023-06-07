@@ -1,11 +1,11 @@
 local config = {}
 
--- port of the SCADA supervisor
-config.SCADA_SV_PORT = 16100
--- port to listen to incoming packets from supervisor
-config.SCADA_SV_CTL_LISTEN = 16101
--- listen port for SCADA coordinator API access
-config.SCADA_API_LISTEN = 16200
+-- supervisor comms channel
+config.SVR_CHANNEL = 16240
+-- coordinator comms channel
+config.CRD_CHANNEL = 16243
+-- pocket comms channel
+config.PKT_CHANNEL = 16244
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
 -- time in seconds (>= 2) before assuming a remote device is no longer active

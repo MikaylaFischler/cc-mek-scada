@@ -17,7 +17,7 @@ local coreio   = require("pocket.coreio")
 local pocket   = require("pocket.pocket")
 local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.3.7"
+local POCKET_VERSION = "alpha-v0.4.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -28,9 +28,9 @@ local println_ts = util.println_ts
 
 local cfv = util.new_validator()
 
-cfv.assert_port(config.SCADA_SV_PORT)
-cfv.assert_port(config.SCADA_API_PORT)
-cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_channel(config.SVR_CHANNEL)
+cfv.assert_channel(config.CRD_CHANNEL)
+cfv.assert_channel(config.PKT_CHANNEL)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
@@ -89,8 +89,8 @@ local function main()
     log.debug("startup> conn watchdogs created")
 
     -- start comms, open all channels
-    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.LISTEN_PORT, config.SCADA_SV_PORT,
-                                        config.SCADA_API_PORT, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
+    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.PKT_CHANNEL, config.SVR_CHANNEL,
+                                        config.CRD_CHANNEL, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
     log.debug("startup> comms init")
 
     -- base loop clock (2Hz, 10 ticks)

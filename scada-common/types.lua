@@ -74,6 +74,15 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 -- ENUMERATION TYPES --
 --#region
 
+---@enum PANEL_LINK_STATE
+types.PANEL_LINK_STATE = {
+    LINKED = 1,
+    DENIED = 2,
+    COLLISION = 3,
+    BAD_VERSION = 4,
+    DISCONNECTED = 5
+}
+
 ---@enum RTU_UNIT_TYPE
 types.RTU_UNIT_TYPE = {
     VIRTUAL = 0,        -- virtual device

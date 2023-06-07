@@ -45,12 +45,13 @@ local PERIODICS = {
 -- PLC supervisor session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param reactor_id integer reactor ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param fp_ok boolean if the front panel UI is running
-function plc.new_session(id, reactor_id, in_queue, out_queue, timeout, fp_ok)
+function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -250,7 +251,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout, fp_ok)
         local r_pkt = comms.rplc_packet()
 
         r_pkt.make(reactor_id, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -264,7 +265,7 @@ function plc.new_session(id, reactor_id, in_queue, out_queue, timeout, fp_ok)
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1

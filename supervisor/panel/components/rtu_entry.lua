@@ -2,8 +2,6 @@
 -- RTU Connection Entry
 --
 
-local util          = require("scada-common.util")
-
 local databus       = require("supervisor.databus")
 
 local core          = require("graphics.core")
@@ -28,9 +26,9 @@ local function init(parent, id)
     local ps_prefix = "rtu_" .. id .. "_"
 
     TextBox{parent=entry,x=1,y=1,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
-    local rtu_chan = TextBox{parent=entry,x=1,y=2,text=" :00000",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray),nav_active=cpair(colors.gray,colors.black)}
+    local rtu_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray),nav_active=cpair(colors.gray,colors.black)}
     TextBox{parent=entry,x=1,y=3,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
-    rtu_chan.register(databus.ps, ps_prefix .. "chan", function (channel) rtu_chan.set_value(util.sprintf(" :%05d", channel)) end)
+    rtu_addr.register(databus.ps, ps_prefix .. "addr", rtu_addr.set_value)
 
     TextBox{parent=entry,x=10,y=2,text="UNITS:",width=7,height=1}
     local unit_count = DataIndicator{parent=entry,x=17,y=2,label="",unit="",format="%2d",value=0,width=2,fg_bg=cpair(colors.gray,colors.white)}

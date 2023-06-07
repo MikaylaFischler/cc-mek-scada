@@ -65,7 +65,8 @@ end
 ---@return string
 function util.strval(val)
     local t = type(val)
-    if t == "table" or t == "function" then
+    -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
+    if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
         return "[" .. tostring(val) .. "]"
     else
         return tostring(val)
@@ -539,7 +540,7 @@ function util.new_validator()
     function public.assert_range(check, min, max) valid = valid and check >= min and check <= max end
     function public.assert_range_ex(check, min, max) valid = valid and check > min and check < max end
 
-    function public.assert_port(port) valid = valid and type(port) == "number" and port >= 0 and port <= 65535 end
+    function public.assert_channel(channel) valid = valid and type(channel) == "number" and channel >= 0 and channel <= 65535 end
 
     -- check if all assertions passed successfully
     ---@nodiscard

@@ -38,7 +38,7 @@ local pkt = comms.modbus_packet()
 ---@diagnostic disable-next-line: param-type-mismatch
 pkt.make(1, 2, 7, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 local spkt = comms.scada_packet()
-spkt.make(1, 1, pkt.raw_sendable())
+spkt.make(0, 1, 1, pkt.raw_sendable())
 
 start = util.time()
 local data = textutils.serialize(spkt.raw_sendable(), { allow_repetitions = true, compact = true })

@@ -5,7 +5,7 @@ local util   = require("scada-common.util")
 
 local config = require("coordinator.config")
 
-local api    = require("coordinator.session.api")
+local pocket = require("coordinator.session.pocket")
 
 local apisessions = {}
 
@@ -18,7 +18,7 @@ local self = {
 -- PRIVATE FUNCTIONS --
 
 -- handle a session output queue
----@param session api_session_struct
+---@param session pkt_session_struct
 local function _api_handle_outq(session)
     -- record handler start time
     local handle_start = util.time()
@@ -31,7 +31,7 @@ local function _api_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+                self.modem.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message.raw_sendable())
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -41,15 +41,15 @@ local function _api_handle_outq(session)
 
         -- max 100ms spent processing queue
         if util.time() - handle_start > 100 then
-            log.warning("API out queue handler exceeded 100ms queue process limit")
-            log.warning(util.c("offending session: port ", session.r_port))
+            log.warning("[API] out queue handler exceeded 100ms queue process limit")
+            log.warning(util.c("[API] offending session: ", session))
             break
         end
     end
 end
 
 -- cleanly close a session
----@param session api_session_struct
+---@param session pkt_session_struct
 local function _shutdown(session)
     session.open = false
     session.instance.close()
@@ -58,11 +58,11 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.modem.transmit(session.r_port, session.l_port, msg.message.raw_sendable())
+            self.modem.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message.raw_sendable())
         end
     end
 
-    log.debug(util.c("closed API session ", session.instance.get_id(), " on remote port ", session.r_port))
+    log.debug(util.c("[API] closed session ", session))
 end
 
 -- PUBLIC FUNCTIONS --
@@ -81,54 +81,60 @@ end
 
 -- find a session by remote port
 ---@nodiscard
----@param port integer
----@return api_session_struct|nil
-function apisessions.find_session(port)
+---@param source_addr integer
+---@return pkt_session_struct|nil
+function apisessions.find_session(source_addr)
     for i = 1, #self.sessions do
-        if self.sessions[i].r_port == port then return self.sessions[i] end
+        if self.sessions[i].s_addr == source_addr then return self.sessions[i] end
     end
     return nil
 end
 
 -- establish a new API session
 ---@nodiscard
----@param local_port integer
----@param remote_port integer
+---@param source_addr integer
 ---@param version string
 ---@return integer session_id
-function apisessions.establish_session(local_port, remote_port, version)
-    ---@class api_session_struct
-    local api_s = {
+function apisessions.establish_session(source_addr, version)
+    ---@class pkt_session_struct
+    local pkt_s = {
         open = true,
         version = version,
-        l_port = local_port,
-        r_port = remote_port,
+        s_addr = source_addr,
         in_queue = mqueue.new(),
         out_queue = mqueue.new(),
-        instance = nil  ---@type api_session
+        instance = nil  ---@type pkt_session
     }
 
-    api_s.instance = api.new_session(self.next_id, api_s.in_queue, api_s.out_queue, config.API_TIMEOUT)
-    table.insert(self.sessions, api_s)
+    local id = self.next_id
 
-    log.debug(util.c("established new API session to ", remote_port, " with ID ", self.next_id))
+    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, config.API_TIMEOUT)
+    table.insert(self.sessions, pkt_s)
 
-    self.next_id = self.next_id + 1
+    local mt = {
+        ---@param s pkt_session_struct
+        __tostring = function (s)  return util.c("PKT [", id, "] (@", s.s_addr, ")") end
+    }
+
+    setmetatable(pkt_s, mt)
+
+    log.debug(util.c("[API] established new session: ", pkt_s))
+
+    self.next_id = id + 1
 
     -- success
-    return api_s.instance.get_id()
+    return pkt_s.instance.get_id()
 end
 
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
 function apisessions.check_all_watchdogs(timer_event)
     for i = 1, #self.sessions do
-        local session = self.sessions[i]  ---@type api_session_struct
+        local session = self.sessions[i]  ---@type pkt_session_struct
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
-                log.debug(util.c("watchdog closing API session ", session.instance.get_id(),
-                    " on remote port ", session.r_port, "..."))
+                log.debug(util.c("[API] watchdog closing session ", session, "..."))
                 _shutdown(session)
             end
         end
@@ -138,7 +144,7 @@ end
 -- iterate all the API sessions
 function apisessions.iterate_all()
     for i = 1, #self.sessions do
-        local session = self.sessions[i]    ---@type api_session_struct
+        local session = self.sessions[i]    ---@type pkt_session_struct
 
         if session.open and session.instance.iterate() then
             _api_handle_outq(session)
@@ -152,10 +158,9 @@ end
 function apisessions.free_all_closed()
     local f = function (session) return session.open end
 
-    ---@param session api_session_struct
+    ---@param session pkt_session_struct
     local on_delete = function (session)
-        log.debug(util.c("free'ing closed API session ", session.instance.get_id(),
-            " on remote port ", session.r_port))
+        log.debug(util.c("[API] free'ing closed session ", session))
     end
 
     util.filter_table(self.sessions, f, on_delete)
@@ -164,7 +169,7 @@ end
 -- close all open connections
 function apisessions.close_all()
     for i = 1, #self.sessions do
-        local session = self.sessions[i]  ---@type api_session_struct
+        local session = self.sessions[i]  ---@type pkt_session_struct
         if session.open then _shutdown(session) end
     end
 

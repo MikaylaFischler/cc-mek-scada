@@ -56,6 +56,10 @@ local function init(panel)
 
     modem.register(databus.ps, "has_modem", modem.update)
 
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("(%d)", os.getComputerID())
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+
     --
     -- about footer
     --
@@ -84,11 +88,11 @@ local function init(panel)
         TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
         TextBox{parent=plc_entry,x=1,y=3,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
 
-        local conn = LED{parent=plc_entry,x=10,y=2,label="CONN",colors=cpair(colors.green,colors.green_off)}
+        local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=cpair(colors.green,colors.green_off)}
         conn.register(databus.ps, ps_prefix .. "conn", conn.update)
 
-        local plc_chan = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,height=1,fg_bg=cpair(colors.gray,colors.white)}
-        plc_chan.register(databus.ps, ps_prefix .. "chan", plc_chan.set_value)
+        local plc_addr = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,height=1,fg_bg=cpair(colors.gray,colors.white)}
+        plc_addr.register(databus.ps, ps_prefix .. "addr", plc_addr.set_value)
 
         TextBox{parent=plc_entry,x=23,y=2,text="FW:",width=3,height=1}
         local plc_fw_v = TextBox{parent=plc_entry,x=27,y=2,text=" ------- ",width=9,height=1,fg_bg=cpair(colors.lightGray,colors.white)}
@@ -117,9 +121,9 @@ local function init(panel)
     local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green,colors.green_off)}
     crd_conn.register(databus.ps, "crd_conn", crd_conn.update)
 
-    TextBox{parent=crd_box,x=4,y=3,text="CHANNEL ",width=8,height=1,fg_bg=cpair(colors.gray,colors.white)}
-    local crd_chan = TextBox{parent=crd_box,x=12,y=3,text="---",width=5,height=1,fg_bg=cpair(colors.gray,colors.white)}
-    crd_chan.register(databus.ps, "crd_chan", crd_chan.set_value)
+    TextBox{parent=crd_box,x=4,y=3,text="COMPUTER",width=8,height=1,fg_bg=cpair(colors.gray,colors.white)}
+    local crd_addr = TextBox{parent=crd_box,x=13,y=3,text="---",width=5,height=1,fg_bg=cpair(colors.gray,colors.white)}
+    crd_addr.register(databus.ps, "crd_addr", crd_addr.set_value)
 
     TextBox{parent=crd_box,x=22,y=2,text="FW:",width=3,height=1}
     local crd_fw_v = TextBox{parent=crd_box,x=26,y=2,text=" ------- ",width=9,height=1,fg_bg=cpair(colors.lightGray,colors.white)}

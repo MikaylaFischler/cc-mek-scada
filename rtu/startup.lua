@@ -28,7 +28,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.2.8"
+local RTU_VERSION = "v1.3.5"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -42,8 +42,8 @@ local println_ts = util.println_ts
 
 local cfv = util.new_validator()
 
-cfv.assert_port(config.SERVER_PORT)
-cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_channel(config.SVR_CHANNEL)
+cfv.assert_channel(config.RTU_CHANNEL)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
@@ -467,7 +467,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT,
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.RTU_CHANNEL, config.SVR_CHANNEL,
                                         config.TRUSTED_RANGE, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 

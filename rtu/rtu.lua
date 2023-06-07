@@ -159,12 +159,13 @@ end
 ---@nodiscard
 ---@param version string RTU version
 ---@param modem table modem device
----@param local_port integer local listening port
----@param server_port integer remote server port
+---@param rtu_channel integer PLC comms channel
+---@param svr_channel integer supervisor server channel
 ---@param range integer trusted device connection range
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog)
+function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdog)
     local self = {
+        sv_addr = comms.BROADCAST,
         seq_num = 0,
         r_seq_num = nil,
         txn_id = 0,
@@ -180,7 +181,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     -- configure modem channels
     local function _conf_channels()
         modem.closeAll()
-        modem.open(local_port)
+        modem.open(rtu_channel)
     end
 
     _conf_channels()
@@ -193,9 +194,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(svr_channel, rtu_channel, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -238,8 +239,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     ---@param m_pkt modbus_packet
     function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
-        s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        modem.transmit(svr_channel, rtu_channel, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -254,7 +255,9 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
     ---@param rtu_state rtu_state
     function public.unlink(rtu_state)
         rtu_state.linked = false
+        self.sv_addr = comms.BROADCAST
         self.r_seq_num = nil
+        databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
     -- close the connection to the server
@@ -327,12 +330,20 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
 
-        if packet.scada_frame.local_port() == local_port then
+        local protocol = packet.scada_frame.protocol()
+        local l_chan   = packet.scada_frame.local_channel()
+        local src_addr = packet.scada_frame.src_addr()
+
+        if l_chan == rtu_channel then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
             elseif rtu_state.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                return
+            elseif rtu_state.linked and (src_addr ~= self.sv_addr) then
+                log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
+                            "); channel in use by another system?")
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -341,8 +352,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
             -- feed watchdog on valid sequence number
             conn_watchdog.feed()
 
-            local protocol = packet.scada_frame.protocol()
-
+            -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_frame
                 if rtu_state.linked then
@@ -398,6 +408,7 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                         if est_ack == ESTABLISH_ACK.ALLOW then
                             -- establish allowed
                             rtu_state.linked = true
+                            self.sv_addr = packet.scada_frame.src_addr()
                             self.r_seq_num = nil
                             println_ts("supervisor connection established")
                             log.info("supervisor connection established")
@@ -461,6 +472,8 @@ function rtu.comms(version, modem, local_port, server_port, range, conn_watchdog
                 -- should be unreachable assuming packet is from parse_packet()
                 log.error("illegal packet type " .. protocol, true)
             end
+        else
+            log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
 
