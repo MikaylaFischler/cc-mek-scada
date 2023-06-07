@@ -73,12 +73,16 @@ jobs:
         with:
           ref: 'devel'
           clean: false
+      - name: test
+        run: echo ${{ steps.checkout-devel.success }}
+      - name: test2
+        run: echo ${{ steps.checkout-devel.outcome }}
       - name: Generate manifest for devel
         id: manifest-devel
-        if: (success() || failure()) && ${{ steps.checkout-devel.success }}
+        if: (always()) && ${{ steps.checkout-devel.success }}
         run: python imgen.py
       - name: Save devel's manifest
-        if: ${{ steps.manifest-devel.success }}
+        if: ${{ steps.checkout-devel.success }}
         run: mv install_manifest.json deploy/manifests/devel
       # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
