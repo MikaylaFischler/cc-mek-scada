@@ -60,7 +60,9 @@ local element = {}
 -- a base graphics element, should not be created on its own
 ---@nodiscard
 ---@param args graphics_args arguments
-function element.new(args)
+---@param child_offset_x? integer mouse event offset x
+---@param child_offset_y? integer mouse event offset y
+function element.new(args, child_offset_x, child_offset_y)
     local self = {
         id = nil,                                       ---@type element_id|nil
         elem_type = debug.getinfo(2).name,
@@ -101,8 +103,10 @@ function element.new(args)
     -------------------------
 
     -- prepare the template
+    ---@param offset_x integer x offset for mouse events
+    ---@param offset_y integer y offset for mouse events
     ---@param next_y integer next line if no y was provided
-    function protected.prepare_template(next_y)
+    function protected.prepare_template(offset_x, offset_y, next_y)
         -- get frame coordinates/size
         if args.gframe ~= nil then
             protected.frame.x = args.gframe.x
@@ -150,7 +154,11 @@ function element.new(args)
         -- record position
         self.position.x, self.position.y = protected.window.getPosition()
 
-        -- calculate bounds
+        -- shift per parent child offset
+        self.position.x = self.position.x + offset_x
+        self.position.y = self.position.y + offset_y
+
+        -- calculate mouse event bounds
         self.bounds.x1 = self.position.x
         self.bounds.x2 = self.position.x + f.w - 1
         self.bounds.y1 = self.position.y
@@ -283,7 +291,7 @@ function element.new(args)
     -- prepare the template
     if args.parent == nil then
         self.id = args.id or "__ROOT__"
-        protected.prepare_template(1)
+        protected.prepare_template(0, 0, 1)
     else
         self.id = args.parent.__add_child(args.id, protected)
     end
@@ -337,7 +345,7 @@ function element.new(args)
     ---@param child graphics_base
     ---@return integer|string key
     function public.__add_child(key, child)
-        child.prepare_template(self.next_y)
+        child.prepare_template(child_offset_x or 0, child_offset_y or 0, self.next_y)
 
         self.next_y = child.frame.y + child.frame.h
 
