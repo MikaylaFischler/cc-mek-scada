@@ -2,8 +2,6 @@
 -- Pocket Diagnostics Connection Entry
 --
 
-local util          = require("scada-common.util")
-
 local databus       = require("supervisor.databus")
 
 local core          = require("graphics.core")
@@ -30,7 +28,7 @@ local function init(parent, id)
     TextBox{parent=entry,x=1,y=1,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
     local pdg_addr = TextBox{parent=entry,x=1,y=2,text="C #?",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray),nav_active=cpair(colors.gray,colors.black)}
     TextBox{parent=entry,x=1,y=3,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
-    pdg_addr.register(databus.ps, ps_prefix .. "addr", function (addr) pdg_addr.set_value(util.sprintf("C #%d", addr)) end)
+    pdg_addr.register(databus.ps, ps_prefix .. "addr", pdg_addr.set_value)
 
     TextBox{parent=entry,x=10,y=2,text="FW:",width=3,height=1}
     local pdg_fw_v = TextBox{parent=entry,x=14,y=2,text=" ------- ",width=20,height=1,fg_bg=cpair(colors.lightGray,colors.white)}

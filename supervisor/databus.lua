@@ -3,6 +3,7 @@
 --
 
 local psil = require("scada-common.psil")
+local util = require("scada-common.util")
 
 local pgi  = require("supervisor.panel.pgi")
 
@@ -39,7 +40,7 @@ end
 function databus.tx_plc_connected(reactor_id, fw, s_addr)
     databus.ps.publish("plc_" .. reactor_id .. "_fw", fw)
     databus.ps.publish("plc_" .. reactor_id .. "_conn", true)
-    databus.ps.publish("plc_" .. reactor_id .. "_addr", tostring(s_addr))
+    databus.ps.publish("plc_" .. reactor_id .. "_addr", util.sprintf("@% 4d", s_addr))
 end
 
 -- transmit PLC disconnected
@@ -73,7 +74,7 @@ end
 ---@param s_addr integer RTU computer ID
 function databus.tx_rtu_connected(session_id, fw, s_addr)
     databus.ps.publish("rtu_" .. session_id .. "_fw", fw)
-    databus.ps.publish("rtu_" .. session_id .. "_addr", tostring(s_addr))
+    databus.ps.publish("rtu_" .. session_id .. "_addr", util.sprintf("@ C% 3d", s_addr))
     pgi.create_rtu_entry(session_id)
 end
 
@@ -143,7 +144,7 @@ end
 ---@param s_addr integer PDG computer ID
 function databus.tx_pdg_connected(session_id, fw, s_addr)
     databus.ps.publish("pdg_" .. session_id .. "_fw", fw)
-    databus.ps.publish("pdg_" .. session_id .. "_addr", tostring(s_addr))
+    databus.ps.publish("pdg_" .. session_id .. "_addr", util.sprintf("@ C% 3d", s_addr))
     pgi.create_pdg_entry(session_id)
 end
 
