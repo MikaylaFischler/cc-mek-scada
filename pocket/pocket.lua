@@ -234,7 +234,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                 elseif self.connected and ((self.api.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
-                elseif self.api.linked and (self.api.addr ~= src_addr) then
+                elseif self.api.linked and (src_addr ~= self.api.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
                                 "); channel in use by another system?")
                     return
@@ -325,7 +325,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                 elseif self.connected and ((self.sv.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
-                elseif self.sv.linked and (self.sv.addr ~= src_addr) then
+                elseif self.sv.linked and (src_addr ~= self.sv.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
                                 "); channel in use by another system?")
                     return

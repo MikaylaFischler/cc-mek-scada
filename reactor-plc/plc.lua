@@ -945,7 +945,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                 if self.linked then
                     if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- link request confirmation
-                        if (packet.length == 1) and (self.sv_addr == src_addr) then
+                        if packet.length == 1 then
                             log.debug("received unsolicited establish response")
 
                             local est_ack = packet.data[1]
