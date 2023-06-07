@@ -41,7 +41,7 @@ There was also an apparent bug with boilers disconnecting and reconnecting when 
 
 You can install this on a ComputerCraft computer using either:
 * `wget https://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/main/ccmsi.lua`
-* `pastebin get iUMjgW0C ccmsi.lua`
+* `pastebin get eRz6cUNM ccmsi.lua`
 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
