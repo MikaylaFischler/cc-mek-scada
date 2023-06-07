@@ -284,7 +284,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("coordinator SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif self.api.linked then
+                    elseif self.api.linked and src_addr == self.api.addr then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -311,8 +311,10 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from coordinator")
                         end
-                    else
+                    elseif not self.api.linked then
                         log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
+                    else
+                        log.debug("discarding SCADA_MGMT from different coordinator (src_addr " .. src_addr .. " ≠ " .. self.api.addr .. ")")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from coordinator", true)
@@ -373,7 +375,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("supervisor SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif self.sv.linked then
+                    elseif self.sv.linked and (src_addr == self.sv.addr) then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -400,8 +402,10 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from supervisor")
                         end
-                    else
+                    elseif not self.sv.linked then
                         log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")
+                    else
+                        log.debug("discarding SCADA_MGMT from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv.addr .. ")")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from supervisor", true)
