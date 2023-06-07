@@ -9,9 +9,9 @@ config.REACTOR_ID = 1
 -- when emergency coolant is needed due to low coolant
 -- config.EMERGENCY_COOL = { side = "right", color = nil }
 
--- supervisor access channel
+-- supervisor comms channel
 config.SVR_CHANNEL = 16240
--- PLC communication channel
+-- PLC comms channel
 config.PLC_CHANNEL = 16241
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0

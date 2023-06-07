@@ -1,10 +1,10 @@
 local config = {}
 
--- supervisor access channel
+-- supervisor comms channel
 config.SVR_CHANNEL = 16240
--- coordinator access channel
+-- coordinator comms channel
 config.CRD_CHANNEL = 16243
--- pocket communication channel
+-- pocket comms channel
 config.PKT_CHANNEL = 16244
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0

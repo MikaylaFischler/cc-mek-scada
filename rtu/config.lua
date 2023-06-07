@@ -2,9 +2,9 @@ local rsio = require("scada-common.rsio")
 
 local config = {}
 
--- supervisor access channel
+-- supervisor comms channel
 config.SVR_CHANNEL = 16240
--- RTU/MODBUS communication channel
+-- RTU/MODBUS comms channel
 config.RTU_CHANNEL = 16242
 -- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
