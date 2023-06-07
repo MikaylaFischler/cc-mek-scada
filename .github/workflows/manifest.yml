@@ -29,27 +29,41 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Setup Python
         uses: actions/setup-python@v3.1.3
-      - name: Extract branch name
+      - name: Create outputs folders
         shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
-      - name: Create outputs folder
-        shell: bash
-        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/${{ steps.extract_branch.outputs.branch }}
+        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
+      # Generate manifest + shields files for main branch
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: 'main'
       - name: Generate manifest and shields for main branch
-        if: github.event.pull_request.base.ref == 'main'
-        run: python imgen.py gh_actions
-      - name: Generate only manifest for non-main branches
-        if: github.event.pull_request.base.ref != 'main'
+        run: python imgen.py shields
+      - name: Save main's manifest
+        run: mv install_manifest.json deploy/manifests/main
+      # Generate manifest for latest branch
+      - name: Checkout latest
+        uses: actions/checkout@v3
+        with:
+          ref: 'latest'
+      - name: Generate manifest for latest
         run: python imgen.py
-      - name: Move manifest
-        run: mv install_manifest.json deploy/manifests/${{ steps.extract_branch.outputs.branch }}
+      - name: Save latest's manifest
+        run: mv install_manifest.json deploy/manifests/latest
+      # Generate manifest for devel branch
+      - name: Checkout devel
+        uses: actions/checkout@v3
+        with:
+          ref: 'devel'
+      - name: Generate manifest for devel
+        run: python imgen.py
+      - name: Save devel's manifest
+        run: mv install_manifest.json deploy/manifests/devel
+      # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v1
         with:

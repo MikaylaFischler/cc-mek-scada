@@ -108,7 +108,7 @@ f = open("install_manifest.json", "w")
 json.dump(final_manifest, f)
 f.close()
 
-if len(sys.argv) > 1 and sys.argv[1] == "gh_actions":
+if len(sys.argv) > 1 and sys.argv[1] == "shields":
     # write all the JSON files for shields.io
     for key, version in final_manifest["versions"].items():
         f = open("./deploy/" + key + ".json", "w")
