@@ -11,6 +11,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new div element
 ---@nodiscard
@@ -18,7 +19,7 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function div(args)
     -- create new graphics element base object
-    return element.new(args).get()
+    return element.new(args).complete()
 end
 
 return div

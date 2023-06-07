@@ -9,6 +9,7 @@ local element = require("graphics.element")
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
+---@field hidden? boolean true to hide on initial draw
 
 -- new color map
 ---@param args colormap_args
@@ -27,7 +28,7 @@ local function colormap(args)
     e.window.setCursorPos(1, 1)
     e.window.blit(spaces, bkg, bkg)
 
-    return e.get()
+    return e.complete()
 end
 
 return colormap

@@ -13,6 +13,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new vertical bar
 ---@nodiscard
@@ -99,7 +100,7 @@ local function vbar(args)
     ---@param val number 0.0 to 1.0
     function e.set_value(val) e.on_update(val) end
 
-    return e.get()
+    return e.complete()
 end
 
 return vbar

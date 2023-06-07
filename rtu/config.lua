@@ -2,11 +2,11 @@ local rsio = require("scada-common.rsio")
 
 local config = {}
 
--- port to send packets TO server
-config.SERVER_PORT = 16000
--- port to listen to incoming packets FROM server
-config.LISTEN_PORT = 15001
--- max trusted modem message distance (< 1 to disable check)
+-- supervisor comms channel
+config.SVR_CHANNEL = 16240
+-- RTU/MODBUS comms channel
+config.RTU_CHANNEL = 16242
+-- max trusted modem message distance (0 to disable check)
 config.TRUSTED_RANGE = 0
 -- time in seconds (>= 2) before assuming a remote device is no longer active
 config.COMMS_TIMEOUT = 5

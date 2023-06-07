@@ -549,7 +549,7 @@ function logic.update_auto_safety(public, self)
         end
 
         if alarmed and not self.plc_cache.rps_status.automatic then
-            public.a_scram()
+            public.auto_scram()
         end
 
         self.auto_was_alarmed = alarmed

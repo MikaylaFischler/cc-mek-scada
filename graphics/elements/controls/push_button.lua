@@ -1,6 +1,6 @@
 -- Button Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -19,6 +19,7 @@ local CLICK_TYPE = core.events.CLICK_TYPE
 ---@field y? integer 1 if omitted
 ---@field height? integer parent height if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new push button
 ---@param args push_button_args
@@ -120,7 +121,7 @@ local function push_button(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return push_button

@@ -15,6 +15,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new radio button list (latch selection, exclusively one button at a time)
 ---@param args radio_button_args
@@ -103,7 +104,7 @@ local function radio_button(args)
     -- initial draw
     draw()
 
-    return e.get()
+    return e.complete()
 end
 
 return radio_button

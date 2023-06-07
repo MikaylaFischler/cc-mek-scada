@@ -1,6 +1,6 @@
 -- Hazard-bordered Button Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
@@ -16,6 +16,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new hazard button
 ---@param args hazard_button_args
@@ -198,7 +199,7 @@ local function hazard_button(args)
     -- initial draw of border
     draw_border(args.accent)
 
-    return e.get()
+    return e.complete()
 end
 
 return hazard_button

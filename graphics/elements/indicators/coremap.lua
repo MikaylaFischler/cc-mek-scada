@@ -163,7 +163,7 @@ local function core_map(args)
     -- initial draw
     e.on_update(0)
 
-    return e.get()
+    return e.complete()
 end
 
 return core_map

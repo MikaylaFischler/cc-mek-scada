@@ -18,6 +18,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new icon indicator
 ---@nodiscard
@@ -68,7 +69,7 @@ local function icon(args)
     -- initial icon draw
     e.on_update(args.value or 1)
 
-    return e.get()
+    return e.complete()
 end
 
 return icon

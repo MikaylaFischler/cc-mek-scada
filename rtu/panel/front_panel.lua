@@ -2,6 +2,7 @@
 -- Main SCADA Coordinator GUI
 --
 
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local databus    = require("rtu.databus")
@@ -44,7 +45,7 @@ local function init(panel, units)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
-    local on = LED{parent=system,label="POWER",colors=cpair(colors.green,colors.red)}
+    local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
     on.update(true)
     system.line_break()
@@ -53,7 +54,7 @@ local function init(panel, units)
 
     local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
     local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(5)
+    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
     system.line_break()
 
     modem.register(databus.ps, "has_modem", modem.update)
@@ -65,6 +66,10 @@ local function init(panel, units)
 
     rt_main.register(databus.ps, "routine__main", rt_main.update)
     rt_comm.register(databus.ps, "routine__comms", rt_comm.update)
+
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("(%d)", os.getComputerID())
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
 
     --
     -- about label

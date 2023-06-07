@@ -4,6 +4,8 @@ local mqueue        = require("scada-common.mqueue")
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
+local databus       = require("supervisor.databus")
+
 local svqtypes      = require("supervisor.session.svqtypes")
 
 -- supervisor rtu sessions (svrs)
@@ -22,8 +24,6 @@ local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
-local println = util.println
-
 local PERIODICS = {
     KEEP_ALIVE = 2000
 }
@@ -31,12 +31,17 @@ local PERIODICS = {
 -- create a new RTU session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param advertisement table RTU device advertisement
 ---@param facility facility facility data table
-function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facility)
+---@param fp_ok boolean if the front panel UI is running
+function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement, facility, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "rtu_session(" .. id .. "): "
 
     local self = {
@@ -66,6 +71,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
     -- parse the recorded advertisement and create unit sub-sessions
     local function _handle_advertisement()
+        local unit_count = 0
+
         _reset_config()
 
         for i = 1, #self.fac_units do
@@ -172,18 +179,22 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
             if unit ~= nil then
                 self.units[i] = unit
+                unit_count = unit_count + 1
             elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
                 _reset_config()
                 log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
                 break
             end
         end
+
+        databus.tx_rtu_units(id, unit_count)
     end
 
     -- mark this RTU session as closed, stop watchdog
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_rtu_disconnected(id)
 
         -- mark all RTU unit sessions as closed so the reactor unit knows
         for _, unit in pairs(self.units) do unit.close() end
@@ -194,7 +205,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
     local function _send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
 
-        s_pkt.make(self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -208,7 +219,7 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -254,6 +265,8 @@ function rtu.new_session(id, in_queue, out_queue, timeout, advertisement, facili
 
                     -- log.debug(log_header .. "RTU RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "RTU TT  = " .. (srv_now - rtu_send) .. "ms")
+
+                    databus.tx_rtu_rtt(id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

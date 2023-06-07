@@ -1,0 +1,95 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy Installation Manifests and Versions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - latest
+      - devel
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3.1.3
+      # Generate manifest + shields files for main branch
+      - name: Checkout main
+        id: checkout-main
+        uses: actions/checkout@v3
+        with:
+          ref: 'main'
+          clean: false
+      - name: Create outputs folders
+        if: success() || failure()
+        shell: bash
+        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
+      - name: Generate manifest and shields for main branch
+        id: manifest-main
+        if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
+        run: python imgen.py shields
+      - name: Save main's manifest
+        if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
+        run: mv install_manifest.json deploy/manifests/main
+      # Generate manifest for latest branch
+      - name: Checkout latest
+        id: checkout-latest
+        if: success() || failure()
+        uses: actions/checkout@v3
+        with:
+          ref: 'latest'
+          clean: false
+      - name: Generate manifest for latest
+        id: manifest-latest
+        if: ${{ (success() || failure()) && steps.checkout-latest.outcome == 'success' }}
+        run: python imgen.py
+      - name: Save latest's manifest
+        if: ${{ (success() || failure()) && steps.manifest-latest.outcome == 'success' }}
+        run: mv install_manifest.json deploy/manifests/latest
+      # Generate manifest for devel branch
+      - name: Checkout devel
+        id: checkout-devel
+        if: success() || failure()
+        uses: actions/checkout@v3
+        with:
+          ref: 'devel'
+          clean: false
+      - name: Generate manifest for devel
+        id: manifest-devel
+        if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
+        run: python imgen.py
+      - name: Save devel's manifest
+        if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
+        run: mv install_manifest.json deploy/manifests/devel
+      # All artifacts ready now, upload deploy directory
+      - name: Upload artifacts
+        id: upload-artifacts
+        if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload manifest JSON
+          path: 'deploy/'
+      - name: Deploy to GitHub Pages
+        if: ${{ (success() || failure()) && steps.upload-artifacts.outcome == 'success' }}
+        id: deployment
+        uses: actions/deploy-pages@v2

@@ -8,11 +8,11 @@ local style        = require("pocket.ui.style")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
-local home_page    = require("pocket.ui.components.home_page")
-local unit_page    = require("pocket.ui.components.unit_page")
-local reactor_page = require("pocket.ui.components.reactor_page")
-local boiler_page  = require("pocket.ui.components.boiler_page")
-local turbine_page = require("pocket.ui.components.turbine_page")
+local home_page    = require("pocket.ui.pages.home_page")
+local unit_page    = require("pocket.ui.pages.unit_page")
+local reactor_page = require("pocket.ui.pages.reactor_page")
+local boiler_page  = require("pocket.ui.pages.boiler_page")
+local turbine_page = require("pocket.ui.pages.turbine_page")
 
 local core         = require("graphics.core")
 

@@ -1,14 +1,13 @@
-local comms    = require("scada-common.comms")
-local log      = require("scada-common.log")
-local mqueue   = require("scada-common.mqueue")
-local util     = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local log     = require("scada-common.log")
+local mqueue  = require("scada-common.mqueue")
+local util    = require("scada-common.util")
+local databus = require("supervisor.databus")
 
 local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
-
-local println = util.println
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -30,11 +29,16 @@ local PERIODICS = {
 -- pocket diagnostics session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function pocket.new_session(id, in_queue, out_queue, timeout)
-    local log_header = "diag_session(" .. id .. "): "
+---@param fp_ok boolean if the front panel UI is running
+function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
+    local log_header = "pdg_session(" .. id .. "): "
 
     local self = {
         -- connection properties
@@ -55,18 +59,19 @@ function pocket.new_session(id, in_queue, out_queue, timeout)
         acks = {
         },
         -- session database
-        ---@class diag_db
+        ---@class pdg_db
         sDB = {
         }
     }
 
-    ---@class diag_session
+    ---@class pdg_session
     local public = {}
 
     -- mark this diagnostics session as closed, stop watchdog
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_pdg_disconnected(id)
     end
 
     -- send a SCADA management packet
@@ -77,7 +82,7 @@ function pocket.new_session(id, in_queue, out_queue, timeout)
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -106,16 +111,18 @@ function pocket.new_session(id, in_queue, out_queue, timeout)
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    -- local diag_send = pkt.data[2]
+                    -- local pdg_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "DIAG KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_header .. "PDG KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "DIAG RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "DIAG TT  = " .. (srv_now - diag_send) .. "ms")
+                    -- log.debug(log_header .. "PDG RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_header .. "PDG TT  = " .. (srv_now - pdg_send) .. "ms")
+
+                    databus.tx_pdg_rtt(id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end

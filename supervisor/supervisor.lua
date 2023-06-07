@@ -2,6 +2,8 @@ local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
+local config     = require("supervisor.config")
+
 local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
@@ -11,64 +13,59 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 
-local println = util.println
-
 -- supervisory controller communications
 ---@nodiscard
 ---@param _version string supervisor version
----@param num_reactors integer number of reactors
----@param cooling_conf table cooling configuration table
 ---@param modem table modem device
----@param dev_listen integer listening port for PLC/RTU devices
----@param svctl_listen integer listening port for supervisor access
----@param range integer trusted device connection range
+---@param fp_ok boolean if the front panel UI is running
 ---@diagnostic disable-next-line: unused-local
-function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_listen, svctl_listen, range)
+function supervisor.comms(_version, modem, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
+    -- channel list from config
+    local svr_channel = config.SVR_CHANNEL
+    local plc_channel = config.PLC_CHANNEL
+    local rtu_channel = config.RTU_CHANNEL
+    local crd_channel = config.CRD_CHANNEL
+    local pkt_channel = config.PKT_CHANNEL
+
+    -- configuration data
+    local num_reactors = config.NUM_REACTORS
+    local cooling_conf = config.REACTOR_COOLING
+
     local self = {
         last_est_acks = {}
     }
 
-    comms.set_trusted_range(range)
+    comms.set_trusted_range(config.TRUSTED_RANGE)
 
     -- PRIVATE FUNCTIONS --
 
     -- configure modem channels
     local function _conf_channels()
         modem.closeAll()
-        modem.open(dev_listen)
-        modem.open(svctl_listen)
+        modem.open(svr_channel)
     end
 
     _conf_channels()
 
-    -- link modem to svsessions
-    svsessions.init(modem, num_reactors, cooling_conf)
+    -- pass modem, status, and config data to svsessions
+    svsessions.init(modem, fp_ok, num_reactors, cooling_conf)
 
-    -- send an establish request response to a PLC/RTU
-    ---@param dest integer
-    ---@param msg table
-    local function _send_dev_establish(seq_id, dest, msg)
+    -- send an establish request response
+    ---@param packet scada_packet
+    ---@param ack ESTABLISH_ACK
+    ---@param data? any optional data
+    local function _send_establish(packet, ack, data)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
-        s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, { ack, data })
+        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(dest, dev_listen, s_pkt.raw_sendable())
-    end
-
-    -- send supervisor control access connection establish response
-    ---@param seq_id integer
-    ---@param dest integer
-    ---@param msg table
-    local function _send_svctl_establish(seq_id, dest, msg)
-        local s_pkt = comms.scada_packet()
-        local c_pkt = comms.mgmt_packet()
-
-        c_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, msg)
-        s_pkt.make(seq_id, PROTOCOL.SCADA_MGMT, c_pkt.raw_sendable())
-
-        modem.transmit(dest, svctl_listen, s_pkt.raw_sendable())
+        modem.transmit(packet.remote_channel(), svr_channel, s_pkt.raw_sendable())
+        self.last_est_acks[packet.src_addr()] = ack
     end
 
     -- PUBLIC FUNCTIONS --
@@ -136,17 +133,94 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
     ---@param packet modbus_frame|rplc_frame|mgmt_frame|crdn_frame|nil
     function public.handle_packet(packet)
         if packet ~= nil then
-            local l_port = packet.scada_frame.local_port()
-            local r_port = packet.scada_frame.remote_port()
+            local l_chan = packet.scada_frame.local_channel()
+            local r_chan = packet.scada_frame.remote_channel()
+            local src_addr = packet.scada_frame.src_addr()
             local protocol = packet.scada_frame.protocol()
 
-            -- device (RTU/PLC) listening channel
-            if l_port == dev_listen then
+            if l_chan ~= svr_channel then
+                log.debug("received packet on unconfigured channel " .. l_chan, true)
+            elseif r_chan == plc_channel then
+                -- look for an associated session
+                local session = svsessions.find_plc_session(src_addr)
+
+                if protocol == PROTOCOL.RPLC then
+                    ---@cast packet rplc_frame
+                    -- reactor PLC packet
+                    if session ~= nil then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    else
+                        -- unknown session, force a re-link
+                        log.debug("PLC_ESTABLISH: no session but not an establish, forcing relink")
+                        _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                    end
+                elseif protocol == PROTOCOL.SCADA_MGMT then
+                    ---@cast packet mgmt_frame
+                    -- SCADA management packet
+                    if session ~= nil then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                        -- establish a new session
+                        local last_ack = self.last_est_acks[src_addr]
+
+                        -- validate packet and continue
+                        if packet.length >= 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
+                            local comms_v    = packet.data[1]
+                            local firmware_v = packet.data[2]
+                            local dev_type   = packet.data[3]
+
+                            if comms_v ~= comms.version then
+                                if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
+                                    log.info(util.c("dropping PLC establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
+                                end
+
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
+                            elseif dev_type == DEVICE_TYPE.PLC then
+                                -- PLC linking request
+                                if packet.length == 4 and type(packet.data[4]) == "number" then
+                                    local reactor_id = packet.data[4]
+                                    local plc_id = svsessions.establish_plc_session(src_addr, reactor_id, firmware_v)
+
+                                    if plc_id == false then
+                                        -- reactor already has a PLC assigned
+                                        if last_ack ~= ESTABLISH_ACK.COLLISION then
+                                            log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
+                                        end
+
+                                        _send_establish(packet.scada_frame, ESTABLISH_ACK.COLLISION)
+                                    else
+                                        -- got an ID; assigned to a reactor successfully
+                                        println(util.c("PLC (", firmware_v, ") [@", src_addr, "] \xbb reactor ", reactor_id, " connected"))
+                                        log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [@", src_addr, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id))
+                                        _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                                    end
+                                else
+                                    log.debug("PLC_ESTABLISH: packet length mismatch/bad parameter type")
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                                end
+                            else
+                                log.debug(util.c("illegal establish packet for device ", dev_type, " on PLC channel"))
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                            end
+                        else
+                            log.debug("invalid establish packet (on PLC channel)")
+                            _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                        end
+                    else
+                        -- any other packet should be session related, discard it
+                        log.debug(util.c("discarding PLC SCADA_MGMT packet without a known session from computer ", src_addr))
+                    end
+                else
+                    log.debug(util.c("illegal packet type ", protocol, " on PLC channel"))
+                end
+            elseif r_chan == rtu_channel then
+                -- look for an associated session
+                local session = svsessions.find_rtu_session(src_addr)
+
                 if protocol == PROTOCOL.MODBUS_TCP then
                     ---@cast packet modbus_frame
-                    -- look for an associated session
-                    local session = svsessions.find_rtu_session(r_port)
-
                     -- MODBUS response
                     if session ~= nil then
                         -- pass the packet onto the session handler
@@ -155,105 +229,59 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
                         -- any other packet should be session related, discard it
                         log.debug("discarding MODBUS_TCP packet without a known session")
                     end
-                elseif protocol == PROTOCOL.RPLC then
-                    ---@cast packet rplc_frame
-                    -- look for an associated session
-                    local session = svsessions.find_plc_session(r_port)
-
-                    -- reactor PLC packet
-                    if session ~= nil then
-                        -- pass the packet onto the session handler
-                        session.in_queue.push_packet(packet)
-                    else
-                        -- unknown session, force a re-link
-                        log.debug("PLC_ESTABLISH: no session but not an establish, forcing relink")
-                        _send_dev_establish(packet.scada_frame.seq_num() + 1, r_port, { ESTABLISH_ACK.DENY })
-                    end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
-                    -- look for an associated session
-                    local session = svsessions.find_device_session(r_port)
-
                     -- SCADA management packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
                     elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- establish a new session
-                        local next_seq_id = packet.scada_frame.seq_num() + 1
+                        local last_ack = self.last_est_acks[src_addr]
 
                         -- validate packet and continue
                         if packet.length >= 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
-                            local comms_v = packet.data[1]
+                            local comms_v    = packet.data[1]
                             local firmware_v = packet.data[2]
-                            local dev_type = packet.data[3]
+                            local dev_type   = packet.data[3]
 
                             if comms_v ~= comms.version then
-                                if self.last_est_acks[r_port] ~= ESTABLISH_ACK.BAD_VERSION then
-                                    log.info(util.c("dropping device establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
-                                    self.last_est_acks[r_port] = ESTABLISH_ACK.BAD_VERSION
+                                if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
+                                    log.info(util.c("dropping RTU establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
                                 end
 
-                                _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
-                            elseif dev_type == DEVICE_TYPE.PLC then
-                                -- PLC linking request
-                                if packet.length == 4 and type(packet.data[4]) == "number" then
-                                    local reactor_id = packet.data[4]
-                                    local plc_id = svsessions.establish_plc_session(l_port, r_port, reactor_id, firmware_v)
-
-                                    if plc_id == false then
-                                        -- reactor already has a PLC assigned
-                                        if self.last_est_acks[r_port] ~= ESTABLISH_ACK.COLLISION then
-                                            log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
-                                            self.last_est_acks[r_port] = ESTABLISH_ACK.COLLISION
-                                        end
-
-                                        _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.COLLISION })
-                                    else
-                                        -- got an ID; assigned to a reactor successfully
-                                        println(util.c("PLC (", firmware_v, ") [:", r_port, "] \xbb reactor ", reactor_id, " connected"))
-                                        log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [:", r_port, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id))
-
-                                        _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
-                                        self.last_est_acks[r_port] = ESTABLISH_ACK.ALLOW
-                                    end
-                                else
-                                    log.debug("PLC_ESTABLISH: packet length mismatch/bad parameter type")
-                                    _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
-                                end
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
                             elseif dev_type == DEVICE_TYPE.RTU then
                                 if packet.length == 4 then
                                     -- this is an RTU advertisement for a new session
                                     local rtu_advert = packet.data[4]
-                                    local s_id = svsessions.establish_rtu_session(l_port, r_port, rtu_advert, firmware_v)
+                                    local s_id = svsessions.establish_rtu_session(src_addr, rtu_advert, firmware_v)
 
-                                    println(util.c("RTU (", firmware_v, ") [:", r_port, "] \xbb connected"))
-                                    log.info(util.c("RTU_ESTABLISH: RTU (",firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
-
-                                    _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
+                                    println(util.c("RTU (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                                    log.info(util.c("RTU_ESTABLISH: RTU (",firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
                                 else
                                     log.debug("RTU_ESTABLISH: packet length mismatch")
-                                    _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                                 end
                             else
-                                log.debug(util.c("illegal establish packet for device ", dev_type, " on PLC/RTU listening channel"))
-                                _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                log.debug(util.c("illegal establish packet for device ", dev_type, " on RTU channel"))
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                             end
                         else
-                            log.debug("invalid establish packet (on PLC/RTU listening channel)")
-                            _send_dev_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                            log.debug("invalid establish packet (on RTU channel)")
+                            _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                         end
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(util.c(r_port, "->", l_port, ": discarding SCADA_MGMT packet without a known session"))
+                        log.debug(util.c("discarding RTU SCADA_MGMT packet without a known session from computer ", src_addr))
                     end
                 else
-                    log.debug("illegal packet type " .. protocol .. " on device listening channel")
+                    log.debug(util.c("illegal packet type ", protocol, " on RTU channel"))
                 end
-            -- coordinator listening channel
-            elseif l_port == svctl_listen then
+            elseif r_chan == crd_channel then
                 -- look for an associated session
-                local session = svsessions.find_svctl_session(r_port)
+                local session = svsessions.find_crd_session(src_addr)
 
                 if protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
@@ -263,65 +291,53 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
                         session.in_queue.push_packet(packet)
                     elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- establish a new session
-                        local next_seq_id = packet.scada_frame.seq_num() + 1
+                        local last_ack = self.last_est_acks[src_addr]
 
                         -- validate packet and continue
                         if packet.length >= 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
-                            local comms_v = packet.data[1]
+                            local comms_v    = packet.data[1]
                             local firmware_v = packet.data[2]
-                            local dev_type = packet.data[3]
+                            local dev_type   = packet.data[3]
 
                             if comms_v ~= comms.version then
-                                if self.last_est_acks[r_port] ~= ESTABLISH_ACK.BAD_VERSION then
+                                if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
                                     log.info(util.c("dropping coordinator establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
-                                    self.last_est_acks[r_port] = ESTABLISH_ACK.BAD_VERSION
                                 end
 
-                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.BAD_VERSION })
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
                             elseif dev_type == DEVICE_TYPE.CRDN then
                                 -- this is an attempt to establish a new coordinator session
-                                local s_id = svsessions.establish_coord_session(l_port, r_port, firmware_v)
+                                local s_id = svsessions.establish_crd_session(src_addr, firmware_v)
 
                                 if s_id ~= false then
-                                    local config = { num_reactors }
+                                    local cfg = { num_reactors }
                                     for i = 1, #cooling_conf do
-                                        table.insert(config, cooling_conf[i].BOILERS)
-                                        table.insert(config, cooling_conf[i].TURBINES)
+                                        table.insert(cfg, cooling_conf[i].BOILERS)
+                                        table.insert(cfg, cooling_conf[i].TURBINES)
                                     end
 
-                                    println(util.c("CRD (", firmware_v, ") [:", r_port, "] \xbb connected"))
-                                    log.info(util.c("SVCTL_ESTABLISH: coordinator (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
+                                    println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                                    log.info(util.c("CRD_ESTABLISH: coordinator (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
 
-                                    _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW, config })
-                                    self.last_est_acks[r_port] = ESTABLISH_ACK.ALLOW
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, cfg)
                                 else
-                                    if self.last_est_acks[r_port] ~= ESTABLISH_ACK.COLLISION then
-                                        log.info("SVCTL_ESTABLISH: denied new coordinator due to already being connected to another coordinator")
-                                        self.last_est_acks[r_port] = ESTABLISH_ACK.COLLISION
+                                    if last_ack ~= ESTABLISH_ACK.COLLISION then
+                                        log.info("CRD_ESTABLISH: denied new coordinator [@" .. src_addr .. "] due to already being connected to another coordinator")
                                     end
 
-                                    _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.COLLISION })
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.COLLISION)
                                 end
-                            elseif dev_type == DEVICE_TYPE.PKT then
-                                -- this is an attempt to establish a new pocket diagnostic session
-                                local s_id = svsessions.establish_diag_session(l_port, r_port, firmware_v)
-
-                                println(util.c("PKT (", firmware_v, ") [:", r_port, "] \xbb connected"))
-                                log.info(util.c("SVCTL_ESTABLISH: pocket (", firmware_v, ") [:", r_port, "] connected with session ID ", s_id))
-
-                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.ALLOW })
-                                self.last_est_acks[r_port] = ESTABLISH_ACK.ALLOW
                             else
-                                log.debug(util.c("illegal establish packet for device ", dev_type, " on SVCTL listening channel"))
-                                _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                                log.debug(util.c("illegal establish packet for device ", dev_type, " on coordinator channel"))
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                             end
                         else
-                            log.debug("SVCTL_ESTABLISH: establish packet length mismatch")
-                            _send_svctl_establish(next_seq_id, r_port, { ESTABLISH_ACK.DENY })
+                            log.debug("CRD_ESTABLISH: establish packet length mismatch")
+                            _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                         end
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(r_port .. "->" .. l_port .. ": discarding SCADA_MGMT packet without a known session")
+                        log.debug(util.c("discarding coordinator SCADA_MGMT packet without a known session from computer ", src_addr))
                     end
                 elseif protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame
@@ -331,13 +347,72 @@ function supervisor.comms(_version, num_reactors, cooling_conf, modem, dev_liste
                         session.in_queue.push_packet(packet)
                     else
                         -- any other packet should be session related, discard it
-                        log.debug(r_port .. "->" .. l_port .. ": discarding SCADA_CRDN packet without a known session")
+                        log.debug(util.c("discarding coordinator SCADA_CRDN packet without a known session from computer ", src_addr))
                     end
                 else
-                    log.debug("illegal packet type " .. protocol .. " on coordinator listening channel")
+                    log.debug(util.c("illegal packet type ", protocol, " on coordinator channel"))
+                end
+            elseif r_chan == pkt_channel then
+                -- look for an associated session
+                local session = svsessions.find_pdg_session(src_addr)
+
+                if protocol == PROTOCOL.SCADA_MGMT then
+                    ---@cast packet mgmt_frame
+                    -- SCADA management packet
+                    if session ~= nil then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                        -- establish a new session
+                        local last_ack = self.last_est_acks[src_addr]
+
+                        -- validate packet and continue
+                        if packet.length >= 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
+                            local comms_v    = packet.data[1]
+                            local firmware_v = packet.data[2]
+                            local dev_type   = packet.data[3]
+
+                            if comms_v ~= comms.version then
+                                if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
+                                    log.info(util.c("dropping PDG establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
+                                end
+
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
+                            elseif dev_type == DEVICE_TYPE.PKT then
+                                -- this is an attempt to establish a new pocket diagnostic session
+                                local s_id = svsessions.establish_pdg_session(src_addr, firmware_v)
+
+                                println(util.c("PKT (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                                log.info(util.c("PDG_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
+
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                            else
+                                log.debug(util.c("illegal establish packet for device ", dev_type, " on pocket channel"))
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                            end
+                        else
+                            log.debug("PDG_ESTABLISH: establish packet length mismatch")
+                            _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                        end
+                    else
+                        -- any other packet should be session related, discard it
+                        log.debug(util.c("discarding pocket SCADA_MGMT packet without a known session from computer ", src_addr))
+                    end
+                elseif protocol == PROTOCOL.SCADA_CRDN then
+                    ---@cast packet crdn_frame
+                    -- coordinator packet
+                    if session ~= nil then
+                        -- pass the packet onto the session handler
+                        session.in_queue.push_packet(packet)
+                    else
+                        -- any other packet should be session related, discard it
+                        log.debug(util.c("discarding pocket SCADA_CRDN packet without a known session from computer ", src_addr))
+                    end
+                else
+                    log.debug(util.c("illegal packet type ", protocol, " on pocket channel"))
                 end
             else
-                log.debug("received packet on unconfigured channel " .. l_port, true)
+                log.debug("received packet for unknown channel " .. r_chan, true)
             end
         end
     end

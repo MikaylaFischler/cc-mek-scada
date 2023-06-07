@@ -446,14 +446,15 @@ end
 ---@param id integer reactor ID
 ---@param version string PLC version
 ---@param modem table modem device
----@param local_port integer local listening port
----@param server_port integer remote server port
+---@param plc_channel integer PLC comms channel
+---@param svr_channel integer supervisor server channel
 ---@param range integer trusted device connection range
 ---@param reactor table reactor device
 ---@param rps rps RPS reference
 ---@param conn_watchdog watchdog watchdog reference
-function plc.comms(id, version, modem, local_port, server_port, range, reactor, rps, conn_watchdog)
+function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor, rps, conn_watchdog)
     local self = {
+        sv_addr = comms.BROADCAST,
         seq_num = 0,
         r_seq_num = nil,
         scrammed = false,
@@ -472,7 +473,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
     -- configure modem channels
     local function _conf_channels()
         modem.closeAll()
-        modem.open(local_port)
+        modem.open(plc_channel)
     end
 
     _conf_channels()
@@ -485,9 +486,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         local r_pkt = comms.rplc_packet()
 
         r_pkt.make(id, msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(svr_channel, plc_channel, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -499,9 +500,9 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(server_port, local_port, s_pkt.raw_sendable())
+        modem.transmit(svr_channel, plc_channel, s_pkt.raw_sendable())
         self.seq_num = self.seq_num + 1
     end
 
@@ -667,9 +668,11 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
     -- unlink from the server
     function public.unlink()
+        self.sv_addr = comms.BROADCAST
         self.linked = false
         self.r_seq_num = nil
         self.status_cache = nil
+        databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
     -- close the connection to the server
@@ -731,7 +734,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         end
     end
 
-    -- parse an RPLC packet
+    -- parse a packet
     ---@nodiscard
     ---@param side string
     ---@param sender integer
@@ -760,14 +763,14 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                     pkt = mgmt_pkt.get()
                 end
             else
-                log.debug("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("unsupported packet type " .. s_pkt.protocol(), true)
             end
         end
 
         return pkt
     end
 
-    -- handle an RPLC packet
+    -- handle RPLC and MGMT packets
     ---@param packet rplc_frame|mgmt_frame packet frame
     ---@param plc_state plc_state PLC state
     ---@param setpoints setpoints setpoint control table
@@ -775,15 +778,21 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not plc_state.fp_ok then util.println_ts(message) end end
 
-        local l_port = packet.scada_frame.local_port()
+        local protocol = packet.scada_frame.protocol()
+        local l_chan   = packet.scada_frame.local_channel()
+        local src_addr = packet.scada_frame.src_addr()
 
         -- handle packets now that we have prints setup
-        if l_port == local_port then
+        if l_chan == plc_channel then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
             elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                return
+            elseif self.linked and (src_addr ~= self.sv_addr) then
+                log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
+                            "); channel in use by another system?")
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -792,11 +801,10 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
             conn_watchdog.feed()
 
-            local protocol = packet.scada_frame.protocol()
-
             -- handle packet
             if protocol == PROTOCOL.RPLC then
                 ---@cast packet rplc_frame
+                -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == RPLC_TYPE.STATUS then
                         -- request of full status, clear cache first
@@ -933,6 +941,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_frame
+                -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- link request confirmation
@@ -945,22 +954,26 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                 self.status_cache = nil
                                 _send_struct()
                                 public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
-                                log.debug("re-sent initial status data")
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                println_ts("received unsolicited link denial, unlinking")
-                                log.warning("unsolicited establish request denied")
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                println_ts("received unsolicited link collision, unlinking")
-                                log.warning("unsolicited establish request collision")
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                println_ts("received unsolicited link version mismatch, unlinking")
-                                log.warning("unsolicited establish request version mismatch")
+                                log.debug("re-sent initial status data due to re-establish")
                             else
-                                println_ts("invalid unsolicited link response")
-                                log.debug("unsolicited unknown establish request response")
-                            end
+                                if est_ack == ESTABLISH_ACK.DENY then
+                                    println_ts("received unsolicited link denial, unlinking")
+                                    log.warning("unsolicited establish request denied")
+                                elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                    println_ts("received unsolicited link collision, unlinking")
+                                    log.warning("unsolicited establish request collision")
+                                elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                    println_ts("received unsolicited link version mismatch, unlinking")
+                                    log.warning("unsolicited establish request version mismatch")
+                                else
+                                    println_ts("invalid unsolicited link response")
+                                    log.debug("unsolicited unknown establish request response")
+                                end
 
-                            self.linked = est_ack == ESTABLISH_ACK.ALLOW
+                                -- unlink
+                                self.sv_addr = comms.BROADCAST
+                                self.linked = false
+                            end
 
                             -- clear this since this is for something that was unsolicited
                             self.last_est_ack = ESTABLISH_ACK.ALLOW
@@ -980,7 +993,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                                 log.warning("PLC KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                             end
 
-                            -- log.debug("RPLC RTT = " .. trip_time .. "ms")
+                            -- log.debug("PLC RTT = " .. trip_time .. "ms")
 
                             _send_keep_alive_ack(timestamp)
                         else
@@ -1002,9 +1015,11 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
 
                         if est_ack == ESTABLISH_ACK.ALLOW then
                             println_ts("linked!")
-                            log.info("supervisor establish request approved, PLC is linked")
+                            log.info("supervisor establish request approved, linked to SV (CID#" .. src_addr .. ")")
 
-                            -- reset remote sequence number and cache
+                            -- link + reset remote sequence number and cache
+                            self.sv_addr = src_addr
+                            self.linked = true
                             self.r_seq_num = nil
                             self.status_cache = nil
 
@@ -1012,23 +1027,28 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                             public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
 
                             log.debug("sent initial status data")
-                        elseif self.last_est_ack ~= est_ack then
-                            if est_ack == ESTABLISH_ACK.DENY then
-                                println_ts("link request denied, retrying...")
-                                log.info("supervisor establish request denied, retrying")
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                println_ts("reactor PLC ID collision (check config), retrying...")
-                                log.warning("establish request collision, retrying")
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                println_ts("supervisor version mismatch (try updating), retrying...")
-                                log.warning("establish request version mismatch, retrying")
-                            else
-                                println_ts("invalid link response, bad channel? retrying...")
-                                log.error("unknown establish request response, retrying")
+                        else
+                            if self.last_est_ack ~= est_ack then
+                                if est_ack == ESTABLISH_ACK.DENY then
+                                    println_ts("link request denied, retrying...")
+                                    log.info("supervisor establish request denied, retrying")
+                                elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                    println_ts("reactor PLC ID collision (check config), retrying...")
+                                    log.warning("establish request collision, retrying")
+                                elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                    println_ts("supervisor version mismatch (try updating), retrying...")
+                                    log.warning("establish request version mismatch, retrying")
+                                else
+                                    println_ts("invalid link response, bad channel? retrying...")
+                                    log.error("unknown establish request response, retrying")
+                                end
                             end
+
+                            -- unlink
+                            self.sv_addr = comms.BROADCAST
+                            self.linked = false
                         end
 
-                        self.linked = est_ack == ESTABLISH_ACK.ALLOW
                         self.last_est_ack = est_ack
 
                         -- report link state
@@ -1044,7 +1064,7 @@ function plc.comms(id, version, modem, local_port, server_port, range, reactor, 
                 log.error("illegal packet type " .. protocol, true)
             end
         else
-            log.debug("received packet on unconfigured channel " .. l_port, true)
+            log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
 

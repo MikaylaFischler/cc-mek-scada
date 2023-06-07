@@ -1,13 +1,13 @@
-local log          = require("scada-common.log")
-local mqueue       = require("scada-common.mqueue")
-local ppm          = require("scada-common.ppm")
-local tcallbackdsp = require("scada-common.tcallbackdsp")
-local util         = require("scada-common.util")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local ppm      = require("scada-common.ppm")
+local tcd      = require("scada-common.tcd")
+local util     = require("scada-common.util")
 
-local databus      = require("reactor-plc.databus")
-local renderer     = require("reactor-plc.renderer")
+local databus  = require("reactor-plc.databus")
+local renderer = require("reactor-plc.renderer")
 
-local core         = require("graphics.core")
+local core     = require("graphics.core")
 
 local threads = {}
 
@@ -157,7 +157,7 @@ function threads.thread__main(smem, init)
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
             elseif event == "timer" then
                 -- notify timer callback dispatcher if no other timer case claimed this event
-                tcallbackdsp.handle(param1)
+                tcd.handle(param1)
             elseif event == "peripheral_detach" then
                 -- peripheral disconnect
                 local type, device = ppm.handle_unmount(param1)

@@ -1,6 +1,6 @@
 -- Loading/Waiting Animation Graphics Element
 
-local tcd     = require("scada-common.tcallbackdsp")
+local tcd     = require("scada-common.tcd")
 
 local element = require("graphics.element")
 
@@ -10,6 +10,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer 1 if omitted
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new waiting animation element
 ---@param args waiting_args
@@ -102,7 +103,7 @@ local function waiting(args)
 
     e.start_anim()
 
-    return e.get()
+    return e.complete()
 end
 
 return waiting

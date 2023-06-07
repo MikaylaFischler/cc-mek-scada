@@ -18,7 +18,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.3.2"
+local R_PLC_VERSION = "v1.4.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -31,8 +31,8 @@ local cfv = util.new_validator()
 
 cfv.assert_type_bool(config.NETWORKED)
 cfv.assert_type_int(config.REACTOR_ID)
-cfv.assert_port(config.SERVER_PORT)
-cfv.assert_port(config.LISTEN_PORT)
+cfv.assert_channel(config.SVR_CHANNEL)
+cfv.assert_channel(config.PLC_CHANNEL)
 cfv.assert_type_int(config.TRUSTED_RANGE)
 cfv.assert_type_num(config.COMMS_TIMEOUT)
 cfv.assert_min(config.COMMS_TIMEOUT, 2)
@@ -197,7 +197,7 @@ local function main()
                 log.debug("init> conn watchdog started")
 
                 -- start comms
-                smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_dev.modem, config.LISTEN_PORT, config.SERVER_PORT,
+                smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_dev.modem, config.PLC_CHANNEL, config.SVR_CHANNEL,
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else

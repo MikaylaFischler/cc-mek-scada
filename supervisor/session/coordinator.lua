@@ -4,6 +4,8 @@ local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
+local databus  = require("supervisor.databus")
+
 local svqtypes = require("supervisor.session.svqtypes")
 
 local coordinator = {}
@@ -17,8 +19,6 @@ local FAC_COMMAND = comms.FAC_COMMAND
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
-
-local println = util.println
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -45,11 +45,16 @@ local PERIODICS = {
 -- coordinator supervisor session
 ---@nodiscard
 ---@param id integer session ID
+---@param s_addr integer device source address
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param facility facility facility data table
-function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
+---@param fp_ok boolean if the front panel UI is running
+function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facility, fp_ok)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println(message) if not fp_ok then util.println_ts(message) end end
+
     local log_header = "crdn_session(" .. id .. "): "
 
     local self = {
@@ -84,6 +89,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        databus.tx_crd_disconnected()
     end
 
     -- send a CRDN packet
@@ -94,7 +100,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         local c_pkt = comms.crdn_packet()
 
         c_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -108,7 +114,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         local m_pkt = comms.mgmt_packet()
 
         m_pkt.make(msg_type, msg)
-        s_pkt.make(self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         out_queue.push_packet(s_pkt)
         self.seq_num = self.seq_num + 1
@@ -205,6 +211,8 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
 
                     -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
+
+                    databus.tx_crd_rtt(self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
@@ -327,7 +335,7 @@ function coordinator.new_session(id, in_queue, out_queue, timeout, facility)
         end
     end
 
-    ---@class coord_session
+    ---@class crd_session
     local public = {}
 
     -- get the session ID

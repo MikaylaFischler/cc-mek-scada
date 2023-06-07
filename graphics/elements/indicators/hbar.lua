@@ -15,6 +15,7 @@ local element = require("graphics.element")
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
+---@field hidden? boolean true to hide on initial draw
 
 -- new horizontal bar
 ---@nodiscard
@@ -119,7 +120,7 @@ local function hbar(args)
     -- initialize to 0
     e.on_update(0)
 
-    return e.get()
+    return e.complete()
 end
 
 return hbar
