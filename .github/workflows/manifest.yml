@@ -41,14 +41,15 @@ jobs:
           ref: 'main'
           clean: false
       - name: Create outputs folders
+        if: success() || failure()
         shell: bash
         run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
       - name: Generate manifest and shields for main branch
         id: manifest-main
-        if: ${{ steps.checkout-main.outcome }} == 'success'
+        if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
         run: python imgen.py shields
       - name: Save main's manifest
-        if: ${{ steps.manifest-main.outcome }} == 'success'
+        if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
       # Generate manifest for latest branch
       - name: Checkout latest
@@ -60,10 +61,10 @@ jobs:
           clean: false
       - name: Generate manifest for latest
         id: manifest-latest
-        if: ${{ steps.checkout-latest.outcome }} == 'success'
+        if: ${{ (success() || failure()) && steps.checkout-latest.outcome == 'success' }}
         run: python imgen.py
       - name: Save latest's manifest
-        if: ${{ steps.manifest-latest.outcome }} == 'success'
+        if: ${{ (success() || failure()) && steps.manifest-latest.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/latest
       # Generate manifest for devel branch
       - name: Checkout devel
@@ -82,12 +83,13 @@ jobs:
         run: mv install_manifest.json deploy/manifests/devel
       # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
-        if: steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success'
+        id: upload-artifacts
+        if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload manifest JSON
           path: 'deploy/'
       - name: Deploy to GitHub Pages
-        if: steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success'
+        if: ${{ (success() || failure()) && steps.upload-artifacts.outcome == 'success' }}
         id: deployment
         uses: actions/deploy-pages@v2
