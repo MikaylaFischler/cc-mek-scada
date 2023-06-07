@@ -790,8 +790,9 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
             elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
-            elseif self.linked and src_addr ~= self.sv_addr then
-                log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
+            elseif self.linked and (src_addr ~= self.sv_addr) then
+                log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
+                            "); channel in use by another system?")
                 return
             else
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -804,7 +805,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
             if protocol == PROTOCOL.RPLC then
                 ---@cast packet rplc_frame
                 -- if linked, only accept packets from configured supervisor
-                if self.linked and (self.sv_addr == src_addr) then
+                if self.linked then
                     if packet.type == RPLC_TYPE.STATUS then
                         -- request of full status, clear cache first
                         self.status_cache = nil
@@ -935,15 +936,13 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                     else
                         log.debug("received unknown RPLC packet type " .. packet.type)
                     end
-                elseif not self.linked then
-                    log.debug("discarding RPLC packet before linked")
                 else
-                    log.debug("discarding RPLC packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
+                    log.debug("discarding RPLC packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_frame
                 -- if linked, only accept packets from configured supervisor
-                if self.linked and (self.sv_addr == src_addr) then
+                if self.linked then
                     if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
                         -- link request confirmation
                         if (packet.length == 1) and (self.sv_addr == src_addr) then
@@ -1057,10 +1056,8 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                     else
                         log.debug("SCADA_MGMT establish packet length mismatch")
                     end
-                elseif not self.linked then
-                    log.debug("discarding non-link SCADA_MGMT packet before linked")
                 else
-                    log.debug("discarding non-link SCADA_MGMT packet from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv_addr .. ")")
+                    log.debug("discarding non-link SCADA_MGMT packet before linked")
                 end
             else
                 -- should be unreachable assuming packet is from parse_packet()

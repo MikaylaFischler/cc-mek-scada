@@ -234,8 +234,9 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                 elseif self.connected and ((self.api.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
-                elseif self.api.linked and self.api.addr ~= src_addr then
-                    log.debug("received API packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
+                elseif self.api.linked and (self.api.addr ~= src_addr) then
+                    log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
+                                "); channel in use by another system?")
                     return
                 else
                     self.api.r_seq_num = packet.scada_frame.seq_num()
@@ -284,7 +285,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("coordinator SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif self.api.linked and src_addr == self.api.addr then
+                    elseif self.api.linked then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -311,10 +312,8 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from coordinator")
                         end
-                    elseif not self.api.linked then
-                        log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
                     else
-                        log.debug("discarding non-link SCADA_MGMT packet from different coordinator (src_addr " .. src_addr .. " ≠ " .. self.api.addr .. ")")
+                        log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from coordinator", true)
@@ -326,8 +325,9 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                 elseif self.connected and ((self.sv.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
-                elseif self.sv.linked and self.sv.addr ~= src_addr then
-                    log.debug("received SVR packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
+                elseif self.sv.linked and (self.sv.addr ~= src_addr) then
+                    log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
+                                "); channel in use by another system?")
                     return
                 else
                     self.sv.r_seq_num = packet.scada_frame.seq_num()
@@ -375,7 +375,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("supervisor SCADA_MGMT establish packet length mismatch")
                         end
-                    elseif self.sv.linked and (src_addr == self.sv.addr) then
+                    elseif self.sv.linked then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -402,10 +402,8 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from supervisor")
                         end
-                    elseif not self.sv.linked then
-                        log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")
                     else
-                        log.debug("discarding non-link SCADA_MGMT from different supervisor (src_addr " .. src_addr .. " ≠ " .. self.sv.addr .. ")")
+                        log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")
                     end
                 else
                     log.debug("illegal packet type " .. protocol .. " from supervisor", true)
