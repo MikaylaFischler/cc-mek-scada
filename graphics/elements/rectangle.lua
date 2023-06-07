@@ -45,7 +45,7 @@ local function rectangle(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args, offset_x, offset_y)
 
     -- create content window for child elements
     e.content_window = window.create(e.window, 1 + offset_x, 1 + offset_y, e.frame.w - (2 * offset_x), e.frame.h - (2 * offset_y))
