@@ -382,8 +382,8 @@ function supervisor.comms(_version, modem, fp_ok)
                                 -- this is an attempt to establish a new pocket diagnostic session
                                 local s_id = svsessions.establish_pdg_session(src_addr, firmware_v)
 
-                                println(util.c("PKT (", firmware_v, ") [:", r_chan, "] \xbb connected"))
-                                log.info(util.c("PDG_ESTABLISH: pocket (", firmware_v, ") [:", r_chan, "] connected with session ID ", s_id))
+                                println(util.c("PKT (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                                log.info(util.c("PDG_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
 
                                 _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
                             else

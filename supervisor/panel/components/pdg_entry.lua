@@ -26,7 +26,7 @@ local function init(parent, id)
     local ps_prefix = "pdg_" .. id .. "_"
 
     TextBox{parent=entry,x=1,y=1,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
-    local pdg_addr = TextBox{parent=entry,x=1,y=2,text="C #?",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray),nav_active=cpair(colors.gray,colors.black)}
+    local pdg_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray),nav_active=cpair(colors.gray,colors.black)}
     TextBox{parent=entry,x=1,y=3,text="",width=8,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
     pdg_addr.register(databus.ps, ps_prefix .. "addr", pdg_addr.set_value)
 
