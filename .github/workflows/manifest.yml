@@ -1,5 +1,5 @@
-# Deploy installation manifests, shields versions, and documentation to GitHub Pages
-name: Deploy Install Data and LuaDoc
+# Deploy installation manifests and shields versions
+name: Deploy Installation Data
 
 on:
   workflow_dispatch:
@@ -51,15 +51,6 @@ jobs:
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
-      - name: Generate LuaDoc
-        if: success() || failure()
-        uses: lunarmodules/ldoc@v1.5.0
-        with:
-          args: ./coordinator ./graphics ./pocket ./reactor-plc ./rtu ./scada-common ./supervisor
-      - name: Save doc directory
-        if: success() || failure()
-        shell: bash
-        run: mv doc deploy/
       # Generate manifest for latest branch
       - name: Checkout latest
         id: checkout-latest
