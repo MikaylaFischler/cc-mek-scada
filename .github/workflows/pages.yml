@@ -1,4 +1,4 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Deploy installation manifests, shields versions, and documentation to GitHub Pages
 name: Deploy Install Data and LuaDoc
 
 on:
