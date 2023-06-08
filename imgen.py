@@ -71,7 +71,7 @@ def make_manifest(size):
         "depends" : {
             "reactor-plc" : [ "system", "common", "graphics" ],
             "rtu" : [ "system", "common", "graphics" ],
-            "supervisor" : [ "system", "common" ],
+            "supervisor" : [ "system", "common", "graphics" ],
             "coordinator" : [ "system", "common", "graphics" ],
             "pocket" : [ "system", "common", "graphics" ]
         },
