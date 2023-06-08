@@ -51,14 +51,15 @@ jobs:
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
-      - name: Switch to deploy directory
-        if: success() || failure()
-        shell: bash
-        run: cd deploy
       - name: Generate LuaDoc
+        if: success() || failure()
         uses: lunarmodules/ldoc@v1.5.0
         with:
-          args: ../coordinator ../graphics ../pocket ../reactor-plc ../rtu ../scada-common ../supervisor
+          args: ./coordinator ./graphics ./pocket ./reactor-plc ./rtu ./scada-common ./supervisor
+      - name: Save doc directory
+        if: success() || failure()
+        shell: bash
+        run: mv doc deploy/
       # Generate manifest for latest branch
       - name: Checkout latest
         id: checkout-latest
