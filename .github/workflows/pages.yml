@@ -57,8 +57,8 @@ jobs:
         run: cd deploy
       - name: Generate LuaDoc
         uses: lunarmodules/ldoc@v0
-          with:
-              args: ../coordinator ../graphics ../pocket ../reactor-plc ../rtu ../scada-common ../supervisor
+        with:
+          args: ../coordinator ../graphics ../pocket ../reactor-plc ../rtu ../scada-common ../supervisor
       # Generate manifest for latest branch
       - name: Checkout latest
         id: checkout-latest
