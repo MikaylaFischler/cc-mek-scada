@@ -1,5 +1,5 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy Installation Manifests and Versions
+name: Deploy Install Data and LuaDoc
 
 on:
   workflow_dispatch:
@@ -51,6 +51,14 @@ jobs:
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
+      - name: Switch to deploy directory
+        if: success() || failure()
+        shell: bash
+        run: cd deploy
+      - name: Generate LuaDoc
+        uses: lunarmodules/ldoc@v0
+          with:
+              args: ../coordinator ../graphics ../pocket ../reactor-plc ../rtu ../scada-common ../supervisor
       # Generate manifest for latest branch
       - name: Checkout latest
         id: checkout-latest
