@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: cd deploy
       - name: Generate LuaDoc
-        uses: lunarmodules/ldoc@v0
+        uses: lunarmodules/ldoc@v1.5.0
         with:
           args: ../coordinator ../graphics ../pocket ../reactor-plc ../rtu ../scada-common ../supervisor
       # Generate manifest for latest branch
