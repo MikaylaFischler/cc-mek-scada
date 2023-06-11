@@ -7,14 +7,14 @@ local log = require("scada-common.log")
 local insert = table.insert
 
 ---@diagnostic disable-next-line: undefined-field
-local C_ID = os.getComputerID() ---@type integer computer ID
+local COMPUTER_ID  = os.getComputerID() ---@type integer computer ID
 
-local max_distance = nil        ---@type number|nil maximum acceptable transmission distance
+local max_distance = nil                ---@type number|nil maximum acceptable transmission distance
 
 ---@class comms
 local comms = {}
 
-comms.version = "2.0.0"
+comms.version = "2.1.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -149,6 +149,7 @@ function comms.scada_packet()
         dest_addr = comms.BROADCAST,
         seq_num = -1,
         protocol = PROTOCOL.SCADA_MGMT,
+        mac = "",
         length = 0,
         payload = {}
     }
@@ -163,14 +164,13 @@ function comms.scada_packet()
     ---@param payload table
     function public.make(dest_addr, seq_num, protocol, payload)
         self.valid = true
----@diagnostic disable-next-line: undefined-field
-        self.src_addr = C_ID
+        self.src_addr = COMPUTER_ID
         self.dest_addr = dest_addr
         self.seq_num = seq_num
         self.protocol = protocol
         self.length = #payload
         self.payload = payload
-        self.raw = { self.src_addr, self.dest_addr, self.seq_num, self.protocol, self.payload }
+        self.raw = { self.src_addr, self.dest_addr, self.seq_num, self.protocol, self.mac, self.payload }
     end
 
     -- parse in a modem message as a SCADA packet
@@ -198,35 +198,48 @@ function comms.scada_packet()
             -- log.debug("comms.scada_packet.receive(): discarding packet with distance " .. distance .. " outside of trusted range")
         else
             if type(self.raw) == "table" then
-                if #self.raw == 5 then
+                if #self.raw == 6 then
                     self.src_addr = self.raw[1]
                     self.dest_addr = self.raw[2]
                     self.seq_num = self.raw[3]
                     self.protocol = self.raw[4]
+                    self.mac = self.raw[5]
 
                     -- element 5 must be a table
-                    if type(self.raw[5]) == "table" then
-                        self.length = #self.raw[5]
-                        self.payload = self.raw[5]
+                    if type(self.raw[6]) == "table" then
+                        self.length = #self.raw[6]
+                        self.payload = self.raw[6]
                     end
                 else
                     self.src_addr = nil
                     self.dest_addr = nil
                     self.seq_num = nil
                     self.protocol = nil
+                    self.mac = ""
                     self.length = 0
                     self.payload = {}
                 end
 
                 -- check if this packet is destined for this device
-                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == C_ID)
+                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
 
-                self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
-                             type(self.seq_num) == "number" and type(self.protocol) == "number" and type(self.payload) == "table"
+                self.valid = is_destination and
+                                type(self.src_addr)  == "number" and
+                                type(self.dest_addr) == "number" and
+                                type(self.seq_num)   == "number" and
+                                type(self.protocol)  == "number" and
+                                type(self.mac)       == "string" and
+                                type(self.payload)   == "table"
             end
         end
 
         return self.valid
+    end
+
+    -- set message authentication code
+    function public.set_mac(code)
+        self.mac = code
+        self.raw = { self.src_addr, self.dest_addr, self.seq_num, self.protocol, self.mac, self.payload }
     end
 
     -- public accessors --
@@ -235,6 +248,8 @@ function comms.scada_packet()
     function public.modem_event() return self.modem_msg_in end
     ---@nodiscard
     function public.raw_sendable() return self.raw end
+    ---@nodiscard
+    function public.raw_verifiable() return { self.src_addr, self.dest_addr, self.seq_num, self.protocol, "", self.payload } end
 
     ---@nodiscard
     function public.local_channel() return self.modem_msg_in.s_channel end
@@ -252,6 +267,8 @@ function comms.scada_packet()
     function public.seq_num() return self.seq_num end
     ---@nodiscard
     function public.protocol() return self.protocol end
+    ---@nodiscard
+    function public.mac() return self.mac end
     ---@nodiscard
     function public.length() return self.length end
     ---@nodiscard
