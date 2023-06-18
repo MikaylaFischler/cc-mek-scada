@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.4c"
+local CCMSI_VERSION = "v1.4d"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -29,6 +29,7 @@ local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada
 local opts = { ... }
 local mode = nil
 local app = nil
+local target = "main"
 
 -- record the local installation manifest
 ---@param manifest table
@@ -173,6 +174,12 @@ else
         println("unrecognized application")
         return
     end
+
+    -- determine target
+    if mode == "check" then target = opts[2] else target = opts[3] end
+    if target ~= "main" or target ~= "latest" or target ~= "devel" then
+        target = "main"
+    end
 end
 
 --
@@ -184,7 +191,7 @@ if mode == "check" then
     -- GET REMOTE MANIFEST --
     -------------------------
 
-    if opts[2] then manifest_path = manifest_path .. opts[2] .. "/" else manifest_path = manifest_path .. "main/" end
+    manifest_path = manifest_path .. target .. "/"
     local install_manifest = manifest_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
@@ -264,8 +271,8 @@ elseif mode == "install" or mode == "update" then
     -- GET REMOTE MANIFEST --
     -------------------------
 
-    if opts[3] then repo_path = repo_path .. opts[3] .. "/" else repo_path = repo_path .. "main/" end
-    if opts[3] then manifest_path = manifest_path .. opts[3] .. "/" else manifest_path = manifest_path .. "main/" end
+    repo_path = repo_path .. target .. "/"
+    manifest_path = manifest_path .. target .. "/"
     local install_manifest = manifest_path .. "install_manifest.json"
 
     local response, error = http.get(install_manifest)
@@ -360,7 +367,7 @@ elseif mode == "install" or mode == "update" then
     -- display comms version change information
     show_pkg_change("comms", ver.comms.v_local, ver.comms.v_remote)
     ver.comms.changed = ver.comms.v_local ~= ver.comms.v_remote
-    if ver.comms.changed and mode == "update" then
+    if ver.comms.changed and ver.comms.v_local ~= nil then
         print("[comms] ")
         term.setTextColor(colors.yellow)
         println("other devices on the network will require an update")
