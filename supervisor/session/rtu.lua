@@ -120,7 +120,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
 
             if u_type == false then
                 -- validation fail
-                log.debug(log_header .. "advertisement unit validation failure")
+                log.debug(log_header .. "_handle_advertisement(): advertisement unit validation failure")
             else
                 if unit_advert.reactor > 0 then
                     local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
@@ -146,7 +146,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                         -- skip virtual units
                         log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
                     else
-                        log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-specific RTU type ", type_string))
+                        log.warning(util.c(log_header, "_handle_advertisement(): encountered unsupported reactor-specific RTU type ", type_string))
                     end
                 else
                     -- facility RTUs
@@ -172,7 +172,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                         -- skip virtual units
                         log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
                     else
-                        log.error(util.c(log_header, "bad advertisement: encountered unsupported reactor-independent RTU type ", type_string))
+                        log.warning(util.c(log_header, "_handle_advertisement(): encountered unsupported facility RTU type ", type_string))
                     end
                 end
             end
@@ -181,9 +181,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                 self.units[i] = unit
                 unit_count = unit_count + 1
             elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
-                _reset_config()
-                log.error(util.c(log_header, "bad advertisement: error occured while creating a unit (type is ", type_string, ")"))
-                break
+                log.warning(util.c(log_header, "_handle_advertisement(): problem occured while creating a unit (type is ", type_string, ")"))
             end
         end
 
