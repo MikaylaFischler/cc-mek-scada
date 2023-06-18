@@ -29,7 +29,7 @@ local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada
 local opts = { ... }
 local mode = nil
 local app = nil
-local target = "main"
+local target = nil
 
 -- record the local installation manifest
 ---@param manifest table
