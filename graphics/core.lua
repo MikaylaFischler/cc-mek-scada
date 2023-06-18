@@ -7,6 +7,8 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
+core.version = "1.0.0"
+
 core.flasher = flasher
 core.events = events
 

@@ -75,7 +75,7 @@ function facility.new(num_reactors, cooling_conf)
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_setpoint = 0,            -- FE charge target setpoint
         gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
-        group_map = { 0, 0, 0, 0 },     -- units -> group IDs
+        group_map = {},                 -- units -> group IDs
         prio_defs = { {}, {}, {}, {} }, -- priority definitions (each level is a table of units)
         at_max_burn = false,
         ascram = false,
@@ -109,6 +109,7 @@ function facility.new(num_reactors, cooling_conf)
     -- create units
     for i = 1, num_reactors do
         table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
+        table.insert(self.group_map, 0)
     end
 
     -- init redstone RTU I/O controller
@@ -790,7 +791,7 @@ function facility.new(num_reactors, cooling_conf)
     ---@param unit_id integer unit ID
     ---@param group integer group ID or 0 for independent
     function public.set_group(unit_id, group)
-        if group >= 0 and group <= 4 and self.mode == PROCESS.INACTIVE then
+        if (group >= 0 and group <= 4) and (unit_id > 0 and unit_id <= num_reactors) and self.mode == PROCESS.INACTIVE then
             -- remove from old group if previously assigned
             local old_group = self.group_map[unit_id]
             if old_group ~= 0 then
