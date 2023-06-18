@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.4"
+local CCMSI_VERSION = "v1.4a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -38,13 +38,13 @@ local function write_install_manifest(manifest, dependencies)
     for key, value in pairs(manifest.versions) do
         local is_dependency = false
         for _, dependency in pairs(dependencies) do
-            if key == "bootloader" and dependency == "system" then
+            if (key == "bootloader" and dependency == "system") or key == dependency then
                 is_dependency = true
                 break
             end
         end
 
-        if key == app or key == "comms" or is_dependency then versions[key] = value end
+        if key == app or is_dependency then versions[key] = value end
     end
 
     manifest.versions = versions
@@ -420,7 +420,7 @@ elseif mode == "install" or mode == "update" then
         for _, dependency in pairs(dependencies) do
             if mode == "update" and ((dependency == "system" and ver.boot.changed) or
                                      (dependency == "graphics" and ver.graphics.changed) or
-                                     (ver.changed.app)) then
+                                     (ver.app.changed)) then
                 pkg_message("skipping download of unchanged package", dependency)
             else
                 pkg_message("downloading package", dependency)
@@ -450,7 +450,7 @@ elseif mode == "install" or mode == "update" then
             for _, dependency in pairs(dependencies) do
                 if mode == "update" and ((dependency == "system" and ver.boot.changed) or
                                          (dependency == "graphics" and ver.graphics.changed) or
-                                         (ver.changed.app)) then
+                                         (ver.app.changed)) then
                     pkg_message("skipping install of unchanged package", dependency)
                 else
                     pkg_message("installing package", dependency)
@@ -494,7 +494,7 @@ elseif mode == "install" or mode == "update" then
         for _, dependency in pairs(dependencies) do
             if mode == "update" and ((dependency == "system" and ver.boot.changed) or
                                      (dependency == "graphics" and ver.graphics.changed) or
-                                     (ver.changed.app)) then
+                                     (ver.app.changed)) then
                 pkg_message("skipping install of unchanged package", dependency)
             else
                 pkg_message("installing package", dependency)
