@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.2"
+local CCMSI_VERSION = "v1.3"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -52,6 +52,68 @@ local function write_install_manifest(manifest, dependencies)
     local imfile = fs.open("install_manifest.json", "w")
     imfile.write(textutils.serializeJSON(manifest))
     imfile.close()
+end
+
+-- ask the user yes or no
+---@nodiscard
+---@param question string
+---@param default boolean
+---@return boolean|nil
+local function ask_y_n(question, default)
+    print(question)
+
+    if default == true then
+        print(" (Y/n)? ")
+    else
+        print(" (y/N)? ")
+    end
+
+    local response = read(nil, nil)
+
+    if response == "" then
+        return default
+    elseif response == "Y" or response == "y" then
+        return true
+    elseif response == "N" or response == "n" then
+        return false
+    else
+        return nil
+    end
+end
+
+-- print out a white + blue text message<br>
+-- automatically adds a space
+---@param message string message
+---@param package string dependency/package/version
+local function pkg_message(message, package)
+    term.setTextColor(colors.white)
+    print(message .. " ")
+    term.setTextColor(colors.blue)
+    println(package)
+    term.setTextColor(colors.white)
+end
+
+-- indicate actions to be taken based on package differences for installs/updates
+---@param name string package name
+---@param _local_v string|nil local version
+---@param _remote_v string remote version
+local function show_pkg_change(name, _local_v, _remote_v)
+    if _local_v ~= nil then
+        if _local_v ~= _remote_v then
+            print("[" .. name .. "] updating ")
+            term.setTextColor(colors.blue)
+            print(_local_v)
+            term.setTextColor(colors.white)
+            print(" \xbb ")
+            term.setTextColor(colors.blue)
+            println(_local_v)
+            term.setTextColor(colors.white)
+        elseif mode == "install" then
+            pkg_message("[" .. name .. "] reinstalling", _local_v)
+        end
+    else
+        pkg_message("[" .. name .. "] new install of", _remote_v)
+    end
 end
 
 --
@@ -230,6 +292,13 @@ elseif mode == "install" or mode == "update" then
     -- GET LOCAL MANIFEST --
     ------------------------
 
+    local ver = {
+        app = { v_local = nil, v_remote = nil, changed = false },
+        boot = { v_local = nil, v_remote = nil, changed = false },
+        comms = { v_local = nil, v_remote = nil, changed = false },
+        graphics = { v_local = nil, v_remote = nil, changed = false }
+    }
+
     local imfile = fs.open("install_manifest.json", "r")
     local local_ok = false
     local local_manifest = {}
@@ -238,10 +307,6 @@ elseif mode == "install" or mode == "update" then
         local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
         imfile.close()
     end
-
-    local local_app_version = nil
-    local local_comms_version = nil
-    local local_boot_version = nil
 
     -- try to find local versions
     if not local_ok then
@@ -252,9 +317,10 @@ elseif mode == "install" or mode == "update" then
             return
         end
     else
-        local_app_version = local_manifest.versions[app]
-        local_comms_version = local_manifest.versions.comms
-        local_boot_version = local_manifest.versions.bootloader
+        ver.boot.v_local = local_manifest.versions.bootloader
+        ver.app.v_local = local_manifest.versions[app]
+        ver.comms.v_local = local_manifest.versions.comms
+        ver.graphics.v_local = local_manifest.versions.graphics
 
         if local_manifest.versions[app] == nil then
             term.setTextColor(colors.red)
@@ -271,93 +337,43 @@ elseif mode == "install" or mode == "update" then
         end
     end
 
-    local remote_app_version = manifest.versions[app]
-    local remote_comms_version = manifest.versions.comms
-    local remote_boot_version = manifest.versions.bootloader
+    ver.boot.v_remote = manifest.versions.bootloader
+    ver.app.v_remote = manifest.versions[app]
+    ver.comms.v_remote = manifest.versions.comms
+    ver.graphics.v_remote = manifest.versions.graphics
 
     term.setTextColor(colors.green)
     if mode == "install" then
-        println("installing " .. app .. " files...")
+        println("Installing " .. app .. " files...")
     elseif mode == "update" then
-        println("updating " .. app .. " files... (keeping old config.lua)")
+        println("Updating " .. app .. " files... (keeping old config.lua)")
     end
     term.setTextColor(colors.white)
 
     -- display bootloader version change information
-    if local_boot_version ~= nil then
-        if local_boot_version ~= remote_boot_version then
-            print("[bootldr] updating ")
-            term.setTextColor(colors.blue)
-            print(local_boot_version)
-            term.setTextColor(colors.white)
-            print(" \xbb ")
-            term.setTextColor(colors.blue)
-            println(remote_boot_version)
-            term.setTextColor(colors.white)
-        elseif mode == "install" then
-            print("[bootldr] reinstalling ")
-            term.setTextColor(colors.blue)
-            println(local_boot_version)
-            term.setTextColor(colors.white)
-        end
-    else
-        print("[bootldr] new install of ")
-        term.setTextColor(colors.blue)
-        println(remote_boot_version)
-        term.setTextColor(colors.white)
-    end
+    show_pkg_change("bootldr", ver.boot.v_local, ver.boot.v_remote)
+    ver.boot.changed = ver.boot.v_local ~= ver.boot.v_remote
 
     -- display app version change information
-    if local_app_version ~= nil then
-        if local_app_version ~= remote_app_version then
-            print("[" .. app .. "] updating ")
-            term.setTextColor(colors.blue)
-            print(local_app_version)
-            term.setTextColor(colors.white)
-            print(" \xbb ")
-            term.setTextColor(colors.blue)
-            println(remote_app_version)
-            term.setTextColor(colors.white)
-        elseif mode == "install" then
-            print("[" .. app .. "] reinstalling ")
-            term.setTextColor(colors.blue)
-            println(local_app_version)
-            term.setTextColor(colors.white)
-        end
-    else
-        print("[" .. app .. "] new install of ")
-        term.setTextColor(colors.blue)
-        println(remote_app_version)
+    show_pkg_change(app, ver.app.v_local, ver.app.v_remote)
+    ver.app.changed = ver.app.v_local ~= ver.app.v_remote
+
+    -- display comms version change information
+    show_pkg_change("comms", ver.comms.v_local, ver.comms.v_remote)
+    ver.comms.changed = ver.comms.v_local ~= ver.comms.v_remote
+    if ver.comms.changed then
+        print("[comms] ")
+        term.setTextColor(colors.yellow)
+        println("other devices on the network will require an update")
         term.setTextColor(colors.white)
     end
 
-    -- display comms version change information
-    if local_comms_version ~= nil then
-        if local_comms_version ~= remote_comms_version then
-            print("[comms] updating ")
-            term.setTextColor(colors.blue)
-            print(local_comms_version)
-            term.setTextColor(colors.white)
-            print(" \xbb ")
-            term.setTextColor(colors.blue)
-            println(remote_comms_version)
-            term.setTextColor(colors.white)
-            print("[comms] ")
-            term.setTextColor(colors.yellow)
-            println("other devices on the network will require an update")
-            term.setTextColor(colors.white)
-        elseif mode == "install" then
-            print("[comms] reinstalling ")
-            term.setTextColor(colors.blue)
-            println(local_comms_version)
-            term.setTextColor(colors.white)
-        end
-    else
-        print("[comms] new install of ")
-        term.setTextColor(colors.blue)
-        println(remote_comms_version)
-        term.setTextColor(colors.white)
-    end
+    -- display graphics version change information
+    show_pkg_change("graphics", ver.graphics.v_local, ver.graphics.v_remote)
+    ver.graphics.changed = ver.graphics.v_local ~= ver.graphics.v_remote
+
+    -- ask for confirmation
+    if not ask_y_n("Continue?", false) then return end
 
     --------------------------
     -- START INSTALL/UPDATE --
@@ -386,17 +402,12 @@ elseif mode == "install" or mode == "update" then
         println("WARNING: Insufficient space available for a full download!")
         term.setTextColor(colors.white)
         println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
-        println("Do you wish to continue? (y/N)")
-
-        local confirm = read()
-        if confirm ~= "y" and confirm ~= "Y" then
-            println("installation cancelled")
+        if mode == "update" then println("If installation still fails, delete this device's log file and try again.") end
+        if not ask_y_n("Do you wish to continue?", false) then
+            println("Operation cancelled.")
             return
         end
     end
-
----@diagnostic disable-next-line: undefined-field
-    os.sleep(2)
 
     local success = true
 
@@ -408,20 +419,14 @@ elseif mode == "install" or mode == "update" then
 
         -- download all dependencies
         for _, dependency in pairs(dependencies) do
-            if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
-                -- skip system package if unchanged, skip app package if not changed
-                -- skip packages that have no version if app version didn't change
-                term.setTextColor(colors.white)
-                print("skipping download of unchanged package ")
-                term.setTextColor(colors.blue)
-                println(dependency)
+            if mode == "update" and ((dependency == "system" and ver.boot.changed) or
+                                     (dependency == "graphics" and ver.graphics.changed) or
+                                     (ver.changed.app)) then
+                pkg_message("skipping download of unchanged package", dependency)
             else
-                term.setTextColor(colors.white)
-                print("downloading package ")
-                term.setTextColor(colors.blue)
-                println(dependency)
-
+                pkg_message("downloading package", dependency)
                 term.setTextColor(colors.lightGray)
+
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET " .. file)
@@ -444,20 +449,14 @@ elseif mode == "install" or mode == "update" then
         -- copy in downloaded files (installation)
         if success then
             for _, dependency in pairs(dependencies) do
-                if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
-                    -- skip system package if unchanged, skip app package if not changed
-                    -- skip packages that have no version if app version didn't change
-                    term.setTextColor(colors.white)
-                    print("skipping install of unchanged package ")
-                    term.setTextColor(colors.blue)
-                    println(dependency)
+                if mode == "update" and ((dependency == "system" and ver.boot.changed) or
+                                         (dependency == "graphics" and ver.graphics.changed) or
+                                         (ver.changed.app)) then
+                    pkg_message("skipping install of unchanged package", dependency)
                 else
-                    term.setTextColor(colors.white)
-                    print("installing package ")
-                    term.setTextColor(colors.blue)
-                    println(dependency)
-
+                    pkg_message("installing package", dependency)
                     term.setTextColor(colors.lightGray)
+
                     local files = file_list[dependency]
                     for _, file in pairs(files) do
                         if mode == "install" or file ~= config_file then
@@ -478,36 +477,30 @@ elseif mode == "install" or mode == "update" then
             write_install_manifest(manifest, dependencies)
             term.setTextColor(colors.green)
             if mode == "install" then
-                println("installation completed successfully")
+                println("Installation completed successfully.")
             else
-                println("update completed successfully")
+                println("Update completed successfully.")
             end
         else
             if mode == "install" then
                 term.setTextColor(colors.red)
-                println("installation failed")
+                println("Installation failed.")
             else
                 term.setTextColor(colors.orange)
-                println("update failed, existing files unmodified")
+                println("Update failed, existing files unmodified.")
             end
         end
     else
         -- go through all files and replace one by one
         for _, dependency in pairs(dependencies) do
-            if mode == "update" and ((dependency == "system" and local_boot_version == remote_boot_version) or (local_app_version == remote_app_version)) then
-                -- skip system package if unchanged, skip app package if not changed
-                -- skip packages that have no version if app version didn't change
-                term.setTextColor(colors.white)
-                print("skipping install of unchanged package ")
-                term.setTextColor(colors.blue)
-                println(dependency)
+            if mode == "update" and ((dependency == "system" and ver.boot.changed) or
+                                     (dependency == "graphics" and ver.graphics.changed) or
+                                     (ver.changed.app)) then
+                pkg_message("skipping install of unchanged package", dependency)
             else
-                term.setTextColor(colors.white)
-                print("installing package ")
-                term.setTextColor(colors.blue)
-                println(dependency)
-
+                pkg_message("installing package", dependency)
                 term.setTextColor(colors.lightGray)
+
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     if mode == "install" or file ~= config_file then
@@ -534,16 +527,16 @@ elseif mode == "install" or mode == "update" then
             write_install_manifest(manifest, dependencies)
             term.setTextColor(colors.green)
             if mode == "install" then
-                println("installation completed successfully")
+                println("Installation completed successfully.")
             else
-                println("update completed successfully")
+                println("Update completed successfully.")
             end
         else
             term.setTextColor(colors.red)
             if mode == "install" then
-                println("installation failed, files may have been skipped")
+                println("Installation failed, files may have been skipped.")
             else
-                println("update failed, files may have been skipped")
+                println("Update failed, files may have been skipped.")
             end
         end
     end
@@ -576,8 +569,8 @@ elseif mode == "remove" or mode == "purge" then
         println("purging all " .. app .. " files...")
     end
 
----@diagnostic disable-next-line: undefined-field
-    os.sleep(2)
+    -- ask for confirmation
+    if not ask_y_n("Continue?", false) then return end
 
     local file_list = manifest.files
     local dependencies = manifest.depends[app]
@@ -666,7 +659,7 @@ elseif mode == "remove" or mode == "purge" then
     end
 
     term.setTextColor(colors.green)
-    println("done!")
+    println("Done!")
 end
 
 term.setTextColor(colors.white)

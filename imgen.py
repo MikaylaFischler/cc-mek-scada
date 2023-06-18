@@ -23,11 +23,11 @@ def dir_size(path):
     return total
 
 # get the version of an application at the provided path
-def get_version(path, is_comms = False):
+def get_version(path, is_lib = False):
     ver = ""
-    string = "comms.version = \""
+    string = ".version = \""
 
-    if not is_comms:
+    if not is_lib:
         string = "_VERSION = \""
 
     f = open(path, "r")
@@ -49,6 +49,7 @@ def make_manifest(size):
             "installer" : get_version("./ccmsi.lua"),
             "bootloader" : get_version("./startup.lua"),
             "comms" : get_version("./scada-common/comms.lua", True),
+            "graphics" : get_version("./graphics/core.lua", True),
             "reactor-plc" : get_version("./reactor-plc/startup.lua"),
             "rtu" : get_version("./rtu/startup.lua"),
             "supervisor" : get_version("./supervisor/startup.lua"),
