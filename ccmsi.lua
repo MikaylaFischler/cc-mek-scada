@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.4e"
+local CCMSI_VERSION = "v1.4f"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -177,7 +177,7 @@ else
 
     -- determine target
     if mode == "check" then target = opts[2] else target = opts[3] end
-    if target ~= "main" or target ~= "latest" or target ~= "devel" then
+    if (target ~= "main") and (target ~= "latest") and (target ~= "devel") then
         target = "main"
         println("unknown target, defaulting to 'main'")
     end
