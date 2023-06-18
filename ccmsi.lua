@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.3"
+local CCMSI_VERSION = "v1.4"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -95,24 +95,24 @@ end
 
 -- indicate actions to be taken based on package differences for installs/updates
 ---@param name string package name
----@param _local_v string|nil local version
----@param _remote_v string remote version
-local function show_pkg_change(name, _local_v, _remote_v)
-    if _local_v ~= nil then
-        if _local_v ~= _remote_v then
+---@param v_local string|nil local version
+---@param v_remote string remote version
+local function show_pkg_change(name, v_local, v_remote)
+    if v_local ~= nil then
+        if v_local ~= v_remote then
             print("[" .. name .. "] updating ")
             term.setTextColor(colors.blue)
-            print(_local_v)
+            print(v_local)
             term.setTextColor(colors.white)
             print(" \xbb ")
             term.setTextColor(colors.blue)
-            println(_local_v)
+            println(v_local)
             term.setTextColor(colors.white)
         elseif mode == "install" then
-            pkg_message("[" .. name .. "] reinstalling", _local_v)
+            pkg_message("[" .. name .. "] reinstalling", v_local)
         end
     else
-        pkg_message("[" .. name .. "] new install of", _remote_v)
+        pkg_message("[" .. name .. "] new install of", v_remote)
     end
 end
 
@@ -123,12 +123,12 @@ end
 println("-- CC Mekanism SCADA Installer " .. CCMSI_VERSION .. " --")
 
 if #opts == 0 or opts[1] == "help" then
-    println("usage: ccmsi <mode> <app> <tag/branch>")
+    println("usage: ccmsi <mode> <app> <branch>")
     println("<mode>")
     term.setTextColor(colors.lightGray)
     println(" check       - check latest versions avilable")
     term.setTextColor(colors.yellow)
-    println("               ccmsi check <tag/branch> for target")
+    println("               ccmsi check <branch> for target")
     term.setTextColor(colors.lightGray)
     println(" install     - fresh install, overwrites config")
     println(" update      - update files EXCEPT for config/logs")
@@ -143,12 +143,11 @@ if #opts == 0 or opts[1] == "help" then
     println(" coordinator - coordinator application")
     println(" pocket      - pocket application")
     term.setTextColor(colors.white)
-    println("<tag/branch>")
+    println("<branch>")
     term.setTextColor(colors.yellow)
     println(" second parameter when used with check")
     term.setTextColor(colors.lightGray)
-    println(" note: defaults to main")
-    println(" target GitHub tag or branch name")
+    println(" main (default) | latest | devel")
     return
 else
     for _, v in pairs({ "check", "install", "update", "remove", "purge" }) do
@@ -361,7 +360,7 @@ elseif mode == "install" or mode == "update" then
     -- display comms version change information
     show_pkg_change("comms", ver.comms.v_local, ver.comms.v_remote)
     ver.comms.changed = ver.comms.v_local ~= ver.comms.v_remote
-    if ver.comms.changed then
+    if ver.comms.changed and mode == "update" then
         print("[comms] ")
         term.setTextColor(colors.yellow)
         println("other devices on the network will require an update")
