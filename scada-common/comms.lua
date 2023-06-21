@@ -205,7 +205,7 @@ function comms.scada_packet()
                     self.protocol = self.raw[4]
                     self.mac = self.raw[5]
 
-                    -- element 5 must be a table
+                    -- element 6 must be a table
                     if type(self.raw[6]) == "table" then
                         self.length = #self.raw[6]
                         self.payload = self.raw[6]

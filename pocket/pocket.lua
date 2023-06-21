@@ -17,14 +17,14 @@ local pocket = {}
 -- pocket coordinator + supervisor communications
 ---@nodiscard
 ---@param version string pocket version
----@param modem table modem device
+---@param nic nic network interface device
 ---@param pkt_channel integer pocket comms channel
 ---@param svr_channel integer supervisor access channel
 ---@param crd_channel integer coordinator access channel
 ---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
 ---@param api_watchdog watchdog
-function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, range, sv_watchdog, api_watchdog)
+function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range, sv_watchdog, api_watchdog)
     local self = {
         sv = {
             linked = false,
@@ -47,13 +47,9 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
 
     -- PRIVATE FUNCTIONS --
 
-    -- configure modem channels
-    local function _conf_channels()
-        modem.closeAll()
-        modem.open(pkt_channel)
-    end
-
-    _conf_channels()
+    -- configure network channels
+    nic.closeAll()
+    nic.open(pkt_channel)
 
     -- send a management packet to the supervisor
     ---@param msg_type SCADA_MGMT_TYPE
@@ -65,7 +61,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
         pkt.make(msg_type, msg)
         s_pkt.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        modem.transmit(svr_channel, pkt_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, pkt_channel, s_pkt)
         self.sv.seq_num = self.sv.seq_num + 1
     end
 
@@ -79,7 +75,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
         pkt.make(msg_type, msg)
         s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        modem.transmit(crd_channel, pkt_channel, s_pkt.raw_sendable())
+        nic.transmit(crd_channel, pkt_channel, s_pkt)
         self.api.seq_num = self.api.seq_num + 1
     end
 
@@ -93,7 +89,7 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
     --     pkt.make(msg_type, msg)
     --     s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
 
-    --     modem.transmit(crd_channel, pkt_channel, s_pkt.raw_sendable())
+    --     nic.transmit(crd_channel, pkt_channel, s_pkt)
     --     self.api.seq_num = self.api.seq_num + 1
     -- end
 
@@ -123,13 +119,6 @@ function pocket.comms(version, modem, pkt_channel, svr_channel, crd_channel, ran
 
     ---@class pocket_comms
     local public = {}
-
-    -- reconnect a newly connected modem
-    ---@param new_modem table
-    function public.reconnect_modem(new_modem)
-        modem = new_modem
-        _conf_channels()
-    end
 
     -- close connection to the supervisor
     function public.close_sv()
