@@ -1,23 +1,24 @@
 require("/initenv").init_env()
 
-local pbkdf2 = require("lockbox.kdf.pbkdf2")
-local AES128Cipher = require("lockbox.cipher.aes128")
-local HMAC = require("lockbox.mac.hmac")
-local SHA1 = require("lockbox.digest.sha1")
--- local SHA2_224 = require("lockbox.digest.sha2_224")
-local SHA2_256 = require("lockbox.digest.sha2_256")
-local Stream = require("lockbox.util.stream")
-local Array = require("lockbox.util.array")
+local pbkdf2       = require("lockbox.kdf.pbkdf2")
+-- local AES128Cipher = require("lockbox.cipher.aes128")
+local HMAC         = require("lockbox.mac.hmac")
+local MD5          = require("lockbox.digest.md5")
+local SHA1         = require("lockbox.digest.sha1")
+local SHA2_224     = require("lockbox.digest.sha2_224")
+local SHA2_256     = require("lockbox.digest.sha2_256")
+local Stream       = require("lockbox.util.stream")
+-- local Array        = require("lockbox.util.array")
 
 -- local CBCMode = require("lockbox.cipher.mode.cbc")
 -- local CFBMode = require("lockbox.cipher.mode.cfb")
 -- local OFBMode = require("lockbox.cipher.mode.ofb")
-local CTRMode = require("lockbox.cipher.mode.ctr")
+-- local CTRMode = require("lockbox.cipher.mode.ctr")
 
-local ZeroPadding = require("lockbox.padding.zero")
+-- local ZeroPadding = require("lockbox.padding.zero")
 
 local comms = require("scada-common.comms")
-local util = require("scada-common.util")
+local util  = require("scada-common.util")
 
 local start = util.time()
 
@@ -46,6 +47,7 @@ local data = textutils.serialize(spkt.raw_sendable(), { allow_repetitions = true
 util.println("packet serialize: took " .. (util.time() - start) .. "ms")
 util.println("message: " .. data)
 
+--[[
 start = util.time()
 local v = {
     cipher = CTRMode.Cipher,
@@ -91,15 +93,54 @@ local b = Stream.toString(a)
 util.println("plaintext: " .. b)
 
 local msg = "000102030405060708090A0B0C0D0E0F" .. cipherOutput
+]]--
+
+-- local testmsg = "{1,0,42,3,{5,{{},{boilers={},turbines={},rad_mon={},},{TurbineOnline={false,},AutoControl=false,TurbineTrip={false,},HeatingRateLow={false,},HighStartupRate=false,BoilRateMismatch=false,ManualReactorSCRAM=false,FuelInputRateLow=false,PLCHeartbeat=false,MaxWaterReturnFeed=false,RCSFault=false,PLCOnline=false,RadiationMonitor=1,TurbineOverSpeed={false,},CoolantFeedMismatch=false,BoilerOnline={false,},ReactorTempHigh=false,SteamDumpOpen={1,},RCSFlowLow=false,RadiationWarning=false,WasteLineOcclusion=false,SteamFeedMismatch=false,ReactorSCRAM=false,EmergencyCoolant=1,CoolantLevelLow=false,ReactorHighDeltaT=false,AutoReactorSCRAM=false,WaterLevelLow={},RCPTrip=false,GeneratorTrip={false,},},{1,1,1,1,1,1,1,1,1,1,1,1,},{\"REACTOR OFF-LINE\",\"awaiting connection...\",1,false,true,},},{{},{boilers={},turbines={},rad_mon={},},{TurbineOnline={false,},AutoControl=false,TurbineTrip={false,},HeatingRateLow={false,},HighStartupRate=false,BoilRateMismatch=false,ManualReactorSCRAM=false,FuelInputRateLow=false,PLCHeartbeat=false,MaxWaterReturnFeed=false,RCSFault=false,PLCOnline=false,RadiationMonitor=1,TurbineOverSpeed={false,},CoolantFeedMismatch=false,BoilerOnline={false,},ReactorTempHigh=false,SteamDumpOpen={1,},RCSFlowLow=false,RadiationWarning=false,WasteLineOcclusion=false,SteamFeedMismatch=false,ReactorSCRAM=false,EmergencyCoolant=1,CoolantLevelLow=false,ReactorHighDeltaT=false,AutoReactorSCRAM=false,WaterLevelLow={},RCPTrip=false,GeneratorTrip={false,},},{1,1,1,1,1,1,1,1,1,1,1,1,},{\"REACTOR OFF-LINE\",\"awaiting connection...\",1,false,true,},},{{},{boilers={},turbines={},rad_mon={},},{TurbineOnline={false,},AutoControl=false,TurbineTrip={false,},HeatingRateLow={false,},HighStartupRate=false,BoilRateMismatch=false,ManualReactorSCRAM=false,FuelInputRateLow=false,PLCHeartbeat=false,MaxWaterReturnFeed=false,RCSFault=false,PLCOnline=false,RadiationMonitor=1,TurbineOverSpeed={false,},CoolantFeedMismatch=false,BoilerOnline={false,},ReactorTempHigh=false,SteamDumpOpen={1,},RCSFlowLow=false,RadiationWarning=false,WasteLineOcclusion=false,SteamFeedMismatch=false,ReactorSCRAM=false,EmergencyCoolant=1,CoolantLevelLow=false,ReactorHighDeltaT=false,AutoReactorSCRAM=false,WaterLevelLow={},RCPTrip=false,GeneratorTrip={false,},},{1,1,1,1,1,1,1,1,1,1,1,1,},{\"REACTOR OFF-LINE\",\"awaiting connection...\",1,false,true,},},{{},{boilers={},turbines={},rad_mon={},},{TurbineOnline={false,},AutoControl=false,TurbineTrip={false,},HeatingRateLow={false,},HighStartupRate=false,BoilRateMismatch=false,ManualReactorSCRAM=false,FuelInputRateLow=false,PLCHeartbeat=false,MaxWaterReturnFeed=false,RCSFault=false,PLCOnline=false,RadiationMonitor=1,TurbineOverSpeed={false,},CoolantFeedMismatch=false,BoilerOnline={false,},ReactorTempHigh=false,SteamDumpOpen={1,},RCSFlowLow=false,RadiationWarning=false,WasteLineOcclusion=false,SteamFeedMismatch=false,ReactorSCRAM=false,EmergencyCoolant=1,CoolantLevelLow=false,ReactorHighDeltaT=false,AutoReactorSCRAM=false,WaterLevelLow={},RCPTrip=false,GeneratorTrip={false,},},{1,1,1,1,1,1,1,1,1,1,1,1,},{\"REACTOR OFF-LINE\",\"awaiting connection...\",1,false,true,},},},}"
+local testmsg = "{1,0,42,3,{5,{{},{boilers={},turbines={},rad_mon={},},{TurbineOnline={false,},AutoControl=false,TurbineTrip={false,},HeatingRateLow={false,},HighStartupRate=false,BoilRateMismatch=false,ManualReactorSCRAM=false,FuelInputRateLow=false}"
+local n = 1000
+
+---@diagnostic disable: undefined-field
+os.sleep(1)
+
+local hash
+local hmac = HMAC().setBlockSize(64).setDigest(MD5).setKey(keyd).init()
 
 start = util.time()
-local hash = HMAC()
-    .setBlockSize(64)
-    .setDigest(SHA1)
-    .setKey(keyd)
-    .init()
-    .update(Stream.fromHex(msg))
-    .finish()
-    .asHex();
-util.println("hmac: took " .. (util.time() - start) .. "ms")
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
+util.println("hash: " .. hash)
+
+os.sleep(1)
+
+hmac = HMAC().setBlockSize(64).setDigest(SHA1).setKey(keyd).init()
+
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
+util.println("hash: " .. hash)
+
+os.sleep(1)
+
+hmac = HMAC().setBlockSize(64).setDigest(SHA2_224).setKey(keyd).init()
+
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha224: took " .. (util.time() - start) .. "ms")
+util.println("hash: " .. hash)
+
+os.sleep(1)
+
+hmac = HMAC().setBlockSize(64).setDigest(SHA2_256).setKey(keyd).init()
+
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha256: took " .. (util.time() - start) .. "ms")
 util.println("hash: " .. hash)
