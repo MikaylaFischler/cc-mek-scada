@@ -101,22 +101,31 @@ local function peri_init(iface)
         end
     end
 
-    -- fault management functions
+    -- fault management & monitoring functions
 
     local function clear_fault() self.faulted = false end
     local function get_last_fault() return self.last_fault end
     local function is_faulted() return self.faulted end
     local function is_ok() return not self.faulted end
 
+    -- check if a peripheral has any faulted functions<br>
+    -- contrasted with is_faulted() and is_ok() as those only check if the last operation failed,
+    -- unless auto fault clearing is disabled, at which point faults become sticky faults
+    local function is_healthy()
+        for _, v in pairs(self.fault_counts) do if v > 0 then return false end end
+        return true
+    end
+
     local function enable_afc() self.auto_cf = true end
     local function disable_afc() self.auto_cf = false end
 
-    -- append to device functions
+    -- append PPM functions to device functions
 
     self.device.__p_clear_fault = clear_fault
     self.device.__p_last_fault  = get_last_fault
     self.device.__p_is_faulted  = is_faulted
     self.device.__p_is_ok       = is_ok
+    self.device.__p_is_healthy  = is_healthy
     self.device.__p_enable_afc  = enable_afc
     self.device.__p_disable_afc = disable_afc
 
@@ -156,7 +165,7 @@ local function peri_init(iface)
 
     return {
         type = self.type,
-        dev = self.device
+        dev  = self.device
     }
 end
 

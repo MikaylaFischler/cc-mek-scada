@@ -10,6 +10,7 @@ function sna_rtu.new(sna)
     local unit = rtu.init_unit()
 
     -- disable auto fault clearing
+    sna.__p_clear_fault()
     sna.__p_disable_afc()
 
     -- discrete inputs --

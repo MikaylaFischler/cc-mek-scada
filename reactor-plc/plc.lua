@@ -639,7 +639,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
 
         parallel.waitForAll(table.unpack(tasks))
 
-        if not reactor.__p_is_faulted() then
+        if reactor.__p_is_ok() then
             _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
         end
@@ -836,7 +836,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
                                         success = true
                                     else
                                         reactor.setBurnRate(burn_rate)
-                                        success = not reactor.__p_is_faulted()
+                                        success = reactor.__p_is_ok()
                                     end
                                 else
                                     log.debug(burn_rate .. " rate outside of 0 < x <= " .. self.max_burn_rate)

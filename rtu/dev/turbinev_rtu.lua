@@ -10,6 +10,7 @@ function turbinev_rtu.new(turbine)
     local unit = rtu.init_unit()
 
     -- disable auto fault clearing
+    turbine.__p_clear_fault()
     turbine.__p_disable_afc()
 
     -- discrete inputs --
