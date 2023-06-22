@@ -10,6 +10,7 @@ function boilerv_rtu.new(boiler)
     local unit = rtu.init_unit()
 
     -- disable auto fault clearing
+    boiler.__p_clear_fault()
     boiler.__p_disable_afc()
 
     -- discrete inputs --

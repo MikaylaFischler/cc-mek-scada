@@ -10,6 +10,7 @@ function imatrix_rtu.new(imatrix)
     local unit = rtu.init_unit()
 
     -- disable auto fault clearing
+    imatrix.__p_clear_fault()
     imatrix.__p_disable_afc()
 
     -- discrete inputs --
