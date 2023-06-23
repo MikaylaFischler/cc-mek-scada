@@ -445,14 +445,14 @@ end
 ---@nodiscard
 ---@param id integer reactor ID
 ---@param version string PLC version
----@param modem table modem device
+---@param nic nic network interface device
 ---@param plc_channel integer PLC comms channel
 ---@param svr_channel integer supervisor server channel
 ---@param range integer trusted device connection range
 ---@param reactor table reactor device
 ---@param rps rps RPS reference
 ---@param conn_watchdog watchdog watchdog reference
-function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor, rps, conn_watchdog)
+function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = 0,
@@ -470,13 +470,9 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
 
     -- PRIVATE FUNCTIONS --
 
-    -- configure modem channels
-    local function _conf_channels()
-        modem.closeAll()
-        modem.open(plc_channel)
-    end
-
-    _conf_channels()
+    -- configure network channels
+    nic.closeAll()
+    nic.open(plc_channel)
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPE
@@ -488,7 +484,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
         r_pkt.make(id, msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        modem.transmit(svr_channel, plc_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, plc_channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -502,7 +498,7 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(svr_channel, plc_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, plc_channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -650,13 +646,6 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
     ---@class plc_comms
     local public = {}
 
-    -- reconnect a newly connected modem
-    ---@param new_modem table
-    function public.reconnect_modem(new_modem)
-        modem = new_modem
-        _conf_channels()
-    end
-
     -- reconnect a newly connected reactor
     ---@param new_reactor table
     function public.reconnect_reactor(new_reactor)
@@ -744,12 +733,9 @@ function plc.comms(id, version, modem, plc_channel, svr_channel, range, reactor,
     ---@return rplc_frame|mgmt_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = comms.scada_packet()
+        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
 
-        -- parse packet as generic SCADA packet
-        s_pkt.receive(side, sender, reply_to, message, distance)
-
-        if s_pkt.is_valid() then
+        if s_pkt and s_pkt.is_valid() then
             -- get as RPLC packet
             if s_pkt.protocol() == PROTOCOL.RPLC then
                 local rplc_pkt = comms.rplc_packet()
