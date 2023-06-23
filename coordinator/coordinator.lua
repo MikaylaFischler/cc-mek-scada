@@ -390,13 +390,10 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
     ---@param distance integer
     ---@return mgmt_frame|crdn_frame|capi_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
+        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = comms.scada_packet()
 
-        -- parse packet as generic SCADA packet
-        s_pkt.receive(side, sender, reply_to, message, distance)
-
-        if s_pkt.is_valid() then
+        if s_pkt then
             -- get as SCADA management packet
             if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()

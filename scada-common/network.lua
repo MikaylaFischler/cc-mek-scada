@@ -73,7 +73,7 @@ end
 ---@param modem table modem to use
 function network.nic(modem)
     local self = {
-        connected = (modem ~= nil),
+        connected = true,
         channels = {}
     }
 
@@ -91,6 +91,10 @@ function network.nic(modem)
     ---@field getMethodsRemote function
     ---@field callRemote function
     local public = {}
+
+    -- check if this NIC has a connected modem
+    ---@nodiscard
+    function public.connected() return self.connected end
 
     -- connect to a modem peripheral
     ---@param reconnected_modem table
@@ -112,18 +116,17 @@ function network.nic(modem)
     -- flag this NIC as no longer having a connected modem (usually do to peripheral disconnect)
     function public.disconnect() self.connected = false end
 
-    -- check if this NIC has a connected modem
-    ---@nodiscard
-    function public.connected() return self.connected end
-
     -- check if a peripheral is this modem
     ---@nodiscard
     ---@param device table
     function public.is_modem(device) return device == modem end
 
-    -- wrap modem functions, then create custom transmit
+    -- wrap modem functions, then create custom functions
     public.connect(modem)
 
+    -- open a channel on the modem<br>
+    -- if disconnected *after* opening, previousy opened channels will be re-opened on reconnection
+    ---@param channel integer
     function public.open(channel)
         if self.connected then
             modem.open(channel)
@@ -142,6 +145,8 @@ function network.nic(modem)
         end
     end
 
+    -- close a channel on the modem
+    ---@param channel integer
     function public.close(channel)
         if self.connected then
             modem.close(channel)
@@ -154,6 +159,7 @@ function network.nic(modem)
         end
     end
 
+    -- close all channels on the modem
     function public.closeAll()
         if self.connected then
             modem.closeAll()

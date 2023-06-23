@@ -732,10 +732,10 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     ---@param distance integer
     ---@return rplc_frame|mgmt_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt = nil
         local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local pkt = nil
 
-        if s_pkt and s_pkt.is_valid() then
+        if s_pkt then
             -- get as RPLC packet
             if s_pkt.protocol() == PROTOCOL.RPLC then
                 local rplc_pkt = comms.rplc_packet()
