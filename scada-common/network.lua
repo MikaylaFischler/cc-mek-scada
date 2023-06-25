@@ -73,7 +73,7 @@ end
 ---@param modem table modem to use
 function network.nic(modem)
     local self = {
-        connected = true,
+        connected = true,   -- used to avoid costly MAC calculations if modem isn't even present
         channels = {}
     }
 
@@ -128,43 +128,39 @@ function network.nic(modem)
     -- if disconnected *after* opening, previousy opened channels will be re-opened on reconnection
     ---@param channel integer
     function public.open(channel)
-        if self.connected then
-            modem.open(channel)
+        modem.open(channel)
 
-            local already_open = false
-            for i = 1, #self.channels do
-                if self.channels[i] == channel then
-                    already_open = true
-                    break
-                end
+        local already_open = false
+        for i = 1, #self.channels do
+            if self.channels[i] == channel then
+                already_open = true
+                break
             end
+        end
 
-            if not already_open then
-                table.insert(self.channels, channel)
-            end
+        if not already_open then
+            table.insert(self.channels, channel)
         end
     end
 
     -- close a channel on the modem
     ---@param channel integer
     function public.close(channel)
-        if self.connected then
-            modem.close(channel)
-            for i = 1, #self.channels do
-                if self.channels[i] == channel then
-                    table.remove(self.channels, i)
-                    return
-                end
+        modem.close(channel)
+
+        for i = 1, #self.channels do
+            if self.channels[i] == channel then
+                table.remove(self.channels, i)
+                return
             end
         end
     end
 
     -- close all channels on the modem
     function public.closeAll()
-        if self.connected then
-            modem.closeAll()
-            self.channels = {}
-        end
+        modem.closeAll()
+
+        self.channels = {}
     end
 
     -- send a packet, with message authentication if configured
