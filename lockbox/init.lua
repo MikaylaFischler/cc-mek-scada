@@ -1,7 +1,7 @@
 local Lockbox = {};
 
 -- cc-mek-scada lockbox version
-Lockbox.VERSION = "1.0"
+Lockbox.version = "1.0"
 
 --[[
 package.path =  "./?.lua;"
