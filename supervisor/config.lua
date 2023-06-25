@@ -17,6 +17,11 @@ config.PLC_TIMEOUT = 5
 config.RTU_TIMEOUT = 5
 config.CRD_TIMEOUT = 5
 config.PKT_TIMEOUT = 5
+-- facility authentication key (do NOT use one of your passwords)
+-- this enables verifying that messages are authentic
+-- all devices on the same network must use the same key
+-- message authentication codes require computing a hash on each message, so this can slow things down
+-- config.AUTH_KEY = "SCADAfacility123"
 
 -- expected number of reactors
 config.NUM_REACTORS = 4

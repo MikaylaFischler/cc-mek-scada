@@ -80,6 +80,11 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
     -- shared memory across threads
     ---@class plc_shared_memory
     local __shared_memory = {

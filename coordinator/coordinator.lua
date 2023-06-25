@@ -183,7 +183,8 @@ local function log_dmesg(message, dmesg_tag, working)
         GRAPHICS = colors.green,
         SYSTEM = colors.cyan,
         BOOT = colors.blue,
-        COMMS = colors.purple
+        COMMS = colors.purple,
+        CRYPTO = colors.yellow
     }
 
     if working then
@@ -197,6 +198,7 @@ function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
 function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
+function coordinator.log_crypto(message) log_dmesg(message, "CRYPTO") end
 
 -- log a message for communications connecting, providing access to progress indication control functions
 ---@nodiscard

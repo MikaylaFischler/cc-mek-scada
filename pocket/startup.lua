@@ -68,6 +68,11 @@ local function main()
     -- setup communications & clocks
     ----------------------------------------
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
     coreio.report_link_state(coreio.LINK_STATE.UNLINKED)
 
     -- get the communications modem

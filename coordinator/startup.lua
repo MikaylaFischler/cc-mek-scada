@@ -31,6 +31,7 @@ local log_sys = coordinator.log_sys
 local log_boot = coordinator.log_boot
 local log_comms = coordinator.log_comms
 local log_comms_connecting = coordinator.log_comms_connecting
+local log_crypto = coordinator.log_crypto
 
 ----------------------------------------
 -- config validation
@@ -131,6 +132,12 @@ local function main()
     ----------------------------------------
     -- setup communications
     ----------------------------------------
+
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        local init_time = network.init_mac(config.AUTH_KEY)
+        log_crypto("HMAC init took " .. init_time .. "ms")
+    end
 
     -- get the communications modem
     local modem = ppm.get_wireless_modem()
