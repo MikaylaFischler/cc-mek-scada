@@ -16,10 +16,10 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 -- supervisory controller communications
 ---@nodiscard
 ---@param _version string supervisor version
----@param modem table modem device
+---@param nic nic network interface device
 ---@param fp_ok boolean if the front panel UI is running
 ---@diagnostic disable-next-line: unused-local
-function supervisor.comms(_version, modem, fp_ok)
+function supervisor.comms(_version, nic, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -43,15 +43,11 @@ function supervisor.comms(_version, modem, fp_ok)
     -- PRIVATE FUNCTIONS --
 
     -- configure modem channels
-    local function _conf_channels()
-        modem.closeAll()
-        modem.open(svr_channel)
-    end
-
-    _conf_channels()
+    nic.closeAll()
+    nic.open(svr_channel)
 
     -- pass modem, status, and config data to svsessions
-    svsessions.init(modem, fp_ok, num_reactors, cooling_conf)
+    svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
 
     -- send an establish request response
     ---@param packet scada_packet
@@ -64,7 +60,7 @@ function supervisor.comms(_version, modem, fp_ok)
         m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(packet.remote_channel(), svr_channel, s_pkt.raw_sendable())
+        nic.transmit(packet.remote_channel(), svr_channel, s_pkt)
         self.last_est_acks[packet.src_addr()] = ack
     end
 
@@ -72,14 +68,6 @@ function supervisor.comms(_version, modem, fp_ok)
 
     ---@class superv_comms
     local public = {}
-
-    -- reconnect a newly connected modem
-    ---@param new_modem table
-    function public.reconnect_modem(new_modem)
-        modem = new_modem
-        svsessions.relink_modem(new_modem)
-        _conf_channels()
-    end
 
     -- parse a packet
     ---@nodiscard

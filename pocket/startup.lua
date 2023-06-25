@@ -89,7 +89,7 @@ local function main()
 
     log.debug("startup> conn watchdogs created")
 
-    -- init network interface then start comms
+    -- create network interface then setup comms
     local nic = network.nic(modem)
     local pocket_comms = pocket.comms(POCKET_VERSION, nic, config.PKT_CHANNEL, config.SVR_CHANNEL,
                                         config.CRD_CHANNEL, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)

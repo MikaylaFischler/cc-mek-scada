@@ -200,7 +200,7 @@ local function main()
                 smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
                 log.debug("init> conn watchdog started")
 
-                -- init network interface then start comms
+                -- create network interface then setup comms
                 smem_sys.nic = network.nic(smem_dev.modem)
                 smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_sys.nic, config.PLC_CHANNEL, config.SVR_CHANNEL,
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)

@@ -7,6 +7,7 @@ require("/initenv").init_env()
 local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
+local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
 local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
@@ -20,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.17.10"
+local SUPERVISOR_VERSION = "v0.18.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -115,8 +116,9 @@ local function main()
         println_ts = function (_) end
     end
 
-    -- start comms
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, modem, fp_ok)
+    -- create network interface then setup comms
+    local nic = network.nic(modem)
+    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, nic, fp_ok)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15
@@ -139,9 +141,12 @@ local function main()
             if type ~= nil and device ~= nil then
                 if type == "modem" then
                     -- we only care if this is our wireless modem
-                    if device == modem then
+                    if nic.is_modem(device) then
+                        nic.disconnect()
+
                         println_ts("wireless modem disconnected!")
                         log.warning("comms modem disconnected")
+
                         databus.tx_hw_modem(false)
                     else
                         log.warning("non-comms modem disconnected")
@@ -153,10 +158,9 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
-                    if device.isWireless() then
+                    if device.isWireless() and not nic.connected() then
                         -- reconnected modem
-                        modem = device
-                        superv_comms.reconnect_modem(modem)
+                        nic.connect(device)
 
                         println_ts("wireless modem reconnected.")
                         log.info("comms modem reconnected")

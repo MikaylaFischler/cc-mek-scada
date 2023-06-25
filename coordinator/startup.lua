@@ -148,7 +148,7 @@ local function main()
     conn_watchdog.cancel()
     log.debug("startup> conn watchdog created")
 
-    -- init network interface then start comms
+    -- create network interface then setup comms
     local nic = network.nic(modem)
     local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.CRD_CHANNEL, config.SVR_CHANNEL,
                                             config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)

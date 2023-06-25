@@ -46,7 +46,7 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
-        local rtu_dev       = smem.rtu_dev
+        local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
         local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
@@ -93,7 +93,9 @@ function threads.thread__main(smem)
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
                         -- we only care if this is our wireless modem
-                        if device == rtu_dev.modem then
+                        if nic.is_modem(device) then
+                            nic.disconnect()
+
                             println_ts("wireless modem disconnected!")
                             log.warning("comms modem disconnected!")
 
@@ -127,8 +129,7 @@ function threads.thread__main(smem)
                     if type == "modem" then
                         if device.isWireless() then
                             -- reconnected modem
-                            rtu_dev.modem = device
-                            rtu_comms.reconnect_modem(rtu_dev.modem)
+                            nic.connect(device)
 
                             println_ts("wireless modem reconnected.")
                             log.info("comms modem reconnected")
