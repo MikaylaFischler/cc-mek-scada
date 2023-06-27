@@ -100,30 +100,77 @@ local testmsg = "{1,0,42,3,{5,{{},{boilers={},turbines={},rad_mon={},},{TurbineO
 local n = 1000
 
 ---@diagnostic disable: undefined-field
-os.sleep(1)
 
 local hash
 local hmac = HMAC().setBlockSize(64).setDigest(MD5).setKey(keyd).init()
 
+os.sleep(0)
 start = util.time()
 for _ = 1, n do
     hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
 end
 util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
 util.println("hash: " .. hash)
-
-os.sleep(1)
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-md5: took " .. (util.time() - start) .. "ms")
 
 hmac = HMAC().setBlockSize(64).setDigest(SHA1).setKey(keyd).init()
 
+os.sleep(0)
 start = util.time()
 for _ = 1, n do
     hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
 end
 util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
 util.println("hash: " .. hash)
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
+os.sleep(0)
+start = util.time()
+for _ = 1, n do
+    hash = hmac.update(Stream.fromHex(testmsg)).finish().asHex();
+end
+util.println("hmac-sha1: took " .. (util.time() - start) .. "ms")
 
-os.sleep(1)
+os.sleep(0)
 
 hmac = HMAC().setBlockSize(64).setDigest(SHA2_224).setKey(keyd).init()
 
@@ -134,7 +181,7 @@ end
 util.println("hmac-sha224: took " .. (util.time() - start) .. "ms")
 util.println("hash: " .. hash)
 
-os.sleep(1)
+os.sleep(0)
 
 hmac = HMAC().setBlockSize(64).setDigest(SHA2_256).setKey(keyd).init()
 
