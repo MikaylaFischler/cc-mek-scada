@@ -77,7 +77,7 @@ function threads.thread__main(smem, init)
                     loop_clock.start()
 
                     -- send updated data
-                    if not nic.connected() then
+                    if nic.connected() then
                         if plc_comms.is_linked() then
                             smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
                         else

@@ -78,13 +78,10 @@ function supervisor.comms(_version, nic, fp_ok)
     ---@param distance integer
     ---@return modbus_frame|rplc_frame|mgmt_frame|crdn_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
+        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = comms.scada_packet()
 
-        -- parse packet as generic SCADA packet
-        s_pkt.receive(side, sender, reply_to, message, distance)
-
-        if s_pkt.is_valid() then
+        if s_pkt then
             -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
                 local m_pkt = comms.modbus_packet()
