@@ -7,14 +7,14 @@ local log = require("scada-common.log")
 local insert = table.insert
 
 ---@diagnostic disable-next-line: undefined-field
-local C_ID = os.getComputerID() ---@type integer computer ID
+local COMPUTER_ID  = os.getComputerID() ---@type integer computer ID
 
-local max_distance = nil        ---@type number|nil maximum acceptable transmission distance
+local max_distance = nil                ---@type number|nil maximum acceptable transmission distance
 
 ---@class comms
 local comms = {}
 
-comms.version = "2.0.0"
+comms.version = "2.1.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -163,8 +163,7 @@ function comms.scada_packet()
     ---@param payload table
     function public.make(dest_addr, seq_num, protocol, payload)
         self.valid = true
----@diagnostic disable-next-line: undefined-field
-        self.src_addr = C_ID
+        self.src_addr = COMPUTER_ID
         self.dest_addr = dest_addr
         self.seq_num = seq_num
         self.protocol = protocol
@@ -219,10 +218,14 @@ function comms.scada_packet()
                 end
 
                 -- check if this packet is destined for this device
-                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == C_ID)
+                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
 
-                self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
-                             type(self.seq_num) == "number" and type(self.protocol) == "number" and type(self.payload) == "table"
+                self.valid = is_destination and
+                                type(self.src_addr)  == "number" and
+                                type(self.dest_addr) == "number" and
+                                type(self.seq_num)   == "number" and
+                                type(self.protocol)  == "number" and
+                                type(self.payload)   == "table"
             end
         end
 
@@ -254,6 +257,112 @@ function comms.scada_packet()
     function public.protocol() return self.protocol end
     ---@nodiscard
     function public.length() return self.length end
+    ---@nodiscard
+    function public.data() return self.payload end
+
+    return public
+end
+
+-- authenticated SCADA packet object
+---@nodiscard
+function comms.authd_packet()
+    local self = {
+        modem_msg_in = nil, ---@type modem_message|nil
+        valid = false,
+        raw = {},
+        src_addr = comms.BROADCAST,
+        dest_addr = comms.BROADCAST,
+        mac = "",
+        payload = ""
+    }
+
+    ---@class authd_packet
+    local public = {}
+
+    -- make an authenticated SCADA packet
+    ---@param s_packet scada_packet scada packet to authenticate
+    ---@param mac function message authentication function
+    function public.make(s_packet, mac)
+        self.valid = true
+        self.src_addr = s_packet.src_addr()
+        self.dest_addr = s_packet.dest_addr()
+        self.payload = textutils.serialize(s_packet.raw_sendable(), { allow_repetitions = true, compact = true })
+        self.mac = mac(self.payload)
+        self.raw = { self.src_addr, self.dest_addr, self.mac, self.payload }
+    end
+
+    -- parse in a modem message as an authenticated SCADA packet
+    ---@param side string modem side
+    ---@param sender integer sender channel
+    ---@param reply_to integer reply channel
+    ---@param message any message body
+    ---@param distance integer transmission distance
+    ---@return boolean valid valid message received
+    function public.receive(side, sender, reply_to, message, distance)
+        ---@class modem_message
+        self.modem_msg_in = {
+            iface = side,
+            s_channel = sender,
+            r_channel = reply_to,
+            msg = message,
+            dist = distance
+        }
+
+        self.valid = false
+        self.raw = self.modem_msg_in.msg
+
+        if (type(max_distance) == "number") and (distance > max_distance) then
+            -- outside of maximum allowable transmission distance
+            -- log.debug("comms.authd_packet.receive(): discarding packet with distance " .. distance .. " outside of trusted range")
+        else
+            if type(self.raw) == "table" then
+                if #self.raw == 4 then
+                    self.src_addr = self.raw[1]
+                    self.dest_addr = self.raw[2]
+                    self.mac = self.raw[3]
+                    self.payload = self.raw[4]
+                else
+                    self.src_addr = nil
+                    self.dest_addr = nil
+                    self.mac = ""
+                    self.payload = ""
+                end
+
+                -- check if this packet is destined for this device
+                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
+
+                self.valid = is_destination and
+                                type(self.src_addr)  == "number" and
+                                type(self.dest_addr) == "number" and
+                                type(self.mac)       == "string" and
+                                type(self.payload)   == "string"
+            end
+        end
+
+        return self.valid
+    end
+
+    -- public accessors --
+
+    ---@nodiscard
+    function public.modem_event() return self.modem_msg_in end
+    ---@nodiscard
+    function public.raw_sendable() return self.raw end
+
+    ---@nodiscard
+    function public.local_channel() return self.modem_msg_in.s_channel end
+    ---@nodiscard
+    function public.remote_channel() return self.modem_msg_in.r_channel end
+
+    ---@nodiscard
+    function public.is_valid() return self.valid end
+
+    ---@nodiscard
+    function public.src_addr() return self.src_addr end
+    ---@nodiscard
+    function public.dest_addr() return self.dest_addr end
+    ---@nodiscard
+    function public.mac() return self.mac end
     ---@nodiscard
     function public.data() return self.payload end
 

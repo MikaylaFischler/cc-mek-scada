@@ -8,6 +8,7 @@ local comms        = require("scada-common.comms")
 local crash        = require("scada-common.crash")
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
+local network      = require("scada-common.network")
 local ppm          = require("scada-common.ppm")
 local rsio         = require("scada-common.rsio")
 local types        = require("scada-common.types")
@@ -28,7 +29,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.3.7"
+local RTU_VERSION = "v1.4.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -81,6 +82,19 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
+    -- get modem
+    local modem = ppm.get_wireless_modem()
+    if modem == nil then
+        println("boot> wireless modem not found")
+        log.fatal("no wireless modem on startup")
+        return
+    end
+
     ---@class rtu_shared_memory
     local __shared_memory = {
         -- RTU system state flags
@@ -91,16 +105,12 @@ local function main()
             shutdown = false
         },
 
-        -- core RTU devices
-        rtu_dev = {
-            modem = ppm.get_wireless_modem()
-        },
-
         -- system objects
         rtu_sys = {
+            nic = network.nic(modem),
             rtu_comms = nil,        ---@type rtu_comms
             conn_watchdog = nil,    ---@type watchdog
-            units = {}              ---@type table
+            units = {}
         },
 
         -- message queues
@@ -109,15 +119,7 @@ local function main()
         }
     }
 
-    local smem_dev = __shared_memory.rtu_dev
     local smem_sys = __shared_memory.rtu_sys
-
-    -- get modem
-    if smem_dev.modem == nil then
-        println("boot> wireless modem not found")
-        log.fatal("no wireless modem on startup")
-        return
-    end
 
     databus.tx_hw_modem(true)
 
@@ -471,7 +473,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.RTU_CHANNEL, config.SVR_CHANNEL,
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_sys.nic, config.RTU_CHANNEL, config.SVR_CHANNEL,
                                         config.TRUSTED_RANGE, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 

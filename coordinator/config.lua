@@ -11,6 +11,10 @@ config.TRUSTED_RANGE = 0
 -- time in seconds (>= 2) before assuming a remote device is no longer active
 config.SV_TIMEOUT = 5
 config.API_TIMEOUT = 5
+-- facility authentication key (do NOT use one of your passwords)
+-- this enables verifying that messages are authentic
+-- all devices on the same network must use the same key
+-- config.AUTH_KEY = "SCADAfacility123"
 
 -- expected number of reactor units, used only to require that number of unit monitors
 config.NUM_UNITS = 4

@@ -158,12 +158,12 @@ end
 -- RTU Communications
 ---@nodiscard
 ---@param version string RTU version
----@param modem table modem device
+---@param nic nic network interface device
 ---@param rtu_channel integer PLC comms channel
 ---@param svr_channel integer supervisor server channel
 ---@param range integer trusted device connection range
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdog)
+function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = 0,
@@ -179,12 +179,8 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
     -- PRIVATE FUNCTIONS --
 
     -- configure modem channels
-    local function _conf_channels()
-        modem.closeAll()
-        modem.open(rtu_channel)
-    end
-
-    _conf_channels()
+    nic.closeAll()
+    nic.open(rtu_channel)
 
     -- send a scada management packet
     ---@param msg_type SCADA_MGMT_TYPE
@@ -196,7 +192,7 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(svr_channel, rtu_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, rtu_channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -240,15 +236,8 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
     function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        modem.transmit(svr_channel, rtu_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, rtu_channel, s_pkt)
         self.seq_num = self.seq_num + 1
-    end
-
-    -- reconnect a newly connected modem
-    ---@param new_modem table
-    function public.reconnect_modem(new_modem)
-        modem = new_modem
-        _conf_channels()
     end
 
     -- unlink from the server
@@ -295,13 +284,10 @@ function rtu.comms(version, modem, rtu_channel, svr_channel, range, conn_watchdo
     ---@param distance integer
     ---@return modbus_frame|mgmt_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
+        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = comms.scada_packet()
 
-        -- parse packet as generic SCADA packet
-        s_pkt.receive(side, sender, reply_to, message, distance)
-
-        if s_pkt.is_valid() then
+        if s_pkt then
             -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
                 local m_pkt = comms.modbus_packet()

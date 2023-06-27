@@ -6,6 +6,7 @@ require("/initenv").init_env()
 
 local crash    = require("scada-common.crash")
 local log      = require("scada-common.log")
+local network  = require("scada-common.network")
 local ppm      = require("scada-common.ppm")
 local tcd      = require("scada-common.tcd")
 local util     = require("scada-common.util")
@@ -17,7 +18,7 @@ local coreio   = require("pocket.coreio")
 local pocket   = require("pocket.pocket")
 local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.4.6"
+local POCKET_VERSION = "alpha-v0.5.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -67,6 +68,11 @@ local function main()
     -- setup communications & clocks
     ----------------------------------------
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
     coreio.report_link_state(coreio.LINK_STATE.UNLINKED)
 
     -- get the communications modem
@@ -88,8 +94,9 @@ local function main()
 
     log.debug("startup> conn watchdogs created")
 
-    -- start comms, open all channels
-    local pocket_comms = pocket.comms(POCKET_VERSION, modem, config.PKT_CHANNEL, config.SVR_CHANNEL,
+    -- create network interface then setup comms
+    local nic = network.nic(modem)
+    local pocket_comms = pocket.comms(POCKET_VERSION, nic, config.PKT_CHANNEL, config.SVR_CHANNEL,
                                         config.CRD_CHANNEL, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
     log.debug("startup> comms init")
 

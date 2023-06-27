@@ -183,7 +183,8 @@ local function log_dmesg(message, dmesg_tag, working)
         GRAPHICS = colors.green,
         SYSTEM = colors.cyan,
         BOOT = colors.blue,
-        COMMS = colors.purple
+        COMMS = colors.purple,
+        CRYPTO = colors.yellow
     }
 
     if working then
@@ -197,6 +198,7 @@ function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
 function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
+function coordinator.log_crypto(message) log_dmesg(message, "CRYPTO") end
 
 -- log a message for communications connecting, providing access to progress indication control functions
 ---@nodiscard
@@ -212,13 +214,13 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param modem table modem device
+---@param nic nic network interface device
 ---@param crd_channel integer port of configured supervisor
 ---@param svr_channel integer listening port for supervisor replys
 ---@param pkt_channel integer listening port for pocket API
 ---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
+function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -234,16 +236,12 @@ function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel
 
     -- PRIVATE FUNCTIONS --
 
-    -- configure modem channels
-    local function _conf_channels()
-        modem.closeAll()
-        modem.open(crd_channel)
-    end
+    -- configure network channels
+    nic.closeAll()
+    nic.open(crd_channel)
 
-    _conf_channels()
-
-    -- link modem to apisessions
-    apisessions.init(modem)
+    -- link nic to apisessions
+    apisessions.init(nic)
 
     -- send a packet to the supervisor
     ---@param msg_type SCADA_MGMT_TYPE|SCADA_CRDN_TYPE
@@ -263,7 +261,7 @@ function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel
         pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
 
-        modem.transmit(svr_channel, crd_channel, s_pkt.raw_sendable())
+        nic.transmit(svr_channel, crd_channel, s_pkt)
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
@@ -277,7 +275,7 @@ function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel
         m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, { ack })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        modem.transmit(pkt_channel, crd_channel, s_pkt.raw_sendable())
+        nic.transmit(pkt_channel, crd_channel, s_pkt)
         self.last_api_est_acks[packet.src_addr()] = ack
     end
 
@@ -296,14 +294,6 @@ function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel
 
     ---@class coord_comms
     local public = {}
-
-    -- reconnect a newly connected modem
-    ---@param new_modem table
-    function public.reconnect_modem(new_modem)
-        modem = new_modem
-        apisessions.relink_modem(new_modem)
-        _conf_channels()
-    end
 
     -- close the connection to the server
     function public.close()
@@ -402,13 +392,10 @@ function coordinator.comms(version, modem, crd_channel, svr_channel, pkt_channel
     ---@param distance integer
     ---@return mgmt_frame|crdn_frame|capi_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
+        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
-        local s_pkt = comms.scada_packet()
 
-        -- parse packet as generic SCADA packet
-        s_pkt.receive(side, sender, reply_to, message, distance)
-
-        if s_pkt.is_valid() then
+        if s_pkt then
             -- get as SCADA management packet
             if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
                 local mgmt_pkt = comms.mgmt_packet()

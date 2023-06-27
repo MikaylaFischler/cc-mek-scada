@@ -34,7 +34,7 @@ local SESSION_TYPE = {
 svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
-    modem = nil,        ---@type table|nil
+    nic = nil,          ---@type nic|nil
     fp_ok = false,
     num_reactors = 0,
     facility = nil,     ---@type facility|nil
@@ -60,7 +60,7 @@ local function _sv_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.modem.transmit(session.r_chan, config.SVR_CHANNEL, msg.message.raw_sendable())
+                self.nic.transmit(session.r_chan, config.SVR_CHANNEL, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -135,7 +135,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.modem.transmit(session.r_chan, config.SVR_CHANNEL, msg.message.raw_sendable())
+            self.nic.transmit(session.r_chan, config.SVR_CHANNEL, msg.message)
         end
     end
 
@@ -195,21 +195,15 @@ end
 -- PUBLIC FUNCTIONS --
 
 -- initialize svsessions
----@param modem table modem device
+---@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param num_reactors integer number of reactors
 ---@param cooling_conf table cooling configuration definition
-function svsessions.init(modem, fp_ok, num_reactors, cooling_conf)
-    self.modem = modem
+function svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
+    self.nic = nic
     self.fp_ok = fp_ok
     self.num_reactors = num_reactors
     self.facility = facility.new(num_reactors, cooling_conf)
-end
-
--- re-link the modem
----@param modem table
-function svsessions.relink_modem(modem)
-    self.modem = modem
 end
 
 -- find an RTU session by the computer ID
