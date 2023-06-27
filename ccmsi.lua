@@ -27,9 +27,7 @@ local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
 
 local opts = { ... }
-local mode = nil
-local app = nil
-local target = nil
+local mode, app, target
 local install_manifest = manifest_path .. "main/install_manifest.json"
 
 local function red() term.setTextColor(colors.red) end
@@ -85,6 +83,7 @@ local function read_local_manifest()
     return local_ok, local_manifest
 end
 
+-- get the manifest from GitHub
 local function get_remote_manifest()
     local response, error = http.get(install_manifest)
     if response == nil then

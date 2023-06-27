@@ -159,7 +159,6 @@ function network.nic(modem)
     -- close all channels on the modem
     function public.closeAll()
         modem.closeAll()
-
         self.channels = {}
     end
 
