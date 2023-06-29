@@ -16,8 +16,6 @@ Mod Recommendations:
 
 v10.1+ is required due the complete support of CC:Tweaked added in Mekanism v10.1
 
-There was also an apparent bug with boilers disconnecting and reconnecting when active in my test world on 10.0.24, so it may not even have been an option to fully implement this with support for 10.0.
-
 ## Released Component Versions
 
 ### Core
@@ -86,14 +84,8 @@ A vaguely-modbus [modbus](https://en.wikipedia.org/wiki/Modbus) communication pr
 - Input Registers: Multi-Byte Read-Only (analog inputs)
 - Holding Registers: Multi-Byte Read/Write (analog I/O)
 
-### Security and Encryption
+### Security
 
-TBD, I am planning on AES symmetric encryption for security + HMAC to prevent replay attacks. This will be done utilizing this codebase: https://github.com/somesocks/lua-lockbox.
+HMAC message authentication is available as a configuration option to prevent replay attacks and generally prevent control or false data reporting within a system's network. This is done utilizing the [lua-lockbox](https://github.com/somesocks/lua-lockbox) project.
 
-This is somewhat important here as otherwise anyone can just control your setup, which is undeseriable. Unlike normal Minecraft PVP chaos, it would be very difficult to identify who is messing with your system, as with an Ender Modem they can do it from effectively anywhere and the server operators would have to check every computer's filesystem to find suspicious code. 
-
-The other security mitigation for commanding (no effect on monitoring) is to enforce a maximum authorized transmission range, which has been added as a configurable feature.
-
-## Known Issues
-
-None yet since the switch to requiring 10.1+!
+The other, simpler security feature is to enforce a maximum authorized transmission range, which is also a configurable feature on each device.
