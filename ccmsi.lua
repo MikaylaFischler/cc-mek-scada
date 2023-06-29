@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.5"
+local CCMSI_VERSION = "v1.5a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -62,7 +62,7 @@ local function pkg_message(message, package) white(); print(message .. " "); blu
 local function show_pkg_change(name, v_local, v_remote)
     if v_local ~= nil then
         if v_local ~= v_remote then
-            print("[" .. name .. "] updating "); blue(); print(v_local); white(); print(" \xbb "); blue(); println(v_local); white()
+            print("[" .. name .. "] updating "); blue(); print(v_local); white(); print(" \xbb "); blue(); println(v_remote); white()
         elseif mode == "install" then
             pkg_message("[" .. name .. "] reinstalling", v_local)
         end
@@ -162,7 +162,7 @@ else
     -- determine target
     if mode == "check" then target = opts[2] else target = opts[3] end
     if (target ~= "main") and (target ~= "latest") and (target ~= "devel") then
-        if target ~= "" then yellow(); println("Unknown target, defaulting to 'main'"); white() end
+        if (target and target ~= "") then yellow(); println("Unknown target, defaulting to 'main'"); white() end
         target = "main"
     end
 
