@@ -6,6 +6,7 @@ require("/initenv").init_env()
 
 local crash       = require("scada-common.crash")
 local log         = require("scada-common.log")
+local network     = require("scada-common.network")
 local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
@@ -20,7 +21,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.16.1"
+local COORDINATOR_VERSION = "v0.17.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -30,6 +31,7 @@ local log_sys = coordinator.log_sys
 local log_boot = coordinator.log_boot
 local log_comms = coordinator.log_comms
 local log_comms_connecting = coordinator.log_comms_connecting
+local log_crypto = coordinator.log_crypto
 
 ----------------------------------------
 -- config validation
@@ -131,6 +133,12 @@ local function main()
     -- setup communications
     ----------------------------------------
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        local init_time = network.init_mac(config.AUTH_KEY)
+        log_crypto("HMAC init took " .. init_time .. "ms")
+    end
+
     -- get the communications modem
     local modem = ppm.get_wireless_modem()
     if modem == nil then
@@ -147,8 +155,9 @@ local function main()
     conn_watchdog.cancel()
     log.debug("startup> conn watchdog created")
 
-    -- start comms, open all channels
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, modem, config.CRD_CHANNEL, config.SVR_CHANNEL,
+    -- create network interface then setup comms
+    local nic = network.nic(modem)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.CRD_CHANNEL, config.SVR_CHANNEL,
                                             config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
@@ -218,8 +227,6 @@ local function main()
 
     local date_format = util.trinary(config.TIME_24_HOUR, "%X \x04 %A, %B %d %Y", "%r \x04 %A, %B %d %Y")
 
-    local no_modem = false
-
     if ui_ok then
         -- start connection watchdog
         conn_watchdog.feed()
@@ -239,8 +246,9 @@ local function main()
             if type ~= nil and device ~= nil then
                 if type == "modem" then
                     -- we only really care if this is our wireless modem
-                    if device == modem then
-                        no_modem = true
+                    -- if it is another modem, handle other peripheral losses separately
+                    if nic.is_modem(device) then
+                        nic.disconnect()
                         log_sys("comms modem disconnected")
                         println_ts("wireless modem disconnected!")
 
@@ -254,6 +262,7 @@ local function main()
                     end
                 elseif type == "monitor" then
                     if renderer.is_monitor_used(device) then
+                        ---@todo will be handled properly in #249
                         -- "halt and catch fire" style handling
                         local msg = "lost a configured monitor, system will now exit"
                         println_ts(msg)
@@ -275,9 +284,7 @@ local function main()
                 if type == "modem" then
                     if device.isWireless() then
                         -- reconnected modem
-                        no_modem = false
-                        modem = device
-                        coord_comms.reconnect_modem(modem)
+                        nic.connect(device)
 
                         log_sys("comms modem reconnected")
                         println_ts("wireless modem reconnected.")
@@ -289,6 +296,7 @@ local function main()
                         log_sys("wired modem reconnected")
                     end
                 -- elseif type == "monitor" then
+                    ---@todo will be handled properly in #249
                     -- not supported, system will exit on loss of in-use monitors
                 elseif type == "speaker" then
                     local msg = "alarm sounder speaker reconnected"
@@ -322,7 +330,7 @@ local function main()
                 renderer.close_ui()
                 sounder.stop()
 
-                if not no_modem then
+                if nic.connected() then
                     -- try to re-connect to the supervisor
                     if not init_connect_sv() then break end
                     ui_ok = init_start_ui()
@@ -350,7 +358,7 @@ local function main()
                 renderer.close_ui()
                 sounder.stop()
 
-                if not no_modem then
+                if nic.connected() then
                     -- try to re-connect to the supervisor
                     if not init_connect_sv() then break end
                     ui_ok = init_start_ui()

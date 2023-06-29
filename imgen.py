@@ -23,11 +23,11 @@ def dir_size(path):
     return total
 
 # get the version of an application at the provided path
-def get_version(path, is_comms = False):
+def get_version(path, is_lib = False):
     ver = ""
-    string = "comms.version = \""
+    string = ".version = \""
 
-    if not is_comms:
+    if not is_lib:
         string = "_VERSION = \""
 
     f = open(path, "r")
@@ -49,6 +49,8 @@ def make_manifest(size):
             "installer" : get_version("./ccmsi.lua"),
             "bootloader" : get_version("./startup.lua"),
             "comms" : get_version("./scada-common/comms.lua", True),
+            "graphics" : get_version("./graphics/core.lua", True),
+            "lockbox" : get_version("./lockbox/init.lua", True),
             "reactor-plc" : get_version("./reactor-plc/startup.lua"),
             "rtu" : get_version("./rtu/startup.lua"),
             "supervisor" : get_version("./supervisor/startup.lua"),
@@ -69,11 +71,11 @@ def make_manifest(size):
             "pocket" : list_files("./pocket"),
         },
         "depends" : {
-            "reactor-plc" : [ "system", "common", "graphics" ],
-            "rtu" : [ "system", "common", "graphics" ],
-            "supervisor" : [ "system", "common", "graphics" ],
-            "coordinator" : [ "system", "common", "graphics" ],
-            "pocket" : [ "system", "common", "graphics" ]
+            "reactor-plc" : [ "system", "common", "graphics", "lockbox" ],
+            "rtu" : [ "system", "common", "graphics", "lockbox" ],
+            "supervisor" : [ "system", "common", "graphics", "lockbox" ],
+            "coordinator" : [ "system", "common", "graphics", "lockbox" ],
+            "pocket" : [ "system", "common", "graphics", "lockbox" ]
         },
         "sizes" : {
             # manifest file estimate

@@ -8,6 +8,7 @@ local comms    = require("scada-common.comms")
 local crash    = require("scada-common.crash")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
+local network  = require("scada-common.network")
 local ppm      = require("scada-common.ppm")
 local rsio     = require("scada-common.rsio")
 local util     = require("scada-common.util")
@@ -18,7 +19,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.4.6"
+local R_PLC_VERSION = "v1.5.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -79,6 +80,11 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
     -- shared memory across threads
     ---@class plc_shared_memory
     local __shared_memory = {
@@ -88,13 +94,13 @@ local function main()
         -- PLC system state flags
         ---@class plc_state
         plc_state = {
-            init_ok = true,
-            fp_ok = false,
-            shutdown = false,
-            degraded = false,
+            init_ok        = true,
+            fp_ok          = false,
+            shutdown       = false,
+            degraded       = true,
             reactor_formed = true,
-            no_reactor = false,
-            no_modem = false
+            no_reactor     = true,
+            no_modem       = true
         },
 
         -- control setpoints
@@ -113,6 +119,7 @@ local function main()
         -- system objects
         plc_sys = {
             rps = nil,              ---@type rps
+            nic = nil,              ---@type nic
             plc_comms = nil,        ---@type plc_comms
             conn_watchdog = nil     ---@type watchdog
         },
@@ -130,14 +137,17 @@ local function main()
 
     local plc_state = __shared_memory.plc_state
 
+    -- initial state evaluation
+    plc_state.no_reactor = smem_dev.reactor == nil
+    plc_state.no_modem = smem_dev.modem == nil
+
     -- we need a reactor, can at least do some things even if it isn't formed though
-    if smem_dev.reactor == nil then
+    if plc_state.no_reactor then
         println("init> fission reactor not found");
         log.warning("init> no reactor on startup")
 
         plc_state.init_ok = false
         plc_state.degraded = true
-        plc_state.no_reactor = true
     elseif not smem_dev.reactor.isFormed() then
         println("init> fission reactor not formed");
         log.warning("init> reactor logic adapter present, but reactor is not formed")
@@ -147,7 +157,7 @@ local function main()
     end
 
     -- modem is required if networked
-    if __shared_memory.networked and smem_dev.modem == nil then
+    if __shared_memory.networked and plc_state.no_modem then
         println("init> wireless modem not found")
         log.warning("init> no wireless modem on startup")
 
@@ -158,7 +168,6 @@ local function main()
 
         plc_state.init_ok = false
         plc_state.degraded = true
-        plc_state.no_modem = true
     end
 
     -- print a log message to the terminal as long as the UI isn't running
@@ -196,8 +205,9 @@ local function main()
                 smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
                 log.debug("init> conn watchdog started")
 
-                -- start comms
-                smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_dev.modem, config.PLC_CHANNEL, config.SVR_CHANNEL,
+                -- create network interface then setup comms
+                smem_sys.nic = network.nic(smem_dev.modem)
+                smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_sys.nic, config.PLC_CHANNEL, config.SVR_CHANNEL,
                                                 config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else

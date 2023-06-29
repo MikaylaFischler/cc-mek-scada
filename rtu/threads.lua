@@ -46,7 +46,7 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
-        local rtu_dev       = smem.rtu_dev
+        local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
         local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
@@ -93,7 +93,9 @@ function threads.thread__main(smem)
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
                         -- we only care if this is our wireless modem
-                        if device == rtu_dev.modem then
+                        if nic.is_modem(device) then
+                            nic.disconnect()
+
                             println_ts("wireless modem disconnected!")
                             log.warning("comms modem disconnected!")
 
@@ -105,13 +107,15 @@ function threads.thread__main(smem)
                         for i = 1, #units do
                             -- find disconnected device
                             if units[i].device == device then
-                                -- we are going to let the PPM prevent crashes
-                                -- return fault flags/codes to MODBUS queries
+                                -- will let the PPM prevent crashes, which will indicate failures in MODBUS queries
                                 local unit = units[i]   ---@type rtu_unit_registry_entry
                                 local type_name = types.rtu_type_to_string(unit.type)
+
                                 println_ts(util.c("lost the ", type_name, " on interface ", unit.name))
                                 log.warning(util.c("lost the ", type_name, " unit peripheral on interface ", unit.name))
-                                databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OFFLINE)
+
+                                unit.hw_state = UNIT_HW_STATE.OFFLINE
+                                databus.tx_unit_hw_status(unit.uid, unit.hw_state)
                                 break
                             end
                         end
@@ -125,8 +129,7 @@ function threads.thread__main(smem)
                     if type == "modem" then
                         if device.isWireless() then
                             -- reconnected modem
-                            rtu_dev.modem = device
-                            rtu_comms.reconnect_modem(rtu_dev.modem)
+                            nic.connect(device)
 
                             println_ts("wireless modem reconnected.")
                             log.info("comms modem reconnected")
@@ -144,6 +147,8 @@ function threads.thread__main(smem)
                             -- note: cannot check isFormed as that would yield this coroutine and consume events
                             if unit.name == param1 then
                                 local resend_advert = false
+                                local faulted       = false
+                                local unknown       = false
 
                                 -- found, re-link
                                 unit.device = device
@@ -177,57 +182,58 @@ function threads.thread__main(smem)
                                 end
 
                                 if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
-                                    unit.rtu = boilerv_rtu.new(device)
+                                    unit.rtu, faulted = boilerv_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
-                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
+                                    unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
-                                    unit.rtu = turbinev_rtu.new(device)
+                                    unit.rtu, faulted = turbinev_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
-                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
+                                    unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.IMATRIX then
-                                    unit.rtu = imatrix_rtu.new(device)
+                                    unit.rtu, faulted = imatrix_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
-                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
+                                    unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.SPS then
-                                    unit.rtu = sps_rtu.new(device)
+                                    unit.rtu, faulted = sps_rtu.new(device)
                                      -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
-                                    unit.formed = util.trinary(device.__p_is_faulted(), false, nil)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
+                                    unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.SNA then
-                                    unit.rtu = sna_rtu.new(device)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OK)
+                                    unit.rtu, faulted = sna_rtu.new(device)
                                 elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
-                                    unit.rtu = envd_rtu.new(device)
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OK)
+                                    unit.rtu, faulted = envd_rtu.new(device)
                                 else
+                                    unknown = true
                                     log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
                                 end
 
                                 if unit.is_multiblock then
-                                    if (unit.formed == false) then
+                                    unit.hw_state = UNIT_HW_STATE.UNFORMED
+                                    if unit.formed == false then
                                         log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
-                                        databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
                                     end
-                                elseif device.__p_is_faulted() then
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.FAULTED)
+                                elseif faulted then
+                                    unit.hw_state = UNIT_HW_STATE.FAULTED
+                                elseif not unknown then
+                                    unit.hw_state = UNIT_HW_STATE.OK
                                 else
-                                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OK)
+                                    unit.hw_state = UNIT_HW_STATE.OFFLINE
                                 end
 
-                                unit.modbus_io = modbus.new(unit.rtu, true)
+                                databus.tx_unit_hw_status(unit.uid, unit.hw_state)
 
-                                local type_name = types.rtu_type_to_string(unit.type)
-                                local message = util.c("reconnected the ", type_name, " on interface ", unit.name)
-                                println_ts(message)
-                                log.info(message)
+                                if not unknown then
+                                    unit.modbus_io = modbus.new(unit.rtu, true)
 
-                                if resend_advert then
-                                    rtu_comms.send_advertisement(units)
-                                else
-                                    rtu_comms.send_remounted(unit.uid)
+                                    local type_name = types.rtu_type_to_string(unit.type)
+                                    local message = util.c("reconnected the ", type_name, " on interface ", unit.name)
+                                    println_ts(message)
+                                    log.info(message)
+
+                                    if resend_advert then
+                                        rtu_comms.send_advertisement(units)
+                                    else
+                                        rtu_comms.send_remounted(unit.uid)
+                                    end
                                 end
                             end
                         end
@@ -391,13 +397,6 @@ function threads.thread__unit_comms(smem, unit)
                         -- received a packet
                         local _, reply = unit.modbus_io.handle_packet(msg.message)
                         rtu_comms.send_modbus(reply)
-
-                        -- check if there was a problem and update the hardware state if so
-                        local frame = reply.get()
-                        if unit.formed and (bit.band(frame.func_code, types.MODBUS_FCODE.ERROR_FLAG) ~= 0) and
-                           (frame.data[1] == types.MODBUS_EXCODE.SERVER_DEVICE_FAIL) then
-                            databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.FAULTED)
-                        end
                     end
                 end
 
@@ -413,12 +412,10 @@ function threads.thread__unit_comms(smem, unit)
 
                 if unit.formed == nil then
                     unit.formed = is_formed
-                    if is_formed then databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OK) end
+                    if is_formed then unit.hw_state = UNIT_HW_STATE.OK end
                 end
 
-                if not unit.formed then
-                    databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
-                end
+                if not unit.formed then unit.hw_state = UNIT_HW_STATE.UNFORMED end
 
                 if (not unit.formed) and is_formed then
                     -- newly re-formed
@@ -463,11 +460,11 @@ function threads.thread__unit_comms(smem, unit)
                             if unit.formed and faulted then
                                 -- something is still wrong = can't mark as formed yet
                                 unit.formed = false
+                                unit.hw_state = UNIT_HW_STATE.UNFORMED
                                 log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
-                                databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.UNFORMED)
                             else
+                                unit.hw_state = UNIT_HW_STATE.OK
                                 rtu_comms.send_remounted(unit.uid)
-                                databus.tx_unit_hw_status(unit.uid, UNIT_HW_STATE.OK)
                             end
 
                             local type_name = types.rtu_type_to_string(unit.type)
@@ -483,6 +480,16 @@ function threads.thread__unit_comms(smem, unit)
 
                 unit.formed = is_formed
             end
+
+            -- check hardware status
+            if unit.device.__p_is_healthy() then
+                if unit.hw_state == UNIT_HW_STATE.FAULTED then unit.hw_state = UNIT_HW_STATE.OK end
+            else
+                if unit.hw_state == UNIT_HW_STATE.OK then unit.hw_state = UNIT_HW_STATE.FAULTED end
+            end
+
+            -- update hw status
+            databus.tx_unit_hw_status(unit.uid, unit.hw_state)
 
             -- check for termination request
             if rtu_state.shutdown then

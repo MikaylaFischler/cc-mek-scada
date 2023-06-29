@@ -10,6 +10,7 @@ function envd_rtu.new(envd)
     local unit = rtu.init_unit()
 
     -- disable auto fault clearing
+    envd.__p_clear_fault()
     envd.__p_disable_afc()
 
     -- discrete inputs --

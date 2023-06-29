@@ -1,5 +1,5 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy Installation Manifests and Versions
+# Deploy installation manifests and shields versions
+name: Deploy Installation Data
 
 on:
   workflow_dispatch:

@@ -10,7 +10,7 @@ local pocket = require("coordinator.session.pocket")
 local apisessions = {}
 
 local self = {
-    modem = nil,
+    nic = nil,
     next_id = 0,
     sessions = {}
 }
@@ -31,7 +31,7 @@ local function _api_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.modem.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message.raw_sendable())
+                self.nic.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -58,7 +58,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.modem.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message.raw_sendable())
+            self.nic.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message)
         end
     end
 
@@ -68,15 +68,9 @@ end
 -- PUBLIC FUNCTIONS --
 
 -- initialize apisessions
----@param modem table
-function apisessions.init(modem)
-    self.modem = modem
-end
-
--- re-link the modem
----@param modem table
-function apisessions.relink_modem(modem)
-    self.modem = modem
+---@param nic nic
+function apisessions.init(nic)
+    self.nic = nic
 end
 
 -- find a session by remote port

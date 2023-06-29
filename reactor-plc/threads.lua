@@ -59,6 +59,7 @@ function threads.thread__main(smem, init)
         while true do
             -- get plc_sys fields (may have been set late due to degraded boot)
             local rps           = smem.plc_sys.rps
+            local nic           = smem.plc_sys.nic
             local plc_comms     = smem.plc_sys.plc_comms
             local conn_watchdog = smem.plc_sys.conn_watchdog
 
@@ -66,6 +67,7 @@ function threads.thread__main(smem, init)
 
             -- handle event
             if event == "timer" and loop_clock.is_clock(param1) then
+                -- note: loop clock is only running if init_ok = true
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
@@ -75,7 +77,7 @@ function threads.thread__main(smem, init)
                     loop_clock.start()
 
                     -- send updated data
-                    if not plc_state.no_modem then
+                    if nic.connected() then
                         if plc_comms.is_linked() then
                             smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
                         else
@@ -114,7 +116,7 @@ function threads.thread__main(smem, init)
                             smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
                             -- determine if we are still in a degraded state
-                            if not networked or not plc_state.no_modem then
+                            if (not networked) or nic.connected() then
                                 plc_state.degraded = false
                             end
 
@@ -144,7 +146,7 @@ function threads.thread__main(smem, init)
 
                 -- update indicators
                 databus.tx_hw_status(plc_state)
-            elseif event == "modem_message" and networked and plc_state.init_ok and not plc_state.no_modem then
+            elseif event == "modem_message" and networked and plc_state.init_ok and nic.connected() then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
@@ -171,7 +173,9 @@ function threads.thread__main(smem, init)
                         plc_state.degraded = true
                     elseif networked and type == "modem" then
                         -- we only care if this is our wireless modem
-                        if device == plc_dev.modem then
+                        if nic.is_modem(device) then
+                            nic.disconnect()
+
                             println_ts("comms modem disconnected!")
                             log.error("comms modem disconnected")
 
@@ -199,11 +203,10 @@ function threads.thread__main(smem, init)
                     if type == "fissionReactorLogicAdapter" then
                         -- reconnected reactor
                         plc_dev.reactor = device
+                        plc_state.no_reactor = false
 
                         println_ts("reactor reconnected.")
                         log.info("reactor reconnected")
-
-                        plc_state.no_reactor = false
 
                         -- we need to assume formed here as we cannot check in this main loop
                         -- RPS will identify if it isn't and this will get set false later
@@ -230,14 +233,12 @@ function threads.thread__main(smem, init)
                         if device.isWireless() then
                             -- reconnected modem
                             plc_dev.modem = device
+                            plc_state.no_modem = false
 
-                            if plc_state.init_ok then
-                                plc_comms.reconnect_modem(plc_dev.modem)
-                            end
+                            if plc_state.init_ok then nic.connect(device) end
 
                             println_ts("wireless modem reconnected.")
                             log.info("comms modem reconnected")
-                            plc_state.no_modem = false
 
                             -- determine if we are still in a degraded state
                             if not plc_state.no_reactor then
@@ -709,9 +710,7 @@ function threads.thread__setpoint_control(smem)
                 end
 
                 -- if ramping completed or was aborted, reset last burn setpoint so that if it is requested again it will be re-attempted
-                if not setpoints.burn_rate_en then
-                    last_burn_sp = 0
-                end
+                if not setpoints.burn_rate_en then last_burn_sp = 0 end
             end
 
             -- check for termination request

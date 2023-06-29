@@ -8,6 +8,7 @@ local comms        = require("scada-common.comms")
 local crash        = require("scada-common.crash")
 local log          = require("scada-common.log")
 local mqueue       = require("scada-common.mqueue")
+local network      = require("scada-common.network")
 local ppm          = require("scada-common.ppm")
 local rsio         = require("scada-common.rsio")
 local types        = require("scada-common.types")
@@ -28,7 +29,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.3.6"
+local RTU_VERSION = "v1.4.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -81,6 +82,19 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- message authentication init
+    if type(config.AUTH_KEY) == "string" then
+        network.init_mac(config.AUTH_KEY)
+    end
+
+    -- get modem
+    local modem = ppm.get_wireless_modem()
+    if modem == nil then
+        println("boot> wireless modem not found")
+        log.fatal("no wireless modem on startup")
+        return
+    end
+
     ---@class rtu_shared_memory
     local __shared_memory = {
         -- RTU system state flags
@@ -91,16 +105,12 @@ local function main()
             shutdown = false
         },
 
-        -- core RTU devices
-        rtu_dev = {
-            modem = ppm.get_wireless_modem()
-        },
-
         -- system objects
         rtu_sys = {
+            nic = network.nic(modem),
             rtu_comms = nil,        ---@type rtu_comms
             conn_watchdog = nil,    ---@type watchdog
-            units = {}              ---@type table
+            units = {}
         },
 
         -- message queues
@@ -109,15 +119,7 @@ local function main()
         }
     }
 
-    local smem_dev = __shared_memory.rtu_dev
     local smem_sys = __shared_memory.rtu_sys
-
-    -- get modem
-    if smem_dev.modem == nil then
-        println("boot> wireless modem not found")
-        log.fatal("no wireless modem on startup")
-        return
-    end
 
     databus.tx_hw_modem(true)
 
@@ -236,18 +238,19 @@ local function main()
 
                 ---@class rtu_unit_registry_entry
                 local unit = {
-                    uid = 0,                        ---@type integer
-                    name = "redstone_io",           ---@type string
-                    type = RTU_UNIT_TYPE.REDSTONE,  ---@type RTU_UNIT_TYPE
-                    index = entry_idx,              ---@type integer
-                    reactor = io_reactor,           ---@type integer
-                    device = capabilities,          ---@type table use device field for redstone ports
-                    is_multiblock = false,          ---@type boolean
-                    formed = nil,                   ---@type boolean|nil
-                    rtu = rs_rtu,                   ---@type rtu_device|rtu_rs_device
+                    uid = 0,                            ---@type integer
+                    name = "redstone_io",               ---@type string
+                    type = RTU_UNIT_TYPE.REDSTONE,      ---@type RTU_UNIT_TYPE
+                    index = entry_idx,                  ---@type integer
+                    reactor = io_reactor,               ---@type integer
+                    device = capabilities,              ---@type table use device field for redstone ports
+                    is_multiblock = false,              ---@type boolean
+                    formed = nil,                       ---@type boolean|nil
+                    hw_state = RTU_UNIT_HW_STATE.OK,    ---@type RTU_UNIT_HW_STATE
+                    rtu = rs_rtu,                       ---@type rtu_device|rtu_rs_device
                     modbus_io = modbus.new(rs_rtu, false),
-                    pkt_queue = nil,                ---@type mqueue|nil
-                    thread = nil                    ---@type parallel_thread|nil
+                    pkt_queue = nil,                    ---@type mqueue|nil
+                    thread = nil                        ---@type parallel_thread|nil
                 }
 
                 table.insert(units, unit)
@@ -261,7 +264,7 @@ local function main()
 
                 unit.uid = #units
 
-                databus.tx_unit_hw_status(unit.uid, RTU_UNIT_HW_STATE.OK)
+                databus.tx_unit_hw_status(unit.uid, unit.hw_state)
             end
         end
 
@@ -403,6 +406,7 @@ local function main()
                 device = device,                        ---@type table
                 is_multiblock = is_multiblock,          ---@type boolean
                 formed = formed,                        ---@type boolean|nil
+                hw_state = RTU_UNIT_HW_STATE.OFFLINE,   ---@type RTU_UNIT_HW_STATE
                 rtu = rtu_iface,                        ---@type rtu_device|rtu_rs_device
                 modbus_io = modbus.new(rtu_iface, true),
                 pkt_queue = mqueue.new(),               ---@type mqueue|nil
@@ -422,19 +426,21 @@ local function main()
 
             rtu_unit.uid = #units
 
-            -- report hardware status
+            -- determine hardware status
             if rtu_unit.type == RTU_UNIT_TYPE.VIRTUAL then
-                databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.OFFLINE)
+                rtu_unit.hw_state = RTU_UNIT_HW_STATE.OFFLINE
             else
                 if rtu_unit.is_multiblock then
-                    databus.tx_unit_hw_status(rtu_unit.uid, util.trinary(rtu_unit.formed == true, RTU_UNIT_HW_STATE.OK, RTU_UNIT_HW_STATE.UNFORMED))
+                    rtu_unit.hw_state = util.trinary(rtu_unit.formed == true, RTU_UNIT_HW_STATE.OK, RTU_UNIT_HW_STATE.UNFORMED)
                 elseif faulted then
-                    databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.FAULTED)
+                    rtu_unit.hw_state = RTU_UNIT_HW_STATE.FAULTED
                 else
-                    databus.tx_unit_hw_status(rtu_unit.uid, RTU_UNIT_HW_STATE.OK)
+                    rtu_unit.hw_state = RTU_UNIT_HW_STATE.OK
                 end
             end
 
+            -- report hardware status
+            databus.tx_unit_hw_status(rtu_unit.uid, rtu_unit.hw_state)
         end
 
         -- we made it through all that trusting-user-to-write-a-config-file chaos
@@ -467,7 +473,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_dev.modem, config.RTU_CHANNEL, config.SVR_CHANNEL,
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_sys.nic, config.RTU_CHANNEL, config.SVR_CHANNEL,
                                         config.TRUSTED_RANGE, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 
