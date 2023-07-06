@@ -739,12 +739,14 @@ function iocontrol.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 5 then
+                    if #unit_state == 6 then
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])
-                        unit.unit_ps.publish("U_WasteMode", unit_state[3])
-                        unit.unit_ps.publish("U_AutoReady", unit_state[4])
-                        unit.unit_ps.publish("U_AutoDegraded", unit_state[5])
+                        unit.unit_ps.publish("U_AutoReady", unit_state[3])
+                        unit.unit_ps.publish("U_AutoDegraded", unit_state[4])
+                        unit.unit_ps.publish("U_AutoWaste", unit_state[5] == types.WASTE_MODE.AUTO)
+                        unit.unit_ps.publish("U_WasteMode", unit_state[5])
+                        unit.unit_ps.publish("U_WasteProduct", unit_state[6])
                     else
                         log.debug(log_header .. "unit state length mismatch")
                         valid = false

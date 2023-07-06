@@ -44,8 +44,9 @@ local function checkbox(args)
             e.window.write("\x95")
         else
             -- show as unselected
+            e.window.setTextColor(e.fg_bg.bkg)
             e.window.setBackgroundColor(args.box_fg_bg.bkg)
-            e.window.write("\x80")
+            e.window.write("\x88")
             e.window.setTextColor(args.box_fg_bg.bkg)
             e.window.setBackgroundColor(e.fg_bg.bkg)
             e.window.write("\x95")

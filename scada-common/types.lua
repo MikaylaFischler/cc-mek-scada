@@ -158,13 +158,26 @@ types.PROCESS_NAMES = {
 ---@enum WASTE_MODE
 types.WASTE_MODE = {
     AUTO = 1,
-    PLUTONIUM = 2,
-    POLONIUM = 3,
-    ANTI_MATTER = 4
+    MANUAL_PLUTONIUM = 2,
+    MANUAL_POLONIUM = 3,
+    MANUAL_ANTI_MATTER = 4
 }
 
 types.WASTE_MODE_NAMES = {
     "AUTO",
+    "MANUAL_PLUTONIUM",
+    "MANUAL_POLONIUM",
+    "MANUAL_ANTI_MATTER"
+}
+
+---@enum WASTE_PRODUCT
+types.WASTE_PRODUCT = {
+    PLUTONIUM = 1,
+    POLONIUM = 2,
+    ANTI_MATTER = 3
+}
+
+types.WASTE_PRODUCT_NAMES = {
     "PLUTONIUM",
     "POLONIUM",
     "ANTI_MATTER"

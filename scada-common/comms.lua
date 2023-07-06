@@ -14,7 +14,7 @@ local max_distance = nil                ---@type number|nil maximum acceptable t
 ---@class comms
 local comms = {}
 
-comms.version = "2.1.0"
+comms.version = "2.1.1"
 
 ---@enum PROTOCOL
 local PROTOCOL = {

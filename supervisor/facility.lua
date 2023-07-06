@@ -205,7 +205,7 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.redstone, rs_unit)
     end
 
-    -- link an imatrix RTU session
+    -- link an induction matrix RTU session
     ---@param imatrix unit_session
     function public.add_imatrix(imatrix)
         table.insert(self.induction, imatrix)

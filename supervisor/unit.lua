@@ -12,6 +12,7 @@ local rsctl = require("supervisor.session.rsctl")
 local unit = {}
 
 local WASTE_MODE   = types.WASTE_MODE
+local WASTE        = types.WASTE_PRODUCT
 local ALARM        = types.ALARM
 local PRIO         = types.ALARM_PRIORITY
 local ALARM_STATE  = types.ALARM_STATE
@@ -71,6 +72,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         redstone = {},
         boilers = {},
         turbines = {},
+        sna = {},
         envd = {},
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
@@ -89,7 +91,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         damage_start = 0,
         damage_last = 0,
         damage_est_last = 0,
-        waste_mode = WASTE_MODE.AUTO,
+        waste_mode = WASTE_MODE.AUTO,       ---@type WASTE_MODE
+        waste_product = WASTE.PLUTONIUM,    ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
         had_reactor = false,
@@ -341,6 +344,32 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         emer_cool = emer_cool
     }
 
+    -- route reactor waste for a given waste product
+    ---@param product WASTE_PRODUCT waste product to route valves for
+    local function _set_waste_valves(product)
+        self.waste_product = product
+
+        if product == WASTE.PLUTONIUM then
+            -- route through plutonium generation
+            waste_pu.open()
+            waste_sna.close()
+            waste_po.close()
+            waste_sps.close()
+        elseif product == WASTE.POLONIUM then
+            -- route through polonium generation into pellets
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.open()
+            waste_sps.close()
+        elseif product == WASTE.ANTI_MATTER then
+            -- route through polonium generation into SPS
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.close()
+            waste_sps.open()
+        end
+    end
+
     --#endregion
 
     -- unlink disconnected units
@@ -378,7 +407,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         table.insert(self.redstone, rs_unit)
 
         -- send or re-send waste settings
-        public.set_waste(self.waste_mode)
+        _set_waste_valves(self.waste_product)
     end
 
     -- link a turbine RTU session
@@ -415,6 +444,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
+    -- link a solar neutron activator RTU session
+    ---@param sna unit_session
+    function public.add_sna(sna)
+        table.insert(self.sna, sna)
+    end
+
     -- link an environment detector RTU session
     ---@param envd unit_session
     function public.add_envd(envd)
@@ -427,6 +462,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         util.filter_table(self.redstone, function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.boilers,  function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.turbines, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.sna,      function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.envd,     function (s) return s.get_session_id() ~= session end)
     end
 
@@ -577,6 +613,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
+    -- set automatic waste product if mode is set to auto
+    ---@param product WASTE_PRODUCT waste product to generate
+    function public.auto_set_waste(product)
+        if self.waste_mode == WASTE_MODE.AUTO then
+            self.waste_product = product
+            _set_waste_valves(product)
+        end
+    end
+
     --#endregion
 
     -- OPERATIONS --
@@ -621,34 +666,18 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
-    -- route reactor waste
-    ---@param mode WASTE_MODE waste handling mode
-    function public.set_waste(mode)
-        if mode == WASTE_MODE.AUTO then
-            ---@todo automatic waste routing
-            self.waste_mode = mode
-        elseif mode == WASTE_MODE.PLUTONIUM then
-            -- route through plutonium generation
-            self.waste_mode = mode
-            waste_pu.open()
-            waste_sna.close()
-            waste_po.close()
-            waste_sps.close()
-        elseif mode == WASTE_MODE.POLONIUM then
-            -- route through polonium generation into pellets
-            self.waste_mode = mode
-            waste_pu.close()
-            waste_sna.open()
-            waste_po.open()
-            waste_sps.close()
-        elseif mode == WASTE_MODE.ANTI_MATTER then
-            -- route through polonium generation into SPS
-            self.waste_mode = mode
-            waste_pu.close()
-            waste_sna.open()
-            waste_po.close()
-            waste_sps.open()
-        else
+    -- set waste processing mode
+    ---@param mode WASTE_MODE processing mode
+    function public.set_waste_mode(mode)
+        self.waste_mode = mode
+
+        if mode == WASTE_MODE.MANUAL_PLUTONIUM then
+            _set_waste_valves(WASTE.PLUTONIUM)
+        elseif mode == WASTE_MODE.MANUAL_POLONIUM then
+            _set_waste_valves(WASTE.POLONIUM)
+        elseif mode == WASTE_MODE.MANUAL_ANTI_MATTER then
+            _set_waste_valves(WASTE.ANTI_MATTER)
+        elseif mode > WASTE_MODE.MANUAL_ANTI_MATTER then
             log.debug(util.c("invalid waste mode setting ", mode))
         end
     end
@@ -787,7 +816,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- get unit state
     ---@nodiscard
     function public.get_state()
-        return { self.status_text[1], self.status_text[2], self.waste_mode, self.db.control.ready, self.db.control.degraded }
+        return {
+            self.status_text[1],
+            self.status_text[2],
+            self.db.control.ready,
+            self.db.control.degraded,
+            self.waste_mode,
+            self.waste_product
+        }
     end
 
     -- get the reactor ID

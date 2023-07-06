@@ -294,9 +294,9 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
-                                unit.set_waste(pkt.data[3])
+                                unit.set_waste_mode(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command set waste missing option")
+                                log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
                             end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             unit.ack_all()

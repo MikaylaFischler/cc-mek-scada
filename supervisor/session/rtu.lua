@@ -138,6 +138,10 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                         -- turbine
                         unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.SNA then
+                        -- solar neutron activator
+                        unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_sna(unit) end
                     elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
@@ -161,9 +165,6 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                     elseif u_type == RTU_UNIT_TYPE.SPS then
                         -- super-critical phase shifter
                         unit = svrs_sps.new(id, i, unit_advert, self.modbus_q)
-                    elseif u_type == RTU_UNIT_TYPE.SNA then
-                        -- solar neutron activator
-                        unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
                     elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
