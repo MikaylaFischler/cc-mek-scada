@@ -827,22 +827,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return total_avail_rate
     end
 
-    -- check plutonium and polonium estimated production rates
-    ---@nodiscard
-    ---@return number pu_rate, number po_rate
-    function public.get_waste_rates()
-        local pu, po = 0.0, 0.0
-        local br = public.get_burn_rate()
-
-        if self.waste_product == WASTE.PLUTONIUM then
-            pu = br / 10.0
-        else
-            po = math.min(br / 10.0, public.get_sna_rate())
-        end
-
-        return pu, po
-    end
-
     -- get the annunciator status
     ---@nodiscard
     function public.get_annunciator() return self.db.annunciator end
