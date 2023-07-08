@@ -258,6 +258,18 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                     elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                         facility.ack_all()
                         _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                        if pkt.length == 2 then
+                            _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, facility.set_waste_product(pkt.data[2]) })
+                        else
+                            log.debug(log_header .. "CRDN set waste mode packet length mismatch")
+                        end
+                    elseif cmd == FAC_COMMAND.SET_PU_FB then
+                        if pkt.length == 2 then
+                            _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, facility.set_pu_fallback(pkt.data[2]) })
+                        else
+                            log.debug(log_header .. "CRDN set pu fallback packet length mismatch")
+                        end
                     else
                         log.debug(log_header .. "CRDN facility command unknown")
                     end
@@ -294,9 +306,9 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
-                                unit.set_waste(pkt.data[3])
+                                unit.set_waste_mode(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command set waste missing option")
+                                log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
                             end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             unit.ack_all()
@@ -417,7 +429,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                                 self.retry_times.f_builds_packet = util.time() + PARTIAL_RETRY_PERIOD
                                 self.acks.fac_builds = false
 
-                                _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPE.IMATRIX) })
+                                _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type) })
                             end
                         else
                             log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)

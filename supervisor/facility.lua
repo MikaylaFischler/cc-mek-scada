@@ -11,6 +11,9 @@ local rsctl = require("supervisor.session.rsctl")
 local PROCESS = types.PROCESS
 local PROCESS_NAMES = types.PROCESS_NAMES
 local PRIO = types.ALARM_PRIORITY
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+local WASTE = types.WASTE_PRODUCT
+local WASTE_MODE = types.WASTE_MODE
 
 local IO = rsio.IO
 
@@ -61,6 +64,7 @@ function facility.new(num_reactors, cooling_conf)
         rtu_conn_count = 0,
         redstone = {},
         induction = {},
+        sps = {},
         envd = {},
         -- redstone I/O control
         io_ctl = nil,   ---@type rs_controller
@@ -99,6 +103,10 @@ function facility.new(num_reactors, cooling_conf)
         last_update = 0,
         last_error = 0.0,
         last_time = 0.0,
+        -- waste processing
+        waste_product = WASTE.PLUTONIUM,
+        current_waste_product = WASTE.PLUTONIUM,
+        pu_fallback = false,
         -- statistics
         im_stat_init = false,
         avg_charge = util.mov_avg(3, 0.0),
@@ -205,10 +213,16 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.redstone, rs_unit)
     end
 
-    -- link an imatrix RTU session
+    -- link an induction matrix RTU session
     ---@param imatrix unit_session
     function public.add_imatrix(imatrix)
         table.insert(self.induction, imatrix)
+    end
+
+    -- link an SPS RTU session
+    ---@param sps unit_session
+    function public.add_sps(sps)
+        table.insert(self.sps, sps)
     end
 
     -- link an environment detector RTU session
@@ -222,6 +236,7 @@ function facility.new(num_reactors, cooling_conf)
     function public.purge_rtu_devices(session)
         util.filter_table(self.redstone,  function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.induction, function (s) return s.get_session_id() ~= session end)
+        util.filter_table(self.sps,       function (s) return s.get_session_id() ~= session end)
         util.filter_table(self.envd,      function (s) return s.get_session_id() ~= session end)
     end
 
@@ -238,6 +253,7 @@ function facility.new(num_reactors, cooling_conf)
         -- unlink RTU unit sessions if they are closed
         _unlink_disconnected_units(self.redstone)
         _unlink_disconnected_units(self.induction)
+        _unlink_disconnected_units(self.sps)
         _unlink_disconnected_units(self.envd)
 
         -- current state for process control
@@ -276,6 +292,8 @@ function facility.new(num_reactors, cooling_conf)
         -------------------------
         -- Run Process Control --
         -------------------------
+
+        --#region Process Control
 
         local avg_charge = self.avg_charge.compute()
         local avg_inflow = self.avg_inflow.compute()
@@ -542,9 +560,13 @@ function facility.new(num_reactors, cooling_conf)
             next_mode = PROCESS.INACTIVE
         end
 
+        --#endregion
+
         ------------------------------
         -- Evaluate Automatic SCRAM --
         ------------------------------
+
+        --#region Automatic SCRAM
 
         local astatus = self.ascram_status
 
@@ -659,6 +681,8 @@ function facility.new(num_reactors, cooling_conf)
             end
         end
 
+        --#endregion
+
         -- update last mode and set next mode
         self.last_mode = self.mode
         self.mode = next_mode
@@ -692,12 +716,33 @@ function facility.new(num_reactors, cooling_conf)
 
             self.io_ctl.digital_write(IO.F_ALARM, has_alarm)
         end
+
+        -----------------------------
+        -- Update Waste Processing --
+        -----------------------------
+
+        local insufficent_po_rate = false
+        for i = 1, #self.units do
+            local u = self.units[i] ---@type reactor_unit
+            if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
+                if (u.get_sna_rate() * 10.0) < u.get_burn_rate() then
+                    insufficent_po_rate = true
+                    break
+                end
+            end
+        end
+
+        if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
+            self.current_waste_product = WASTE.PLUTONIUM
+        else self.current_waste_product = self.waste_product end
     end
 
-    -- call the update function of all units in the facility
+    -- call the update function of all units in the facility<br>
+    -- additionally sets the requested auto waste mode if applicable
     function public.update_units()
         for i = 1, #self.units do
             local u = self.units[i] ---@type reactor_unit
+            u.auto_set_waste(self.current_waste_product)
             u.update()
         end
     end
@@ -721,15 +766,15 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- stop auto control
-    function public.auto_stop()
-        self.mode = PROCESS.INACTIVE
-    end
+    function public.auto_stop() self.mode = PROCESS.INACTIVE end
 
     -- set automatic control configuration and start the process
     ---@param config coord_auto_config configuration
     ---@return table response ready state (successfully started) and current configuration (after updating)
     function public.auto_start(config)
-        local ready = false
+        local charge_scaler = 1000000   -- convert MFE to FE
+        local gen_scaler    = 1000      -- convert kFE to FE
+        local ready         = false
 
         -- load up current limits
         local limits = {}
@@ -749,11 +794,11 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             if (type(config.charge_target) == "number") and config.charge_target >= 0 then
-                self.charge_setpoint = config.charge_target * 1000000  -- convert MFE to FE
+                self.charge_setpoint = config.charge_target * charge_scaler
             end
 
             if (type(config.gen_target) == "number") and config.gen_target >= 0 then
-                self.gen_rate_setpoint = config.gen_target * 1000   -- convert kFE to FE
+                self.gen_rate_setpoint = config.gen_target * gen_scaler
             end
 
             if (type(config.limits) == "table") and (#config.limits == num_reactors) then
@@ -782,7 +827,14 @@ function facility.new(num_reactors, cooling_conf)
             if ready then self.mode = self.mode_set end
         end
 
-        return { ready, self.mode_set, self.burn_target, self.charge_setpoint, self.gen_rate_setpoint, limits }
+        return {
+            ready,
+            self.mode_set,
+            self.burn_target,
+            self.charge_setpoint / charge_scaler,
+            self.gen_rate_setpoint / gen_scaler,
+            limits
+        }
     end
 
     -- SETTINGS --
@@ -807,19 +859,47 @@ function facility.new(num_reactors, cooling_conf)
         end
     end
 
+    -- set waste production
+    ---@param product WASTE_PRODUCT target product
+    ---@return WASTE_PRODUCT product newly set value, if valid
+    function public.set_waste_product(product)
+        if product == WASTE.PLUTONIUM or product == WASTE.POLONIUM or product == WASTE.ANTI_MATTER then
+            self.waste_product = product
+        end
+
+        return self.waste_product
+    end
+
+    -- enable/disable plutonium fallback
+    ---@param enabled boolean requested state
+    ---@return boolean enabled newly set value
+    function public.set_pu_fallback(enabled)
+        self.pu_fallback = enabled == true
+        return self.pu_fallback
+    end
+
     -- READ STATES/PROPERTIES --
 
-    -- get build properties of all machines
+    -- get build properties of all facility devices
     ---@nodiscard
-    ---@param inc_imatrix boolean? true/nil to include induction matrix build, false to exclude
-    function public.get_build(inc_imatrix)
+    ---@param type RTU_UNIT_TYPE? type or nil to include only a particular unit type, or to include all if nil
+    function public.get_build(type)
+        local all = type == nil
         local build = {}
 
-        if inc_imatrix ~= false then
+        if all or type == RTU_UNIT_TYPE.IMATRIX then
             build.induction = {}
             for i = 1, #self.induction do
                 local matrix = self.induction[i]    ---@type unit_session
                 build.induction[matrix.get_device_idx()] = { matrix.get_db().formed, matrix.get_db().build }
+            end
+        end
+
+        if all or type == RTU_UNIT_TYPE.SPS then
+            build.sps = {}
+            for i = 1, #self.sps do
+                local sps = self.sps[i]             ---@type unit_session
+                build.sps[sps.get_device_idx()] = { sps.get_db().formed, sps.get_db().build }
             end
         end
 
@@ -844,7 +924,9 @@ function facility.new(num_reactors, cooling_conf)
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
             self.status_text[1],
             self.status_text[2],
-            self.group_map
+            self.group_map,
+            self.current_waste_product,
+            (self.current_waste_product == WASTE.PLUTONIUM) and (self.waste_product ~= WASTE.PLUTONIUM)
         }
     end
 
@@ -872,6 +954,18 @@ function facility.new(num_reactors, cooling_conf)
                 matrix.get_db().formed,
                 matrix.get_db().state,
                 matrix.get_db().tanks
+            }
+        end
+
+        -- status of sps
+        status.sps = {}
+        for i = 1, #self.sps do
+            local sps = self.sps[i]         ---@type unit_session
+            status.sps[sps.get_device_idx()] = {
+                sps.is_faulted(),
+                sps.get_db().formed,
+                sps.get_db().state,
+                sps.get_db().tanks
             }
         end
 
