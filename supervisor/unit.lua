@@ -485,6 +485,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         _unlink_disconnected_units(self.redstone)
         _unlink_disconnected_units(self.boilers)
         _unlink_disconnected_units(self.turbines)
+        _unlink_disconnected_units(self.sna)
         _unlink_disconnected_units(self.envd)
 
         -- update degraded state for auto control

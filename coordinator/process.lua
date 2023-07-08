@@ -215,7 +215,7 @@ end
 local function _write_auto_config()
     -- attempt to load settings
     if not settings.load("/coord.settings") then
-        log.warning("process._write_config(): failed to load coordinator settings file")
+        log.warning("process._write_auto_config(): failed to load coordinator settings file")
     end
 
     -- save config
@@ -223,7 +223,7 @@ local function _write_auto_config()
     local saved = settings.save("/coord.settings")
 
     if not saved then
-        log.warning("process._write_config(): failed to save coordinator settings file")
+        log.warning("process._write_auto_config(): failed to save coordinator settings file")
     end
 
     return not not saved
