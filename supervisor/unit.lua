@@ -74,6 +74,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         turbines = {},
         sna = {},
         envd = {},
+        sna_prod_rate = 0,
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -91,7 +92,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         damage_start = 0,
         damage_last = 0,
         damage_est_last = 0,
-        waste_mode = WASTE_MODE.AUTO,       ---@type WASTE_MODE
         waste_product = WASTE.PLUTONIUM,    ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
@@ -224,7 +224,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
                 degraded = false,
                 blade_count = 0,
                 br100 = 0,
-                lim_br100 = 0
+                lim_br100 = 0,
+                waste_mode = WASTE_MODE.AUTO    ---@type WASTE_MODE
             }
         }
     }
@@ -616,7 +617,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- set automatic waste product if mode is set to auto
     ---@param product WASTE_PRODUCT waste product to generate
     function public.auto_set_waste(product)
-        if self.waste_mode == WASTE_MODE.AUTO then
+        if self.db.control.waste_mode == WASTE_MODE.AUTO then
             self.waste_product = product
             _set_waste_valves(product)
         end
@@ -669,7 +670,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- set waste processing mode
     ---@param mode WASTE_MODE processing mode
     function public.set_waste_mode(mode)
-        self.waste_mode = mode
+        self.db.control.waste_mode = mode
 
         if mode == WASTE_MODE.MANUAL_PLUTONIUM then
             _set_waste_valves(WASTE.PLUTONIUM)
@@ -759,6 +760,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return status
     end
 
+    -- get the current burn rate (actual rate)
+    ---@nodiscard
+    function public.get_burn_rate()
+        local rate = 0
+        if self.plc_i ~= nil then rate = self.plc_i.get_status().act_burn_rate end
+        return rate or 0
+    end
+
     -- get RTU statuses
     ---@nodiscard
     function public.get_rtu_statuses()
@@ -779,7 +788,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         -- status of turbines (including tanks)
         status.turbines = {}
         for i = 1, #self.turbines do
-            local turbine = self.turbines[i]  ---@type unit_session
+            local turbine = self.turbines[i]    ---@type unit_session
             status.turbines[turbine.get_device_idx()] = {
                 turbine.is_faulted(),
                 turbine.get_db().formed,
@@ -788,10 +797,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             }
         end
 
+        -- basic SNA statistical information, don't send everything, it's not necessary
+        status.sna = { #self.sna, public.get_sna_rate() }
+
         -- radiation monitors (environment detectors)
         status.rad_mon = {}
         for i = 1, #self.envd do
-            local envd = self.envd[i]       ---@type unit_session
+            local envd = self.envd[i]           ---@type unit_session
             status.rad_mon[envd.get_device_idx()] = {
                 envd.is_faulted(),
                 envd.get_db().radiation
@@ -799,6 +811,36 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
 
         return status
+    end
+
+    -- get the current total [max] production rate is
+    ---@nodiscard
+    ---@return number total_avail_rate
+    function public.get_sna_rate()
+        local total_avail_rate = 0
+
+        for i = 1, #self.sna do
+            local db = self.sna[i].get_db()     ---@type sna_session_db
+            total_avail_rate = total_avail_rate + db.state.production_rate
+        end
+
+        return total_avail_rate
+    end
+
+    -- check plutonium and polonium estimated production rates
+    ---@nodiscard
+    ---@return number pu_rate, number po_rate
+    function public.get_waste_rates()
+        local pu, po = 0.0, 0.0
+        local br = public.get_burn_rate()
+
+        if self.waste_product == WASTE.PLUTONIUM then
+            pu = br / 10.0
+        else
+            po = math.min(br / 10.0, public.get_sna_rate())
+        end
+
+        return pu, po
     end
 
     -- get the annunciator status
@@ -821,7 +863,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             self.status_text[2],
             self.db.control.ready,
             self.db.control.degraded,
-            self.waste_mode,
+            self.db.control.waste_mode,
             self.waste_product
         }
     end

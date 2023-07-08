@@ -56,11 +56,12 @@ local function new_view(root, x, y)
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
-    local sps     = IndicatorLight{parent=main,label="SPS Online",colors=cpair(colors.green,colors.gray)}
+    local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=cpair(colors.green,colors.gray)}
 
     all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
-    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
     rad_mon.register(facility.ps, "rad_computed_status", rad_mon.update)
+    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
+    sps.register(facility.sps_ps_tbl[1], "computed_status", function (status) sps.update(status > 1) end)
 
     main.line_break()
 
@@ -321,11 +322,17 @@ local function new_view(root, x, y)
     local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
     local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}
 
-    RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=status.update,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.brown}
+    status.register(facility.ps, "current_waste_product", status.update)
 
-    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=function()end,box_fg_bg=cpair(colors.green,colors.black)}
+    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.brown}
+    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,colors.black)}
+
+    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
+    pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
 
     local fb_active  = IndicatorLight{parent=rect,x=2,y=9,label="Fallback Active",colors=cpair(colors.white,colors.gray)}
+
+    fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
 
     TextBox{parent=rect,x=2,y=11,text="Plutonium Rate",height=1,width=17,fg_bg=style.label}
     local pu_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
@@ -334,13 +341,15 @@ local function new_view(root, x, y)
     local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
 
     TextBox{parent=rect,x=2,y=17,text="Antimatter Rate",height=1,width=17,fg_bg=style.label}
-    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+
+    pu_rate.register(facility.ps, "pu_rate", pu_rate.update)
+    po_rate.register(facility.ps, "po_rate", po_rate.update)
+    am_rate.register(facility.ps, "am_rate", am_rate.update)
 
     local sna_count = DataIndicator{parent=rect,x=2,y=20,label="Linked SNAs:",format="%4d",value=0,lu_colors=lu_cpair,width=17}
 
-    -- local text_fg_bg = cpair(colors.black, colors.lightGray)
-    -- local label_fg_bg = cpair(colors.gray, colors.lightGray)
-    -- local lu_col = cpair(colors.gray, colors.gray)
+    sna_count.register(facility.ps, "sna_count", sna_count.update)
 end
 
 return new_view

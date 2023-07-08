@@ -52,6 +52,10 @@ function iocontrol.init(conf, comms)
             gen_fault = false
         },
 
+        ---@type WASTE_PRODUCT
+        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+        auto_pu_fallback_active = false,
+
         radiation = types.new_zero_radiation_reading(),
 
         save_cfg_ack = __generic_ack,
@@ -65,16 +69,18 @@ function iocontrol.init(conf, comms)
         induction_ps_tbl = {},
         induction_data_tbl = {},
 
+        sps_ps_tbl = {},
+        sps_data_tbl = {},
+
         env_d_ps = psil.create(),
         env_d_data = {}
     }
 
-    -- create induction tables (currently only 1 is supported)
-    for _ = 1, conf.num_units do
-        local data = {} ---@type imatrix_session_db
-        table.insert(io.facility.induction_ps_tbl, psil.create())
-        table.insert(io.facility.induction_data_tbl, data)
-    end
+    -- create induction and SPS tables (currently only 1 of each is supported)
+    table.insert(io.facility.induction_ps_tbl, psil.create())
+    table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.sps_ps_tbl, psil.create())
+    table.insert(io.facility.sps_data_tbl, {})
 
     io.units = {}
     for i = 1, conf.num_units do
@@ -87,11 +93,15 @@ function iocontrol.init(conf, comms)
 
             num_boilers = 0,
             num_turbines = 0,
+            num_snas = 0,
 
             control_state = false,
             burn_rate_cmd = 0.0,
-            waste_control = 0,
             radiation = types.new_zero_radiation_reading(),
+            sna_prod_rate = 0.0,
+
+            waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
+            waste_product = types.WASTE_PRODUCT.PLUTONIUM,
 
             -- auto control group
             a_group = 0,
@@ -100,10 +110,10 @@ function iocontrol.init(conf, comms)
             scram = function () process.scram(i) end,
             reset_rps = function () process.reset_rps(i) end,
             ack_alarms = function () process.ack_all_alarms(i) end,
-            set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
-            set_waste = function (mode) process.set_waste(i, mode) end, ---@param mode integer waste processing mode
+            set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
+            set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
 
-            set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
+            set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
 
             start_ack = __generic_ack,
             scram_ack = __generic_ack,
@@ -202,6 +212,25 @@ function iocontrol.record_facility_builds(build)
                     end
                 else
                     log.debug(util.c("iocontrol.record_facility_builds: invalid induction matrix id ", id))
+                    valid = false
+                end
+            end
+        end
+
+        -- SPS
+        if type(build.sps) == "table" then
+            for id, sps in pairs(build.sps) do
+                if type(fac.sps_data_tbl[id]) == "table" then
+                    fac.sps_data_tbl[id].formed = sps[1]    ---@type boolean
+                    fac.sps_data_tbl[id].build  = sps[2]    ---@type table
+
+                    fac.sps_ps_tbl[id].publish("formed", sps[1])
+
+                    for key, val in pairs(fac.sps_data_tbl[id].build) do
+                        fac.sps_ps_tbl[id].publish(key, val)
+                    end
+                else
+                    log.debug(util.c("iocontrol.record_facility_builds: invalid SPS id ", id))
                     valid = false
                 end
             end
@@ -306,7 +335,7 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 14 then
+        if type(ctl_status) == "table" and #ctl_status == 16 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -354,6 +383,12 @@ function iocontrol.update_facility_status(status)
                     io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
                 end
             end
+
+            fac.auto_current_waste_product = ctl_status[15]
+            fac.auto_pu_fallback_active = ctl_status[16]
+
+            fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
+            fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false
@@ -430,6 +465,52 @@ function iocontrol.update_facility_status(status)
                 valid = false
             end
 
+            -- SPS statuses
+            if type(rtu_statuses.sps) == "table" then
+                for id = 1, #fac.sps_ps_tbl do
+                    if rtu_statuses.sps[id] == nil then
+                        -- disconnected
+                        fac.sps_ps_tbl[id].publish("computed_status", 1)
+                    end
+                end
+
+                for id, sps in pairs(rtu_statuses.sps) do
+                    if type(fac.sps_data_tbl[id]) == "table" then
+                        local rtu_faulted           = sps[1]    ---@type boolean
+                        fac.sps_data_tbl[id].formed = sps[2]    ---@type boolean
+                        fac.sps_data_tbl[id].state  = sps[3]    ---@type table
+                        fac.sps_data_tbl[id].tanks  = sps[4]    ---@type table
+
+                        local data = fac.sps_data_tbl[id]       ---@type sps_session_db
+
+                        fac.sps_ps_tbl[id].publish("formed", data.formed)
+                        fac.sps_ps_tbl[id].publish("faulted", rtu_faulted)
+
+                        if data.formed then
+                            if rtu_faulted then
+                                fac.sps_ps_tbl[id].publish("computed_status", 3)    -- faulted
+                            elseif data.state.process_rate > 0 then
+                                fac.sps_ps_tbl[id].publish("computed_status", 5)    -- active
+                            else
+                                fac.sps_ps_tbl[id].publish("computed_status", 4)    -- idle
+                            end
+                        else
+                            fac.sps_ps_tbl[id].publish("computed_status", 2)        -- not formed
+                        end
+
+                        for key, val in pairs(data.state) do fac.sps_ps_tbl[id].publish(key, val) end
+                        for key, val in pairs(data.tanks) do fac.sps_ps_tbl[id].publish(key, val) end
+
+                        io.facility.ps.publish("am_rate", data.state.process_rate * 1000)
+                    else
+                        log.debug(util.c(log_header, "invalid sps id ", id))
+                    end
+                end
+            else
+                log.debug(log_header .. "sps list not a table")
+                valid = false
+            end
+
             -- environment detector status
             if type(rtu_statuses.rad_mon) == "table" then
                 if #rtu_statuses.rad_mon > 0 then
@@ -472,6 +553,9 @@ function iocontrol.update_unit_statuses(statuses)
         valid = false
     else
         local burn_rate_sum = 0.0
+        local sna_count_sum = 0
+        local pu_rate = 0.0
+        local po_rate = 0.0
 
         -- get all unit statuses
         for i = 1, #statuses do
@@ -479,6 +563,8 @@ function iocontrol.update_unit_statuses(statuses)
 
             local unit = io.units[i]    ---@type ioctl_unit
             local status = statuses[i]
+
+            local burn_rate = 0.0
 
             if type(status) ~= "table" or #status ~= 5 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
@@ -515,7 +601,8 @@ function iocontrol.update_unit_statuses(statuses)
 
                     -- if status hasn't been received, mek_status = {}
                     if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
-                        burn_rate_sum = burn_rate_sum + unit.reactor_data.mek_status.act_burn_rate
+                        burn_rate = unit.reactor_data.mek_status.act_burn_rate
+                        burn_rate_sum = burn_rate_sum + burn_rate
                     end
 
                     if unit.reactor_data.mek_status.status then
@@ -662,6 +749,19 @@ function iocontrol.update_unit_statuses(statuses)
                         valid = false
                     end
 
+                    -- solar neutron activator status info
+                    if type(rtu_statuses.sna) == "table" then
+                        unit.num_snas      = rtu_statuses.sna[1]    ---@type integer
+                        unit.sna_prod_rate = rtu_statuses.sna[2]    ---@type number
+
+                        unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
+
+                        sna_count_sum = sna_count_sum + unit.num_snas
+                    else
+                        log.debug(log_header .. "sna statistic list not a table")
+                        valid = false
+                    end
+
                     -- environment detector status
                     if type(rtu_statuses.rad_mon) == "table" then
                         if #rtu_statuses.rad_mon > 0 then
@@ -740,13 +840,16 @@ function iocontrol.update_unit_statuses(statuses)
 
                 if type(unit_state) == "table" then
                     if #unit_state == 6 then
+                        unit.waste_mode = unit_state[5]
+                        unit.waste_product = unit_state[6]
+
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])
                         unit.unit_ps.publish("U_AutoReady", unit_state[3])
                         unit.unit_ps.publish("U_AutoDegraded", unit_state[4])
-                        unit.unit_ps.publish("U_AutoWaste", unit_state[5] == types.WASTE_MODE.AUTO)
-                        unit.unit_ps.publish("U_WasteMode", unit_state[5])
-                        unit.unit_ps.publish("U_WasteProduct", unit_state[6])
+                        unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+                        unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
+                        unit.unit_ps.publish("U_WasteProduct", unit.waste_product)
                     else
                         log.debug(log_header .. "unit state length mismatch")
                         valid = false
@@ -755,10 +858,18 @@ function iocontrol.update_unit_statuses(statuses)
                     log.debug(log_header .. "unit state not a table")
                     valid = false
                 end
+
+                -- determine waste production for this unit, add to statistics
+                local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
+                pu_rate = pu_rate + util.trinary(is_pu, burn_rate / 10.0, 0.0)
+                po_rate = po_rate + util.trinary(not is_pu, math.min(burn_rate / 10.0, unit.sna_prod_rate), 0.0)
             end
         end
 
         io.facility.ps.publish("burn_sum", burn_rate_sum)
+        io.facility.ps.publish("sna_count", sna_count_sum)
+        io.facility.ps.publish("pu_rate", pu_rate)
+        io.facility.ps.publish("po_rate", po_rate)
 
         -- update alarm sounder
         sounder.eval(io.units)

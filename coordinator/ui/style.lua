@@ -155,16 +155,38 @@ style.imatrix = {
     }
 }
 
+style.sps = {
+    -- SPS states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.gray),
+            text = "IDLE"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ACTIVE"
+        }
+    }
+}
+
 style.waste = {
     -- auto waste processing states
     states = {
         {
             color = cpair(colors.black, colors.green),
             text = "PLUTONIUM"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "PLUTONIUM  (FB)"
         },
         {
             color = cpair(colors.black, colors.cyan),

@@ -364,8 +364,9 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
 
     -- send a facility command
     ---@param cmd FAC_COMMAND command
-    function public.send_fac_command(cmd)
-        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, { cmd })
+    ---@param option any? optional option options for the optional options (like waste mode)
+    function public.send_fac_command(cmd, option)
+        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, { cmd, option })
     end
 
     -- send the auto process control configuration with a start command
@@ -379,7 +380,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
     -- send a unit command
     ---@param cmd UNIT_COMMAND command
     ---@param unit integer unit ID
-    ---@param option any? optional option options for the optional options (like burn rate) (does option still look like a word?)
+    ---@param option any? optional option options for the optional options (like burn rate)
     function public.send_unit_command(cmd, unit, option)
         _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.UNIT_CMD, { cmd, unit, option })
     end
@@ -563,6 +564,10 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                                     end
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                                    process.waste_ack_handle(packet.data[2])
+                                elseif cmd == FAC_COMMAND.SET_PU_FB then
+                                    process.pu_fb_ack_handle(packet.data[2])
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end
