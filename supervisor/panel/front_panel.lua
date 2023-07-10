@@ -1,5 +1,5 @@
 --
--- Main SCADA Coordinator GUI
+-- Supervisor Front Panel GUI
 --
 
 local util          = require("scada-common.util")
@@ -29,7 +29,7 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 
 local cpair = core.cpair
 
--- create new main view
+-- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
     TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
