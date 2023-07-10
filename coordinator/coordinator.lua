@@ -2,6 +2,7 @@ local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
+local types       = require("scada-common.types")
 
 local iocontrol   = require("coordinator.iocontrol")
 local process     = require("coordinator.process")
@@ -12,7 +13,6 @@ local dialog      = require("coordinator.ui.dialog")
 
 local print = util.print
 local println = util.println
-local println_ts = util.println_ts
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
@@ -301,6 +301,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
         self.sv_r_seq_num = nil
+        iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
         _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.CLOSE, {})
     end
 
@@ -474,7 +475,6 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- pocket linking request
                                 local id = apisessions.establish_session(src_addr, firmware_v)
-                                println(util.c("[API] pocket (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW)
@@ -639,6 +639,9 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                             local config = packet.data[2]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
+                                -- reset to disconnected before validating
+                                iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+
                                 if type(config) == "table" and #config > 1 then
                                     -- get configuration
 
@@ -660,6 +663,8 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                                         self.sv_addr = src_addr
                                         self.sv_linked = true
                                         self.sv_config_err = false
+
+                                        iocontrol.fp_link_state(types.PANEL_LINK_STATE.LINKED)
                                     else
                                         self.sv_config_err = true
                                         log.warning("invalid supervisor configuration definitions received, establish failed")
@@ -677,14 +682,17 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
 
                             if est_ack == ESTABLISH_ACK.DENY then
                                 if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.DENIED)
                                     log.info("supervisor connection denied")
                                 end
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.COLLISION)
                                     log.warning("supervisor connection denied due to collision")
                                 end
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.BAD_VERSION)
                                     log.warning("supervisor comms version mismatch")
                                 end
                             else
@@ -720,7 +728,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                             self.sv_addr = comms.BROADCAST
                             self.sv_linked = false
                             self.sv_r_seq_num = nil
-                            println_ts("server connection closed by remote host")
+                            iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
                             log.info("server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type)

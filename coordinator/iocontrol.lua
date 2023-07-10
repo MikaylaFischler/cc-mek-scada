@@ -10,8 +10,14 @@ local util    = require("scada-common.util")
 local process = require("coordinator.process")
 local sounder = require("coordinator.sounder")
 
+local pgi     = require("coordinator.ui.pgi")
+
 local ALARM_STATE = types.ALARM_STATE
 local PROCESS = types.PROCESS
+
+-- nominal RTT is ping (0ms to 10ms usually) + 500ms for CRD main loop tick
+local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
+local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 
 local iocontrol = {}
 
@@ -26,6 +32,19 @@ local io = {}
 local function __generic_ack(success) end
 
 -- luacheck: unused args
+
+-- initialize front panel PSIL
+---@param firmware_v string coordinator version
+---@param comms_v string comms version
+function iocontrol.init_fp(firmware_v, comms_v)
+    ---@class ioctl_front_panel
+    io.fp = {
+        ps = psil.create()
+    }
+
+    io.fp.ps.publish("version", firmware_v)
+    io.fp.ps.publish("comms_version", comms_v)
+end
 
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
@@ -187,6 +206,52 @@ function iocontrol.init(conf, comms)
 
     -- pass IO control here since it can't be require'd due to a require loop
     process.init(io, comms)
+end
+
+-- toggle heartbeat indicator
+function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
+
+-- report presence of the wireless modem
+---@param has_modem boolean
+function iocontrol.fp_has_modem(has_modem) io.fp.ps.publish("has_modem", has_modem) end
+
+-- report presence of the speaker
+---@param has_speaker boolean
+function iocontrol.fp_has_speaker(has_speaker) io.fp.ps.publish("has_speaker", has_speaker) end
+
+-- report supervisor link state
+---@param state integer
+function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) end
+
+-- report PKT firmware version and PKT session connection state
+---@param session_id integer PKT session
+---@param fw string firmware version
+---@param s_addr integer PKT computer ID
+function iocontrol.fp_pkt_connected(session_id, fw, s_addr)
+    io.fp.ps.publish("pkt_" .. session_id .. "_fw", fw)
+    io.fp.ps.publish("pkt_" .. session_id .. "_addr", util.sprintf("@ C% 3d", s_addr))
+    pgi.create_pkt_entry(session_id)
+end
+
+-- report PKT session disconnected
+---@param session_id integer PKT session
+function iocontrol.fp_pkt_disconnected(session_id)
+    pgi.delete_pkt_entry(session_id)
+end
+
+-- transmit PKT session RTT
+---@param session_id integer PKT session
+---@param rtt integer round trip time
+function iocontrol.fp_pkt_rtt(session_id, rtt)
+    io.fp.ps.publish("pkt_" .. session_id .. "_rtt", rtt)
+
+    if rtt > HIGH_RTT then
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.red)
+    elseif rtt > WARN_RTT then
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.yellow_hc)
+    else
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.green)
+    end
 end
 
 -- populate facility structure builds

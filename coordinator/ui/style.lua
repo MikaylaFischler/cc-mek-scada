@@ -10,6 +10,40 @@ local cpair = core.cpair
 
 -- GLOBAL --
 
+-- add color mappings for front panel
+colors.ivory = colors.pink
+colors.red_off = colors.brown
+colors.yellow_off = colors.magenta
+colors.green_off = colors.lime
+
+-- front panel styling
+
+style.fp = {}
+
+style.fp.root = cpair(colors.black, colors.ivory)
+style.fp.header = cpair(colors.black, colors.lightGray)
+
+style.fp.colors = {
+    { c = colors.red,       hex = 0xdf4949 },   -- RED ON
+    { c = colors.orange,    hex = 0xffb659 },
+    { c = colors.yellow,    hex = 0xf9fb53 },   -- YELLOW ON
+    { c = colors.lime,      hex = 0x16665a },   -- GREEN OFF
+    { c = colors.green,     hex = 0x6be551 },   -- GREEN ON
+    { c = colors.cyan,      hex = 0x34bac8 },
+    { c = colors.lightBlue, hex = 0x6cc0f2 },
+    { c = colors.blue,      hex = 0x0096ff },
+    { c = colors.purple,    hex = 0xb156ee },
+    { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
+    { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
+    -- { c = colors.white,     hex = 0xdcd9ca },
+    { c = colors.lightGray, hex = 0xb1b8b3 },
+    { c = colors.gray,      hex = 0x575757 },
+    -- { c = colors.black,     hex = 0x191919 },
+    { c = colors.brown,     hex = 0x672223 }    -- RED OFF
+}
+
+-- main GUI styling
+
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
 style.label = cpair(colors.gray, colors.lightGray)

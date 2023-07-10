@@ -6,7 +6,9 @@ local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
 local style      = require("coordinator.ui.style")
+local pgi        = require("coordinator.ui.pgi")
 
+local panel_view = require("coordinator.ui.layout.front_panel")
 local main_view  = require("coordinator.ui.layout.main_view")
 local unit_view  = require("coordinator.ui.layout.unit_view")
 
@@ -21,7 +23,9 @@ local engine = {
     monitors = nil,         ---@type monitors_struct|nil
     dmesg_window = nil,     ---@type table|nil
     ui_ready = false,
+    fp_ready = false,
     ui = {
+        front_panel = nil,  ---@type graphics_element|nil
         main_display = nil, ---@type graphics_element|nil
         unit_displays = {}
     }
@@ -44,9 +48,7 @@ end
 
 -- link to the monitor peripherals
 ---@param monitors monitors_struct
-function renderer.set_displays(monitors)
-    engine.monitors = monitors
-end
+function renderer.set_displays(monitors) engine.monitors = monitors end
 
 -- check if the renderer is configured to use a given monitor peripheral
 ---@nodiscard
@@ -74,6 +76,17 @@ function renderer.init_displays()
     -- init unit displays
     for _, monitor in ipairs(engine.monitors.unit_displays) do
         _init_display(monitor)
+    end
+
+    -- init terminal
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.black)
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    -- set overridden colors
+    for i = 1, #style.fp.colors do
+        term.setPaletteColor(style.fp.colors[i].c, style.fp.colors[i].hex)
     end
 end
 
@@ -109,6 +122,21 @@ function renderer.init_dmesg()
     log.direct_dmesg(engine.dmesg_window)
 end
 
+-- start the coordinator front panel
+function renderer.start_fp()
+    if not engine.fp_ready then
+        -- show front panel view on terminal
+        engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
+        panel_view(engine.ui.front_panel)
+
+        -- start flasher callback task
+        flasher.run()
+
+        -- report front panel as ready
+        engine.fp_ready = true
+    end
+end
+
 -- start the coordinator GUI
 function renderer.start_ui()
     if not engine.ui_ready then
@@ -133,10 +161,42 @@ function renderer.start_ui()
     end
 end
 
+-- close out the front panel
+function renderer.close_fp()
+    if engine.fp_ready then
+        if not engine.ui_ready then
+            -- stop blinking indicators
+            flasher.clear()
+        end
+
+        -- disable PGI
+        pgi.unlink()
+
+        -- hide to stop animation callbacks and clear root UI elements
+        engine.ui.front_panel.hide()
+        engine.ui.front_panel = nil
+        engine.fp_ready = false
+
+        -- restore colors
+        for i = 1, #style.colors do
+            local r, g, b = term.nativePaletteColor(style.colors[i].c)
+            term.setPaletteColor(style.colors[i].c, r, g, b)
+        end
+
+        -- reset terminal
+        term.setTextColor(colors.white)
+        term.setBackgroundColor(colors.black)
+        term.clear()
+        term.setCursorPos(1, 1)
+    end
+end
+
 -- close out the UI
 function renderer.close_ui()
-    -- stop blinking indicators
-    flasher.clear()
+    if not engine.fp_ready then
+        -- stop blinking indicators
+        flasher.clear()
+    end
 
     -- delete element trees
     if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
@@ -157,6 +217,11 @@ function renderer.close_ui()
     engine.dmesg_window.redraw()
 end
 
+-- is the front panel ready?
+---@nodiscard
+---@return boolean ready
+function renderer.fp_ready() return engine.fp_ready end
+
 -- is the UI ready?
 ---@nodiscard
 ---@return boolean ready
@@ -165,14 +230,19 @@ function renderer.ui_ready() return engine.ui_ready end
 -- handle a touch event
 ---@param event mouse_interaction|nil
 function renderer.handle_mouse(event)
-    if engine.ui_ready and event ~= nil then
-        if event.monitor == engine.monitors.primary_name then
-            engine.ui.main_display.handle_mouse(event)
-        else
-            for id, monitor in ipairs(engine.monitors.unit_name_map) do
-                if event.monitor == monitor then
-                    local layout = engine.ui.unit_displays[id]  ---@type graphics_element
-                    layout.handle_mouse(event)
+    if event ~= nil then
+        if engine.fp_ready and event.monitor == "terminal" then
+            engine.ui.front_panel.handle_mouse(event)
+        elseif engine.ui_ready then
+            if event.monitor == engine.monitors.primary_name then
+                engine.ui.main_display.handle_mouse(event)
+            else
+                for id, monitor in ipairs(engine.monitors.unit_name_map) do
+                    if event.monitor == monitor then
+                        local layout = engine.ui.unit_displays[id]  ---@type graphics_element
+                        layout.handle_mouse(event)
+                        break
+                    end
                 end
             end
         end

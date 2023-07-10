@@ -4,6 +4,7 @@
 
 require("/initenv").init_env()
 
+local comms       = require("scada-common.comms")
 local crash       = require("scada-common.crash")
 local log         = require("scada-common.log")
 local network     = require("scada-common.network")
@@ -21,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.18.0"
+local COORDINATOR_VERSION = "v0.19.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -80,6 +81,9 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- report versions/init fp PSIL
+    iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
+
     -- setup monitors
     local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
     if not configured or monitors == nil then
@@ -127,6 +131,7 @@ local function main()
         sounder.init(speaker, config.SOUNDER_VOLUME)
         log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
         log_sys("annunciator alarm configured")
+        iocontrol.fp_has_speaker(true)
     end
 
     ----------------------------------------
@@ -148,6 +153,7 @@ local function main()
         return
     else
         log_comms("wireless modem connected")
+        iocontrol.fp_has_modem(true)
     end
 
     -- create connection watchdog
@@ -165,6 +171,21 @@ local function main()
     -- base loop clock (2Hz, 10 ticks)
     local MAIN_CLOCK = 0.5
     local loop_clock = util.new_clock(MAIN_CLOCK)
+
+    ----------------------------------------
+    -- start front panel
+    ----------------------------------------
+
+    log_graphics("starting front panel UI...")
+
+    local fp_ok, fp_message = pcall(renderer.start_fp)
+    if not fp_ok then
+        renderer.close_fp()
+        log_graphics(util.c("front panel UI error: ", fp_message))
+        println_ts("front panel UI creation failed")
+        log.fatal(util.c("front panel GUI render failed with error ", fp_message))
+        return
+    else log_graphics("front panel ready") end
 
     ----------------------------------------
     -- connect to the supervisor
@@ -199,18 +220,18 @@ local function main()
     -- start up the UI
     ---@return boolean ui_ok started ok
     local function init_start_ui()
-        log_graphics("starting UI...")
+        log_graphics("starting main UI...")
 
         local draw_start = util.time_ms()
 
-        local ui_ok, message = pcall(renderer.start_ui)
+        local ui_ok, ui_message = pcall(renderer.start_ui)
         if not ui_ok then
             renderer.close_ui()
-            log_graphics(util.c("UI crashed: ", message))
-            println_ts("UI crashed")
-            log.fatal(util.c("GUI crashed with error ", message))
+            log_graphics(util.c("main UI error: ", ui_message))
+            println_ts("main UI creation failed")
+            log.fatal(util.c("main GUI render failed with error ", ui_message))
         else
-            log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
+            log_graphics("first main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
 
             -- start clock
             loop_clock.start()
@@ -257,6 +278,8 @@ local function main()
 
                         -- alert user to status
                         log_sys("awaiting comms modem reconnect...")
+
+                        iocontrol.fp_has_modem(false)
                     else
                         log_sys("non-comms modem disconnected")
                     end
@@ -275,6 +298,8 @@ local function main()
                     local msg = "lost alarm sounder speaker"
                     println_ts(msg)
                     log_sys(msg)
+
+                    iocontrol.fp_has_speaker(false)
                 end
             end
         elseif event == "peripheral" then
@@ -292,6 +317,8 @@ local function main()
                         -- re-init system
                         if not init_connect_sv() then break end
                         ui_ok = init_start_ui()
+
+                        iocontrol.fp_has_modem(true)
                     else
                         log_sys("wired modem reconnected")
                     end
@@ -302,12 +329,15 @@ local function main()
                     local msg = "alarm sounder speaker reconnected"
                     println_ts(msg)
                     log_sys(msg)
+
                     sounder.reconnect(device)
+                    iocontrol.fp_has_speaker(true)
                 end
             end
         elseif event == "timer" then
             if loop_clock.is_clock(param1) then
                 -- main loop tick
+                iocontrol.heartbeat()
 
                 -- iterate sessions
                 apisessions.iterate_all()
@@ -364,8 +394,9 @@ local function main()
                     ui_ok = init_start_ui()
                 end
             end
-        elseif event == "monitor_touch" then
-            -- handle a monitor touch event
+        elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
+               event == "mouse_drag" or event == "mouse_scroll" then
+            -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then
             -- handle speaker buffer emptied
@@ -386,6 +417,7 @@ local function main()
     end
 
     renderer.close_ui()
+    renderer.close_fp()
     sounder.stop()
     log_sys("system shutdown")
 
@@ -395,6 +427,7 @@ end
 
 if not xpcall(main, crash.handler) then
     pcall(renderer.close_ui)
+    pcall(renderer.close_fp)
     pcall(sounder.stop)
     crash.exit()
 else
