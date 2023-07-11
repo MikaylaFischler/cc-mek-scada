@@ -98,9 +98,15 @@ function threads.thread__main(smem)
                             nic.disconnect()
 
                             println_ts("wireless modem disconnected!")
-                            log.warning("comms modem disconnected!")
+                            log.warning("comms modem disconnected")
 
-                            databus.tx_hw_modem(false)
+                            local other_modem = ppm.get_wireless_modem()
+                            if other_modem then
+                                log.info("found another wireless modem, using it for comms")
+                                nic.connect(other_modem)
+                            else
+                                databus.tx_hw_modem(false)
+                            end
                         else
                             log.warning("non-comms modem disconnected")
                         end
@@ -128,7 +134,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
-                        if device.isWireless() then
+                        if device.isWireless() and not nic.is_connected() then
                             -- reconnected modem
                             nic.connect(device)
 

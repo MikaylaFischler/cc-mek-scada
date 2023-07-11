@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.19.1"
+local COORDINATOR_VERSION = "v0.19.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -234,13 +234,19 @@ local function main()
                         nic.disconnect()
                         log_sys("comms modem disconnected")
 
-                        -- close out main UI
-                        renderer.close_ui()
+                        local other_modem = ppm.get_wireless_modem()
+                        if other_modem then
+                            log_sys("found another wireless modem, using it for comms")
+                            nic.connect(other_modem)
+                        else
+                            -- close out main UI
+                            renderer.close_ui()
 
-                        -- alert user to status
-                        log_sys("awaiting comms modem reconnect...")
+                            -- alert user to status
+                            log_sys("awaiting comms modem reconnect...")
 
-                        iocontrol.fp_has_modem(false)
+                            iocontrol.fp_has_modem(false)
+                        end
                     else
                         log_sys("non-comms modem disconnected")
                     end
@@ -263,7 +269,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
-                    if device.isWireless() then
+                    if device.isWireless() and not nic.is_connected() then
                         -- reconnected modem
                         log_sys("comms modem reconnected")
                         nic.connect(device)
@@ -288,7 +294,7 @@ local function main()
                 iocontrol.heartbeat()
 
                 -- maintain connection
-                if nic.connected() then
+                if nic.is_connected() then
                     local ok, start_ui = coord_comms.try_connect()
                     if not ok then
                         link_failed = true
