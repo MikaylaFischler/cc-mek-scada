@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.19.2"
+local COORDINATOR_VERSION = "v0.19.3"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -362,7 +362,7 @@ local function main()
         -- check for termination request
         if event == "terminate" or ppm.should_terminate() then
             -- handle supervisor connection
-            link_failed = coord_comms.try_connect(true)
+            coord_comms.try_connect(true)
 
             if coord_comms.is_linked() then
                 log_comms("terminate requested, closing supervisor connection...")
