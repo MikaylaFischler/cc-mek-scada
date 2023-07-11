@@ -43,8 +43,10 @@ end
 
 -- start/resume the flasher periodic
 function flasher.run()
-    active = true
-    callback_250ms()
+    if not active then
+        active = true
+        callback_250ms()
+    end
 end
 
 -- clear all blinking indicators and stop the flasher periodic

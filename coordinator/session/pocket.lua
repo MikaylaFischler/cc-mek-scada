@@ -1,15 +1,15 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local mqueue = require("scada-common.mqueue")
-local util   = require("scada-common.util")
+local comms     = require("scada-common.comms")
+local log       = require("scada-common.log")
+local mqueue    = require("scada-common.mqueue")
+local util      = require("scada-common.util")
+
+local iocontrol = require("coordinator.iocontrol")
 
 local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
 -- local CAPI_TYPE = comms.CAPI_TYPE
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
-
-local println = util.println
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -69,6 +69,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
+        iocontrol.fp_pkt_disconnected(id)
     end
 
     -- send a CAPI packet
@@ -140,6 +141,8 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
 
                     -- log.debug(log_header .. "PKT RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "PKT TT  = " .. (srv_now - api_send) .. "ms")
+
+                    iocontrol.fp_pkt_rtt(id, self.last_rtt)
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
@@ -172,7 +175,6 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
     function public.close()
         _close()
         _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
-        println("connection to pocket session " .. id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
 
@@ -211,7 +213,6 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
 
             -- exit if connection was closed
             if not self.connected then
-                println("connection to pocket session " .. id .. " closed by remote host")
                 log.info(log_header .. "session closed by remote host")
                 return self.connected
             end

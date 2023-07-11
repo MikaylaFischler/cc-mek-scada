@@ -1,5 +1,5 @@
 --
--- Main SCADA Coordinator GUI
+-- RTU Front Panel GUI
 --
 
 local types      = require("scada-common.types")
@@ -33,7 +33,7 @@ local UNIT_TYPE_LABELS = {
 }
 
 
--- create new main view
+-- create new front panel view
 ---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)

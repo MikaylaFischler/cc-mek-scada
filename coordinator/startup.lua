@@ -4,6 +4,7 @@
 
 require("/initenv").init_env()
 
+local comms       = require("scada-common.comms")
 local crash       = require("scada-common.crash")
 local log         = require("scada-common.log")
 local network     = require("scada-common.network")
@@ -21,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.18.0"
+local COORDINATOR_VERSION = "v0.19.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -30,7 +31,6 @@ local log_graphics = coordinator.log_graphics
 local log_sys = coordinator.log_sys
 local log_boot = coordinator.log_boot
 local log_comms = coordinator.log_comms
-local log_comms_connecting = coordinator.log_comms_connecting
 local log_crypto = coordinator.log_crypto
 
 ----------------------------------------
@@ -80,6 +80,9 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- report versions/init fp PSIL
+    iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
+
     -- setup monitors
     local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
     if not configured or monitors == nil then
@@ -127,6 +130,7 @@ local function main()
         sounder.init(speaker, config.SOUNDER_VOLUME)
         log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
         log_sys("annunciator alarm configured")
+        iocontrol.fp_has_speaker(true)
     end
 
     ----------------------------------------
@@ -148,6 +152,7 @@ local function main()
         return
     else
         log_comms("wireless modem connected")
+        iocontrol.fp_has_modem(true)
     end
 
     -- create connection watchdog
@@ -167,76 +172,54 @@ local function main()
     local loop_clock = util.new_clock(MAIN_CLOCK)
 
     ----------------------------------------
-    -- connect to the supervisor
+    -- start front panel & UI start function
     ----------------------------------------
 
-    -- attempt to connect to the supervisor or exit
-    local function init_connect_sv()
-        local tick_waiting, task_done = log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_CHANNEL)
+    log_graphics("starting front panel UI...")
 
-        -- attempt to establish a connection with the supervisory computer
-        if not coord_comms.sv_connect(60, tick_waiting, task_done) then
-            log_sys("supervisor connection failed, shutting down...")
-            log.fatal("failed to connect to supervisor")
-            return false
-        end
-
-        return true
-    end
-
-    if not init_connect_sv() then
-        println("startup> failed to connect to supervisor")
-        log_sys("system shutdown")
+    local fp_ok, fp_message = pcall(renderer.start_fp)
+    if not fp_ok then
+        renderer.close_fp()
+        log_graphics(util.c("front panel UI error: ", fp_message))
+        println_ts("front panel UI creation failed")
+        log.fatal(util.c("front panel GUI render failed with error ", fp_message))
         return
-    else
-        log_sys("supervisor connected, proceeding to UI start")
-    end
+    else log_graphics("front panel ready") end
 
-    ----------------------------------------
-    -- start the UI
-    ----------------------------------------
-
-    -- start up the UI
+    -- start up the main UI
     ---@return boolean ui_ok started ok
-    local function init_start_ui()
-        log_graphics("starting UI...")
+    local function start_main_ui()
+        log_graphics("starting main UI...")
 
         local draw_start = util.time_ms()
 
-        local ui_ok, message = pcall(renderer.start_ui)
+        local ui_ok, ui_message = pcall(renderer.start_ui)
         if not ui_ok then
             renderer.close_ui()
-            log_graphics(util.c("UI crashed: ", message))
-            println_ts("UI crashed")
-            log.fatal(util.c("GUI crashed with error ", message))
+            log_graphics(util.c("main UI error: ", ui_message))
+            log.fatal(util.c("main GUI render failed with error ", ui_message))
         else
-            log_graphics("first UI draw took " .. (util.time_ms() - draw_start) .. "ms")
-
-            -- start clock
-            loop_clock.start()
+            log_graphics("main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
         end
 
         return ui_ok
     end
 
-    local ui_ok = init_start_ui()
-
     ----------------------------------------
     -- main event loop
     ----------------------------------------
 
+    local link_failed = false
+    local ui_ok = true
     local date_format = util.trinary(config.TIME_24_HOUR, "%X \x04 %A, %B %d %Y", "%r \x04 %A, %B %d %Y")
 
-    if ui_ok then
-        -- start connection watchdog
-        conn_watchdog.feed()
-        log.debug("startup> conn watchdog started")
+    -- start clock
+    loop_clock.start()
 
-        log_sys("system started successfully")
-    end
+    log_sys("system started successfully")
 
     -- main event loop
-    while ui_ok do
+    while true do
         local event, param1, param2, param3, param4, param5 = util.pull_event()
 
         -- handle event
@@ -250,13 +233,14 @@ local function main()
                     if nic.is_modem(device) then
                         nic.disconnect()
                         log_sys("comms modem disconnected")
-                        println_ts("wireless modem disconnected!")
 
-                        -- close out UI
+                        -- close out main UI
                         renderer.close_ui()
 
                         -- alert user to status
                         log_sys("awaiting comms modem reconnect...")
+
+                        iocontrol.fp_has_modem(false)
                     else
                         log_sys("non-comms modem disconnected")
                     end
@@ -264,17 +248,14 @@ local function main()
                     if renderer.is_monitor_used(device) then
                         ---@todo will be handled properly in #249
                         -- "halt and catch fire" style handling
-                        local msg = "lost a configured monitor, system will now exit"
-                        println_ts(msg)
-                        log_sys(msg)
+                        log_sys("lost a configured monitor, system will now exit")
                         break
                     else
                         log_sys("lost unused monitor, ignoring")
                     end
                 elseif type == "speaker" then
-                    local msg = "lost alarm sounder speaker"
-                    println_ts(msg)
-                    log_sys(msg)
+                    log_sys("lost alarm sounder speaker")
+                    iocontrol.fp_has_speaker(false)
                 end
             end
         elseif event == "peripheral" then
@@ -284,14 +265,9 @@ local function main()
                 if type == "modem" then
                     if device.isWireless() then
                         -- reconnected modem
-                        nic.connect(device)
-
                         log_sys("comms modem reconnected")
-                        println_ts("wireless modem reconnected.")
-
-                        -- re-init system
-                        if not init_connect_sv() then break end
-                        ui_ok = init_start_ui()
+                        nic.connect(device)
+                        iocontrol.fp_has_modem(true)
                     else
                         log_sys("wired modem reconnected")
                     end
@@ -299,15 +275,32 @@ local function main()
                     ---@todo will be handled properly in #249
                     -- not supported, system will exit on loss of in-use monitors
                 elseif type == "speaker" then
-                    local msg = "alarm sounder speaker reconnected"
-                    println_ts(msg)
-                    log_sys(msg)
+                    log_sys("alarm sounder speaker reconnected")
                     sounder.reconnect(device)
+                    iocontrol.fp_has_speaker(true)
                 end
             end
         elseif event == "timer" then
             if loop_clock.is_clock(param1) then
                 -- main loop tick
+
+                -- toggle heartbeat
+                iocontrol.heartbeat()
+
+                -- maintain connection
+                if nic.connected() then
+                    local ok, start_ui = coord_comms.try_connect()
+                    if not ok then
+                        link_failed = true
+                        log_sys("supervisor connection failed, shutting down...")
+                        log.fatal("failed to connect to supervisor")
+                        break
+                    elseif start_ui then
+                        log_sys("supervisor connected, proceeding to main UI start")
+                        ui_ok = start_main_ui()
+                        if not ui_ok then break end
+                    end
+                end
 
                 -- iterate sessions
                 apisessions.iterate_all()
@@ -316,25 +309,19 @@ local function main()
                 apisessions.free_all_closed()
 
                 -- update date and time string for main display
-                iocontrol.get_db().facility.ps.publish("date_time", os.date(date_format))
+                if coord_comms.is_linked() then
+                    iocontrol.get_db().facility.ps.publish("date_time", os.date(date_format))
+                end
 
                 loop_clock.start()
             elseif conn_watchdog.is_timer(param1) then
                 -- supervisor watchdog timeout
-                local msg = "supervisor server timeout"
-                log_comms(msg)
-                println_ts(msg)
+                log_comms("supervisor server timeout")
 
-                -- close connection, UI, and stop sounder
+                -- close connection, main UI, and stop sounder
                 coord_comms.close()
                 renderer.close_ui()
                 sounder.stop()
-
-                if nic.connected() then
-                    -- try to re-connect to the supervisor
-                    if not init_connect_sv() then break end
-                    ui_ok = init_start_ui()
-                end
             else
                 -- a non-clock/main watchdog timer event
 
@@ -347,25 +334,19 @@ local function main()
         elseif event == "modem_message" then
             -- got a packet
             local packet = coord_comms.parse_packet(param1, param2, param3, param4, param5)
-            coord_comms.handle_packet(packet)
 
-            -- check if it was a disconnect
-            if not coord_comms.is_linked() then
+            -- handle then check if it was a disconnect
+            if coord_comms.handle_packet(packet) then
                 log_comms("supervisor closed connection")
 
-                -- close connection, UI, and stop sounder
+                -- close connection, main UI, and stop sounder
                 coord_comms.close()
                 renderer.close_ui()
                 sounder.stop()
-
-                if nic.connected() then
-                    -- try to re-connect to the supervisor
-                    if not init_connect_sv() then break end
-                    ui_ok = init_start_ui()
-                end
             end
-        elseif event == "monitor_touch" then
-            -- handle a monitor touch event
+        elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
+               event == "mouse_drag" or event == "mouse_scroll" then
+            -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then
             -- handle speaker buffer emptied
@@ -374,10 +355,17 @@ local function main()
 
         -- check for termination request
         if event == "terminate" or ppm.should_terminate() then
-            println_ts("terminate requested, closing connections...")
-            log_comms("terminate requested, closing supervisor connection...")
+            -- handle supervisor connection
+            link_failed = coord_comms.try_connect(true)
+
+            if coord_comms.is_linked() then
+                log_comms("terminate requested, closing supervisor connection...")
+            else link_failed = true end
+
             coord_comms.close()
             log_comms("supervisor connection closed")
+
+            -- handle API sessions
             log_comms("closing api sessions...")
             apisessions.close_all()
             log_comms("api sessions closed")
@@ -386,8 +374,12 @@ local function main()
     end
 
     renderer.close_ui()
+    renderer.close_fp()
     sounder.stop()
     log_sys("system shutdown")
+
+    if link_failed then println_ts("failed to connect to supervisor") end
+    if not ui_ok then println_ts("main UI creation failed") end
 
     println_ts("exited")
     log.info("exited")
@@ -395,6 +387,7 @@ end
 
 if not xpcall(main, crash.handler) then
     pcall(renderer.close_ui)
+    pcall(renderer.close_fp)
     pcall(sounder.stop)
     crash.exit()
 else

@@ -15,7 +15,7 @@ local CLICK_TYPE = core.events.CLICK_TYPE
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
----@field y? integer 1 if omitted
+---@field y? integer auto incremented if omitted
 ---@field width? integer parent width if omitted
 ---@field height? integer parent height if omitted
 ---@field gframe? graphics_frame frame instead of x/y/width/height
