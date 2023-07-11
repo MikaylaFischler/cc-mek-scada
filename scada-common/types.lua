@@ -89,16 +89,18 @@ types.RTU_UNIT_TYPE = {
     REDSTONE = 1,       -- redstone I/O
     BOILER_VALVE = 2,   -- boiler mekanism 10.1+
     TURBINE_VALVE = 3,  -- turbine, mekanism 10.1+
-    IMATRIX = 4,        -- induction matrix
-    SPS = 5,            -- SPS
-    SNA = 6,            -- SNA
-    ENV_DETECTOR = 7    -- environment detector
+    DYNAMIC_VALVE = 4,  -- dynamic tank, mekanism 10.1+
+    IMATRIX = 5,        -- induction matrix
+    SPS = 6,            -- SPS
+    SNA = 7,            -- SNA
+    ENV_DETECTOR = 8    -- environment detector
 }
 
 types.RTU_UNIT_NAMES = {
     "redstone",
     "boiler_valve",
     "turbine_valve",
+    "dynamic_valve",
     "induction_matrix",
     "sps",
     "sna",
@@ -115,6 +117,7 @@ function types.rtu_type_to_string(utype)
     elseif utype == types.RTU_UNIT_TYPE.REDSTONE or
        utype == types.RTU_UNIT_TYPE.BOILER_VALVE or
        utype == types.RTU_UNIT_TYPE.TURBINE_VALVE or
+       utype == types.RTU_UNIT_TYPE.DYNAMIC_VALVE or
        utype == types.RTU_UNIT_TYPE.IMATRIX or
        utype == types.RTU_UNIT_TYPE.SPS or
        utype == types.RTU_UNIT_TYPE.SNA or
@@ -326,6 +329,17 @@ types.RPS_TRIP_CAUSE = {
     AUTOMATIC = "automatic",
     SYS_FAIL = "sys_fail",
     FORCE_DISABLED = "force_disabled"
+}
+
+---@alias container_mode
+---| "BOTH"
+---| "FILL"
+---| "EMPTY"
+
+types.CONTAINER_MODE = {
+    BOTH = "BOTH",
+    FILL = "FILL",
+    EMPTY = "EMPTY"
 }
 
 ---@alias dumping_mode

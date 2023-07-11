@@ -2,7 +2,7 @@ local rtu = require("rtu.rtu")
 
 local boilerv_rtu = {}
 
--- create new boiler (mek 10.1+) device
+-- create new boiler device
 ---@nodiscard
 ---@param boiler table
 ---@return rtu_device interface, boolean faulted

@@ -26,6 +26,7 @@ local UNIT_TYPE_LABELS = {
     "REDSTONE",
     "BOILER",
     "TURBINE",
+    "DYNAMIC TANK",
     "IND MATRIX",
     "SPS",
     "SNA",

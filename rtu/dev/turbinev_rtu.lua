@@ -2,7 +2,7 @@ local rtu = require("rtu.rtu")
 
 local turbinev_rtu = {}
 
--- create new turbine (mek 10.1+) device
+-- create new turbine device
 ---@nodiscard
 ---@param turbine table
 ---@return rtu_device interface, boolean faulted

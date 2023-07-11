@@ -10,6 +10,7 @@ local modbus       = require("rtu.modbus")
 local renderer     = require("rtu.renderer")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
+local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
 local envd_rtu     = require("rtu.dev.envd_rtu")
 local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
 local sna_rtu      = require("rtu.dev.sna_rtu")
@@ -181,21 +182,22 @@ function threads.thread__main(smem)
                                     databus.tx_unit_hw_type(unit.uid, unit.type)
                                 end
 
+                                -- note for multiblock structures: if not formed, indexing the multiblock functions results in a PPM fault
+
                                 if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
                                     unit.rtu, faulted = boilerv_rtu.new(device)
-                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
                                     unit.rtu, faulted = turbinev_rtu.new(device)
-                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
+                                    unit.formed = util.trinary(faulted, false, nil)
+                                elseif unit.type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+                                    unit.rtu, faulted = dynamicv_rtu.new(device)
                                     unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.IMATRIX then
                                     unit.rtu, faulted = imatrix_rtu.new(device)
-                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.SPS then
                                     unit.rtu, faulted = sps_rtu.new(device)
-                                     -- if not formed, indexing the multiblock functions would have resulted in a PPM fault
                                     unit.formed = util.trinary(faulted, false, nil)
                                 elseif unit.type == RTU_UNIT_TYPE.SNA then
                                     unit.rtu, faulted = sna_rtu.new(device)
@@ -439,6 +441,12 @@ function threads.thread__unit_comms(smem, unit)
                                 -- turbine multiblock
                                 unit.device = device
                                 unit.rtu, faulted = turbinev_rtu.new(device)
+                                unit.formed = device.isFormed()
+                                unit.modbus_io = modbus.new(unit.rtu, true)
+                            elseif type == "dynamicValve" and unit.type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+                                -- dynamic tank multiblock
+                                unit.device = device
+                                unit.rtu, faulted = dynamicv_rtu.new(device)
                                 unit.formed = device.isFormed()
                                 unit.modbus_io = modbus.new(unit.rtu, true)
                             elseif type == "inductionPort" and unit.type == RTU_UNIT_TYPE.IMATRIX then
