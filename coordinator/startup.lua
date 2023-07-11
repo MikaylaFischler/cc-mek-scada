@@ -234,7 +234,7 @@ local function main()
                         nic.disconnect()
                         log_sys("comms modem disconnected")
 
-                        -- close out UI
+                        -- close out main UI
                         renderer.close_ui()
 
                         -- alert user to status
@@ -339,7 +339,7 @@ local function main()
             if coord_comms.handle_packet(packet) then
                 log_comms("supervisor closed connection")
 
-                -- close connection, UI, and stop sounder
+                -- close connection, main UI, and stop sounder
                 coord_comms.close()
                 renderer.close_ui()
                 sounder.stop()
