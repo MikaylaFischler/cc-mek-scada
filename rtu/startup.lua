@@ -29,7 +29,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.4.0"
+local RTU_VERSION = "v1.4.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -464,7 +464,7 @@ local function main()
             renderer.close_ui()
             println_ts(util.c("UI error: ", message))
             println("startup> running without front panel")
-            log.error(util.c("GUI crashed with error ", message))
+            log.error(util.c("front panel GUI render failed with error ", message))
             log.info("startup> running in headless mode without front panel")
         end
 
