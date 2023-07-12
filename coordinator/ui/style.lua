@@ -12,6 +12,7 @@ local cpair = core.cpair
 
 -- add color mappings for front panel
 colors.ivory = colors.pink
+colors.yellow_hc = colors.purple
 colors.red_off = colors.brown
 colors.yellow_off = colors.magenta
 colors.green_off = colors.lime
@@ -32,7 +33,7 @@ style.fp.colors = {
     { c = colors.cyan,      hex = 0x34bac8 },
     { c = colors.lightBlue, hex = 0x6cc0f2 },
     { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
+    { c = colors.purple,    hex = 0xb156ee },   -- YELLOW HIGH CONTRAST
     { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
     { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
     -- { c = colors.white,     hex = 0xdcd9ca },
