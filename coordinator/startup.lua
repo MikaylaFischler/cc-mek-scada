@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.19.3"
+local COORDINATOR_VERSION = "v0.20.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -251,13 +251,10 @@ local function main()
                         log_sys("non-comms modem disconnected")
                     end
                 elseif type == "monitor" then
-                    if renderer.is_monitor_used(device) then
-                        ---@todo will be handled properly in #249
-                        -- "halt and catch fire" style handling
-                        log_sys("lost a configured monitor, system will now exit")
-                        break
+                    if renderer.handle_disconnect(device) then
+                        log_sys("lost a configured monitor")
                     else
-                        log_sys("lost unused monitor, ignoring")
+                        log_sys("lost an unused monitor")
                     end
                 elseif type == "speaker" then
                     log_sys("lost alarm sounder speaker")
@@ -277,9 +274,12 @@ local function main()
                     else
                         log_sys("wired modem reconnected")
                     end
-                -- elseif type == "monitor" then
-                    ---@todo will be handled properly in #249
-                    -- not supported, system will exit on loss of in-use monitors
+                elseif type == "monitor" then
+                    if renderer.handle_reconnect(param1, device) then
+                        log_sys(util.c("configured monitor ", param1, " reconnected"))
+                    else
+                        log_sys(util.c("unused monitor ", param1, " connected"))
+                    end
                 elseif type == "speaker" then
                     log_sys("alarm sounder speaker reconnected")
                     sounder.reconnect(device)

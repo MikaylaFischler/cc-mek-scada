@@ -5,6 +5,8 @@
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
+local iocontrol  = require("coordinator.iocontrol")
+
 local style      = require("coordinator.ui.style")
 local pgi        = require("coordinator.ui.pgi")
 
@@ -48,24 +50,12 @@ end
 
 -- link to the monitor peripherals
 ---@param monitors monitors_struct
-function renderer.set_displays(monitors) engine.monitors = monitors end
+function renderer.set_displays(monitors)
+    engine.monitors = monitors
 
--- check if the renderer is configured to use a given monitor peripheral
----@nodiscard
----@param periph table peripheral
----@return boolean is_used
-function renderer.is_monitor_used(periph)
-    if engine.monitors ~= nil then
-        if engine.monitors.primary == periph then
-            return true
-        else
-            for _, monitor in ipairs(engine.monitors.unit_displays) do
-                if monitor == periph then return true end
-            end
-        end
-    end
-
-    return false
+    -- report to front panel as connected
+    iocontrol.fp_monitor_state(0, true)
+    for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
 end
 
 -- init all displays in use by the renderer
@@ -127,37 +117,13 @@ function renderer.start_fp()
     if not engine.fp_ready then
         -- show front panel view on terminal
         engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
-        panel_view(engine.ui.front_panel)
+        panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
 
         -- start flasher callback task
         flasher.run()
 
         -- report front panel as ready
         engine.fp_ready = true
-    end
-end
-
--- start the coordinator GUI
-function renderer.start_ui()
-    if not engine.ui_ready then
-        -- hide dmesg
-        engine.dmesg_window.setVisible(false)
-
-        -- show main view on main monitor
-        engine.ui.main_display = DisplayBox{window=engine.monitors.primary,fg_bg=style.root}
-        main_view(engine.ui.main_display)
-
-        -- show unit views on unit displays
-        for i = 1, #engine.monitors.unit_displays do
-            engine.ui.unit_displays[i] = DisplayBox{window=engine.monitors.unit_displays[i],fg_bg=style.root}
-            unit_view(engine.ui.unit_displays[i], i)
-        end
-
-        -- start flasher callback task
-        flasher.run()
-
-        -- report ui as ready
-        engine.ui_ready = true
     end
 end
 
@@ -191,6 +157,32 @@ function renderer.close_fp()
     end
 end
 
+-- start the coordinator GUI
+function renderer.start_ui()
+    if not engine.ui_ready then
+        -- hide dmesg
+        engine.dmesg_window.setVisible(false)
+
+        -- show main view on main monitor
+        if engine.monitors.primary ~= nil then
+            engine.ui.main_display = DisplayBox{window=engine.monitors.primary,fg_bg=style.root}
+            main_view(engine.ui.main_display)
+        end
+
+        -- show unit views on unit displays
+        for idx, display in pairs(engine.monitors.unit_displays) do
+            engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
+            unit_view(engine.ui.unit_displays[idx], idx)
+        end
+
+        -- start flasher callback task
+        flasher.run()
+
+        -- report ui as ready
+        engine.ui_ready = true
+    end
+end
+
 -- close out the UI
 function renderer.close_ui()
     if not engine.fp_ready then
@@ -200,7 +192,7 @@ function renderer.close_ui()
 
     -- delete element trees
     if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
-    for _, display in ipairs(engine.ui.unit_displays) do display.delete() end
+    for _, display in pairs(engine.ui.unit_displays) do display.delete() end
 
     -- report ui as not ready
     engine.ui_ready = false
@@ -226,6 +218,95 @@ function renderer.fp_ready() return engine.fp_ready end
 ---@nodiscard
 ---@return boolean ready
 function renderer.ui_ready() return engine.ui_ready end
+
+-- handle a monitor peripheral being disconnected
+---@param device table monitor
+---@return boolean is_used if the monitor is one of the configured monitors
+function renderer.handle_disconnect(device)
+    local is_used = false
+
+    if engine.monitors ~= nil then
+        if engine.monitors.primary == device then
+            if engine.ui.main_display ~= nil then
+                -- delete element tree and clear root UI elements
+                engine.ui.main_display.delete()
+            end
+
+            is_used = true
+            engine.monitors.primary = nil
+            engine.ui.main_display = nil
+
+            iocontrol.fp_monitor_state(0, false)
+        else
+            for idx, monitor in pairs(engine.monitors.unit_displays) do
+                if monitor == device then
+                    if engine.ui.unit_displays[idx] ~= nil then
+                        engine.ui.unit_displays[idx].delete()
+                    end
+
+                    is_used = true
+                    engine.monitors.unit_displays[idx] = nil
+                    engine.ui.unit_displays[idx] = nil
+
+                    iocontrol.fp_monitor_state(idx, false)
+                    break
+                end
+            end
+        end
+    end
+
+    return is_used
+end
+
+-- handle a monitor peripheral being reconnected
+---@param name string monitor name
+---@param device table monitor
+---@return boolean is_used if the monitor is one of the configured monitors
+function renderer.handle_reconnect(name, device)
+    local is_used = false
+
+    if engine.monitors ~= nil then
+        if engine.monitors.primary_name == name then
+            is_used = true
+            _init_display(device)
+            engine.monitors.primary = device
+
+            local disp_x, disp_y = engine.monitors.primary.getSize()
+            engine.dmesg_window.reposition(1, 1, disp_x, disp_y, engine.monitors.primary)
+
+            if engine.ui_ready and (engine.ui.main_display == nil) then
+                engine.dmesg_window.setVisible(false)
+
+                engine.ui.main_display = DisplayBox{window=device,fg_bg=style.root}
+                main_view(engine.ui.main_display)
+            else
+                engine.dmesg_window.setVisible(true)
+                engine.dmesg_window.redraw()
+            end
+
+            iocontrol.fp_monitor_state(0, true)
+        else
+            for idx, monitor in ipairs(engine.monitors.unit_name_map) do
+                if monitor == name then
+                    is_used = true
+                    _init_display(device)
+                    engine.monitors.unit_displays[idx] = device
+
+                    if engine.ui_ready and (engine.ui.unit_displays[idx] == nil) then
+                        engine.ui.unit_displays[idx] = DisplayBox{window=device,fg_bg=style.root}
+                        unit_view(engine.ui.unit_displays[idx], idx)
+                    end
+
+                    iocontrol.fp_monitor_state(idx, true)
+                    break
+                end
+            end
+        end
+    end
+
+    return is_used
+end
+
 
 -- handle a touch event
 ---@param event mouse_interaction|nil

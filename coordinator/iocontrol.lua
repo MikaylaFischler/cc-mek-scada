@@ -223,6 +223,14 @@ function iocontrol.fp_has_speaker(has_speaker) io.fp.ps.publish("has_speaker", h
 ---@param state integer
 function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) end
 
+-- report monitor connection state
+---@param id integer unit ID or 0 for main
+function iocontrol.fp_monitor_state(id, connected)
+    local name = "main_monitor"
+    if id > 0 then name = "unit_monitor_" .. id end
+    io.fp.ps.publish(name, connected)
+end
+
 -- report PKT firmware version and PKT session connection state
 ---@param session_id integer PKT session
 ---@param fw string firmware version

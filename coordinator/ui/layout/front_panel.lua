@@ -30,7 +30,8 @@ local cpair = core.cpair
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
-local function init(panel)
+---@param num_units integer number of units (number of unit monitors)
+local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps
 
     TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.fp.header}
@@ -66,6 +67,18 @@ local function init(panel)
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
     TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+
+    local monitors = Div{parent=main_page,width=16,height=17,x=18,y=2}
+
+    local main_monitor = LED{parent=monitors,label="MAIN MONITOR",colors=cpair(colors.green,colors.green_off)}
+    main_monitor.register(ps, "main_monitor", main_monitor.update)
+
+    monitors.line_break()
+
+    for i = 1, num_units do
+        local unit_monitor = LED{parent=monitors,label="UNIT "..i.." MONITOR",colors=cpair(colors.green,colors.green_off)}
+        unit_monitor.register(ps, "unit_monitor_" .. i, unit_monitor.update)
+    end
 
     --
     -- about footer
