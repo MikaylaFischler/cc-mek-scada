@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.19.3"
+local SUPERVISOR_VERSION = "v0.19.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -178,6 +178,8 @@ local function main()
                         log.info("comms modem reconnected")
 
                         databus.tx_hw_modem(true)
+                    elseif device.isWireless() then
+                        log.info("unused wireless modem reconnected")
                     else
                         log.info("wired modem reconnected")
                     end

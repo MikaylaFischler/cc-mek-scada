@@ -142,6 +142,8 @@ function threads.thread__main(smem)
                             log.info("comms modem reconnected")
 
                             databus.tx_hw_modem(true)
+                        elseif device.isWireless() then
+                            log.info("unused wireless modem reconnected")
                         else
                             log.info("wired modem reconnected")
                         end

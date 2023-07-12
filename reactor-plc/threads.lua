@@ -249,6 +249,8 @@ function threads.thread__main(smem, init)
                             if not plc_state.no_reactor then
                                 plc_state.degraded = false
                             end
+                        elseif device.isWireless() then
+                            log.info("unused wireless modem reconnected")
                         else
                             log.info("wired modem reconnected")
                         end
