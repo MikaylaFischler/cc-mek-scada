@@ -30,10 +30,7 @@ function dynamicv_rtu.new(dynamic_tank)
     -- build properties
     unit.connect_input_reg(dynamic_tank.getTankCapacity)
     unit.connect_input_reg(dynamic_tank.getChemicalTankCapacity)
-    -- current state
     -- tanks/containers
-    unit.connect_input_reg(dynamic_tank.getInputItem)
-    unit.connect_input_reg(dynamic_tank.getOutputItem)
     unit.connect_input_reg(dynamic_tank.getStored)
     unit.connect_input_reg(dynamic_tank.getFilledPercentage)
 
