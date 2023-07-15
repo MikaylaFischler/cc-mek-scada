@@ -809,7 +809,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         for i = 1, #self.tanks do
             local tank = self.tanks[i]  ---@type unit_session
             local db   = tank.get_db()  ---@type dynamicv_session_db
-            status.turbines[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
+            status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- basic SNA statistical information
