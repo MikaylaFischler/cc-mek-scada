@@ -62,9 +62,11 @@ function facility.new(num_reactors, cooling_conf)
         all_sys_ok = false,
         -- rtus
         rtu_conn_count = 0,
+        rtu_list = {},
         redstone = {},
         induction = {},
         sps = {},
+        tanks = {},
         envd = {},
         -- redstone I/O control
         io_ctl = nil,   ---@type rs_controller
@@ -120,14 +122,11 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.group_map, 0)
     end
 
+    -- list for RTU session management
+    self.rtu_list = { self.redstone, self.induction, self.sps, self.tanks, self.envd }
+
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone)
-
-    -- unlink disconnected units
-    ---@param sessions table
-    local function _unlink_disconnected_units(sessions)
-        util.filter_table(sessions, function (u) return u.is_connected() end)
-    end
 
     -- check if all auto-controlled units completed ramping
     ---@nodiscard
@@ -215,29 +214,48 @@ function facility.new(num_reactors, cooling_conf)
 
     -- link an induction matrix RTU session
     ---@param imatrix unit_session
+    ---@return boolean linked induction matrix accepted (max 1)
     function public.add_imatrix(imatrix)
-        table.insert(self.induction, imatrix)
+        if #self.induction == 0 then
+            table.insert(self.induction, imatrix)
+            return true
+        else return false end
     end
 
     -- link an SPS RTU session
     ---@param sps unit_session
+    ---@return boolean linked SPS accepted (max 1)
     function public.add_sps(sps)
-        table.insert(self.sps, sps)
+        if #self.sps == 0 then
+            table.insert(self.sps, sps)
+            return true
+        else return false end
+    end
+
+    -- link a dynamic tank RTU session
+    ---@param dynamic_tank unit_session
+    ---@return boolean linked dynamic tank accepted (max 1)
+    function public.add_tank(dynamic_tank)
+        if #self.tanks == 0 then
+            table.insert(self.tanks, dynamic_tank)
+            return true
+        else return false end
     end
 
     -- link an environment detector RTU session
     ---@param envd unit_session
+    ---@return boolean linked environment detector accepted (max 1)
     function public.add_envd(envd)
-        table.insert(self.envd, envd)
+        if #self.envd == 0 then
+            table.insert(self.envd, envd)
+            return true
+        else return false end
     end
 
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
     function public.purge_rtu_devices(session)
-        util.filter_table(self.redstone,  function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.induction, function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.sps,       function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.envd,      function (s) return s.get_session_id() ~= session end)
+        for _, v in pairs(self.rtu_list) do util.filter_table(v, function (s) return s.get_session_id() ~= session end) end
     end
 
     -- UPDATE --
@@ -251,10 +269,7 @@ function facility.new(num_reactors, cooling_conf)
     -- update (iterate) the facility management
     function public.update()
         -- unlink RTU unit sessions if they are closed
-        _unlink_disconnected_units(self.redstone)
-        _unlink_disconnected_units(self.induction)
-        _unlink_disconnected_units(self.sps)
-        _unlink_disconnected_units(self.envd)
+        for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
 
         -- current state for process control
         local charge_update = 0
@@ -814,11 +829,9 @@ function facility.new(num_reactors, cooling_conf)
 
             ready = self.mode_set > 0
 
-            if (self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0) then
-                ready = false
-            elseif (self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0) then
-                ready = false
-            elseif (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1) then
+            if (self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0) or
+               (self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0) or
+               (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1) then
                 ready = false
             end
 
@@ -903,6 +916,14 @@ function facility.new(num_reactors, cooling_conf)
             end
         end
 
+        if all or type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+            build.tanks = {}
+            for i = 1, #self.tanks do
+                local tank = self.tanks[i]          ---@type unit_session
+                build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }
+            end
+        end
+
         return build
     end
 
@@ -948,35 +969,32 @@ function facility.new(num_reactors, cooling_conf)
         -- status of induction matricies (including tanks)
         status.induction = {}
         for i = 1, #self.induction do
-            local matrix = self.induction[i]  ---@type unit_session
-            status.induction[matrix.get_device_idx()] = {
-                matrix.is_faulted(),
-                matrix.get_db().formed,
-                matrix.get_db().state,
-                matrix.get_db().tanks
-            }
+            local matrix = self.induction[i]    ---@type unit_session
+            local db     = matrix.get_db()      ---@type imatrix_session_db
+            status.induction[matrix.get_device_idx()] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of sps
         status.sps = {}
         for i = 1, #self.sps do
-            local sps = self.sps[i]         ---@type unit_session
-            status.sps[sps.get_device_idx()] = {
-                sps.is_faulted(),
-                sps.get_db().formed,
-                sps.get_db().state,
-                sps.get_db().tanks
-            }
+            local sps = self.sps[i]     ---@type unit_session
+            local db  = sps.get_db()    ---@type sps_session_db
+            status.sps[sps.get_device_idx()] = { sps.is_faulted(), db.formed, db.state, db.tanks }
+        end
+
+        -- status of dynamic tanks
+        status.tanks = {}
+        for i = 1, #self.tanks do
+            local tank = self.tanks[i]  ---@type unit_session
+            local db   = tank.get_db()  ---@type dynamicv_session_db
+            status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- radiation monitors (environment detectors)
         status.rad_mon = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]   ---@type unit_session
-            status.rad_mon[envd.get_device_idx()] = {
-                envd.is_faulted(),
-                envd.get_db().radiation
-            }
+            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), envd.get_db().radiation }
         end
 
         return status

@@ -406,7 +406,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                             local builds = {}
 
                             local unit = self.units[unit_id]    ---@type reactor_unit
-                            builds[unit_id] = unit.get_build(true, false, false)
+                            builds[unit_id] = unit.get_build(-1)
 
                             _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                         elseif cmd.key == CRD_S_DATA.RESEND_RTU_BUILD then
@@ -420,7 +420,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                                 local builds = {}
 
                                 local unit = self.units[unit_id]    ---@type reactor_unit
-                                builds[unit_id] = unit.get_build(false, cmd.val.type == RTU_UNIT_TYPE.BOILER_VALVE, cmd.val.type == RTU_UNIT_TYPE.TURBINE_VALVE)
+                                builds[unit_id] = unit.get_build(cmd.val.type)
 
                                 _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                             else
