@@ -1,7 +1,6 @@
 local comms    = require("scada-common.comms")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
-local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
 local databus  = require("supervisor.databus")
@@ -15,8 +14,6 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
-
-local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
