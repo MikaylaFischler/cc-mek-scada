@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.7b"
+local CCMSI_VERSION = "v1.7c"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -57,7 +57,7 @@ end
 
 -- wait for any key to be pressed
 ---@diagnostic disable-next-line: undefined-field
-local function any_key() os.pullEvent("key_up") end
+local function any_key() os.pullEvent("key");os.pullEvent("key_up") end
 
 -- print out a white + blue text message
 local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
@@ -160,7 +160,7 @@ local function _clean_dir(dir, tree)
         local path = dir .. "/" .. val
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
-            if #fs.list(path) == 0 then fs.delete(path);println("deleted dir " .. path) end
+            if #fs.list(path) == 0 then fs.delete(path);println("deleted " .. path) end
         elseif not _in_array(val, tree) then
             fs.delete(path)
             println("deleted " .. path)
@@ -183,7 +183,7 @@ local function clean(manifest)
     for _, val in pairs(ls) do
         if fs.isDir(val) then
             if tree[val] ~= nil then _clean_dir("/" .. val, tree[val]) end
-            if #fs.list(val) == 0 then fs.delete(val);println("deleted dir " .. val) end
+            if #fs.list(val) == 0 then fs.delete(val);println("deleted " .. val) end
         elseif not _in_array(val, tree) then
             root_ext = true
             yellow();println(val .. " not used")
