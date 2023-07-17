@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.7a"
+local CCMSI_VERSION = "v1.7b"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -57,7 +57,7 @@ end
 
 -- wait for any key to be pressed
 ---@diagnostic disable-next-line: undefined-field
-local function any_key() os.pullEvent("key") end
+local function any_key() os.pullEvent("key_up") end
 
 -- print out a white + blue text message
 local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
@@ -157,15 +157,13 @@ local function _clean_dir(dir, tree)
     if tree == nil then tree = {} end
     local ls = fs.list(dir)
     for _, val in pairs(ls) do
-        local path = dir.."/"..val
+        local path = dir .. "/" .. val
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
-            if #fs.list(path) == 0 then
-                fs.delete(path);lgray();println("deleted dir " .. path);white()
-            end
+            if #fs.list(path) == 0 then fs.delete(path);println("deleted dir " .. path) end
         elseif not _in_array(val, tree) then
-            fs.delete(val)
-            lgray();println("deleted " .. path);white()
+            fs.delete(path)
+            println("deleted " .. path)
         end
     end
 end
@@ -174,19 +172,25 @@ end
 local function clean(manifest)
     local root_ext = false
     local tree = gen_tree(manifest)
+
     table.insert(tree, "install_manifest.json")
     table.insert(tree, "ccmsi.lua")
     table.insert(tree, "log.txt")
+
+    lgray()
+
     local ls = fs.list("/")
     for _, val in pairs(ls) do
         if fs.isDir(val) then
             if tree[val] ~= nil then _clean_dir("/" .. val, tree[val]) end
-            if #fs.list(val) == 0 then fs.delete(val) end
+            if #fs.list(val) == 0 then fs.delete(val);println("deleted dir " .. val) end
         elseif not _in_array(val, tree) then
             root_ext = true
-            yellow();println(val .. " not used");white()
+            yellow();println(val .. " not used")
         end
     end
+
+    white()
     if root_ext then println("Files in root directory won't be automatically deleted.") end
 end
 
