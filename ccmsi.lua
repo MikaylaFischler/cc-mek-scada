@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.7c"
+local CCMSI_VERSION = "v1.7d"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -44,20 +44,20 @@ local function get_opt(opt, options)
     return nil
 end
 
+-- wait for any key to be pressed
+---@diagnostic disable-next-line: undefined-field
+local function any_key() os.pullEvent("key_up") end
+
 -- ask the user yes or no
 local function ask_y_n(question, default)
     print(question)
     if default == true then print(" (Y/n)? ") else print(" (y/N)? ") end
-    local response = read()
+    local response = read();any_key()
     if response == "" then return default
     elseif response == "Y" or response == "y" then return true
     elseif response == "N" or response == "n" then return false
     else return nil end
 end
-
--- wait for any key to be pressed
----@diagnostic disable-next-line: undefined-field
-local function any_key() os.pullEvent("key");os.pullEvent("key_up") end
 
 -- print out a white + blue text message
 local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
@@ -351,7 +351,7 @@ elseif mode == "install" or mode == "update" then
     ver.lockbox.changed = ver.lockbox.v_local ~= ver.lockbox.v_remote
 
     -- ask for confirmation
-    if not ask_y_n("Continue?", false) then return end
+    if not ask_y_n("Continue", false) then return end
 
     --------------------------
     -- START INSTALL/UPDATE --
@@ -529,7 +529,7 @@ elseif mode == "remove" or mode == "purge" then
     end
 
     -- ask for confirmation
-    if not ask_y_n("Continue?", false) then return end
+    if not ask_y_n("Continue", false) then return end
 
     -- delete unused files first
     clean(manifest)
