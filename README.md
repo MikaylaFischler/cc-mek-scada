@@ -7,11 +7,9 @@ Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fi
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/MikaylaFischler/cc-mek-scada/check.yml?branch=latest&label=latest)
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/MikaylaFischler/cc-mek-scada/check.yml?branch=devel&label=devel)
 
-### Join the Discord!
+### [Join](https://discord.gg/R9NSCkhcwt) the Discord!
 
 ![Discord](https://img.shields.io/discord/1129075839288496259)
-
-https://discord.gg/R9NSCkhcwt
 
 ## Released Component Versions
 
@@ -43,7 +41,7 @@ v10.1+ is required due the complete support of CC:Tweaked added in Mekanism v10.
 
 You can install this on a ComputerCraft computer using either:
 * `wget https://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/main/ccmsi.lua`
-* `pastebin get tUVtJFxX ccmsi.lua`
+* `pastebin get RGasyTM4 ccmsi.lua`
 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
