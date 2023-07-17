@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.7"
+local CCMSI_VERSION = "v1.7a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -154,6 +154,7 @@ local function _in_array(val, array)
 end
 
 local function _clean_dir(dir, tree)
+    if tree == nil then tree = {} end
     local ls = fs.list(dir)
     for _, val in pairs(ls) do
         local path = dir.."/"..val
