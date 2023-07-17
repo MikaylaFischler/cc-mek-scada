@@ -2,6 +2,7 @@ local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
+local types       = require("scada-common.types")
 
 local iocontrol   = require("coordinator.iocontrol")
 local process     = require("coordinator.process")
@@ -12,7 +13,6 @@ local dialog      = require("coordinator.ui.dialog")
 
 local print = util.print
 local println = util.println
-local println_ts = util.println_ts
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
@@ -21,6 +21,8 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
+
+local LINK_TIMEOUT = 60.0
 
 local coordinator = {}
 
@@ -227,9 +229,12 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
         sv_seq_num = 0,
         sv_r_seq_num = nil,
         sv_config_err = false,
-        connected = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
-        last_api_est_acks = {}
+        last_api_est_acks = {},
+        est_start = 0,
+        est_last = 0,
+        est_tick_waiting = nil,
+        est_task_done = nil
     }
 
     comms.set_trusted_range(range)
@@ -295,77 +300,78 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
     ---@class coord_comms
     local public = {}
 
+    -- try to connect to the supervisor if not already linked
+    ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)
+    ---@return boolean ok, boolean start_ui
+    function public.try_connect(abort)
+        local ok = true
+        local start_ui = false
+
+        if not self.sv_linked then
+            if self.est_tick_waiting == nil then
+                self.est_start = util.time_s()
+                self.est_last = self.est_start
+
+                self.est_tick_waiting, self.est_task_done =
+                    coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. svr_channel)
+
+                _send_establish()
+            else
+                self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (util.time_s() - self.est_start)))
+            end
+
+            if abort or (util.time_s() - self.est_start) >= LINK_TIMEOUT then
+                self.est_task_done(false)
+
+                if abort then
+                    coordinator.log_comms("supervisor connection attempt cancelled by user")
+                elseif self.sv_config_err then
+                    coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
+                elseif not self.sv_linked then
+                    if self.last_est_ack == ESTABLISH_ACK.DENY then
+                        coordinator.log_comms("supervisor connection attempt denied")
+                    elseif self.last_est_ack == ESTABLISH_ACK.COLLISION then
+                        coordinator.log_comms("supervisor connection failed due to collision")
+                    elseif self.last_est_ack == ESTABLISH_ACK.BAD_VERSION then
+                        coordinator.log_comms("supervisor connection failed due to version mismatch")
+                    else
+                        coordinator.log_comms("supervisor connection failed with no valid response")
+                    end
+                end
+
+                ok = false
+            elseif self.sv_config_err then
+                coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
+                ok = false
+            elseif (util.time_s() - self.est_last) > 1.0 then
+                _send_establish()
+                self.est_last = util.time_s()
+            end
+        elseif self.est_tick_waiting ~= nil then
+            self.est_task_done(true)
+            self.est_tick_waiting = nil
+            self.est_task_done = nil
+            start_ui = true
+        end
+
+        return ok, start_ui
+    end
+
     -- close the connection to the server
     function public.close()
         sv_watchdog.cancel()
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
         self.sv_r_seq_num = nil
+        iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
         _send_sv(PROTOCOL.SCADA_MGMT, SCADA_MGMT_TYPE.CLOSE, {})
-    end
-
-    -- attempt to connect to the subervisor
-    ---@nodiscard
-    ---@param timeout_s number timeout in seconds
-    ---@param tick_dmesg_waiting function callback to tick dmesg waiting
-    ---@param task_done function callback to show done on dmesg
-    ---@return boolean sv_linked true if connected, false otherwise
-    --- EVENT_CONSUMER: this function consumes events
-    function public.sv_connect(timeout_s, tick_dmesg_waiting, task_done)
-        local clock = util.new_clock(1)
-        local start = util.time_s()
-        local terminated = false
-
-        _send_establish()
-
-        clock.start()
-
-        while (util.time_s() - start) < timeout_s and (not self.sv_linked) and (not self.sv_config_err) do
-            local event, p1, p2, p3, p4, p5 = util.pull_event()
-
-            if event == "timer" and clock.is_clock(p1) then
-                -- timed out attempt, try again
-                tick_dmesg_waiting(math.max(0, timeout_s - (util.time_s() - start)))
-                _send_establish()
-                clock.start()
-            elseif event == "timer" then
-                -- keep checking watchdog timers
-                apisessions.check_all_watchdogs(p1)
-            elseif event == "modem_message" then
-                -- handle message
-                local packet = public.parse_packet(p1, p2, p3, p4, p5)
-                public.handle_packet(packet)
-            elseif event == "terminate" then
-                terminated = true
-                break
-            end
-        end
-
-        task_done(self.sv_linked)
-
-        if terminated then
-            coordinator.log_comms("supervisor connection attempt cancelled by user")
-        elseif self.sv_config_err then
-            coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
-        elseif not self.sv_linked then
-            if self.last_est_ack == ESTABLISH_ACK.DENY then
-                coordinator.log_comms("supervisor connection attempt denied")
-            elseif self.last_est_ack == ESTABLISH_ACK.COLLISION then
-                coordinator.log_comms("supervisor connection failed due to collision")
-            elseif self.last_est_ack == ESTABLISH_ACK.BAD_VERSION then
-                coordinator.log_comms("supervisor connection failed due to version mismatch")
-            else
-                coordinator.log_comms("supervisor connection failed with no valid response")
-            end
-        end
-
-        return self.sv_linked
     end
 
     -- send a facility command
     ---@param cmd FAC_COMMAND command
-    function public.send_fac_command(cmd)
-        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, { cmd })
+    ---@param option any? optional option options for the optional options (like waste mode)
+    function public.send_fac_command(cmd, option)
+        _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.FAC_CMD, { cmd, option })
     end
 
     -- send the auto process control configuration with a start command
@@ -379,7 +385,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
     -- send a unit command
     ---@param cmd UNIT_COMMAND command
     ---@param unit integer unit ID
-    ---@param option any? optional option options for the optional options (like burn rate) (does option still look like a word?)
+    ---@param option any? optional option options for the optional options (like burn rate)
     function public.send_unit_command(cmd, unit, option)
         _send_sv(PROTOCOL.SCADA_CRDN, SCADA_CRDN_TYPE.UNIT_CMD, { cmd, unit, option })
     end
@@ -424,7 +430,10 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
 
     -- handle a packet
     ---@param packet mgmt_frame|crdn_frame|capi_frame|nil
+    ---@return boolean close_ui
     function public.handle_packet(packet)
+        local was_linked = self.sv_linked
+
         if packet ~= nil then
             local l_chan = packet.scada_frame.local_channel()
             local r_chan = packet.scada_frame.remote_channel()
@@ -434,7 +443,9 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
             if l_chan ~= crd_channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
             elseif r_chan == pkt_channel then
-                if protocol == PROTOCOL.COORD_API then
+                if not self.sv_linked then
+                    log.debug("discarding pocket API packet before linked to supervisor")
+                elseif protocol == PROTOCOL.COORD_API then
                     ---@cast packet capi_frame
                     -- look for an associated session
                     local session = apisessions.find_session(src_addr)
@@ -473,7 +484,6 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- pocket linking request
                                 local id = apisessions.establish_session(src_addr, firmware_v)
-                                println(util.c("[API] pocket (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW)
@@ -496,12 +506,12 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                 -- check sequence number
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and ((self.sv_r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
+                elseif self.sv_linked and ((self.sv_r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
                     log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
-                    return
+                    return false
                 elseif self.sv_linked and src_addr ~= self.sv_addr then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
-                    return
+                    return false
                 else
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
                 end
@@ -563,6 +573,10 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                                     end
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                                    process.waste_ack_handle(packet.data[2])
+                                elseif cmd == FAC_COMMAND.SET_PU_FB then
+                                    process.pu_fb_ack_handle(packet.data[2])
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end
@@ -627,70 +641,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
-                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                        -- connection with supervisor established
-                        if packet.length == 2 then
-                            local est_ack = packet.data[1]
-                            local config = packet.data[2]
-
-                            if est_ack == ESTABLISH_ACK.ALLOW then
-                                if type(config) == "table" and #config > 1 then
-                                    -- get configuration
-
-                                    ---@class facility_conf
-                                    local conf = {
-                                        num_units = config[1],  ---@type integer
-                                        defs = {}               -- boilers and turbines
-                                    }
-
-                                    if (#config - 1) == (conf.num_units * 2) then
-                                        -- record sequence of pairs of [#boilers, #turbines] per unit
-                                        for i = 2, #config do
-                                            table.insert(conf.defs, config[i])
-                                        end
-
-                                        -- init io controller
-                                        iocontrol.init(conf, public)
-
-                                        self.sv_addr = src_addr
-                                        self.sv_linked = true
-                                        self.sv_config_err = false
-                                    else
-                                        self.sv_config_err = true
-                                        log.warning("invalid supervisor configuration definitions received, establish failed")
-                                    end
-                                else
-                                    log.debug("invalid supervisor configuration table received, establish failed")
-                                end
-                            else
-                                log.debug("SCADA_MGMT establish packet reply (len = 2) unsupported")
-                            end
-
-                            self.last_est_ack = est_ack
-                        elseif packet.length == 1 then
-                            local est_ack = packet.data[1]
-
-                            if est_ack == ESTABLISH_ACK.DENY then
-                                if self.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.last_est_ack ~= est_ack then
-                                    log.warning("supervisor connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.last_est_ack ~= est_ack then
-                                    log.warning("supervisor comms version mismatch")
-                                end
-                            else
-                                log.debug("SCADA_MGMT establish packet reply (len = 1) unsupported")
-                            end
-
-                            self.last_est_ack = est_ack
-                        else
-                            log.debug("SCADA_MGMT establish packet length mismatch")
-                        end
-                    elseif self.sv_linked then
+                    if self.sv_linked then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -715,10 +666,82 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                             self.sv_addr = comms.BROADCAST
                             self.sv_linked = false
                             self.sv_r_seq_num = nil
-                            println_ts("server connection closed by remote host")
+                            iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
                             log.info("server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type)
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                        -- connection with supervisor established
+                        if packet.length == 2 then
+                            local est_ack = packet.data[1]
+                            local config = packet.data[2]
+
+                            if est_ack == ESTABLISH_ACK.ALLOW then
+                                -- reset to disconnected before validating
+                                iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+
+                                if type(config) == "table" and #config > 1 then
+                                    -- get configuration
+
+                                    ---@class facility_conf
+                                    local conf = {
+                                        num_units = config[1],  ---@type integer
+                                        defs = {}               -- boilers and turbines
+                                    }
+
+                                    if (#config - 1) == (conf.num_units * 2) then
+                                        -- record sequence of pairs of [#boilers, #turbines] per unit
+                                        for i = 2, #config do
+                                            table.insert(conf.defs, config[i])
+                                        end
+
+                                        -- init io controller
+                                        iocontrol.init(conf, public)
+
+                                        self.sv_addr = src_addr
+                                        self.sv_linked = true
+                                        self.sv_r_seq_num = nil
+                                        self.sv_config_err = false
+
+                                        iocontrol.fp_link_state(types.PANEL_LINK_STATE.LINKED)
+                                    else
+                                        self.sv_config_err = true
+                                        log.warning("invalid supervisor configuration definitions received, establish failed")
+                                    end
+                                else
+                                    log.debug("invalid supervisor configuration table received, establish failed")
+                                end
+                            else
+                                log.debug("SCADA_MGMT establish packet reply (len = 2) unsupported")
+                            end
+
+                            self.last_est_ack = est_ack
+                        elseif packet.length == 1 then
+                            local est_ack = packet.data[1]
+
+                            if est_ack == ESTABLISH_ACK.DENY then
+                                if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.DENIED)
+                                    log.info("supervisor connection denied")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.COLLISION)
+                                    log.warning("supervisor connection denied due to collision")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                if self.last_est_ack ~= est_ack then
+                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.BAD_VERSION)
+                                    log.warning("supervisor comms version mismatch")
+                                end
+                            else
+                                log.debug("SCADA_MGMT establish packet reply (len = 1) unsupported")
+                            end
+
+                            self.last_est_ack = est_ack
+                        else
+                            log.debug("SCADA_MGMT establish packet length mismatch")
                         end
                     else
                         log.debug("discarding non-link SCADA_MGMT packet before linked")
@@ -730,6 +753,8 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                 log.debug("received packet for unknown channel " .. r_chan, true)
             end
         end
+
+        return was_linked and not self.sv_linked
     end
 
     -- check if the coordinator is still linked to the supervisor

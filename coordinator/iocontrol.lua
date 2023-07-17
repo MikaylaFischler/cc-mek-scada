@@ -10,8 +10,14 @@ local util    = require("scada-common.util")
 local process = require("coordinator.process")
 local sounder = require("coordinator.sounder")
 
+local pgi     = require("coordinator.ui.pgi")
+
 local ALARM_STATE = types.ALARM_STATE
 local PROCESS = types.PROCESS
+
+-- nominal RTT is ping (0ms to 10ms usually) + 500ms for CRD main loop tick
+local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
+local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 
 local iocontrol = {}
 
@@ -26,6 +32,19 @@ local io = {}
 local function __generic_ack(success) end
 
 -- luacheck: unused args
+
+-- initialize front panel PSIL
+---@param firmware_v string coordinator version
+---@param comms_v string comms version
+function iocontrol.init_fp(firmware_v, comms_v)
+    ---@class ioctl_front_panel
+    io.fp = {
+        ps = psil.create()
+    }
+
+    io.fp.ps.publish("version", firmware_v)
+    io.fp.ps.publish("comms_version", comms_v)
+end
 
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
@@ -52,6 +71,10 @@ function iocontrol.init(conf, comms)
             gen_fault = false
         },
 
+        ---@type WASTE_PRODUCT
+        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+        auto_pu_fallback_active = false,
+
         radiation = types.new_zero_radiation_reading(),
 
         save_cfg_ack = __generic_ack,
@@ -65,16 +88,21 @@ function iocontrol.init(conf, comms)
         induction_ps_tbl = {},
         induction_data_tbl = {},
 
+        sps_ps_tbl = {},
+        sps_data_tbl = {},
+
+        tank_ps_tbl = {},
+        tank_data_tbl = {},
+
         env_d_ps = psil.create(),
         env_d_data = {}
     }
 
-    -- create induction tables (currently only 1 is supported)
-    for _ = 1, conf.num_units do
-        local data = {} ---@type imatrix_session_db
-        table.insert(io.facility.induction_ps_tbl, psil.create())
-        table.insert(io.facility.induction_data_tbl, data)
-    end
+    -- create induction and SPS tables (currently only 1 of each is supported)
+    table.insert(io.facility.induction_ps_tbl, psil.create())
+    table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.sps_ps_tbl, psil.create())
+    table.insert(io.facility.sps_data_tbl, {})
 
     io.units = {}
     for i = 1, conf.num_units do
@@ -87,11 +115,15 @@ function iocontrol.init(conf, comms)
 
             num_boilers = 0,
             num_turbines = 0,
+            num_snas = 0,
 
             control_state = false,
             burn_rate_cmd = 0.0,
-            waste_control = 0,
             radiation = types.new_zero_radiation_reading(),
+            sna_prod_rate = 0.0,
+
+            waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
+            waste_product = types.WASTE_PRODUCT.PLUTONIUM,
 
             -- auto control group
             a_group = 0,
@@ -100,10 +132,10 @@ function iocontrol.init(conf, comms)
             scram = function () process.scram(i) end,
             reset_rps = function () process.reset_rps(i) end,
             ack_alarms = function () process.ack_all_alarms(i) end,
-            set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
-            set_waste = function (mode) process.set_waste(i, mode) end, ---@param mode integer waste processing mode
+            set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
+            set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
 
-            set_group = function (grp) process.set_group(i, grp) end,   ---@param grp integer|0 group ID or 0
+            set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
 
             start_ack = __generic_ack,
             scram_ack = __generic_ack,
@@ -152,7 +184,10 @@ function iocontrol.init(conf, comms)
             boiler_data_tbl = {},
 
             turbine_ps_tbl = {},
-            turbine_data_tbl = {}
+            turbine_data_tbl = {},
+
+            tank_ps_tbl = {},
+            tank_data_tbl = {}
         }
 
         -- create boiler tables
@@ -179,6 +214,92 @@ function iocontrol.init(conf, comms)
     process.init(io, comms)
 end
 
+--#region Front Panel PSIL
+
+-- toggle heartbeat indicator
+function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
+
+-- report presence of the wireless modem
+---@param has_modem boolean
+function iocontrol.fp_has_modem(has_modem) io.fp.ps.publish("has_modem", has_modem) end
+
+-- report presence of the speaker
+---@param has_speaker boolean
+function iocontrol.fp_has_speaker(has_speaker) io.fp.ps.publish("has_speaker", has_speaker) end
+
+-- report supervisor link state
+---@param state integer
+function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) end
+
+-- report monitor connection state
+---@param id integer unit ID or 0 for main
+function iocontrol.fp_monitor_state(id, connected)
+    local name = "main_monitor"
+    if id > 0 then name = "unit_monitor_" .. id end
+    io.fp.ps.publish(name, connected)
+end
+
+-- report PKT firmware version and PKT session connection state
+---@param session_id integer PKT session
+---@param fw string firmware version
+---@param s_addr integer PKT computer ID
+function iocontrol.fp_pkt_connected(session_id, fw, s_addr)
+    io.fp.ps.publish("pkt_" .. session_id .. "_fw", fw)
+    io.fp.ps.publish("pkt_" .. session_id .. "_addr", util.sprintf("@ C% 3d", s_addr))
+    pgi.create_pkt_entry(session_id)
+end
+
+-- report PKT session disconnected
+---@param session_id integer PKT session
+function iocontrol.fp_pkt_disconnected(session_id)
+    pgi.delete_pkt_entry(session_id)
+end
+
+-- transmit PKT session RTT
+---@param session_id integer PKT session
+---@param rtt integer round trip time
+function iocontrol.fp_pkt_rtt(session_id, rtt)
+    io.fp.ps.publish("pkt_" .. session_id .. "_rtt", rtt)
+
+    if rtt > HIGH_RTT then
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.red)
+    elseif rtt > WARN_RTT then
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.yellow_hc)
+    else
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.green)
+    end
+end
+
+--#endregion
+
+--#region Builds
+
+-- record and publish multiblock RTU build data
+---@param id integer
+---@param entry table
+---@param data_tbl table
+---@param ps_tbl table
+---@param create boolean? true to create an entry if non exists, false to fail on missing
+---@return boolean ok true if data saved, false if invalid ID
+local function _record_multiblock_build(id, entry, data_tbl, ps_tbl, create)
+    local exists = type(data_tbl[id]) == "table"
+    if exists or create then
+        if not exists then
+            ps_tbl[id] = psil.create()
+            data_tbl[id] = {}
+        end
+
+        data_tbl[id].formed = entry[1]  ---@type boolean
+        data_tbl[id].build  = entry[2]  ---@type table
+
+        ps_tbl[id].publish("formed", entry[1])
+
+        for key, val in pairs(data_tbl[id].build) do ps_tbl[id].publish(key, val) end
+    end
+
+    return exists or (create == true)
+end
+
 -- populate facility structure builds
 ---@param build table
 ---@return boolean valid
@@ -191,19 +312,27 @@ function iocontrol.record_facility_builds(build)
         -- induction matricies
         if type(build.induction) == "table" then
             for id, matrix in pairs(build.induction) do
-                if type(fac.induction_data_tbl[id]) == "table" then
-                    fac.induction_data_tbl[id].formed = matrix[1]  ---@type boolean
-                    fac.induction_data_tbl[id].build  = matrix[2]  ---@type table
-
-                    fac.induction_ps_tbl[id].publish("formed", matrix[1])
-
-                    for key, val in pairs(fac.induction_data_tbl[id].build) do
-                        fac.induction_ps_tbl[id].publish(key, val)
-                    end
-                else
+                if not _record_multiblock_build(id, matrix, fac.induction_data_tbl, fac.induction_ps_tbl) then
                     log.debug(util.c("iocontrol.record_facility_builds: invalid induction matrix id ", id))
                     valid = false
                 end
+            end
+        end
+
+        -- SPS
+        if type(build.sps) == "table" then
+            for id, sps in pairs(build.sps) do
+                if not _record_multiblock_build(id, sps, fac.sps_data_tbl, fac.sps_ps_tbl) then
+                    log.debug(util.c("iocontrol.record_facility_builds: invalid SPS id ", id))
+                    valid = false
+                end
+            end
+        end
+
+        -- dynamic tanks
+        if type(build.tanks) == "table" then
+            for id, tank in pairs(build.tanks) do
+                _record_multiblock_build(id, tank, fac.tank_data_tbl, fac.tank_ps_tbl, true)
             end
         end
     else
@@ -249,16 +378,7 @@ function iocontrol.record_unit_builds(builds)
             -- boiler builds
             if type(build.boilers) == "table" then
                 for b_id, boiler in pairs(build.boilers) do
-                    if type(unit.boiler_data_tbl[b_id]) == "table" then
-                        unit.boiler_data_tbl[b_id].formed = boiler[1] ---@type boolean
-                        unit.boiler_data_tbl[b_id].build  = boiler[2] ---@type table
-
-                        unit.boiler_ps_tbl[b_id].publish("formed", boiler[1])
-
-                        for key, val in pairs(unit.boiler_data_tbl[b_id].build) do
-                            unit.boiler_ps_tbl[b_id].publish(key, val)
-                        end
-                    else
+                    if not _record_multiblock_build(b_id, boiler, unit.boiler_data_tbl, unit.boiler_ps_tbl) then
                         log.debug(util.c(log_header, "invalid boiler id ", b_id))
                         valid = false
                     end
@@ -268,25 +388,47 @@ function iocontrol.record_unit_builds(builds)
             -- turbine builds
             if type(build.turbines) == "table" then
                 for t_id, turbine in pairs(build.turbines) do
-                    if type(unit.turbine_data_tbl[t_id]) == "table" then
-                        unit.turbine_data_tbl[t_id].formed = turbine[1]   ---@type boolean
-                        unit.turbine_data_tbl[t_id].build  = turbine[2]   ---@type table
-
-                        unit.turbine_ps_tbl[t_id].publish("formed", turbine[1])
-
-                        for key, val in pairs(unit.turbine_data_tbl[t_id].build) do
-                            unit.turbine_ps_tbl[t_id].publish(key, val)
-                        end
-                    else
+                    if not _record_multiblock_build(t_id, turbine, unit.turbine_data_tbl, unit.turbine_ps_tbl) then
                         log.debug(util.c(log_header, "invalid turbine id ", t_id))
                         valid = false
                     end
+                end
+            end
+
+            -- dynamic tank builds
+            if type(build.tanks) == "table" then
+                for d_id, d_tank in pairs(build.tanks) do
+                    _record_multiblock_build(d_id, d_tank, unit.tank_data_tbl, unit.tank_ps_tbl, true)
                 end
             end
         end
     end
 
     return valid
+end
+
+--#endregion
+
+--#region Statuses
+
+-- record and publish multiblock status data
+---@param entry any
+---@param data imatrix_session_db|sps_session_db|dynamicv_session_db|turbinev_session_db|boilerv_session_db
+---@param ps psil
+---@return boolean is_faulted
+local function _record_multiblock_status(entry, data, ps)
+    local is_faulted = entry[1] ---@type boolean
+    data.formed      = entry[2] ---@type boolean
+    data.state       = entry[3] ---@type table
+    data.tanks       = entry[4] ---@type table
+
+    ps.publish("formed", data.formed)
+    ps.publish("faulted", is_faulted)
+
+    for key, val in pairs(data.state) do ps.publish(key, val) end
+    for key, val in pairs(data.tanks) do ps.publish(key, val) end
+
+    return is_faulted
 end
 
 -- update facility status
@@ -306,7 +448,7 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 14 then
+        if type(ctl_status) == "table" and #ctl_status == 16 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -354,6 +496,12 @@ function iocontrol.update_facility_status(status)
                     io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
                 end
             end
+
+            fac.auto_current_waste_product = ctl_status[15]
+            fac.auto_pu_fallback_active = ctl_status[16]
+
+            fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
+            fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false
@@ -390,36 +538,23 @@ function iocontrol.update_facility_status(status)
 
                 for id, matrix in pairs(rtu_statuses.induction) do
                     if type(fac.induction_data_tbl[id]) == "table" then
-                        local rtu_faulted                 = matrix[1]   ---@type boolean
-                        fac.induction_data_tbl[id].formed = matrix[2]   ---@type boolean
-                        fac.induction_data_tbl[id].state  = matrix[3]   ---@type table
-                        fac.induction_data_tbl[id].tanks  = matrix[4]   ---@type table
+                        local data = fac.induction_data_tbl[id] ---@type imatrix_session_db
+                        local ps   = fac.induction_ps_tbl[id]   ---@type psil
 
-                        local data = fac.induction_data_tbl[id]         ---@type imatrix_session_db
+                        local rtu_faulted = _record_multiblock_status(matrix, data, ps)
 
-                        fac.induction_ps_tbl[id].publish("formed", data.formed)
-                        fac.induction_ps_tbl[id].publish("faulted", rtu_faulted)
-
-                        if data.formed then
-                            if rtu_faulted then
-                                fac.induction_ps_tbl[id].publish("computed_status", 3)  -- faulted
-                            elseif data.tanks.energy_fill >= 0.99 then
-                                fac.induction_ps_tbl[id].publish("computed_status", 6)  -- full
+                        if rtu_faulted then
+                            ps.publish("computed_status", 3)    -- faulted
+                        elseif data.formed then
+                            if data.tanks.energy_fill >= 0.99 then
+                                ps.publish("computed_status", 6)    -- full
                             elseif data.tanks.energy_fill <= 0.01 then
-                                fac.induction_ps_tbl[id].publish("computed_status", 5)  -- empty
+                                ps.publish("computed_status", 5)    -- empty
                             else
-                                fac.induction_ps_tbl[id].publish("computed_status", 4)  -- on-line
+                                ps.publish("computed_status", 4)    -- on-line
                             end
                         else
-                            fac.induction_ps_tbl[id].publish("computed_status", 2)      -- not formed
-                        end
-
-                        for key, val in pairs(fac.induction_data_tbl[id].state) do
-                            fac.induction_ps_tbl[id].publish(key, val)
-                        end
-
-                        for key, val in pairs(fac.induction_data_tbl[id].tanks) do
-                            fac.induction_ps_tbl[id].publish(key, val)
+                            ps.publish("computed_status", 2)        -- not formed
                         end
                     else
                         log.debug(util.c(log_header, "invalid induction matrix id ", id))
@@ -427,6 +562,82 @@ function iocontrol.update_facility_status(status)
                 end
             else
                 log.debug(log_header .. "induction matrix list not a table")
+                valid = false
+            end
+
+            -- SPS statuses
+            if type(rtu_statuses.sps) == "table" then
+                for id = 1, #fac.sps_ps_tbl do
+                    if rtu_statuses.sps[id] == nil then
+                        -- disconnected
+                        fac.sps_ps_tbl[id].publish("computed_status", 1)
+                    end
+                end
+
+                for id, sps in pairs(rtu_statuses.sps) do
+                    if type(fac.sps_data_tbl[id]) == "table" then
+                        local data = fac.sps_data_tbl[id]   ---@type sps_session_db
+                        local ps   = fac.sps_ps_tbl[id]     ---@type psil
+
+                        local rtu_faulted = _record_multiblock_status(sps, data, ps)
+
+                        if rtu_faulted then
+                            ps.publish("computed_status", 3)        -- faulted
+                        elseif data.formed then
+                            if data.state.process_rate > 0 then
+                                ps.publish("computed_status", 5)    -- active
+                            else
+                                ps.publish("computed_status", 4)    -- idle
+                            end
+                        else
+                            ps.publish("computed_status", 2)        -- not formed
+                        end
+
+                        io.facility.ps.publish("am_rate", data.state.process_rate * 1000)
+                    else
+                        log.debug(util.c(log_header, "invalid sps id ", id))
+                    end
+                end
+            else
+                log.debug(log_header .. "sps list not a table")
+                valid = false
+            end
+
+            -- dynamic tank statuses
+            if type(rtu_statuses.tanks) == "table" then
+                for id = 1, #fac.tank_ps_tbl do
+                    if rtu_statuses.tanks[id] == nil then
+                        -- disconnected
+                        fac.tank_ps_tbl[id].publish("computed_status", 1)
+                    end
+                end
+
+                for id, tank in pairs(rtu_statuses.tanks) do
+                    if type(fac.tank_data_tbl[id]) == "table" then
+                        local data = fac.tank_data_tbl[id]  ---@type dynamicv_session_db
+                        local ps   = fac.tank_ps_tbl[id]    ---@type psil
+
+                        local rtu_faulted = _record_multiblock_status(tank, data, ps)
+
+                        if rtu_faulted then
+                            ps.publish("computed_status", 3)        -- faulted
+                        elseif data.formed then
+                            if data.tanks.fill >= 0.99 then
+                                ps.publish("computed_status", 6)    -- full
+                            elseif data.tanks.fill < 0.20 then
+                                ps.publish("computed_status", 5)    -- low
+                            else
+                                ps.publish("computed_status", 4)    -- on-line
+                            end
+                        else
+                            ps.publish("computed_status", 2)        -- not formed
+                        end
+                    else
+                        log.debug(util.c(log_header, "invalid dynamic tank id ", id))
+                    end
+                end
+            else
+                log.debug(log_header .. "dyanmic tank list not a table")
                 valid = false
             end
 
@@ -472,6 +683,9 @@ function iocontrol.update_unit_statuses(statuses)
         valid = false
     else
         local burn_rate_sum = 0.0
+        local sna_count_sum = 0
+        local pu_rate = 0.0
+        local po_rate = 0.0
 
         -- get all unit statuses
         for i = 1, #statuses do
@@ -479,6 +693,8 @@ function iocontrol.update_unit_statuses(statuses)
 
             local unit = io.units[i]    ---@type ioctl_unit
             local status = statuses[i]
+
+            local burn_rate = 0.0
 
             if type(status) ~= "table" or #status ~= 5 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
@@ -515,7 +731,8 @@ function iocontrol.update_unit_statuses(statuses)
 
                     -- if status hasn't been received, mek_status = {}
                     if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
-                        burn_rate_sum = burn_rate_sum + unit.reactor_data.mek_status.act_burn_rate
+                        burn_rate = unit.reactor_data.mek_status.act_burn_rate
+                        burn_rate_sum = burn_rate_sum + burn_rate
                     end
 
                     if unit.reactor_data.mek_status.status then
@@ -571,34 +788,21 @@ function iocontrol.update_unit_statuses(statuses)
 
                         for id, boiler in pairs(rtu_statuses.boilers) do
                             if type(unit.boiler_data_tbl[id]) == "table" then
-                                local rtu_faulted               = boiler[1] ---@type boolean
-                                unit.boiler_data_tbl[id].formed = boiler[2] ---@type boolean
-                                unit.boiler_data_tbl[id].state  = boiler[3] ---@type table
-                                unit.boiler_data_tbl[id].tanks  = boiler[4] ---@type table
+                                local data = unit.boiler_data_tbl[id]   ---@type boilerv_session_db
+                                local ps   = unit.boiler_ps_tbl[id]     ---@type psil
 
-                                local data = unit.boiler_data_tbl[id]  ---@type boilerv_session_db
-
-                                unit.boiler_ps_tbl[id].publish("formed", data.formed)
-                                unit.boiler_ps_tbl[id].publish("faulted", rtu_faulted)
+                                local rtu_faulted = _record_multiblock_status(boiler, data, ps)
 
                                 if rtu_faulted then
-                                    unit.boiler_ps_tbl[id].publish("computed_status", 3)        -- faulted
+                                    ps.publish("computed_status", 3)        -- faulted
                                 elseif data.formed then
                                     if data.state.boil_rate > 0 then
-                                        unit.boiler_ps_tbl[id].publish("computed_status", 5)    -- active
+                                        ps.publish("computed_status", 5)    -- active
                                     else
-                                        unit.boiler_ps_tbl[id].publish("computed_status", 4)    -- idle
+                                        ps.publish("computed_status", 4)    -- idle
                                     end
                                 else
-                                    unit.boiler_ps_tbl[id].publish("computed_status", 2)        -- not formed
-                                end
-
-                                for key, val in pairs(unit.boiler_data_tbl[id].state) do
-                                    unit.boiler_ps_tbl[id].publish(key, val)
-                                end
-
-                                for key, val in pairs(unit.boiler_data_tbl[id].tanks) do
-                                    unit.boiler_ps_tbl[id].publish(key, val)
+                                    ps.publish("computed_status", 2)        -- not formed
                                 end
                             else
                                 log.debug(util.c(log_header, "invalid boiler id ", id))
@@ -621,36 +825,23 @@ function iocontrol.update_unit_statuses(statuses)
 
                         for id, turbine in pairs(rtu_statuses.turbines) do
                             if type(unit.turbine_data_tbl[id]) == "table" then
-                                local rtu_faulted                = turbine[1]   ---@type boolean
-                                unit.turbine_data_tbl[id].formed = turbine[2]   ---@type boolean
-                                unit.turbine_data_tbl[id].state  = turbine[3]   ---@type table
-                                unit.turbine_data_tbl[id].tanks  = turbine[4]   ---@type table
-
                                 local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
+                                local ps   = unit.turbine_ps_tbl[id]    ---@type psil
 
-                                unit.turbine_ps_tbl[id].publish("formed", data.formed)
-                                unit.turbine_ps_tbl[id].publish("faulted", rtu_faulted)
+                                local rtu_faulted = _record_multiblock_status(turbine, data, ps)
 
                                 if rtu_faulted then
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 3)       -- faulted
+                                    ps.publish("computed_status", 3)        -- faulted
                                 elseif data.formed then
                                     if data.tanks.energy_fill >= 0.99 then
-                                        unit.turbine_ps_tbl[id].publish("computed_status", 6)   -- trip
+                                        ps.publish("computed_status", 6)    -- trip
                                     elseif data.state.flow_rate < 100 then
-                                        unit.turbine_ps_tbl[id].publish("computed_status", 4)   -- idle
+                                        ps.publish("computed_status", 4)    -- idle
                                     else
-                                        unit.turbine_ps_tbl[id].publish("computed_status", 5)   -- active
+                                        ps.publish("computed_status", 5)    -- active
                                     end
                                 else
-                                    unit.turbine_ps_tbl[id].publish("computed_status", 2)       -- not formed
-                                end
-
-                                for key, val in pairs(unit.turbine_data_tbl[id].state) do
-                                    unit.turbine_ps_tbl[id].publish(key, val)
-                                end
-
-                                for key, val in pairs(unit.turbine_data_tbl[id].tanks) do
-                                    unit.turbine_ps_tbl[id].publish(key, val)
+                                    ps.publish("computed_status", 2)        -- not formed
                                 end
                             else
                                 log.debug(util.c(log_header, "invalid turbine id ", id))
@@ -659,6 +850,58 @@ function iocontrol.update_unit_statuses(statuses)
                         end
                     else
                         log.debug(log_header .. "turbine list not a table")
+                        valid = false
+                    end
+
+                    -- dynamic tank statuses
+                    if type(rtu_statuses.tanks) == "table" then
+                        for id = 1, #unit.tank_ps_tbl do
+                            if rtu_statuses.tanks[i] == nil then
+                                -- disconnected
+                                unit.tank_ps_tbl[id].publish("computed_status", 1)
+                            end
+                        end
+
+                        for id, tank in pairs(rtu_statuses.tanks) do
+                            if type(unit.tank_data_tbl[id]) == "table" then
+                                local data = unit.tank_data_tbl[id] ---@type dynamicv_session_db
+                                local ps   = unit.tank_ps_tbl[id]   ---@type psil
+
+                                local rtu_faulted = _record_multiblock_status(tank, data, ps)
+
+                                if rtu_faulted then
+                                    ps.publish("computed_status", 3)        -- faulted
+                                elseif data.formed then
+                                    if data.tanks.fill >= 0.99 then
+                                        ps.publish("computed_status", 6)    -- full
+                                    elseif data.tanks.fill < 0.20 then
+                                        ps.publish("computed_status", 5)    -- low
+                                    else
+                                        ps.publish("computed_status", 5)    -- active
+                                    end
+                                else
+                                    ps.publish("computed_status", 2)        -- not formed
+                                end
+                            else
+                                log.debug(util.c(log_header, "invalid dynamic tank id ", id))
+                                valid = false
+                            end
+                        end
+                    else
+                        log.debug(log_header .. "dynamic tank list not a table")
+                        valid = false
+                    end
+
+                    -- solar neutron activator status info
+                    if type(rtu_statuses.sna) == "table" then
+                        unit.num_snas      = rtu_statuses.sna[1]    ---@type integer
+                        unit.sna_prod_rate = rtu_statuses.sna[2]    ---@type number
+
+                        unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
+
+                        sna_count_sum = sna_count_sum + unit.num_snas
+                    else
+                        log.debug(log_header .. "sna statistic list not a table")
                         valid = false
                     end
 
@@ -739,12 +982,17 @@ function iocontrol.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 5 then
+                    if #unit_state == 6 then
+                        unit.waste_mode = unit_state[5]
+                        unit.waste_product = unit_state[6]
+
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])
-                        unit.unit_ps.publish("U_WasteMode", unit_state[3])
-                        unit.unit_ps.publish("U_AutoReady", unit_state[4])
-                        unit.unit_ps.publish("U_AutoDegraded", unit_state[5])
+                        unit.unit_ps.publish("U_AutoReady", unit_state[3])
+                        unit.unit_ps.publish("U_AutoDegraded", unit_state[4])
+                        unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+                        unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
+                        unit.unit_ps.publish("U_WasteProduct", unit.waste_product)
                     else
                         log.debug(log_header .. "unit state length mismatch")
                         valid = false
@@ -753,10 +1001,18 @@ function iocontrol.update_unit_statuses(statuses)
                     log.debug(log_header .. "unit state not a table")
                     valid = false
                 end
+
+                -- determine waste production for this unit, add to statistics
+                local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
+                pu_rate = pu_rate + util.trinary(is_pu, burn_rate / 10.0, 0.0)
+                po_rate = po_rate + util.trinary(not is_pu, math.min(burn_rate / 10.0, unit.sna_prod_rate), 0.0)
             end
         end
 
         io.facility.ps.publish("burn_sum", burn_rate_sum)
+        io.facility.ps.publish("sna_count", sna_count_sum)
+        io.facility.ps.publish("pu_rate", pu_rate)
+        io.facility.ps.publish("po_rate", po_rate)
 
         -- update alarm sounder
         sounder.eval(io.units)
@@ -764,6 +1020,8 @@ function iocontrol.update_unit_statuses(statuses)
 
     return valid
 end
+
+--#endregion
 
 -- get the IO controller database
 function iocontrol.get_db() return io end

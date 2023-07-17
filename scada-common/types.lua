@@ -89,16 +89,18 @@ types.RTU_UNIT_TYPE = {
     REDSTONE = 1,       -- redstone I/O
     BOILER_VALVE = 2,   -- boiler mekanism 10.1+
     TURBINE_VALVE = 3,  -- turbine, mekanism 10.1+
-    IMATRIX = 4,        -- induction matrix
-    SPS = 5,            -- SPS
-    SNA = 6,            -- SNA
-    ENV_DETECTOR = 7    -- environment detector
+    DYNAMIC_VALVE = 4,  -- dynamic tank, mekanism 10.1+
+    IMATRIX = 5,        -- induction matrix
+    SPS = 6,            -- SPS
+    SNA = 7,            -- SNA
+    ENV_DETECTOR = 8    -- environment detector
 }
 
 types.RTU_UNIT_NAMES = {
     "redstone",
     "boiler_valve",
     "turbine_valve",
+    "dynamic_valve",
     "induction_matrix",
     "sps",
     "sna",
@@ -115,6 +117,7 @@ function types.rtu_type_to_string(utype)
     elseif utype == types.RTU_UNIT_TYPE.REDSTONE or
        utype == types.RTU_UNIT_TYPE.BOILER_VALVE or
        utype == types.RTU_UNIT_TYPE.TURBINE_VALVE or
+       utype == types.RTU_UNIT_TYPE.DYNAMIC_VALVE or
        utype == types.RTU_UNIT_TYPE.IMATRIX or
        utype == types.RTU_UNIT_TYPE.SPS or
        utype == types.RTU_UNIT_TYPE.SNA or
@@ -158,13 +161,26 @@ types.PROCESS_NAMES = {
 ---@enum WASTE_MODE
 types.WASTE_MODE = {
     AUTO = 1,
-    PLUTONIUM = 2,
-    POLONIUM = 3,
-    ANTI_MATTER = 4
+    MANUAL_PLUTONIUM = 2,
+    MANUAL_POLONIUM = 3,
+    MANUAL_ANTI_MATTER = 4
 }
 
 types.WASTE_MODE_NAMES = {
     "AUTO",
+    "MANUAL_PLUTONIUM",
+    "MANUAL_POLONIUM",
+    "MANUAL_ANTI_MATTER"
+}
+
+---@enum WASTE_PRODUCT
+types.WASTE_PRODUCT = {
+    PLUTONIUM = 1,
+    POLONIUM = 2,
+    ANTI_MATTER = 3
+}
+
+types.WASTE_PRODUCT_NAMES = {
     "PLUTONIUM",
     "POLONIUM",
     "ANTI_MATTER"
@@ -313,6 +329,17 @@ types.RPS_TRIP_CAUSE = {
     AUTOMATIC = "automatic",
     SYS_FAIL = "sys_fail",
     FORCE_DISABLED = "force_disabled"
+}
+
+---@alias container_mode
+---| "BOTH"
+---| "FILL"
+---| "EMPTY"
+
+types.CONTAINER_MODE = {
+    BOTH = "BOTH",
+    FILL = "FILL",
+    EMPTY = "EMPTY"
 }
 
 ---@alias dumping_mode

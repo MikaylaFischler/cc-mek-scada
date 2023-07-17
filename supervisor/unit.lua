@@ -11,11 +11,13 @@ local rsctl = require("supervisor.session.rsctl")
 ---@class reactor_control_unit
 local unit = {}
 
-local WASTE_MODE   = types.WASTE_MODE
-local ALARM        = types.ALARM
-local PRIO         = types.ALARM_PRIORITY
-local ALARM_STATE  = types.ALARM_STATE
-local TRI_FAIL     = types.TRI_FAIL
+local WASTE_MODE    = types.WASTE_MODE
+local WASTE         = types.WASTE_PRODUCT
+local ALARM         = types.ALARM
+local PRIO          = types.ALARM_PRIORITY
+local ALARM_STATE   = types.ALARM_STATE
+local TRI_FAIL      = types.TRI_FAIL
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
@@ -68,10 +70,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         -- rtus
+        rtu_list = {},
         redstone = {},
         boilers = {},
         turbines = {},
+        tanks = {},
+        snas = {},
         envd = {},
+        sna_prod_rate = 0,
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -89,7 +95,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         damage_start = 0,
         damage_last = 0,
         damage_est_last = 0,
-        waste_mode = WASTE_MODE.AUTO,
+        waste_product = WASTE.PLUTONIUM,    ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
         had_reactor = false,
@@ -221,10 +227,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
                 degraded = false,
                 blade_count = 0,
                 br100 = 0,
-                lim_br100 = 0
+                lim_br100 = 0,
+                waste_mode = WASTE_MODE.AUTO    ---@type WASTE_MODE
             }
         }
     }
+
+    -- list for RTU session management
+    self.rtu_list = { self.redstone, self.boilers, self.turbines, self.tanks, self.snas, self.envd }
 
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone)
@@ -341,13 +351,33 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         emer_cool = emer_cool
     }
 
-    --#endregion
+    -- route reactor waste for a given waste product
+    ---@param product WASTE_PRODUCT waste product to route valves for
+    local function _set_waste_valves(product)
+        self.waste_product = product
 
-    -- unlink disconnected units
-    ---@param sessions table
-    local function _unlink_disconnected_units(sessions)
-        util.filter_table(sessions, function (u) return u.is_connected() end)
+        if product == WASTE.PLUTONIUM then
+            -- route through plutonium generation
+            waste_pu.open()
+            waste_sna.close()
+            waste_po.close()
+            waste_sps.close()
+        elseif product == WASTE.POLONIUM then
+            -- route through polonium generation into pellets
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.open()
+            waste_sps.close()
+        elseif product == WASTE.ANTI_MATTER then
+            -- route through polonium generation into SPS
+            waste_pu.close()
+            waste_sna.open()
+            waste_po.close()
+            waste_sps.open()
+        end
     end
+
+    --#endregion
 
     -- PUBLIC FUNCTIONS --
 
@@ -378,11 +408,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         table.insert(self.redstone, rs_unit)
 
         -- send or re-send waste settings
-        public.set_waste(self.waste_mode)
+        _set_waste_valves(self.waste_product)
     end
 
     -- link a turbine RTU session
     ---@param turbine unit_session
+    ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
         if #self.turbines < num_turbines and turbine.get_device_idx() <= num_turbines then
             table.insert(self.turbines, turbine)
@@ -392,13 +423,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             _reset_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx())
 
             return true
-        else
-            return false
-        end
+        else return false end
     end
 
     -- link a boiler RTU session
     ---@param boiler unit_session
+    ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
         if #self.boilers < num_boilers and boiler.get_device_idx() <= num_boilers then
             table.insert(self.boilers, boiler)
@@ -410,24 +440,37 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             _reset_dt(DT_KEYS.BoilerHCool .. boiler.get_device_idx())
 
             return true
-        else
-            return false
-        end
+        else return false end
     end
+
+    -- link a dynamic tank RTU session
+    ---@param dynamic_tank unit_session
+    ---@return boolean linked dynamic tank accepted (max 1)
+    function public.add_tank(dynamic_tank)
+        if #self.tanks == 0 then
+            table.insert(self.tanks, dynamic_tank)
+            return true
+        else return false end
+    end
+
+    -- link a solar neutron activator RTU session
+    ---@param sna unit_session
+    function public.add_sna(sna) table.insert(self.snas, sna) end
 
     -- link an environment detector RTU session
     ---@param envd unit_session
+    ---@return boolean linked environment detector accepted (max 1)
     function public.add_envd(envd)
-        table.insert(self.envd, envd)
+        if #self.envd == 0 then
+            table.insert(self.envd, envd)
+            return true
+        else return false end
     end
 
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
     function public.purge_rtu_devices(session)
-        util.filter_table(self.redstone, function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.boilers,  function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.turbines, function (s) return s.get_session_id() ~= session end)
-        util.filter_table(self.envd,     function (s) return s.get_session_id() ~= session end)
+        for _, v in pairs(self.rtu_list) do util.filter_table(v, function (s) return s.get_session_id() ~= session end) end
     end
 
     --#endregion
@@ -445,10 +488,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
 
         -- unlink RTU unit sessions if they are closed
-        _unlink_disconnected_units(self.redstone)
-        _unlink_disconnected_units(self.boilers)
-        _unlink_disconnected_units(self.turbines)
-        _unlink_disconnected_units(self.envd)
+        for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
 
         -- update degraded state for auto control
         self.db.control.degraded = (#self.boilers ~= num_boilers) or (#self.turbines ~= num_turbines) or (self.plc_i == nil)
@@ -577,6 +617,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
+    -- set automatic waste product if mode is set to auto
+    ---@param product WASTE_PRODUCT waste product to generate
+    function public.auto_set_waste(product)
+        if self.db.control.waste_mode == WASTE_MODE.AUTO then
+            self.waste_product = product
+            _set_waste_valves(product)
+        end
+    end
+
     --#endregion
 
     -- OPERATIONS --
@@ -621,34 +670,18 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
-    -- route reactor waste
-    ---@param mode WASTE_MODE waste handling mode
-    function public.set_waste(mode)
-        if mode == WASTE_MODE.AUTO then
-            ---@todo automatic waste routing
-            self.waste_mode = mode
-        elseif mode == WASTE_MODE.PLUTONIUM then
-            -- route through plutonium generation
-            self.waste_mode = mode
-            waste_pu.open()
-            waste_sna.close()
-            waste_po.close()
-            waste_sps.close()
-        elseif mode == WASTE_MODE.POLONIUM then
-            -- route through polonium generation into pellets
-            self.waste_mode = mode
-            waste_pu.close()
-            waste_sna.open()
-            waste_po.open()
-            waste_sps.close()
-        elseif mode == WASTE_MODE.ANTI_MATTER then
-            -- route through polonium generation into SPS
-            self.waste_mode = mode
-            waste_pu.close()
-            waste_sna.open()
-            waste_po.close()
-            waste_sps.open()
-        else
+    -- set waste processing mode
+    ---@param mode WASTE_MODE processing mode
+    function public.set_waste_mode(mode)
+        self.db.control.waste_mode = mode
+
+        if mode == WASTE_MODE.MANUAL_PLUTONIUM then
+            _set_waste_valves(WASTE.PLUTONIUM)
+        elseif mode == WASTE_MODE.MANUAL_POLONIUM then
+            _set_waste_valves(WASTE.POLONIUM)
+        elseif mode == WASTE_MODE.MANUAL_ANTI_MATTER then
+            _set_waste_valves(WASTE.ANTI_MATTER)
+        elseif mode > WASTE_MODE.MANUAL_ANTI_MATTER then
             log.debug(util.c("invalid waste mode setting ", mode))
         end
     end
@@ -686,21 +719,25 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return false
     end
 
-    -- get build properties of all machines
+    -- get build properties of machines
+    --
+    -- filter options
+    -- - nil to include all builds
+    -- - -1 to include only PLC build
+    -- - RTU_UNIT_TYPE to include all builds of machines of that type
     ---@nodiscard
-    ---@param inc_plc boolean? true/nil to include PLC build, false to exclude
-    ---@param inc_boilers boolean? true/nil to include boiler builds, false to exclude
-    ---@param inc_turbines boolean? true/nil to include turbine builds, false to exclude
-    function public.get_build(inc_plc, inc_boilers, inc_turbines)
+    ---@param filter -1|RTU_UNIT_TYPE? filter as described above
+    function public.get_build(filter)
+        local all = filter == nil
         local build = {}
 
-        if inc_plc ~= false then
+        if all or (filter == -1) then
             if self.plc_i ~= nil then
                 build.reactor = self.plc_i.get_struct()
             end
         end
 
-        if inc_boilers ~= false then
+        if all or (filter == RTU_UNIT_TYPE.BOILER_VALVE) then
             build.boilers = {}
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]      ---@type unit_session
@@ -708,11 +745,19 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             end
         end
 
-        if inc_turbines ~= false then
+        if all or (filter == RTU_UNIT_TYPE.TURBINE_VALVE) then
             build.turbines = {}
             for i = 1, #self.turbines do
                 local turbine = self.turbines[i]    ---@type unit_session
                 build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
+            end
+        end
+
+        if all or (filter == RTU_UNIT_TYPE.DYNAMIC_VALVE) then
+            build.tanks = {}
+            for i = 1, #self.tanks do
+                local tank = self.tanks[i]          ---@type unit_session
+                build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }
             end
         end
 
@@ -730,6 +775,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return status
     end
 
+    -- get the current burn rate (actual rate)
+    ---@nodiscard
+    function public.get_burn_rate()
+        local rate = 0
+        if self.plc_i ~= nil then rate = self.plc_i.get_status().act_burn_rate end
+        return rate or 0
+    end
+
     -- get RTU statuses
     ---@nodiscard
     function public.get_rtu_statuses()
@@ -738,38 +791,52 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         -- status of boilers (including tanks)
         status.boilers = {}
         for i = 1, #self.boilers do
-            local boiler = self.boilers[i]  ---@type unit_session
-            status.boilers[boiler.get_device_idx()] = {
-                boiler.is_faulted(),
-                boiler.get_db().formed,
-                boiler.get_db().state,
-                boiler.get_db().tanks
-            }
+            local boiler = self.boilers[i]      ---@type unit_session
+            local db     = boiler.get_db()      ---@type boilerv_session_db
+            status.boilers[boiler.get_device_idx()] = { boiler.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of turbines (including tanks)
         status.turbines = {}
         for i = 1, #self.turbines do
-            local turbine = self.turbines[i]  ---@type unit_session
-            status.turbines[turbine.get_device_idx()] = {
-                turbine.is_faulted(),
-                turbine.get_db().formed,
-                turbine.get_db().state,
-                turbine.get_db().tanks
-            }
+            local turbine = self.turbines[i]    ---@type unit_session
+            local db      = turbine.get_db()    ---@type turbinev_session_db
+            status.turbines[turbine.get_device_idx()] = { turbine.is_faulted(), db.formed, db.state, db.tanks }
         end
+
+        -- status of dynamic tanks
+        status.tanks = {}
+        for i = 1, #self.tanks do
+            local tank = self.tanks[i]  ---@type unit_session
+            local db   = tank.get_db()  ---@type dynamicv_session_db
+            status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
+        end
+
+        -- basic SNA statistical information
+        status.sna = { #self.snas, public.get_sna_rate() }
 
         -- radiation monitors (environment detectors)
         status.rad_mon = {}
         for i = 1, #self.envd do
-            local envd = self.envd[i]       ---@type unit_session
-            status.rad_mon[envd.get_device_idx()] = {
-                envd.is_faulted(),
-                envd.get_db().radiation
-            }
+            local envd = self.envd[i]   ---@type unit_session
+            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), envd.get_db().radiation }
         end
 
         return status
+    end
+
+    -- get the current total [max] production rate is
+    ---@nodiscard
+    ---@return number total_avail_rate
+    function public.get_sna_rate()
+        local total_avail_rate = 0
+
+        for i = 1, #self.snas do
+            local db = self.snas[i].get_db()    ---@type sna_session_db
+            total_avail_rate = total_avail_rate + db.state.production_rate
+        end
+
+        return total_avail_rate
     end
 
     -- get the annunciator status
@@ -787,7 +854,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- get unit state
     ---@nodiscard
     function public.get_state()
-        return { self.status_text[1], self.status_text[2], self.waste_mode, self.db.control.ready, self.db.control.degraded }
+        return {
+            self.status_text[1],
+            self.status_text[2],
+            self.db.control.ready,
+            self.db.control.degraded,
+            self.db.control.waste_mode,
+            self.waste_product
+        }
     end
 
     -- get the reactor ID

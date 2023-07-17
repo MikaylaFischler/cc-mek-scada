@@ -33,40 +33,20 @@ local border = core.border
 
 local period = core.flasher.PERIOD
 
-local waste_opts = {
-    {
-        text = "Auto",
-        fg_bg = cpair(colors.black, colors.lightGray),
-        active_fg_bg = cpair(colors.white, colors.gray)
-    },
-    {
-        text = "Pu",
-        fg_bg = cpair(colors.black, colors.lightGray),
-        active_fg_bg = cpair(colors.black, colors.green)
-    },
-    {
-        text = "Po",
-        fg_bg = cpair(colors.black, colors.lightGray),
-        active_fg_bg = cpair(colors.black, colors.cyan)
-    },
-    {
-        text = "AM",
-        fg_bg = cpair(colors.black, colors.lightGray),
-        active_fg_bg = cpair(colors.black, colors.purple)
-    }
-}
-
 -- create a unit view
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)
     local unit = iocontrol.get_db().units[id]   ---@type ioctl_unit
     local f_ps = iocontrol.get_db().facility.ps
+
+    local main = Div{parent=parent,x=1,y=1}
+
+    if unit == nil then return main end
+
     local u_ps = unit.unit_ps
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
-
-    local main = Div{parent=parent,x=1,y=1}
 
     TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
 
@@ -398,7 +378,7 @@ local function init(parent, id)
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
-    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=waste_opts,callback=unit.set_waste,min_width=6}
+    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=style.waste.unit_opts,callback=unit.set_waste,min_width=6}
 
     waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
 

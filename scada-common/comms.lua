@@ -14,7 +14,7 @@ local max_distance = nil                ---@type number|nil maximum acceptable t
 ---@class comms
 local comms = {}
 
-comms.version = "2.1.0"
+comms.version = "2.1.2"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -92,9 +92,11 @@ local PLC_AUTO_ACK = {
 ---@enum FAC_COMMAND
 local FAC_COMMAND = {
     SCRAM_ALL = 0,      -- SCRAM all reactors
-    STOP = 1,           -- stop automatic control
-    START = 2,          -- start automatic control
-    ACK_ALL_ALARMS = 3  -- acknowledge all alarms on all units
+    STOP = 1,           -- stop automatic process control
+    START = 2,          -- start automatic process control
+    ACK_ALL_ALARMS = 3, -- acknowledge all alarms on all units
+    SET_WASTE_MODE = 4, -- set automatic waste processing mode
+    SET_PU_FB = 5       -- set plutonium fallback mode
 }
 
 ---@enum UNIT_COMMAND

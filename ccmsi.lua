@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.5a"
+local CCMSI_VERSION = "v1.7d"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -44,11 +44,15 @@ local function get_opt(opt, options)
     return nil
 end
 
+-- wait for any key to be pressed
+---@diagnostic disable-next-line: undefined-field
+local function any_key() os.pullEvent("key_up") end
+
 -- ask the user yes or no
 local function ask_y_n(question, default)
     print(question)
     if default == true then print(" (Y/n)? ") else print(" (y/N)? ") end
-    local response = read()
+    local response = read();any_key()
     if response == "" then return default
     elseif response == "Y" or response == "y" then return true
     elseif response == "N" or response == "n" then return false
@@ -56,13 +60,13 @@ local function ask_y_n(question, default)
 end
 
 -- print out a white + blue text message
-local function pkg_message(message, package) white(); print(message .. " "); blue(); println(package); white() end
+local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v_local, v_remote)
     if v_local ~= nil then
         if v_local ~= v_remote then
-            print("[" .. name .. "] updating "); blue(); print(v_local); white(); print(" \xbb "); blue(); println(v_remote); white()
+            print("[" .. name .. "] updating ");blue();print(v_local);white();print(" \xbb ");blue();println(v_remote);white()
         elseif mode == "install" then
             pkg_message("[" .. name .. "] reinstalling", v_local)
         end
@@ -87,15 +91,13 @@ end
 local function get_remote_manifest()
     local response, error = http.get(install_manifest)
     if response == nil then
-        orange(); println("failed to get installation manifest from GitHub, cannot update or install")
-        red(); println("HTTP error: " .. error); white()
+        orange();println("failed to get installation manifest from GitHub, cannot update or install")
+        red();println("HTTP error: " .. error);white()
         return false, {}
     end
 
     local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
-    if not ok then
-        red(); println("error parsing remote installation manifest"); white()
-    end
+    if not ok then red();println("error parsing remote installation manifest");white() end
 
     return ok, manifest
 end
@@ -107,7 +109,7 @@ local function write_install_manifest(manifest, dependencies)
         local is_dependency = false
         for _, dependency in pairs(dependencies) do
             if (key == "bootloader" and dependency == "system") or key == dependency then
-                is_dependency = true; break
+                is_dependency = true;break
             end
         end
         if key == app or key == "comms" or is_dependency then versions[key] = value end
@@ -118,6 +120,78 @@ local function write_install_manifest(manifest, dependencies)
     local imfile = fs.open("install_manifest.json", "w")
     imfile.write(textutils.serializeJSON(manifest))
     imfile.close()
+end
+
+-- recursively build a tree out of the file manifest
+local function gen_tree(manifest)
+    local function _tree_add(tree, split)
+        if #split > 1 then
+            local name = table.remove(split, 1)
+            if tree[name] == nil then tree[name] = {} end
+            table.insert(tree[name], _tree_add(tree[name], split))
+        else return split[1] end
+        return nil
+    end
+
+    local list, tree = {}, {}
+
+    -- make a list of each and every file
+    for _, files in pairs(manifest.files) do for i = 1, #files do table.insert(list, files[i]) end end
+
+    for i = 1, #list do
+        local split = {}
+        string.gsub(list[i], "([^/]+)", function(c) split[#split + 1] = c end)
+        if #split == 1 then table.insert(tree, list[i])
+        else table.insert(tree, _tree_add(tree, split)) end
+    end
+
+    return tree
+end
+
+local function _in_array(val, array)
+    for _, v in pairs(array) do if v == val then return true end end
+    return false
+end
+
+local function _clean_dir(dir, tree)
+    if tree == nil then tree = {} end
+    local ls = fs.list(dir)
+    for _, val in pairs(ls) do
+        local path = dir .. "/" .. val
+        if fs.isDir(path) then
+            _clean_dir(path, tree[val])
+            if #fs.list(path) == 0 then fs.delete(path);println("deleted " .. path) end
+        elseif not _in_array(val, tree) then
+            fs.delete(path)
+            println("deleted " .. path)
+        end
+    end
+end
+
+-- go through app/common directories to delete unused files
+local function clean(manifest)
+    local root_ext = false
+    local tree = gen_tree(manifest)
+
+    table.insert(tree, "install_manifest.json")
+    table.insert(tree, "ccmsi.lua")
+    table.insert(tree, "log.txt")
+
+    lgray()
+
+    local ls = fs.list("/")
+    for _, val in pairs(ls) do
+        if fs.isDir(val) then
+            if tree[val] ~= nil then _clean_dir("/" .. val, tree[val]) end
+            if #fs.list(val) == 0 then fs.delete(val);println("deleted " .. val) end
+        elseif not _in_array(val, tree) then
+            root_ext = true
+            yellow();println(val .. " not used")
+        end
+    end
+
+    white()
+    if root_ext then println("Files in root directory won't be automatically deleted.") end
 end
 
 -- get and validate command line options
@@ -136,33 +210,33 @@ if #opts == 0 or opts[1] == "help" then
     println(" update      - update files EXCEPT for config/logs")
     println(" remove      - delete files EXCEPT for config/logs")
     println(" purge       - delete files INCLUDING config/logs")
-    white(); println("<app>"); lgray()
+    white();println("<app>");lgray()
     println(" reactor-plc - reactor PLC firmware")
     println(" rtu         - RTU firmware")
     println(" supervisor  - supervisor server application")
     println(" coordinator - coordinator application")
     println(" pocket      - pocket application")
-    white(); println("<branch>"); yellow()
+    white();println("<branch>");yellow()
     println(" second parameter when used with check")
-    lgray(); println(" main (default) | latest | devel"); white()
+    lgray();println(" main (default) | latest | devel");white()
     return
 else
     mode = get_opt(opts[1], { "check", "install", "update", "remove", "purge" })
     if mode == nil then
-        red(); println("Unrecognized mode."); white()
+        red();println("Unrecognized mode.");white()
         return
     end
 
     app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" })
     if app == nil and mode ~= "check" then
-        red(); println("Unrecognized application."); white()
+        red();println("Unrecognized application.");white()
         return
     end
 
     -- determine target
     if mode == "check" then target = opts[2] else target = opts[3] end
     if (target ~= "main") and (target ~= "latest") and (target ~= "devel") then
-        if (target and target ~= "") then yellow(); println("Unknown target, defaulting to 'main'"); white() end
+        if (target and target ~= "") then yellow();println("Unknown target, defaulting to 'main'");white() end
         target = "main"
     end
 
@@ -179,7 +253,7 @@ if mode == "check" then
 
     local local_ok, local_manifest = read_local_manifest()
     if not local_ok then
-        yellow(); println("failed to load local installation information"); white()
+        yellow();println("failed to load local installation information");white()
         local_manifest = { versions = { installer = CCMSI_VERSION } }
     else
         local_manifest.versions.installer = CCMSI_VERSION
@@ -190,16 +264,16 @@ if mode == "check" then
         term.setTextColor(colors.purple)
         print(string.format("%-14s", "[" .. key .. "]"))
         if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
-            blue(); print(local_manifest.versions[key])
+            blue();print(local_manifest.versions[key])
             if value ~= local_manifest.versions[key] then
-                white(); print(" (")
+                white();print(" (")
                 term.setTextColor(colors.cyan)
-                print(value); white(); println(" available)")
-            else green(); println(" (up to date)") end
+                print(value);white();println(" available)")
+            else green();println(" (up to date)") end
         else
-            lgray(); print("not installed"); white(); print(" (latest ")
+            lgray();print("not installed");white();print(" (latest ")
             term.setTextColor(colors.cyan)
-            print(value); white(); println(")")
+            print(value);white();println(")")
         end
     end
 elseif mode == "install" or mode == "update" then
@@ -218,7 +292,7 @@ elseif mode == "install" or mode == "update" then
     local local_ok, local_manifest = read_local_manifest()
     if not local_ok then
         if mode == "update" then
-            red(); println("failed to load local installation information, cannot update"); white()
+            red();println("failed to load local installation information, cannot update");white()
             return
         end
     else
@@ -229,13 +303,13 @@ elseif mode == "install" or mode == "update" then
         ver.lockbox.v_local = local_manifest.versions.lockbox
 
         if local_manifest.versions[app] == nil then
-            red(); println("another application is already installed, please purge it before installing a new application"); white()
+            red();println("another application is already installed, please purge it before installing a new application");white()
             return
         end
 
         local_manifest.versions.installer = CCMSI_VERSION
         if manifest.versions.installer ~= CCMSI_VERSION then
-            yellow(); println("a newer version of the installer is available, it is recommended to download it"); white()
+            yellow();println("a newer version of the installer is available, it is recommended to download it");white()
         end
     end
 
@@ -265,7 +339,7 @@ elseif mode == "install" or mode == "update" then
     show_pkg_change("comms", ver.comms.v_local, ver.comms.v_remote)
     ver.comms.changed = ver.comms.v_local ~= ver.comms.v_remote
     if ver.comms.changed and ver.comms.v_local ~= nil then
-        print("[comms] "); yellow(); println("other devices on the network will require an update"); white()
+        print("[comms] ");yellow();println("other devices on the network will require an update");white()
     end
 
     -- display graphics version change information
@@ -277,7 +351,7 @@ elseif mode == "install" or mode == "update" then
     ver.lockbox.changed = ver.lockbox.v_local ~= ver.lockbox.v_remote
 
     -- ask for confirmation
-    if not ask_y_n("Continue?", false) then return end
+    if not ask_y_n("Continue", false) then return end
 
     --------------------------
     -- START INSTALL/UPDATE --
@@ -302,7 +376,7 @@ elseif mode == "install" or mode == "update" then
     -- check space constraints
     if space_available < space_required then
         single_file_mode = true
-        yellow(); println("WARNING: Insufficient space available for a full download!"); white()
+        yellow();println("WARNING: Insufficient space available for a full download!");white()
         println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         if mode == "update" then println("If installation still fails, delete this device's log file or uninstall the app (not purge) and try again.") end
         if not ask_y_n("Do you wish to continue?", false) then
@@ -343,7 +417,7 @@ elseif mode == "install" or mode == "update" then
                     local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
-                        red(); println("GET HTTP Error " .. err)
+                        red();println("GET HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -384,10 +458,13 @@ elseif mode == "install" or mode == "update" then
             if mode == "install" then
                 println("Installation completed successfully.")
             else println("Update completed successfully.") end
+            white();println("Ready to clean up unused files, press any key to continue...")
+            any_key();clean(manifest)
+            white();println("Done.")
         else
             if mode == "install" then
-                red(); println("Installation failed.")
-            else orange(); println("Update failed, existing files unmodified.") end
+                red();println("Installation failed.")
+            else orange();println("Update failed, existing files unmodified.") end
         end
     else
         -- go through all files and replace one by one
@@ -405,7 +482,7 @@ elseif mode == "install" or mode == "update" then
                         local dl, err = http.get(repo_path .. file)
 
                         if dl == nil then
-                            red(); println("GET HTTP Error " .. err)
+                            red();println("GET HTTP Error " .. err)
                             success = false
                             break
                         else
@@ -424,6 +501,9 @@ elseif mode == "install" or mode == "update" then
             if mode == "install" then
                 println("Installation completed successfully.")
             else println("Update completed successfully.") end
+            white();println("Ready to clean up unused files, press any key to continue...")
+            any_key();clean(manifest)
+            white();println("Done.")
         else
             red()
             if mode == "install" then
@@ -434,10 +514,10 @@ elseif mode == "install" or mode == "update" then
 elseif mode == "remove" or mode == "purge" then
     local ok, manifest = read_local_manifest()
     if not ok then
-        red(); println("Error parsing local installation manifest."); white()
+        red();println("Error parsing local installation manifest.");white()
         return
     elseif mode == "remove" and manifest.versions[app] == nil then
-        red(); println(app .. " is not installed, cannot remove."); white()
+        red();println(app .. " is not installed, cannot remove.");white()
         return
     end
 
@@ -449,7 +529,10 @@ elseif mode == "remove" or mode == "purge" then
     end
 
     -- ask for confirmation
-    if not ask_y_n("Continue?", false) then return end
+    if not ask_y_n("Continue", false) then return end
+
+    -- delete unused files first
+    clean(manifest)
 
     local file_list = manifest.files
     local dependencies = manifest.depends[app]
@@ -469,9 +552,9 @@ elseif mode == "remove" or mode == "purge" then
         end)
 
         if not log_deleted then
-            red(); println("failed to delete log file")
-            white(); println("press enter to continue...")
-            read(); lgray()
+            red();println("failed to delete log file")
+            white();println("press any key to continue...")
+            any_key();lgray()
         end
     end
 
@@ -480,10 +563,7 @@ elseif mode == "remove" or mode == "purge" then
         local files = file_list[dependency]
         for _, file in pairs(files) do
             if mode == "purge" or file ~= config_file then
-                if fs.exists(file) then
-                    fs.delete(file)
-                    println("deleted " .. file)
-                end
+                if fs.exists(file) then fs.delete(file);println("deleted " .. file) end
             end
         end
 
@@ -508,8 +588,7 @@ elseif mode == "remove" or mode == "purge" then
                 end
 
                 if folder ~= app and fs.isDir(folder) then
-                    fs.delete(folder)
-                    println("deleted app subdirectory " .. folder)
+                    fs.delete(folder);println("deleted app subdirectory " .. folder)
                 end
             end
         end
@@ -527,7 +606,7 @@ elseif mode == "remove" or mode == "purge" then
         imfile.close()
     end
 
-    green(); println("Done!")
+    green();println("Done!")
 end
 
 white()

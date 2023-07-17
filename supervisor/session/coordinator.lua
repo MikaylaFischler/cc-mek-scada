@@ -1,7 +1,6 @@
 local comms    = require("scada-common.comms")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
-local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
 local databus  = require("supervisor.databus")
@@ -15,8 +14,6 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local SCADA_CRDN_TYPE = comms.SCADA_CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
-
-local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
@@ -258,6 +255,18 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                     elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                         facility.ack_all()
                         _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, true })
+                    elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                        if pkt.length == 2 then
+                            _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, facility.set_waste_product(pkt.data[2]) })
+                        else
+                            log.debug(log_header .. "CRDN set waste mode packet length mismatch")
+                        end
+                    elseif cmd == FAC_COMMAND.SET_PU_FB then
+                        if pkt.length == 2 then
+                            _send(SCADA_CRDN_TYPE.FAC_CMD, { cmd, facility.set_pu_fallback(pkt.data[2]) })
+                        else
+                            log.debug(log_header .. "CRDN set pu fallback packet length mismatch")
+                        end
                     else
                         log.debug(log_header .. "CRDN facility command unknown")
                     end
@@ -294,9 +303,9 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
-                                unit.set_waste(pkt.data[3])
+                                unit.set_waste_mode(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command set waste missing option")
+                                log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
                             end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             unit.ack_all()
@@ -394,7 +403,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                             local builds = {}
 
                             local unit = self.units[unit_id]    ---@type reactor_unit
-                            builds[unit_id] = unit.get_build(true, false, false)
+                            builds[unit_id] = unit.get_build(-1)
 
                             _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                         elseif cmd.key == CRD_S_DATA.RESEND_RTU_BUILD then
@@ -408,7 +417,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                                 local builds = {}
 
                                 local unit = self.units[unit_id]    ---@type reactor_unit
-                                builds[unit_id] = unit.get_build(false, cmd.val.type == RTU_UNIT_TYPE.BOILER_VALVE, cmd.val.type == RTU_UNIT_TYPE.TURBINE_VALVE)
+                                builds[unit_id] = unit.get_build(cmd.val.type)
 
                                 _send(SCADA_CRDN_TYPE.UNIT_BUILDS, { builds })
                             else
@@ -417,7 +426,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                                 self.retry_times.f_builds_packet = util.time() + PARTIAL_RETRY_PERIOD
                                 self.acks.fac_builds = false
 
-                                _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type == RTU_UNIT_TYPE.IMATRIX) })
+                                _send(SCADA_CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type) })
                             end
                         else
                             log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)

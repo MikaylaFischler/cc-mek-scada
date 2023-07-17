@@ -22,6 +22,7 @@ local rtu          = require("rtu.rtu")
 local threads      = require("rtu.threads")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
+local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
 local envd_rtu     = require("rtu.dev.envd_rtu")
 local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
 local redstone_rtu = require("rtu.dev.redstone_rtu")
@@ -29,7 +30,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.4.0"
+local RTU_VERSION = "v1.5.4"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -342,6 +343,18 @@ local function main()
                     log.fatal(util.c("configure> failed to check if  '", name, "' is a formed turbine multiblock"))
                     return false
                 end
+            elseif type == "dynamicValve" then
+                -- dynamic tank multiblock
+                rtu_type = RTU_UNIT_TYPE.DYNAMIC_VALVE
+                rtu_iface, faulted = dynamicv_rtu.new(device)
+                is_multiblock = true
+                formed = device.isFormed()
+
+                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                    println_ts(util.c("configure> failed to check if  '", name, "' is formed"))
+                    log.fatal(util.c("configure> failed to check if  '", name, "' is a formed dynamic tank multiblock"))
+                    return false
+                end
             elseif type == "inductionPort" then
                 -- induction matrix multiblock
                 rtu_type = RTU_UNIT_TYPE.IMATRIX
@@ -464,7 +477,7 @@ local function main()
             renderer.close_ui()
             println_ts(util.c("UI error: ", message))
             println("startup> running without front panel")
-            log.error(util.c("GUI crashed with error ", message))
+            log.error(util.c("front panel GUI render failed with error ", message))
             log.info("startup> running in headless mode without front panel")
         end
 

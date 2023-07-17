@@ -94,7 +94,7 @@ function network.nic(modem)
 
     -- check if this NIC has a connected modem
     ---@nodiscard
-    function public.connected() return self.connected end
+    function public.is_connected() return self.connected end
 
     -- connect to a modem peripheral
     ---@param reconnected_modem table

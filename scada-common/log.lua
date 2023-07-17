@@ -20,7 +20,9 @@ local logger = {
     mode = MODE.APPEND,
     debug = false,
     file = nil,
-    dmesg_out = nil
+    dmesg_out = nil,
+    dmesg_restore_coord = { 1, 1 },
+    dmesg_scroll_count = 0
 }
 
 ---@type function
@@ -158,6 +160,7 @@ function log.dmesg(msg, tag, tag_color)
             if cur_y == out_h then
                 out.scroll(1)
                 out.setCursorPos(1, cur_y)
+                logger.dmesg_scroll_count = logger.dmesg_scroll_count + 1
             else
                 out.setCursorPos(1, cur_y + 1)
             end
@@ -193,6 +196,7 @@ function log.dmesg(msg, tag, tag_color)
                 if cur_y == out_h then
                     out.scroll(1)
                     out.setCursorPos(1, cur_y)
+                    logger.dmesg_scroll_count = logger.dmesg_scroll_count + 1
                 else
                     out.setCursorPos(1, cur_y + 1)
                 end
@@ -200,6 +204,8 @@ function log.dmesg(msg, tag, tag_color)
 
             out.write(lines[i])
         end
+
+        logger.dmesg_restore_coord = { out.getCursorPos() }
 
         _log(util.c("[", t_stamp, "] [", tag, "] ", msg))
     end
@@ -215,6 +221,7 @@ end
 ---@return function update, function done
 function log.dmesg_working(msg, tag, tag_color)
     local ts_coord = log.dmesg(msg, tag, tag_color)
+    local initial_scroll = logger.dmesg_scroll_count
 
     local out = logger.dmesg_out
     local width = (ts_coord.x2 - ts_coord.x1) + 1
@@ -225,11 +232,14 @@ function log.dmesg_working(msg, tag, tag_color)
         local counter = 0
 
         local function update(sec_remaining)
+            local new_y = ts_coord.y - (logger.dmesg_scroll_count - initial_scroll)
+            if new_y < 1 then return end
+
             local time = util.sprintf("%ds", sec_remaining)
             local available = width - (string.len(time) + 2)
             local progress = ""
 
-            out.setCursorPos(ts_coord.x1, ts_coord.y)
+            out.setCursorPos(ts_coord.x1, new_y)
             out.write(" ")
 
             if counter % 4 == 0 then
@@ -249,10 +259,15 @@ function log.dmesg_working(msg, tag, tag_color)
             out.setTextColor(initial_color)
 
             counter = counter + 1
+
+            out.setCursorPos(table.unpack(logger.dmesg_restore_coord))
         end
 
         local function done(ok)
-            out.setCursorPos(ts_coord.x1, ts_coord.y)
+            local new_y = ts_coord.y - (logger.dmesg_scroll_count - initial_scroll)
+            if new_y < 1 then return end
+
+            out.setCursorPos(ts_coord.x1, new_y)
 
             if ok or ok == nil then
                 out.setTextColor(colors.green)
@@ -263,6 +278,8 @@ function log.dmesg_working(msg, tag, tag_color)
             end
 
             out.setTextColor(initial_color)
+
+            out.setCursorPos(table.unpack(logger.dmesg_restore_coord))
         end
 
         return update, done

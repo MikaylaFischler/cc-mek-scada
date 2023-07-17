@@ -929,47 +929,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                 ---@cast packet mgmt_frame
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
-                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                        -- link request confirmation
-                        if packet.length == 1 then
-                            log.debug("received unsolicited establish response")
-
-                            local est_ack = packet.data[1]
-
-                            if est_ack == ESTABLISH_ACK.ALLOW then
-                                self.status_cache = nil
-                                _send_struct()
-                                public.send_status(plc_state.no_reactor, plc_state.reactor_formed)
-                                log.debug("re-sent initial status data due to re-establish")
-                            else
-                                if est_ack == ESTABLISH_ACK.DENY then
-                                    println_ts("received unsolicited link denial, unlinking")
-                                    log.warning("unsolicited establish request denied")
-                                elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                    println_ts("received unsolicited link collision, unlinking")
-                                    log.warning("unsolicited establish request collision")
-                                elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                    println_ts("received unsolicited link version mismatch, unlinking")
-                                    log.warning("unsolicited establish request version mismatch")
-                                else
-                                    println_ts("invalid unsolicited link response")
-                                    log.debug("unsolicited unknown establish request response")
-                                end
-
-                                -- unlink
-                                self.sv_addr = comms.BROADCAST
-                                self.linked = false
-                            end
-
-                            -- clear this since this is for something that was unsolicited
-                            self.last_est_ack = ESTABLISH_ACK.ALLOW
-
-                            -- report link state
-                            databus.tx_link_state(est_ack + 1)
-                        else
-                            log.debug("SCADA_MGMT establish packet length mismatch")
-                        end
-                    elseif packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+                    if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]

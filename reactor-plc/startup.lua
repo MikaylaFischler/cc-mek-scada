@@ -19,7 +19,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.5.0"
+local R_PLC_VERSION = "v1.5.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -190,7 +190,7 @@ local function main()
                 renderer.close_ui()
                 println_ts(util.c("UI error: ", message))
                 println("init> running without front panel")
-                log.error(util.c("GUI crashed with error ", message))
+                log.error(util.c("front panel GUI render failed with error ", message))
                 log.info("init> running in headless mode without front panel")
             end
         end

@@ -15,8 +15,10 @@ local TextBox           = require("graphics.elements.textbox")
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local RadIndicator      = require("graphics.elements.indicators.rad")
+local StateIndicator    = require("graphics.elements.indicators.state")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 
+local Checkbox          = require("graphics.elements.controls.checkbox")
 local HazardButton      = require("graphics.elements.controls.hazard_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
@@ -43,7 +45,7 @@ local function new_view(root, x, y)
     local lu_cpair   = cpair(colors.gray, colors.gray)
     local dis_colors = cpair(colors.white, colors.lightGray)
 
-    local main = Div{parent=root,width=104,height=24,x=x,y=y}
+    local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
     local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
     local ack_a = HazardButton{parent=main,x=16,y=1,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,fg_bg=hzd_fg_bg}
@@ -52,12 +54,14 @@ local function new_view(root, x, y)
     facility.ack_alarms_ack = ack_a.on_response
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
-    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
+    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
+    local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=cpair(colors.green,colors.gray)}
 
     all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
-    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
     rad_mon.register(facility.ps, "rad_computed_status", rad_mon.update)
+    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
+    sps.register(facility.sps_ps_tbl[1], "computed_status", function (status) sps.update(status > 1) end)
 
     main.line_break()
 
@@ -99,7 +103,7 @@ local function new_view(root, x, y)
     -- process control --
     ---------------------
 
-    local proc = Div{parent=main,width=78,height=24,x=27,y=1}
+    local proc = Div{parent=main,width=103,height=24,x=27,y=1}
 
     -----------------------------
     -- process control targets --
@@ -148,46 +152,77 @@ local function new_view(root, x, y)
 
     local rate_limits = {}
 
-    for i = 1, facility.num_units do
-        local unit = units[i]   ---@type ioctl_unit
+    for i = 1, 4 do
+        local unit
+        local tag_fg_bg = cpair(colors.gray,colors.white)
+        local lim_fg_bg = cpair(colors.lightGray,colors.white)
+        local ctl_fg    = colors.lightGray
+        local cur_fg_bg = cpair(colors.lightGray,colors.white)
+        local cur_lu    = colors.lightGray
+
+        if i <= facility.num_units then
+            unit = units[i]   ---@type ioctl_unit
+            tag_fg_bg = cpair(colors.black,colors.lightBlue)
+            lim_fg_bg = bw_fg_bg
+            ctl_fg    = colors.gray
+            cur_fg_bg = cpair(colors.black,colors.brown)
+            cur_lu    = colors.black
+        end
 
         local _y = ((i - 1) * 5) + 1
 
-        local unit_tag = Div{parent=limit_div,x=1,y=_y,width=8,height=4,fg_bg=cpair(colors.black,colors.lightBlue)}
+        local unit_tag = Div{parent=limit_div,x=1,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Limit",width=7,height=2}
 
-        local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=cpair(colors.gray,colors.white)}
-        rate_limits[i] = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
+        local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=cpair(ctl_fg,colors.white)}
+        local lim = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=lim_fg_bg}
         TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1}
 
-        rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
-        rate_limits[i].register(unit.unit_ps, "burn_limit", rate_limits[i].set_value)
+        local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}
 
-        local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(colors.black,colors.black),width=14,fg_bg=cpair(colors.black,colors.brown)}
+        if i <= facility.num_units then
+            rate_limits[i] = lim
+            rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
+            rate_limits[i].register(unit.unit_ps, "burn_limit", rate_limits[i].set_value)
 
-        cur_burn.register(unit.unit_ps, "act_burn_rate", cur_burn.update)
+            cur_burn.register(unit.unit_ps, "act_burn_rate", cur_burn.update)
+        else
+            lim.disable()
+        end
     end
 
     -------------------
     -- unit statuses --
     -------------------
 
-    local stat_div = Div{parent=proc,width=38,height=19,x=57,y=6}
+    local stat_div = Div{parent=proc,width=22,height=24,x=57,y=6}
 
-    for i = 1, facility.num_units do
-        local unit = units[i]   ---@type ioctl_unit
+    for i = 1, 4 do
+        local tag_fg_bg = cpair(colors.gray,colors.white)
+        local ind_fg_bg = cpair(colors.lightGray,colors.white)
+        local ind_off = colors.lightGray
+
+        if i <= facility.num_units then
+            tag_fg_bg = cpair(colors.black,colors.cyan)
+            ind_fg_bg = bw_fg_bg
+            ind_off = colors.gray
+        end
 
         local _y = ((i - 1) * 5) + 1
 
-        local unit_tag = Div{parent=stat_div,x=1,y=_y,width=8,height=4,fg_bg=cpair(colors.black,colors.lightBlue)}
+        local unit_tag = Div{parent=stat_div,x=1,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Status",width=7,height=2}
 
-        local lights   = Div{parent=stat_div,x=9,y=_y,width=12,height=4,fg_bg=bw_fg_bg}
-        local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(colors.green,colors.gray)}
-        local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+        local lights   = Div{parent=stat_div,x=9,y=_y,width=14,height=4,fg_bg=ind_fg_bg}
+        local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(colors.green,ind_off)}
+        local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(colors.red,ind_off),flash=true,period=period.BLINK_250_MS}
 
-        ready.register(unit.unit_ps, "U_AutoReady", ready.update)
-        degraded.register(unit.unit_ps, "U_AutoDegraded", degraded.update)
+        if i <= facility.num_units then
+            local unit = units[i]   ---@type ioctl_unit
+
+            ready.register(unit.unit_ps, "U_AutoReady", ready.update)
+            degraded.register(unit.unit_ps, "U_AutoDegraded", degraded.update)
+        end
     end
 
     -------------------------
@@ -195,7 +230,7 @@ local function new_view(root, x, y)
     -------------------------
 
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.purple,colors.black),radio_bg=colors.gray}
+    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.purple}
 
     mode.register(facility.ps, "process_mode", mode.set_value)
 
@@ -261,6 +296,60 @@ local function new_view(root, x, y)
             for i = 1, #rate_limits do rate_limits[i].enable() end
         end
     end)
+
+    ------------------------------
+    -- waste production control --
+    ------------------------------
+
+    local waste_status = Div{parent=proc,width=24,height=4,x=57,y=1,}
+
+    for i = 1, facility.num_units do
+        local unit = units[i]   ---@type ioctl_unit
+
+        TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8,height=1}
+        local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=cpair(colors.white,colors.gray)}
+        local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.waste.states_abbrv,value=1,min_width=6}
+
+        a_waste.register(unit.unit_ps, "U_AutoWaste", a_waste.update)
+        waste_m.register(unit.unit_ps, "U_WasteProduct", waste_m.update)
+    end
+
+    local waste_sel = Div{parent=proc,width=21,height=24,x=81,y=1}
+
+    TextBox{parent=waste_sel,text=" ",width=21,height=1,x=1,y=1,fg_bg=cpair(colors.black,colors.brown)}
+    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=TEXT_ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.brown)}
+
+    local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
+    local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}
+
+    status.register(facility.ps, "current_waste_product", status.update)
+
+    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.brown}
+    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,colors.black)}
+
+    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
+    pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
+
+    local fb_active  = IndicatorLight{parent=rect,x=2,y=9,label="Fallback Active",colors=cpair(colors.white,colors.gray)}
+
+    fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
+
+    TextBox{parent=rect,x=2,y=11,text="Plutonium Rate",height=1,width=17,fg_bg=style.label}
+    local pu_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+
+    TextBox{parent=rect,x=2,y=14,text="Polonium Rate",height=1,width=17,fg_bg=style.label}
+    local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+
+    TextBox{parent=rect,x=2,y=17,text="Antimatter Rate",height=1,width=17,fg_bg=style.label}
+    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+
+    pu_rate.register(facility.ps, "pu_rate", pu_rate.update)
+    po_rate.register(facility.ps, "po_rate", po_rate.update)
+    am_rate.register(facility.ps, "am_rate", am_rate.update)
+
+    local sna_count = DataIndicator{parent=rect,x=2,y=20,label="Linked SNAs:",format="%4d",value=0,lu_colors=lu_cpair,width=17}
+
+    sna_count.register(facility.ps, "sna_count", sna_count.update)
 end
 
 return new_view

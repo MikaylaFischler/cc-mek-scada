@@ -18,7 +18,7 @@ local coreio   = require("pocket.coreio")
 local pocket   = require("pocket.pocket")
 local renderer = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.5.1"
+local POCKET_VERSION = "alpha-v0.5.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -112,7 +112,7 @@ local function main()
     if not ui_ok then
         renderer.close_ui()
         println(util.c("UI error: ", message))
-        log.error(util.c("startup> GUI crashed with error ", message))
+        log.error(util.c("startup> GUI render failed with error ", message))
     else
         -- start clock
         loop_clock.start()

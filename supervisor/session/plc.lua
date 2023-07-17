@@ -313,26 +313,31 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             if pkt.type == RPLC_TYPE.STATUS then
                 -- status packet received, update data
                 if pkt.length >= 5 then
-                    self.sDB.last_status_update = pkt.data[1]
-                    self.sDB.control_state = pkt.data[2]
-                    self.sDB.no_reactor = pkt.data[3]
-                    self.sDB.formed = pkt.data[4]
-                    self.sDB.auto_ack_token = pkt.data[5]
+                    if (type(pkt.data[1]) == "number") and (type(pkt.data[2]) == "boolean") and (type(pkt.data[3]) == "boolean") and
+                       (type(pkt.data[4]) == "boolean") and (type(pkt.data[5]) == "number") then
+                        self.sDB.last_status_update = pkt.data[1]
+                        self.sDB.control_state = pkt.data[2]
+                        self.sDB.no_reactor = pkt.data[3]
+                        self.sDB.formed = pkt.data[4]
+                        self.sDB.auto_ack_token = pkt.data[5]
 
-                    if not self.sDB.no_reactor and self.sDB.formed then
-                        self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
+                        if (not self.sDB.no_reactor) and self.sDB.formed and (type(pkt.data[6]) == "number") then
+                            self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
 
-                        -- attempt to read mek_data table
-                        if pkt.data[7] ~= nil then
-                            local status = pcall(_copy_status, pkt.data[7])
-                            if status then
-                                -- copied in status data OK
-                                self.received_status_cache = true
-                            else
-                                -- error copying status data
-                                log.error(log_header .. "failed to parse status packet data")
+                            -- attempt to read mek_data table
+                            if type(pkt.data[7]) == "table" then
+                                local status = pcall(_copy_status, pkt.data[7])
+                                if status then
+                                    -- copied in status data OK
+                                    self.received_status_cache = true
+                                else
+                                    -- error copying status data
+                                    log.error(log_header .. "failed to parse status packet data")
+                                end
                             end
                         end
+                    else
+                        log.debug(log_header .. "RPLC status packet invalid")
                     end
                 else
                     log.debug(log_header .. "RPLC status packet length mismatch")

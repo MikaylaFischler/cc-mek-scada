@@ -9,7 +9,7 @@ local iocontrol     = require("coordinator.iocontrol")
 local style         = require("coordinator.ui.style")
 
 local imatrix       = require("coordinator.ui.components.imatrix")
-local process_ctl   = require("coordinator.ui.components.processctl")
+local process_ctl   = require("coordinator.ui.components.process_ctl")
 local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")

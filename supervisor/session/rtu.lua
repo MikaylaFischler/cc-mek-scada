@@ -11,6 +11,7 @@ local svqtypes      = require("supervisor.session.svqtypes")
 -- supervisor rtu sessions (svrs)
 local unit_session  = require("supervisor.session.rtu.unit_session")
 local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
+local svrs_dynamicv = require("supervisor.session.rtu.dynamicv")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
@@ -138,6 +139,14 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                         -- turbine
                         unit = svrs_turbinev.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_turbine(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+                        -- dynamic tank
+                        unit = svrs_dynamicv.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_tank(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.SNA then
+                        -- solar neutron activator
+                        unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then target_unit.add_sna(unit) end
                     elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)
@@ -161,9 +170,11 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                     elseif u_type == RTU_UNIT_TYPE.SPS then
                         -- super-critical phase shifter
                         unit = svrs_sps.new(id, i, unit_advert, self.modbus_q)
-                    elseif u_type == RTU_UNIT_TYPE.SNA then
-                        -- solar neutron activator
-                        unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_sps(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+                        -- dynamic tank
+                        unit = svrs_dynamicv.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_tank(unit) end
                     elseif u_type == RTU_UNIT_TYPE.ENV_DETECTOR then
                         -- environment detector
                         unit = svrs_envd.new(id, i, unit_advert, self.modbus_q)

@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.18.0"
+local SUPERVISOR_VERSION = "v0.20.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -116,7 +116,7 @@ local function main()
     if not fp_ok then
         renderer.close_ui()
         println_ts(util.c("UI error: ", message))
-        log.error(util.c("GUI crashed with error ", message))
+        log.error(util.c("front panel GUI render failed with error ", message))
     else
         -- redefine println_ts local to not print as we have the front panel running
         println_ts = function (_) end
@@ -153,7 +153,13 @@ local function main()
                         println_ts("wireless modem disconnected!")
                         log.warning("comms modem disconnected")
 
-                        databus.tx_hw_modem(false)
+                        local other_modem = ppm.get_wireless_modem()
+                        if other_modem then
+                            log.info("found another wireless modem, using it for comms")
+                            nic.connect(other_modem)
+                        else
+                            databus.tx_hw_modem(false)
+                        end
                     else
                         log.warning("non-comms modem disconnected")
                     end
@@ -164,7 +170,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
-                    if device.isWireless() and not nic.connected() then
+                    if device.isWireless() and not nic.is_connected() then
                         -- reconnected modem
                         nic.connect(device)
 
@@ -172,6 +178,8 @@ local function main()
                         log.info("comms modem reconnected")
 
                         databus.tx_hw_modem(true)
+                    elseif device.isWireless() then
+                        log.info("unused wireless modem reconnected")
                     else
                         log.info("wired modem reconnected")
                     end
