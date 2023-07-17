@@ -20,7 +20,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.6"
+local CCMSI_VERSION = "v1.7"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -54,6 +54,10 @@ local function ask_y_n(question, default)
     elseif response == "N" or response == "n" then return false
     else return nil end
 end
+
+-- wait for any key to be pressed
+---@diagnostic disable-next-line: undefined-field
+local function any_key() os.pullEvent("key") end
 
 -- print out a white + blue text message
 local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
@@ -156,11 +160,11 @@ local function _clean_dir(dir, tree)
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
             if #fs.list(path) == 0 then
-                fs.delete(path);red();println("deleted dir " .. path);white()
+                fs.delete(path);lgray();println("deleted dir " .. path);white()
             end
         elseif not _in_array(val, tree) then
             fs.delete(val)
-            red();println("deleted " .. path);white()
+            lgray();println("deleted " .. path);white()
         end
     end
 end
@@ -449,8 +453,9 @@ elseif mode == "install" or mode == "update" then
             if mode == "install" then
                 println("Installation completed successfully.")
             else println("Update completed successfully.") end
-            println("Ready to clean up unused files, press enter to continue...")
-            read();clean(manifest)
+            white();println("Ready to clean up unused files, press any key to continue...")
+            any_key();clean(manifest)
+            white();println("Done.")
         else
             if mode == "install" then
                 red();println("Installation failed.")
@@ -491,8 +496,9 @@ elseif mode == "install" or mode == "update" then
             if mode == "install" then
                 println("Installation completed successfully.")
             else println("Update completed successfully.") end
-            println("Ready to clean up unused files, press enter to continue...")
-            read();clean(manifest)
+            white();println("Ready to clean up unused files, press any key to continue...")
+            any_key();clean(manifest)
+            white();println("Done.")
         else
             red()
             if mode == "install" then
@@ -542,8 +548,8 @@ elseif mode == "remove" or mode == "purge" then
 
         if not log_deleted then
             red();println("failed to delete log file")
-            white();println("press enter to continue...")
-            read();lgray()
+            white();println("press any key to continue...")
+            any_key();lgray()
         end
     end
 
