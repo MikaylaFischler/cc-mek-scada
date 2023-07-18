@@ -75,6 +75,10 @@ function process.init(iocontrol, coord_comms)
         end
 
         log.info("PROCESS: loaded auto control settings from coord.settings")
+
+        -- notify supervisor of auto waste config
+        self.comms.send_fac_command(FAC_COMMAND.SET_WASTE_MODE, self.config.waste_product)
+        self.comms.send_fac_command(FAC_COMMAND.SET_PU_FB, self.config.pu_fallback)
     end
 
     -- unit waste states
