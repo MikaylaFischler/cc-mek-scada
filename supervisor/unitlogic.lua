@@ -329,11 +329,12 @@ function logic.update_annunciator(self)
             Generator Trip
             a generator trip is when a generator suddenly and unexpectedly loses it's external load
             oftentimes this is when a power plant is disconnected from the grid for one reason or another
-            in this case we just:
+            in this case we:
                 - check if internal power storage of turbine is increasing
+                - check that there is at least 5% energy fill, preventing false trips with periodic power extraction
             that means there is no external load and there will be a turbine trip soon if this is not resolved
         ]]--
-        self.db.annunciator.GeneratorTrip[idx] = _get_dt(DT_KEYS.TurbinePower .. idx) > 0.0
+        self.db.annunciator.GeneratorTrip[idx] = (_get_dt(DT_KEYS.TurbinePower .. idx) > 0.0) and (db.tanks.energy_fill > 0.05)
 
         --[[
             Turbine Trip
@@ -503,9 +504,6 @@ function logic.update_alarms(self)
     for i = 1, #annunc.GeneratorTrip do gen_trip = gen_trip or annunc.GeneratorTrip[i] end
 
     local rcs_trans = any_low or any_over or gen_trip or annunc.RCPTrip or annunc.MaxWaterReturnFeed
-
-    -- only care about RCS flow low early with boilers
-    if self.num_boilers > 0 then rcs_trans = rcs_trans or annunc.RCSFlowLow end
 
     -- annunciator indicators for these states may not indicate a real issue when:
     --  > flow is ramping up right after reactor start
