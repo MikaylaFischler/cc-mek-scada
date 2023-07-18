@@ -327,12 +327,12 @@ function logic.update_annunciator(self)
 
         --[[
             Generator Trip
-            a generator trip is when a generator suddenly and unexpectedly loses it's external load
-            oftentimes this is when a power plant is disconnected from the grid for one reason or another
-            in this case we:
-                - check if internal power storage of turbine is increasing
-                - check that there is at least 5% energy fill, preventing false trips with periodic power extraction
-            that means there is no external load and there will be a turbine trip soon if this is not resolved
+            a generator trip is when a generator suddenly and unexpectedly loses it's external load, which occurs when a power plant
+            is disconnected from the grid. in our case, this is when the turbine is disconnected, or what it's connected to becomes
+            fully charged. this is identified by detecting if:
+                - the internal power storage of the turbine is increasing AND
+                - there is at least 5% energy fill (preventing false trips with periodic power extraction from other mods)
+            this would then mean there is no external load and there will be a turbine trip soon if this is not resolved
         ]]--
         self.db.annunciator.GeneratorTrip[idx] = (_get_dt(DT_KEYS.TurbinePower .. idx) > 0.0) and (db.tanks.energy_fill > 0.05)
 
