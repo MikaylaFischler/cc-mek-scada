@@ -308,7 +308,9 @@ function threads.thread__comms(smem)
 
         -- thread loop
         while true do
-            -- check for messages in the message queue
+            local handle_start = util.time()
+
+            -- check for messages in the message queue while not shut down
             while comms_queue.ready() and not rtu_state.shutdown do
                 local msg = comms_queue.pop()
 
@@ -324,9 +326,15 @@ function threads.thread__comms(smem)
                     end
                 end
 
-                -- quick yield
-                util.nop()
+                -- max 100ms spent processing queue
+                if util.time() - handle_start > 100 then
+                    log.warning("comms thread exceeded 100ms queue process limit")
+                    break
+                end
             end
+
+            -- quick yield
+            util.nop()
 
             -- check for termination request
             if rtu_state.shutdown then
@@ -412,6 +420,12 @@ function threads.thread__unit_comms(smem, unit)
 
                 -- quick yield
                 util.nop()
+            end
+
+            -- check for termination request
+            if rtu_state.shutdown then
+                log.info("rtu unit thread exiting -> " .. short_name)
+                break
             end
 
             -- check if multiblock is still formed if this is a multiblock
@@ -506,12 +520,6 @@ function threads.thread__unit_comms(smem, unit)
 
             -- update hw status
             databus.tx_unit_hw_status(unit.uid, unit.hw_state)
-
-            -- check for termination request
-            if rtu_state.shutdown then
-                log.info("rtu unit thread exiting -> " .. short_name)
-                break
-            end
 
             -- delay before next check
             last_update = util.adaptive_delay(COMMS_SLEEP, last_update)

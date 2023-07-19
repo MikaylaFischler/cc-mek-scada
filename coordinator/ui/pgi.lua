@@ -52,6 +52,8 @@ function pgi.delete_pkt_entry(session_id)
         if not success then
             log.error(util.c("PGI: failed to delete PKT entry (", result, ")"), true)
         end
+    else
+        log.debug(util.c("PGI: tried to delete unknown PKT entry ", session_id))
     end
 end
 
