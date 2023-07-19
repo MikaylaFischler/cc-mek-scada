@@ -71,7 +71,8 @@ function element.new(args, child_offset_x, child_offset_y)
         p_window = nil,                                 ---@type table
         position = { x = 1, y = 1 },                    ---@type coordinate_2d
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
-        next_y = 1,
+        next_y = 1,                                     -- next child y coordinate
+        next_id = 0,                                    -- next child ID
         subscriptions = {},
         mt = {}
     }
@@ -352,13 +353,14 @@ function element.new(args, child_offset_x, child_offset_y)
 
         local child_element = child.get()
 
-        if key == nil then
-            table.insert(protected.children, child_element)
-            return #protected.children
-        else
-            protected.children[key] = child_element
-            return key
+        local id = key  ---@type string|integer|nil
+        if id == nil then
+            id = self.next_id
+            self.next_id = self.next_id + 1
         end
+
+        protected.children[id] = child_element
+        return id
     end
 
     -- remove a child element
