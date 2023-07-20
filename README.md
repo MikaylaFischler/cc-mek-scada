@@ -18,6 +18,8 @@ Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fi
 
 ![Bootloader](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fbootloader.json)
 ![Comms](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcomms.json)
+![Graphics](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fgraphics.json)
+![Lockbox](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Flockbox.json)
 
 
 ![Reactor PLC](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Freactor-plc.json)
