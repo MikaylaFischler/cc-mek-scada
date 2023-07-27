@@ -26,7 +26,8 @@ local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local PERIODICS = {
-    KEEP_ALIVE = 2000
+    KEEP_ALIVE = 2000,
+    ALARM_TONES = 500
 }
 
 -- create a new RTU session
@@ -58,7 +59,8 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
         -- periodic messages
         periodics = {
             last_update = 0,
-            keep_alive = 0
+            keep_alive = 0,
+            alarm_tones = 0
         },
         units = {}
     }
@@ -387,6 +389,14 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
                 _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
+            end
+
+            -- alarm tones
+
+            periodics.alarm_tones = periodics.alarm_tones + elapsed
+            if periodics.alarm_tones >= PERIODICS.ALARM_TONES then
+                _send_mgmt(SCADA_MGMT_TYPE.RTU_TONE_ALARM, { facility.get_alarm_tones() })
+                periodics.alarm_tones = 0
             end
 
             self.periodics.last_update = util.time()
