@@ -762,7 +762,8 @@ function facility.new(num_reactors, cooling_conf)
         -- Update Alarm Tones --
         ------------------------
 
-        local alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
+        local alarms     = { false, false, false, false, false, false, false, false, false, false, false, false }
+        self.tone_states = { false, false, false, false, false, false, false, false}
 
         -- check all alarms for all units
         for i = 1, #self.units do

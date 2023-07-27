@@ -254,7 +254,7 @@ function audio.new_stream()
     ---@param index tone_id tone ID
     ---@param active boolean active state
     function public.set_active(index, active)
-        if self.tone_active[index] then
+        if self.tone_active[index] ~= nil then
             if self.tone_active[index] ~= active then self.need_recompute = true end
             self.tone_active[index] = active
         end
@@ -289,7 +289,7 @@ function audio.new_stream()
                 self.any_active = true
                 for i = 1, 4 do
                     local buffer = self.quad_buffer[i]
-                    local values = tone_data[id]
+                    local values = tone_data[id][i]
                     for s = 1, _05s_SAMPLES do self.quad_buffer[i][s] = limit(buffer[s] + values[s]) end
                 end
             end
