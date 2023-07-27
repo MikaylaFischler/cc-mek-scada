@@ -15,6 +15,10 @@ config.COMMS_TIMEOUT = 5
 -- all devices on the same network must use the same key
 -- config.AUTH_KEY = "SCADAfacility123"
 
+-- alarm sounder volume (0.0 to 3.0, 1.0 being standard max volume, this is the option given to to speaker.play())
+-- note: alarm sine waves are at half saturation, so that multiple will be required to reach full scale
+config.SOUNDER_VOLUME = 1.0
+
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode

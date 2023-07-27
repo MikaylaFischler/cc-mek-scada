@@ -1,9 +1,11 @@
+local audio   = require("scada-common.audio")
 local comms   = require("scada-common.comms")
 local ppm     = require("scada-common.ppm")
 local log     = require("scada-common.log")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
+local config  = require("rtu.config")
 local databus = require("rtu.databus")
 local modbus  = require("rtu.modbus")
 
@@ -153,6 +155,48 @@ function rtu.init_unit()
     function protected.interface() return public end
 
     return protected
+end
+
+-- create an alarm speaker sounder
+---@param speaker table device peripheral
+function rtu.init_sounder(speaker)
+    ---@class rtu_speaker_sounder
+    local spkr_ctl = {
+        speaker = speaker,
+        name = ppm.get_iface(speaker),
+        playing = false,
+        stream = audio.new_stream(),
+        play = function () end,
+        stop = function () end,
+        continue = function () end
+    }
+
+    -- continue audio stream if playing
+    function spkr_ctl.continue()
+        if spkr_ctl.playing then
+            if spkr_ctl.speaker ~= nil and spkr_ctl.stream.has_next_block() then
+                local success = spkr_ctl.speaker.playAudio(spkr_ctl.stream.get_next_block(), config.SOUNDER_VOLUME)
+                if not success then log.error(util.c("rtu_sounder(", spkr_ctl.name, "): error playing audio")) end
+            end
+        end
+    end
+
+    -- start audio stream playback
+    function spkr_ctl.play()
+        if not spkr_ctl.playing then
+            spkr_ctl.playing = true
+            return spkr_ctl.continue()
+        end
+    end
+
+    -- stop audio stream playback
+    function spkr_ctl.stop()
+        spkr_ctl.playing = false
+        spkr_ctl.speaker.stop()
+        spkr_ctl.stream.stop()
+    end
+
+    return spkr_ctl
 end
 
 -- RTU Communications
@@ -312,7 +356,8 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     ---@param packet modbus_frame|mgmt_frame
     ---@param units table RTU units
     ---@param rtu_state rtu_state
-    function public.handle_packet(packet, units, rtu_state)
+    ---@param sounders table speaker alarm sounders
+    function public.handle_packet(packet, units, rtu_state, sounders)
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
 
@@ -447,6 +492,22 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
                     elseif packet.type == SCADA_MGMT_TYPE.RTU_ADVERT then
                         -- request for capabilities again
                         public.send_advertisement(units)
+                    elseif packet.type == SCADA_MGMT_TYPE.RTU_TONE_ALARM then
+                        -- alarm tone update from supervisor
+                        if (packet.length == 1) and type(packet.data[1] == "table") and (#packet.data[1] == 8) then
+                            local states = packet.data[1]
+
+                            for i = 1, #sounders do
+                                local s = sounders[i]   ---@type rtu_speaker_sounder
+
+                                -- set tone states
+                                for id = 1, #states do s.stream.set_active(id, states[id]) end
+
+                                -- re-compute output if needed, then play audio if available
+                                if s.stream.is_recompute_needed() then s.stream.compute_buffer() end
+                                if s.stream.has_next_block() then s.play() else s.stop() end
+                            end
+                        end
                     else
                         -- not supported
                         log.debug("received unsupported SCADA_MGMT message type " .. packet.type)

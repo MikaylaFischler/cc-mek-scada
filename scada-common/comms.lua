@@ -14,7 +14,7 @@ local max_distance = nil                ---@type number|nil maximum acceptable t
 ---@class comms
 local comms = {}
 
-comms.version = "2.1.2"
+comms.version = "2.2.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -46,7 +46,8 @@ local SCADA_MGMT_TYPE = {
     KEEP_ALIVE = 1,     -- keep alive packet w/ RTT
     CLOSE = 2,          -- close a connection
     RTU_ADVERT = 3,     -- RTU capability advertisement
-    RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+    RTU_DEV_REMOUNT = 4,-- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+    RTU_TONE_ALARM = 5  -- instruct RTUs to play specified alarm tones
 }
 
 ---@enum SCADA_CRDN_TYPE

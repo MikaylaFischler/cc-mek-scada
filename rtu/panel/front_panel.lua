@@ -2,36 +2,27 @@
 -- RTU Front Panel GUI
 --
 
-local types      = require("scada-common.types")
-local util       = require("scada-common.util")
+local types         = require("scada-common.types")
+local util          = require("scada-common.util")
 
-local databus    = require("rtu.databus")
+local databus       = require("rtu.databus")
 
-local style      = require("rtu.panel.style")
+local style         = require("rtu.panel.style")
 
-local core       = require("graphics.core")
+local core          = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local TextBox    = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.div")
+local TextBox       = require("graphics.elements.textbox")
 
-local LED        = require("graphics.elements.indicators.led")
-local RGBLED     = require("graphics.elements.indicators.ledrgb")
+local DataIndicator = require("graphics.elements.indicators.data")
+local LED           = require("graphics.elements.indicators.led")
+local RGBLED        = require("graphics.elements.indicators.ledrgb")
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
 local cpair = core.cpair
 
-local UNIT_TYPE_LABELS = {
-    "UNKNOWN",
-    "REDSTONE",
-    "BOILER",
-    "TURBINE",
-    "DYNAMIC TANK",
-    "IND MATRIX",
-    "SPS",
-    "SNA",
-    "ENV DETECTOR"
-}
+local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
 
 
 -- create new front panel view
@@ -71,6 +62,10 @@ local function init(panel, units)
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
     TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+
+    TextBox{parent=system,x=1,y=14,text="SPEAKERS",height=1,width=8,fg_bg=style.label}
+    local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=cpair(colors.gray,colors.white)}
+    speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
 
     --
     -- about label
