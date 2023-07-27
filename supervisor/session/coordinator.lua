@@ -150,7 +150,8 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
     local function _send_fac_status()
         local status = {
             facility.get_control_status(),
-            facility.get_rtu_statuses()
+            facility.get_rtu_statuses(),
+            facility.get_alarm_tones()
         }
 
         _send(SCADA_CRDN_TYPE.FAC_STATUS, status)

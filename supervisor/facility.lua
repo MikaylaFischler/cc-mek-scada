@@ -1,3 +1,4 @@
+local audio = require("scada-common.audio")
 local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local rsio  = require("scada-common.rsio")
@@ -8,12 +9,16 @@ local unit  = require("supervisor.unit")
 
 local rsctl = require("supervisor.session.rsctl")
 
-local PROCESS = types.PROCESS
+local TONES = audio.TONES
+
+local PROCESS       = types.PROCESS
 local PROCESS_NAMES = types.PROCESS_NAMES
-local PRIO = types.ALARM_PRIORITY
+local PRIO          = types.ALARM_PRIORITY
+local ALARM         = types.ALARM
+local ALARM_STATE   = types.ALARM_STATE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-local WASTE = types.WASTE_PRODUCT
-local WASTE_MODE = types.WASTE_MODE
+local WASTE         = types.WASTE_PRODUCT
+local WASTE_MODE    = types.WASTE_MODE
 
 local IO = rsio.IO
 
@@ -109,6 +114,8 @@ function facility.new(num_reactors, cooling_conf)
         waste_product = WASTE.PLUTONIUM,
         current_waste_product = WASTE.PLUTONIUM,
         pu_fallback = false,
+        -- alarm tones
+        tone_states = { false, false, false, false, false, false, false, false },
         -- statistics
         im_stat_init = false,
         avg_charge = util.mov_avg(3, 0.0),
@@ -750,6 +757,63 @@ function facility.new(num_reactors, cooling_conf)
         if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
             self.current_waste_product = WASTE.PLUTONIUM
         else self.current_waste_product = self.waste_product end
+
+        ------------------------
+        -- Update Alarm Tones --
+        ------------------------
+
+        local alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
+
+        -- check all alarms for all units
+        for i = 1, #self.units do
+            local u = self.units[i] ---@type reactor_unit
+            for id, alarm in pairs(u.get_alarms()) do
+                alarms[id] = alarms[id] or (alarm == ALARM_STATE.TRIPPED)
+            end
+        end
+
+        -- containment breach is worst case CRITICAL alarm, this takes priority
+        if alarms[ALARM.ContainmentBreach] then
+            self.tone_states[TONES.T_1800Hz_Int_4Hz] = true
+        else
+            -- critical damage is highest priority CRITICAL level alarm
+            if alarms[ALARM.CriticalDamage] then
+                self.tone_states[TONES.T_660Hz_Int_125ms] = true
+            else
+                -- EMERGENCY level alarms + URGENT over temp
+                if alarms[ALARM.ReactorDamage] or alarms[ALARM.ReactorOverTemp] or alarms[ALARM.ReactorWasteLeak] then
+                    self.tone_states[TONES.T_544Hz_440Hz_Alt] = true
+                -- URGENT level turbine trip
+                elseif alarms[ALARM.TurbineTrip] then
+                    self.tone_states[TONES.T_745Hz_Int_1Hz] = true
+                -- URGENT level reactor lost
+                elseif alarms[ALARM.ReactorLost] then
+                    self.tone_states[TONES.T_340Hz_Int_2Hz] = true
+                -- TIMELY level alarms
+                elseif alarms[ALARM.ReactorHighTemp] or alarms[ALARM.ReactorHighWaste] or alarms[ALARM.RCSTransient] then
+                    self.tone_states[TONES.T_800Hz_Int] = true
+                end
+            end
+
+            -- check RPS transient URGENT level alarm
+            if alarms[ALARM.RPSTransient] then
+                self.tone_states[TONES.T_1000Hz_Int] = true
+                -- disable really painful audio combination
+                self.tone_states[TONES.T_340Hz_Int_2Hz] = false
+            end
+        end
+
+        -- radiation is a big concern, always play this CRITICAL level alarm if active
+        if alarms[ALARM.ContainmentRadiation] then
+            self.tone_states[TONES.T_800Hz_1000Hz_Alt] = true
+            -- we are going to disable the RPS trip alarm audio due to conflict, and if it was enabled
+            -- then we can re-enable the reactor lost alarm audio since it doesn't painfully combine with this one
+            if self.tone_states[TONES.T_1000Hz_Int] and alarms[ALARM.ReactorLost] then self.tone_states[TONES.T_340Hz_Int_2Hz] = true end
+            -- it sounds *really* bad if this is in conjunction with these other tones, so disable them
+            self.tone_states[TONES.T_745Hz_Int_1Hz] = false
+            self.tone_states[TONES.T_800Hz_Int] = false
+            self.tone_states[TONES.T_1000Hz_Int] = false
+        end
     end
 
     -- call the update function of all units in the facility<br>
@@ -892,6 +956,10 @@ function facility.new(num_reactors, cooling_conf)
     end
 
     -- READ STATES/PROPERTIES --
+
+    -- get current alarm tone on/off states
+    ---@nodiscard
+    function public.get_alarm_tones() return self.tone_states end
 
     -- get build properties of all facility devices
     ---@nodiscard
