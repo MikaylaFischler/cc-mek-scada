@@ -589,7 +589,8 @@ function comms.mgmt_packet()
                 self.type == SCADA_MGMT_TYPE.CLOSE or
                 self.type == SCADA_MGMT_TYPE.REMOTE_LINKED or
                 self.type == SCADA_MGMT_TYPE.RTU_ADVERT or
-                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT
+                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT or
+                self.type == SCADA_MGMT_TYPE.RTU_TONE_ALARM
     end
 
     -- make a SCADA management packet
