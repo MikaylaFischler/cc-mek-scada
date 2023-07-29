@@ -212,6 +212,7 @@ function network.nic(modem)
                     if packet_hmac == computed_hmac then
                         -- log.debug("crypto.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
                         s_packet.receive(side, sender, reply_to, textutils.unserialize(msg), distance)
+                        s_packet.stamp_authenticated()
                     else
                         -- log.debug("crypto.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                     end

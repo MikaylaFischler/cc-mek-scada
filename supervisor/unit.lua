@@ -719,6 +719,23 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return false
     end
 
+    -- check if the reactor is connected, is stopped, the RPS is not tripped, and no alarms are active
+    ---@nodiscard
+    function public.is_safe_idle()
+        -- can't be disconnected
+        if self.plc_i == nil then return false end
+
+        -- alarms must be inactive and not tripping
+        for _, alarm in pairs(self.alarms) do
+            if not (alarm.state == AISTATE.INACTIVE or alarm.state == AISTATE.RING_BACK) then return false end
+        end
+
+        -- reactor must be stopped and RPS can't be tripped
+        if self.plc_i.get_status().status or self.plc_i.get_db().rps_tripped then return false end
+
+        return true
+    end
+
     -- get build properties of machines
     --
     -- filter options

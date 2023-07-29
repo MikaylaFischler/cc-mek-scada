@@ -1,16 +1,15 @@
-local comms  = require("scada-common.comms")
-local log    = require("scada-common.log")
-local util   = require("scada-common.util")
+local comms     = require("scada-common.comms")
+local log       = require("scada-common.log")
+local util      = require("scada-common.util")
 
-local coreio = require("pocket.coreio")
+local iocontrol = require("pocket.iocontrol")
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
--- local CAPI_TYPE = comms.CAPI_TYPE
 
-local LINK_STATE = coreio.LINK_STATE
+local LINK_STATE = iocontrol.LINK_STATE
 
 local pocket = {}
 
@@ -79,20 +78,6 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
         self.api.seq_num = self.api.seq_num + 1
     end
 
-    -- send a packet to the coordinator API
-    -----@param msg_type CAPI_TYPE
-    -----@param msg table
-    -- local function _send_api(msg_type, msg)
-    --     local s_pkt = comms.scada_packet()
-    --     local pkt = comms.capi_packet()
-
-    --     pkt.make(msg_type, msg)
-    --     s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.COORD_API, pkt.raw_sendable())
-
-    --     nic.transmit(crd_channel, pkt_channel, s_pkt)
-    --     self.api.seq_num = self.api.seq_num + 1
-    -- end
-
     -- attempt supervisor connection establishment
     local function _send_sv_establish()
         _send_sv(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT })
@@ -147,7 +132,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
     -- attempt to re-link if any of the dependent links aren't active
     function public.link_update()
         if not self.sv.linked then
-            coreio.report_link_state(util.trinary(self.api.linked, LINK_STATE.API_LINK_ONLY, LINK_STATE.UNLINKED))
+            iocontrol.report_link_state(util.trinary(self.api.linked, LINK_STATE.API_LINK_ONLY, LINK_STATE.UNLINKED))
 
             if self.establish_delay_counter <= 0 then
                 _send_sv_establish()
@@ -156,7 +141,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                 self.establish_delay_counter = self.establish_delay_counter - 1
             end
         elseif not self.api.linked then
-            coreio.report_link_state(LINK_STATE.SV_LINK_ONLY)
+            iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
 
             if self.establish_delay_counter <= 0 then
                 _send_api_establish()
@@ -166,8 +151,27 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
             end
         else
             -- linked, all good!
-            coreio.report_link_state(LINK_STATE.LINKED)
+            iocontrol.report_link_state(LINK_STATE.LINKED)
         end
+    end
+
+    -- supervisor test alarm tones by tone
+    ---@param id tone_id|0 tone ID, or 0 to stop all
+    ---@param state boolean tone state
+    function public.diag__set_alarm_tone(id, state)
+        if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_TONE_SET, { id, state }) end
+    end
+
+    -- supervisor get active alarm tones
+    function public.diag__get_alarm_tones()
+        if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_TONE_GET, {}) end
+    end
+
+    -- supervisor test alarm tones by alarm
+    ---@param id ALARM|0 alarm ID, 0 to stop all
+    ---@param state boolean alarm state
+    function public.diag__set_alarm(id, state)
+        if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
     end
 
     -- parse a packet
@@ -205,6 +209,8 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
     -- handle a packet
     ---@param packet mgmt_frame|capi_frame|nil
     function public.handle_packet(packet)
+        local diag = iocontrol.get_db().diag
+
         if packet ~= nil then
             local l_chan   = packet.scada_frame.local_channel()
             local r_chan   = packet.scada_frame.remote_channel()
@@ -231,47 +237,9 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                 -- feed watchdog on valid sequence number
                 api_watchdog.feed()
 
-                if protocol == PROTOCOL.COORD_API then
-                    ---@cast packet capi_frame
-                elseif protocol == PROTOCOL.SCADA_MGMT then
+                if protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
-                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                        -- connection with coordinator established
-                        if packet.length == 1 then
-                            local est_ack = packet.data[1]
-
-                            if est_ack == ESTABLISH_ACK.ALLOW then
-                                log.info("coordinator connection established")
-                                self.establish_delay_counter = 0
-                                self.api.linked = true
-                                self.api.addr = src_addr
-
-                                if self.sv.linked then
-                                    coreio.report_link_state(LINK_STATE.LINKED)
-                                else
-                                    coreio.report_link_state(LINK_STATE.API_LINK_ONLY)
-                                end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator comms version mismatch")
-                                end
-                            else
-                                log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
-                            end
-
-                            self.api.last_est_ack = est_ack
-                        else
-                            log.debug("coordinator SCADA_MGMT establish packet length mismatch")
-                        end
-                    elseif self.api.linked then
+                    if self.api.linked then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -297,6 +265,42 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                             log.info("coordinator server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from coordinator")
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                        -- connection with coordinator established
+                        if packet.length == 1 then
+                            local est_ack = packet.data[1]
+
+                            if est_ack == ESTABLISH_ACK.ALLOW then
+                                log.info("coordinator connection established")
+                                self.establish_delay_counter = 0
+                                self.api.linked = true
+                                self.api.addr = src_addr
+
+                                if self.sv.linked then
+                                    iocontrol.report_link_state(LINK_STATE.LINKED)
+                                else
+                                    iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
+                                end
+                            elseif est_ack == ESTABLISH_ACK.DENY then
+                                if self.api.last_est_ack ~= est_ack then
+                                    log.info("coordinator connection denied")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                if self.api.last_est_ack ~= est_ack then
+                                    log.info("coordinator connection denied due to collision")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                if self.api.last_est_ack ~= est_ack then
+                                    log.info("coordinator comms version mismatch")
+                                end
+                            else
+                                log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                            end
+
+                            self.api.last_est_ack = est_ack
+                        else
+                            log.debug("coordinator SCADA_MGMT establish packet length mismatch")
                         end
                     else
                         log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
@@ -325,43 +329,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                 -- handle packet
                 if protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
-                    if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                        -- connection with supervisor established
-                        if packet.length == 1 then
-                            local est_ack = packet.data[1]
-
-                            if est_ack == ESTABLISH_ACK.ALLOW then
-                                log.info("supervisor connection established")
-                                self.establish_delay_counter = 0
-                                self.sv.linked = true
-                                self.sv.addr = src_addr
-
-                                if self.api.linked then
-                                    coreio.report_link_state(LINK_STATE.LINKED)
-                                else
-                                    coreio.report_link_state(LINK_STATE.SV_LINK_ONLY)
-                                end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor comms version mismatch")
-                                end
-                            else
-                                log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
-                            end
-
-                            self.sv.last_est_ack = est_ack
-                        else
-                            log.debug("supervisor SCADA_MGMT establish packet length mismatch")
-                        end
-                    elseif self.sv.linked then
+                    if self.sv.linked then
                         if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
                             if packet.length == 1 then
@@ -385,8 +353,89 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                             self.sv.r_seq_num = nil
                             self.sv.addr = comms.BROADCAST
                             log.info("supervisor server connection closed by remote host")
+                        elseif packet.type == SCADA_MGMT_TYPE.DIAG_TONE_GET then
+                            if packet.length == 8 then
+                                for i = 1, #packet.data do
+                                    diag.tone_test.tone_indicators[i].update(packet.data[i] == true)
+                                end
+                            else
+                                log.debug("supervisor SCADA diag alarm states packet length mismatch")
+                            end
+                        elseif packet.type == SCADA_MGMT_TYPE.DIAG_TONE_SET then
+                            if packet.length == 1 and packet.data[1] == false then
+                                diag.tone_test.ready_warn.set_value("testing denied")
+                                log.debug("supervisor SCADA diag tone set failed")
+                            elseif packet.length == 2 and type(packet.data[2]) == "table" then
+                                local ready = packet.data[1]
+                                local states = packet.data[2]
+
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+
+                                for i = 1, #states do
+                                    if diag.tone_test.tone_buttons[i] ~= nil then
+                                        diag.tone_test.tone_buttons[i].set_value(states[i] == true)
+                                        diag.tone_test.tone_indicators[i].update(states[i] == true)
+                                    end
+                                end
+                            else
+                                log.debug("supervisor SCADA diag tone set packet length/type mismatch")
+                            end
+                        elseif packet.type == SCADA_MGMT_TYPE.DIAG_ALARM_SET then
+                            if packet.length == 1 and packet.data[1] == false then
+                                diag.tone_test.ready_warn.set_value("testing denied")
+                                log.debug("supervisor SCADA diag alarm set failed")
+                            elseif packet.length == 2 and type(packet.data[2]) == "table" then
+                                local ready = packet.data[1]
+                                local states = packet.data[2]
+
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+
+                                for i = 1, #states do
+                                    if diag.tone_test.alarm_buttons[i] ~= nil then
+                                        diag.tone_test.alarm_buttons[i].set_value(states[i] == true)
+                                    end
+                                end
+                            else
+                                log.debug("supervisor SCADA diag alarm set packet length/type mismatch")
+                            end
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from supervisor")
+                        end
+                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                        -- connection with supervisor established
+                        if packet.length == 1 then
+                            local est_ack = packet.data[1]
+
+                            if est_ack == ESTABLISH_ACK.ALLOW then
+                                log.info("supervisor connection established")
+                                self.establish_delay_counter = 0
+                                self.sv.linked = true
+                                self.sv.addr = src_addr
+
+                                if self.api.linked then
+                                    iocontrol.report_link_state(LINK_STATE.LINKED)
+                                else
+                                    iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
+                                end
+                            elseif est_ack == ESTABLISH_ACK.DENY then
+                                if self.sv.last_est_ack ~= est_ack then
+                                    log.info("supervisor connection denied")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                if self.sv.last_est_ack ~= est_ack then
+                                    log.info("supervisor connection denied due to collision")
+                                end
+                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                if self.sv.last_est_ack ~= est_ack then
+                                    log.info("supervisor comms version mismatch")
+                                end
+                            else
+                                log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                            end
+
+                            self.sv.last_est_ack = est_ack
+                        else
+                            log.debug("supervisor SCADA_MGMT establish packet length mismatch")
                         end
                     else
                         log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")

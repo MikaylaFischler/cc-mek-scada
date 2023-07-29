@@ -33,8 +33,9 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
+---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
-function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, fp_ok)
+function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -129,6 +130,55 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, fp_ok)
             elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_TONE_GET then
+                -- get the state of alarm tones
+                _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_GET, facility.get_alarm_tones())
+            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_TONE_SET then
+                local valid = false
+
+                -- attempt to set a tone state
+                if pkt.scada_frame.is_authenticated() then
+                    if pkt.length == 2 then
+                        if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
+                            valid = true
+
+                            -- try to set tone states, then send back if testing is allowed 
+                            local allow_testing, test_tone_states = facility.diag_set_test_tone(pkt.data[1], pkt.data[2])
+                            _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
+                        else
+                            log.debug(log_header .. "SCADA diag tone set packet data type mismatch")
+                        end
+                    else
+                        log.debug(log_header .. "SCADA diag tone set packet length mismatch")
+                    end
+                else
+                    log.debug(log_header .. "DIAG_TONE_SET is blocked without HMAC for security")
+                end
+
+                if not valid then _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_SET, { false }) end
+            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_ALARM_SET then
+                local valid = false
+
+                -- attempt to set an alarm state
+                if pkt.scada_frame.is_authenticated() then
+                    if pkt.length == 2 then
+                        if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
+                            valid = true
+
+                            -- try to set alarm states, then send back if testing is allowed 
+                            local allow_testing, test_alarm_states = facility.diag_set_test_alarm(pkt.data[1], pkt.data[2])
+                            _send_mgmt(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
+                        else
+                            log.debug(log_header .. "SCADA diag alarm set packet data type mismatch")
+                        end
+                    else
+                        log.debug(log_header .. "SCADA diag alarm set packet length mismatch")
+                    end
+                else
+                    log.debug(log_header .. "DIAG_ALARM_SET is blocked without HMAC for security")
+                end
+
+                if not valid then _send_mgmt(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { false }) end
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
