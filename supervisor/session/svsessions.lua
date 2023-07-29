@@ -104,8 +104,8 @@ local function _sv_handle_outq(session)
 
         -- max 100ms spent processing queue
         if util.time() - handle_start > 100 then
-            log.warning("[SVS] supervisor out queue handler exceeded 100ms queue process limit")
-            log.warning(util.c("[SVS] offending session: ", session))
+            log.debug("[SVS] supervisor out queue handler exceeded 100ms queue process limit")
+            log.debug(util.c("[SVS] offending session: ", session))
             break
         end
     end
