@@ -432,41 +432,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_frame
                 -- SCADA management packet
-                if packet.type == SCADA_MGMT_TYPE.ESTABLISH then
-                    if packet.length == 1 then
-                        local est_ack = packet.data[1]
-
-                        if est_ack == ESTABLISH_ACK.ALLOW then
-                            -- establish allowed
-                            rtu_state.linked = true
-                            self.sv_addr = packet.scada_frame.src_addr()
-                            self.r_seq_num = nil
-                            println_ts("supervisor connection established")
-                            log.info("supervisor connection established")
-                        else
-                            -- establish denied
-                            if est_ack ~= self.last_est_ack then
-                                if est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                    -- version mismatch
-                                    println_ts("supervisor comms version mismatch (try updating), retrying...")
-                                    log.warning("supervisor connection denied due to comms version mismatch, retrying")
-                                else
-                                    println_ts("supervisor connection denied, retrying...")
-                                    log.warning("supervisor connection denied, retrying")
-                                end
-                            end
-
-                            public.unlink(rtu_state)
-                        end
-
-                        self.last_est_ack = est_ack
-
-                        -- report link state
-                        databus.tx_link_state(est_ack + 1)
-                    else
-                        log.debug("SCADA_MGMT establish packet length mismatch")
-                    end
-                elseif rtu_state.linked then
+                if rtu_state.linked then
                     if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
@@ -502,15 +468,45 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
 
                                 -- set tone states
                                 for id = 1, #states do s.stream.set_active(id, states[id]) end
-
-                                -- re-compute output if needed, then play audio if available
-                                if s.stream.is_recompute_needed() then s.stream.compute_buffer() end
-                                if s.stream.has_next_block() then s.play() else s.stop() end
                             end
                         end
                     else
                         -- not supported
                         log.debug("received unsupported SCADA_MGMT message type " .. packet.type)
+                    end
+                elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                    if packet.length == 1 then
+                        local est_ack = packet.data[1]
+
+                        if est_ack == ESTABLISH_ACK.ALLOW then
+                            -- establish allowed
+                            rtu_state.linked = true
+                            self.sv_addr = packet.scada_frame.src_addr()
+                            self.r_seq_num = nil
+                            println_ts("supervisor connection established")
+                            log.info("supervisor connection established")
+                        else
+                            -- establish denied
+                            if est_ack ~= self.last_est_ack then
+                                if est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                    -- version mismatch
+                                    println_ts("supervisor comms version mismatch (try updating), retrying...")
+                                    log.warning("supervisor connection denied due to comms version mismatch, retrying")
+                                else
+                                    println_ts("supervisor connection denied, retrying...")
+                                    log.warning("supervisor connection denied, retrying")
+                                end
+                            end
+
+                            public.unlink(rtu_state)
+                        end
+
+                        self.last_est_ack = est_ack
+
+                        -- report link state
+                        databus.tx_link_state(est_ack + 1)
+                    else
+                        log.debug("SCADA_MGMT establish packet length mismatch")
                     end
                 else
                     log.debug("discarding non-link SCADA_MGMT packet before linked")

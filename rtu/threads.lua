@@ -25,7 +25,7 @@ local threads = {}
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
 
-local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
+local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
@@ -67,6 +67,15 @@ function threads.thread__main(smem)
             if event == "timer" and loop_clock.is_clock(param1) then
                 -- blink heartbeat indicator
                 databus.heartbeat()
+
+                -- update speaker states
+                for _, sounder in pairs(sounders) do
+                    -- re-compute output if needed, then play audio if available
+                    if sounder.stream.is_recompute_needed() then
+                        sounder.stream.compute_buffer()
+                        if sounder.stream.has_next_block() then sounder.play() else sounder.stop() end
+                    end
+                end
 
                 -- start next clock timer
                 loop_clock.start()
