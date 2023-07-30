@@ -155,16 +155,16 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
         end
     end
 
-    -- supervisor test alarm tones by tone
-    ---@param id tone_id|0 tone ID, or 0 to stop all
-    ---@param state boolean tone state
-    function public.diag__set_alarm_tone(id, state)
-        if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_TONE_SET, { id, state }) end
-    end
-
     -- supervisor get active alarm tones
     function public.diag__get_alarm_tones()
         if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_TONE_GET, {}) end
+    end
+
+    -- supervisor test alarm tones by tone
+    ---@param id TONE|0 tone ID, or 0 to stop all
+    ---@param state boolean tone state
+    function public.diag__set_alarm_tone(id, state)
+        if self.sv.linked then _send_sv(SCADA_MGMT_TYPE.DIAG_TONE_SET, { id, state }) end
     end
 
     -- supervisor test alarm tones by alarm

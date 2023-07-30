@@ -9,7 +9,7 @@ local unit  = require("supervisor.unit")
 
 local rsctl = require("supervisor.session.rsctl")
 
-local TONES         = audio.TONES
+local TONE          = audio.TONE
 
 local ALARM         = types.ALARM
 local PRIO          = types.ALARM_PRIORITY
@@ -783,13 +783,8 @@ function facility.new(num_reactors, cooling_conf)
 
         local alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
 
-        for i = 1, #self.tone_states do
-            -- reset tone states before re-evaluting
-            self.tone_states[i] = false
-
-            -- clear testing tones if we aren't using them
-            if (not allow_test) and (not self.test_tone_reset) then self.test_tone_states[i] = false end
-        end
+        -- reset tone states before re-evaluting
+        for i = 1, #self.tone_states do self.tone_states[i] = false end
 
         if allow_test then
             alarms = self.test_alarm_states
@@ -799,64 +794,58 @@ function facility.new(num_reactors, cooling_conf)
                 local u = self.units[i] ---@type reactor_unit
                 for id, alarm in pairs(u.get_alarms()) do
                     alarms[id] = alarms[id] or (alarm == ALARM_STATE.TRIPPED)
-
-                    -- clear testing alarms if we aren't using them
-                    if not self.test_tone_reset then self.test_alarm_states[id] = false end
                 end
             end
 
-            self.test_tone_reset = true
-        end
-
-        -- flag that tones were reset to notify diagnostic accessor
-        if not allow_test then
-            self.test_tone_set = false
-            self.test_tone_reset = true
+            if not self.test_tone_reset then
+                -- clear testing alarms if we aren't using them
+                for i = 1, #self.test_alarm_states do self.test_alarm_states[i] = false end
+            end
         end
 
         -- Evaluate Alarms --
 
         -- containment breach is worst case CRITICAL alarm, this takes priority
         if alarms[ALARM.ContainmentBreach] then
-            self.tone_states[TONES.T_1800Hz_Int_4Hz] = true
+            self.tone_states[TONE.T_1800Hz_Int_4Hz] = true
         else
             -- critical damage is highest priority CRITICAL level alarm
             if alarms[ALARM.CriticalDamage] then
-                self.tone_states[TONES.T_660Hz_Int_125ms] = true
+                self.tone_states[TONE.T_660Hz_Int_125ms] = true
             else
                 -- EMERGENCY level alarms + URGENT over temp
                 if alarms[ALARM.ReactorDamage] or alarms[ALARM.ReactorOverTemp] or alarms[ALARM.ReactorWasteLeak] then
-                    self.tone_states[TONES.T_544Hz_440Hz_Alt] = true
+                    self.tone_states[TONE.T_544Hz_440Hz_Alt] = true
                 -- URGENT level turbine trip
                 elseif alarms[ALARM.TurbineTrip] then
-                    self.tone_states[TONES.T_745Hz_Int_1Hz] = true
+                    self.tone_states[TONE.T_745Hz_Int_1Hz] = true
                 -- URGENT level reactor lost
                 elseif alarms[ALARM.ReactorLost] then
-                    self.tone_states[TONES.T_340Hz_Int_2Hz] = true
+                    self.tone_states[TONE.T_340Hz_Int_2Hz] = true
                 -- TIMELY level alarms
                 elseif alarms[ALARM.ReactorHighTemp] or alarms[ALARM.ReactorHighWaste] or alarms[ALARM.RCSTransient] then
-                    self.tone_states[TONES.T_800Hz_Int] = true
+                    self.tone_states[TONE.T_800Hz_Int] = true
                 end
             end
 
             -- check RPS transient URGENT level alarm
             if alarms[ALARM.RPSTransient] then
-                self.tone_states[TONES.T_1000Hz_Int] = true
+                self.tone_states[TONE.T_1000Hz_Int] = true
                 -- disable really painful audio combination
-                self.tone_states[TONES.T_340Hz_Int_2Hz] = false
+                self.tone_states[TONE.T_340Hz_Int_2Hz] = false
             end
         end
 
         -- radiation is a big concern, always play this CRITICAL level alarm if active
         if alarms[ALARM.ContainmentRadiation] then
-            self.tone_states[TONES.T_800Hz_1000Hz_Alt] = true
+            self.tone_states[TONE.T_800Hz_1000Hz_Alt] = true
             -- we are going to disable the RPS trip alarm audio due to conflict, and if it was enabled
             -- then we can re-enable the reactor lost alarm audio since it doesn't painfully combine with this one
-            if self.tone_states[TONES.T_1000Hz_Int] and alarms[ALARM.ReactorLost] then self.tone_states[TONES.T_340Hz_Int_2Hz] = true end
+            if self.tone_states[TONE.T_1000Hz_Int] and alarms[ALARM.ReactorLost] then self.tone_states[TONE.T_340Hz_Int_2Hz] = true end
             -- it sounds *really* bad if this is in conjunction with these other tones, so disable them
-            self.tone_states[TONES.T_745Hz_Int_1Hz] = false
-            self.tone_states[TONES.T_800Hz_Int] = false
-            self.tone_states[TONES.T_1000Hz_Int] = false
+            self.tone_states[TONE.T_745Hz_Int_1Hz] = false
+            self.tone_states[TONE.T_800Hz_Int] = false
+            self.tone_states[TONE.T_1000Hz_Int] = false
         end
 
         -- add to tone states if testing is active
@@ -864,6 +853,17 @@ function facility.new(num_reactors, cooling_conf)
             for i = 1, #self.tone_states do
                 self.tone_states[i] = self.tone_states[i] or self.test_tone_states[i]
             end
+
+            self.test_tone_reset = false
+        else
+            if not self.test_tone_reset then
+                -- clear testing tones if we aren't using them
+                for i = 1, #self.test_tone_states do self.test_tone_states[i] = false end
+            end
+
+            -- flag that tones were reset
+            self.test_tone_set = false
+            self.test_tone_reset = true
         end
     end
 
@@ -1009,7 +1009,7 @@ function facility.new(num_reactors, cooling_conf)
     -- DIAGNOSTIC TESTING --
 
     -- attempt to set a test tone state
-    ---@param id tone_id|0 tone ID or 0 to disable all
+    ---@param id TONE|0 tone ID or 0 to disable all
     ---@param state boolean state
     ---@return boolean allow_testing, table test_tone_states
     function public.diag_set_test_tone(id, state)

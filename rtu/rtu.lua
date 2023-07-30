@@ -467,7 +467,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
                                 local s = sounders[i]   ---@type rtu_speaker_sounder
 
                                 -- set tone states
-                                for id = 1, #states do s.stream.set_active(id, states[id]) end
+                                for id = 1, #states do s.stream.set_active(id, states[id] == true) end
                             end
                         end
                     else

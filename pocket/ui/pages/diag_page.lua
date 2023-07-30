@@ -1,5 +1,3 @@
--- local style   = require("pocket.ui.style")
-
 local iocontrol      = require("pocket.iocontrol")
 
 local core           = require("graphics.core")

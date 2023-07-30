@@ -76,30 +76,4 @@ function sounder.continue()
     return success
 end
 
---#region Test Functions
-
--- function sounder.test_1() add(1) play() end -- play tone T_340Hz_Int_2Hz
--- function sounder.test_2() add(2) play() end -- play tone T_544Hz_440Hz_Alt
--- function sounder.test_3() add(3) play() end -- play tone T_660Hz_Int_125ms
--- function sounder.test_4() add(4) play() end -- play tone T_745Hz_Int_1Hz
--- function sounder.test_5() add(5) play() end -- play tone T_800Hz_Int
--- function sounder.test_6() add(6) play() end -- play tone T_800Hz_1000Hz_Alt
--- function sounder.test_7() add(7) play() end -- play tone T_1000Hz_Int
--- function sounder.test_8() add(8) play() end -- play tone T_1800Hz_Int_4Hz
-
--- function sounder.test_breach(active)    test_alarms[ALARM.ContainmentBreach]    = active end    ---@param active boolean
--- function sounder.test_rad(active)       test_alarms[ALARM.ContainmentRadiation] = active end    ---@param active boolean
--- function sounder.test_lost(active)      test_alarms[ALARM.ReactorLost]          = active end    ---@param active boolean
--- function sounder.test_crit(active)      test_alarms[ALARM.CriticalDamage]       = active end    ---@param active boolean
--- function sounder.test_dmg(active)       test_alarms[ALARM.ReactorDamage]        = active end    ---@param active boolean
--- function sounder.test_overtemp(active)  test_alarms[ALARM.ReactorOverTemp]      = active end    ---@param active boolean
--- function sounder.test_hightemp(active)  test_alarms[ALARM.ReactorHighTemp]      = active end    ---@param active boolean
--- function sounder.test_wasteleak(active) test_alarms[ALARM.ReactorWasteLeak]     = active end    ---@param active boolean
--- function sounder.test_highwaste(active) test_alarms[ALARM.ReactorHighWaste]     = active end    ---@param active boolean
--- function sounder.test_rps(active)       test_alarms[ALARM.RPSTransient]         = active end    ---@param active boolean
--- function sounder.test_rcs(active)       test_alarms[ALARM.RCSTransient]         = active end    ---@param active boolean
--- function sounder.test_turbinet(active)  test_alarms[ALARM.TurbineTrip]          = active end    ---@param active boolean
-
---#endregion
-
 return sounder

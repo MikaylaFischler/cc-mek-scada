@@ -142,7 +142,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
                         if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
                             valid = true
 
-                            -- try to set tone states, then send back if testing is allowed 
+                            -- try to set tone states, then send back if testing is allowed
                             local allow_testing, test_tone_states = facility.diag_set_test_tone(pkt.data[1], pkt.data[2])
                             _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
                         else
@@ -165,7 +165,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
                         if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
                             valid = true
 
-                            -- try to set alarm states, then send back if testing is allowed 
+                            -- try to set alarm states, then send back if testing is allowed
                             local allow_testing, test_alarm_states = facility.diag_set_test_alarm(pkt.data[1], pkt.data[2])
                             _send_mgmt(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
                         else

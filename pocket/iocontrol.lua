@@ -1,5 +1,5 @@
 --
--- I/O Control for Pocket Integration with Supervisor & Coordinator 
+-- I/O Control for Pocket Integration with Supervisor & Coordinator
 --
 
 local psil = require("scada-common.psil")

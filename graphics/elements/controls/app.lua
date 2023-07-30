@@ -1,4 +1,4 @@
--- Button Graphics Element
+-- App Button Graphics Element
 
 local tcd     = require("scada-common.tcd")
 
@@ -40,7 +40,7 @@ local function app_button(args)
     e.window.setCursorPos(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
     e.window.write(args.title)
 
-    -- draw the button
+    -- draw the app button
     local function draw()
         local fgd = args.app_fg_bg.fgd
         local bkg = args.app_fg_bg.bkg
@@ -75,7 +75,7 @@ local function app_button(args)
         e.window.write(args.text)
     end
 
-    -- draw the button as pressed (if active_fg_bg set)
+    -- draw the app button as pressed (if active_fg_bg set)
     local function show_pressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = true
@@ -85,7 +85,7 @@ local function app_button(args)
         end
     end
 
-    -- draw the button as unpressed (if active_fg_bg set)
+    -- draw the app button as unpressed (if active_fg_bg set)
     local function show_unpressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = false
@@ -115,7 +115,7 @@ local function app_button(args)
         end
     end
 
-    -- set the value (true simulates pressing the button)
+    -- set the value (true simulates pressing the app button)
     ---@param val boolean new value
     function e.set_value(val)
         if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end

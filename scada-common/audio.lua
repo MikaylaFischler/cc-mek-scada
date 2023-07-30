@@ -14,8 +14,8 @@ local _05s_SAMPLES = 24000          -- half a second worth of samples
 ---@class audio
 local audio = {}
 
----@enum tone_id
-local TONES = {
+---@enum TONE
+local TONE = {
     T_340Hz_Int_2Hz = 1,
     T_544Hz_440Hz_Alt = 2,
     T_660Hz_Int_125ms = 3,
@@ -26,7 +26,7 @@ local TONES = {
     T_1800Hz_Int_4Hz = 8
 }
 
-audio.TONES = TONES
+audio.TONE = TONE
 
 local tone_data = {
     { {}, {}, {}, {} }, -- 340Hz @ 2Hz Intermittent
@@ -251,7 +251,7 @@ function audio.new_stream()
     local public = {}
 
     -- add a tone to the output buffer
-    ---@param index tone_id tone ID
+    ---@param index TONE tone ID
     ---@param active boolean active state
     function public.set_active(index, active)
         if self.tone_active[index] ~= nil then
@@ -261,7 +261,7 @@ function audio.new_stream()
     end
 
     -- check if a tone is active
-    ---@param index tone_id tone index
+    ---@param index TONE tone index
     function public.is_active(index)
         if self.tone_active[index] then return self.tone_active[index] end
         return false
