@@ -80,9 +80,9 @@ end
 ---@return string
 function util.strrep(str, n)
     local repeated = ""
-    for _ = 1, n do
-        repeated = repeated .. str
-    end
+
+    for _ = 1, n do repeated = repeated .. str end
+
     return repeated
 end
 
@@ -123,7 +123,9 @@ function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 ---@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
     local str = ""
+
     for _, v in ipairs(arg) do str = str .. util.strval(v) end
+
     return str
 end
 
@@ -322,7 +324,8 @@ end
 --- EVENT_CONSUMER: this function consumes events
 function util.nop() util.psleep(0.05) end
 
--- attempt to maintain a minimum loop timing (duration of execution)
+-- attempt to maintain a minimum loop timing (duration of execution)<br>
+-- note: will not yield for time periods less than 50ms
 ---@nodiscard
 ---@param target_timing integer minimum amount of milliseconds to wait for
 ---@param last_update integer millisecond time of last update
@@ -399,7 +402,7 @@ local function GFE(fe) return fe / 1000000000.0 end
 local function TFE(fe) return fe / 1000000000000.0 end
 local function PFE(fe) return fe / 1000000000000000.0 end
 local function EFE(fe) return fe / 1000000000000000000.0 end    -- if you accomplish this please touch grass
-local function ZFE(fe) return fe / 1000000000000000000000.0 end -- please stop
+local function ZFE(fe) return fe / 1000000000000000000000.0 end -- how & why did you do this?
 
 -- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE, PFE, EFE, ZFE)
 ---@nodiscard

@@ -2,10 +2,12 @@
 -- System and Safety Constants
 --
 
+---@class scada_constants
 local constants = {}
 
 --#region Reactor Protection System (on the PLC) Limits
 
+---@class _rps_constants
 local rps = {}
 
 rps.MAX_DAMAGE_PERCENT      = 90    -- damage >= 90%
@@ -21,6 +23,7 @@ constants.RPS_LIMITS = rps
 
 --#region Annunciator Limits
 
+---@class _annunciator_constants
 local annunc = {}
 
 annunc.RCSFlowLow_H2O     = -3.2    -- flow < -3.2 mB/s
@@ -44,6 +47,7 @@ constants.ANNUNCIATOR_LIMITS = annunc
 
 --#region Supervisor Alarm Limits
 
+---@class _alarm_constants
 local alarms = {}
 
 -- unit alarms

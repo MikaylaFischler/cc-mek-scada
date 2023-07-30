@@ -6,8 +6,10 @@ local comms = require("scada-common.comms")
 local log   = require("scada-common.log")
 local util  = require("scada-common.util")
 
-local core  = require("graphics.core")
+local has_graphics, core   = pcall(require, "graphics.core")
+local has_lockbox, lockbox = pcall(require, "lockbox")
 
+---@class crash_handler
 local crash = {}
 
 local app = "unknown"
@@ -34,7 +36,8 @@ function crash.handler(error)
     log.info(util.c("APPLICATION:      ", app))
     log.info(util.c("FIRMWARE VERSION: ", ver))
     log.info(util.c("COMMS VERSION:    ", comms.version))
-    log.info(util.c("GRAPHICS VERSION: ", core.version))
+    if has_graphics then log.info(util.c("GRAPHICS VERSION: ", core.version))    end
+    if has_lockbox  then log.info(util.c("LOCKBOX VERSION:  ", lockbox.version)) end
     log.info("----------------------------------")
     log.info(debug.traceback("--- begin debug trace ---", 1))
     log.info("--- end debug trace ---")
