@@ -8,6 +8,7 @@ local util         = require("scada-common.util")
 local databus      = require("rtu.databus")
 local modbus       = require("rtu.modbus")
 local renderer     = require("rtu.renderer")
+local rtu          = require("rtu.rtu")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
 local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
@@ -24,7 +25,7 @@ local threads = {}
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
 
-local MAIN_CLOCK  = 2   -- (2Hz, 40 ticks)
+local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
 -- main thread
@@ -47,6 +48,7 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
+        local sounders      = smem.rtu_dev.sounders
         local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
         local conn_watchdog = smem.rtu_sys.conn_watchdog
@@ -65,6 +67,15 @@ function threads.thread__main(smem)
             if event == "timer" and loop_clock.is_clock(param1) then
                 -- blink heartbeat indicator
                 databus.heartbeat()
+
+                -- update speaker states
+                for _, sounder in pairs(sounders) do
+                    -- re-compute output if needed, then play audio if available
+                    if sounder.stream.is_recompute_needed() then
+                        sounder.stream.compute_buffer()
+                        if sounder.stream.has_next_block() then sounder.play() else sounder.stop() end
+                    end
+                end
 
                 -- start next clock timer
                 loop_clock.start()
@@ -110,6 +121,18 @@ function threads.thread__main(smem)
                         else
                             log.warning("non-comms modem disconnected")
                         end
+                    elseif type == "speaker" then
+                        for i = 1, #sounders do
+                            if sounders[i].speaker == device then
+                                table.remove(sounders, i)
+
+                                log.warning(util.c("speaker ", param1, " disconnected"))
+                                println_ts("speaker disconnected")
+
+                                databus.tx_hw_spkr_count(#sounders)
+                                break
+                            end
+                        end
                     else
                         for i = 1, #units do
                             -- find disconnected device
@@ -147,6 +170,13 @@ function threads.thread__main(smem)
                         else
                             log.info("wired modem reconnected")
                         end
+                    elseif type == "speaker" then
+                        table.insert(sounders, rtu.init_sounder(device))
+
+                        println_ts("speaker connected")
+                        log.info(util.c("connected speaker ", param1))
+
+                        databus.tx_hw_spkr_count(#sounders)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do
@@ -252,6 +282,15 @@ function threads.thread__main(smem)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+            elseif event == "speaker_audio_empty" then
+                -- handle empty speaker audio buffer
+                for i = 1, #sounders do
+                    local sounder = sounders[i] ---@type rtu_speaker_sounder
+                    if sounder.name == param1 then
+                        sounder.continue()
+                        break
+                    end
+                end
             end
 
             -- check for termination request
@@ -299,6 +338,7 @@ function threads.thread__comms(smem)
 
         -- load in from shared memory
         local rtu_state   = smem.rtu_state
+        local sounders    = smem.rtu_dev.sounders
         local rtu_comms   = smem.rtu_sys.rtu_comms
         local units       = smem.rtu_sys.units
 
@@ -321,8 +361,8 @@ function threads.thread__comms(smem)
                         -- received data
                     elseif msg.qtype == mqueue.TYPE.PACKET then
                         -- received a packet
-                        -- handle the packet (rtu_state passed to allow setting link flag)
-                        rtu_comms.handle_packet(msg.message, units, rtu_state)
+                        -- handle the packet (rtu_state passed to allow setting link flag, sounders passed to manage alarm audio)
+                        rtu_comms.handle_packet(msg.message, units, rtu_state, sounders)
                     end
                 end
 

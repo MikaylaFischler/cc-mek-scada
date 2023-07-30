@@ -4,21 +4,21 @@
 
 require("/initenv").init_env()
 
-local crash    = require("scada-common.crash")
-local log      = require("scada-common.log")
-local network  = require("scada-common.network")
-local ppm      = require("scada-common.ppm")
-local tcd      = require("scada-common.tcd")
-local util     = require("scada-common.util")
+local crash     = require("scada-common.crash")
+local log       = require("scada-common.log")
+local network   = require("scada-common.network")
+local ppm       = require("scada-common.ppm")
+local tcd       = require("scada-common.tcd")
+local util      = require("scada-common.util")
 
-local core     = require("graphics.core")
+local core      = require("graphics.core")
 
-local config   = require("pocket.config")
-local coreio   = require("pocket.coreio")
-local pocket   = require("pocket.pocket")
-local renderer = require("pocket.renderer")
+local config    = require("pocket.config")
+local iocontrol = require("pocket.iocontrol")
+local pocket    = require("pocket.pocket")
+local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "alpha-v0.5.2"
+local POCKET_VERSION = "v0.6.0-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -73,7 +73,7 @@ local function main()
         network.init_mac(config.AUTH_KEY)
     end
 
-    coreio.report_link_state(coreio.LINK_STATE.UNLINKED)
+    iocontrol.report_link_state(iocontrol.LINK_STATE.UNLINKED)
 
     -- get the communications modem
     local modem = ppm.get_wireless_modem()
@@ -104,6 +104,9 @@ local function main()
     local MAIN_CLOCK = 0.5
     local loop_clock = util.new_clock(MAIN_CLOCK)
 
+    -- init I/O control
+    iocontrol.init_core(pocket_comms)
+
     ----------------------------------------
     -- start the UI
     ----------------------------------------
@@ -128,6 +131,9 @@ local function main()
         conn_wd.api.feed()
         log.debug("startup> conn watchdog started")
 
+        local io_db = iocontrol.get_db()
+        local nav   = io_db.nav
+
         -- main event loop
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -139,6 +145,13 @@ local function main()
 
                     -- relink if necessary
                     pocket_comms.link_update()
+
+                    -- update any tasks for the active page
+                    if (type(nav.tasks[nav.page]) == "table") then
+                        for i = 1, #nav.tasks[nav.page] do
+                            nav.tasks[nav.page][i]()
+                        end
+                    end
 
                     loop_clock.start()
                 elseif conn_wd.sv.is_timer(param1) then

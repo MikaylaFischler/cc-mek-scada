@@ -14,50 +14,54 @@ local max_distance = nil                ---@type number|nil maximum acceptable t
 ---@class comms
 local comms = {}
 
-comms.version = "2.1.2"
+comms.version = "2.2.1"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
-    MODBUS_TCP = 0,     -- our "MODBUS TCP"-esque protocol
-    RPLC = 1,           -- reactor PLC protocol
-    SCADA_MGMT = 2,     -- SCADA supervisor management, device advertisements, etc
-    SCADA_CRDN = 3,     -- data/control packets for coordinators to/from supervisory controllers
-    COORD_API = 4       -- data/control packets for pocket computers to/from coordinators
+    MODBUS_TCP = 0,      -- our "MODBUS TCP"-esque protocol
+    RPLC = 1,            -- reactor PLC protocol
+    SCADA_MGMT = 2,      -- SCADA supervisor management, device advertisements, etc
+    SCADA_CRDN = 3,      -- data/control packets for coordinators to/from supervisory controllers
+    COORD_API = 4        -- data/control packets for pocket computers to/from coordinators
 }
 
 ---@enum RPLC_TYPE
 local RPLC_TYPE = {
-    STATUS = 0,         -- reactor/system status
-    MEK_STRUCT = 1,     -- mekanism build structure
-    MEK_BURN_RATE = 2,  -- set burn rate
-    RPS_ENABLE = 3,     -- enable reactor
-    RPS_SCRAM = 4,      -- SCRAM reactor (manual request)
-    RPS_ASCRAM = 5,     -- SCRAM reactor (automatic request)
-    RPS_STATUS = 6,     -- RPS status
-    RPS_ALARM = 7,      -- RPS alarm broadcast
-    RPS_RESET = 8,      -- clear RPS trip (if in bad state, will trip immediately)
-    RPS_AUTO_RESET = 9, -- clear RPS trip if it is just a timeout or auto scram
-    AUTO_BURN_RATE = 10 -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
+    STATUS = 0,          -- reactor/system status
+    MEK_STRUCT = 1,      -- mekanism build structure
+    MEK_BURN_RATE = 2,   -- set burn rate
+    RPS_ENABLE = 3,      -- enable reactor
+    RPS_SCRAM = 4,       -- SCRAM reactor (manual request)
+    RPS_ASCRAM = 5,      -- SCRAM reactor (automatic request)
+    RPS_STATUS = 6,      -- RPS status
+    RPS_ALARM = 7,       -- RPS alarm broadcast
+    RPS_RESET = 8,       -- clear RPS trip (if in bad state, will trip immediately)
+    RPS_AUTO_RESET = 9,  -- clear RPS trip if it is just a timeout or auto scram
+    AUTO_BURN_RATE = 10  -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
 ---@enum SCADA_MGMT_TYPE
 local SCADA_MGMT_TYPE = {
-    ESTABLISH = 0,      -- establish new connection
-    KEEP_ALIVE = 1,     -- keep alive packet w/ RTT
-    CLOSE = 2,          -- close a connection
-    RTU_ADVERT = 3,     -- RTU capability advertisement
-    RTU_DEV_REMOUNT = 4 -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+    ESTABLISH = 0,       -- establish new connection
+    KEEP_ALIVE = 1,      -- keep alive packet w/ RTT
+    CLOSE = 2,           -- close a connection
+    RTU_ADVERT = 3,      -- RTU capability advertisement
+    RTU_DEV_REMOUNT = 4, -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+    RTU_TONE_ALARM = 5,  -- instruct RTUs to play specified alarm tones
+    DIAG_TONE_GET = 6,   -- diagnostic: get alarm tones
+    DIAG_TONE_SET = 7,   -- diagnostic: set alarm tones
+    DIAG_ALARM_SET = 8   -- diagnostic: set alarm to simulate audio for
 }
 
 ---@enum SCADA_CRDN_TYPE
 local SCADA_CRDN_TYPE = {
-    INITIAL_BUILDS = 0, -- initial, complete builds packet to the coordinator
-    FAC_BUILDS = 1,     -- facility RTU builds
-    FAC_STATUS = 2,     -- state of facility and facility devices
-    FAC_CMD = 3,        -- faility command
-    UNIT_BUILDS = 4,    -- build of each reactor unit (reactor + RTUs)
-    UNIT_STATUSES = 5,  -- state of each of the reactor units
-    UNIT_CMD = 6        -- command a reactor unit
+    INITIAL_BUILDS = 0,  -- initial, complete builds packet to the coordinator
+    FAC_BUILDS = 1,      -- facility RTU builds
+    FAC_STATUS = 2,      -- state of facility and facility devices
+    FAC_CMD = 3,         -- faility command
+    UNIT_BUILDS = 4,     -- build of each reactor unit (reactor + RTUs)
+    UNIT_STATUSES = 5,   -- state of each of the reactor units
+    UNIT_CMD = 6         -- command a reactor unit
 }
 
 ---@enum CAPI_TYPE
@@ -66,50 +70,50 @@ local CAPI_TYPE = {
 
 ---@enum ESTABLISH_ACK
 local ESTABLISH_ACK = {
-    ALLOW = 0,          -- link approved
-    DENY = 1,           -- link denied
-    COLLISION = 2,      -- link denied due to existing active link
-    BAD_VERSION = 3     -- link denied due to comms version mismatch
+    ALLOW = 0,           -- link approved
+    DENY = 1,            -- link denied
+    COLLISION = 2,       -- link denied due to existing active link
+    BAD_VERSION = 3      -- link denied due to comms version mismatch
 }
 
 ---@enum DEVICE_TYPE
 local DEVICE_TYPE = {
-    PLC = 0,            -- PLC device type for establish
-    RTU = 1,            -- RTU device type for establish
-    SV = 2,             -- supervisor device type for establish
-    CRDN = 3,           -- coordinator device type for establish
-    PKT = 4             -- pocket device type for establish
+    PLC = 0,             -- PLC device type for establish
+    RTU = 1,             -- RTU device type for establish
+    SV = 2,              -- supervisor device type for establish
+    CRDN = 3,            -- coordinator device type for establish
+    PKT = 4              -- pocket device type for establish
 }
 
 ---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {
-    FAIL = 0,           -- failed to set burn rate/burn rate invalid
-    DIRECT_SET_OK = 1,  -- successfully set burn rate
-    RAMP_SET_OK = 2,    -- successfully started burn rate ramping
-    ZERO_DIS_OK = 3     -- successfully disabled reactor with < 0.01 burn rate
+    FAIL = 0,            -- failed to set burn rate/burn rate invalid
+    DIRECT_SET_OK = 1,   -- successfully set burn rate
+    RAMP_SET_OK = 2,     -- successfully started burn rate ramping
+    ZERO_DIS_OK = 3      -- successfully disabled reactor with < 0.01 burn rate
 }
 
 ---@enum FAC_COMMAND
 local FAC_COMMAND = {
-    SCRAM_ALL = 0,      -- SCRAM all reactors
-    STOP = 1,           -- stop automatic process control
-    START = 2,          -- start automatic process control
-    ACK_ALL_ALARMS = 3, -- acknowledge all alarms on all units
-    SET_WASTE_MODE = 4, -- set automatic waste processing mode
-    SET_PU_FB = 5       -- set plutonium fallback mode
+    SCRAM_ALL = 0,       -- SCRAM all reactors
+    STOP = 1,            -- stop automatic process control
+    START = 2,           -- start automatic process control
+    ACK_ALL_ALARMS = 3,  -- acknowledge all alarms on all units
+    SET_WASTE_MODE = 4,  -- set automatic waste processing mode
+    SET_PU_FB = 5        -- set plutonium fallback mode
 }
 
 ---@enum UNIT_COMMAND
 local UNIT_COMMAND = {
-    SCRAM = 0,          -- SCRAM the reactor
-    START = 1,          -- start the reactor
-    RESET_RPS = 2,      -- reset the RPS
-    SET_BURN = 3,       -- set the burn rate
-    SET_WASTE = 4,      -- set the waste processing mode
-    ACK_ALL_ALARMS = 5, -- ack all active alarms
-    ACK_ALARM = 6,      -- ack a particular alarm
-    RESET_ALARM = 7,    -- reset a particular alarm
-    SET_GROUP = 8       -- assign this unit to a group
+    SCRAM = 0,           -- SCRAM the reactor
+    START = 1,           -- start the reactor
+    RESET_RPS = 2,       -- reset the RPS
+    SET_BURN = 3,        -- set the burn rate
+    SET_WASTE = 4,       -- set the waste processing mode
+    ACK_ALL_ALARMS = 5,  -- ack all active alarms
+    ACK_ALARM = 6,       -- ack a particular alarm
+    RESET_ALARM = 7,     -- reset a particular alarm
+    SET_GROUP = 8        -- assign this unit to a group
 }
 
 comms.PROTOCOL = PROTOCOL
@@ -146,6 +150,7 @@ function comms.scada_packet()
     local self = {
         modem_msg_in = nil, ---@type modem_message|nil
         valid = false,
+        authenticated = false,
         raw = {},
         src_addr = comms.BROADCAST,
         dest_addr = comms.BROADCAST,
@@ -234,6 +239,9 @@ function comms.scada_packet()
         return self.valid
     end
 
+    -- report that this packet has been authenticated (was received with a valid HMAC)
+    function public.stamp_authenticated() self.authenticated = true end
+
     -- public accessors --
 
     ---@nodiscard
@@ -248,6 +256,8 @@ function comms.scada_packet()
 
     ---@nodiscard
     function public.is_valid() return self.valid end
+    ---@nodiscard
+    function public.is_authenticated() return self.authenticated end
 
     ---@nodiscard
     function public.src_addr() return self.src_addr end
@@ -588,7 +598,11 @@ function comms.mgmt_packet()
                 self.type == SCADA_MGMT_TYPE.CLOSE or
                 self.type == SCADA_MGMT_TYPE.REMOTE_LINKED or
                 self.type == SCADA_MGMT_TYPE.RTU_ADVERT or
-                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT
+                self.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT or
+                self.type == SCADA_MGMT_TYPE.RTU_TONE_ALARM or
+                self.type == SCADA_MGMT_TYPE.DIAG_TONE_GET or
+                self.type == SCADA_MGMT_TYPE.DIAG_TONE_SET or
+                self.type == SCADA_MGMT_TYPE.DIAG_ALARM_SET
     end
 
     -- make a SCADA management packet

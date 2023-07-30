@@ -37,6 +37,12 @@ function databus.tx_hw_modem(has_modem)
     databus.ps.publish("has_modem", has_modem)
 end
 
+-- transmit the number of speakers connected
+---@param count integer
+function databus.tx_hw_spkr_count(count)
+    databus.ps.publish("speaker_count", count)
+end
+
 -- transmit unit hardware type across the bus
 ---@param uid integer unit ID
 ---@param type RTU_UNIT_TYPE
