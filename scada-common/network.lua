@@ -2,19 +2,21 @@
 -- Network Communications
 --
 
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
+local util   = require("scada-common.util")
+
 local md5    = require("lockbox.digest.md5")
 local sha256 = require("lockbox.digest.sha2_256")
 local pbkdf2 = require("lockbox.kdf.pbkdf2")
 local hmac   = require("lockbox.mac.hmac")
 local stream = require("lockbox.util.stream")
 local array  = require("lockbox.util.array")
-local comms  = require("scada-common.comms")
 
-local log    = require("scada-common.log")
-local util   = require("scada-common.util")
-
+---@class scada_net_interface
 local network = {}
 
+-- cryptography engine
 local c_eng = {
     key = nil,
     hmac = nil

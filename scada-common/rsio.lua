@@ -123,7 +123,7 @@ function rsio.to_string(port)
     if util.is_int(port) and port > 0 and port <= #names then
         return names[port]
     else
-        return ""
+        return "UNKNOWN"
     end
 end
 
