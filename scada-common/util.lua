@@ -7,6 +7,9 @@ local cc_strings = require("cc.strings")
 ---@class util
 local util = {}
 
+-- scada-common version
+util.version = "1.0.0"
+
 -- ENVIRONMENT CONSTANTS --
 
 util.TICK_TIME_S = 0.05
