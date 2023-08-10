@@ -55,6 +55,8 @@ function coordinator.configure_monitors(num_units)
     local monitors = {
         primary = nil,
         primary_name = "",
+        flow = nil,
+        flow_name = "",
         unit_displays = {},
         unit_name_map = {}
     }
@@ -69,8 +71,8 @@ function coordinator.configure_monitors(num_units)
         table.insert(available, iface)
     end
 
-    -- we need a certain number of monitors (1 per unit + 1 primary display)
-    local num_displays_needed = num_units + 1
+    -- we need a certain number of monitors (1 per unit + 1 primary display + 1 flow display)
+    local num_displays_needed = num_units + 2
     if #names < num_displays_needed then
         local message = "not enough monitors connected (need " .. num_displays_needed .. ")"
         println(message)
@@ -83,10 +85,12 @@ function coordinator.configure_monitors(num_units)
         log.warning("configure_monitors(): failed to load coordinator settings file (may not exist yet)")
     else
         local _primary = settings.get("PRIMARY_DISPLAY")
+        local _flow = settings.get("FLOW_DISPLAY")
         local _unitd = settings.get("UNIT_DISPLAYS")
 
         -- filter out already assigned monitors
         util.filter_table(available, function (x) return x ~= _primary end)
+        util.filter_table(available, function (x) return x ~= _flow end)
         if type(_unitd) == "table" then
             util.filter_table(available, function (x) return not util.table_contains(_unitd, x) end)
         end
@@ -106,7 +110,6 @@ function coordinator.configure_monitors(num_units)
     end
 
     while iface_primary_display == nil and #available > 0 do
-        -- lets get a monitor
         iface_primary_display = ask_monitor(available)
     end
 
@@ -117,6 +120,31 @@ function coordinator.configure_monitors(num_units)
 
     monitors.primary = ppm.get_periph(iface_primary_display)
     monitors.primary_name = iface_primary_display
+
+    --------------------------
+    -- FLOW MONITOR DISPLAY --
+    --------------------------
+
+    local iface_flow_display = settings.get("FLOW_DISPLAY")  ---@type boolean|string|nil
+
+    if not util.table_contains(names, iface_flow_display) then
+        println("flow monitor display is not connected")
+        local response = dialog.ask_y_n("would you like to change it", true)
+        if response == false then return false end
+        iface_flow_display = nil
+    end
+
+    while iface_flow_display == nil and #available > 0 do
+        iface_flow_display = ask_monitor(available)
+    end
+
+    if type(iface_flow_display) ~= "string" then return false end
+
+    settings.set("FLOW_DISPLAY", iface_flow_display)
+    util.filter_table(available, function (x) return x ~= iface_flow_display end)
+
+    monitors.flow = ppm.get_periph(iface_flow_display)
+    monitors.flow_name = iface_flow_display
 
     -------------------
     -- UNIT DISPLAYS --
@@ -130,7 +158,6 @@ function coordinator.configure_monitors(num_units)
             local display = nil
 
             while display == nil and #available > 0 do
-                -- lets get a monitor
                 println("please select monitor for unit #" .. i)
                 display = ask_monitor(available)
             end
@@ -152,7 +179,6 @@ function coordinator.configure_monitors(num_units)
             end
 
             while display == nil and #available > 0 do
-                -- lets get a monitor
                 display = ask_monitor(available)
             end
 

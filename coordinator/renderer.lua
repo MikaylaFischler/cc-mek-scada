@@ -10,6 +10,7 @@ local iocontrol  = require("coordinator.iocontrol")
 local style      = require("coordinator.ui.style")
 local pgi        = require("coordinator.ui.pgi")
 
+local flow_view  = require("coordinator.ui.layout.flow_view")
 local panel_view = require("coordinator.ui.layout.front_panel")
 local main_view  = require("coordinator.ui.layout.main_view")
 local unit_view  = require("coordinator.ui.layout.unit_view")
@@ -29,6 +30,7 @@ local engine = {
     ui = {
         front_panel = nil,  ---@type graphics_element|nil
         main_display = nil, ---@type graphics_element|nil
+        flow_display = nil, ---@type graphics_element|nil
         unit_displays = {}
     }
 }
@@ -60,8 +62,9 @@ end
 
 -- init all displays in use by the renderer
 function renderer.init_displays()
-    -- init primary monitor
+    -- init primary and flow monitors
     _init_display(engine.monitors.primary)
+    _init_display(engine.monitors.flow)
 
     -- init unit displays
     for _, monitor in ipairs(engine.monitors.unit_displays) do
@@ -169,6 +172,12 @@ function renderer.start_ui()
             main_view(engine.ui.main_display)
         end
 
+        -- show flow view on flow monitor
+        if engine.monitors.flow ~= nil then
+            engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+            flow_view(engine.ui.flow_display)
+        end
+
         -- show unit views on unit displays
         for idx, display in pairs(engine.monitors.unit_displays) do
             engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
@@ -192,6 +201,7 @@ function renderer.close_ui()
 
     -- delete element trees
     if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
+    if engine.ui.flow_display ~= nil then engine.ui.flow_display.delete() end
     for _, display in pairs(engine.ui.unit_displays) do display.delete() end
 
     -- report ui as not ready
@@ -199,6 +209,7 @@ function renderer.close_ui()
 
     -- clear root UI elements
     engine.ui.main_display = nil
+    engine.ui.flow_display = nil
     engine.ui.unit_displays = {}
 
     -- clear unit monitors
@@ -317,6 +328,8 @@ function renderer.handle_mouse(event)
         elseif engine.ui_ready then
             if event.monitor == engine.monitors.primary_name then
                 engine.ui.main_display.handle_mouse(event)
+            elseif event.monitor == engine.monitors.flow_name then
+                engine.ui.flow_display.handle_mouse(event)
             else
                 for id, monitor in ipairs(engine.monitors.unit_name_map) do
                     if event.monitor == monitor then
