@@ -2,35 +2,25 @@
 -- Basic Unit Flow Overview
 --
 
-local util         = require("scada-common.util")
+local util              = require("scada-common.util")
 
-local core         = require("graphics.core")
+local core              = require("graphics.core")
 
-local style        = require("coordinator.ui.style")
+local Div               = require("graphics.elements.div")
+local PipeNetwork       = require("graphics.elements.pipenet")
+local TextBox           = require("graphics.elements.textbox")
 
-local reactor_view = require("coordinator.ui.components.reactor")
-local boiler_view  = require("coordinator.ui.components.boiler")
-local turbine_view = require("coordinator.ui.components.turbine")
+local Rectangle         = require("graphics.elements.rectangle")
 
-local Div          = require("graphics.elements.div")
-local PipeNetwork  = require("graphics.elements.pipenet")
-local TextBox      = require("graphics.elements.textbox")
-
-local Rectangle      = require("graphics.elements.rectangle")
-
-local DataIndicator  = require("graphics.elements.indicators.data")
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local StateIndicator = require("graphics.elements.indicators.state")
+local DataIndicator     = require("graphics.elements.indicators.data")
 
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
-
-local cpair = core.cpair
-local border = core.border
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
+local cpair = core.cpair
+local border = core.border
 local pipe = core.pipe
 
 -- make a new unit overview window
@@ -42,11 +32,15 @@ local function make(parent, x, y, unit)
     local height = 16
 
     local v_start = 1 + ((unit.unit_id - 1) * 4)
+    local prv_start = 1 + ((unit.unit_id - 1) * 3)
     local v_names = {
         util.sprintf("PV%02d-PU", v_start),
         util.sprintf("PV%02d-PO", v_start + 1),
         util.sprintf("PV%02d-PL", v_start + 2),
-        util.sprintf("PV%02d-AM", v_start + 3)
+        util.sprintf("PV%02d-AM", v_start + 3),
+        util.sprintf("PRV%02d", prv_start),
+        util.sprintf("PRV%02d", prv_start + 1),
+        util.sprintf("PRV%02d", prv_start + 2)
     }
 
     assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())
@@ -57,9 +51,9 @@ local function make(parent, x, y, unit)
     local text_fg_bg = cpair(colors.black, colors.white)
     local lu_col = cpair(colors.gray, colors.gray)
 
-    -------------
-    -- REACTOR --
-    -------------
+    ------------------
+    -- COOLING LOOP --
+    ------------------
 
     local reactor = Rectangle{parent=root,x=1,y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=cpair(colors.white,colors.gray)}
     TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=TEXT_ALIGN.CENTER,height=1}
@@ -97,11 +91,18 @@ local function make(parent, x, y, unit)
     TextBox{parent=turbine,y=3,text="GENERATORS",alignment=TEXT_ALIGN.CENTER,height=1}
     TextBox{parent=root,x=79,y=2,text="\x1a \x80 \x1b",width=1,height=3,fg_bg=cpair(colors.lightGray,colors.gray)}
 
-    TextBox{parent=root,x=101,y=3,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
-    TextBox{parent=root,x=103,y=3,text="\x7f",fg_bg=cpair(colors.white,colors.lightGray),width=1,height=1}
-    local conn = TriIndicatorLight{parent=root,x=106,y=1,label="PRV01",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-    local conn = TriIndicatorLight{parent=root,x=106,y=3,label="PRV02",c1=colors.gray,c2=colors.yellow,c3=colors.red}
-    local conn = TriIndicatorLight{parent=root,x=106,y=5,label="PRV03",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    local function _relief(rx, ry, name)
+        TextBox{parent=root,x=rx,y=ry,text="\x10\x11\x7f",fg_bg=cpair(colors.black,colors.lightGray),width=3,height=1}
+        local conn = TriIndicatorLight{parent=root,x=rx+4,y=ry,label=name,c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    end
+
+    _relief(103, 1, v_names[5])
+    _relief(103, 3, v_names[6])
+    _relief(103, 5, v_names[7])
+
+    ----------------------
+    -- WASTE PROCESSING --
+    ----------------------
 
     local waste = Div{parent=root,x=3,y=6}
 
@@ -141,13 +142,19 @@ local function make(parent, x, y, unit)
     local poam_rate = DataIndicator{parent=waste,x=70,y=10,lu_colors=lu_col,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=text_fg_bg}
     local spent_rate = DataIndicator{parent=waste,x=99,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=text_fg_bg}
 
-    _valve(18, 2, 1); _valve(18, 6, 2); _valve(62, 5, 3); _valve(62, 9, 4)
-    _machine(45, 1, "CENTRIFUGE \x1a"); _machine(83, 1, "PRC [Pu] \x1a"); _machine(83, 4, "PRC [Po] \x1a"); _machine(94, 6, "SPENT WASTE \x1b")
+    _valve(18, 2, 1)
+    _valve(18, 6, 2)
+    _valve(62, 5, 3)
+    _valve(62, 9, 4)
 
+    _machine(45, 1, "CENTRIFUGE \x1a");
+    _machine(83, 1, "PRC [Pu] \x1a");
+    _machine(83, 4, "PRC [Po] \x1a");
+    _machine(94, 6, "SPENT WASTE \x1b")
 
     TextBox{parent=waste,x=25,y=3,text="SNAs [Po]",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=cpair(colors.white,colors.gray)}
     local sna_po  = Rectangle{parent=waste,x=25,y=4,border=border(1, colors.gray, true),width=19,height=7,thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=cpair(colors.green,colors.red)}
+    local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=cpair(colors.green,colors.gray)}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_col,label="CNT",unit="",format="%2d",value=99,width=7,fg_bg=text_fg_bg}
     local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_col,label="PEAK",unit="mB/t",format="%7.2f",value=1000,width=17,fg_bg=text_fg_bg}
     local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_col,label="MAX ",unit="mB/t",format="%7.2f",value=1000,width=17,fg_bg=text_fg_bg}
