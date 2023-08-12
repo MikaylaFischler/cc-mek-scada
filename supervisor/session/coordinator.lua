@@ -17,6 +17,9 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
+-- grace period in seconds for coordinator to finish UI draw to prevent timeout
+local WATCHDOG_GRACE = 20.0
+
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
 local RETRY_PERIOD = 1000
@@ -61,6 +64,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
         r_seq_num = nil,
         connected = true,
         conn_watchdog = util.new_watchdog(timeout),
+        establish_time = util.time_s(),
         last_rtt = 0,
         -- periodic messages
         periodics = {
@@ -354,7 +358,15 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
     -- check if a timer matches this session's watchdog
     ---@nodiscard
     function public.check_wd(timer)
-        return self.conn_watchdog.is_timer(timer) and self.connected
+        local is_wd = self.conn_watchdog.is_timer(timer) and self.connected
+
+        -- if we are waiting for initial coordinator UI draw, don't close yet
+        if is_wd and (util.time_s() - self.establish_time) <= WATCHDOG_GRACE then
+            self.conn_watchdog.feed()
+            is_wd = false
+        end
+
+        return is_wd
     end
 
     -- close the connection
