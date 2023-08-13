@@ -210,8 +210,34 @@ style.sps = {
             text = "IDLE"
         },
         {
-            color = cpair(colors.black, colors.green),
+            color = cpair(colors.black, colors.blue),
             text = "ACTIVE"
+        }
+    }
+}
+
+style.dtank = {
+    -- dynamic tank states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ONLINE"
+        },
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "LOW FILL"
         }
     }
 }

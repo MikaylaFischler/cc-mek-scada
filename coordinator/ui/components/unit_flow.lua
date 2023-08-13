@@ -19,11 +19,13 @@ local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
+local sprintf = util.sprintf
+
 local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
--- make a new unit overview window
+-- make a new unit flow window
 ---@param parent graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
@@ -34,13 +36,13 @@ local function make(parent, x, y, unit)
     local v_start = 1 + ((unit.unit_id - 1) * 4)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
     local v_names = {
-        util.sprintf("PV%02d-PU", v_start),
-        util.sprintf("PV%02d-PO", v_start + 1),
-        util.sprintf("PV%02d-PL", v_start + 2),
-        util.sprintf("PV%02d-AM", v_start + 3),
-        util.sprintf("PRV%02d", prv_start),
-        util.sprintf("PRV%02d", prv_start + 1),
-        util.sprintf("PRV%02d", prv_start + 2)
+        sprintf("PV%02d-PU", v_start),
+        sprintf("PV%02d-PO", v_start + 1),
+        sprintf("PV%02d-PL", v_start + 2),
+        sprintf("PV%02d-AM", v_start + 3),
+        sprintf("PRV%02d", prv_start),
+        sprintf("PRV%02d", prv_start + 1),
+        sprintf("PRV%02d", prv_start + 2)
     }
 
     assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())

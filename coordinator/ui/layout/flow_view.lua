@@ -2,33 +2,25 @@
 -- Flow Monitor GUI
 --
 
-local util          = require("scada-common.util")
+local util           = require("scada-common.util")
 
-local iocontrol     = require("coordinator.iocontrol")
+local iocontrol      = require("coordinator.iocontrol")
 
-local style         = require("coordinator.ui.style")
+local style          = require("coordinator.ui.style")
 
-local flow_overview = require("coordinator.ui.components.flow_overview")
+local unit_flow      = require("coordinator.ui.components.unit_flow")
 
-local core          = require("graphics.core")
+local core           = require("graphics.core")
 
-local TextBox       = require("graphics.elements.textbox")
-
-local DataIndicator = require("graphics.elements.indicators.data")
-
-local Div          = require("graphics.elements.div")
-local PipeNetwork  = require("graphics.elements.pipenet")
-local TextBox      = require("graphics.elements.textbox")
-
+local Div            = require("graphics.elements.div")
+local PipeNetwork    = require("graphics.elements.pipenet")
 local Rectangle      = require("graphics.elements.rectangle")
+local TextBox        = require("graphics.elements.textbox")
 
 local DataIndicator  = require("graphics.elements.indicators.data")
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
+local IndicatorLight = require("graphics.elements.indicators.light")
 local StateIndicator = require("graphics.elements.indicators.state")
-
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
@@ -51,25 +43,58 @@ local function init(main)
 
     local po_pipes = {}
 
-    for i = 1, facility.num_units do
-        local y_offset = ((i - 1) * 20)
-        flow_overview(main, 25, 5 + y_offset, units[i])
-        table.insert(po_pipes, pipe(0, 6 + y_offset, 8, 0, colors.cyan, true, true))
-    end
-
-    local text_fg_bg = cpair(colors.black, colors.white)
+    local bw_fg_bg  = cpair(colors.black, colors.white)
+    local text_col  = cpair(colors.black, colors.lightGray)
     local lu_col = cpair(colors.gray, colors.gray)
 
-    PipeNetwork{parent=main,x=139,y=12,pipes=po_pipes,bg=colors.lightGray}
+    local water_pipes = {}
 
-    local sps = Div{parent=main,x=142,y=5,height=8}
+    local fac_tanks = true
 
-    TextBox{parent=sps,x=1,y=1,text="SPS",alignment=TEXT_ALIGN.CENTER,width=21,height=1,fg_bg=cpair(colors.white,colors.gray)}
-    local sps_box = Rectangle{parent=sps,x=1,y=2,border=border(1, colors.gray, true),width=21,height=7,thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local sps_conn = IndicatorLight{parent=sps_box,label="CONNECTED",colors=cpair(colors.green,colors.gray)}
-    local sps_act = IndicatorLight{parent=sps_box,label="ACTIVE",colors=cpair(colors.green,colors.gray)}
-    local sps_in = DataIndicator{parent=sps_box,y=4,lu_colors=lu_col,label="IN  ",unit="mB/t",format="%9.2f",value=123.456,width=19,fg_bg=text_fg_bg}
-    local sps_rate = DataIndicator{parent=sps_box,lu_colors=lu_col,label="RATE",unit="\xb5B/t",format="%9.2f",value=123456.78,width=19,fg_bg=text_fg_bg}
+    for i = 1, 4 do
+        local y = ((i - 1) * 20)
+        table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
+        table.insert(water_pipes, pipe(2, y, 82, y, colors.blue, true))
+        table.insert(water_pipes, pipe(82, y, 82, y + 2, colors.blue, true))
+        if fac_tanks and i > 1 then table.insert(water_pipes, pipe(21, y - 19, 21, y, colors.blue, true)) end
+    end
+
+    PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=colors.lightGray}
+
+    for i = 1, facility.num_units do
+        local y_offset = ((i - 1) * 20)
+        unit_flow(main, 25, 5 + y_offset, units[i])
+        table.insert(po_pipes, pipe(0, 3 + y_offset, 8, 0, colors.cyan, true, true))
+
+        local vx, vy = 11, 3 + y_offset
+        TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
+        local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d", i + 13),colors=cpair(colors.green,colors.gray)}
+        local state = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="STATE",colors=cpair(colors.white,colors.white)}
+
+        local tank = Div{parent=main,x=2,y=8+y_offset,width=20,height=12}
+        TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+        TextBox{parent=tank,text="DYNAMIC TANK "..i,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.white,colors.gray)}
+        local tank_box = Rectangle{parent=tank,border=border(1, colors.gray, true),width=20,height=10}
+        local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
+        TextBox{parent=tank_box,x=2,y=3,text="Fill",height=1,width=10,fg_bg=style.label}
+        local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
+        local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
+        TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
+        local ccool = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
+        ccool.update(1)
+    end
+
+    PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}
+
+    local sps = Div{parent=main,x=140,y=3,height=12}
+    TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+    TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=cpair(colors.white,colors.gray)}
+    local sps_box = Rectangle{parent=sps,border=border(1, colors.gray, true),width=24,height=10}
+    local status = StateIndicator{parent=sps_box,x=5,y=1,states=style.sps.states,value=1,min_width=14}
+    TextBox{parent=sps_box,x=2,y=3,text="Input Rate",height=1,width=10,fg_bg=style.label}
+    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+    TextBox{parent=sps_box,x=2,y=6,text="Production Rate",height=1,width=15,fg_bg=style.label}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
 end
 
 return init
