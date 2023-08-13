@@ -28,6 +28,10 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
+local bw_fg_bg  = style.bw_fg_bg
+local text_col  = style.text_colors
+local lu_col = style.lu_colors
+
 -- create new flow view
 ---@param main graphics_element main displaybox
 local function init(main)
@@ -42,10 +46,6 @@ local function init(main)
     datetime.register(facility.ps, "date_time", datetime.set_value)
 
     local po_pipes = {}
-
-    local bw_fg_bg  = cpair(colors.black, colors.white)
-    local text_col  = cpair(colors.black, colors.lightGray)
-    local lu_col = cpair(colors.gray, colors.gray)
 
     local water_pipes = {}
 
@@ -81,7 +81,6 @@ local function init(main)
         local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
         TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
         local ccool = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
-        ccool.update(1)
     end
 
     PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}

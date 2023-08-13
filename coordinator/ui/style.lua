@@ -68,7 +68,20 @@ style.colors = {
     -- { c = colors.brown,     hex = 0x7f664c }
 }
 
--- MAIN LAYOUT --
+-- COMMON COLOR PAIRS --
+
+style.bw_fg_bg = cpair(colors.black, colors.white)
+style.text_colors = cpair(colors.black, colors.lightGray)
+style.lu_colors = cpair(colors.gray, colors.gray)
+style.hzd_fg_bg  = cpair(colors.white, colors.gray)
+style.dis_colors = cpair(colors.white, colors.lightGray)
+
+style.ind_grn = cpair(colors.green, colors.gray)
+style.ind_yel = cpair(colors.yellow, colors.gray)
+style.ind_red = cpair(colors.red, colors.gray)
+style.ind_wht = cpair(colors.white, colors.gray)
+
+-- UI COMPONENTS --
 
 style.reactor = {
     -- reactor states

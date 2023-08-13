@@ -31,6 +31,15 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 local cpair = core.cpair
 local border = core.border
 
+local bw_fg_bg = style.bw_fg_bg
+local lu_cpair = style.lu_colors
+local hzd_fg_bg = style.hzd_fg_bg
+
+local ind_grn = style.ind_grn
+local ind_yel = style.ind_yel
+local ind_red = style.ind_red
+local ind_wht = style.ind_wht
+
 local period = core.flasher.PERIOD
 
 -- create a unit view
@@ -49,10 +58,6 @@ local function init(parent, id)
     local t_ps = unit.turbine_ps_tbl
 
     TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
-
-    local bw_fg_bg  = cpair(colors.black, colors.white)
-    local hzd_fg_bg = cpair(colors.white, colors.gray)
-    local lu_cpair  = cpair(colors.gray, colors.gray)
 
     -----------------------------
     -- main stats and core map --
@@ -140,7 +145,7 @@ local function init(parent, id)
 
     -- connectivity
     local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
-    local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=cpair(colors.white,colors.gray)}
+    local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=ind_wht}
     local rad_mon    = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
 
     plc_online.register(u_ps, "PLCOnline", plc_online.update)
@@ -150,25 +155,25 @@ local function init(parent, id)
     annunciator.line_break()
 
     -- operating state
-    local r_active = IndicatorLight{parent=annunciator,label="Active",colors=cpair(colors.green,colors.gray)}
-    local r_auto   = IndicatorLight{parent=annunciator,label="Automatic Control",colors=cpair(colors.white,colors.gray)}
+    local r_active = IndicatorLight{parent=annunciator,label="Active",colors=ind_grn}
+    local r_auto   = IndicatorLight{parent=annunciator,label="Automatic Control",colors=ind_wht}
 
     r_active.register(u_ps, "status", r_active.update)
     r_auto.register(u_ps, "AutoControl", r_auto.update)
 
     -- main unit transient/warning annunciator panel
-    local r_scram = IndicatorLight{parent=annunciator,label="Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
-    local r_mscrm = IndicatorLight{parent=annunciator,label="Manual Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
-    local r_ascrm = IndicatorLight{parent=annunciator,label="Auto Reactor SCRAM",colors=cpair(colors.red,colors.gray)}
-    local rad_wrn = IndicatorLight{parent=annunciator,label="Radiation Warning",colors=cpair(colors.yellow,colors.gray)}
-    local r_rtrip = IndicatorLight{parent=annunciator,label="RCP Trip",colors=cpair(colors.red,colors.gray)}
-    local r_cflow = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=cpair(colors.yellow,colors.gray)}
-    local r_clow  = IndicatorLight{parent=annunciator,label="Coolant  Level Low",colors=cpair(colors.yellow,colors.gray)}
-    local r_temp  = IndicatorLight{parent=annunciator,label="Reactor Temp. High",colors=cpair(colors.red,colors.gray)}
-    local r_rhdt  = IndicatorLight{parent=annunciator,label="Reactor High Delta T",colors=cpair(colors.yellow,colors.gray)}
-    local r_firl  = IndicatorLight{parent=annunciator,label="Fuel Input Rate Low",colors=cpair(colors.yellow,colors.gray)}
-    local r_wloc  = IndicatorLight{parent=annunciator,label="Waste Line Occlusion",colors=cpair(colors.yellow,colors.gray)}
-    local r_hsrt  = IndicatorLight{parent=annunciator,label="Startup Rate High",colors=cpair(colors.yellow,colors.gray)}
+    local r_scram = IndicatorLight{parent=annunciator,label="Reactor SCRAM",colors=ind_red}
+    local r_mscrm = IndicatorLight{parent=annunciator,label="Manual Reactor SCRAM",colors=ind_red}
+    local r_ascrm = IndicatorLight{parent=annunciator,label="Auto Reactor SCRAM",colors=ind_red}
+    local rad_wrn = IndicatorLight{parent=annunciator,label="Radiation Warning",colors=ind_yel}
+    local r_rtrip = IndicatorLight{parent=annunciator,label="RCP Trip",colors=ind_red}
+    local r_cflow = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=ind_yel}
+    local r_clow  = IndicatorLight{parent=annunciator,label="Coolant  Level Low",colors=ind_yel}
+    local r_temp  = IndicatorLight{parent=annunciator,label="Reactor Temp. High",colors=ind_red}
+    local r_rhdt  = IndicatorLight{parent=annunciator,label="Reactor High Delta T",colors=ind_yel}
+    local r_firl  = IndicatorLight{parent=annunciator,label="Fuel Input Rate Low",colors=ind_yel}
+    local r_wloc  = IndicatorLight{parent=annunciator,label="Waste Line Occlusion",colors=ind_yel}
+    local r_hsrt  = IndicatorLight{parent=annunciator,label="Startup Rate High",colors=ind_yel}
 
     r_scram.register(u_ps, "ReactorSCRAM", r_scram.update)
     r_mscrm.register(u_ps, "ManualReactorSCRAM", r_mscrm.update)
@@ -189,15 +194,15 @@ local function init(parent, id)
     local rps = Rectangle{parent=main,border=border(1,colors.cyan,true),thin=true,width=33,height=12,x=46,y=9}
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
-    local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=cpair(colors.yellow,colors.gray)}
-    local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=cpair(colors.yellow,colors.gray)}
-    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=cpair(colors.yellow,colors.gray)}
-    local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=cpair(colors.yellow,colors.gray)}
-    local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=ind_yel}
+    local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=ind_yel}
+    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=ind_yel}
+    local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=ind_yel}
+    local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
     local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
 
     rps_trp.register(u_ps, "rps_tripped", rps_trp.update)
@@ -218,12 +223,12 @@ local function init(parent, id)
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
 
-    local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=cpair(colors.yellow,colors.gray)}
+    local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=ind_yel}
     local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.green}
-    local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=cpair(colors.yellow,colors.gray)}
-    local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=cpair(colors.yellow,colors.gray)}
+    local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=ind_yel}
+    local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=ind_yel}
+    local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=ind_yel}
+    local c_mwrf = IndicatorLight{parent=rcs_annunc,label="Max Water Return Feed",colors=ind_yel}
 
     c_flt.register(u_ps, "RCSFault", c_flt.update)
     c_emg.register(u_ps, "EmergencyCoolant", c_emg.update)
@@ -246,11 +251,11 @@ local function init(parent, id)
 
     if unit.num_boilers > 0 then
         TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
-        local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
+        local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b1_wll.register(b_ps[1], "WasterLevelLow", b1_wll.update)
 
         TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
-        local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b1_hr.register(b_ps[1], "HeatingRateLow", b1_hr.update)
     end
     if unit.num_boilers > 1 then
@@ -262,11 +267,11 @@ local function init(parent, id)
         end
 
         TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
-        local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=cpair(colors.red,colors.gray)}
+        local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b2_wll.register(b_ps[2], "WasterLevelLow", b2_wll.update)
 
         TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
-        local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=cpair(colors.yellow,colors.gray)}
+        local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b2_hr.register(b_ps[2], "HeatingRateLow", b2_hr.update)
     end
 
@@ -279,15 +284,15 @@ local function init(parent, id)
     t1_sdo.register(t_ps[1], "SteamDumpOpen", t1_sdo.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
-    local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+    local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
     t1_tos.register(t_ps[1], "TurbineOverSpeed", t1_tos.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
-    local t1_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local t1_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
     t1_gtrp.register(t_ps[1], "GeneratorTrip", t1_gtrp.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
-    local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+    local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     t1_trp.register(t_ps[1], "TurbineTrip", t1_trp.update)
 
     if unit.num_turbines > 1 then
@@ -300,15 +305,15 @@ local function init(parent, id)
         t2_sdo.register(t_ps[2], "SteamDumpOpen", t2_sdo.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
-        local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t2_tos.register(t_ps[2], "TurbineOverSpeed", t2_tos.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
-        local t2_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+        local t2_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t2_gtrp.register(t_ps[2], "GeneratorTrip", t2_gtrp.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
-        local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+        local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t2_trp.register(t_ps[2], "TurbineTrip", t2_trp.update)
     end
 
@@ -320,15 +325,15 @@ local function init(parent, id)
         t3_sdo.register(t_ps[3], "SteamDumpOpen", t3_sdo.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
-        local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=cpair(colors.red,colors.gray)}
+        local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t3_tos.register(t_ps[3], "TurbineOverSpeed", t3_tos.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
-        local t3_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_250_MS}
+        local t3_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t3_gtrp.register(t_ps[3], "GeneratorTrip", t3_gtrp.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
-        local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
+        local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t3_trp.register(t_ps[3], "TurbineTrip", t3_trp.update)
     end
 
@@ -486,8 +491,8 @@ local function init(parent, id)
 
     auto_div.line_break()
 
-    local a_rdy = IndicatorLight{parent=auto_div,label="Ready",x=2,colors=cpair(colors.green,colors.gray)}
-    local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_1000_MS}
+    local a_rdy = IndicatorLight{parent=auto_div,label="Ready",x=2,colors=ind_grn}
+    local a_stb = IndicatorLight{parent=auto_div,label="Standby",x=2,colors=ind_wht,flash=true,period=period.BLINK_1000_MS}
 
     a_rdy.register(u_ps, "U_AutoReady", a_rdy.update)
 

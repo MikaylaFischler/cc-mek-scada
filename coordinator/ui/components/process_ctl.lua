@@ -28,6 +28,16 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 local cpair = core.cpair
 local border = core.border
 
+local bw_fg_bg = style.bw_fg_bg
+local lu_cpair = style.lu_colors
+local hzd_fg_bg  = style.hzd_fg_bg
+local dis_colors = style.dis_colors
+
+local ind_grn = style.ind_grn
+local ind_yel = style.ind_yel
+local ind_red = style.ind_red
+local ind_wht = style.ind_wht
+
 local period = core.flasher.PERIOD
 
 -- new process control view
@@ -40,11 +50,6 @@ local function new_view(root, x, y)
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 
-    local bw_fg_bg   = cpair(colors.black, colors.white)
-    local hzd_fg_bg  = cpair(colors.white, colors.gray)
-    local lu_cpair   = cpair(colors.gray, colors.gray)
-    local dis_colors = cpair(colors.white, colors.lightGray)
-
     local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
     local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
@@ -55,8 +60,8 @@ local function new_view(root, x, y)
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
-    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=cpair(colors.green,colors.gray)}
-    local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=cpair(colors.green,colors.gray)}
+    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=ind_grn}
+    local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=ind_grn}
 
     all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
     rad_mon.register(facility.ps, "rad_computed_status", rad_mon.update)
@@ -66,9 +71,9 @@ local function new_view(root, x, y)
     main.line_break()
 
     local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=cpair(colors.green,colors.red)}
-    local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=cpair(colors.green,colors.gray)}
-    local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=cpair(colors.white,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=cpair(colors.yellow,colors.gray)}
+    local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=ind_grn}
+    local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=ind_wht,flash=true,period=period.BLINK_250_MS}
+    local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=ind_yel}
 
     auto_ready.register(facility.ps, "auto_ready", auto_ready.update)
     auto_act.register(facility.ps, "auto_active", auto_act.update)
@@ -77,12 +82,12 @@ local function new_view(root, x, y)
 
     main.line_break()
 
-    local auto_scram  = IndicatorLight{parent=main,label="Automatic SCRAM",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local matrix_dc   = IndicatorLight{parent=main,label="Matrix Disconnected",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local matrix_fill = IndicatorLight{parent=main,label="Matrix Charge High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_500_MS}
-    local unit_crit   = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=cpair(colors.red,colors.gray),flash=true,period=period.BLINK_250_MS}
-    local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=cpair(colors.yellow,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local auto_scram  = IndicatorLight{parent=main,label="Automatic SCRAM",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local matrix_dc   = IndicatorLight{parent=main,label="Matrix Disconnected",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local matrix_fill = IndicatorLight{parent=main,label="Matrix Charge High",colors=ind_red,flash=true,period=period.BLINK_500_MS}
+    local unit_crit   = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
 
     auto_scram.register(facility.ps, "auto_scram", auto_scram.update)
     matrix_dc.register(facility.ps, "as_matrix_dc", matrix_dc.update)
@@ -198,12 +203,12 @@ local function new_view(root, x, y)
     local stat_div = Div{parent=proc,width=22,height=24,x=57,y=6}
 
     for i = 1, 4 do
-        local tag_fg_bg = cpair(colors.gray,colors.white)
-        local ind_fg_bg = cpair(colors.lightGray,colors.white)
+        local tag_fg_bg = cpair(colors.gray, colors.white)
+        local ind_fg_bg = cpair(colors.lightGray, colors.white)
         local ind_off = colors.lightGray
 
         if i <= facility.num_units then
-            tag_fg_bg = cpair(colors.black,colors.cyan)
+            tag_fg_bg = cpair(colors.black, colors.cyan)
             ind_fg_bg = bw_fg_bg
             ind_off = colors.gray
         end
@@ -307,7 +312,7 @@ local function new_view(root, x, y)
         local unit = units[i]   ---@type ioctl_unit
 
         TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8,height=1}
-        local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=cpair(colors.white,colors.gray)}
+        local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
         local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.waste.states_abbrv,value=1,min_width=6}
 
         a_waste.register(unit.unit_ps, "U_AutoWaste", a_waste.update)
@@ -330,7 +335,7 @@ local function new_view(root, x, y)
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
     pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
 
-    local fb_active  = IndicatorLight{parent=rect,x=2,y=9,label="Fallback Active",colors=cpair(colors.white,colors.gray)}
+    local fb_active  = IndicatorLight{parent=rect,x=2,y=9,label="Fallback Active",colors=ind_wht}
 
     fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
 
