@@ -54,7 +54,7 @@ local facility = {}
 -- create a new facility management object
 ---@nodiscard
 ---@param num_reactors integer number of reactor units
----@param cooling_conf table cooling configurations of reactor units
+---@param cooling_conf sv_cooling_conf cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
     local self = {
         units = {},
@@ -118,7 +118,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- create units
     for i = 1, num_reactors do
-        table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BOILERS, cooling_conf.r_cool[i].TURBINES))
         table.insert(self.group_map, 0)
     end
 

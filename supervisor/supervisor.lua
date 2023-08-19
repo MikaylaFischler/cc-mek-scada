@@ -32,7 +32,8 @@ function supervisor.comms(_version, nic, fp_ok)
 
     -- configuration data
     local num_reactors = config.NUM_REACTORS
-    local cooling_conf = config.REACTOR_COOLING
+    ---@class sv_cooling_conf
+    local cooling_conf = { r_cool = config.REACTOR_COOLING, fac_tank_mode = config.FAC_TANK_MODE, fac_tank_list = config.FAC_TANK_LIST }
 
     local self = {
         last_est_acks = {}
@@ -295,16 +296,10 @@ function supervisor.comms(_version, nic, fp_ok)
                                 local s_id = svsessions.establish_crd_session(src_addr, firmware_v)
 
                                 if s_id ~= false then
-                                    local cfg = { num_reactors }
-                                    for i = 1, #cooling_conf do
-                                        table.insert(cfg, cooling_conf[i].BOILERS)
-                                        table.insert(cfg, cooling_conf[i].TURBINES)
-                                    end
-
                                     println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                                     log.info(util.c("CRD_ESTABLISH: coordinator (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
 
-                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, cfg)
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, { num_reactors, cooling_conf })
                                 else
                                     if last_ack ~= ESTABLISH_ACK.COLLISION then
                                         log.info("CRD_ESTABLISH: denied new coordinator [@" .. src_addr .. "] due to already being connected to another coordinator")

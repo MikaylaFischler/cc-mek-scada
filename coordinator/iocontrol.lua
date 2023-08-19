@@ -38,9 +38,7 @@ local function __generic_ack(success) end
 ---@param comms_v string comms version
 function iocontrol.init_fp(firmware_v, comms_v)
     ---@class ioctl_front_panel
-    io.fp = {
-        ps = psil.create()
-    }
+    io.fp = { ps = psil.create() }
 
     io.fp.ps.publish("version", firmware_v)
     io.fp.ps.publish("comms_version", comms_v)
@@ -52,7 +50,9 @@ end
 function iocontrol.init(conf, comms)
     ---@class ioctl_facility
     io.facility = {
-        num_units = conf.num_units, ---@type integer
+        num_units = conf.num_units,
+        tank_mode = conf.cooling.fac_tank_mode,
+        tank_defs = conf.cooling.fac_tank_list,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -116,6 +116,7 @@ function iocontrol.init(conf, comms)
             num_boilers = 0,
             num_turbines = 0,
             num_snas = 0,
+            has_tank = conf.cooling.r_cool[i].TANK,
 
             control_state = false,
             burn_rate_cmd = 0.0,
@@ -191,14 +192,14 @@ function iocontrol.init(conf, comms)
         }
 
         -- create boiler tables
-        for _ = 1, conf.defs[(i * 2) - 1] do
+        for _ = 1, conf.cooling.r_cool[i].BOILERS do
             local data = {} ---@type boilerv_session_db
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, data)
         end
 
         -- create turbine tables
-        for _ = 1, conf.defs[i * 2] do
+        for _ = 1, conf.cooling.r_cool[i].TURBINES do
             local data = {} ---@type turbinev_session_db
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, data)
@@ -208,6 +209,18 @@ function iocontrol.init(conf, comms)
         entry.num_turbines = #entry.turbine_data_tbl
 
         table.insert(io.units, entry)
+    end
+
+    -- on facility tank mode 0, setup tank list to match unit TANK option
+    if io.facility.tank_mode == 0 then
+        for i = 1, #io.units do
+            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TANK, 1, 0)
+        end
+    -- on other facility modes, overwrite unit TANK option with facility tank list
+    else
+        for i = 1, #io.units do
+            io.units[i].has_tank = conf.cooling.fac_tank_list[i] > 0
+        end
     end
 
     -- pass IO control here since it can't be require'd due to a require loop

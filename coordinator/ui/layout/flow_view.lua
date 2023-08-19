@@ -38,6 +38,9 @@ local function init(main)
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 
+    local tank_defs = facility.tank_defs
+    local tank_draw = { table.unpack(tank_defs) }
+
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
@@ -46,52 +49,266 @@ local function init(main)
     datetime.register(facility.ps, "date_time", datetime.set_value)
 
     local po_pipes = {}
-
     local water_pipes = {}
 
-    local fac_tanks = true
+    -- get the y offset for this unit index
+    local function y_ofs(idx) return ((idx - 1) * 20) end
 
-    for i = 1, 4 do
-        local y = ((i - 1) * 20)
-        table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
-        table.insert(water_pipes, pipe(2, y, 82, y, colors.blue, true))
-        table.insert(water_pipes, pipe(82, y, 82, y + 2, colors.blue, true))
-        if fac_tanks and i > 1 then table.insert(water_pipes, pipe(21, y - 19, 21, y, colors.blue, true)) end
+    local function calc_fdef(start_idx, end_idx)
+        local first, last = 4, 0
+        for i = start_idx, end_idx do
+            if tank_defs[i] == 2 then
+                last = i
+                if i < first then first = i end
+            end
+        end
+        return first, last
     end
 
-    PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=colors.lightGray}
+    if facility.tank_mode == 0 or facility.tank_mode == 8 then
+        -- (0) tanks belong to reactor units OR (8) 4 total facility tanks (A B C D)
+        for i = 1, facility.num_units do
+            if units[i].has_tank then
+                local y = y_ofs(i)
+                table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
+                table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
+
+                local u = units[i]  ---@type ioctl_unit
+                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
+            end
+        end
+    else
+        -- setup connections for units with emergency coolant, always the same
+        for i = 1, #tank_defs do
+            if tank_defs[i] > 0 then
+                local y = y_ofs(i)
+
+                if tank_defs[i] == 2 then
+                    table.insert(water_pipes, pipe(1, y, 21, y, colors.blue, true))
+                else
+                    table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
+                    table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
+                end
+
+                local u = units[i]  ---@type ioctl_unit
+                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
+            end
+        end
+
+        if facility.tank_mode == 1 then
+            -- (1) 1 total facility tank (A A A A)
+            local first_fdef, last_fdef = calc_fdef(1, #tank_defs)
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        elseif facility.tank_mode == 2 then
+            -- (2) 2 total facility tanks (A A A B)
+            local first_fdef, last_fdef = calc_fdef(1, math.min(3, #tank_defs))
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == 4 then
+                    if tank_defs[i] == 2 then
+                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    end
+                elseif i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        elseif facility.tank_mode == 3 then
+            -- (3) 2 total facility tanks (A A B B)
+            for _, a in pairs({ 1, 3 }) do
+                local b = a + 1
+                if tank_defs[a] == 2 then
+                    table.insert(water_pipes, pipe(0, y_ofs(a), 1, y_ofs(a) + 6, colors.blue, true))
+                    if tank_defs[b] == 2 then
+                        table.insert(water_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), colors.blue, true))
+                        tank_draw[b] = 0
+                    end
+                elseif tank_defs[b] == 2 then
+                    table.insert(water_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, colors.blue, true))
+                end
+            end
+        elseif facility.tank_mode == 4 then
+            -- (4) 2 total facility tanks (A B B B)
+            local first_fdef, last_fdef = calc_fdef(2, #tank_defs)
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == 1 then
+                    if tank_defs[i] == 2 then
+                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    end
+                elseif i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        elseif facility.tank_mode == 5 then
+            -- (5) 3 total facility tanks (A A B C)
+            local first_fdef, last_fdef = calc_fdef(1, math.min(2, #tank_defs))
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == 3 or i == 4 then
+                    if tank_defs[i] == 2 then
+                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    end
+                elseif i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        elseif facility.tank_mode == 6 then
+            -- (6) 3 total facility tanks (A B B C)
+            local first_fdef, last_fdef = calc_fdef(2, math.min(3, #tank_defs))
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == 1 or i == 4 then
+                    if tank_defs[i] == 2 then
+                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    end
+                elseif i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        elseif facility.tank_mode == 7 then
+            -- (7) 3 total facility tanks (A B C C)
+            local first_fdef, last_fdef = calc_fdef(3, #tank_defs)
+
+            for i = 1, #tank_defs do
+                local y = y_ofs(i)
+                if i == 1 or i == 2 then
+                    if tank_defs[i] == 2 then
+                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    end
+                elseif i == first_fdef then
+                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                elseif i > first_fdef then
+                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
+                    if i == last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                    elseif i < last_fdef then
+                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                    end
+                end
+            end
+        end
+    end
+
+    local flow_x = 3
+    if #water_pipes > 0 then
+        flow_x = 25
+        PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=colors.lightGray}
+    end
 
     for i = 1, facility.num_units do
-        local y_offset = ((i - 1) * 20)
-        unit_flow(main, 25, 5 + y_offset, units[i])
+        local y_offset = y_ofs(i)
+        unit_flow(main, flow_x, 5 + y_offset, #water_pipes == 0, units[i])
         table.insert(po_pipes, pipe(0, 3 + y_offset, 8, 0, colors.cyan, true, true))
-
-        local vx, vy = 11, 3 + y_offset
-        TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
-        local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d", i + 13),colors=cpair(colors.green,colors.gray)}
-        local state = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="STATE",colors=cpair(colors.white,colors.white)}
-
-        local tank = Div{parent=main,x=2,y=8+y_offset,width=20,height=12}
-        TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
-        TextBox{parent=tank,text="DYNAMIC TANK "..i,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.white,colors.gray)}
-        local tank_box = Rectangle{parent=tank,border=border(1, colors.gray, true),width=20,height=10}
-        local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
-        TextBox{parent=tank_box,x=2,y=3,text="Fill",height=1,width=10,fg_bg=style.label}
-        local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
-        local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
-        TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
-        local ccool = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
     end
 
     PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}
 
+    -- TANK VALVES --
+
+    local next_f_id = 1
+
+    for i = 1, #tank_defs do
+        if tank_defs[i] > 0 then
+            local vy = 3 + y_ofs(i)
+
+            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
+
+            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i + 13),colors=cpair(colors.green,colors.gray)}
+            local state = IndicatorLight{parent=main,x=9,y=vy+2,label="STATE",colors=cpair(colors.white,colors.white)}
+        end
+    end
+
+    -- DYNAMIC TANKS --
+
+    for i = 1, #tank_draw do
+        if tank_draw[i] > 0 then
+            local id = "U-" .. i
+            if tank_draw[i] == 2 then
+                id = "F-" .. next_f_id
+                next_f_id = next_f_id + 1
+            end
+
+            local y_offset = y_ofs(i)
+
+            local tank = Div{parent=main,x=3,y=8+y_offset,width=20,height=12}
+
+            TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+            TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.white,colors.gray)}
+
+            local tank_box = Rectangle{parent=tank,border=border(1, colors.gray, true),width=20,height=10}
+
+            local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
+
+            TextBox{parent=tank_box,x=2,y=3,text="Fill",height=1,width=10,fg_bg=style.label}
+            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
+
+            TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
+            local ccool = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}    
+        end
+    end
+
+    -- SPS --
+
     local sps = Div{parent=main,x=140,y=3,height=12}
+
     TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
     TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=cpair(colors.white,colors.gray)}
+
     local sps_box = Rectangle{parent=sps,border=border(1, colors.gray, true),width=24,height=10}
+
     local status = StateIndicator{parent=sps_box,x=5,y=1,states=style.sps.states,value=1,min_width=14}
+
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",height=1,width=10,fg_bg=style.label}
     local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",height=1,width=15,fg_bg=style.label}
     local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
 end

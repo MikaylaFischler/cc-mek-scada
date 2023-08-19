@@ -162,8 +162,8 @@ local function main()
 
     -- create network interface then setup comms
     local nic = network.nic(modem)
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.CRD_CHANNEL, config.SVR_CHANNEL,
-                                            config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.NUM_UNITS, config.CRD_CHANNEL,
+                                            config.SVR_CHANNEL, config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 

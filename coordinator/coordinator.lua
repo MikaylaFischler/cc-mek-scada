@@ -243,12 +243,13 @@ end
 ---@nodiscard
 ---@param version string coordinator version
 ---@param nic nic network interface device
+---@param num_units integer number of configured units for number of monitors, checked against SV
 ---@param crd_channel integer port of configured supervisor
 ---@param svr_channel integer listening port for supervisor replys
 ---@param pkt_channel integer listening port for pocket API
 ---@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
+function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -707,21 +708,16 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                                 -- reset to disconnected before validating
                                 iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if type(config) == "table" and #config > 1 then
+                                if type(config) == "table" and #config == 2 then
                                     -- get configuration
 
                                     ---@class facility_conf
                                     local conf = {
                                         num_units = config[1],  ---@type integer
-                                        defs = {}               -- boilers and turbines
+                                        cooling = config[2]     ---@type sv_cooling_conf
                                     }
 
-                                    if (#config - 1) == (conf.num_units * 2) then
-                                        -- record sequence of pairs of [#boilers, #turbines] per unit
-                                        for i = 2, #config do
-                                            table.insert(conf.defs, config[i])
-                                        end
-
+                                    if conf.num_units == num_units then
                                         -- init io controller
                                         iocontrol.init(conf, public)
 
@@ -733,7 +729,7 @@ function coordinator.comms(version, nic, crd_channel, svr_channel, pkt_channel, 
                                         iocontrol.fp_link_state(types.PANEL_LINK_STATE.LINKED)
                                     else
                                         self.sv_config_err = true
-                                        log.warning("invalid supervisor configuration definitions received, establish failed")
+                                        log.warning("supervisor config's number of units don't match coordinator's config, establish failed")
                                     end
                                 else
                                     log.debug("invalid supervisor configuration table received, establish failed")
