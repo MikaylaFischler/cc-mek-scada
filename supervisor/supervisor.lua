@@ -33,7 +33,7 @@ function supervisor.comms(_version, nic, fp_ok)
     -- configuration data
     local num_reactors = config.NUM_REACTORS
     ---@class sv_cooling_conf
-    local cooling_conf = { r_cool = config.REACTOR_COOLING, fac_tank_mode = config.FAC_TANK_MODE, fac_tank_list = config.FAC_TANK_LIST }
+    local cooling_conf = { r_cool = config.REACTOR_COOLING, fac_tank_mode = config.FAC_TANK_MODE, fac_tank_defs = config.FAC_TANK_DEFS }
 
     local self = {
         last_est_acks = {}

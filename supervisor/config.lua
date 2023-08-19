@@ -42,7 +42,7 @@ config.REACTOR_COOLING = {
 -- (see wiki for details)
 -- by default, dynamic tanks are for each unit
 config.FAC_TANK_MODE = 0
-config.FAC_TANK_LIST = { 0, 0, 0, 0 }
+config.FAC_TANK_DEFS = { 0, 0, 0, 0 }
 
 -- log path
 config.LOG_PATH = "/log.txt"

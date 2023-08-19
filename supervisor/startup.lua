@@ -49,14 +49,14 @@ cfv.assert_min(config.PKT_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
 cfv.assert_type_int(config.FAC_TANK_MODE)
-cfv.assert_type_table(config.FAC_TANK_LIST)
+cfv.assert_type_table(config.FAC_TANK_DEFS)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
 
-assert((config.FAC_TANK_MODE ~= 0) and (config.NUM_REACTORS == #config.FAC_TANK_LIST),
-    "bad config file: FAC_TANK_LIST length not equal to NUM_REACTORS")
+assert((config.FAC_TANK_MODE == 0) or (config.NUM_REACTORS == #config.FAC_TANK_DEFS),
+    "bad config file: FAC_TANK_DEFS length not equal to NUM_REACTORS")
 
 cfv.assert_eq(#config.REACTOR_COOLING, config.NUM_REACTORS)
 assert(cfv.valid(), "config: number of cooling configs different than number of units")

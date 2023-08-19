@@ -52,7 +52,7 @@ function iocontrol.init(conf, comms)
     io.facility = {
         num_units = conf.num_units,
         tank_mode = conf.cooling.fac_tank_mode,
-        tank_defs = conf.cooling.fac_tank_list,
+        tank_defs = conf.cooling.fac_tank_defs,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -219,7 +219,7 @@ function iocontrol.init(conf, comms)
     -- on other facility modes, overwrite unit TANK option with facility tank list
     else
         for i = 1, #io.units do
-            io.units[i].has_tank = conf.cooling.fac_tank_list[i] > 0
+            io.units[i].has_tank = conf.cooling.fac_tank_defs[i] > 0
         end
     end
 
