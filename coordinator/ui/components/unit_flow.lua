@@ -70,7 +70,7 @@ local function make(parent, x, y, wide, unit)
     -- COOLING LOOP --
     ------------------
 
-    local reactor = Rectangle{parent=root,x=1,y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
+    local reactor = Rectangle{parent=root,x=1,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
     TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=TEXT_ALIGN.CENTER,height=1}
     TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
@@ -206,12 +206,12 @@ local function make(parent, x, y, wide, unit)
     _machine(_wide(116, 94), 6, "SPENT WASTE \x1b")
 
     TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1, colors.gray, true),width=19,height=7,thin=true,fg_bg=bw_fg_bg}
+    local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=7,thin=true,fg_bg=bw_fg_bg}
     local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=ind_grn}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c,label="CNT",unit="",format="%2d",value=0,width=7}
     local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c,label="PEAK",unit="mB/t",format="%7.2f",value=0,width=17}
-    local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c,label="MAX ",unit="mB/t",format="%7.2f",value=0,width=17}
-    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c,label="IN  ",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c,label="MAX",unit="mB/t",format="%8.2f",value=0,width=17}
+    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c,label="IN",unit="mB/t",format="%9.2f",value=0,width=17}
 
     sna_act.register(unit.unit_ps, "po_rate", function (r) sna_act.update(r > 0) end)
     sna_cnt.register(unit.unit_ps, "sna_count", sna_cnt.update)

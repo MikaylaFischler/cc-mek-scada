@@ -2,6 +2,7 @@
 -- Flow Monitor GUI
 --
 
+local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
 local iocontrol      = require("coordinator.iocontrol")
@@ -21,6 +22,8 @@ local DataIndicator  = require("graphics.elements.indicators.data")
 local HorizontalBar  = require("graphics.elements.indicators.hbar")
 local IndicatorLight = require("graphics.elements.indicators.light")
 local StateIndicator = require("graphics.elements.indicators.state")
+
+local CONTAINER_MODE = types.CONTAINER_MODE
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
@@ -71,7 +74,7 @@ local function init(main)
         for i = 1, facility.num_units do
             if units[i].has_tank then
                 local y = y_ofs(i)
-                table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
+                table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
                 table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
 
                 local u = units[i]  ---@type ioctl_unit
@@ -88,7 +91,7 @@ local function init(main)
                 if tank_defs[i] == 2 then
                     table.insert(water_pipes, pipe(1, y, 21, y, colors.blue, true))
                 else
-                    table.insert(water_pipes, pipe(2, y, 2, y + 5, colors.blue, true))
+                    table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
                     table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
                 end
 
@@ -105,12 +108,12 @@ local function init(main)
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
                 if i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -122,15 +125,15 @@ local function init(main)
                 local y = y_ofs(i)
                 if i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -155,15 +158,15 @@ local function init(main)
                 local y = y_ofs(i)
                 if i == 1 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -175,15 +178,15 @@ local function init(main)
                 local y = y_ofs(i)
                 if i == 3 or i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -195,15 +198,15 @@ local function init(main)
                 local y = y_ofs(i)
                 if i == 1 or i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -215,15 +218,15 @@ local function init(main)
                 local y = y_ofs(i)
                 if i == 1 or i == 2 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
+                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 13, 0, y + 6, colors.blue, true))
+                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
                     end
                 end
             end
@@ -275,12 +278,12 @@ local function init(main)
 
             local y_offset = y_ofs(i)
 
-            local tank = Div{parent=main,x=3,y=8+y_offset,width=20,height=12}
+            local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
             TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
             TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.white,colors.gray)}
 
-            local tank_box = Rectangle{parent=tank,border=border(1, colors.gray, true),width=20,height=10}
+            local tank_box = Rectangle{parent=tank,border=border(1,colors.gray,true),width=20,height=12}
 
             local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
 
@@ -291,16 +294,32 @@ local function init(main)
             TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
             local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
 
+            TextBox{parent=tank_box,x=2,y=9,text="In/Out Mode",height=1,width=11,fg_bg=style.label}
+            local can_fill = IndicatorLight{parent=tank_box,x=2,y=10,label="FILL",colors=style.ind_wht}
+            local can_empty = IndicatorLight{parent=tank_box,x=10,y=10,label="EMPTY",colors=style.ind_wht}
+
+            local function _can_fill(mode)
+                can_fill.update((mode == CONTAINER_MODE.BOTH) or (mode == CONTAINER_MODE.FILL))
+            end
+
+            local function _can_empty(mode)
+                can_empty.update((mode == CONTAINER_MODE.BOTH) or (mode == CONTAINER_MODE.EMPTY))
+            end
+
             if tank_list[i] == 1 then
                 status.register(units[i].tank_ps_tbl[1], "computed_status", status.update)
                 tank_pcnt.register(units[i].tank_ps_tbl[1], "fill", function (f) tank_pcnt.update(f * 100) end)
                 tank_amnt.register(units[i].tank_ps_tbl[1], "stored", function (sto) tank_amnt.update(sto.amount) end)
                 level.register(units[i].tank_ps_tbl[1], "fill", level.update)
+                can_fill.register(units[i].tank_ps_tbl[1], "container_mode", _can_fill)
+                can_empty.register(units[i].tank_ps_tbl[1], "container_mode", _can_empty)
             else
                 status.register(facility.tank_ps_tbl[f_id], "computed_status", status.update)
                 tank_pcnt.register(facility.tank_ps_tbl[f_id], "fill", function (f) tank_pcnt.update(f * 100) end)
                 tank_amnt.register(facility.tank_ps_tbl[f_id], "stored", function (sto) tank_amnt.update(sto.amount) end)
                 level.register(facility.tank_ps_tbl[f_id], "fill", level.update)
+                can_fill.register(facility.tank_ps_tbl[f_id], "container_mode", _can_fill)
+                can_empty.register(facility.tank_ps_tbl[f_id], "container_mode", _can_empty)
             end
         end
     end
@@ -312,7 +331,7 @@ local function init(main)
     TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
     TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=wh_gray}
 
-    local sps_box = Rectangle{parent=sps,border=border(1, colors.gray, true),width=24,height=10}
+    local sps_box = Rectangle{parent=sps,border=border(1,colors.gray,true),width=24,height=10}
 
     local status = StateIndicator{parent=sps_box,x=5,y=1,states=style.sps.states,value=1,min_width=14}
 
@@ -331,7 +350,7 @@ local function init(main)
     -- statistics --
 
     TextBox{parent=main,x=145,y=16,text="PROC. WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local pr_waste  = Rectangle{parent=main,x=145,y=17,border=border(1, colors.gray, true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
+    local pr_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
     local pu = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
     local po = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Po",unit="mB/t",format="%9.3f",value=0,width=17}
     local popl = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="PoPl",unit="mB/t",format="%7.3f",value=0,width=17}
@@ -341,7 +360,7 @@ local function init(main)
     popl.register(facility.ps, "po_pl_rate", popl.update)
 
     TextBox{parent=main,x=145,y=23,text="SPENT WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local sp_waste  = Rectangle{parent=main,x=145,y=24,border=border(1, colors.gray, true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
+    local sp_waste  = Rectangle{parent=main,x=145,y=24,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(facility.ps, "spent_waste_rate", sum_sp_waste.update)
