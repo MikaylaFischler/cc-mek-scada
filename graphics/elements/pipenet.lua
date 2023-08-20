@@ -1,7 +1,6 @@
 -- Pipe Graphics Element
 
 local util    = require("scada-common.util")
-local log     = require("scada-common.log")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -213,16 +212,6 @@ local function pipenet(args)
             end
         end
 
-        -- for x = 1, args.width do
-        --     for y = 1, args.height do
-        --         local entry = map[x][y] ---@type _pipe_map_entry|false
-        --         if entry == false then
-        --             e.window.setCursorPos(x, y)
-        --             e.window.blit("x", "f", "e")
-        --         end
-        --     end
-        -- end
-
         -- render
         for x = 1, args.width do
             for y = 1, args.height do
@@ -288,16 +277,24 @@ local function pipenet(args)
                         if check(x, y - 1) then -- above
                             -- not below and (if left or right)
                             if (not check(x, y + 1)) and (check(x - 1, y) or check(x + 1, y)) then
-                                char = util.trinary(entry.atr, "\x8f", "\x83")
+                                char = util.trinary(entry.atr, "\x8f", " ")
                                 invert = not entry.atr
-                            else -- not above w/ sides only
+                            else -- not below w/ sides only
                                 char = " "
                                 invert = true
                             end
                         elseif check(x, y + 1) then -- not above, if below
+                            -- if left or right
+                            if (check(x - 1, y) or check(x + 1, y)) then
+                                char = "\x83"
+                                invert = true
+                            else -- not left or right
+                                char = " "
+                                invert = true
+                            end
+                        else -- not above, not below
                             char = util.trinary(entry.atr, "\x8f", "\x83")
                             invert = not entry.atr
-                        else -- not above, not below
                         end
                     end
 
