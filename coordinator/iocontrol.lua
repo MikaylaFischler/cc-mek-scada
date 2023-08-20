@@ -790,7 +790,7 @@ function iocontrol.update_unit_statuses(statuses)
     else
         local burn_rate_sum = 0.0
         local sna_count_sum = 0
-        local pu_rate, po_rate, po_am_rate = 0.0, 0.0, 0.0
+        local pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate = 0.0, 0.0, 0.0, 0.0, 0.0
 
         -- get all unit statuses
         for i = 1, #statuses do
@@ -1151,10 +1151,10 @@ function iocontrol.update_unit_statuses(statuses)
                 local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
                 local waste_rate = burn_rate / 10.0
 
+                local u_spent_rate = waste_rate
                 local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
                 local u_po_rate = util.trinary(not is_pu, math.min(waste_rate, unit.sna_prod_rate), 0.0)
 
-                unit.unit_ps.publish("ws_rate", waste_rate)
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
 
@@ -1163,17 +1163,22 @@ function iocontrol.update_unit_statuses(statuses)
                 if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
                     unit.unit_ps.publish("po_pl_rate", u_po_rate)
                     unit.unit_ps.publish("po_am_rate", 0)
+                    po_pl_rate = po_pl_rate + u_po_rate
                 elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", u_po_rate)
                     po_am_rate = po_am_rate + u_po_rate
+                    u_spent_rate = 0
                 else
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", 0)
                 end
 
+                unit.unit_ps.publish("ws_rate", u_spent_rate)
+
                 pu_rate = pu_rate + u_pu_rate
                 po_rate = po_rate + u_po_rate
+                spent_rate = spent_rate + u_spent_rate
             end
         end
 
@@ -1181,7 +1186,9 @@ function iocontrol.update_unit_statuses(statuses)
         io.facility.ps.publish("sna_count", sna_count_sum)
         io.facility.ps.publish("pu_rate", pu_rate)
         io.facility.ps.publish("po_rate", po_rate)
+        io.facility.ps.publish("po_pl_rate", po_pl_rate)
         io.facility.ps.publish("po_am_rate", po_am_rate)
+        io.facility.ps.publish("spent_waste_rate", spent_rate)
 
         -- update alarm sounder
         sounder.eval(io.units)

@@ -28,8 +28,9 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
-local bw_fg_bg  = style.bw_fg_bg
-local text_col  = style.text_colors
+local wh_gray = style.wh_gray
+local bw_fg_bg = style.bw_fg_bg
+local text_col = style.text_colors
 local lu_col = style.lu_colors
 
 -- create new flow view
@@ -238,12 +239,12 @@ local function init(main)
     for i = 1, facility.num_units do
         local y_offset = y_ofs(i)
         unit_flow(main, flow_x, 5 + y_offset, #water_pipes == 0, units[i])
-        table.insert(po_pipes, pipe(0, 3 + y_offset, 8, 0, colors.cyan, true, true))
+        table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
     end
 
     PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}
 
-    -- TANK VALVES --
+    -- tank valves --
 
     local next_f_id = 1
 
@@ -253,15 +254,15 @@ local function init(main)
 
             TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
 
-            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i * 5),colors=cpair(colors.green,colors.gray)}
-            local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=cpair(colors.white,colors.gray)}
+            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i * 5),colors=style.ind_grn}
+            local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
             open.register(units[i].unit_ps, "V_emc_state", open.update)
         end
     end
 
-    -- DYNAMIC TANKS --
+    -- dynamic tanks --
 
     for i = 1, #tank_list do
         if tank_list[i] > 0 then
@@ -309,7 +310,7 @@ local function init(main)
     local sps = Div{parent=main,x=140,y=3,height=12}
 
     TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
-    TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=wh_gray}
 
     local sps_box = Rectangle{parent=sps,border=border(1, colors.gray, true),width=24,height=10}
 
@@ -326,6 +327,24 @@ local function init(main)
     local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
 
     sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
+
+    -- statistics --
+
+    TextBox{parent=main,x=145,y=16,text="PROC. WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    local pr_waste  = Rectangle{parent=main,x=145,y=17,border=border(1, colors.gray, true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
+    local pu = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
+    local po = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Po",unit="mB/t",format="%9.3f",value=0,width=17}
+    local popl = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="PoPl",unit="mB/t",format="%7.3f",value=0,width=17}
+
+    pu.register(facility.ps, "pu_rate", pu.update)
+    po.register(facility.ps, "po_rate", po.update)
+    popl.register(facility.ps, "po_pl_rate", popl.update)
+
+    TextBox{parent=main,x=145,y=23,text="SPENT WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    local sp_waste  = Rectangle{parent=main,x=145,y=24,border=border(1, colors.gray, true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
+    local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
+
+    sum_sp_waste.register(facility.ps, "spent_waste_rate", sum_sp_waste.update)
 end
 
 return init

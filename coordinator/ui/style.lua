@@ -70,16 +70,18 @@ style.colors = {
 
 -- COMMON COLOR PAIRS --
 
+style.wh_gray = cpair(colors.white, colors.gray)
+
 style.bw_fg_bg = cpair(colors.black, colors.white)
 style.text_colors = cpair(colors.black, colors.lightGray)
 style.lu_colors = cpair(colors.gray, colors.gray)
-style.hzd_fg_bg  = cpair(colors.white, colors.gray)
+style.hzd_fg_bg  = style.wh_gray
 style.dis_colors = cpair(colors.white, colors.lightGray)
 
 style.ind_grn = cpair(colors.green, colors.gray)
 style.ind_yel = cpair(colors.yellow, colors.gray)
 style.ind_red = cpair(colors.red, colors.gray)
-style.ind_wht = cpair(colors.white, colors.gray)
+style.ind_wht = style.wh_gray
 
 -- UI COMPONENTS --
 

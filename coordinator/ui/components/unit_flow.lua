@@ -27,6 +27,7 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
+local wh_gray = style.wh_gray
 local bw_fg_bg = style.bw_fg_bg
 local text_c = style.text_colors
 local lu_c = style.lu_colors
@@ -64,7 +65,6 @@ local function make(parent, x, y, wide, unit)
     local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=height}
 
     local lg_gray = cpair(colors.lightGray, colors.gray)
-    local wh_gray = cpair(colors.white, colors.gray)
 
     ------------------
     -- COOLING LOOP --
