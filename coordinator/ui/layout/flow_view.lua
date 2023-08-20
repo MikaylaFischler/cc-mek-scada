@@ -39,7 +39,7 @@ local function init(main)
     local units = iocontrol.get_db().units
 
     local tank_defs = facility.tank_defs
-    local tank_draw = { table.unpack(tank_defs) }
+    local tank_list = facility.tank_list
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
@@ -106,7 +106,6 @@ local function init(main)
                 if i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -127,7 +126,6 @@ local function init(main)
                 elseif i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -143,7 +141,6 @@ local function init(main)
                     table.insert(water_pipes, pipe(0, y_ofs(a), 1, y_ofs(a) + 6, colors.blue, true))
                     if tank_defs[b] == 2 then
                         table.insert(water_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), colors.blue, true))
-                        tank_draw[b] = 0
                     end
                 elseif tank_defs[b] == 2 then
                     table.insert(water_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, colors.blue, true))
@@ -162,7 +159,6 @@ local function init(main)
                 elseif i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -183,7 +179,6 @@ local function init(main)
                 elseif i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -204,7 +199,6 @@ local function init(main)
                 elseif i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -225,7 +219,6 @@ local function init(main)
                 elseif i == first_fdef then
                     table.insert(water_pipes, pipe(0, y, 1, y + 6, colors.blue, true))
                 elseif i > first_fdef then
-                    if tank_defs[i] == 2 then tank_draw[i] = 0 end
                     if i == last_fdef then
                         table.insert(water_pipes, pipe(0, y - 13, 0, y, colors.blue, true))
                     elseif i < last_fdef then
@@ -267,10 +260,11 @@ local function init(main)
 
     -- DYNAMIC TANKS --
 
-    for i = 1, #tank_draw do
-        if tank_draw[i] > 0 then
+    for i = 1, #tank_list do
+        if tank_list[i] > 0 then
             local id = "U-" .. i
-            if tank_draw[i] == 2 then
+            local f_id = next_f_id
+            if tank_list[i] == 2 then
                 id = "F-" .. next_f_id
                 next_f_id = next_f_id + 1
             end
@@ -291,7 +285,19 @@ local function init(main)
             local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
 
             TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
-            local ccool = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}    
+            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
+
+            if tank_list[i] == 1 then
+                status.register(units[i].tank_ps_tbl[1], "computed_status", status.update)
+                tank_pcnt.register(units[i].tank_ps_tbl[1], "fill", function (f) tank_pcnt.update(f * 100) end)
+                tank_amnt.register(units[i].tank_ps_tbl[1], "stored", function (sto) tank_amnt.update(sto.amount) end)
+                level.register(units[i].tank_ps_tbl[1], "fill", level.update)
+            else
+                status.register(facility.tank_ps_tbl[f_id], "computed_status", status.update)
+                tank_pcnt.register(facility.tank_ps_tbl[f_id], "fill", function (f) tank_pcnt.update(f * 100) end)
+                tank_amnt.register(facility.tank_ps_tbl[f_id], "stored", function (sto) tank_amnt.update(sto.amount) end)
+                level.register(facility.tank_ps_tbl[f_id], "fill", level.update)
+            end
         end
     end
 
@@ -306,11 +312,17 @@ local function init(main)
 
     local status = StateIndicator{parent=sps_box,x=5,y=1,states=style.sps.states,value=1,min_width=14}
 
+    status.register(facility.sps_ps_tbl[1], "computed_status", status.update)
+
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",height=1,width=10,fg_bg=style.label}
-    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.3f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+
+    sps_in.register(facility.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",height=1,width=15,fg_bg=style.label}
-    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+
+    sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 end
 
 return init

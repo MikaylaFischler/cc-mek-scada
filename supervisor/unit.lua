@@ -813,7 +813,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
 
         -- basic SNA statistical information
-        status.sna = { #self.snas, public.get_sna_rate() }
+        local total_peak = 0
+        for i = 1, #self.snas do
+            local db = self.snas[i].get_db()    ---@type sna_session_db
+            total_peak = total_peak + db.state.peak_production
+        end
+        status.sna = { #self.snas, public.get_sna_rate(), total_peak }
 
         -- radiation monitors (environment detectors)
         status.rad_mon = {}

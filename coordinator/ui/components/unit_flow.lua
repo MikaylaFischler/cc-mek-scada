@@ -103,8 +103,11 @@ local function make(parent, x, y, wide, unit)
     PipeNetwork{parent=root,x=20,y=1,pipes=rc_pipes,bg=colors.lightGray}
 
     if unit.num_boilers > 0 then
-        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
-        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
+        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+
+        cc_rate.register(unit.unit_ps, "boil_sum", cc_rate.update)
+        hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
         local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
         TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=TEXT_ALIGN.CENTER,height=1}
@@ -112,22 +115,29 @@ local function make(parent, x, y, wide, unit)
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
-        local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
-        local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
+        local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+        local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+
+        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        st_rate.register(unit.unit_ps, "boil_sum", st_rate.update)
     else
-        local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
-        local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=287000000,commas=true,width=16,fg_bg=bw_fg_bg}
+        local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+        local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+
+        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
     end
 
     local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
     TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=TEXT_ALIGN.CENTER,height=1}
-    TextBox{parent=turbine,y=3,text="GENERATORS",alignment=TEXT_ALIGN.CENTER,height=1}
+    TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=TEXT_ALIGN.CENTER,height=1}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1a \x80 \x1b",width=1,height=3,fg_bg=lg_gray}
 
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo
         TextBox{parent=root,x=_wide(125,103),y=ry,text="\x10\x11\x7f",fg_bg=text_c,width=3,height=1}
         local state = TriIndicatorLight{parent=root,x=_wide(129,107),y=ry,label=v_names[i+4],c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        state.register(unit.turbine_ps_tbl[i], "SteamDumpOpen", state.update)
     end
 
     ----------------------
@@ -168,12 +178,19 @@ local function make(parent, x, y, wide, unit)
         TextBox{parent=waste,x=mx,y=my+1,text=name,alignment=TEXT_ALIGN.CENTER,fg_bg=wh_gray,width=l,height=1}
     end
 
-    local waste_rate = DataIndicator{parent=waste,x=1,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=1234.56,width=12,fg_bg=bw_fg_bg}
-    local pu_rate = DataIndicator{parent=waste,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=bw_fg_bg}
-    local po_rate = DataIndicator{parent=waste,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=bw_fg_bg}
-    local popl_rate = DataIndicator{parent=waste,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=bw_fg_bg}
-    local poam_rate = DataIndicator{parent=waste,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=bw_fg_bg}
-    local spent_rate = DataIndicator{parent=waste,x=_wide(117,99),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=123.456,width=12,fg_bg=bw_fg_bg}
+    local waste_rate = DataIndicator{parent=waste,x=1,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
+    local pu_rate = DataIndicator{parent=waste,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+    local po_rate = DataIndicator{parent=waste,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+    local popl_rate = DataIndicator{parent=waste,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+    local poam_rate = DataIndicator{parent=waste,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+    local spent_rate = DataIndicator{parent=waste,x=_wide(117,99),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+
+    waste_rate.register(unit.unit_ps, "act_burn_rate", waste_rate.update)
+    pu_rate.register(unit.unit_ps, "pu_rate", pu_rate.update)
+    po_rate.register(unit.unit_ps, "po_rate", po_rate.update)
+    popl_rate.register(unit.unit_ps, "po_pl_rate", popl_rate.update)
+    poam_rate.register(unit.unit_ps, "po_am_rate", poam_rate.update)
+    spent_rate.register(unit.unit_ps, "ws_rate", spent_rate.update)
 
     _valve(_wide(21, 18), 2, 1)
     _valve(_wide(21, 18), 6, 2)
@@ -188,10 +205,16 @@ local function make(parent, x, y, wide, unit)
     TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
     local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1, colors.gray, true),width=19,height=7,thin=true,fg_bg=bw_fg_bg}
     local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=ind_grn}
-    local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c,label="CNT",unit="",format="%2d",value=99,width=7}
-    local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c,label="PEAK",unit="mB/t",format="%7.2f",value=1000,width=17}
-    local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c,label="MAX ",unit="mB/t",format="%7.2f",value=1000,width=17}
-    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c,label="IN  ",unit="mB/t",format="%7.2f",value=1000,width=17}
+    local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c,label="CNT",unit="",format="%2d",value=0,width=7}
+    local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c,label="PEAK",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c,label="MAX ",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c,label="IN  ",unit="mB/t",format="%7.2f",value=0,width=17}
+
+    sna_act.register(unit.unit_ps, "po_rate", function (r) sna_act.update(r > 0) end)
+    sna_cnt.register(unit.unit_ps, "sna_count", sna_cnt.update)
+    sna_pk.register(unit.unit_ps, "sna_peak_rate", sna_pk.update)
+    sna_max.register(unit.unit_ps, "sna_prod_rate", sna_max.update)
+    sna_in.register(unit.unit_ps, "sna_in", sna_in.update)
 
     return root
 end

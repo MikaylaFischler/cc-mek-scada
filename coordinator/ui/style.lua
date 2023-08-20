@@ -219,11 +219,11 @@ style.sps = {
             text = "RTU  FAULT"
         },
         {
-            color = cpair(colors.black, colors.gray),
+            color = cpair(colors.white, colors.gray),
             text = "IDLE"
         },
         {
-            color = cpair(colors.black, colors.blue),
+            color = cpair(colors.black, colors.green),
             text = "ACTIVE"
         }
     }
@@ -251,7 +251,11 @@ style.dtank = {
         {
             color = cpair(colors.black, colors.yellow),
             text = "LOW FILL"
-        }
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "FILLED"
+        },
     }
 }
 

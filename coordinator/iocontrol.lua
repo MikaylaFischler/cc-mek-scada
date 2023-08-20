@@ -48,6 +48,7 @@ end
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
 function iocontrol.init(conf, comms)
+    -- facility data structure
     ---@class ioctl_facility
     io.facility = {
         num_units = conf.num_units,
@@ -104,6 +105,101 @@ function iocontrol.init(conf, comms)
     table.insert(io.facility.sps_ps_tbl, psil.create())
     table.insert(io.facility.sps_data_tbl, {})
 
+    -- determine tank information
+    if io.facility.tank_mode == 0 then
+        io.facility.tank_defs = {}
+        -- on facility tank mode 0, setup tank defs to match unit TANK option
+        for i = 1, conf.num_units do
+            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TANK, 1, 0)
+        end
+
+        io.facility.tank_list = { table.unpack(io.facility.tank_defs) }
+    else
+        -- decode the layout of tanks from the connections definitions
+        local tank_mode = io.facility.tank_mode
+        local tank_defs = io.facility.tank_defs
+        local tank_list = { table.unpack(tank_defs) }
+
+        local function calc_fdef(start_idx, end_idx)
+            local first = 4
+            for i = start_idx, end_idx do
+                if io.facility.tank_defs[i] == 2 then
+                    if i < first then first = i end
+                end
+            end
+            return first
+        end
+
+        if tank_mode == 1 then
+            -- (1) 1 total facility tank (A A A A)
+            local first_fdef = calc_fdef(1, #tank_defs)
+            for i = 1, #tank_defs do
+                if i > first_fdef and tank_defs[i] == 2 then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 2 then
+            -- (2) 2 total facility tanks (A A A B)
+            local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
+            for i = 1, #tank_defs do
+                if (i ~= 4) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 3 then
+            -- (3) 2 total facility tanks (A A B B)
+            for _, a in pairs({ 1, 3 }) do
+                local b = a + 1
+                if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
+                    tank_list[b] = 0
+                end
+            end
+        elseif tank_mode == 4 then
+            -- (4) 2 total facility tanks (A B B B)
+            local first_fdef = calc_fdef(2, #tank_defs)
+            for i = 1, #tank_defs do
+                if (i ~= 1) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 5 then
+            -- (5) 3 total facility tanks (A A B C)
+            local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
+            for i = 1, #tank_defs do
+                if (not (i == 3 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 6 then
+            -- (6) 3 total facility tanks (A B B C)
+            local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
+            for i = 1, #tank_defs do
+                if (not (i == 1 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 7 then
+            -- (7) 3 total facility tanks (A B C C)
+            local first_fdef = calc_fdef(3, #tank_defs)
+            for i = 1, #tank_defs do
+                if (not (i == 1 or i == 2)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        end
+
+        io.facility.tank_list = tank_list
+    end
+
+    -- create facility tanks
+    for i = 1, #io.facility.tank_list do
+        if io.facility.tank_list[i] == 2 then
+            table.insert(io.facility.tank_ps_tbl, psil.create())
+            table.insert(io.facility.tank_data_tbl, {})
+        end
+    end
+
+    -- create unit data structures
     io.units = {}
     for i = 1, conf.num_units do
         local function ack(alarm) process.ack_alarm(i, alarm) end
@@ -191,36 +287,33 @@ function iocontrol.init(conf, comms)
             tank_data_tbl = {}
         }
 
+        -- on other facility modes, overwrite unit TANK option with facility tank defs
+        if io.facility.tank_mode ~= 0 then
+            entry.has_tank = conf.cooling.fac_tank_defs[i] > 0
+        end
+
         -- create boiler tables
         for _ = 1, conf.cooling.r_cool[i].BOILERS do
-            local data = {} ---@type boilerv_session_db
             table.insert(entry.boiler_ps_tbl, psil.create())
-            table.insert(entry.boiler_data_tbl, data)
+            table.insert(entry.boiler_data_tbl, {})
         end
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TURBINES do
-            local data = {} ---@type turbinev_session_db
             table.insert(entry.turbine_ps_tbl, psil.create())
-            table.insert(entry.turbine_data_tbl, data)
+            table.insert(entry.turbine_data_tbl, {})
+        end
+
+        -- create tank tables
+        if entry.has_tank then
+            table.insert(entry.tank_ps_tbl, psil.create())
+            table.insert(entry.tank_data_tbl, {})
         end
 
         entry.num_boilers = #entry.boiler_data_tbl
         entry.num_turbines = #entry.turbine_data_tbl
 
         table.insert(io.units, entry)
-    end
-
-    -- on facility tank mode 0, setup tank list to match unit TANK option
-    if io.facility.tank_mode == 0 then
-        for i = 1, #io.units do
-            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TANK, 1, 0)
-        end
-    -- on other facility modes, overwrite unit TANK option with facility tank list
-    else
-        for i = 1, #io.units do
-            io.units[i].has_tank = conf.cooling.fac_tank_defs[i] > 0
-        end
     end
 
     -- pass IO control here since it can't be require'd due to a require loop
@@ -697,8 +790,7 @@ function iocontrol.update_unit_statuses(statuses)
     else
         local burn_rate_sum = 0.0
         local sna_count_sum = 0
-        local pu_rate = 0.0
-        local po_rate = 0.0
+        local pu_rate, po_rate, po_am_rate = 0.0, 0.0, 0.0
 
         -- get all unit statuses
         for i = 1, #statuses do
@@ -792,6 +884,8 @@ function iocontrol.update_unit_statuses(statuses)
                 if type(rtu_statuses) == "table" then
                     -- boiler statuses
                     if type(rtu_statuses.boilers) == "table" then
+                        local boil_sum = 0
+
                         for id = 1, #unit.boiler_ps_tbl do
                             if rtu_statuses.boilers[i] == nil then
                                 -- disconnected
@@ -809,6 +903,8 @@ function iocontrol.update_unit_statuses(statuses)
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
                                 elseif data.formed then
+                                    boil_sum = boil_sum + data.state.boil_rate
+
                                     if data.state.boil_rate > 0 then
                                         ps.publish("computed_status", 5)    -- active
                                     else
@@ -822,6 +918,8 @@ function iocontrol.update_unit_statuses(statuses)
                                 valid = false
                             end
                         end
+
+                        unit.unit_ps.publish("boiler_boil_sum", boil_sum)
                     else
                         log.debug(log_header .. "boiler list not a table")
                         valid = false
@@ -829,6 +927,8 @@ function iocontrol.update_unit_statuses(statuses)
 
                     -- turbine statuses
                     if type(rtu_statuses.turbines) == "table" then
+                        local flow_sum = 0
+
                         for id = 1, #unit.turbine_ps_tbl do
                             if rtu_statuses.turbines[i] == nil then
                                 -- disconnected
@@ -846,6 +946,8 @@ function iocontrol.update_unit_statuses(statuses)
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
                                 elseif data.formed then
+                                    flow_sum = flow_sum + data.state.flow_rate
+
                                     if data.tanks.energy_fill >= 0.99 then
                                         ps.publish("computed_status", 6)    -- trip
                                     elseif data.state.flow_rate < 100 then
@@ -861,6 +963,8 @@ function iocontrol.update_unit_statuses(statuses)
                                 valid = false
                             end
                         end
+
+                        unit.unit_ps.publish("turbine_flow_sum", flow_sum)
                     else
                         log.debug(log_header .. "turbine list not a table")
                         valid = false
@@ -909,8 +1013,11 @@ function iocontrol.update_unit_statuses(statuses)
                     if type(rtu_statuses.sna) == "table" then
                         unit.num_snas      = rtu_statuses.sna[1]    ---@type integer
                         unit.sna_prod_rate = rtu_statuses.sna[2]    ---@type number
+                        unit.sna_peak_rate = rtu_statuses.sna[3]    ---@type number
 
+                        unit.unit_ps.publish("sna_count", unit.num_snas)
                         unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
+                        unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
 
                         sna_count_sum = sna_count_sum + unit.num_snas
                     else
@@ -1016,9 +1123,33 @@ function iocontrol.update_unit_statuses(statuses)
                 end
 
                 -- determine waste production for this unit, add to statistics
+
                 local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
-                pu_rate = pu_rate + util.trinary(is_pu, burn_rate / 10.0, 0.0)
-                po_rate = po_rate + util.trinary(not is_pu, math.min(burn_rate / 10.0, unit.sna_prod_rate), 0.0)
+                local waste_rate = burn_rate / 10.0
+
+                local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
+                local u_po_rate = util.trinary(not is_pu, math.min(waste_rate, unit.sna_prod_rate), 0.0)
+
+                unit.unit_ps.publish("ws_rate", waste_rate)
+                unit.unit_ps.publish("pu_rate", u_pu_rate)
+                unit.unit_ps.publish("po_rate", u_po_rate)
+
+                unit.unit_ps.publish("sna_in", util.trinary(is_pu, 0, burn_rate))
+
+                if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                    unit.unit_ps.publish("po_pl_rate", u_po_rate)
+                    unit.unit_ps.publish("po_am_rate", 0)
+                elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                    unit.unit_ps.publish("po_pl_rate", 0)
+                    unit.unit_ps.publish("po_am_rate", u_po_rate)
+                    po_am_rate = po_am_rate + u_po_rate
+                else
+                    unit.unit_ps.publish("po_pl_rate", 0)
+                    unit.unit_ps.publish("po_am_rate", 0)
+                end
+
+                pu_rate = pu_rate + u_pu_rate
+                po_rate = po_rate + u_po_rate
             end
         end
 
@@ -1026,6 +1157,7 @@ function iocontrol.update_unit_statuses(statuses)
         io.facility.ps.publish("sna_count", sna_count_sum)
         io.facility.ps.publish("pu_rate", pu_rate)
         io.facility.ps.publish("po_rate", po_rate)
+        io.facility.ps.publish("po_am_rate", po_am_rate)
 
         -- update alarm sounder
         sounder.eval(io.units)
