@@ -43,7 +43,7 @@ local ind_wht = style.ind_wht
 local function make(parent, x, y, wide, unit)
     local height = 16
 
-    local v_start = 1 + ((unit.unit_id - 1) * 4)
+    local v_start = 1 + ((unit.unit_id - 1) * 5)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
     local v_fields = { "pu", "po", "pl", "am" }
     local v_names = {
