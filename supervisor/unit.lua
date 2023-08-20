@@ -333,14 +333,28 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#region redstone I/O
 
-    local __rs_w = self.io_ctl.digital_write
+    -- create a generic valve interface
+    ---@nodiscard
+    ---@param port IO_PORT
+    local function _make_valve_iface(port)
+        ---@class unit_valve_iface
+        local iface = {
+            open = function () self.io_ctl.digital_write(port, true) end,
+            close = function () self.io_ctl.digital_write(port, false) end,
+            -- check valve state
+            ---@nodiscard
+            ---@return 0|1|2 0 for not connected, 1 for inactive, 2 for active
+            check = function () return util.trinary(self.io_ctl.is_connected(port), util.trinary(self.io_ctl.digital_read(port), 2, 1), 0) end
+        }
+        return iface
+    end
 
     -- valves
-    local waste_pu  = { open = function () __rs_w(IO.WASTE_PU,    true) end, close = function () __rs_w(IO.WASTE_PU,    false) end }
-    local waste_sna = { open = function () __rs_w(IO.WASTE_PO,    true) end, close = function () __rs_w(IO.WASTE_PO,    false) end }
-    local waste_po  = { open = function () __rs_w(IO.WASTE_POPL,  true) end, close = function () __rs_w(IO.WASTE_POPL,  false) end }
-    local waste_sps = { open = function () __rs_w(IO.WASTE_AM,    true) end, close = function () __rs_w(IO.WASTE_AM,    false) end }
-    local emer_cool = { open = function () __rs_w(IO.U_EMER_COOL, true) end, close = function () __rs_w(IO.U_EMER_COOL, false) end }
+    local waste_pu  = _make_valve_iface(IO.WASTE_PU)
+    local waste_sna = _make_valve_iface(IO.WASTE_PO)
+    local waste_po  = _make_valve_iface(IO.WASTE_POPL)
+    local waste_sps = _make_valve_iface(IO.WASTE_AM)
+    local emer_cool = _make_valve_iface(IO.U_EMER_COOL)
 
     ---@class unit_valves
     self.valves = {
@@ -866,6 +880,19 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             self.db.control.degraded,
             self.db.control.waste_mode,
             self.waste_product
+        }
+    end
+
+    -- get valve states
+    ---@nodiscard
+    function public.get_valves()
+        local v = self.valves
+        return {
+            v.waste_pu.check(),
+            v.waste_sna.check(),
+            v.waste_po.check(),
+            v.waste_sps.check(),
+            v.emer_cool.check()
         }
     end
 

@@ -45,6 +45,7 @@ local function make(parent, x, y, wide, unit)
 
     local v_start = 1 + ((unit.unit_id - 1) * 4)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
+    local v_fields = { "pu", "po", "pl", "am" }
     local v_names = {
         sprintf("PV%02d-PU", v_start),
         sprintf("PV%02d-PO", v_start + 1),
@@ -169,7 +170,9 @@ local function make(parent, x, y, wide, unit)
     local function _valve(vx, vy, n)
         TextBox{parent=waste,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2,height=1}
         local conn = IndicatorLight{parent=waste,x=vx-3,y=vy+1,label=v_names[n],colors=ind_grn}
-        local state = IndicatorLight{parent=waste,x=vx-3,y=vy+2,label="STATE",colors=ind_wht}
+        local open = IndicatorLight{parent=waste,x=vx-3,y=vy+2,label="OPEN",colors=ind_wht}
+        conn.register(unit.unit_ps, util.c("V_", v_fields[n], "_conn"), conn.update)
+        open.register(unit.unit_ps, util.c("V_", v_fields[n], "_state"), open.update)
     end
 
     local function _machine(mx, my, name)

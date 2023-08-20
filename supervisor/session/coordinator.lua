@@ -172,7 +172,8 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                 unit.get_rtu_statuses(),
                 unit.get_annunciator(),
                 unit.get_alarms(),
-                unit.get_state()
+                unit.get_state(),
+                unit.get_valves()
             }
         end
 

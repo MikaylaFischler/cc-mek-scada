@@ -254,7 +254,10 @@ local function init(main)
             TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
 
             local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i + 13),colors=cpair(colors.green,colors.gray)}
-            local state = IndicatorLight{parent=main,x=9,y=vy+2,label="STATE",colors=cpair(colors.white,colors.white)}
+            local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=cpair(colors.white,colors.gray)}
+
+            conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
+            open.register(units[i].unit_ps, "V_emc_state", open.update)
         end
     end
 

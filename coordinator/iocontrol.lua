@@ -801,7 +801,7 @@ function iocontrol.update_unit_statuses(statuses)
 
             local burn_rate = 0.0
 
-            if type(status) ~= "table" or #status ~= 5 then
+            if type(status) ~= "table" or #status ~= 6 then
                 log.debug(log_header .. "invalid status entry in unit statuses (not a table or invalid length)")
                 valid = false
             else
@@ -1119,6 +1119,30 @@ function iocontrol.update_unit_statuses(statuses)
                     end
                 else
                     log.debug(log_header .. "unit state not a table")
+                    valid = false
+                end
+
+                -- valve states
+                local valve_states = status[6]
+
+                if type(valve_states) == "table" then
+                    if #valve_states == 5 then
+                        unit.unit_ps.publish("V_pu_conn", valve_states[1] > 0)
+                        unit.unit_ps.publish("V_pu_state", valve_states[1] == 2)
+                        unit.unit_ps.publish("V_po_conn", valve_states[2] > 0)
+                        unit.unit_ps.publish("V_po_state", valve_states[2] == 2)
+                        unit.unit_ps.publish("V_pl_conn", valve_states[3] > 0)
+                        unit.unit_ps.publish("V_pl_state", valve_states[3] == 2)
+                        unit.unit_ps.publish("V_am_conn", valve_states[4] > 0)
+                        unit.unit_ps.publish("V_am_state", valve_states[4] == 2)
+                        unit.unit_ps.publish("V_emc_conn", valve_states[5] > 0)
+                        unit.unit_ps.publish("V_emc_state", valve_states[5] == 2)
+                    else
+                        log.debug(log_header .. "valve states length mismatch")
+                        valid = false
+                    end
+                else
+                    log.debug(log_header .. "valve states not a table")
                     valid = false
                 end
 
