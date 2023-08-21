@@ -733,6 +733,10 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return false
     end
 
+    -- check if emergency coolant activation has been tripped
+    ---@nodiscard
+    function public.is_emer_cool_tripped() return self.emcool_opened end
+
     -- get build properties of machines
     --
     -- filter options
