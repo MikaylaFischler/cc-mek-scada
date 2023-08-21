@@ -32,7 +32,8 @@ local engine = {
         main_display = nil, ---@type graphics_element|nil
         flow_display = nil, ---@type graphics_element|nil
         unit_displays = {}
-    }
+    },
+    disable_flow_view = false
 }
 
 -- init a display to the "default", but set text scale to 0.5
@@ -50,13 +51,20 @@ local function _init_display(monitor)
     end
 end
 
+-- disable the flow view
+---@param disable boolean
+function renderer.legacy_disable_flow_view(disable)
+    engine.disable_flow_view = disable
+end
+
 -- link to the monitor peripherals
 ---@param monitors monitors_struct
 function renderer.set_displays(monitors)
     engine.monitors = monitors
 
     -- report to front panel as connected
-    iocontrol.fp_monitor_state(0, true)
+    iocontrol.fp_monitor_state("main", engine.monitors.primary ~= nil)
+    iocontrol.fp_monitor_state("flow", engine.monitors.flow ~= nil)
     for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
 end
 
@@ -64,7 +72,7 @@ end
 function renderer.init_displays()
     -- init primary and flow monitors
     _init_display(engine.monitors.primary)
-    _init_display(engine.monitors.flow)
+    if not engine.disable_flow_view then _init_display(engine.monitors.flow) end
 
     -- init unit displays
     for _, monitor in ipairs(engine.monitors.unit_displays) do
@@ -88,6 +96,14 @@ end
 ---@return boolean width_okay
 function renderer.validate_main_display_width()
     local w, _ = engine.monitors.primary.getSize()
+    return w == 164
+end
+
+-- check flow display width
+---@nodiscard
+---@return boolean width_okay
+function renderer.validate_flow_display_width()
+    local w, _ = engine.monitors.flow.getSize()
     return w == 164
 end
 

@@ -26,6 +26,9 @@ config.SOUNDER_VOLUME = 1.0
 -- true for 24 hour time on main view screen
 config.TIME_24_HOUR = true
 
+-- disable flow view (for legacy layouts)
+config.DISABLE_FLOW_VIEW = false
+
 -- log path
 config.LOG_PATH = "/log.txt"
 -- log mode
@@ -33,6 +36,6 @@ config.LOG_PATH = "/log.txt"
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
 -- true to log verbose debug messages
-config.LOG_DEBUG = false
+config.LOG_DEBUG = true
 
 return config

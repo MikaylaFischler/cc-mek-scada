@@ -84,7 +84,7 @@ local function main()
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
 
     -- setup monitors
-    local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
+    local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS, config.DISABLE_FLOW_VIEW == true)
     if not configured or monitors == nil then
         println("startup> monitor setup failed")
         log.fatal("monitor configuration failed")
@@ -92,12 +92,17 @@ local function main()
     end
 
     -- init renderer
+    renderer.legacy_disable_flow_view(config.DISABLE_FLOW_VIEW == true)
     renderer.set_displays(monitors)
     renderer.init_displays()
 
     if not renderer.validate_main_display_width() then
         println("startup> main display must be 8 blocks wide")
         log.fatal("main display not wide enough")
+        return
+    elseif (config.DISABLE_FLOW_VIEW ~= true) and not renderer.validate_flow_display_width() then
+        println("startup> flow display must be 8 blocks wide")
+        log.fatal("flow display not wide enough")
         return
     elseif not renderer.validate_unit_display_sizes() then
         println("startup> one or more unit display dimensions incorrect; they must be 4x4 blocks")

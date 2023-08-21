@@ -49,8 +49,9 @@ end
 
 -- configure monitor layout
 ---@param num_units integer number of units expected
+---@param disable_flow_view boolean disable flow view (legacy)
 ---@return boolean success, monitors_struct? monitors
-function coordinator.configure_monitors(num_units)
+function coordinator.configure_monitors(num_units, disable_flow_view)
     ---@class monitors_struct
     local monitors = {
         primary = nil,
@@ -72,7 +73,7 @@ function coordinator.configure_monitors(num_units)
     end
 
     -- we need a certain number of monitors (1 per unit + 1 primary display + 1 flow display)
-    local num_displays_needed = num_units + 2
+    local num_displays_needed = num_units + util.trinary(disable_flow_view, 1, 2)
     if #names < num_displays_needed then
         local message = "not enough monitors connected (need " .. num_displays_needed .. ")"
         println(message)
@@ -125,26 +126,28 @@ function coordinator.configure_monitors(num_units)
     -- FLOW MONITOR DISPLAY --
     --------------------------
 
-    local iface_flow_display = settings.get("FLOW_DISPLAY")  ---@type boolean|string|nil
+    if not disable_flow_view then
+        local iface_flow_display = settings.get("FLOW_DISPLAY")  ---@type boolean|string|nil
 
-    if not util.table_contains(names, iface_flow_display) then
-        println("flow monitor display is not connected")
-        local response = dialog.ask_y_n("would you like to change it", true)
-        if response == false then return false end
-        iface_flow_display = nil
+        if not util.table_contains(names, iface_flow_display) then
+            println("flow monitor display is not connected")
+            local response = dialog.ask_y_n("would you like to change it", true)
+            if response == false then return false end
+            iface_flow_display = nil
+        end
+
+        while iface_flow_display == nil and #available > 0 do
+            iface_flow_display = ask_monitor(available)
+        end
+
+        if type(iface_flow_display) ~= "string" then return false end
+
+        settings.set("FLOW_DISPLAY", iface_flow_display)
+        util.filter_table(available, function (x) return x ~= iface_flow_display end)
+
+        monitors.flow = ppm.get_periph(iface_flow_display)
+        monitors.flow_name = iface_flow_display
     end
-
-    while iface_flow_display == nil and #available > 0 do
-        iface_flow_display = ask_monitor(available)
-    end
-
-    if type(iface_flow_display) ~= "string" then return false end
-
-    settings.set("FLOW_DISPLAY", iface_flow_display)
-    util.filter_table(available, function (x) return x ~= iface_flow_display end)
-
-    monitors.flow = ppm.get_periph(iface_flow_display)
-    monitors.flow_name = iface_flow_display
 
     -------------------
     -- UNIT DISPLAYS --

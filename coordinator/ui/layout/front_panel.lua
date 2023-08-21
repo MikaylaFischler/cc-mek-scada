@@ -73,6 +73,9 @@ local function init(panel, num_units)
     local main_monitor = LED{parent=monitors,label="MAIN MONITOR",colors=cpair(colors.green,colors.green_off)}
     main_monitor.register(ps, "main_monitor", main_monitor.update)
 
+    local flow_monitor = LED{parent=monitors,label="FLOW MONITOR",colors=cpair(colors.green,colors.green_off)}
+    flow_monitor.register(ps, "flow_monitor", flow_monitor.update)
+
     monitors.line_break()
 
     for i = 1, num_units do
