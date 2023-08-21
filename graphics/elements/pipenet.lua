@@ -216,7 +216,7 @@ local function pipenet(args)
         for x = 1, args.width do
             for y = 1, args.height do
                 local entry = map[x][y] ---@type _pipe_map_entry|false
-                local char = ""
+                local char
                 local invert = false
 
                 if entry ~= false then
@@ -246,7 +246,7 @@ local function pipenet(args)
                                 if check(x + 1, y) then -- if right
                                     char = util.trinary(entry.atr, "\x93", "\x9c")
                                     invert = entry.atr
-                                else -- not right 
+                                else -- not right
                                     char = util.trinary(entry.atr, "\x93", "\x94")
                                     invert = entry.atr
                                 end
