@@ -263,7 +263,18 @@ function renderer.handle_disconnect(device)
             engine.monitors.primary = nil
             engine.ui.main_display = nil
 
-            iocontrol.fp_monitor_state(0, false)
+            iocontrol.fp_monitor_state("main", false)
+        elseif engine.monitors.flow == device then
+            if engine.ui.flow_display ~= nil then
+                -- delete element tree and clear root UI elements
+                engine.ui.flow_display.delete()
+            end
+
+            is_used = true
+            engine.monitors.flow = nil
+            engine.ui.flow_display = nil
+
+            iocontrol.fp_monitor_state("flow", false)
         else
             for idx, monitor in pairs(engine.monitors.unit_displays) do
                 if monitor == device then
@@ -311,7 +322,18 @@ function renderer.handle_reconnect(name, device)
                 engine.dmesg_window.redraw()
             end
 
-            iocontrol.fp_monitor_state(0, true)
+            iocontrol.fp_monitor_state("main", true)
+        elseif engine.monitors.flow_name == name then
+            is_used = true
+            _init_display(device)
+            engine.monitors.flow = device
+
+            if engine.ui_ready and (engine.ui.flow_display == nil) then
+                engine.ui.flow_display = DisplayBox{window=device,fg_bg=style.root}
+                flow_view(engine.ui.flow_display)
+            end
+
+            iocontrol.fp_monitor_state("flow", true)
         else
             for idx, monitor in ipairs(engine.monitors.unit_name_map) do
                 if monitor == name then
