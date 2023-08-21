@@ -84,6 +84,8 @@ function iocontrol.init(conf, comms)
         scram_ack = __generic_ack,
         ack_alarms_ack = __generic_ack,
 
+        alarm_tones = { false, false, false, false, false, false, false, false },
+
         ps = psil.create(),
 
         induction_ps_tbl = {},
@@ -780,6 +782,16 @@ function iocontrol.update_facility_status(status)
         end
 
         fac.ps.publish("rtu_count", fac.rtu_count)
+
+        -- alarm tone commands
+
+        if (type(status[3]) == "table") and (#status[3] == 8) then
+            fac.alarm_tones = status[3]
+            sounder.set(fac.alarm_tones)
+        else
+            log.debug(log_header .. "alarm tones not a table or length mismatch")
+            valid = false
+        end
     end
 
     return valid
@@ -1199,9 +1211,6 @@ function iocontrol.update_unit_statuses(statuses)
         io.facility.ps.publish("po_pl_rate", po_pl_rate)
         io.facility.ps.publish("po_am_rate", po_am_rate)
         io.facility.ps.publish("spent_waste_rate", spent_rate)
-
-        -- update alarm sounder
-        sounder.eval(io.units)
     end
 
     return valid

@@ -165,7 +165,7 @@ function threads.thread__main(smem, init)
                 local type, device = ppm.handle_unmount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "fissionReactorLogicAdapter" then
+                    if device == plc_dev.reactor then
                         println_ts("reactor disconnected!")
                         log.error("reactor logic adapter disconnected")
 
@@ -205,7 +205,7 @@ function threads.thread__main(smem, init)
                 local type, device = ppm.mount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "fissionReactorLogicAdapter" then
+                    if plc_state.no_reactor and (type == "fissionReactorLogicAdapter") then
                         -- reconnected reactor
                         plc_dev.reactor = device
                         plc_state.no_reactor = false

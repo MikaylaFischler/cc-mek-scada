@@ -48,6 +48,7 @@ def make_manifest(size):
         "versions" : {
             "installer" : get_version("./ccmsi.lua"),
             "bootloader" : get_version("./startup.lua"),
+            "common" : get_version("./scada-common/util.lua", True),
             "comms" : get_version("./scada-common/comms.lua", True),
             "graphics" : get_version("./graphics/core.lua", True),
             "lockbox" : get_version("./lockbox/init.lua", True),

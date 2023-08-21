@@ -4,6 +4,7 @@
 
 require("/initenv").init_env()
 
+local audio        = require("scada-common.audio")
 local comms        = require("scada-common.comms")
 local crash        = require("scada-common.crash")
 local log          = require("scada-common.log")
@@ -30,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.5.5"
+local RTU_VERSION = "v1.6.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -96,6 +97,9 @@ local function main()
         return
     end
 
+    -- generate alarm tones
+    audio.generate_tones()
+
     ---@class rtu_shared_memory
     local __shared_memory = {
         -- RTU system state flags
@@ -104,6 +108,11 @@ local function main()
             fp_ok = false,
             linked = false,
             shutdown = false
+        },
+
+        -- RTU gateway devices (not RTU units)
+        rtu_dev = {
+            sounders = {}
         },
 
         -- system objects
@@ -480,6 +489,18 @@ local function main()
             log.error(util.c("front panel GUI render failed with error ", message))
             log.info("startup> running in headless mode without front panel")
         end
+
+        -- find and setup all speakers
+        local speakers = ppm.get_all_devices("speaker")
+        for _, s in pairs(speakers) do
+            local sounder = rtu.init_sounder(s)
+
+            table.insert(__shared_memory.rtu_dev.sounders, sounder)
+
+            log.debug(util.c("startup> added speaker, attached as ", sounder.name))
+        end
+
+        databus.tx_hw_spkr_count(#__shared_memory.rtu_dev.sounders)
 
         -- start connection watchdog
         smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)

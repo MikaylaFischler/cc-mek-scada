@@ -4,14 +4,11 @@
 
 local util = require("scada-common.util")
 
----@class log
+---@class logger
 local log = {}
 
 ---@alias MODE integer
-local MODE = {
-    APPEND = 0,
-    NEW = 1
-}
+local MODE = { APPEND = 0, NEW = 1 }
 
 log.MODE = MODE
 

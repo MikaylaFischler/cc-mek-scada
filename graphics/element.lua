@@ -20,6 +20,7 @@ local element = {}
 
 ---@alias graphics_args graphics_args_generic
 ---|waiting_args
+---|app_button_args
 ---|checkbox_args
 ---|hazard_button_args
 ---|multi_button_args
@@ -515,19 +516,21 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- FUNCTION CALLBACKS --
 
-    -- handle a monitor touch or mouse click
+    -- handle a monitor touch or mouse click if this element is visible
     ---@param event mouse_interaction mouse interaction event
     function public.handle_mouse(event)
-        local x_ini, y_ini = event.initial.x, event.initial.y
+        if protected.window.isVisible() then
+            local x_ini, y_ini = event.initial.x, event.initial.y
 
-        local ini_in = protected.in_window_bounds(x_ini, y_ini)
+            local ini_in = protected.in_window_bounds(x_ini, y_ini)
 
-        if ini_in then
-            local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
+            if ini_in then
+                local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
 
-            -- handle the mouse event then pass to children
-            protected.handle_mouse(event_T)
-            for _, child in pairs(protected.children) do child.handle_mouse(event_T) end
+                -- handle the mouse event then pass to children
+                protected.handle_mouse(event_T)
+                for _, child in pairs(protected.children) do child.handle_mouse(event_T) end
+            end
         end
     end
 
