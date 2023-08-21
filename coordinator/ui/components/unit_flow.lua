@@ -132,7 +132,7 @@ local function make(parent, x, y, wide, unit)
     local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
     TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=TEXT_ALIGN.CENTER,height=1}
     TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=TEXT_ALIGN.CENTER,height=1}
-    TextBox{parent=root,x=_wide(93,79),y=2,text="\x1a \x80 \x1b",width=1,height=3,fg_bg=lg_gray}
+    TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo
