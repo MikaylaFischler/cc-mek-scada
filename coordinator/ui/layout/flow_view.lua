@@ -56,9 +56,13 @@ local function init(main)
     local water_pipes = {}
 
     -- get the y offset for this unit index
+    ---@param idx integer unit index
     local function y_ofs(idx) return ((idx - 1) * 20) end
 
-    local function calc_fdef(start_idx, end_idx)
+    -- determinte facility tank start/end from the definitions list
+    ---@param start_idx integer start index of table iteration
+    ---@param end_idx integer end index of table iteration
+    local function find_fdef(start_idx, end_idx)
         local first, last = 4, 0
         for i = start_idx, end_idx do
             if tank_defs[i] == 2 then
@@ -103,7 +107,7 @@ local function init(main)
 
         if facility.tank_mode == 1 then
             -- (1) 1 total facility tank (A A A A)
-            local first_fdef, last_fdef = calc_fdef(1, #tank_defs)
+            local first_fdef, last_fdef = find_fdef(1, #tank_defs)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
@@ -119,7 +123,7 @@ local function init(main)
             end
         elseif facility.tank_mode == 2 then
             -- (2) 2 total facility tanks (A A A B)
-            local first_fdef, last_fdef = calc_fdef(1, math.min(3, #tank_defs))
+            local first_fdef, last_fdef = find_fdef(1, math.min(3, #tank_defs))
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
@@ -152,7 +156,7 @@ local function init(main)
             end
         elseif facility.tank_mode == 4 then
             -- (4) 2 total facility tanks (A B B B)
-            local first_fdef, last_fdef = calc_fdef(2, #tank_defs)
+            local first_fdef, last_fdef = find_fdef(2, #tank_defs)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
@@ -172,7 +176,7 @@ local function init(main)
             end
         elseif facility.tank_mode == 5 then
             -- (5) 3 total facility tanks (A A B C)
-            local first_fdef, last_fdef = calc_fdef(1, math.min(2, #tank_defs))
+            local first_fdef, last_fdef = find_fdef(1, math.min(2, #tank_defs))
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
@@ -192,7 +196,7 @@ local function init(main)
             end
         elseif facility.tank_mode == 6 then
             -- (6) 3 total facility tanks (A B B C)
-            local first_fdef, last_fdef = calc_fdef(2, math.min(3, #tank_defs))
+            local first_fdef, last_fdef = find_fdef(2, math.min(3, #tank_defs))
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
@@ -212,7 +216,7 @@ local function init(main)
             end
         elseif facility.tank_mode == 7 then
             -- (7) 3 total facility tanks (A B C C)
-            local first_fdef, last_fdef = calc_fdef(3, #tank_defs)
+            local first_fdef, last_fdef = find_fdef(3, #tank_defs)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
