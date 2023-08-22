@@ -58,7 +58,7 @@ local function new_view(root, x, y)
     facility.scram_ack = scram.on_response
     facility.ack_alarms_ack = ack_a.on_response
 
-    local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=cpair(colors.green,colors.red)}
+    local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=ind_grn}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=ind_grn}
     local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=ind_grn}
@@ -70,7 +70,7 @@ local function new_view(root, x, y)
 
     main.line_break()
 
-    local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=cpair(colors.green,colors.red)}
+    local auto_ready = IndicatorLight{parent=main,label="Configured Units Ready",colors=ind_grn}
     local auto_act   = IndicatorLight{parent=main,label="Process Active",colors=ind_grn}
     local auto_ramp  = IndicatorLight{parent=main,label="Process Ramping",colors=ind_wht,flash=true,period=period.BLINK_250_MS}
     local auto_sat   = IndicatorLight{parent=main,label="Min/Max Burn Rate",colors=ind_yel}
