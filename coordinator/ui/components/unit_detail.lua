@@ -348,7 +348,7 @@ local function init(parent, id)
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
-    local set_burn_btn = PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=dis_colors,callback=set_burn}
+    local set_burn_btn = PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=dis_colors,callback=set_burn}
 
     burn_rate.register(u_ps, "burn_rate", burn_rate.set_value)
     burn_rate.register(u_ps, "max_burn", burn_rate.set_max)
@@ -480,7 +480,7 @@ local function init(parent, id)
     auto_div.line_break()
 
     local function set_group() unit.set_group(group.get_value() - 1) end
-    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
+    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
 
     auto_div.line_break()
 

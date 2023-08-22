@@ -289,7 +289,7 @@ local function init(main)
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
             TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
-            TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.white,colors.gray)}
+            TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.wh_gray}
 
             local tank_box = Rectangle{parent=tank,border=border(1,colors.gray,true),width=20,height=12}
 

@@ -346,7 +346,7 @@ local function new_view(root, x, y)
     local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
 
     TextBox{parent=rect,x=2,y=17,text="Antimatter Rate",height=1,width=17,fg_bg=style.label}
-    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12d",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
 
     pu_rate.register(facility.ps, "pu_rate", pu_rate.update)
     po_rate.register(facility.ps, "po_rate", po_rate.update)
