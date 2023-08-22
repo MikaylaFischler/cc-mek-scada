@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.8a"
+local CCMSI_VERSION = "v1.9"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -213,8 +213,8 @@ if #opts == 0 or opts[1] == "help" then
     println(" supervisor  - supervisor server application")
     println(" coordinator - coordinator application")
     println(" pocket      - pocket application")
-    white();println("<branch>");yellow()
-    println(" second parameter when used with check")
+    println(" installer   - ccmsi installer (update only)")
+    white();println("<branch>")
     lgray();println(" main (default) | latest | devel");white()
     return
 else
@@ -224,9 +224,12 @@ else
         return
     end
 
-    app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" })
+    app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket", "installer" })
     if app == nil and mode ~= "check" then
         red();println("Unrecognized application.");white()
+        return
+    elseif app == "installer" and mode ~= "update" then
+        red();println("Installer app only supports 'update' option.");white()
         return
     end
 
@@ -273,7 +276,12 @@ if mode == "check" then
             print(value);white();println(")")
         end
     end
+
+    if manifest.versions.installer ~= local_manifest.versions.installer then
+        yellow();println("\nA newer version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
+    end
 elseif mode == "install" or mode == "update" then
+    local update_installer = app == "installer"
     local ok, manifest = get_remote_manifest()
     if not ok then return end
 
@@ -293,7 +301,7 @@ elseif mode == "install" or mode == "update" then
             red();println("Failed to load local installation information, cannot update.");white()
             return
         end
-    else
+    elseif not update_installer then
         ver.boot.v_local = lmnf.versions.bootloader
         ver.app.v_local = lmnf.versions[app]
         ver.comms.v_local = lmnf.versions.comms
@@ -309,8 +317,8 @@ elseif mode == "install" or mode == "update" then
 
     lmnf.versions.installer = CCMSI_VERSION
     if manifest.versions.installer ~= CCMSI_VERSION then
-        yellow();println("A newer version of the installer is available, it is recommended to update to it.");white()
-        if ask_y_n("Would you like to update now") then
+        if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
+        if update_installer or ask_y_n("Would you like to update now") then
             lgray();println("GET ccmsi.lua")
             local dl, err = http.get(repo_path .. "ccmsi.lua")
 
@@ -318,7 +326,7 @@ elseif mode == "install" or mode == "update" then
                 red();println("HTTP Error " .. err)
                 println("Installer download failed.");white()
             else
-                local handle = fs.open(debug.getinfo(2, "S").source:sub(2), "w") -- this file, regardless of name or location
+                local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
                 handle.write(dl.readAll())
                 handle.close()
                 green();println("Installer updated successfully.");white()
@@ -326,6 +334,9 @@ elseif mode == "install" or mode == "update" then
 
             return
         end
+    elseif update_installer then
+        green();println("Installer already up-to-date.");white()
+        return
     end
 
     ver.boot.v_remote = manifest.versions.bootloader
