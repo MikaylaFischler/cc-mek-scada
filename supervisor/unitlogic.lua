@@ -10,11 +10,13 @@ local qtypes = require("supervisor.session.rtu.qtypes")
 
 local RPS_TRIP_CAUSE = types.RPS_TRIP_CAUSE
 local TRI_FAIL       = types.TRI_FAIL
+local CONTAINER_MODE = types.CONTAINER_MODE
 local DUMPING_MODE   = types.DUMPING_MODE
 local PRIO           = types.ALARM_PRIORITY
 local ALARM_STATE    = types.ALARM_STATE
 
 local TBV_RTU_S_DATA = qtypes.TBV_RTU_S_DATA
+local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
 local IO = rsio.IO
 
@@ -823,6 +825,16 @@ function logic.handle_redstone(self)
 
             if turbine.state.dumping_mode ~= DUMPING_MODE.DUMPING_EXCESS then
                 session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.DUMPING_EXCESS)
+            end
+        end
+
+        -- make sure dynamic tanks are allowing outflow
+        for i = 1, #self.tanks do
+            local session = self.tanks[i]   ---@type unit_session
+            local tank = session.get_db()   ---@type dynamicv_session_db
+
+            if tank.state.container_mode == CONTAINER_MODE.FILL then
+                session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)
             end
         end
 

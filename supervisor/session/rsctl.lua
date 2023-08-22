@@ -11,6 +11,18 @@ function rsctl.new(redstone_rtus)
     ---@class rs_controller
     local public = {}
 
+    -- check if a redstone port has available connections
+    ---@param port IO_PORT
+    ---@return boolean
+    function public.is_connected(port)
+        for i = 1, #redstone_rtus do
+            local db = redstone_rtus[i].get_db()    ---@type redstone_session_db
+            if db.io[port] ~= nil then return true end
+        end
+
+        return false
+    end
+
     -- write to a digital redstone port (applies to all RTUs)
     ---@param port IO_PORT
     ---@param value boolean

@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v0.22.1"
+local SUPERVISOR_VERSION = "v1.0.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -48,10 +48,15 @@ cfv.assert_type_num(config.PKT_TIMEOUT)
 cfv.assert_min(config.PKT_TIMEOUT, 2)
 cfv.assert_type_int(config.NUM_REACTORS)
 cfv.assert_type_table(config.REACTOR_COOLING)
+cfv.assert_type_int(config.FAC_TANK_MODE)
+cfv.assert_type_table(config.FAC_TANK_DEFS)
 cfv.assert_type_str(config.LOG_PATH)
 cfv.assert_type_int(config.LOG_MODE)
 
 assert(cfv.valid(), "bad config file: missing/invalid fields")
+
+assert((config.FAC_TANK_MODE == 0) or (config.NUM_REACTORS == #config.FAC_TANK_DEFS),
+    "bad config file: FAC_TANK_DEFS length not equal to NUM_REACTORS")
 
 cfv.assert_eq(#config.REACTOR_COOLING, config.NUM_REACTORS)
 assert(cfv.valid(), "config: number of cooling configs different than number of units")
@@ -61,6 +66,7 @@ for i = 1, config.NUM_REACTORS do
     assert(cfv.valid(), "config: missing cooling entry for reactor " .. i)
     cfv.assert_type_int(config.REACTOR_COOLING[i].BOILERS)
     cfv.assert_type_int(config.REACTOR_COOLING[i].TURBINES)
+    cfv.assert_type_bool(config.REACTOR_COOLING[i].TANK)
     assert(cfv.valid(), "config: missing boilers/turbines for reactor " .. i)
     cfv.assert_min(config.REACTOR_COOLING[i].BOILERS, 0)
     cfv.assert_min(config.REACTOR_COOLING[i].TURBINES, 1)

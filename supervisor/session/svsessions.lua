@@ -198,7 +198,7 @@ end
 ---@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param num_reactors integer number of reactors
----@param cooling_conf table cooling configuration definition
+---@param cooling_conf sv_cooling_conf cooling configuration definition
 function svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
     self.nic = nic
     self.fp_ok = fp_ok

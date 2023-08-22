@@ -68,7 +68,22 @@ style.colors = {
     -- { c = colors.brown,     hex = 0x7f664c }
 }
 
--- MAIN LAYOUT --
+-- COMMON COLOR PAIRS --
+
+style.wh_gray = cpair(colors.white, colors.gray)
+
+style.bw_fg_bg = cpair(colors.black, colors.white)
+style.text_colors = cpair(colors.black, colors.lightGray)
+style.lu_colors = cpair(colors.gray, colors.gray)
+style.hzd_fg_bg  = style.wh_gray
+style.dis_colors = cpair(colors.white, colors.lightGray)
+
+style.ind_grn = cpair(colors.green, colors.gray)
+style.ind_yel = cpair(colors.yellow, colors.gray)
+style.ind_red = cpair(colors.red, colors.gray)
+style.ind_wht = style.wh_gray
+
+-- UI COMPONENTS --
 
 style.reactor = {
     -- reactor states
@@ -206,13 +221,43 @@ style.sps = {
             text = "RTU  FAULT"
         },
         {
-            color = cpair(colors.black, colors.gray),
+            color = cpair(colors.white, colors.gray),
             text = "IDLE"
         },
         {
             color = cpair(colors.black, colors.green),
             text = "ACTIVE"
         }
+    }
+}
+
+style.dtank = {
+    -- dynamic tank states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ONLINE"
+        },
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "LOW FILL"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "FILLED"
+        },
     }
 }
 

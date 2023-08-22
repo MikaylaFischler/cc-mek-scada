@@ -1,26 +1,31 @@
-local audio = require("scada-common.audio")
-local const = require("scada-common.constants")
-local log   = require("scada-common.log")
-local rsio  = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local audio  = require("scada-common.audio")
+local const  = require("scada-common.constants")
+local log    = require("scada-common.log")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
-local unit  = require("supervisor.unit")
+local unit   = require("supervisor.unit")
 
-local rsctl = require("supervisor.session.rsctl")
+local qtypes = require("supervisor.session.rtu.qtypes")
 
-local TONE          = audio.TONE
+local rsctl  = require("supervisor.session.rsctl")
 
-local ALARM         = types.ALARM
-local PRIO          = types.ALARM_PRIORITY
-local ALARM_STATE   = types.ALARM_STATE
-local PROCESS       = types.PROCESS
-local PROCESS_NAMES = types.PROCESS_NAMES
-local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-local WASTE_MODE    = types.WASTE_MODE
-local WASTE         = types.WASTE_PRODUCT
+local TONE           = audio.TONE
+
+local ALARM          = types.ALARM
+local PRIO           = types.ALARM_PRIORITY
+local ALARM_STATE    = types.ALARM_STATE
+local CONTAINER_MODE = types.CONTAINER_MODE
+local PROCESS        = types.PROCESS
+local PROCESS_NAMES  = types.PROCESS_NAMES
+local RTU_UNIT_TYPE  = types.RTU_UNIT_TYPE
+local WASTE_MODE     = types.WASTE_MODE
+local WASTE          = types.WASTE_PRODUCT
 
 local IO = rsio.IO
+
+local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
@@ -59,7 +64,7 @@ local facility = {}
 -- create a new facility management object
 ---@nodiscard
 ---@param num_reactors integer number of reactor units
----@param cooling_conf table cooling configurations of reactor units
+---@param cooling_conf sv_cooling_conf cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
     local self = {
         units = {},
@@ -130,7 +135,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- create units
     for i = 1, num_reactors do
-        table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BOILERS, cooling_conf.r_cool[i].TURBINES))
         table.insert(self.group_map, 0)
     end
 
@@ -756,24 +761,47 @@ function facility.new(num_reactors, cooling_conf)
             self.io_ctl.digital_write(IO.F_ALARM, has_alarm)
         end
 
-        -----------------------------
-        -- Update Waste Processing --
-        -----------------------------
+        ----------------
+        -- Unit Tasks --
+        ----------------
 
         local insufficent_po_rate = false
+        local need_emcool = false
+
         for i = 1, #self.units do
             local u = self.units[i] ---@type reactor_unit
+
+            -- update auto waste processing
             if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
                 if (u.get_sna_rate() * 10.0) < u.get_burn_rate() then
                     insufficent_po_rate = true
-                    break
                 end
+            end
+
+            -- check if unit activated emergency coolant & uses facility tanks
+            if (cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (cooling_conf.fac_tank_defs[i] == 2) then
+                need_emcool = true
             end
         end
 
+        -- update waste product
         if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
             self.current_waste_product = WASTE.PLUTONIUM
         else self.current_waste_product = self.waste_product end
+
+        -- make sure dynamic tanks are allowing outflow if required
+        -- set all, rather than trying to determine which is for which (simpler & safer)
+        -- there should be no need for any to be in fill only mode
+        if need_emcool then
+            for i = 1, #self.tanks do
+                local session = self.tanks[i]   ---@type unit_session
+                local tank = session.get_db()   ---@type dynamicv_session_db
+
+                if tank.state.container_mode == CONTAINER_MODE.FILL then
+                    session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)
+                end
+            end
+        end
 
         ------------------------
         -- Update Alarm Tones --
