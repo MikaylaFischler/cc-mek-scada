@@ -1016,7 +1016,7 @@ function iocontrol.update_unit_statuses(statuses)
                                     elseif data.tanks.fill < 0.20 then
                                         ps.publish("computed_status", 5)    -- low
                                     else
-                                        ps.publish("computed_status", 5)    -- active
+                                        ps.publish("computed_status", 4)    -- on-line
                                     end
                                 else
                                     ps.publish("computed_status", 2)        -- not formed
