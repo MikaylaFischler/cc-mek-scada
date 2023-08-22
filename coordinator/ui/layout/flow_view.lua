@@ -247,7 +247,9 @@ local function init(main)
 
     PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}
 
+    -----------------
     -- tank valves --
+    -----------------
 
     local next_f_id = 1
 
@@ -265,7 +267,9 @@ local function init(main)
         end
     end
 
+    -------------------
     -- dynamic tanks --
+    -------------------
 
     for i = 1, #tank_list do
         if tank_list[i] > 0 then
@@ -324,7 +328,9 @@ local function init(main)
         end
     end
 
+    ---------
     -- SPS --
+    ---------
 
     local sps = Div{parent=main,x=140,y=3,height=12}
 
@@ -347,7 +353,9 @@ local function init(main)
 
     sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
+    ----------------
     -- statistics --
+    ----------------
 
     TextBox{parent=main,x=145,y=16,text="PROC. WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
     local pr_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}

@@ -36,6 +36,6 @@ config.LOG_PATH = "/log.txt"
 --  1 = NEW (replaces existing file on start)
 config.LOG_MODE = 0
 -- true to log verbose debug messages
-config.LOG_DEBUG = true
+config.LOG_DEBUG = false
 
 return config

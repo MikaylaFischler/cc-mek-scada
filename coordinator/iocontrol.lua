@@ -193,7 +193,7 @@ function iocontrol.init(conf, comms)
         io.facility.tank_list = tank_list
     end
 
-    -- create facility tanks
+    -- create facility tank tables
     for i = 1, #io.facility.tank_list do
         if io.facility.tank_list[i] == 2 then
             table.insert(io.facility.tank_ps_tbl, psil.create())
@@ -307,7 +307,7 @@ function iocontrol.init(conf, comms)
         end
 
         -- create tank tables
-        if entry.has_tank then
+        if io.facility.tank_defs[i] == 1 then
             table.insert(entry.tank_ps_tbl, psil.create())
             table.insert(entry.tank_data_tbl, {})
         end
