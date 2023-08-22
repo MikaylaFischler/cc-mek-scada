@@ -1,8 +1,6 @@
---
--- ComputerCraft Mekanism SCADA System Installer Utility
---
-
 --[[
+CC-MEK-SCADA Installer Utility
+
 Copyright (c) 2023 Mikayla Fischler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -20,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.8"
+local CCMSI_VERSION = "v1.8a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -90,7 +88,7 @@ end
 local function get_remote_manifest()
     local response, error = http.get(install_manifest)
     if response == nil then
-        orange();println("failed to get installation manifest from GitHub, cannot update or install")
+        orange();println("Failed to get installation manifest from GitHub, cannot update or install.")
         red();println("HTTP error: " .. error);white()
         return false, {}
     end
@@ -289,28 +287,44 @@ elseif mode == "install" or mode == "update" then
     }
 
     -- try to find local versions
-    local local_ok, local_manifest = read_local_manifest()
+    local local_ok, lmnf = read_local_manifest()
     if not local_ok then
         if mode == "update" then
-            red();println("failed to load local installation information, cannot update");white()
+            red();println("Failed to load local installation information, cannot update.");white()
             return
         end
     else
-        ver.boot.v_local = local_manifest.versions.bootloader
-        ver.app.v_local = local_manifest.versions[app]
-        ver.comms.v_local = local_manifest.versions.comms
-        ver.common.v_local = local_manifest.versions.common
-        ver.graphics.v_local = local_manifest.versions.graphics
-        ver.lockbox.v_local = local_manifest.versions.lockbox
+        ver.boot.v_local = lmnf.versions.bootloader
+        ver.app.v_local = lmnf.versions[app]
+        ver.comms.v_local = lmnf.versions.comms
+        ver.common.v_local = lmnf.versions.common
+        ver.graphics.v_local = lmnf.versions.graphics
+        ver.lockbox.v_local = lmnf.versions.lockbox
 
-        if local_manifest.versions[app] == nil then
-            red();println("another application is already installed, please purge it before installing a new application");white()
+        if lmnf.versions[app] == nil then
+            red();println("Another application is already installed, please purge it before installing a new application.");white()
             return
         end
+    end
 
-        local_manifest.versions.installer = CCMSI_VERSION
-        if manifest.versions.installer ~= CCMSI_VERSION then
-            yellow();println("a newer version of the installer is available, it is recommended to download it");white()
+    lmnf.versions.installer = CCMSI_VERSION
+    if manifest.versions.installer ~= CCMSI_VERSION then
+        yellow();println("A newer version of the installer is available, it is recommended to update to it.");white()
+        if ask_y_n("Would you like to update now") then
+            lgray();println("GET ccmsi.lua")
+            local dl, err = http.get(repo_path .. "ccmsi.lua")
+
+            if dl == nil then
+                red();println("HTTP Error " .. err)
+                println("Installer download failed.");white()
+            else
+                local handle = fs.open(debug.getinfo(2, "S").source:sub(2), "w") -- this file, regardless of name or location
+                handle.write(dl.readAll())
+                handle.close()
+                green();println("Installer updated successfully.");white()
+            end
+
+            return
         end
     end
 
@@ -368,7 +382,7 @@ elseif mode == "install" or mode == "update" then
         yellow();println("WARNING: Insufficient space available for a full download!");white()
         println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         if mode == "update" then println("If installation still fails, delete this device's log file or uninstall the app (not purge) and try again.") end
-        if not ask_y_n("Do you wish to continue?", false) then
+        if not ask_y_n("Do you wish to continue", false) then
             println("Operation cancelled.")
             return
         end
@@ -403,7 +417,7 @@ elseif mode == "install" or mode == "update" then
                     local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
-                        red();println("GET HTTP Error " .. err)
+                        red();println("HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -468,7 +482,7 @@ elseif mode == "install" or mode == "update" then
                         local dl, err = http.get(repo_path .. file)
 
                         if dl == nil then
-                            red();println("GET HTTP Error " .. err)
+                            red();println("HTTP Error " .. err)
                             success = false
                             break
                         else
@@ -538,7 +552,7 @@ elseif mode == "remove" or mode == "purge" then
         end)
 
         if not log_deleted then
-            red();println("failed to delete log file")
+            red();println("Failed to delete log file.")
             white();println("press any key to continue...")
             any_key();lgray()
         end
