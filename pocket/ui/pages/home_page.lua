@@ -1,20 +1,21 @@
--- local style   = require("pocket.ui.style")
+local core  = require("graphics.core")
 
-local core    = require("graphics.core")
+local Div   = require("graphics.elements.div")
 
-local Div     = require("graphics.elements.div")
-local TextBox = require("graphics.elements.textbox")
+local App   = require("graphics.elements.controls.app")
 
--- local cpair = core.cpair
-
-local TEXT_ALIGN = core.TEXT_ALIGN
+local cpair = core.cpair
 
 -- new home page view
 ---@param root graphics_element parent
 local function new_view(root)
     local main = Div{parent=root,x=1,y=1}
 
-    TextBox{parent=main,text="HOME",x=1,y=1,height=1,alignment=TEXT_ALIGN.CENTER}
+    App{parent=main,x=3,y=2,text="\x17",title="PRC",callback=function()end,app_fg_bg=cpair(colors.black,colors.purple)}
+    App{parent=main,x=10,y=2,text="\x15",title="CTL",callback=function()end,app_fg_bg=cpair(colors.black,colors.green)}
+    App{parent=main,x=17,y=2,text="\x08",title="DEV",callback=function()end,app_fg_bg=cpair(colors.black,colors.lightGray)}
+    App{parent=main,x=3,y=7,text="\x7f",title="Waste",callback=function()end,app_fg_bg=cpair(colors.black,colors.brown)}
+    App{parent=main,x=10,y=7,text="\xb6",title="Guide",callback=function()end,app_fg_bg=cpair(colors.black,colors.cyan)}
 
     return main
 end

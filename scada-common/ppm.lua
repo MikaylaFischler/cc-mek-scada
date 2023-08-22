@@ -8,15 +8,13 @@ local util = require("scada-common.util")
 ---@class ppm
 local ppm = {}
 
-local ACCESS_FAULT = nil    ---@type nil
-
-local UNDEFINED_FIELD = "undefined field"
-
+local ACCESS_FAULT        = nil                 ---@type nil
+local UNDEFINED_FIELD     = "undefined field"
 local VIRTUAL_DEVICE_TYPE = "ppm_vdev"
 
-ppm.ACCESS_FAULT = ACCESS_FAULT
-ppm.UNDEFINED_FIELD = UNDEFINED_FIELD
-ppm.VIRTUAL_DEVICE_TYPE = VIRTUAL_DEVICE_TYPE
+ppm.ACCESS_FAULT          = ACCESS_FAULT
+ppm.UNDEFINED_FIELD       = UNDEFINED_FIELD
+ppm.VIRTUAL_DEVICE_TYPE   = VIRTUAL_DEVICE_TYPE
 
 ----------------------------
 -- PRIVATE DATA/FUNCTIONS --
@@ -34,9 +32,9 @@ local ppm_sys = {
     mute = false
 }
 
--- wrap peripheral calls with lua protected call as we don't want a disconnect to crash a program<br>
--- also provides peripheral-specific fault checks (auto-clear fault defaults to true)<br>
--- assumes iface is a valid peripheral
+-- Wrap peripheral calls with lua protected call as we don't want a disconnect to crash a program.
+-- Additionally provides peripheral-specific fault checks (auto-clear fault defaults to true).<br>
+-- Note: assumes iface is a valid peripheral.
 ---@param iface string CC peripheral interface
 local function peri_init(iface)
     local self = {
@@ -307,16 +305,12 @@ end
 -- list all available peripherals
 ---@nodiscard
 ---@return table names
-function ppm.list_avail()
-    return peripheral.getNames()
-end
+function ppm.list_avail() return peripheral.getNames() end
 
 -- list mounted peripherals
 ---@nodiscard
 ---@return table mounts
-function ppm.list_mounts()
-    return ppm_sys.mounts
-end
+function ppm.list_mounts() return ppm_sys.mounts end
 
 -- get a mounted peripheral side/interface by device table
 ---@nodiscard
@@ -390,9 +384,7 @@ end
 -- get the fission reactor (if multiple, returns the first)
 ---@nodiscard
 ---@return table|nil reactor function table
-function ppm.get_fission_reactor()
-    return ppm.get_device("fissionReactorLogicAdapter")
-end
+function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
 
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
@@ -419,9 +411,7 @@ function ppm.get_monitor_list()
     local list = {}
 
     for iface, device in pairs(ppm_sys.mounts) do
-        if device.type == "monitor" then
-            list[iface] = device
-        end
+        if device.type == "monitor" then list[iface] = device end
     end
 
     return list

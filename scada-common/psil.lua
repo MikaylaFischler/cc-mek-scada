@@ -9,14 +9,12 @@ local psil = {}
 -- instantiate a new PSI layer
 ---@nodiscard
 function psil.create()
-    local self = {
-        ic = {}
-    }
+    local ic = {}
 
     -- allocate a new interconnect field
     ---@key string data key
     local function alloc(key)
-        self.ic[key] = { subscribers = {}, value = nil }
+        ic[key] = { subscribers = {}, value = nil }
     end
 
     ---@class psil
@@ -28,22 +26,22 @@ function psil.create()
     ---@param func function function to call on change
     function public.subscribe(key, func)
         -- allocate new key if not found or notify if value is found
-        if self.ic[key] == nil then
+        if ic[key] == nil then
             alloc(key)
-        elseif self.ic[key].value ~= nil then
-            func(self.ic[key].value)
+        elseif ic[key].value ~= nil then
+            func(ic[key].value)
         end
 
         -- subscribe to key
-        table.insert(self.ic[key].subscribers, { notify = func })
+        table.insert(ic[key].subscribers, { notify = func })
     end
 
     -- unsubscribe a function from a given key
     ---@param key string data key
     ---@param func function function to unsubscribe
     function public.unsubscribe(key, func)
-        if self.ic[key] ~= nil then
-            util.filter_table(self.ic[key].subscribers, function (s) return s.notify ~= func end)
+        if ic[key] ~= nil then
+            util.filter_table(ic[key].subscribers, function (s) return s.notify ~= func end)
         end
     end
 
@@ -51,32 +49,32 @@ function psil.create()
     ---@param key string data key
     ---@param value any data value
     function public.publish(key, value)
-        if self.ic[key] == nil then alloc(key) end
+        if ic[key] == nil then alloc(key) end
 
-        if self.ic[key].value ~= value then
-            for i = 1, #self.ic[key].subscribers do
-                self.ic[key].subscribers[i].notify(value)
+        if ic[key].value ~= value then
+            for i = 1, #ic[key].subscribers do
+                ic[key].subscribers[i].notify(value)
             end
         end
 
-        self.ic[key].value = value
+        ic[key].value = value
     end
 
     -- publish a toggled boolean value to a given key, passing it to all subscribers if it has changed<br>
     -- this is intended to be used to toggle boolean indicators such as heartbeats without extra state variables
     ---@param key string data key
     function public.toggle(key)
-        if self.ic[key] == nil then alloc(key) end
+        if ic[key] == nil then alloc(key) end
 
-        self.ic[key].value = self.ic[key].value == false
+        ic[key].value = ic[key].value == false
 
-        for i = 1, #self.ic[key].subscribers do
-            self.ic[key].subscribers[i].notify(self.ic[key].value)
+        for i = 1, #ic[key].subscribers do
+            ic[key].subscribers[i].notify(ic[key].value)
         end
     end
 
     -- clear the contents of the interconnect
-    function public.purge() self.ic = nil end
+    function public.purge() ic = {} end
 
     return public
 end

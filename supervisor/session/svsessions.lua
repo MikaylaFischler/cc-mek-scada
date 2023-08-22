@@ -104,8 +104,8 @@ local function _sv_handle_outq(session)
 
         -- max 100ms spent processing queue
         if util.time() - handle_start > 100 then
-            log.warning("[SVS] supervisor out queue handler exceeded 100ms queue process limit")
-            log.warning(util.c("[SVS] offending session: ", session))
+            log.debug("[SVS] supervisor out queue handler exceeded 100ms queue process limit")
+            log.debug(util.c("[SVS] offending session: ", session))
             break
         end
     end
@@ -198,7 +198,7 @@ end
 ---@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param num_reactors integer number of reactors
----@param cooling_conf table cooling configuration definition
+---@param cooling_conf sv_cooling_conf cooling configuration definition
 function svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
     self.nic = nic
     self.fp_ok = fp_ok
@@ -430,7 +430,8 @@ function svsessions.establish_pdg_session(source_addr, version)
 
     local id = self.next_ids.pdg
 
-    pdg_s.instance = pocket.new_session(id, source_addr, pdg_s.in_queue, pdg_s.out_queue, config.PKT_TIMEOUT, self.fp_ok)
+    pdg_s.instance = pocket.new_session(id, source_addr, pdg_s.in_queue, pdg_s.out_queue, config.PKT_TIMEOUT, self.facility,
+                                        self.fp_ok)
     table.insert(self.sessions.pdg, pdg_s)
 
     local mt = {

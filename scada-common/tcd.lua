@@ -68,7 +68,7 @@ function tcd.handle(event)
     end
 end
 
--- identify any overdo callbacks<br>
+-- identify any overdue callbacks<br>
 -- prints to log debug output
 function tcd.diagnostics()
     for timer, entry in pairs(registry) do

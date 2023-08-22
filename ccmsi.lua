@@ -1,8 +1,6 @@
---
--- ComputerCraft Mekanism SCADA System Installer Utility
---
-
 --[[
+CC-MEK-SCADA Installer Utility
+
 Copyright (c) 2023 Mikayla Fischler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -20,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.7d"
+local CCMSI_VERSION = "v1.9"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -63,16 +61,15 @@ end
 local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
 
 -- indicate actions to be taken based on package differences for installs/updates
-local function show_pkg_change(name, v_local, v_remote)
-    if v_local ~= nil then
-        if v_local ~= v_remote then
-            print("[" .. name .. "] updating ");blue();print(v_local);white();print(" \xbb ");blue();println(v_remote);white()
+local function show_pkg_change(name, v)
+    if v.v_local ~= nil then
+        if v.v_local ~= v.v_remote then
+            print("[" .. name .. "] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();println(v.v_remote);white()
         elseif mode == "install" then
-            pkg_message("[" .. name .. "] reinstalling", v_local)
+            pkg_message("[" .. name .. "] reinstalling", v.v_local)
         end
-    else
-        pkg_message("[" .. name .. "] new install of", v_remote)
-    end
+    else pkg_message("[" .. name .. "] new install of", v.v_remote) end
+    return v.v_local ~= v.v_remote
 end
 
 -- read the local manifest file
@@ -91,7 +88,7 @@ end
 local function get_remote_manifest()
     local response, error = http.get(install_manifest)
     if response == nil then
-        orange();println("failed to get installation manifest from GitHub, cannot update or install")
+        orange();println("Failed to get installation manifest from GitHub, cannot update or install.")
         red();println("HTTP error: " .. error);white()
         return false, {}
     end
@@ -216,8 +213,8 @@ if #opts == 0 or opts[1] == "help" then
     println(" supervisor  - supervisor server application")
     println(" coordinator - coordinator application")
     println(" pocket      - pocket application")
-    white();println("<branch>");yellow()
-    println(" second parameter when used with check")
+    println(" installer   - ccmsi installer (update only)")
+    white();println("<branch>")
     lgray();println(" main (default) | latest | devel");white()
     return
 else
@@ -227,9 +224,12 @@ else
         return
     end
 
-    app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" })
+    app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket", "installer" })
     if app == nil and mode ~= "check" then
         red();println("Unrecognized application.");white()
+        return
+    elseif app == "installer" and mode ~= "update" then
+        red();println("Installer app only supports 'update' option.");white()
         return
     end
 
@@ -276,7 +276,12 @@ if mode == "check" then
             print(value);white();println(")")
         end
     end
+
+    if manifest.versions.installer ~= local_manifest.versions.installer then
+        yellow();println("\nA newer version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
+    end
 elseif mode == "install" or mode == "update" then
+    local update_installer = app == "installer"
     local ok, manifest = get_remote_manifest()
     if not ok then return end
 
@@ -284,38 +289,60 @@ elseif mode == "install" or mode == "update" then
         app = { v_local = nil, v_remote = nil, changed = false },
         boot = { v_local = nil, v_remote = nil, changed = false },
         comms = { v_local = nil, v_remote = nil, changed = false },
+        common = { v_local = nil, v_remote = nil, changed = false },
         graphics = { v_local = nil, v_remote = nil, changed = false },
         lockbox = { v_local = nil, v_remote = nil, changed = false }
     }
 
     -- try to find local versions
-    local local_ok, local_manifest = read_local_manifest()
+    local local_ok, lmnf = read_local_manifest()
     if not local_ok then
         if mode == "update" then
-            red();println("failed to load local installation information, cannot update");white()
+            red();println("Failed to load local installation information, cannot update.");white()
             return
         end
-    else
-        ver.boot.v_local = local_manifest.versions.bootloader
-        ver.app.v_local = local_manifest.versions[app]
-        ver.comms.v_local = local_manifest.versions.comms
-        ver.graphics.v_local = local_manifest.versions.graphics
-        ver.lockbox.v_local = local_manifest.versions.lockbox
+    elseif not update_installer then
+        ver.boot.v_local = lmnf.versions.bootloader
+        ver.app.v_local = lmnf.versions[app]
+        ver.comms.v_local = lmnf.versions.comms
+        ver.common.v_local = lmnf.versions.common
+        ver.graphics.v_local = lmnf.versions.graphics
+        ver.lockbox.v_local = lmnf.versions.lockbox
 
-        if local_manifest.versions[app] == nil then
-            red();println("another application is already installed, please purge it before installing a new application");white()
+        if lmnf.versions[app] == nil then
+            red();println("Another application is already installed, please purge it before installing a new application.");white()
             return
         end
+    end
 
-        local_manifest.versions.installer = CCMSI_VERSION
-        if manifest.versions.installer ~= CCMSI_VERSION then
-            yellow();println("a newer version of the installer is available, it is recommended to download it");white()
+    lmnf.versions.installer = CCMSI_VERSION
+    if manifest.versions.installer ~= CCMSI_VERSION then
+        if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
+        if update_installer or ask_y_n("Would you like to update now") then
+            lgray();println("GET ccmsi.lua")
+            local dl, err = http.get(repo_path .. "ccmsi.lua")
+
+            if dl == nil then
+                red();println("HTTP Error " .. err)
+                println("Installer download failed.");white()
+            else
+                local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
+                handle.write(dl.readAll())
+                handle.close()
+                green();println("Installer updated successfully.");white()
+            end
+
+            return
         end
+    elseif update_installer then
+        green();println("Installer already up-to-date.");white()
+        return
     end
 
     ver.boot.v_remote = manifest.versions.bootloader
     ver.app.v_remote = manifest.versions[app]
     ver.comms.v_remote = manifest.versions.comms
+    ver.common.v_remote = manifest.versions.common
     ver.graphics.v_remote = manifest.versions.graphics
     ver.lockbox.v_remote = manifest.versions.lockbox
 
@@ -327,28 +354,15 @@ elseif mode == "install" or mode == "update" then
     end
     white()
 
-    -- display bootloader version change information
-    show_pkg_change("bootldr", ver.boot.v_local, ver.boot.v_remote)
-    ver.boot.changed = ver.boot.v_local ~= ver.boot.v_remote
-
-    -- display app version change information
-    show_pkg_change(app, ver.app.v_local, ver.app.v_remote)
-    ver.app.changed = ver.app.v_local ~= ver.app.v_remote
-
-    -- display comms version change information
-    show_pkg_change("comms", ver.comms.v_local, ver.comms.v_remote)
-    ver.comms.changed = ver.comms.v_local ~= ver.comms.v_remote
+    ver.boot.changed = show_pkg_change("bootldr", ver.boot)
+    ver.common.changed = show_pkg_change("common", ver.common)
+    ver.comms.changed = show_pkg_change("comms", ver.comms)
     if ver.comms.changed and ver.comms.v_local ~= nil then
         print("[comms] ");yellow();println("other devices on the network will require an update");white()
     end
-
-    -- display graphics version change information
-    show_pkg_change("graphics", ver.graphics.v_local, ver.graphics.v_remote)
-    ver.graphics.changed = ver.graphics.v_local ~= ver.graphics.v_remote
-
-    -- display lockbox version change information
-    show_pkg_change("lockbox", ver.lockbox.v_local, ver.lockbox.v_remote)
-    ver.lockbox.changed = ver.lockbox.v_local ~= ver.lockbox.v_remote
+    ver.app.changed = show_pkg_change(app, ver.app)
+    ver.graphics.changed = show_pkg_change("graphics", ver.graphics)
+    ver.lockbox.changed = show_pkg_change("lockbox", ver.lockbox)
 
     -- ask for confirmation
     if not ask_y_n("Continue", false) then return end
@@ -379,7 +393,7 @@ elseif mode == "install" or mode == "update" then
         yellow();println("WARNING: Insufficient space available for a full download!");white()
         println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
         if mode == "update" then println("If installation still fails, delete this device's log file or uninstall the app (not purge) and try again.") end
-        if not ask_y_n("Do you wish to continue?", false) then
+        if not ask_y_n("Do you wish to continue", false) then
             println("Operation cancelled.")
             return
         end
@@ -392,16 +406,13 @@ elseif mode == "install" or mode == "update" then
         if dependency == "system" then return not ver.boot.changed
         elseif dependency == "graphics" then return not ver.graphics.changed
         elseif dependency == "lockbox" then return not ver.lockbox.changed
-        elseif dependency == "common" then return not (ver.app.changed or ver.comms.changed)
+        elseif dependency == "common" then return not (ver.common.changed or ver.comms.changed)
         elseif dependency == app then return not ver.app.changed
         else return true end
     end
 
     if not single_file_mode then
-        if fs.exists(install_dir) then
-            fs.delete(install_dir)
-            fs.makeDir(install_dir)
-        end
+        if fs.exists(install_dir) then fs.delete(install_dir);fs.makeDir(install_dir) end
 
         -- download all dependencies
         for _, dependency in pairs(dependencies) do
@@ -417,7 +428,7 @@ elseif mode == "install" or mode == "update" then
                     local dl, err = http.get(repo_path .. file)
 
                     if dl == nil then
-                        red();println("GET HTTP Error " .. err)
+                        red();println("HTTP Error " .. err)
                         success = false
                         break
                     else
@@ -482,7 +493,7 @@ elseif mode == "install" or mode == "update" then
                         local dl, err = http.get(repo_path .. file)
 
                         if dl == nil then
-                            red();println("GET HTTP Error " .. err)
+                            red();println("HTTP Error " .. err)
                             success = false
                             break
                         else
@@ -552,7 +563,7 @@ elseif mode == "remove" or mode == "purge" then
         end)
 
         if not log_deleted then
-            red();println("failed to delete log file")
+            red();println("Failed to delete log file.")
             white();println("press any key to continue...")
             any_key();lgray()
         end

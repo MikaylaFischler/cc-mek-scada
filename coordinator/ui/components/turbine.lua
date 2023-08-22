@@ -31,7 +31,7 @@ local function new_view(root, x, y, ps)
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg_bg}
 
     status.register(ps, "computed_status", status.update)
-    prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
+    prod_rate.register(ps, "steam_input_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
     flow_rate.register(ps, "flow_rate", flow_rate.update)
 
     local steam  = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}

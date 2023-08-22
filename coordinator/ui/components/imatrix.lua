@@ -83,9 +83,7 @@ local function new_view(root, x, y, data, ps, id)
     local function calc_saturation(val)
         if (type(data.build) == "table") and (type(data.build.transfer_cap) == "number") and (data.build.transfer_cap > 0) then
             return val / data.build.transfer_cap
-        else
-            return 0
-        end
+        else return 0 end
     end
 
     charge.register(ps, "energy_fill", charge.update)

@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v0.21.2"
+local COORDINATOR_VERSION = "v1.0.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -84,7 +84,7 @@ local function main()
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
 
     -- setup monitors
-    local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS)
+    local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS, config.DISABLE_FLOW_VIEW == true)
     if not configured or monitors == nil then
         println("startup> monitor setup failed")
         log.fatal("monitor configuration failed")
@@ -92,12 +92,17 @@ local function main()
     end
 
     -- init renderer
+    renderer.legacy_disable_flow_view(config.DISABLE_FLOW_VIEW == true)
     renderer.set_displays(monitors)
     renderer.init_displays()
 
     if not renderer.validate_main_display_width() then
         println("startup> main display must be 8 blocks wide")
         log.fatal("main display not wide enough")
+        return
+    elseif (config.DISABLE_FLOW_VIEW ~= true) and not renderer.validate_flow_display_width() then
+        println("startup> flow display must be 8 blocks wide")
+        log.fatal("flow display not wide enough")
         return
     elseif not renderer.validate_unit_display_sizes() then
         println("startup> one or more unit display dimensions incorrect; they must be 4x4 blocks")
@@ -162,8 +167,8 @@ local function main()
 
     -- create network interface then setup comms
     local nic = network.nic(modem)
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.CRD_CHANNEL, config.SVR_CHANNEL,
-                                            config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.NUM_UNITS, config.CRD_CHANNEL,
+                                            config.SVR_CHANNEL, config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 

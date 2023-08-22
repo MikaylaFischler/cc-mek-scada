@@ -1,21 +1,31 @@
-local const = require("scada-common.constants")
-local log   = require("scada-common.log")
-local rsio  = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local audio  = require("scada-common.audio")
+local const  = require("scada-common.constants")
+local log    = require("scada-common.log")
+local rsio   = require("scada-common.rsio")
+local types  = require("scada-common.types")
+local util   = require("scada-common.util")
 
-local unit  = require("supervisor.unit")
+local unit   = require("supervisor.unit")
 
-local rsctl = require("supervisor.session.rsctl")
+local qtypes = require("supervisor.session.rtu.qtypes")
 
-local PROCESS = types.PROCESS
-local PROCESS_NAMES = types.PROCESS_NAMES
-local PRIO = types.ALARM_PRIORITY
-local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-local WASTE = types.WASTE_PRODUCT
-local WASTE_MODE = types.WASTE_MODE
+local rsctl  = require("supervisor.session.rsctl")
+
+local TONE           = audio.TONE
+
+local ALARM          = types.ALARM
+local PRIO           = types.ALARM_PRIORITY
+local ALARM_STATE    = types.ALARM_STATE
+local CONTAINER_MODE = types.CONTAINER_MODE
+local PROCESS        = types.PROCESS
+local PROCESS_NAMES  = types.PROCESS_NAMES
+local RTU_UNIT_TYPE  = types.RTU_UNIT_TYPE
+local WASTE_MODE     = types.WASTE_MODE
+local WASTE          = types.WASTE_PRODUCT
 
 local IO = rsio.IO
+
+local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
@@ -54,12 +64,13 @@ local facility = {}
 -- create a new facility management object
 ---@nodiscard
 ---@param num_reactors integer number of reactor units
----@param cooling_conf table cooling configurations of reactor units
+---@param cooling_conf sv_cooling_conf cooling configurations of reactor units
 function facility.new(num_reactors, cooling_conf)
     local self = {
         units = {},
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
+        allow_testing = false,
         -- rtus
         rtu_conn_count = 0,
         rtu_list = {},
@@ -109,6 +120,12 @@ function facility.new(num_reactors, cooling_conf)
         waste_product = WASTE.PLUTONIUM,
         current_waste_product = WASTE.PLUTONIUM,
         pu_fallback = false,
+        -- alarm tones
+        tone_states = {},
+        test_tone_set = false,
+        test_tone_reset = false,
+        test_tone_states = {},
+        test_alarm_states = {},
         -- statistics
         im_stat_init = false,
         avg_charge = util.mov_avg(3, 0.0),
@@ -118,7 +135,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- create units
     for i = 1, num_reactors do
-        table.insert(self.units, unit.new(i, cooling_conf[i].BOILERS, cooling_conf[i].TURBINES))
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BOILERS, cooling_conf.r_cool[i].TURBINES))
         table.insert(self.group_map, 0)
     end
 
@@ -127,6 +144,13 @@ function facility.new(num_reactors, cooling_conf)
 
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone)
+
+    -- fill blank alarm/tone states
+    for _ = 1, 12 do table.insert(self.test_alarm_states, false) end
+    for _ = 1, 8 do
+        table.insert(self.tone_states, false)
+        table.insert(self.test_tone_states, false)
+    end
 
     -- check if all auto-controlled units completed ramping
     ---@nodiscard
@@ -262,14 +286,19 @@ function facility.new(num_reactors, cooling_conf)
 
     -- supervisor sessions reporting the list of active RTU sessions
     ---@param rtu_sessions table session list of all connected RTUs
-    function public.report_rtus(rtu_sessions)
-        self.rtu_conn_count = #rtu_sessions
-    end
+    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
 
     -- update (iterate) the facility management
     function public.update()
         -- unlink RTU unit sessions if they are closed
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
+
+        -- check if test routines are allowed right now
+        self.allow_testing = true
+        for i = 1, #self.units do
+            local u = self.units[i] ---@type reactor_unit
+            self.allow_testing = self.allow_testing and u.is_safe_idle()
+        end
 
         -- current state for process control
         local charge_update = 0
@@ -732,24 +761,138 @@ function facility.new(num_reactors, cooling_conf)
             self.io_ctl.digital_write(IO.F_ALARM, has_alarm)
         end
 
-        -----------------------------
-        -- Update Waste Processing --
-        -----------------------------
+        ----------------
+        -- Unit Tasks --
+        ----------------
 
         local insufficent_po_rate = false
+        local need_emcool = false
+
         for i = 1, #self.units do
             local u = self.units[i] ---@type reactor_unit
+
+            -- update auto waste processing
             if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
                 if (u.get_sna_rate() * 10.0) < u.get_burn_rate() then
                     insufficent_po_rate = true
-                    break
+                end
+            end
+
+            -- check if unit activated emergency coolant & uses facility tanks
+            if (cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (cooling_conf.fac_tank_defs[i] == 2) then
+                need_emcool = true
+            end
+        end
+
+        -- update waste product
+        if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
+            self.current_waste_product = WASTE.PLUTONIUM
+        else self.current_waste_product = self.waste_product end
+
+        -- make sure dynamic tanks are allowing outflow if required
+        -- set all, rather than trying to determine which is for which (simpler & safer)
+        -- there should be no need for any to be in fill only mode
+        if need_emcool then
+            for i = 1, #self.tanks do
+                local session = self.tanks[i]   ---@type unit_session
+                local tank = session.get_db()   ---@type dynamicv_session_db
+
+                if tank.state.container_mode == CONTAINER_MODE.FILL then
+                    session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)
                 end
             end
         end
 
-        if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
-            self.current_waste_product = WASTE.PLUTONIUM
-        else self.current_waste_product = self.waste_product end
+        ------------------------
+        -- Update Alarm Tones --
+        ------------------------
+
+        local allow_test = self.allow_testing and self.test_tone_set
+
+        local alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
+
+        -- reset tone states before re-evaluting
+        for i = 1, #self.tone_states do self.tone_states[i] = false end
+
+        if allow_test then
+            alarms = self.test_alarm_states
+        else
+            -- check all alarms for all units
+            for i = 1, #self.units do
+                local u = self.units[i] ---@type reactor_unit
+                for id, alarm in pairs(u.get_alarms()) do
+                    alarms[id] = alarms[id] or (alarm == ALARM_STATE.TRIPPED)
+                end
+            end
+
+            if not self.test_tone_reset then
+                -- clear testing alarms if we aren't using them
+                for i = 1, #self.test_alarm_states do self.test_alarm_states[i] = false end
+            end
+        end
+
+        -- Evaluate Alarms --
+
+        -- containment breach is worst case CRITICAL alarm, this takes priority
+        if alarms[ALARM.ContainmentBreach] then
+            self.tone_states[TONE.T_1800Hz_Int_4Hz] = true
+        else
+            -- critical damage is highest priority CRITICAL level alarm
+            if alarms[ALARM.CriticalDamage] then
+                self.tone_states[TONE.T_660Hz_Int_125ms] = true
+            else
+                -- EMERGENCY level alarms + URGENT over temp
+                if alarms[ALARM.ReactorDamage] or alarms[ALARM.ReactorOverTemp] or alarms[ALARM.ReactorWasteLeak] then
+                    self.tone_states[TONE.T_544Hz_440Hz_Alt] = true
+                -- URGENT level turbine trip
+                elseif alarms[ALARM.TurbineTrip] then
+                    self.tone_states[TONE.T_745Hz_Int_1Hz] = true
+                -- URGENT level reactor lost
+                elseif alarms[ALARM.ReactorLost] then
+                    self.tone_states[TONE.T_340Hz_Int_2Hz] = true
+                -- TIMELY level alarms
+                elseif alarms[ALARM.ReactorHighTemp] or alarms[ALARM.ReactorHighWaste] or alarms[ALARM.RCSTransient] then
+                    self.tone_states[TONE.T_800Hz_Int] = true
+                end
+            end
+
+            -- check RPS transient URGENT level alarm
+            if alarms[ALARM.RPSTransient] then
+                self.tone_states[TONE.T_1000Hz_Int] = true
+                -- disable really painful audio combination
+                self.tone_states[TONE.T_340Hz_Int_2Hz] = false
+            end
+        end
+
+        -- radiation is a big concern, always play this CRITICAL level alarm if active
+        if alarms[ALARM.ContainmentRadiation] then
+            self.tone_states[TONE.T_800Hz_1000Hz_Alt] = true
+            -- we are going to disable the RPS trip alarm audio due to conflict, and if it was enabled
+            -- then we can re-enable the reactor lost alarm audio since it doesn't painfully combine with this one
+            if self.tone_states[TONE.T_1000Hz_Int] and alarms[ALARM.ReactorLost] then self.tone_states[TONE.T_340Hz_Int_2Hz] = true end
+            -- it sounds *really* bad if this is in conjunction with these other tones, so disable them
+            self.tone_states[TONE.T_745Hz_Int_1Hz] = false
+            self.tone_states[TONE.T_800Hz_Int] = false
+            self.tone_states[TONE.T_1000Hz_Int] = false
+        end
+
+        -- add to tone states if testing is active
+        if allow_test then
+            for i = 1, #self.tone_states do
+                self.tone_states[i] = self.tone_states[i] or self.test_tone_states[i]
+            end
+
+            self.test_tone_reset = false
+        else
+            if not self.test_tone_reset then
+                -- clear testing tones if we aren't using them
+                for i = 1, #self.test_tone_states do self.test_tone_states[i] = false end
+            end
+
+            -- flag that tones were reset
+            self.test_tone_set = false
+            self.test_tone_reset = true
+        end
     end
 
     -- call the update function of all units in the facility<br>
@@ -891,7 +1034,51 @@ function facility.new(num_reactors, cooling_conf)
         return self.pu_fallback
     end
 
+    -- DIAGNOSTIC TESTING --
+
+    -- attempt to set a test tone state
+    ---@param id TONE|0 tone ID or 0 to disable all
+    ---@param state boolean state
+    ---@return boolean allow_testing, table test_tone_states
+    function public.diag_set_test_tone(id, state)
+        if self.allow_testing then
+            self.test_tone_set = true
+            self.test_tone_reset = false
+
+            if id == 0 then
+                for i = 1, #self.test_tone_states do self.test_tone_states[i] = false end
+            else
+                self.test_tone_states[id] = state
+            end
+        end
+
+        return self.allow_testing, self.test_tone_states
+    end
+
+    -- attempt to set a test alarm state
+    ---@param id ALARM|0 alarm ID or 0 to disable all
+    ---@param state boolean state
+    ---@return boolean allow_testing, table test_alarm_states
+    function public.diag_set_test_alarm(id, state)
+        if self.allow_testing then
+            self.test_tone_set = true
+            self.test_tone_reset = false
+
+            if id == 0 then
+                for i = 1, #self.test_alarm_states do self.test_alarm_states[i] = false end
+            else
+                self.test_alarm_states[id] = state
+            end
+        end
+
+        return self.allow_testing, self.test_alarm_states
+    end
+
     -- READ STATES/PROPERTIES --
+
+    -- get current alarm tone on/off states
+    ---@nodiscard
+    function public.get_alarm_tones() return self.tone_states end
 
     -- get build properties of all facility devices
     ---@nodiscard

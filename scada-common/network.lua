@@ -2,19 +2,21 @@
 -- Network Communications
 --
 
+local comms  = require("scada-common.comms")
+local log    = require("scada-common.log")
+local util   = require("scada-common.util")
+
 local md5    = require("lockbox.digest.md5")
 local sha256 = require("lockbox.digest.sha2_256")
 local pbkdf2 = require("lockbox.kdf.pbkdf2")
 local hmac   = require("lockbox.mac.hmac")
 local stream = require("lockbox.util.stream")
 local array  = require("lockbox.util.array")
-local comms  = require("scada-common.comms")
 
-local log    = require("scada-common.log")
-local util   = require("scada-common.util")
-
+---@class scada_net_interface
 local network = {}
 
+-- cryptography engine
 local c_eng = {
     key = nil,
     hmac = nil
@@ -212,6 +214,7 @@ function network.nic(modem)
                     if packet_hmac == computed_hmac then
                         -- log.debug("crypto.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
                         s_packet.receive(side, sender, reply_to, textutils.unserialize(msg), distance)
+                        s_packet.stamp_authenticated()
                     else
                         -- log.debug("crypto.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                     end
