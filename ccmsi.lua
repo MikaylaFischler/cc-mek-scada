@@ -315,7 +315,6 @@ elseif mode == "install" or mode == "update" then
         end
     end
 
-    lmnf.versions.installer = CCMSI_VERSION
     if manifest.versions.installer ~= CCMSI_VERSION then
         if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now") then
