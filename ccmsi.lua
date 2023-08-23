@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.9"
+local CCMSI_VERSION = "v1.9a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -315,7 +315,6 @@ elseif mode == "install" or mode == "update" then
         end
     end
 
-    lmnf.versions.installer = CCMSI_VERSION
     if manifest.versions.installer ~= CCMSI_VERSION then
         if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now") then
