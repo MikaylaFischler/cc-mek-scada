@@ -104,10 +104,10 @@ local function make(parent, x, y, wide, unit)
     PipeNetwork{parent=root,x=20,y=1,pipes=rc_pipes,bg=colors.lightGray}
 
     if unit.num_boilers > 0 then
-        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
-        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
+        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
 
-        cc_rate.register(unit.unit_ps, "boil_sum", cc_rate.update)
+        cc_rate.register(unit.unit_ps, "boiler_boil_sum", function (sum) cc_rate.update(sum * 10) end)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
         local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
@@ -120,7 +120,7 @@ local function make(parent, x, y, wide, unit)
         local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
 
         wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
-        st_rate.register(unit.unit_ps, "boil_sum", st_rate.update)
+        st_rate.register(unit.unit_ps, "boiler_boil_sum", st_rate.update)
     else
         local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
         local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=bw_fg_bg}
