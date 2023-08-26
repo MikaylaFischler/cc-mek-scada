@@ -296,6 +296,9 @@ function audio.new_stream()
         end
     end
 
+    -- check if any alarms are active
+    function public.any_active() return self.any_active end
+
     -- check if the next audio block has data
     function public.has_next_block() return #self.quad_buffer[self.next_block] > 0 end
 

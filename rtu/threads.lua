@@ -73,7 +73,7 @@ function threads.thread__main(smem)
                     -- re-compute output if needed, then play audio if available
                     if sounder.stream.is_recompute_needed() then
                         sounder.stream.compute_buffer()
-                        if sounder.stream.has_next_block() then sounder.play() else sounder.stop() end
+                        if sounder.stream.any_active() then sounder.play() else sounder.stop() end
                     end
                 end
 
