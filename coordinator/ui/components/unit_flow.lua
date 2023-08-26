@@ -112,7 +112,7 @@ local function make(parent, x, y, wide, unit)
 
         local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
         TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=TEXT_ALIGN.CENTER,height=1}
-        TextBox{parent=boiler,y=3,text="BOILERS",alignment=TEXT_ALIGN.CENTER,height=1}
+        TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=TEXT_ALIGN.CENTER,height=1}
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
