@@ -93,8 +93,8 @@ function threads.thread__main(smem)
                     smem.q.mq_comms.push_packet(packet)
                 end
             elseif event == "timer" and conn_watchdog.is_timer(param1) then
-                -- haven't heard from server recently? unlink
-                rtu_comms.unlink(rtu_state)
+                -- haven't heard from server recently? close connection
+                rtu_comms.close(rtu_state)
             elseif event == "timer" then
                 -- notify timer callback dispatcher if no other timer case claimed this event
                 tcd.handle(param1)

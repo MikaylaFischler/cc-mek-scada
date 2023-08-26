@@ -154,8 +154,8 @@ function threads.thread__main(smem, init)
                     smem.q.mq_comms_rx.push_packet(packet)
                 end
             elseif event == "timer" and networked and plc_state.init_ok and conn_watchdog.is_timer(param1) then
-                -- haven't heard from server recently? shutdown reactor
-                plc_comms.unlink()
+                -- haven't heard from server recently? close connection and shutdown reactor
+                plc_comms.close()
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
             elseif event == "timer" then
                 -- notify timer callback dispatcher if no other timer case claimed this event
