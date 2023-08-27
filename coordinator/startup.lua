@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.2"
+local COORDINATOR_VERSION = "v1.0.9"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -393,6 +393,9 @@ local function main()
 
     if link_failed then println_ts("failed to connect to supervisor") end
     if not ui_ok then println_ts("main UI creation failed") end
+
+    -- close on error exit (such as UI error)
+    if coord_comms.is_linked() then coord_comms.close() end
 
     println_ts("exited")
     log.info("exited")

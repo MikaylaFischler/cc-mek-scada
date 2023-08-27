@@ -81,7 +81,7 @@ local function _sv_handle_outq(session)
                         elseif cmd.key == SV_Q_DATA.SET_BURN and type(cmd.val) == "table" and #cmd.val == 2 then
                             plc_s.in_queue.push_data(PLC_S_DATA.BURN_RATE, cmd.val[2])
                         else
-                            log.debug(util.c("[SVS] unknown PLC SV queue command ", cmd.key))
+                            log.debug(util.c("SVS: unknown PLC SV queue command ", cmd.key))
                         end
                     end
                 else
@@ -104,8 +104,8 @@ local function _sv_handle_outq(session)
 
         -- max 100ms spent processing queue
         if util.time() - handle_start > 100 then
-            log.debug("[SVS] supervisor out queue handler exceeded 100ms queue process limit")
-            log.debug(util.c("[SVS] offending session: ", session))
+            log.debug("SVS: supervisor out queue handler exceeded 100ms queue process limit")
+            log.debug(util.c("SVS: offending session: ", session))
             break
         end
     end
@@ -139,7 +139,7 @@ local function _shutdown(session)
         end
     end
 
-    log.debug(util.c("[SVS] closed session ", session))
+    log.debug(util.c("SVS: closed session ", session))
 end
 
 -- close connections
@@ -160,7 +160,7 @@ local function _check_watchdogs(sessions, timer_event)
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
-                log.debug(util.c("[SVS] watchdog closing session ", session, "..."))
+                log.debug(util.c("SVS: watchdog closing session ", session, "..."))
                 _shutdown(session)
             end
         end
@@ -174,7 +174,7 @@ local function _free_closed(sessions)
 
     ---@param session sv_session_structs
     local on_delete = function (session)
-        log.debug(util.c("[SVS] free'ing closed session ", session))
+        log.debug(util.c("SVS: free'ing closed session ", session))
     end
 
     util.filter_table(sessions, f, on_delete)
@@ -312,7 +312,7 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
         setmetatable(plc_s, mt)
 
         databus.tx_plc_connected(for_reactor, version, source_addr)
-        log.debug(util.c("[SVS] established new session: ", plc_s))
+        log.debug(util.c("SVS: established new session: ", plc_s))
 
         self.next_ids.plc = id + 1
 
@@ -357,7 +357,7 @@ function svsessions.establish_rtu_session(source_addr, advertisement, version)
     setmetatable(rtu_s, mt)
 
     databus.tx_rtu_connected(id, version, source_addr)
-    log.debug(util.c("[SVS] established new session: ", rtu_s))
+    log.debug(util.c("SVS: established new session: ", rtu_s))
 
     self.next_ids.rtu = id + 1
 
@@ -398,7 +398,7 @@ function svsessions.establish_crd_session(source_addr, version)
         setmetatable(crd_s, mt)
 
         databus.tx_crd_connected(version, source_addr)
-        log.debug(util.c("[SVS] established new session: ", crd_s))
+        log.debug(util.c("SVS: established new session: ", crd_s))
 
         self.next_ids.crd = id + 1
 
@@ -442,7 +442,7 @@ function svsessions.establish_pdg_session(source_addr, version)
     setmetatable(pdg_s, mt)
 
     databus.tx_pdg_connected(id, version, source_addr)
-    log.debug(util.c("[SVS] established new session: ", pdg_s))
+    log.debug(util.c("SVS: established new session: ", pdg_s))
 
     self.next_ids.pdg = id + 1
 

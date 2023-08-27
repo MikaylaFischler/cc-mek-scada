@@ -297,7 +297,7 @@ local function init(main)
 
             TextBox{parent=tank_box,x=2,y=3,text="Fill",height=1,width=10,fg_bg=style.label}
             local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
-            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
 
             TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
             local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}

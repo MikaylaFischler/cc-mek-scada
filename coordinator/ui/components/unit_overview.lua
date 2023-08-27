@@ -34,7 +34,7 @@ local function make(parent, x, y, unit)
 
     if num_boilers == 0 and num_turbines == 1 then
         height = 9
-    elseif num_boilers == 1 and num_turbines <= 2 then
+    elseif num_boilers <= 1 and num_turbines <= 2 then
         height = 17
     end
 

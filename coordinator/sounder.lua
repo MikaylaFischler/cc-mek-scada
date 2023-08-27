@@ -51,7 +51,7 @@ function sounder.set(states)
 
     -- re-compute output if needed, then play audio if available
     if alarm_ctl.stream.is_recompute_needed() then alarm_ctl.stream.compute_buffer() end
-    if alarm_ctl.stream.has_next_block() then play() else sounder.stop() end
+    if alarm_ctl.stream.any_active() then play() else sounder.stop() end
 end
 
 -- stop all audio and clear output buffer

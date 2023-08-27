@@ -793,12 +793,10 @@ function logic.handle_redstone(self)
     local enable_emer_cool = self.plc_cache.rps_status.low_cool or
         (self.auto_engaged and self.db.annunciator.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
 
+    -- don't turn off emergency coolant on sufficient coolant level since it might drop again
+    -- turn off once system is OK again
+    -- if auto control is engaged, alarm check will SCRAM on reactor over temp so that's covered
     if not self.plc_cache.rps_trip then
-        -- can't turn off on sufficient coolant level since it might drop again
-        -- turn off once system is OK again
-        -- if auto control is engaged, alarm check will SCRAM on reactor over temp so that's covered
-        self.valves.emer_cool.close()
-
         -- set turbines to not dump steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]    ---@type unit_session
@@ -816,8 +814,6 @@ function logic.handle_redstone(self)
 
         self.emcool_opened = false
     elseif enable_emer_cool or self.emcool_opened then
-        self.valves.emer_cool.open()
-
         -- set turbines to dump excess steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]    ---@type unit_session
@@ -845,6 +841,9 @@ function logic.handle_redstone(self)
 
         self.emcool_opened = true
     end
+
+    -- set valve state always
+    if self.emcool_opened then self.valves.emer_cool.open() else self.valves.emer_cool.close() end
 end
 
 return logic
