@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.9a"
+local CCMSI_VERSION = "v1.10"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -172,7 +172,7 @@ local function clean(manifest)
 
     table.insert(tree, "install_manifest.json")
     table.insert(tree, "ccmsi.lua")
-    table.insert(tree, "log.txt")
+    table.insert(tree, "log.txt") -- this won't necessarily work correctly
 
     lgray()
 
@@ -205,8 +205,7 @@ if #opts == 0 or opts[1] == "help" then
     lgray()
     println(" install     - fresh install, overwrites config")
     println(" update      - update files EXCEPT for config/logs")
-    println(" remove      - delete files EXCEPT for config/logs")
-    println(" purge       - delete files INCLUDING config/logs")
+    println(" uninstall   - delete files INCLUDING config/logs")
     white();println("<app>");lgray()
     println(" reactor-plc - reactor PLC firmware")
     println(" rtu         - RTU firmware")
@@ -218,7 +217,7 @@ if #opts == 0 or opts[1] == "help" then
     lgray();println(" main (default) | latest | devel");white()
     return
 else
-    mode = get_opt(opts[1], { "check", "install", "update", "remove", "purge" })
+    mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
     if mode == nil then
         red();println("Unrecognized mode.");white()
         return
@@ -310,7 +309,7 @@ elseif mode == "install" or mode == "update" then
         ver.lockbox.v_local = lmnf.versions.lockbox
 
         if lmnf.versions[app] == nil then
-            red();println("Another application is already installed, please purge it before installing a new application.");white()
+            red();println("Another application is already installed, please uninstall it before installing a new application.");white()
             return
         end
     end
@@ -389,9 +388,10 @@ elseif mode == "install" or mode == "update" then
     -- check space constraints
     if space_available < space_required then
         single_file_mode = true
-        yellow();println("WARNING: Insufficient space available for a full download!");white()
-        println("Files can be downloaded one by one, so if you are replacing a current install this will not be a problem unless installation fails.")
-        if mode == "update" then println("If installation still fails, delete this device's log file or uninstall the app (not purge) and try again.") end
+        yellow();println("NOTICE: Insufficient space available for a full cached download!");white()
+        lgray();println("Files can instead be downloaded one by one. If you are replacing a current install this may corrupt your install ONLY if it fails (such as a sudden network issue). If that occurs, you can still try again.")
+        if mode == "update" then println("If installation still fails, delete this device's log file and/or any unrelated files you have on this computer then try again.") end
+        white();
         if not ask_y_n("Do you wish to continue", false) then
             println("Operation cancelled.")
             return
@@ -521,22 +521,19 @@ elseif mode == "install" or mode == "update" then
             else println("Update failed, files may have been skipped.") end
         end
     end
-elseif mode == "remove" or mode == "purge" then
+elseif mode == "uninstall" then
     local ok, manifest = read_local_manifest()
     if not ok then
         red();println("Error parsing local installation manifest.");white()
         return
-    elseif mode == "remove" and manifest.versions[app] == nil then
-        red();println(app .. " is not installed, cannot remove.");white()
+    end
+
+    if manifest.versions[app] == nil then
+        red();println("Error: '" .. app .. "' is not installed.")
         return
     end
 
-    orange()
-    if mode == "remove" then
-        println("Removing all " .. app .. " files except for config and log...")
-    elseif mode == "purge" then
-        println("Purging all " .. app .. " files including config and log...")
-    end
+    orange();println("Uninstalling all " .. app .. " files...")
 
     -- ask for confirmation
     if not ask_y_n("Continue", false) then return end
@@ -550,9 +547,9 @@ elseif mode == "remove" or mode == "purge" then
 
     table.insert(dependencies, app)
 
-    -- delete log file if purging
+    -- delete log file
     lgray()
-    if mode == "purge" and fs.exists(config_file) then
+    if fs.exists(config_file) then
         local log_deleted = pcall(function ()
             local config = require(app .. ".config")
             if fs.exists(config.LOG_PATH) then
@@ -568,53 +565,27 @@ elseif mode == "remove" or mode == "purge" then
         end
     end
 
-    -- delete all files except config unless purging
+    -- delete all installed files
     for _, dependency in pairs(dependencies) do
         local files = file_list[dependency]
         for _, file in pairs(files) do
-            if mode == "purge" or file ~= config_file then
-                if fs.exists(file) then fs.delete(file);println("deleted " .. file) end
-            end
+            if fs.exists(file) then fs.delete(file);println("deleted " .. file) end
         end
 
-        -- delete folders that we should be deleteing
-        if mode == "purge" or dependency ~= app then
-            local folder = files[1]
-            while true do
-                local dir = fs.getDir(folder)
-                if dir == "" or dir == ".." then break else folder = dir end
-            end
+        local folder = files[1]
+        while true do
+            local dir = fs.getDir(folder)
+            if dir == "" or dir == ".." then break else folder = dir end
+        end
 
-            if fs.isDir(folder) then
-                fs.delete(folder)
-                println("deleted directory " .. folder)
-            end
-        elseif dependency == app then
-            -- delete individual subdirectories so we can leave the config
-            for _, folder in pairs(files) do
-                while true do
-                    local dir = fs.getDir(folder)
-                    if dir == "" or dir == ".." or dir == app then break else folder = dir end
-                end
-
-                if folder ~= app and fs.isDir(folder) then
-                    fs.delete(folder);println("deleted app subdirectory " .. folder)
-                end
-            end
+        if fs.isDir(folder) then
+            fs.delete(folder)
+            println("deleted directory " .. folder)
         end
     end
 
-    -- only delete manifest if purging
-    if mode == "purge" then
-        fs.delete("install_manifest.json")
-        println("deleted install_manifest.json")
-    else
-        -- remove all data from versions list to show nothing is installed
-        manifest.versions = {}
-        local imfile = fs.open("install_manifest.json", "w")
-        imfile.write(textutils.serializeJSON(manifest))
-        imfile.close()
-    end
+    fs.delete("install_manifest.json")
+    println("deleted install_manifest.json")
 
     green();println("Done!")
 end
