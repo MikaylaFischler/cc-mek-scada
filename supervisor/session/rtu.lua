@@ -22,7 +22,7 @@ local svrs_turbinev = require("supervisor.session.rtu.turbinev")
 local rtu = {}
 
 local PROTOCOL = comms.PROTOCOL
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local PERIODICS = {
@@ -223,7 +223,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -262,7 +262,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_frame
             -- handle management packet
-            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+            if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -281,17 +281,17 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
+            elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
-            elseif pkt.type == SCADA_MGMT_TYPE.RTU_ADVERT then
+            elseif pkt.type == MGMT_TYPE.RTU_ADVERT then
                 -- RTU unit advertisement
                 log.debug(log_header .. "received updated advertisement")
                 self.advert = pkt.data
 
                 -- handle advertisement; this will re-create all unit sub-sessions
                 _handle_advertisement()
-            elseif pkt.type == SCADA_MGMT_TYPE.RTU_DEV_REMOUNT then
+            elseif pkt.type == MGMT_TYPE.RTU_DEV_REMOUNT then
                 if pkt.length == 1 then
                     local unit_id = pkt.data[1]
                     if self.units[unit_id] ~= nil then
@@ -322,7 +322,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        _send_mgmt(MGMT_TYPE.CLOSE, {})
         println(log_header .. "connection to RTU closed by server")
         log.info(log_header .. "session closed by server")
     end
@@ -387,7 +387,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
+                _send_mgmt(MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 
@@ -395,7 +395,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
 
             periodics.alarm_tones = periodics.alarm_tones + elapsed
             if periodics.alarm_tones >= PERIODICS.ALARM_TONES then
-                _send_mgmt(SCADA_MGMT_TYPE.RTU_TONE_ALARM, { facility.get_alarm_tones() })
+                _send_mgmt(MGMT_TYPE.RTU_TONE_ALARM, { facility.get_alarm_tones() })
                 periodics.alarm_tones = 0
             end
 

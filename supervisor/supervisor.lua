@@ -11,7 +11,7 @@ local supervisor = {}
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 
 -- supervisory controller communications
 ---@nodiscard
@@ -58,7 +58,7 @@ function supervisor.comms(_version, nic, fp_ok)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(SCADA_MGMT_TYPE.ESTABLISH, { ack, data })
+        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         nic.transmit(packet.remote_channel(), svr_channel, s_pkt)
@@ -147,7 +147,7 @@ function supervisor.comms(_version, nic, fp_ok)
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                    elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local last_ack = self.last_est_acks[src_addr]
 
@@ -221,7 +221,7 @@ function supervisor.comms(_version, nic, fp_ok)
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                    elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local last_ack = self.last_est_acks[src_addr]
 
@@ -275,7 +275,7 @@ function supervisor.comms(_version, nic, fp_ok)
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                    elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local last_ack = self.last_est_acks[src_addr]
 
@@ -342,7 +342,7 @@ function supervisor.comms(_version, nic, fp_ok)
                     if session ~= nil then
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
-                    elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                    elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         local last_ack = self.last_est_acks[src_addr]
 

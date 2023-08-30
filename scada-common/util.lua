@@ -8,7 +8,7 @@ local cc_strings = require("cc.strings")
 local util = {}
 
 -- scada-common version
-util.version = "1.0.2"
+util.version = "1.1.0"
 
 -- ENVIRONMENT CONSTANTS --
 

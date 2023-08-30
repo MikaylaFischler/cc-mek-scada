@@ -16,7 +16,7 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local RPLC_TYPE = comms.RPLC_TYPE
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local RPS_LIMITS = const.RPS_LIMITS
@@ -489,7 +489,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -600,7 +600,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
+        _send_mgmt(MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
@@ -668,12 +668,12 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     function public.close()
         conn_watchdog.cancel()
         public.unlink()
-        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        _send_mgmt(MGMT_TYPE.CLOSE, {})
     end
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
-        _send_mgmt(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, id })
+        _send_mgmt(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, id })
     end
 
     -- send live status information
@@ -929,7 +929,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                 ---@cast packet mgmt_frame
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
-                    if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+                    if packet.type == MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]
@@ -945,7 +945,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                         else
                             log.debug("SCADA_MGMT keep alive packet length/type mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
+                    elseif packet.type == MGMT_TYPE.CLOSE then
                         -- handle session close
                         conn_watchdog.cancel()
                         public.unlink()
@@ -954,7 +954,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                     else
                         log.debug("received unsupported SCADA_MGMT packet type " .. packet.type)
                     end
-                elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                elseif packet.type == MGMT_TYPE.ESTABLISH then
                     -- link request confirmation
                     if packet.length == 1 then
                         local est_ack = packet.data[1]
