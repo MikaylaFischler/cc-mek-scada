@@ -70,45 +70,45 @@ local function rectangle(args)
 
         -- form the basic line strings and top/bottom blit strings
         local spaces = util.spaces(e.frame.w)
-        local blit_fg = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
+        local blit_fg = string.rep(e.fg_bg.blit_fgd, e.frame.w)
         local blit_fg_sides = blit_fg
         local blit_bg_sides = ""
-        local blit_bg_top_bot = util.strrep(border_blit, e.frame.w)
+        local blit_bg_top_bot = string.rep(border_blit, e.frame.w)
 
         -- partial bars
         local p_a, p_b, p_s
         if args.thin == true then
             if args.even_inner == true then
-                p_a = "\x9c" .. util.strrep("\x8c", inner_width) .. "\x93"
-                p_b = "\x8d" .. util.strrep("\x8c", inner_width) .. "\x8e"
+                p_a = "\x9c" .. string.rep("\x8c", inner_width) .. "\x93"
+                p_b = "\x8d" .. string.rep("\x8c", inner_width) .. "\x8e"
             else
-                p_a = "\x97" .. util.strrep("\x83", inner_width) .. "\x94"
-                p_b = "\x8a" .. util.strrep("\x8f", inner_width) .. "\x85"
+                p_a = "\x97" .. string.rep("\x83", inner_width) .. "\x94"
+                p_b = "\x8a" .. string.rep("\x8f", inner_width) .. "\x85"
             end
 
             p_s = "\x95" .. util.spaces(inner_width) .. "\x95"
         else
             if args.even_inner == true then
-                p_a = util.strrep("\x83", inner_width + width_x2)
-                p_b = util.strrep("\x8f", inner_width + width_x2)
+                p_a = string.rep("\x83", inner_width + width_x2)
+                p_b = string.rep("\x8f", inner_width + width_x2)
             else
-                p_a = util.spaces(border_width) .. util.strrep("\x8f", inner_width) .. util.spaces(border_width)
-                p_b = util.spaces(border_width) .. util.strrep("\x83", inner_width) .. util.spaces(border_width)
+                p_a = util.spaces(border_width) .. string.rep("\x8f", inner_width) .. util.spaces(border_width)
+                p_b = util.spaces(border_width) .. string.rep("\x83", inner_width) .. util.spaces(border_width)
             end
 
             p_s = spaces
         end
 
-        local p_inv_fg = util.strrep(border_blit, border_width) .. util.strrep(e.fg_bg.blit_bkg, inner_width) ..
-                            util.strrep(border_blit, border_width)
-        local p_inv_bg = util.strrep(e.fg_bg.blit_bkg, border_width) .. util.strrep(border_blit, inner_width) ..
-                            util.strrep(e.fg_bg.blit_bkg, border_width)
+        local p_inv_fg = string.rep(border_blit, border_width) .. string.rep(e.fg_bg.blit_bkg, inner_width) ..
+                            string.rep(border_blit, border_width)
+        local p_inv_bg = string.rep(e.fg_bg.blit_bkg, border_width) .. string.rep(border_blit, inner_width) ..
+                            string.rep(e.fg_bg.blit_bkg, border_width)
 
         if args.thin == true then
-            p_inv_fg = e.fg_bg.blit_bkg .. util.strrep(e.fg_bg.blit_bkg, inner_width) .. util.strrep(border_blit, border_width)
-            p_inv_bg = border_blit .. util.strrep(border_blit, inner_width) .. util.strrep(e.fg_bg.blit_bkg, border_width)
+            p_inv_fg = e.fg_bg.blit_bkg .. string.rep(e.fg_bg.blit_bkg, inner_width) .. string.rep(border_blit, border_width)
+            p_inv_bg = border_blit .. string.rep(border_blit, inner_width) .. string.rep(e.fg_bg.blit_bkg, border_width)
 
-            blit_fg_sides = border_blit .. util.strrep(e.fg_bg.blit_bkg, inner_width) .. e.fg_bg.blit_bkg
+            blit_fg_sides = border_blit .. string.rep(e.fg_bg.blit_bkg, inner_width) .. e.fg_bg.blit_bkg
         end
 
         -- form the body blit strings (sides are border, inside is normal)
@@ -135,7 +135,7 @@ local function rectangle(args)
                     if args.thin == true then
                         e.window.blit(p_a, p_inv_bg, p_inv_fg)
                     else
-                        local _fg = util.trinary(args.even_inner == true, util.strrep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
+                        local _fg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
                         local _bg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
 
                         if width_x2 % 3 == 1 then
@@ -156,13 +156,13 @@ local function rectangle(args)
                 if args.border.even and y == ((e.frame.h - border_width) + 1) then
                     if args.thin == true then
                         if args.even_inner == true then
-                            e.window.blit(p_b, blit_bg_top_bot, util.strrep(e.fg_bg.blit_bkg, e.frame.w))
+                            e.window.blit(p_b, blit_bg_top_bot, string.rep(e.fg_bg.blit_bkg, e.frame.w))
                         else
-                            e.window.blit(p_b, util.strrep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                            e.window.blit(p_b, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
                         end
                     else
                         local _fg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
-                        local _bg = util.trinary(args.even_inner == true, util.strrep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                        local _bg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
 
                         if width_x2 % 3 == 1 then
                             e.window.blit(p_a, _fg, _bg)

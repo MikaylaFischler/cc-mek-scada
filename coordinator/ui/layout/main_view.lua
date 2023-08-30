@@ -2,8 +2,6 @@
 -- Main SCADA Coordinator GUI
 --
 
-local util          = require("scada-common.util")
-
 local iocontrol     = require("coordinator.iocontrol")
 
 local style         = require("coordinator.ui.style")
@@ -77,7 +75,7 @@ local function init(main)
 
     assert(cnc_bottom_align_start >= cnc_y_start, "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
-    TextBox{parent=main,y=cnc_bottom_align_start,text=util.strrep("\x8c", header.get_width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+    TextBox{parent=main,y=cnc_bottom_align_start,text=string.rep("\x8c", header.get_width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=cpair(colors.lightGray,colors.gray)}
 
     cnc_bottom_align_start = cnc_bottom_align_start + 2
 

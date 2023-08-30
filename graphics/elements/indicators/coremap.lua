@@ -63,7 +63,7 @@ local function core_map(args)
         e.window.setTextColor(e.fg_bg.bkg)
         e.window.setBackgroundColor(args.parent.get_fg_bg().bkg)
         e.window.setCursorPos(1, e.frame.h)
-        e.window.write(util.strrep("\x8f", e.frame.w))
+        e.window.write(string.rep("\x8f", e.frame.w))
         e.window.setTextColor(e.fg_bg.fgd)
         e.window.setBackgroundColor(e.fg_bg.bkg)
     end

@@ -1,7 +1,5 @@
 -- Icon Indicator Graphics Element
 
-local util    = require("scada-common.util")
-
 local element = require("graphics.element")
 
 ---@class icon_sym_color
@@ -44,8 +42,8 @@ local function icon(args)
 
         table.insert(state_blit_cmds, {
             text = " " .. sym_color.symbol .. " ",
-            fgd = util.strrep(sym_color.color.blit_fgd, 3),
-            bkg = util.strrep(sym_color.color.blit_bkg, 3)
+            fgd = string.rep(sym_color.color.blit_fgd, 3),
+            bkg = string.rep(sym_color.color.blit_bkg, 3)
         })
     end
 

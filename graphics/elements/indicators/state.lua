@@ -51,8 +51,8 @@ local function state_indicator(args)
 
         table.insert(state_blit_cmds, {
             text = text,
-            fgd = util.strrep(state_def.color.blit_fgd, string.len(text)),
-            bkg = util.strrep(state_def.color.blit_bkg, string.len(text))
+            fgd = string.rep(state_def.color.blit_fgd, string.len(text)),
+            bkg = string.rep(state_def.color.blit_bkg, string.len(text))
         })
     end
 

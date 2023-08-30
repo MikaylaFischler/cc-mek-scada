@@ -61,14 +61,14 @@ local function spinbox(args)
         e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
         e.window.setTextColor(color)
         e.window.setCursorPos(1, 1)
-        e.window.write(util.strrep("\x1e", wn_prec))
+        e.window.write(string.rep("\x1e", wn_prec))
         e.window.setCursorPos(1, 3)
-        e.window.write(util.strrep("\x1f", wn_prec))
+        e.window.write(string.rep("\x1f", wn_prec))
         if fr_prec > 0 then
             e.window.setCursorPos(1 + wn_prec, 1)
-            e.window.write(" " .. util.strrep("\x1e", fr_prec))
+            e.window.write(" " .. string.rep("\x1e", fr_prec))
             e.window.setCursorPos(1 + wn_prec, 3)
-            e.window.write(" " .. util.strrep("\x1f", fr_prec))
+            e.window.write(" " .. string.rep("\x1f", fr_prec))
         end
     end
 
