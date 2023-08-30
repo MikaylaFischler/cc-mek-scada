@@ -472,13 +472,15 @@ function logic.update_alarms(self)
     -- Reactor Damage
     local rps_dmg_90 = plc_cache.rps_status.high_dmg and not self.last_rps_trips.high_dmg
     if (_update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage)) then
-        log.debug(util.c("> plc_cache.damage[", plc_cache.damage, "] rps_dmg_90[", rps_dmg_90, "]"))
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorDamage.id]," <<"))
+        log.debug(util.c("| plc_cache.damage[", plc_cache.damage, "] rps_dmg_90[", rps_dmg_90, "]"))
     end
 
     -- Over-Temperature
     local rps_high_temp = plc_cache.rps_status.high_temp and not self.last_rps_trips.high_temp
     if (_update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp)) then
-        log.debug(util.c("> plc_cache.temp[", plc_cache.temp, "] rps_high_temp[", rps_high_temp, "]"))
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorOverTemp.id]," <<"))
+        log.debug(util.c("| plc_cache.temp[", plc_cache.temp, "] rps_high_temp[", rps_high_temp, "]"))
     end
 
     -- High Temperature
@@ -490,7 +492,8 @@ function logic.update_alarms(self)
     -- High Waste
     local rps_high_waste = plc_cache.rps_status.ex_waste and not self.last_rps_trips.ex_waste
     if (_update_alarm_state(self, (plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste)) then
-        log.debug(util.c("> plc_cache.waste[", plc_cache.waste, "] rps_high_waste[", rps_high_waste, "]"))
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorHighWaste.id]," <<"))
+        log.debug(util.c("| plc_cache.waste[", plc_cache.waste, "] rps_high_waste[", rps_high_waste, "]"))
     end
 
     -- RPS Transient (excludes timeouts and manual trips)
@@ -523,9 +526,10 @@ function logic.update_alarms(self)
     end
 
     if (_update_alarm_state(self, rcs_trans, self.alarms.RCSTransient)) then
-        log.debug(util.c("> any_low[", any_low, "] any_over[", any_over, "] gen_trip[", gen_trip, "]"))
-        log.debug(util.c("> RCPTrip[", annunc.RCPTrip, "] MaxWaterReturnFeed[", annunc.MaxWaterReturnFeed, "]"))
-        log.debug(util.c("> RCSFlowLow[", annunc.RCSFlowLow, "] BoilRateMismatch[", annunc.BoilRateMismatch,
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.RCSTransient.id]," <<"))
+        log.debug(util.c("| any_low[", any_low, "] any_over[", any_over, "] gen_trip[", gen_trip, "]"))
+        log.debug(util.c("| RCPTrip[", annunc.RCPTrip, "] MaxWaterReturnFeed[", annunc.MaxWaterReturnFeed, "]"))
+        log.debug(util.c("| RCSFlowLow[", annunc.RCSFlowLow, "] BoilRateMismatch[", annunc.BoilRateMismatch,
                     "] CoolantFeedMismatch[", annunc.CoolantFeedMismatch, "] SteamFeedMismatch[", annunc.SteamFeedMismatch, "]"))
     end
 
