@@ -21,7 +21,7 @@ comms.version = "2.3.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
-    MODBUS_TCP = 0,      -- our "MODBUS TCP"-esque protocol
+    MODBUS_TCP = 0,      -- the "MODBUS TCP"-esque protocol
     RPLC = 1,            -- reactor PLC protocol
     SCADA_MGMT = 2,      -- SCADA supervisor management, device advertisements, etc
     SCADA_CRDN = 3       -- data/control packets for coordinators to/from supervisory controllers
@@ -74,14 +74,8 @@ local ESTABLISH_ACK = {
     BAD_VERSION = 3      -- link denied due to comms version mismatch
 }
 
----@enum DEVICE_TYPE
-local DEVICE_TYPE = {
-    PLC = 0,             -- PLC device type for establish
-    RTU = 1,             -- RTU device type for establish
-    SV = 2,              -- supervisor device type for establish
-    CRDN = 3,            -- coordinator device type for establish
-    PKT = 4              -- pocket device type for establish
-}
+---@enum DEVICE_TYPE device types for establish messages
+local DEVICE_TYPE = { PLC = 0, RTU = 1, SVR = 2, CRD = 3, PKT = 4 }
 
 ---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {

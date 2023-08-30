@@ -316,7 +316,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
 
     -- attempt connection establishment
     local function _send_establish()
-        _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRDN })
+        _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRD })
     end
 
     -- keep alive ack

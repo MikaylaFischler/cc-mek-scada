@@ -291,7 +291,7 @@ function supervisor.comms(_version, nic, fp_ok)
                                 end
 
                                 _send_establish(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
-                            elseif dev_type == DEVICE_TYPE.CRDN then
+                            elseif dev_type == DEVICE_TYPE.CRD then
                                 -- this is an attempt to establish a new coordinator session
                                 local s_id = svsessions.establish_crd_session(src_addr, firmware_v)
 
