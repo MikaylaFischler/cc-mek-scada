@@ -32,24 +32,24 @@ local function checkbox(args)
 
     -- show the button state
     local function draw()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if e.value then
             -- show as selected
-            e.window.setTextColor(args.box_fg_bg.bkg)
-            e.window.setBackgroundColor(args.box_fg_bg.fgd)
-            e.window.write("\x88")
-            e.window.setTextColor(args.box_fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
-            e.window.write("\x95")
+            e.w_set_fgd(args.box_fg_bg.bkg)
+            e.w_set_bkg(args.box_fg_bg.fgd)
+            e.w_write("\x88")
+            e.w_set_fgd(args.box_fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
+            e.w_write("\x95")
         else
             -- show as unselected
-            e.window.setTextColor(e.fg_bg.bkg)
-            e.window.setBackgroundColor(args.box_fg_bg.bkg)
-            e.window.write("\x88")
-            e.window.setTextColor(args.box_fg_bg.bkg)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
-            e.window.write("\x95")
+            e.w_set_fgd(e.fg_bg.bkg)
+            e.w_set_bkg(args.box_fg_bg.bkg)
+            e.w_write("\x88")
+            e.w_set_fgd(args.box_fg_bg.bkg)
+            e.w_set_bkg(e.fg_bg.bkg)
+            e.w_write("\x95")
         end
     end
 
@@ -71,10 +71,10 @@ local function checkbox(args)
     end
 
     -- write label text
-    e.window.setCursorPos(3, 1)
-    e.window.setTextColor(e.fg_bg.fgd)
-    e.window.setBackgroundColor(e.fg_bg.bkg)
-    e.window.write(args.label)
+    e.w_set_cur(3, 1)
+    e.w_set_fgd(e.fg_bg.fgd)
+    e.w_set_bkg(e.fg_bg.bkg)
+    e.w_write(args.label)
 
     -- initial draw
     draw()

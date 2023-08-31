@@ -34,12 +34,12 @@ local function power(args)
 
     -- label color
     if args.lu_colors ~= nil then
-        e.window.setTextColor(args.lu_colors.color_a)
+        e.w_set_fgd(args.lu_colors.color_a)
     end
 
     -- write label
-    e.window.setCursorPos(1, 1)
-    e.window.write(args.label)
+    e.w_set_cur(1, 1)
+    e.w_write(args.label)
 
     local data_start = string.len(args.label) + 2
     if string.len(args.label) == 0 then data_start = 1 end
@@ -52,13 +52,13 @@ local function power(args)
         local data_str, unit = util.power_format(value, false, args.format)
 
         -- write data
-        e.window.setCursorPos(data_start, 1)
-        e.window.setTextColor(e.fg_bg.fgd)
-        e.window.write(util.comma_format(data_str))
+        e.w_set_cur(data_start, 1)
+        e.w_set_fgd(e.fg_bg.fgd)
+        e.w_write(util.comma_format(data_str))
 
         -- write unit
         if args.lu_colors ~= nil then
-            e.window.setTextColor(args.lu_colors.color_b)
+            e.w_set_fgd(args.lu_colors.color_b)
         end
 
         -- append per tick if rate is set
@@ -70,7 +70,7 @@ local function power(args)
             if unit == "FE" then unit = "FE " end
         end
 
-        e.window.write(" " .. unit)
+        e.w_write(" " .. unit)
     end
 
     -- set the value

@@ -42,7 +42,7 @@ local function tiling(args)
 
     -- border
     if args.border_c ~= nil then
-        e.window.setBackgroundColor(args.border_c)
+        e.w_set_bkg(args.border_c)
         e.window.clear()
 
         start_x = 1 + util.trinary(even, 2, 1)
@@ -60,19 +60,19 @@ local function tiling(args)
 
     -- create pattern
     for y = start_y, inner_height + (start_y - 1) do
-        e.window.setCursorPos(start_x, y)
+        e.w_set_cur(start_x, y)
         for _ = 1, inner_width do
             if alternator then
                 if even then
-                    e.window.blit("  ", "00", fill_a .. fill_a)
+                    e.w_blit("  ", "00", fill_a .. fill_a)
                 else
-                    e.window.blit(" ", "0", fill_a)
+                    e.w_blit(" ", "0", fill_a)
                 end
             else
                 if even then
-                    e.window.blit("  ", "00", fill_b .. fill_b)
+                    e.w_blit("  ", "00", fill_b .. fill_b)
                 else
-                    e.window.blit(" ", "0", fill_b)
+                    e.w_blit(" ", "0", fill_b)
                 end
             end
 

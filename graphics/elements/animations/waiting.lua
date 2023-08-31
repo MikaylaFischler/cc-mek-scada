@@ -36,49 +36,49 @@ local function waiting(args)
 
         if state >= 0 and state < 7 then
             -- top
-            e.window.setCursorPos(1 + math.floor(state / 2), 1)
+            e.w_set_cur(1 + math.floor(state / 2), 1)
             if state % 2 == 0 then
-                e.window.blit("\x8f", blit_fg, blit_bg)
+                e.w_blit("\x8f", blit_fg, blit_bg)
             else
-                e.window.blit("\x8a\x85", blit_fg_2x, blit_bg_2x)
+                e.w_blit("\x8a\x85", blit_fg_2x, blit_bg_2x)
             end
 
             -- bottom
-            e.window.setCursorPos(4 - math.ceil(state / 2), 3)
+            e.w_set_cur(4 - math.ceil(state / 2), 3)
             if state % 2 == 0 then
-                e.window.blit("\x8f", blit_fg, blit_bg)
+                e.w_blit("\x8f", blit_fg, blit_bg)
             else
-                e.window.blit("\x8a\x85", blit_fg_2x, blit_bg_2x)
+                e.w_blit("\x8a\x85", blit_fg_2x, blit_bg_2x)
             end
         else
             local st = state - 7
 
             -- right
             if st % 3 == 0 then
-                e.window.setCursorPos(4, 1 + math.floor(st / 3))
-                e.window.blit("\x83", blit_bg, blit_fg)
+                e.w_set_cur(4, 1 + math.floor(st / 3))
+                e.w_blit("\x83", blit_bg, blit_fg)
             elseif st % 3 == 1 then
-                e.window.setCursorPos(4, 1 + math.floor(st / 3))
-                e.window.blit("\x8f", blit_bg, blit_fg)
-                e.window.setCursorPos(4, 2 + math.floor(st / 3))
-                e.window.blit("\x83", blit_fg, blit_bg)
+                e.w_set_cur(4, 1 + math.floor(st / 3))
+                e.w_blit("\x8f", blit_bg, blit_fg)
+                e.w_set_cur(4, 2 + math.floor(st / 3))
+                e.w_blit("\x83", blit_fg, blit_bg)
             else
-                e.window.setCursorPos(4, 2 + math.floor(st / 3))
-                e.window.blit("\x8f", blit_fg, blit_bg)
+                e.w_set_cur(4, 2 + math.floor(st / 3))
+                e.w_blit("\x8f", blit_fg, blit_bg)
             end
 
             -- left
             if st % 3 == 0 then
-                e.window.setCursorPos(1, 3 - math.floor(st / 3))
-                e.window.blit("\x83", blit_fg, blit_bg)
-                e.window.setCursorPos(1, 2 - math.floor(st / 3))
-                e.window.blit("\x8f", blit_bg, blit_fg)
+                e.w_set_cur(1, 3 - math.floor(st / 3))
+                e.w_blit("\x83", blit_fg, blit_bg)
+                e.w_set_cur(1, 2 - math.floor(st / 3))
+                e.w_blit("\x8f", blit_bg, blit_fg)
             elseif st % 3 == 1 then
-                e.window.setCursorPos(1, 2 - math.floor(st / 3))
-                e.window.blit("\x83", blit_bg, blit_fg)
+                e.w_set_cur(1, 2 - math.floor(st / 3))
+                e.w_blit("\x83", blit_bg, blit_fg)
             else
-                e.window.setCursorPos(1, 2 - math.floor(st / 3))
-                e.window.blit("\x8f", blit_fg, blit_bg)
+                e.w_set_cur(1, 2 - math.floor(st / 3))
+                e.w_blit("\x8f", blit_fg, blit_bg)
             end
         end
 

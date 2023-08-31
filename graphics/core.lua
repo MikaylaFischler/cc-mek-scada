@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "1.1.1"
+core.version = "1.1.2"
 
 core.flasher = flasher
 core.events = events
@@ -35,11 +35,7 @@ core.TEXT_ALIGN = {
 ---@param even? boolean whether to pad width extra to account for rectangular pixels, defaults to false
 ---@return graphics_border
 function core.border(width, color, even)
-    return {
-        width = width,
-        color = color,
-        even = even or false    -- convert nil to false
-    }
+    return { width = width, color = color, even = even or false }
 end
 
 ---@class graphics_frame
@@ -56,12 +52,7 @@ end
 ---@param h integer
 ---@return graphics_frame
 function core.gframe(x, y, w, h)
-    return {
-        x = x,
-        y = y,
-        w = w,
-        h = h
-    }
+    return { x = x, y = y, w = w, h = h }
 end
 
 ---@class cpair

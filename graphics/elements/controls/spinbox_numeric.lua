@@ -58,17 +58,17 @@ local function spinbox(args)
 
     -- draw the arrows
     local function draw_arrows(color)
-        e.window.setBackgroundColor(args.arrow_fg_bg.bkg)
-        e.window.setTextColor(color)
-        e.window.setCursorPos(1, 1)
-        e.window.write(string.rep("\x1e", wn_prec))
-        e.window.setCursorPos(1, 3)
-        e.window.write(string.rep("\x1f", wn_prec))
+        e.w_set_bkg(args.arrow_fg_bg.bkg)
+        e.w_set_fgd(color)
+        e.w_set_cur(1, 1)
+        e.w_write(string.rep("\x1e", wn_prec))
+        e.w_set_cur(1, 3)
+        e.w_write(string.rep("\x1f", wn_prec))
         if fr_prec > 0 then
-            e.window.setCursorPos(1 + wn_prec, 1)
-            e.window.write(" " .. string.rep("\x1e", fr_prec))
-            e.window.setCursorPos(1 + wn_prec, 3)
-            e.window.write(" " .. string.rep("\x1f", fr_prec))
+            e.w_set_cur(1 + wn_prec, 1)
+            e.w_write(" " .. string.rep("\x1e", fr_prec))
+            e.w_set_cur(1 + wn_prec, 3)
+            e.w_write(" " .. string.rep("\x1f", fr_prec))
         end
     end
 
@@ -119,10 +119,10 @@ local function spinbox(args)
         end
 
         -- draw
-        e.window.setBackgroundColor(e.fg_bg.bkg)
-        e.window.setTextColor(e.fg_bg.fgd)
-        e.window.setCursorPos(1, 2)
-        e.window.write(util.sprintf(fmt, e.value))
+        e.w_set_bkg(e.fg_bg.bkg)
+        e.w_set_fgd(e.fg_bg.fgd)
+        e.w_set_cur(1, 2)
+        e.w_write(util.sprintf(fmt, e.value))
     end
 
     -- init with the default value

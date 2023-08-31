@@ -56,7 +56,7 @@ local function rectangle(args)
     -- draw bordered box if requested
     -- element constructor will have drawn basic colored rectangle regardless
     if args.border ~= nil then
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         local border_width = offset_x
         local border_height = offset_y
@@ -127,28 +127,28 @@ local function rectangle(args)
 
         -- draw rectangle with borders
         for y = 1, e.frame.h do
-            e.window.setCursorPos(1, y)
+            e.w_set_cur(1, y)
             -- top border
             if y <= border_height then
                 -- partial pixel fill
                 if args.border.even and y == border_height then
                     if args.thin == true then
-                        e.window.blit(p_a, p_inv_bg, p_inv_fg)
+                        e.w_blit(p_a, p_inv_bg, p_inv_fg)
                     else
                         local _fg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
                         local _bg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
 
                         if width_x2 % 3 == 1 then
-                            e.window.blit(p_b, _fg, _bg)
+                            e.w_blit(p_b, _fg, _bg)
                         elseif width_x2 % 3 == 2 then
-                            e.window.blit(p_a, _fg, _bg)
+                            e.w_blit(p_a, _fg, _bg)
                         else
                             -- skip line
-                            e.window.blit(spaces, blit_fg, blit_bg_sides)
+                            e.w_blit(spaces, blit_fg, blit_bg_sides)
                         end
                     end
                 else
-                    e.window.blit(spaces, blit_fg, blit_bg_top_bot)
+                    e.w_blit(spaces, blit_fg, blit_bg_top_bot)
                 end
             -- bottom border
             elseif y > (e.frame.h - border_width) then
@@ -156,31 +156,31 @@ local function rectangle(args)
                 if args.border.even and y == ((e.frame.h - border_width) + 1) then
                     if args.thin == true then
                         if args.even_inner == true then
-                            e.window.blit(p_b, blit_bg_top_bot, string.rep(e.fg_bg.blit_bkg, e.frame.w))
+                            e.w_blit(p_b, blit_bg_top_bot, string.rep(e.fg_bg.blit_bkg, e.frame.w))
                         else
-                            e.window.blit(p_b, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                            e.w_blit(p_b, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
                         end
                     else
                         local _fg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
                         local _bg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
 
                         if width_x2 % 3 == 1 then
-                            e.window.blit(p_a, _fg, _bg)
+                            e.w_blit(p_a, _fg, _bg)
                         elseif width_x2 % 3 == 2 then
-                            e.window.blit(p_b, _fg, _bg)
+                            e.w_blit(p_b, _fg, _bg)
                         else
                             -- skip line
-                            e.window.blit(spaces, blit_fg, blit_bg_sides)
+                            e.w_blit(spaces, blit_fg, blit_bg_sides)
                         end
                     end
                 else
-                    e.window.blit(spaces, blit_fg, blit_bg_top_bot)
+                    e.w_blit(spaces, blit_fg, blit_bg_top_bot)
                 end
             else
                 if args.thin == true then
-                    e.window.blit(p_s, blit_fg_sides, blit_bg_sides)
+                    e.w_blit(p_s, blit_fg_sides, blit_bg_sides)
                 else
-                    e.window.blit(p_s, blit_fg, blit_bg_sides)
+                    e.w_blit(p_s, blit_fg, blit_bg_sides)
                 end
             end
         end

@@ -47,20 +47,20 @@ local function switch_button(args)
     local function draw_state()
         if e.value then
             -- show as pressed
-            e.window.setTextColor(args.active_fg_bg.fgd)
-            e.window.setBackgroundColor(args.active_fg_bg.bkg)
+            e.w_set_fgd(args.active_fg_bg.fgd)
+            e.w_set_bkg(args.active_fg_bg.bkg)
         else
             -- show as unpressed
-            e.window.setTextColor(e.fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
         end
 
         -- clear to redraw background
         e.window.clear()
 
         -- write the button text
-        e.window.setCursorPos(h_pad, v_pad)
-        e.window.write(args.text)
+        e.w_set_cur(h_pad, v_pad)
+        e.w_write(args.text)
     end
 
     -- initial draw

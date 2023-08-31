@@ -64,8 +64,8 @@ local function state_indicator(args)
     function e.on_update(new_state)
         local blit_cmd = state_blit_cmds[new_state]
         e.value = new_state
-        e.window.setCursorPos(1, 1)
-        e.window.blit(blit_cmd.text, blit_cmd.fgd, blit_cmd.bkg)
+        e.w_set_cur(1, 1)
+        e.w_blit(blit_cmd.text, blit_cmd.fgd, blit_cmd.bkg)
     end
 
     -- set indicator state
