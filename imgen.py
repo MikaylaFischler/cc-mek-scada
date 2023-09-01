@@ -60,7 +60,7 @@ def make_manifest(size):
         },
         "files" : {
             # common files
-            "system" : [ "initenv.lua", "startup.lua" ],
+            "system" : [ "initenv.lua", "startup.lua", "configure.lua" ],
             "common" : list_files("./scada-common"),
             "graphics" : list_files("./graphics"),
             "lockbox" : list_files("./lockbox"),
@@ -82,7 +82,7 @@ def make_manifest(size):
             # manifest file estimate
             "manifest" : size,
             # common files
-            "system" : os.path.getsize("initenv.lua") + os.path.getsize("startup.lua"),
+            "system" : os.path.getsize("initenv.lua") + os.path.getsize("startup.lua") + os.path.getsize("configure.lua"),
             "common" : dir_size("./scada-common"),
             "graphics" : dir_size("./graphics"),
             "lockbox" : dir_size("./lockbox"),
