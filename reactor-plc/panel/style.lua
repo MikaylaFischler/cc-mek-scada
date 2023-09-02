@@ -39,4 +39,9 @@ style.colors = {
     { c = colors.brown,     hex = 0x672223 }    -- RED OFF
 }
 
+-- COMMON COLOR PAIRS --
+
+style.ind_grn = cpair(colors.green, colors.green_off)
+style.ind_red = cpair(colors.red, colors.red_off)
+
 return style

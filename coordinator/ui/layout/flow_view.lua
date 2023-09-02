@@ -261,7 +261,7 @@ local function init(main)
         if tank_defs[i] > 0 then
             local vy = 3 + y_ofs(i)
 
-            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=cpair(colors.black,colors.lightGray),width=2,height=1}
+            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_col,width=2,height=1}
 
             local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i * 5),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
@@ -288,7 +288,7 @@ local function init(main)
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
-            TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+            TextBox{parent=tank,text=" ",height=1,x=1,y=1,fg_bg=style.lg_gray}
             TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.wh_gray}
 
             local tank_box = Rectangle{parent=tank,border=border(1,colors.gray,true),width=20,height=12}
@@ -338,7 +338,7 @@ local function init(main)
 
     local sps = Div{parent=main,x=140,y=3,height=12}
 
-    TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
+    TextBox{parent=sps,text=" ",width=24,height=1,x=1,y=1,fg_bg=style.lg_gray}
     TextBox{parent=sps,text="SPS",alignment=TEXT_ALIGN.CENTER,width=24,height=1,fg_bg=wh_gray}
 
     local sps_box = Rectangle{parent=sps,border=border(1,colors.gray,true),width=24,height=10}

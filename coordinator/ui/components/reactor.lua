@@ -14,6 +14,9 @@ local StateIndicator = require("graphics.elements.indicators.state")
 local cpair = core.cpair
 local border = core.border
 
+local text_fg_bg = style.text_colors
+local lu_col = style.lu_colors
+
 -- create new reactor view
 ---@param root graphics_element parent
 ---@param x integer top left x
@@ -21,9 +24,6 @@ local border = core.border
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
     local reactor = Rectangle{parent=root,border=border(1, colors.gray, true),width=30,height=7,x=x,y=y}
-
-    local text_fg_bg = cpair(colors.black, colors.lightGray)
-    local lu_col = cpair(colors.gray, colors.gray)
 
     local status    = StateIndicator{parent=reactor,x=6,y=1,states=style.reactor.states,value=1,min_width=16}
     local core_temp = DataIndicator{parent=reactor,x=2,y=3,lu_colors=lu_col,label="Core Temp:",unit="K",format="%10.2f",value=0,width=26,fg_bg=text_fg_bg}
