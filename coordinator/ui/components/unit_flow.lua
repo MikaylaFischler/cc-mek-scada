@@ -23,7 +23,6 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 
 local sprintf = util.sprintf
 
-local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
