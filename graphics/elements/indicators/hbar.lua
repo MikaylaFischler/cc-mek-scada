@@ -87,16 +87,16 @@ local function hbar(args)
 
             -- draw bar
             for y = 1, e.frame.h do
-                e.window.setCursorPos(1, y)
+                e.w_set_cur(1, y)
                 -- intentionally swapped fgd/bkg since we use spaces as fill, but they are the opposite
-                e.window.blit(spaces, bkg, fgd)
+                e.w_blit(spaces, bkg, fgd)
             end
         end
 
         -- update percentage
         if args.show_percent then
-            e.window.setCursorPos(bar_width + 2, math.max(1, math.ceil(e.frame.h / 2)))
-            e.window.write(util.sprintf("%3.0f%%", fraction * 100))
+            e.w_set_cur(bar_width + 2, math.max(1, math.ceil(e.frame.h / 2)))
+            e.w_write(util.sprintf("%3.0f%%", fraction * 100))
         end
     end
 

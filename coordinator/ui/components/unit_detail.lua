@@ -2,6 +2,8 @@
 -- Reactor Unit SCADA Coordinator GUI
 --
 
+local types             = require("scada-common.types")
+
 local iocontrol         = require("coordinator.iocontrol")
 
 local style             = require("coordinator.ui.style")
@@ -34,6 +36,9 @@ local border = core.border
 local bw_fg_bg = style.bw_fg_bg
 local lu_cpair = style.lu_colors
 local hzd_fg_bg = style.hzd_fg_bg
+local dis_colors = style.dis_colors
+
+local gry_wht = style.gray_white
 
 local ind_grn = style.ind_grn
 local ind_yel = style.ind_yel
@@ -93,7 +98,7 @@ local function init(parent, id)
     waste.register(u_ps, "waste_fill", waste.update)
 
     ccool.register(u_ps, "ccool_type", function (type)
-        if type == "mekanism:sodium" then
+        if type == types.FLUID.SODIUM then
             ccool.recolor(cpair(colors.lightBlue, colors.gray))
         else
             ccool.recolor(cpair(colors.blue, colors.gray))
@@ -101,7 +106,7 @@ local function init(parent, id)
     end)
 
     hcool.register(u_ps, "hcool_type", function (type)
-        if type == "mekanism:superheated_sodium" then
+        if type == types.FLUID.SUPERHEATED_SODIUM then
             hcool.recolor(cpair(colors.orange, colors.gray))
         else
             hcool.recolor(cpair(colors.white, colors.gray))
@@ -130,7 +135,7 @@ local function init(parent, id)
 
     local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
     local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(u_ps, "U_StatusLine1", stat_line_1.set_value)
     stat_line_2.register(u_ps, "U_StatusLine2", stat_line_2.set_value)
@@ -341,10 +346,8 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
-    local dis_colors = cpair(colors.white, colors.lightGray)
-
-    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
+    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=gry_wht}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
@@ -480,7 +483,7 @@ local function init(parent, id)
     auto_div.line_break()
 
     local function set_group() unit.set_group(group.get_value() - 1) end
-    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
+    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=gry_wht,callback=set_group}
 
     auto_div.line_break()
 

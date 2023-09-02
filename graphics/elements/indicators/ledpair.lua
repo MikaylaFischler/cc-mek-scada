@@ -56,16 +56,16 @@ local function indicator_led_pair(args)
 
     -- called by flasher when enabled
     local function flash_callback()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if flash_on then
             if e.value == 2 then
-                e.window.blit("\x8c", c1, e.fg_bg.blit_bkg)
+                e.w_blit("\x8c", c1, e.fg_bg.blit_bkg)
             elseif e.value == 3 then
-                e.window.blit("\x8c", c2, e.fg_bg.blit_bkg)
+                e.w_blit("\x8c", c2, e.fg_bg.blit_bkg)
             end
         else
-            e.window.blit("\x8c", co, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", co, e.fg_bg.blit_bkg)
         end
 
         flash_on = not flash_on
@@ -77,7 +77,7 @@ local function indicator_led_pair(args)
         local was_off = e.value <= 1
 
         e.value = new_state
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if args.flash then
             if was_off and (new_state > 1) then
@@ -87,14 +87,14 @@ local function indicator_led_pair(args)
                 flash_on = false
                 flasher.stop(flash_callback)
 
-                e.window.blit("\x8c", co, e.fg_bg.blit_bkg)
+                e.w_blit("\x8c", co, e.fg_bg.blit_bkg)
             end
         elseif new_state == 2 then
-            e.window.blit("\x8c", c1, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", c1, e.fg_bg.blit_bkg)
         elseif new_state == 3 then
-            e.window.blit("\x8c", c2, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", c2, e.fg_bg.blit_bkg)
         else
-            e.window.blit("\x8c", co, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", co, e.fg_bg.blit_bkg)
         end
     end
 
@@ -105,8 +105,8 @@ local function indicator_led_pair(args)
     -- write label and initial indicator light
     e.on_update(1)
     if string.len(args.label) > 0 then
-        e.window.setCursorPos(3, 1)
-        e.window.write(args.label)
+        e.w_set_cur(3, 1)
+        e.w_write(args.label)
     end
 
     return e.complete()

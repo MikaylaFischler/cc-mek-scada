@@ -47,25 +47,25 @@ local function core_map(args)
 
     -- create coordinate grid and frame
     local function draw_frame()
-        e.window.setTextColor(colors.white)
+        e.w_set_fgd(colors.white)
 
         for x = 0, (inner_width - 1) do
-            e.window.setCursorPos(x + start_x, 1)
-            e.window.write(util.sprintf("%X", x))
+            e.w_set_cur(x + start_x, 1)
+            e.w_write(util.sprintf("%X", x))
         end
 
         for y = 0, (inner_height - 1) do
-            e.window.setCursorPos(1, y + start_y)
-            e.window.write(util.sprintf("%X", y))
+            e.w_set_cur(1, y + start_y)
+            e.w_write(util.sprintf("%X", y))
         end
 
         -- even out bottom edge
-        e.window.setTextColor(e.fg_bg.bkg)
-        e.window.setBackgroundColor(args.parent.get_fg_bg().bkg)
-        e.window.setCursorPos(1, e.frame.h)
-        e.window.write(util.strrep("\x8f", e.frame.w))
-        e.window.setTextColor(e.fg_bg.fgd)
-        e.window.setBackgroundColor(e.fg_bg.bkg)
+        e.w_set_fgd(e.fg_bg.bkg)
+        e.w_set_bkg(args.parent.get_fg_bg().bkg)
+        e.w_set_cur(1, e.frame.h)
+        e.w_write(string.rep("\x8f", e.frame.w))
+        e.w_set_fgd(e.fg_bg.fgd)
+        e.w_set_bkg(e.fg_bg.bkg)
     end
 
     -- draw the core
@@ -102,13 +102,13 @@ local function core_map(args)
 
         -- draw pattern
         for y = start_y, inner_height + (start_y - 1) do
-            e.window.setCursorPos(start_x, y)
+            e.w_set_cur(start_x, y)
             for _ = 1, inner_width do
                 if alternator then
                     i = i + 1
-                    e.window.blit("\x07", text_c, back_c)
+                    e.w_blit("\x07", text_c, back_c)
                 else
-                    e.window.blit("\x07", "7", "8")
+                    e.w_blit("\x07", "7", "8")
                 end
 
                 alternator = not alternator

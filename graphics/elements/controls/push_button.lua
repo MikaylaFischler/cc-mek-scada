@@ -48,16 +48,16 @@ local function push_button(args)
         e.window.clear()
 
         -- write the button text
-        e.window.setCursorPos(h_pad, v_pad)
-        e.window.write(args.text)
+        e.w_set_cur(h_pad, v_pad)
+        e.w_write(args.text)
     end
 
     -- draw the button as pressed (if active_fg_bg set)
     local function show_pressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = true
-            e.window.setTextColor(args.active_fg_bg.fgd)
-            e.window.setBackgroundColor(args.active_fg_bg.bkg)
+            e.w_set_fgd(args.active_fg_bg.fgd)
+            e.w_set_bkg(args.active_fg_bg.bkg)
             draw()
         end
     end
@@ -66,8 +66,8 @@ local function push_button(args)
     local function show_unpressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = false
-            e.window.setTextColor(e.fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
             draw()
         end
     end
@@ -102,8 +102,8 @@ local function push_button(args)
     function e.enable()
         if args.dis_fg_bg ~= nil then
             e.value = false
-            e.window.setTextColor(e.fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
             draw()
         end
     end
@@ -112,8 +112,8 @@ local function push_button(args)
     function e.disable()
         if args.dis_fg_bg ~= nil then
             e.value = false
-            e.window.setTextColor(args.dis_fg_bg.fgd)
-            e.window.setBackgroundColor(args.dis_fg_bg.bkg)
+            e.w_set_fgd(args.dis_fg_bg.fgd)
+            e.w_set_bkg(args.dis_fg_bg.bkg)
             draw()
         end
     end

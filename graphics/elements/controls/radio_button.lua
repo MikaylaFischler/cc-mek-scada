@@ -56,28 +56,28 @@ local function radio_button(args)
         for i = 1, #args.options do
             local opt = args.options[i] ---@type string
 
-            e.window.setCursorPos(1, i)
+            e.w_set_cur(1, i)
 
             if e.value == i then
                 -- show as selected
-                e.window.setTextColor(args.radio_colors.color_a)
-                e.window.setBackgroundColor(args.radio_bg)
+                e.w_set_fgd(args.radio_colors.color_a)
+                e.w_set_bkg(args.radio_bg)
             else
                 -- show as unselected
-                e.window.setTextColor(args.radio_colors.color_b)
-                e.window.setBackgroundColor(args.radio_bg)
+                e.w_set_fgd(args.radio_colors.color_b)
+                e.w_set_bkg(args.radio_bg)
             end
 
-            e.window.write("\x88")
+            e.w_write("\x88")
 
-            e.window.setTextColor(args.radio_bg)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
-            e.window.write("\x95")
+            e.w_set_fgd(args.radio_bg)
+            e.w_set_bkg(e.fg_bg.bkg)
+            e.w_write("\x95")
 
             -- write button text
-            e.window.setTextColor(e.fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
-            e.window.write(opt)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
+            e.w_write(opt)
         end
     end
 

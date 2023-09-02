@@ -23,7 +23,6 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 
 local sprintf = util.sprintf
 
-local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
@@ -31,6 +30,7 @@ local wh_gray = style.wh_gray
 local bw_fg_bg = style.bw_fg_bg
 local text_c = style.text_colors
 local lu_c = style.lu_colors
+local lg_gray = style.lg_gray
 
 local ind_grn = style.ind_grn
 local ind_wht = style.ind_wht
@@ -63,8 +63,6 @@ local function make(parent, x, y, wide, unit)
 
     -- bounding box div
     local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=height}
-
-    local lg_gray = cpair(colors.lightGray, colors.gray)
 
     ------------------
     -- COOLING LOOP --

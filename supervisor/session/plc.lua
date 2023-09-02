@@ -12,7 +12,7 @@ local plc = {}
 
 local PROTOCOL = comms.PROTOCOL
 local RPLC_TYPE = comms.RPLC_TYPE
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
@@ -258,7 +258,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -482,7 +482,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_frame
-            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+            if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -501,7 +501,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
+            elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
             else
@@ -595,7 +595,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        _send_mgmt(MGMT_TYPE.CLOSE, {})
         println("connection to reactor " .. reactor_id .. " PLC closed by server")
         log.info(log_header .. "session closed by server")
     end
@@ -726,7 +726,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
+                _send_mgmt(MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 

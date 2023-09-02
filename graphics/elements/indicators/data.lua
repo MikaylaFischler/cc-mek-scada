@@ -37,12 +37,12 @@ local function data(args)
 
     -- label color
     if args.lu_colors ~= nil then
-        e.window.setTextColor(args.lu_colors.color_a)
+        e.w_set_fgd(args.lu_colors.color_a)
     end
 
     -- write label
-    e.window.setCursorPos(1, 1)
-    e.window.write(args.label)
+    e.w_set_cur(1, 1)
+    e.w_write(args.label)
 
     local value_color = e.fg_bg.fgd
     local label_len   = string.len(args.label)
@@ -60,25 +60,25 @@ local function data(args)
         e.value = value
 
         -- clear old data and label
-        e.window.setCursorPos(data_start, 1)
-        e.window.write(util.spaces(clear_width))
+        e.w_set_cur(data_start, 1)
+        e.w_write(util.spaces(clear_width))
 
         -- write data
         local data_str = util.sprintf(args.format, value)
-        e.window.setCursorPos(data_start, 1)
-        e.window.setTextColor(value_color)
+        e.w_set_cur(data_start, 1)
+        e.w_set_fgd(value_color)
         if args.commas then
-            e.window.write(util.comma_format(data_str))
+            e.w_write(util.comma_format(data_str))
         else
-            e.window.write(data_str)
+            e.w_write(data_str)
         end
 
         -- write label
         if args.unit ~= nil then
             if args.lu_colors ~= nil then
-                e.window.setTextColor(args.lu_colors.color_b)
+                e.w_set_fgd(args.lu_colors.color_b)
             end
-            e.window.write(" " .. args.unit)
+            e.w_write(" " .. args.unit)
         end
     end
 
