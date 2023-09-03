@@ -361,8 +361,14 @@ local function init(main)
     -- statistics --
     ----------------
 
-    TextBox{parent=main,x=145,y=16,text="PROC. WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local pr_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
+    TextBox{parent=main,x=145,y=16,text="RAW WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    local raw_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
+    local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
+
+    sum_raw_waste.register(facility.ps, "burn_sum", sum_raw_waste.update)
+
+    TextBox{parent=main,x=145,y=21,text="PROC. WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    local pr_waste  = Rectangle{parent=main,x=145,y=22,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
     local pu = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
     local po = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Po",unit="mB/t",format="%9.3f",value=0,width=17}
     local popl = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="PoPl",unit="mB/t",format="%7.3f",value=0,width=17}
@@ -371,8 +377,8 @@ local function init(main)
     po.register(facility.ps, "po_rate", po.update)
     popl.register(facility.ps, "po_pl_rate", popl.update)
 
-    TextBox{parent=main,x=145,y=23,text="SPENT WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local sp_waste  = Rectangle{parent=main,x=145,y=24,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
+    TextBox{parent=main,x=145,y=28,text="SPENT WASTE",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    local sp_waste  = Rectangle{parent=main,x=145,y=29,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(facility.ps, "spent_waste_rate", sum_sp_waste.update)
