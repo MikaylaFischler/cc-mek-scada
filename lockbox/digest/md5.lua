@@ -1,5 +1,3 @@
-require("lockbox").insecure();
-
 local Bit = require("lockbox.util.bit");
 local String = require("string");
 local Math = require("math");

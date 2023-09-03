@@ -54,9 +54,9 @@ end
 function coordinator.configure_monitors(num_units, disable_flow_view)
     ---@class monitors_struct
     local monitors = {
-        primary = nil,
+        primary = nil,      ---@type table|nil
         primary_name = "",
-        flow = nil,
+        flow = nil,         ---@type table|nil
         flow_name = "",
         unit_displays = {},
         unit_name_map = {}
