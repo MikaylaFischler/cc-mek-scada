@@ -52,27 +52,27 @@ local function sidebar(args)
 
             local y = ((i - 1) * 3) + 1
 
-            e.window.setCursorPos(1, y)
+            e.w_set_cur(1, y)
 
             if pressed and i == pressed_idx then
-                e.window.setTextColor(e.fg_bg.fgd)
-                e.window.setBackgroundColor(e.fg_bg.bkg)
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
             else
-                e.window.setTextColor(tab.color.fgd)
-                e.window.setBackgroundColor(tab.color.bkg)
+                e.w_set_fgd(tab.color.fgd)
+                e.w_set_bkg(tab.color.bkg)
             end
 
-            e.window.write("   ")
-            e.window.setCursorPos(1, y + 1)
+            e.w_write("   ")
+            e.w_set_cur(1, y + 1)
             if e.value == i then
                 -- show as selected
-                e.window.write(" " .. tab.char .. "\x10")
+                e.w_write(" " .. tab.char .. "\x10")
             else
                 -- show as unselected
-                e.window.write(" " .. tab.char .. " ")
+                e.w_write(" " .. tab.char .. " ")
             end
-            e.window.setCursorPos(1, y + 2)
-            e.window.write("   ")
+            e.w_set_cur(1, y + 2)
+            e.w_write("   ")
         end
     end
 

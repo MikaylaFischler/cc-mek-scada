@@ -44,12 +44,12 @@ local function indicator_led(args)
 
     -- called by flasher when enabled
     local function flash_callback()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if flash_on then
-            e.window.blit("\x8c", args.colors.blit_a, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", args.colors.blit_a, e.fg_bg.blit_bkg)
         else
-            e.window.blit("\x8c", args.colors.blit_b, e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", args.colors.blit_b, e.fg_bg.blit_bkg)
         end
 
         flash_on = not flash_on
@@ -61,8 +61,8 @@ local function indicator_led(args)
             flash_on = true
             flasher.start(flash_callback, args.period)
         else
-            e.window.setCursorPos(1, 1)
-            e.window.blit("\x8c", args.colors.blit_a, e.fg_bg.blit_bkg)
+            e.w_set_cur(1, 1)
+            e.w_blit("\x8c", args.colors.blit_a, e.fg_bg.blit_bkg)
         end
     end
 
@@ -73,8 +73,8 @@ local function indicator_led(args)
             flasher.stop(flash_callback)
         end
 
-        e.window.setCursorPos(1, 1)
-        e.window.blit("\x8c", args.colors.blit_b, e.fg_bg.blit_bkg)
+        e.w_set_cur(1, 1)
+        e.w_blit("\x8c", args.colors.blit_b, e.fg_bg.blit_bkg)
     end
 
     -- on state change
@@ -91,8 +91,8 @@ local function indicator_led(args)
     -- write label and initial indicator light
     e.on_update(false)
     if string.len(args.label) > 0 then
-        e.window.setCursorPos(3, 1)
-        e.window.write(args.label)
+        e.w_set_cur(3, 1)
+        e.w_write(args.label)
     end
 
     return e.complete()

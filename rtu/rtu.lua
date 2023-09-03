@@ -14,7 +14,7 @@ local rtu = {}
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 -- create a new RTU unit
@@ -227,7 +227,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     nic.open(rtu_channel)
 
     -- send a scada management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -243,7 +243,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send(SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
+        _send(MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- generate device advertisement table
@@ -298,25 +298,25 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     function public.close(rtu_state)
         conn_watchdog.cancel()
         public.unlink(rtu_state)
-        _send(SCADA_MGMT_TYPE.CLOSE, {})
+        _send(MGMT_TYPE.CLOSE, {})
     end
 
     -- send establish request (includes advertisement)
     ---@param units table
     function public.send_establish(units)
-        _send(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
+        _send(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
     end
 
     -- send capability advertisement
     ---@param units table
     function public.send_advertisement(units)
-        _send(SCADA_MGMT_TYPE.RTU_ADVERT, _generate_advertisement(units))
+        _send(MGMT_TYPE.RTU_ADVERT, _generate_advertisement(units))
     end
 
     -- notify that a peripheral was remounted
     ---@param unit_index integer RTU unit ID
     function public.send_remounted(unit_index)
-        _send(SCADA_MGMT_TYPE.RTU_DEV_REMOUNT, { unit_index })
+        _send(MGMT_TYPE.RTU_DEV_REMOUNT, { unit_index })
     end
 
     -- parse a MODBUS/SCADA packet
@@ -433,7 +433,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
                 ---@cast packet mgmt_frame
                 -- SCADA management packet
                 if rtu_state.linked then
-                    if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+                    if packet.type == MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]
@@ -449,16 +449,16 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
                         else
                             log.debug("SCADA_MGMT keep alive packet length/type mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
+                    elseif packet.type == MGMT_TYPE.CLOSE then
                         -- close connection
                         conn_watchdog.cancel()
                         public.unlink(rtu_state)
                         println_ts("server connection closed by remote host")
                         log.warning("server connection closed by remote host")
-                    elseif packet.type == SCADA_MGMT_TYPE.RTU_ADVERT then
+                    elseif packet.type == MGMT_TYPE.RTU_ADVERT then
                         -- request for capabilities again
                         public.send_advertisement(units)
-                    elseif packet.type == SCADA_MGMT_TYPE.RTU_TONE_ALARM then
+                    elseif packet.type == MGMT_TYPE.RTU_TONE_ALARM then
                         -- alarm tone update from supervisor
                         if (packet.length == 1) and type(packet.data[1] == "table") and (#packet.data[1] == 8) then
                             local states = packet.data[1]
@@ -474,7 +474,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
                         -- not supported
                         log.debug("received unsupported SCADA_MGMT message type " .. packet.type)
                     end
-                elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                elseif packet.type == MGMT_TYPE.ESTABLISH then
                     if packet.length == 1 then
                         local est_ack = packet.data[1]
 

@@ -375,6 +375,7 @@ types.MODBUS_FCODE = {
 -- MODBUS exception codes
 ---@enum MODBUS_EXCODE
 types.MODBUS_EXCODE = {
+    OK = 0x00,
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDR = 0x02,
     ILLEGAL_DATA_VALUE = 0x03,

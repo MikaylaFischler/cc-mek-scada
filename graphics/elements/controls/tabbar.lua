@@ -71,17 +71,17 @@ local function tabbar(args)
         for i = 1, #args.tabs do
             local tab = args.tabs[i]    ---@type tabbar_tab
 
-            e.window.setCursorPos(tab._start_x, 1)
+            e.w_set_cur(tab._start_x, 1)
 
             if e.value == i then
-                e.window.setTextColor(tab.color.fgd)
-                e.window.setBackgroundColor(tab.color.bkg)
+                e.w_set_fgd(tab.color.fgd)
+                e.w_set_bkg(tab.color.bkg)
             else
-                e.window.setTextColor(e.fg_bg.fgd)
-                e.window.setBackgroundColor(e.fg_bg.bkg)
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
             end
 
-            e.window.write(util.pad(tab.name, button_width))
+            e.w_write(util.pad(tab.name, button_width))
         end
     end
 

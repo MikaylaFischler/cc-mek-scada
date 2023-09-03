@@ -27,11 +27,11 @@ local function vbar(args)
     local e = element.new(args)
 
     -- blit strings
-    local fgd = util.strrep(e.fg_bg.blit_fgd, e.frame.w)
-    local bkg = util.strrep(e.fg_bg.blit_bkg, e.frame.w)
+    local fgd = string.rep(e.fg_bg.blit_fgd, e.frame.w)
+    local bkg = string.rep(e.fg_bg.blit_bkg, e.frame.w)
     local spaces = util.spaces(e.frame.w)
-    local one_third = util.strrep("\x8f", e.frame.w)
-    local two_thirds = util.strrep("\x83", e.frame.w)
+    local one_third = string.rep("\x8f", e.frame.w)
+    local two_thirds = string.rep("\x83", e.frame.w)
 
     -- handle data changes
     ---@param fraction number 0.0 to 1.0
@@ -56,28 +56,28 @@ local function vbar(args)
             local y = e.frame.h
 
             -- start at base of vertical bar
-            e.window.setCursorPos(1, y)
+            e.w_set_cur(1, y)
 
             -- fill percentage
             for _ = 1, num_bars / 3 do
-                e.window.blit(spaces, bkg, fgd)
+                e.w_blit(spaces, bkg, fgd)
                 y = y - 1
-                e.window.setCursorPos(1, y)
+                e.w_set_cur(1, y)
             end
 
             -- add fractional bar if needed
             if num_bars % 3 == 1 then
-                e.window.blit(one_third, bkg, fgd)
+                e.w_blit(one_third, bkg, fgd)
                 y = y - 1
             elseif num_bars % 3 == 2 then
-                e.window.blit(two_thirds, bkg, fgd)
+                e.w_blit(two_thirds, bkg, fgd)
                 y = y - 1
             end
 
             -- fill the rest blank
             while y > 0 do
-                e.window.setCursorPos(1, y)
-                e.window.blit(spaces, fgd, bkg)
+                e.w_set_cur(1, y)
+                e.w_blit(spaces, fgd, bkg)
                 y = y - 1
             end
         end
@@ -86,8 +86,8 @@ local function vbar(args)
     -- change bar color
     ---@param fg_bg cpair new bar colors
     function e.recolor(fg_bg)
-        fgd = util.strrep(fg_bg.blit_fgd, e.frame.w)
-        bkg = util.strrep(fg_bg.blit_bkg, e.frame.w)
+        fgd = string.rep(fg_bg.blit_fgd, e.frame.w)
+        bkg = string.rep(fg_bg.blit_bkg, e.frame.w)
 
         -- re-draw
         last_num_bars = 0

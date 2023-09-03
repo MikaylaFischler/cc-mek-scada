@@ -166,6 +166,31 @@ function element.new(args, child_offset_x, child_offset_y)
         self.bounds.x2 = self.position.x + f.w - 1
         self.bounds.y1 = self.position.y
         self.bounds.y2 = self.position.y + f.h - 1
+
+        -- alias functions
+
+        -- window set cursor position
+        ---@param x integer
+        ---@param y integer
+        function protected.w_set_cur(x, y) protected.window.setCursorPos(x, y) end
+
+        -- set background color
+        ---@param c color
+        function protected.w_set_bkg(c) protected.window.setBackgroundColor(c) end
+
+        -- set foreground (text) color
+        ---@param c color
+        function protected.w_set_fgd(c) protected.window.setTextColor(c) end
+
+        -- write text
+        ---@param str string
+        function protected.w_write(str) protected.window.write(str) end
+
+        -- blit text
+        ---@param str string
+        ---@param fg string
+        ---@param bg string
+        function protected.w_blit(str, fg, bg) protected.window.blit(str, fg, bg) end
     end
 
     -- check if a coordinate relative to the parent is within the bounds of this element

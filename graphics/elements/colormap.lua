@@ -25,8 +25,8 @@ local function colormap(args)
     local e = element.new(args)
 
     -- draw color map
-    e.window.setCursorPos(1, 1)
-    e.window.blit(spaces, bkg, bkg)
+    e.w_set_cur(1, 1)
+    e.w_blit(spaces, bkg, bkg)
 
     return e.complete()
 end

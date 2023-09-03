@@ -18,6 +18,9 @@ local border = core.border
 
 local TEXT_ALIGN = core.TEXT_ALIGN
 
+local text_fg_bg = style.text_colors
+local lu_col = style.lu_colors
+
 -- new induction matrix view
 ---@param root graphics_element parent
 ---@param x integer top left x
@@ -31,14 +34,12 @@ local function new_view(root, x, y, data, ps, id)
 
     local matrix = Div{parent=root,fg_bg=style.root,width=33,height=24,x=x,y=y}
 
-    TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=cpair(colors.lightGray,colors.gray)}
-    TextBox{parent=matrix,text=title,alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.gray)}
+    TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=style.lg_gray}
+    TextBox{parent=matrix,text=title,alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=style.lg_gray}
 
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
 
-    local text_fg_bg = cpair(colors.black, colors.lightGray)
     local label_fg_bg = cpair(colors.gray, colors.lightGray)
-    local lu_col = cpair(colors.gray, colors.gray)
 
     local status   = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
     local energy   = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Energy:  ",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}

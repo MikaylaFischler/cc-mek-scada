@@ -53,17 +53,17 @@ local function alarm_indicator_light(args)
 
     -- called by flasher when enabled
     local function flash_callback()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if flash_on then
             if e.value == 2 then
-                e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
             end
         else
             if e.value == 3 then
-                e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
             else
-                e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
             end
         end
 
@@ -76,7 +76,7 @@ local function alarm_indicator_light(args)
         local was_off = e.value ~= 2
 
         e.value = new_state
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if args.flash then
             if was_off and (new_state == 2) then
@@ -87,17 +87,17 @@ local function alarm_indicator_light(args)
                 flasher.stop(flash_callback)
 
                 if new_state == 3 then
-                    e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                    e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
                 else
-                    e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                    e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
                 end
             end
         elseif new_state == 2 then
-            e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
         elseif new_state == 3 then
-            e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
         else
-            e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
     end
 
@@ -107,7 +107,7 @@ local function alarm_indicator_light(args)
 
     -- write label and initial indicator light
     e.on_update(1)
-    e.window.write(args.label)
+    e.w_write(args.label)
 
     return e.complete()
 end

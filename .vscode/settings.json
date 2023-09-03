@@ -24,6 +24,7 @@
     },
     "Lua.hint.setType": true,
     "Lua.diagnostics.disable": [
-        "duplicate-set-field"
+        "duplicate-set-field",
+        "inject-field"
     ]
 }

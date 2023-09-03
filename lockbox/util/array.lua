@@ -1,4 +1,3 @@
-
 local String = require("string");
 local Bit = require("lockbox.util.bit");
 local Queue = require("lockbox.util.queue");

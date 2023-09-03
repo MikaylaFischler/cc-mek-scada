@@ -75,19 +75,19 @@ local function multi_button(args)
         for i = 1, #args.options do
             local opt = args.options[i] ---@type button_option
 
-            e.window.setCursorPos(opt._start_x, 1)
+            e.w_set_cur(opt._start_x, 1)
 
             if e.value == i then
                 -- show as pressed
-                e.window.setTextColor(opt.active_fg_bg.fgd)
-                e.window.setBackgroundColor(opt.active_fg_bg.bkg)
+                e.w_set_fgd(opt.active_fg_bg.fgd)
+                e.w_set_bkg(opt.active_fg_bg.bkg)
             else
                 -- show as unpressed
-                e.window.setTextColor(opt.fg_bg.fgd)
-                e.window.setBackgroundColor(opt.fg_bg.bkg)
+                e.w_set_fgd(opt.fg_bg.fgd)
+                e.w_set_bkg(opt.fg_bg.bkg)
             end
 
-            e.window.write(util.pad(opt.text, button_width))
+            e.w_write(util.pad(opt.text, button_width))
         end
     end
 

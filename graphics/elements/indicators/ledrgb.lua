@@ -37,9 +37,9 @@ local function indicator_led_rgb(args)
     ---@param new_state integer indicator state
     function e.on_update(new_state)
         e.value = new_state
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
         if type(args.colors[new_state]) == "number" then
-            e.window.blit("\x8c", colors.toBlit(args.colors[new_state]), e.fg_bg.blit_bkg)
+            e.w_blit("\x8c", colors.toBlit(args.colors[new_state]), e.fg_bg.blit_bkg)
         end
     end
 
@@ -50,8 +50,8 @@ local function indicator_led_rgb(args)
     -- write label and initial indicator light
     e.on_update(1)
     if string.len(args.label) > 0 then
-        e.window.setCursorPos(3, 1)
-        e.window.write(args.label)
+        e.w_set_cur(3, 1)
+        e.w_write(args.label)
     end
 
     return e.complete()

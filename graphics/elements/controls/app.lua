@@ -36,9 +36,8 @@ local function app_button(args)
     local e = element.new(args)
 
     -- write app title, centered
-    e.window.setCursorPos(1, 4)
-    e.window.setCursorPos(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
-    e.window.write(args.title)
+    e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
+    e.w_write(args.title)
 
     -- draw the app button
     local function draw()
@@ -51,36 +50,36 @@ local function app_button(args)
         end
 
         -- draw icon
-        e.window.setCursorPos(1, 1)
-        e.window.setTextColor(fgd)
-        e.window.setBackgroundColor(bkg)
-        e.window.write("\x9f\x83\x83\x83")
-        e.window.setTextColor(bkg)
-        e.window.setBackgroundColor(fgd)
-        e.window.write("\x90")
-        e.window.setTextColor(fgd)
-        e.window.setBackgroundColor(bkg)
-        e.window.setCursorPos(1, 2)
-        e.window.write("\x95   ")
-        e.window.setTextColor(bkg)
-        e.window.setBackgroundColor(fgd)
-        e.window.write("\x95")
-        e.window.setCursorPos(1, 3)
-        e.window.write("\x82\x8f\x8f\x8f\x81")
+        e.w_set_cur(1, 1)
+        e.w_set_fgd(fgd)
+        e.w_set_bkg(bkg)
+        e.w_write("\x9f\x83\x83\x83")
+        e.w_set_fgd(bkg)
+        e.w_set_bkg(fgd)
+        e.w_write("\x90")
+        e.w_set_fgd(fgd)
+        e.w_set_bkg(bkg)
+        e.w_set_cur(1, 2)
+        e.w_write("\x95   ")
+        e.w_set_fgd(bkg)
+        e.w_set_bkg(fgd)
+        e.w_write("\x95")
+        e.w_set_cur(1, 3)
+        e.w_write("\x82\x8f\x8f\x8f\x81")
 
         -- write the icon text
-        e.window.setCursorPos(3, 2)
-        e.window.setTextColor(fgd)
-        e.window.setBackgroundColor(bkg)
-        e.window.write(args.text)
+        e.w_set_cur(3, 2)
+        e.w_set_fgd(fgd)
+        e.w_set_bkg(bkg)
+        e.w_write(args.text)
     end
 
     -- draw the app button as pressed (if active_fg_bg set)
     local function show_pressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = true
-            e.window.setTextColor(args.active_fg_bg.fgd)
-            e.window.setBackgroundColor(args.active_fg_bg.bkg)
+            e.w_set_fgd(args.active_fg_bg.fgd)
+            e.w_set_bkg(args.active_fg_bg.bkg)
             draw()
         end
     end
@@ -89,8 +88,8 @@ local function app_button(args)
     local function show_unpressed()
         if e.enabled and args.active_fg_bg ~= nil then
             e.value = false
-            e.window.setTextColor(e.fg_bg.fgd)
-            e.window.setBackgroundColor(e.fg_bg.bkg)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
             draw()
         end
     end
