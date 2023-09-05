@@ -30,6 +30,8 @@ events.CLICK_TYPE = {
 ---@return coordinate_2d
 local function _coord2d(x, y) return { x = x, y = y } end
 
+events.new_coord_2d = _coord2d
+
 ---@class mouse_interaction
 ---@field monitor string
 ---@field button CLICK_BUTTON
@@ -39,11 +41,7 @@ local function _coord2d(x, y) return { x = x, y = y } end
 
 local handler = {
     -- left, right, middle button down tracking
-    button_down = {
-        _coord2d(0, 0),
-        _coord2d(0, 0),
-        _coord2d(0, 0)
-    }
+    button_down = { _coord2d(0, 0), _coord2d(0, 0), _coord2d(0, 0) }
 }
 
 -- create a new monitor touch mouse interaction event

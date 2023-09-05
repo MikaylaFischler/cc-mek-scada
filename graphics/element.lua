@@ -4,6 +4,8 @@
 
 local core = require("graphics.core")
 
+local events = core.events
+
 local element = {}
 
 ---@class graphics_args_generic
@@ -75,6 +77,7 @@ function element.new(args, child_offset_x, child_offset_y)
         next_y = 1,                                     -- next child y coordinate
         next_id = 0,                                    -- next child ID
         subscriptions = {},
+        button_down = { events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1) },
         mt = {}
     }
 
@@ -550,12 +553,24 @@ function element.new(args, child_offset_x, child_offset_y)
             local ini_in = protected.in_window_bounds(x_ini, y_ini)
 
             if ini_in then
-                local event_T = core.events.mouse_transposed(event, self.position.x, self.position.y)
+                if event.type == events.CLICK_TYPE.UP or event.type == events.CLICK_TYPE.DRAG then
+                    -- make sure we don't handle mouse events that started before this element was made visible
+                    if (event.initial.x ~= self.button_down[event.button].x) or (event.initial.y ~= self.button_down[event.button].y) then
+                        return
+                    end
+                elseif event.type == events.CLICK_TYPE.DOWN then
+                    self.button_down[event.button] = event.initial
+                end
+
+                local event_T = events.mouse_transposed(event, self.position.x, self.position.y)
 
                 -- handle the mouse event then pass to children
                 protected.handle_mouse(event_T)
                 for _, child in pairs(protected.children) do child.handle_mouse(event_T) end
             end
+        elseif event.type == events.CLICK_TYPE.DOWN then
+            -- don't track this click
+            self.button_down[event.button] = events.new_coord_2d(-1, -1)
         end
     end
 
