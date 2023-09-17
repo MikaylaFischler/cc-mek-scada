@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class listbox_args
 ---@field scroll_height integer height of internal scrolling container (must fit all elements vertically tiled)
@@ -223,7 +223,7 @@ local function listbox(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP then
+            if event.type == MOUSE_CLICK.TAP then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
                         draw_arrows(1)
@@ -235,7 +235,7 @@ local function listbox(args)
                         if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
                     end
                 end
-            elseif event.type == CLICK_TYPE.DOWN then
+            elseif event.type == MOUSE_CLICK.DOWN then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
                         draw_arrows(1)
@@ -250,10 +250,10 @@ local function listbox(args)
                         mouse_last_y = event.current.y
                     end
                 end
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 holding_bar = false
                 draw_arrows(0)
-            elseif event.type == CLICK_TYPE.DRAG then
+            elseif event.type == MOUSE_CLICK.DRAG then
                 if holding_bar then
                     -- if mouse is within vertical frame, including the grip point
                     if event.current.y > (1 + bar_grip_pos) and event.current.y <= ((e.frame.h - bar_height) + bar_grip_pos) then
@@ -266,9 +266,9 @@ local function listbox(args)
                         mouse_last_y = event.current.y
                     end
                 end
-            elseif event.type == CLICK_TYPE.SCROLL_DOWN then
+            elseif event.type == MOUSE_CLICK.SCROLL_DOWN then
                 scroll_down()
-            elseif event.type == CLICK_TYPE.SCROLL_UP then
+            elseif event.type == MOUSE_CLICK.SCROLL_UP then
                 scroll_up()
             end
         end

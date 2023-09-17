@@ -5,7 +5,8 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
+local KEY_CLICK = core.events.KEY_CLICK
 
 ---@class push_button_args
 ---@field text string button text
@@ -32,7 +33,8 @@ local function push_button(args)
 
     local text_width = string.len(args.text)
 
-    -- single line height, calculate width
+    -- set automatic settings
+    args.can_focus = true
     args.height = 1
     args.min_width = args.min_width or 0
     args.width = math.max(text_width, args.min_width)
@@ -76,14 +78,14 @@ local function push_button(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP then
+            if event.type == MOUSE_CLICK.TAP then
                 show_pressed()
                 -- show as unpressed in 0.25 seconds
                 if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_unpressed) end
                 args.callback()
-            elseif event.type == CLICK_TYPE.DOWN then
+            elseif event.type == MOUSE_CLICK.DOWN then
                 show_pressed()
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 show_unpressed()
                 if e.in_frame_bounds(event.current.x, event.current.y) then
                     args.callback()
@@ -92,10 +94,21 @@ local function push_button(args)
         end
     end
 
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if event.type == KEY_CLICK.DOWN then
+            if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
+                args.callback()
+                e.defocus()
+            end
+        end
+    end
+
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
     -- show butten as enabled
@@ -117,6 +130,9 @@ local function push_button(args)
             draw()
         end
     end
+
+    e.on_focused = show_pressed
+    e.on_unfocused = show_unpressed
 
     -- initial draw
     draw()

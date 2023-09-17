@@ -19,6 +19,7 @@ local element = {}
 ---@field gframe? graphics_frame frame instead of x/y/width/height
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
+---@field can_focus? boolean true if this element can be focused, false by default
 
 ---@alias graphics_args graphics_args_generic
 ---|waiting_args
@@ -32,6 +33,7 @@ local element = {}
 ---|spinbox_args
 ---|switch_button_args
 ---|tabbar_args
+---|number_field_args
 ---|alarm_indicator_light
 ---|core_map_args
 ---|data_indicator_args
@@ -69,6 +71,7 @@ local element = {}
 function element.new(args, child_offset_x, child_offset_y)
     local self = {
         id = nil,                                       ---@type element_id|nil
+        is_root = args.parent == nil,
         elem_type = debug.getinfo(2).name,
         define_completed = false,
         p_window = nil,                                 ---@type table
@@ -78,6 +81,7 @@ function element.new(args, child_offset_x, child_offset_y)
         next_id = 0,                                    -- next child ID
         subscriptions = {},
         button_down = { events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1) },
+        focused = false,
         mt = {}
     }
 
@@ -89,7 +93,8 @@ function element.new(args, child_offset_x, child_offset_y)
         content_window = nil,   ---@type table|nil
         fg_bg = core.cpair(colors.white, colors.black),
         frame = core.gframe(1, 1, 1, 1),
-        children = {}
+        children = {},
+        child_id_map = {}
     }
 
     local name_brief = "graphics.element{" .. self.elem_type .. "}: "
@@ -103,6 +108,69 @@ function element.new(args, child_offset_x, child_offset_y)
     local public = {}
 
     setmetatable(public, self.mt)
+
+    -----------------------
+    -- PRIVATE FUNCTIONS --
+    -----------------------
+
+    -- use tab to jump to the next focusable field
+    ---@param reverse boolean
+    local function _tab_focusable(reverse)
+        local first_f = nil ---@type graphics_element|nil
+        local prev_f = nil  ---@type graphics_element|nil
+        local cur_f = nil   ---@type graphics_element|nil
+        local done = false
+
+        ---@param elem graphics_element
+        local function handle_element(elem)
+            if elem.is_visible() and elem.is_focusable() and elem.is_enabled() then
+                if first_f == nil then first_f = elem end
+
+                if cur_f == nil then
+                    if elem.is_focused() then
+                        cur_f = elem
+                        if (not done) and (reverse and prev_f ~= nil) then
+                            cur_f.unfocus()
+                            prev_f.focus()
+                            done = true
+                        end
+                    end
+                else
+                    if elem.is_focused() then
+                        elem.unfocus()
+                    elseif not (reverse or done) then
+                        cur_f.unfocus()
+                        elem.focus()
+                        done = true
+                    end
+                end
+
+                prev_f = elem
+            end
+        end
+
+        ---@param children table
+        local function traverse(children)
+            for i = 1, #children do
+                local child = children[i]   ---@type graphics_base
+                handle_element(child.get())
+                if child.get().is_visible() then traverse(child.children) end
+            end
+        end
+
+        traverse(protected.children)
+
+        -- if no element was focused, wrap focus
+        if first_f ~= nil and not done then
+            if reverse then
+                if cur_f ~= nil then cur_f.unfocus() end
+                if prev_f ~= nil then prev_f.focus() end
+            else
+                if cur_f ~= nil then cur_f.unfocus() end
+                first_f.focus()
+            end
+        end
+    end
 
     -------------------------
     -- PROTECTED FUNCTIONS --
@@ -214,85 +282,6 @@ function element.new(args, child_offset_x, child_offset_y)
         return in_x and in_y
     end
 
--- luacheck: push ignore
----@diagnostic disable: unused-local, unused-vararg
-
-    -- handle a child element having been added
-    ---@param id element_id element identifier
-    ---@param child graphics_element child element
-    function protected.on_added(id, child)
-    end
-
-    -- handle a child element having been removed
-    ---@param id element_id element identifier
-    function protected.on_removed(id)
-    end
-
-    -- handle a mouse event
-    ---@param event mouse_interaction mouse interaction event
-    function protected.handle_mouse(event)
-    end
-
-    -- handle data value changes
-    ---@vararg any value(s)
-    function protected.on_update(...)
-    end
-
-    -- callback on control press responses
-    ---@param result any
-    function protected.response_callback(result)
-    end
-
-    -- get value
-    ---@nodiscard
-    function protected.get_value()
-        return protected.value
-    end
-
-    -- set value
-    ---@param value any value to set
-    function protected.set_value(value)
-    end
-
-    -- set minimum input value
-    ---@param min integer minimum allowed value
-    function protected.set_min(min)
-    end
-
-    -- set maximum input value
-    ---@param max integer maximum allowed value
-    function protected.set_max(max)
-    end
-
-    -- enable the control
-    function protected.enable()
-    end
-
-    -- disable the control
-    function protected.disable()
-    end
-
-    -- custom recolor command, varies by element if implemented
-    ---@vararg cpair|color color(s)
-    function protected.recolor(...)
-    end
-
-    -- custom resize command, varies by element if implemented
-    ---@vararg integer sizing
-    function protected.resize(...)
-    end
-
--- luacheck: pop
----@diagnostic enable: unused-local, unused-vararg
-
-    -- start animations
-    function protected.start_anim()
-    end
-
-    -- stop animations
-    function protected.stop_anim()
-    end
-
     -- get public interface
     ---@nodiscard
     ---@return graphics_element element, element_id id
@@ -305,6 +294,98 @@ function element.new(args, child_offset_x, child_offset_y)
         if args.parent ~= nil then args.parent.__child_ready(self.id, public) end
         return public, self.id
     end
+
+    -- protected version of public is_focused()
+    ---@nodiscard
+    ---@return boolean is_focused
+    function protected.is_focused() return self.focused end
+
+    -- defocus this element
+    function protected.defocus() public.unfocus_all() end
+
+    -- request focus management to focus this element
+    function protected.req_focus() args.parent.__focus_child(public) end
+
+    -- action handlers --
+
+-- luacheck: push ignore
+---@diagnostic disable: unused-local, unused-vararg
+
+    -- handle a child element having been added
+    ---@param id element_id element identifier
+    ---@param child graphics_element child element
+    function protected.on_added(id, child) end
+
+    -- handle a child element having been removed
+    ---@param id element_id element identifier
+    function protected.on_removed(id) end
+
+    -- handle this element having been focused
+    function protected.on_focused() end
+
+    -- handle this element having been unfocused
+    function protected.on_unfocused() end
+
+    -- handle this element having been shown
+    function protected.on_shown() end
+
+    -- handle this element having been hidden
+    function protected.on_hidden() end
+
+    -- handle a mouse event
+    ---@param event mouse_interaction mouse interaction event
+    function protected.handle_mouse(event) end
+
+    -- handle a keyboard event
+    ---@param event key_interaction key interaction event
+    function protected.handle_key(event) end
+
+    -- handle data value changes
+    ---@vararg any value(s)
+    function protected.on_update(...) end
+
+    -- callback on control press responses
+    ---@param result any
+    function protected.response_callback(result) end
+
+    -- get value
+    ---@nodiscard
+    function protected.get_value() return protected.value end
+
+    -- set value
+    ---@param value any value to set
+    function protected.set_value(value) end
+
+    -- set minimum input value
+    ---@param min integer minimum allowed value
+    function protected.set_min(min) end
+
+    -- set maximum input value
+    ---@param max integer maximum allowed value
+    function protected.set_max(max) end
+
+    -- enable the control
+    function protected.enable() end
+
+    -- disable the control
+    function protected.disable() end
+
+    -- custom recolor command, varies by element if implemented
+    ---@vararg cpair|color color(s)
+    function protected.recolor(...) end
+
+    -- custom resize command, varies by element if implemented
+    ---@vararg integer sizing
+    function protected.resize(...) end
+
+-- luacheck: pop
+---@diagnostic enable: unused-local, unused-vararg
+
+    -- start animations
+    function protected.start_anim() end
+
+    -- stop animations
+    function protected.stop_anim() end
 
     -----------
     -- SETUP --
@@ -324,7 +405,7 @@ function element.new(args, child_offset_x, child_offset_y)
         self.id = args.id or "__ROOT__"
         protected.prepare_template(0, 0, 1)
     else
-        self.id = args.parent.__add_child(args.id, protected)
+        self.id, self.ordinal = args.parent.__add_child(args.id, protected)
     end
 
     ----------------------
@@ -358,7 +439,7 @@ function element.new(args, child_offset_x, child_offset_y)
 
         -- delete all children
         for k, v in pairs(protected.children) do
-            v.delete()
+            v.get().delete()
             protected.children[k] = nil
         end
 
@@ -380,47 +461,59 @@ function element.new(args, child_offset_x, child_offset_y)
 
         self.next_y = child.frame.y + child.frame.h
 
-        local child_element = child.get()
-
         local id = key  ---@type string|integer|nil
         if id == nil then
             id = self.next_id
             self.next_id = self.next_id + 1
         end
 
-        protected.children[id] = child_element
+        table.insert(protected.children, child)
+
+        protected.child_id_map[id] = #protected.children
+
         return id
     end
 
     -- remove a child element
-    ---@param key element_id id
-    function public.__remove_child(key)
-        if protected.children[key] ~= nil then
-            protected.on_removed(key)
-            protected.children[key] = nil
+    ---@param id element_id id
+    function public.__remove_child(id)
+        local index = protected.child_id_map[id]
+        if protected.children[index] ~= nil then
+            protected.on_removed(id)
+            protected.children[index] = nil
+            protected.child_id_map[id] = nil
         end
     end
 
     -- actions to take upon a child element becoming ready (initial draw/construction completed)
     ---@param key element_id id
     ---@param child graphics_element
-    function public.__child_ready(key, child)
-        protected.on_added(key, child)
+    function public.__child_ready(key, child) protected.on_added(key, child) end
+
+    -- focus solely on this child
+    ---@param child graphics_element
+    function public.__focus_child(child)
+        if self.is_root then
+            public.unfocus_all()
+            child.focus()
+        else args.parent.__focus_child(child) end
     end
 
     -- get a child element
     ---@nodiscard
     ---@param id element_id
     ---@return graphics_element
-    function public.get_child(id) return protected.children[id] end
+    function public.get_child(id) return protected.children[protected.child_id_map[id]].get() end
 
     -- remove a child element
     ---@param id element_id
     function public.remove(id)
-        if protected.children[id] ~= nil then
-            protected.children[id].delete()
+        local index = protected.child_id_map[id]
+        if protected.children[index] ~= nil then
+            protected.children[index].get().delete()
             protected.on_removed(id)
-            protected.children[id] = nil
+            protected.children[index] = nil
+            protected.child_id_map[id] = nil
         end
     end
 
@@ -429,16 +522,13 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param id element_id
     ---@return graphics_element|nil element
     function public.get_element_by_id(id)
-        if protected.children[id] == nil then
+        local index = protected.child_id_map[id]
+        if protected.children[index] == nil then
             for _, child in pairs(protected.children) do
-                local elem = child.get_element_by_id(id)
+                local elem = child.get().get_element_by_id(id)
                 if elem ~= nil then return elem end
             end
-        else
-            return protected.children[id]
-        end
-
-        return nil
+        else return protected.children[index].get() end
     end
 
     -- AUTO-PLACEMENT --
@@ -450,97 +540,113 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- PROPERTIES --
 
-    -- get the foreground/background colors
+    -- get element id
     ---@nodiscard
-    ---@return cpair fg_bg
-    function public.get_fg_bg()
-        return protected.fg_bg
-    end
+    ---@return element_id
+    function public.get_id() return self.id end
 
     -- get element x
     ---@nodiscard
     ---@return integer x
-    function public.get_x()
-        return protected.frame.x
-    end
+    function public.get_x() return protected.frame.x end
 
     -- get element y
     ---@nodiscard
     ---@return integer y
-    function public.get_y()
-        return protected.frame.y
-    end
+    function public.get_y() return protected.frame.y end
 
     -- get element width
     ---@nodiscard
     ---@return integer width
-    function public.get_width()
-        return protected.frame.w
-    end
+    function public.get_width() return protected.frame.w end
 
     -- get element height
     ---@nodiscard
     ---@return integer height
-    function public.get_height()
-        return protected.frame.h
-    end
+    function public.get_height() return protected.frame.h end
+
+    -- get the foreground/background colors
+    ---@nodiscard
+    ---@return cpair fg_bg
+    function public.get_fg_bg() return protected.fg_bg end
 
     -- get the element value
     ---@nodiscard
     ---@return any value
-    function public.get_value()
-        return protected.get_value()
-    end
+    function public.get_value() return protected.get_value() end
 
     -- set the element value
     ---@param value any new value
-    function public.set_value(value)
-        protected.set_value(value)
-    end
+    function public.set_value(value) protected.set_value(value) end
 
     -- set minimum input value
     ---@param min integer minimum allowed value
-    function public.set_min(min)
-        protected.set_min(min)
-    end
+    function public.set_min(min) protected.set_min(min) end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
-    function public.set_max(max)
-        protected.set_max(max)
-    end
+    function public.set_max(max) protected.set_max(max) end
+
+    -- check if this element is enabled
+    function public.is_enabled() return protected.enabled end
 
     -- enable the element
     function public.enable()
-        protected.enabled = true
-        protected.enable()
+        if not protected.enabled then
+            protected.enabled = true
+            protected.enable()
+        end
     end
 
     -- disable the element
     function public.disable()
-        protected.enabled = false
-        protected.disable()
+        if protected.enabled then
+            protected.enabled = false
+            protected.disable()
+        end
+    end
+
+    -- can this element be focused
+    function public.is_focusable() return args.can_focus end
+
+    -- is this element focused
+    function public.is_focused() return self.focused end
+
+    -- focus the element
+    function public.focus()
+        if args.can_focus and not self.focused then
+            self.focused = true
+            protected.on_focused()
+        end
+    end
+
+    -- unfocus this element
+    function public.unfocus()
+        if args.can_focus and self.focused then
+            self.focused = false
+            protected.on_unfocused()
+        end
+    end
+
+    -- unfocus this element and all its children
+    function public.unfocus_all()
+        public.unfocus()
+        for _, child in pairs(protected.children) do child.get().unfocus() end
     end
 
     -- custom recolor command, varies by element if implemented
     ---@vararg cpair|color color(s)
-    function public.recolor(...)
-        protected.recolor(...)
-    end
+    function public.recolor(...) protected.recolor(...) end
 
     -- resize attributes of the element value if supported
     ---@vararg number dimensions (element specific)
-    function public.resize(...)
-        protected.resize(...)
-    end
+    function public.resize(...) protected.resize(...) end
 
     -- reposition the element window<br>
     -- offsets relative to parent frame are where (1, 1) would be on top of the parent's top left corner
     ---@param x integer x position relative to parent frame
     ---@param y integer y position relative to parent frame
-    function public.reposition(x, y)
-        protected.window.reposition(x, y)
-    end
+    function public.reposition(x, y) protected.window.reposition(x, y) end
 
     -- FUNCTION CALLBACKS --
 
@@ -553,12 +659,12 @@ function element.new(args, child_offset_x, child_offset_y)
             local ini_in = protected.in_window_bounds(x_ini, y_ini)
 
             if ini_in then
-                if event.type == events.CLICK_TYPE.UP or event.type == events.CLICK_TYPE.DRAG then
+                if event.type == events.MOUSE_CLICK.UP or event.type == events.MOUSE_CLICK.DRAG then
                     -- make sure we don't handle mouse events that started before this element was made visible
                     if (event.initial.x ~= self.button_down[event.button].x) or (event.initial.y ~= self.button_down[event.button].y) then
                         return
                     end
-                elseif event.type == events.CLICK_TYPE.DOWN then
+                elseif event.type == events.MOUSE_CLICK.DOWN then
                     self.button_down[event.button] = event.initial
                 end
 
@@ -566,25 +672,39 @@ function element.new(args, child_offset_x, child_offset_y)
 
                 -- handle the mouse event then pass to children
                 protected.handle_mouse(event_T)
-                for _, child in pairs(protected.children) do child.handle_mouse(event_T) end
+                for _, child in pairs(protected.children) do child.get().handle_mouse(event_T) end
+            elseif event.type == events.MOUSE_CLICK.DOWN or event.type == events.MOUSE_CLICK.TAP then
+                -- clicked out, unfocus this element and children
+                public.unfocus_all()
             end
-        elseif event.type == events.CLICK_TYPE.DOWN then
-            -- don't track this click
+        else
+            -- don't track clicks while hidden
             self.button_down[event.button] = events.new_coord_2d(-1, -1)
+        end
+    end
+
+    -- handle a keyboard click if this element is visible and focused
+    ---@param event key_interaction keyboard interaction event
+    function public.handle_key(event)
+        if protected.window.isVisible() then
+            if self.is_root and (event.type == events.KEY_CLICK.DOWN) and (event.key == keys.tab) then
+                -- try to jump to the next/previous focusable field
+                _tab_focusable(event.shift)
+            else
+                -- handle the key event then pass to children
+                if self.focused then protected.handle_key(event) end
+                for _, child in pairs(protected.children) do child.get().handle_key(event) end
+            end
         end
     end
 
     -- draw the element given new data
     ---@vararg any new data
-    function public.update(...)
-        protected.on_update(...)
-    end
+    function public.update(...) protected.on_update(...) end
 
     -- on a control request response
     ---@param result any
-    function public.on_response(result)
-        protected.response_callback(result)
-    end
+    function public.on_response(result) protected.response_callback(result) end
 
     -- register a callback with a PSIL, allowing for automatic unregister on delete<br>
     -- do not use graphics elements directly with PSIL subscribe()
@@ -598,6 +718,9 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- VISIBILITY & ANIMATIONS --
 
+    -- check if this element is visible
+    function public.is_visible() return protected.window.isVisible() end
+
     -- show the element and enables animations by default
     ---@param animate? boolean true (default) to automatically resume animations
     function public.show(animate)
@@ -610,44 +733,39 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@see graphics_element.content_redraw
     function public.hide()
         public.freeze_all() -- stop animations for efficiency/performance
+        public.unfocus_all()
         protected.window.setVisible(false)
     end
 
     -- start/resume animation(s)
-    function public.animate()
-        protected.start_anim()
-    end
+    function public.animate() protected.start_anim() end
 
     -- start/resume animation(s) for this element and all its children<br>
     -- only animates if a window is visible
     function public.animate_all()
         if protected.window.isVisible() then
             public.animate()
-            for _, child in pairs(protected.children) do child.animate_all() end
+            for _, child in pairs(protected.children) do child.get().animate_all() end
         end
     end
 
     -- freeze animation(s)
-    function public.freeze()
-        protected.stop_anim()
-    end
+    function public.freeze() protected.stop_anim() end
 
     -- freeze animation(s) for this element and all its children
     function public.freeze_all()
         public.freeze()
-        for _, child in pairs(protected.children) do child.freeze_all() end
+        for _, child in pairs(protected.children) do child.get().freeze_all() end
     end
 
     -- re-draw the element
-    function public.redraw()
-        protected.window.redraw()
-    end
+    function public.redraw() protected.window.redraw() end
 
     -- if a content window is set, clears it then re-draws all children
     function public.content_redraw()
         if protected.content_window ~= nil then
             protected.content_window.clear()
-            for _, child in pairs(protected.children) do child.redraw() end
+            for _, child in pairs(protected.children) do child.get().redraw() end
         end
     end
 

@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "1.1.3"
+core.version = "2.0.0"
 
 core.flasher = flasher
 core.events = events
@@ -15,11 +15,7 @@ core.events = events
 -- Core Types
 
 ---@enum TEXT_ALIGN
-core.TEXT_ALIGN = {
-    LEFT = 1,
-    CENTER = 2,
-    RIGHT = 3
-}
+core.TEXT_ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
 
 ---@class graphics_border
 ---@field width integer
@@ -73,15 +69,9 @@ end
 function core.cpair(a, b)
     return {
         -- color pairs
-        color_a = a,
-        color_b = b,
-        blit_a = colors.toBlit(a),
-        blit_b = colors.toBlit(b),
+        color_a = a, color_b = b, blit_a = colors.toBlit(a), blit_b = colors.toBlit(b),
         -- aliases
-        fgd = a,
-        bkg = b,
-        blit_fgd = colors.toBlit(a),
-        blit_bkg = colors.toBlit(b)
+        fgd = a, bkg = b, blit_fgd = colors.toBlit(a), blit_bkg = colors.toBlit(b)
     }
 end
 

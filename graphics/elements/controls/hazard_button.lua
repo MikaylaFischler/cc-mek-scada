@@ -174,7 +174,7 @@ local function hazard_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
     -- show the button as disabled

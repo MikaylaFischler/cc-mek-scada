@@ -14,8 +14,8 @@ events.CLICK_BUTTON = {
     MID_BUTTON = 3
 }
 
----@enum CLICK_TYPE
-events.CLICK_TYPE = {
+---@enum MOUSE_CLICK
+local MOUSE_CLICK = {
     TAP = 1,            -- screen tap (complete click)
     DOWN = 2,           -- button down
     UP = 3,             -- button up (completed a click)
@@ -23,6 +23,18 @@ events.CLICK_TYPE = {
     SCROLL_DOWN = 5,    -- scroll down
     SCROLL_UP = 6       -- scroll up
 }
+
+events.MOUSE_CLICK = MOUSE_CLICK
+
+---@enum KEY_CLICK
+local KEY_CLICK = {
+    DOWN = 1,
+    HELD = 2,
+    UP = 3,
+    CHAR = 4
+}
+
+events.KEY_CLICK = KEY_CLICK
 
 -- create a new 2D coordinate
 ---@param x integer
@@ -35,13 +47,25 @@ events.new_coord_2d = _coord2d
 ---@class mouse_interaction
 ---@field monitor string
 ---@field button CLICK_BUTTON
----@field type CLICK_TYPE
+---@field type MOUSE_CLICK
 ---@field initial coordinate_2d
 ---@field current coordinate_2d
 
+---@class key_interaction
+---@field type KEY_CLICK
+---@field key number key code
+---@field name string key character name
+---@field shift boolean shift held
+---@field ctrl boolean ctrl held
+---@field alt boolean alt held
+
 local handler = {
     -- left, right, middle button down tracking
-    button_down = { _coord2d(0, 0), _coord2d(0, 0), _coord2d(0, 0) }
+    button_down = { _coord2d(0, 0), _coord2d(0, 0), _coord2d(0, 0) },
+    -- keyboard modifiers
+    shift = false,
+    alt = false,
+    ctrl = false
 }
 
 -- create a new monitor touch mouse interaction event
@@ -54,7 +78,7 @@ local function _monitor_touch(monitor, x, y)
     return {
         monitor = monitor,
         button = events.CLICK_BUTTON.GENERIC,
-        type = events.CLICK_TYPE.TAP,
+        type = MOUSE_CLICK.TAP,
         initial = _coord2d(x, y),
         current = _coord2d(x, y)
     }
@@ -63,7 +87,7 @@ end
 -- create a new mouse button mouse interaction event
 ---@nodiscard
 ---@param button CLICK_BUTTON mouse button
----@param type CLICK_TYPE click type
+---@param type MOUSE_CLICK click type
 ---@param x1 integer initial x
 ---@param y1 integer initial y
 ---@param x2 integer current x
@@ -81,7 +105,7 @@ end
 
 -- create a new generic mouse interaction event
 ---@nodiscard
----@param type CLICK_TYPE
+---@param type MOUSE_CLICK
 ---@param x integer
 ---@param y integer
 ---@return mouse_interaction
@@ -113,8 +137,8 @@ end
 
 -- check if an event qualifies as a click (tap or up)
 ---@nodiscard
----@param t CLICK_TYPE
-function events.was_clicked(t) return t == events.CLICK_TYPE.TAP or t == events.CLICK_TYPE.UP end
+---@param t MOUSE_CLICK
+function events.was_clicked(t) return t == MOUSE_CLICK.TAP or t == MOUSE_CLICK.UP end
 
 -- create a new mouse event to pass onto graphics renderer<br>
 -- supports: mouse_click, mouse_up, mouse_drag, mouse_scroll, and monitor_touch
@@ -127,32 +151,65 @@ function events.new_mouse_event(event_type, opt, x, y)
     if event_type == "mouse_click" then
         ---@cast opt 1|2|3
         handler.button_down[opt] = _coord2d(x, y)
-        return _mouse_event(opt, events.CLICK_TYPE.DOWN, x, y, x, y)
+        return _mouse_event(opt, MOUSE_CLICK.DOWN, x, y, x, y)
     elseif event_type == "mouse_up" then
         ---@cast opt 1|2|3
         local initial = handler.button_down[opt]    ---@type coordinate_2d
-        return _mouse_event(opt, events.CLICK_TYPE.UP, initial.x, initial.y, x, y)
+        return _mouse_event(opt, MOUSE_CLICK.UP, initial.x, initial.y, x, y)
     elseif event_type == "monitor_touch" then
         ---@cast opt string
         return _monitor_touch(opt, x, y)
     elseif event_type == "mouse_drag" then
         ---@cast opt 1|2|3
         local initial = handler.button_down[opt]    ---@type coordinate_2d
-        return _mouse_event(opt, events.CLICK_TYPE.DRAG, initial.x, initial.y, x, y)
+        return _mouse_event(opt, MOUSE_CLICK.DRAG, initial.x, initial.y, x, y)
     elseif event_type == "mouse_scroll" then
         ---@cast opt 1|-1
-        local scroll_direction = util.trinary(opt == 1, events.CLICK_TYPE.SCROLL_DOWN, events.CLICK_TYPE.SCROLL_UP)
+        local scroll_direction = util.trinary(opt == 1, MOUSE_CLICK.SCROLL_DOWN, MOUSE_CLICK.SCROLL_UP)
         return _mouse_event(events.CLICK_BUTTON.GENERIC, scroll_direction, x, y, x, y)
     end
 end
 
--- create a new key event to pass onto graphics renderer<br>
+-- create a new keyboard interaction event
+---@nodiscard
+---@param click_type KEY_CLICK key click type
+---@param key integer|string keyboard key code or character for 'char' event
+---@return key_interaction
+local function _key_event(click_type, key)
+    local name = key
+    if type(key) == "number" then name = keys.getName(key) end
+    return { type = click_type, key = key, name = name, shift = handler.shift, ctrl = handler.ctrl, alt = handler.alt }
+end
+
+-- create a new keyboard event to pass onto graphics renderer<br>
 -- supports: char, key, and key_up
----@param event_type os_event
-function events.new_key_event(event_type)
+---@param event_type os_event OS event to handle
+---@param key integer keyboard key code
+---@param held boolean? if the key is being held (for 'key' event)
+---@return key_interaction|nil
+function events.new_key_event(event_type, key, held)
     if event_type == "char" then
+        return _key_event(KEY_CLICK.CHAR, key)
     elseif event_type == "key" then
+        if key == keys.leftShift or key == keys.rightShift then
+            handler.shift = true
+        elseif key == keys.leftCtrl or key == keys.rightCtrl then
+            handler.ctrl = true
+        elseif key == keys.leftAlt or key == keys.rightAlt then
+            handler.alt = true
+        else
+            return _key_event(util.trinary(held, KEY_CLICK.HELD, KEY_CLICK.DOWN), key)
+        end
     elseif event_type == "key_up" then
+        if key == keys.leftShift or key == keys.rightShift then
+            handler.shift = false
+        elseif key == keys.leftCtrl or key == keys.rightCtrl then
+            handler.ctrl = false
+        elseif key == keys.leftAlt or key == keys.rightAlt then
+            handler.alt = false
+        else
+            return _key_event(KEY_CLICK.UP, key)
+        end
     end
 end
 

@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class sidebar_tab
 ---@field char string character identifier
@@ -85,22 +85,22 @@ local function sidebar(args)
             local ini_idx = math.ceil(event.initial.y / 3)
 
             if args.tabs[cur_idx] ~= nil then
-                if event.type == CLICK_TYPE.TAP then
+                if event.type == MOUSE_CLICK.TAP then
                     e.value = cur_idx
                     draw(true)
                     -- show as unpressed in 0.25 seconds
                     tcd.dispatch(0.25, function () draw(false) end)
                     args.callback(e.value)
-                elseif event.type == CLICK_TYPE.DOWN then
+                elseif event.type == MOUSE_CLICK.DOWN then
                     draw(true, cur_idx)
-                elseif event.type == CLICK_TYPE.UP then
+                elseif event.type == MOUSE_CLICK.UP then
                     if cur_idx == ini_idx and e.in_frame_bounds(event.current.x, event.current.y) then
                         e.value = cur_idx
                         draw(false)
                         args.callback(e.value)
                     else draw(false) end
                 end
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 draw(false)
             end
         end

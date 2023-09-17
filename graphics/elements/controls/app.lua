@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class app_button_args
 ---@field text string app icon text
@@ -98,14 +98,14 @@ local function app_button(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP then
+            if event.type == MOUSE_CLICK.TAP then
                 show_pressed()
                 -- show as unpressed in 0.25 seconds
                 if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_unpressed) end
                 args.callback()
-            elseif event.type == CLICK_TYPE.DOWN then
+            elseif event.type == MOUSE_CLICK.DOWN then
                 show_pressed()
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 show_unpressed()
                 if e.in_frame_bounds(event.current.x, event.current.y) then
                     args.callback()
@@ -117,7 +117,7 @@ local function app_button(args)
     -- set the value (true simulates pressing the app button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
     -- initial draw
