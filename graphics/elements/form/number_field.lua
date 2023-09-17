@@ -14,6 +14,7 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field max_digits? integer maximum number of digits, defaults to width
 ---@field allow_decimal? boolean true to allow decimals
 ---@field allow_negative? boolean true to allow negative numbers
+---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -22,7 +23,7 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new numeric form field
+-- new numeric entry field
 ---@param args number_field_args
 ---@return graphics_element element, element_id id
 local function number_field(args)
@@ -37,16 +38,26 @@ local function number_field(args)
     args.max_digits = args.max_digits or e.frame.w
 
     -- set initial value
-    e.value = "" .. (args.default or 0)
+    e.value = util.strval(args.default or 0)
 
+    -- draw input
     local function show()
+        if e.enabled then
+            e.w_set_bkg(args.fg_bg.bkg)
+            e.w_set_fgd(args.fg_bg.fgd)
+        else
+            e.w_set_bkg(args.dis_fg_bg.bkg)
+            e.w_set_fgd(args.dis_fg_bg.fgd)
+        end
+
         -- clear and print
         e.w_set_cur(1, 1)
         e.w_write(string.rep(" ", e.frame.w))
         e.w_set_cur(1, 1)
-        e.w_set_fgd(colors.black)
         e.w_write(e.value)
-        if e.is_focused() then
+
+        -- show cursor if focused
+        if e.is_focused() and e.enabled then
             e.w_set_fgd(colors.lightGray)
             e.w_write("_")
         end
@@ -67,9 +78,8 @@ local function number_field(args)
         if event.type == KEY_CLICK.CHAR and string.len(e.value) < args.max_digits then
             if tonumber(event.name) then
                 e.value = util.trinary(e.value == "0", "", e.value) .. tonumber(event.name)
+                show()
             end
-
-            show()
         elseif event.type == KEY_CLICK.DOWN then
             if (event.key == keys.backspace or event.key == keys.delete) and (string.len(e.value) > 0) then
                 e.value = string.sub(e.value, 1, string.len(e.value) - 1)
@@ -98,9 +108,10 @@ local function number_field(args)
     ---@param max integer maximum allowed value
     function e.set_max(max) args.max = max end
 
-    -- handle focus change
+    -- handle focused
     e.on_focused = show
 
+    -- handle unfocused
     function e.on_unfocused()
         local val = tonumber(e.value)
         local max = tonumber(args.max)
@@ -119,13 +130,9 @@ local function number_field(args)
         show()
     end
 
-    -- enable this input
-    function e.enable()
-    end
-
-    -- disable this input
-    function e.disable()
-    end
+    -- on enable/disable
+    e.enable = show
+    e.disable = show
 
     -- initial draw
     show()
