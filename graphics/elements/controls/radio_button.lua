@@ -1,13 +1,15 @@
 -- Radio Button Graphics Element
 
+local util    = require("scada-common.util")
+
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
 ---@class radio_button_args
 ---@field options table button options
 ---@field callback function function to call on touch
----@field radio_colors cpair colors for radio button center dot when active (a) or inactive (b)
----@field radio_bg color background color of radio button
+---@field radio_colors cpair radio button colors (inner & outer)
+---@field select_color color color for radio button border when selected
 ---@field default? integer default state, defaults to options[1]
 ---@field min_width? integer text length + 2 if omitted
 ---@field parent graphics_element
@@ -24,6 +26,8 @@ local function radio_button(args)
     assert(type(args.options) == "table", "graphics.elements.controls.radio_button: options is a required field")
     assert(#args.options > 0, "graphics.elements.controls.radio_button: at least one option is required")
     assert(type(args.callback) == "function", "graphics.elements.controls.radio_button: callback is a required field")
+    assert(type(args.radio_colors) == "table", "graphics.elements.controls.radio_button: radio_colors is a required field")
+    assert(type(args.select_color) == "number", "graphics.elements.controls.radio_button: select_color is a required field")
     assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0),
         "graphics.elements.controls.radio_button: default must be nil or a number > 0")
     assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
@@ -56,21 +60,16 @@ local function radio_button(args)
         for i = 1, #args.options do
             local opt = args.options[i] ---@type string
 
+            local inner_color = util.trinary(e.value == i, args.radio_colors.color_b, args.radio_colors.color_a)
+            local outer_color = util.trinary(e.value == i, args.select_color, args.radio_colors.color_b)
+
             e.w_set_cur(1, i)
 
-            if e.value == i then
-                -- show as selected
-                e.w_set_fgd(args.radio_colors.color_a)
-                e.w_set_bkg(args.radio_bg)
-            else
-                -- show as unselected
-                e.w_set_fgd(args.radio_colors.color_b)
-                e.w_set_bkg(args.radio_bg)
-            end
-
+            e.w_set_fgd(inner_color)
+            e.w_set_bkg(outer_color)
             e.w_write("\x88")
 
-            e.w_set_fgd(args.radio_bg)
+            e.w_set_fgd(outer_color)
             e.w_set_bkg(e.fg_bg.bkg)
             e.w_write("\x95")
 

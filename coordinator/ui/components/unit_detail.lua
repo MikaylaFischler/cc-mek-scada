@@ -476,7 +476,7 @@ local function init(parent, id)
 
     local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
-    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
+    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.gray,colors.white),select_color=colors.purple}
 
     group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 

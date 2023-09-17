@@ -241,7 +241,7 @@ local function new_view(root, x, y)
     -------------------------
 
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.purple}
+    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.gray,colors.white),select_color=colors.purple}
 
     mode.register(facility.ps, "process_mode", mode.set_value)
 
@@ -335,7 +335,7 @@ local function new_view(root, x, y)
 
     status.register(facility.ps, "current_waste_product", status.update)
 
-    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.white,colors.black),radio_bg=colors.brown}
+    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.gray,colors.white),select_color=colors.brown}
     local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,colors.black)}
 
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
