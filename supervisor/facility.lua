@@ -399,8 +399,7 @@ function facility.new(num_reactors, cooling_conf)
                 end
             elseif self.mode == PROCESS.INACTIVE then
                 for i = 1, #self.prio_defs do
-                    -- SCRAM reactors and disengage auto control
-                    -- use manual SCRAM since inactive was requested, and automatic SCRAM trips an alarm
+                    -- disable reactors and disengage auto control
                     for _, u in pairs(self.prio_defs[i]) do
                         u.disable()
                         u.auto_disengage()
