@@ -645,6 +645,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- OPERATIONS --
     --#region
 
+    -- queue a command to disable the reactor
+    function public.disable()
+        if self.plc_s ~= nil then
+            self.plc_s.in_queue.push_command(PLC_S_CMDS.DISABLE)
+        end
+    end
+
     -- queue a command to SCRAM the reactor
     function public.scram()
         if self.plc_s ~= nil then

@@ -402,7 +402,7 @@ function facility.new(num_reactors, cooling_conf)
                     -- SCRAM reactors and disengage auto control
                     -- use manual SCRAM since inactive was requested, and automatic SCRAM trips an alarm
                     for _, u in pairs(self.prio_defs[i]) do
-                        u.scram()
+                        u.disable()
                         u.auto_disengage()
                     end
                 end
