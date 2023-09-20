@@ -131,6 +131,7 @@ local function push_button(args)
         end
     end
 
+    -- handle focus change
     e.on_focused = show_pressed
     e.on_unfocused = show_unpressed
 

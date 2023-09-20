@@ -98,15 +98,24 @@ local function number_field(args)
 
     -- set the value
     ---@param val number number to show
-    function e.set_value(val) e.value = val end
+    function e.set_value(val)
+        e.value = val
+        show()
+    end
 
     -- set minimum input value
     ---@param min integer minimum allowed value
-    function e.set_min(min) args.min = min end
+    function e.set_min(min)
+        args.min = min
+        show()
+    end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
-    function e.set_max(max) args.max = max end
+    function e.set_max(max)
+        args.max = max
+        show()
+    end
 
     -- handle focused
     e.on_focused = show

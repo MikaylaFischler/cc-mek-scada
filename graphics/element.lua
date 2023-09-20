@@ -34,6 +34,7 @@ local element = {}
 ---|switch_button_args
 ---|tabbar_args
 ---|number_field_args
+---|text_field_args
 ---|alarm_indicator_light
 ---|core_map_args
 ---|data_indicator_args
@@ -340,6 +341,10 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param event key_interaction key interaction event
     function protected.handle_key(event) end
 
+    -- handle a paste event
+    ---@param text string pasted text
+    function protected.handle_paste(text) end
+
     -- handle data value changes
     ---@vararg any value(s)
     function protected.on_update(...) end
@@ -603,6 +608,7 @@ function element.new(args, child_offset_x, child_offset_y)
         if protected.enabled then
             protected.enabled = false
             protected.disable()
+            public.unfocus_all()
         end
     end
 
@@ -614,7 +620,7 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- focus the element
     function public.focus()
-        if args.can_focus and not self.focused then
+        if args.can_focus and protected.enabled and not self.focused then
             self.focused = true
             protected.on_focused()
         end
@@ -695,6 +701,16 @@ function element.new(args, child_offset_x, child_offset_y)
                 if self.focused then protected.handle_key(event) end
                 for _, child in pairs(protected.children) do child.get().handle_key(event) end
             end
+        end
+    end
+
+    -- handle text paste
+    ---@param text string pasted text
+    function public.handle_paste(text)
+        if protected.window.isVisible() then
+            -- handle the paste event then pass to children
+            if self.focused then protected.handle_paste(text) end
+            for _, child in pairs(protected.children) do child.get().handle_paste(text) end
         end
     end
 
