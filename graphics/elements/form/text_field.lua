@@ -1,8 +1,5 @@
 -- Text Value Entry Graphics Element
 
-local util    = require("scada-common.util")
-local events  = require("graphics.events")
-
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
@@ -34,71 +31,8 @@ local function text_field(args)
     -- set initial value
     e.value = args.value or ""
 
-    local max_len = args.max_len or e.frame.w
-    local frame_start = 1
-    local visible_text = e.value
-    local cursor_pos = string.len(visible_text) + 1
-
-    local function frame__update_visible()
-        visible_text = string.sub(e.value, frame_start, frame_start + math.min(string.len(e.value), e.frame.w) - 1)
-    end
-
-    -- draw input
-    local function show()
-        frame__update_visible()
-
-        if e.enabled then
-            e.w_set_bkg(args.fg_bg.bkg)
-            e.w_set_fgd(args.fg_bg.fgd)
-        else
-            e.w_set_bkg(args.dis_fg_bg.bkg)
-            e.w_set_fgd(args.dis_fg_bg.fgd)
-        end
-
-        -- clear and print
-        e.w_set_cur(1, 1)
-        e.w_write(string.rep(" ", e.frame.w))
-        e.w_set_cur(1, 1)
-
-        if e.is_focused() and e.enabled then
-            -- write text with cursor
-            if cursor_pos == (string.len(visible_text) + 1) then
-                -- write text with cursor at the end, no need to blit
-                e.w_write(visible_text)
-                e.w_set_fgd(colors.lightGray)
-                e.w_write("_")
-            else
-                local a, b = "", ""
-
-                if cursor_pos <= string.len(visible_text) then
-                    a = args.fg_bg.blit_bkg
-                    b = args.fg_bg.blit_fgd
-                end
-
-                local b_fgd = string.rep(args.fg_bg.blit_fgd, cursor_pos - 1) .. a .. string.rep(args.fg_bg.blit_fgd, string.len(visible_text) - cursor_pos)
-                local b_bkg = string.rep(args.fg_bg.blit_bkg, cursor_pos - 1) .. b .. string.rep(args.fg_bg.blit_bkg, string.len(visible_text) - cursor_pos)
-
-                e.w_blit(visible_text, b_fgd, b_bkg)
-            end
-        else
-            -- write text without cursor
-            e.w_write(visible_text)
-        end
-    end
-
-    local function frame__try_lshift()
-        if frame_start > 1 then
-            frame_start = frame_start - 1
-            return true
-        end
-    end
-
-    local function frame__try_rshift()
-        if (frame_start + e.frame.w - 1) < string.len(e.value) then
-            frame_start = frame_start + 1
-            return true
-        end
-    end
+    -- make an interactive field manager
+    local ifield = core.new_ifield(e, args.max_len or e.frame.w, args.fg_bg, args.dis_fg_bg)
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
@@ -109,9 +43,10 @@ local function text_field(args)
                 e.req_focus()
 
                 if event.type == MOUSE_CLICK.UP then
-                    cursor_pos = math.min(event.current.x, string.len(visible_text) + 1)
-                    show()
+                    ifield.move_cursor(event.current.x)
                 end
+            elseif event.type == MOUSE_CLICK.DOUBLE_CLICK then
+                ifield.select_all()
             end
         end
     end
@@ -119,61 +54,43 @@ local function text_field(args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == KEY_CLICK.CHAR and string.len(e.value) < max_len then
-            e.value = string.sub(e.value, 1, frame_start + cursor_pos - 2) .. event.name .. string.sub(e.value, frame_start + cursor_pos - 1, string.len(e.value))
-            frame__update_visible()
-            if cursor_pos <= string.len(visible_text) then
-                cursor_pos = cursor_pos + 1
-                show()
-            elseif frame__try_rshift() then show() end
+        if event.type == KEY_CLICK.CHAR then
+            ifield.try_insert_char(event.name)
         elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
             if (event.key == keys.backspace or event.key == keys.delete) then
-                -- remove charcter at cursor if there is anything to remove
-                if frame_start + cursor_pos > 2 then
-                    e.value = string.sub(e.value, 1, frame_start + cursor_pos - 3) .. string.sub(e.value, frame_start + cursor_pos - 1, string.len(e.value))
-                    if cursor_pos > 1 then
-                        cursor_pos = cursor_pos - 1
-                        show()
-                    elseif frame__try_lshift() then show() end
-                end
+                ifield.backspace()
             elseif event.key == keys.left then
-                if cursor_pos > 1 then
-                    cursor_pos = cursor_pos - 1
-                    show()
-                elseif frame__try_lshift() then show() end
+                ifield.nav_left()
             elseif event.key == keys.right then
-                if cursor_pos <= string.len(visible_text) then
-                    cursor_pos = cursor_pos + 1
-                    show()
-                elseif frame__try_rshift() then show() end
+                ifield.nav_right()
+            elseif event.key == keys.a and event.ctrl then
+                ifield.select_all()
             end
         end
     end
 
     -- set the value
-    ---@param val string string to show
+    ---@param val string string to set
     function e.set_value(val)
-        e.value = string.sub(val, 1, math.min(max_len, string.len(val)))
-        frame_start = 1 + math.max(0, string.len(val) - e.frame.w)
-        frame__update_visible()
-        cursor_pos = string.len(visible_text) + 1
-        show()
+        ifield.set_value(val)
     end
 
+    -- replace text with pasted text
+    ---@param text string string to set
     function e.handle_paste(text)
-        e.set_value(text)
+        ifield.set_value(text)
     end
 
     -- handle focus
-    e.on_focused = show
-    e.on_unfocused = show
+    e.on_focused = ifield.show
+    e.on_unfocused = ifield.show
 
     -- on enable/disable
-    e.enable = show
-    e.disable = show
+    e.enable = ifield.show
+    e.disable = ifield.show
 
     -- initial draw
-    show()
+    ifield.show()
 
     return e.complete()
 end

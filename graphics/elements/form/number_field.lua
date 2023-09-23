@@ -1,11 +1,10 @@
 -- Numeric Value Entry Graphics Element
 
-local util    = require("scada-common.util")
-
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
 local KEY_CLICK = core.events.KEY_CLICK
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class number_field_args
 ---@field default? number default value, defaults to 0
@@ -38,7 +37,11 @@ local function number_field(args)
     args.max_digits = args.max_digits or e.frame.w
 
     -- set initial value
-    e.value = util.strval(args.default or 0)
+    e.value = "" .. (args.default or 0)
+
+    -- make an interactive field manager
+    local ifield = core.new_ifield(e, args.max_digits, args.fg_bg, args.dis_fg_bg)
+
 
     -- draw input
     local function show()
@@ -67,8 +70,16 @@ local function number_field(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- only handle if on an increment or decrement arrow
-        if e.enabled and core.events.was_clicked(event.type) then
-            e.req_focus()
+        if e.enabled then
+            if core.events.was_clicked(event.type) then
+                e.req_focus()
+
+                if event.type == MOUSE_CLICK.UP then
+                    ifield.move_cursor(event.current.x)
+                end
+            elseif event.type == MOUSE_CLICK.DOUBLE_CLICK then
+                ifield.select_all()
+            end
         end
     end
 
@@ -77,44 +88,52 @@ local function number_field(args)
     function e.handle_key(event)
         if event.type == KEY_CLICK.CHAR and string.len(e.value) < args.max_digits then
             if tonumber(event.name) then
-                e.value = util.trinary(e.value == "0", "", e.value) .. tonumber(event.name)
-                show()
+                if e.value == 0 then e.value = "" end
+                ifield.try_insert_char(event.name)
             end
         elseif event.type == KEY_CLICK.DOWN then
             if (event.key == keys.backspace or event.key == keys.delete) and (string.len(e.value) > 0) then
-                e.value = string.sub(e.value, 1, string.len(e.value) - 1)
+                ifield.backspace()
                 has_decimal = string.find(e.value, "%.") ~= nil
-                show()
             elseif (event.key == keys.period or event.key == keys.numPadDecimal) and (not has_decimal) and args.allow_decimal then
-                e.value = e.value .. "."
                 has_decimal = true
-                show()
+                ifield.try_insert_char(".")
             elseif (event.key == keys.minus or event.key == keys.numPadSubtract) and (string.len(e.value) == 0) and args.allow_negative then
-                e.value = "-"
-                show()
+                ifield.set_value("-")
+            elseif event.key == keys.left then
+                ifield.nav_left()
+            elseif event.key == keys.right then
+                ifield.nav_right()
+            elseif event.key == keys.a and event.ctrl then
+                ifield.select_all()
             end
         end
     end
 
-    -- set the value
+    -- set the value (must be a number)
     ---@param val number number to show
     function e.set_value(val)
-        e.value = val
-        show()
+        if tonumber(val) then
+            ifield.set_value("" .. tonumber(val))
+        end
     end
 
     -- set minimum input value
     ---@param min integer minimum allowed value
-    function e.set_min(min)
-        args.min = min
-        show()
-    end
+    function e.set_min(min) args.min = min end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
-    function e.set_max(max)
-        args.max = max
-        show()
+    function e.set_max(max) args.max = max end
+
+    -- replace text with pasted text if its a number
+    ---@param text string string pasted
+    function e.handle_paste(text)
+        if tonumber(text) then
+            ifield.set_value("" .. tonumber(text))
+        else
+            ifield.set_value("0")
+        end
     end
 
     -- handle focused
@@ -136,15 +155,15 @@ local function number_field(args)
             e.value = ""
         end
 
-        show()
+        ifield.show()
     end
 
     -- on enable/disable
-    e.enable = show
-    e.disable = show
+    e.enable = ifield.show
+    e.disable = ifield.show
 
     -- initial draw
-    show()
+    ifield.show()
 
     return e.complete()
 end
