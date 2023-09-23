@@ -140,7 +140,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
 
     -- try shifting frame right
     local function _try_rshift()
-        if (self.frame_start + e.frame.w - 1) < string.len(e.value) then
+        if (self.frame_start + e.frame.w - 1) <= string.len(e.value) then
             self.frame_start = self.frame_start + 1
             return true
         end
@@ -172,7 +172,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
                 e.w_set_bkg(fg_bg.fgd)
                 e.w_set_fgd(fg_bg.bkg)
                 e.w_write(self.visible_text)
-            elseif self.cursor_pos == (string.len(self.visible_text) + 1) then
+            elseif self.cursor_pos >= (string.len(self.visible_text) + 1) then
                 -- write text with cursor at the end, no need to blit
                 e.w_write(self.visible_text)
                 e.w_set_fgd(colors.lightGray)
@@ -218,7 +218,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
         e.value = string.sub(val, 1, math.min(max_len, string.len(val)))
 
         self.selected_all = false
-        self.frame_start = 1 + math.max(0, string.len(val) - e.frame.w)
+        self.frame_start = math.max(1, string.len(e.value) - e.frame.w + 2)
 
         _update_visible()
         self.cursor_pos = string.len(self.visible_text) + 1
@@ -243,11 +243,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
         else
             e.value = string.sub(e.value, 1, self.frame_start + self.cursor_pos - 2) .. char .. string.sub(e.value, self.frame_start + self.cursor_pos - 1, string.len(e.value))
             _update_visible()
-
-            if self.cursor_pos <= string.len(self.visible_text) then
-                self.cursor_pos = self.cursor_pos + 1
-                public.show()
-            elseif _try_rshift() then public.show() end
+            public.nav_right()
         end
     end
 
@@ -280,7 +276,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
 
     -- move cursor right by one
     function public.nav_right()
-        if self.cursor_pos <= string.len(self.visible_text) then
+        if self.cursor_pos < math.min(string.len(self.visible_text) + 1, e.frame.w) then
             self.cursor_pos = self.cursor_pos + 1
             public.show()
         elseif _try_rshift() then public.show() end
