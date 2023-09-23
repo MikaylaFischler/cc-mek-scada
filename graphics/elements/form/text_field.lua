@@ -65,6 +65,10 @@ local function text_field(args)
                 ifield.nav_right()
             elseif event.key == keys.a and event.ctrl then
                 ifield.select_all()
+            elseif event.key == keys.home or event.key == keys.up then
+                ifield.nav_start()
+            elseif event.key == keys["end"] or event.key == keys.down then
+                ifield.nav_end()
             end
         end
     end

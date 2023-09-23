@@ -216,14 +216,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
     ---@param val string
     function public.set_value(val)
         e.value = string.sub(val, 1, math.min(max_len, string.len(val)))
-
-        self.selected_all = false
-        self.frame_start = math.max(1, string.len(e.value) - e.frame.w + 2)
-
-        _update_visible()
-        self.cursor_pos = string.len(self.visible_text) + 1
-
-        public.show()
+        public.nav_end()
     end
 
     -- try to insert a character if there is space
@@ -280,6 +273,21 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
             self.cursor_pos = self.cursor_pos + 1
             public.show()
         elseif _try_rshift() then public.show() end
+    end
+
+    -- move cursor to the start
+    function public.nav_start()
+        self.cursor_pos = 1
+        self.frame_start = 1
+        public.show()
+    end
+
+    -- move cursor to the end
+    function public.nav_end()
+        self.frame_start = math.max(1, string.len(e.value) - e.frame.w + 2)
+        _update_visible()
+        self.cursor_pos = string.len(self.visible_text) + 1
+        public.show()
     end
 
     return public
