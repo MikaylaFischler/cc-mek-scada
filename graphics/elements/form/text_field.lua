@@ -9,6 +9,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@class text_field_args
 ---@field value? string initial value
 ---@field max_len? integer maximum string length
+---@field censor? string character to replace text with when printing to screen
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
 ---@field id? string element id
@@ -20,7 +21,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 -- new text entry field
 ---@param args text_field_args
----@return graphics_element element, element_id id
+---@return graphics_element element, element_id id, function censor_ctl
 local function text_field(args)
     args.height = 1
     args.can_focus = true
@@ -33,6 +34,8 @@ local function text_field(args)
 
     -- make an interactive field manager
     local ifield = core.new_ifield(e, args.max_len or e.frame.w, args.fg_bg, args.dis_fg_bg)
+
+    ifield.censor(args.censor)
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
@@ -96,7 +99,8 @@ local function text_field(args)
     -- initial draw
     ifield.show()
 
-    return e.complete()
+    local elem, id = e.complete()
+    return elem, id, ifield.censor
 end
 
 return text_field

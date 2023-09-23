@@ -149,6 +149,19 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
     ---@class ifield
     local public = {}
 
+    -- censor the display (for private info, for example) with the provided character<br>
+    -- disable by passing no argument
+    ---@param censor string? character to hide data with
+    function public.censor(censor)
+        if type(censor) == "string" and string.len(censor) == 1 then
+            self.censor = censor
+            public.show()
+        else
+            self.censor = nil
+            public.show()
+        end
+    end
+
     -- show the field
     function public.show()
         _update_visible()
@@ -166,15 +179,23 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
         e.w_write(string.rep(" ", e.frame.w))
         e.w_set_cur(1, 1)
 
+        local function _write()
+            if self.censor then
+                e.w_write(string.rep(self.censor, string.len(self.visible_text)))
+            else
+                e.w_write(self.visible_text)
+            end
+        end
+
         if e.is_focused() and e.enabled then
             -- write text with cursor
             if self.selected_all then
                 e.w_set_bkg(fg_bg.fgd)
                 e.w_set_fgd(fg_bg.bkg)
-                e.w_write(self.visible_text)
+                _write()
             elseif self.cursor_pos >= (string.len(self.visible_text) + 1) then
                 -- write text with cursor at the end, no need to blit
-                e.w_write(self.visible_text)
+                _write()
                 e.w_set_fgd(colors.lightGray)
                 e.w_write("_")
             else
@@ -188,13 +209,17 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
                 local b_fgd = string.rep(fg_bg.blit_fgd, self.cursor_pos - 1) .. a .. string.rep(fg_bg.blit_fgd, string.len(self.visible_text) - self.cursor_pos)
                 local b_bkg = string.rep(fg_bg.blit_bkg, self.cursor_pos - 1) .. b .. string.rep(fg_bg.blit_bkg, string.len(self.visible_text) - self.cursor_pos)
 
-                e.w_blit(self.visible_text, b_fgd, b_bkg)
+                if self.censor then
+                    e.w_blit(string.rep(self.censor, string.len(self.visible_text)), b_fgd, b_bkg)
+                else
+                    e.w_blit(self.visible_text, b_fgd, b_bkg)
+                end
             end
         else
             self.selected_all = false
 
             -- write text without cursor
-            e.w_write(self.visible_text)
+            _write()
         end
     end
 
