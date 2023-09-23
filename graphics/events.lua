@@ -4,15 +4,19 @@
 
 local util = require("scada-common.util")
 
+local DOUBLE_CLICK_MS = 500
+
 local events = {}
 
 ---@enum CLICK_BUTTON
-events.CLICK_BUTTON = {
+local CLICK_BUTTON = {
     GENERIC = 0,
     LEFT_BUTTON = 1,
     RIGHT_BUTTON = 2,
     MID_BUTTON = 3
 }
+
+events.CLICK_BUTTON = CLICK_BUTTON
 
 ---@enum MOUSE_CLICK
 local MOUSE_CLICK = {
@@ -21,7 +25,8 @@ local MOUSE_CLICK = {
     UP = 3,             -- button up (completed a click)
     DRAG = 4,           -- mouse dragged
     SCROLL_DOWN = 5,    -- scroll down
-    SCROLL_UP = 6       -- scroll up
+    SCROLL_UP = 6,      -- scroll up
+    DOUBLE_CLICK = 7    -- double left click
 }
 
 events.MOUSE_CLICK = MOUSE_CLICK
@@ -65,7 +70,11 @@ local handler = {
     -- keyboard modifiers
     shift = false,
     alt = false,
-    ctrl = false
+    ctrl = false,
+    -- double click tracking
+    dc_start = 0,
+    dc_step = 1,
+    dc_coord = _coord2d(0, 0)
 }
 
 -- create a new monitor touch mouse interaction event
@@ -77,7 +86,7 @@ local handler = {
 local function _monitor_touch(monitor, x, y)
     return {
         monitor = monitor,
-        button = events.CLICK_BUTTON.GENERIC,
+        button = CLICK_BUTTON.GENERIC,
         type = MOUSE_CLICK.TAP,
         initial = _coord2d(x, y),
         current = _coord2d(x, y)
@@ -112,7 +121,7 @@ end
 function events.mouse_generic(type, x, y)
     return {
         monitor = "",
-        button = events.CLICK_BUTTON.GENERIC,
+        button = CLICK_BUTTON.GENERIC,
         type = type,
         initial = _coord2d(x, y),
         current = _coord2d(x, y)
@@ -148,25 +157,54 @@ function events.was_clicked(t) return t == MOUSE_CLICK.TAP or t == MOUSE_CLICK.U
 ---@param y integer y coordinate
 ---@return mouse_interaction|nil
 function events.new_mouse_event(event_type, opt, x, y)
+    local h = handler
+
     if event_type == "mouse_click" then
         ---@cast opt 1|2|3
-        handler.button_down[opt] = _coord2d(x, y)
+
+        local init = true
+
+        if opt == 1 and (h.dc_step % 2) == 1 then
+            if h.dc_step ~= 1 and h.dc_coord.x == x and h.dc_coord.y == y and (util.time_ms() - h.dc_start) < DOUBLE_CLICK_MS then
+                init = false
+                h.dc_step = h.dc_step + 1
+            end
+        end
+
+        if init then
+            h.dc_start = util.time_ms()
+            h.dc_coord = _coord2d(x, y)
+            h.dc_step = 2
+        end
+
+        h.button_down[opt] = _coord2d(x, y)
         return _mouse_event(opt, MOUSE_CLICK.DOWN, x, y, x, y)
     elseif event_type == "mouse_up" then
         ---@cast opt 1|2|3
-        local initial = handler.button_down[opt]    ---@type coordinate_2d
+
+        if opt == 1 and (h.dc_step % 2) == 0 and h.dc_coord.x == x and h.dc_coord.y == y and
+                (util.time_ms() - h.dc_start) < DOUBLE_CLICK_MS then
+            if h.dc_step == 4 then
+                util.push_event("double_click", 1, x, y)
+                h.dc_step = 1
+            else h.dc_step = h.dc_step + 1 end
+        else h.dc_step = 1 end
+
+        local initial = h.button_down[opt]    ---@type coordinate_2d
         return _mouse_event(opt, MOUSE_CLICK.UP, initial.x, initial.y, x, y)
     elseif event_type == "monitor_touch" then
         ---@cast opt string
         return _monitor_touch(opt, x, y)
     elseif event_type == "mouse_drag" then
         ---@cast opt 1|2|3
-        local initial = handler.button_down[opt]    ---@type coordinate_2d
+        local initial = h.button_down[opt]    ---@type coordinate_2d
         return _mouse_event(opt, MOUSE_CLICK.DRAG, initial.x, initial.y, x, y)
     elseif event_type == "mouse_scroll" then
         ---@cast opt 1|-1
         local scroll_direction = util.trinary(opt == 1, MOUSE_CLICK.SCROLL_DOWN, MOUSE_CLICK.SCROLL_UP)
-        return _mouse_event(events.CLICK_BUTTON.GENERIC, scroll_direction, x, y, x, y)
+        return _mouse_event(CLICK_BUTTON.GENERIC, scroll_direction, x, y, x, y)
+    elseif event_type == "double_click" then
+        return _mouse_event(CLICK_BUTTON.LEFT_BUTTON, MOUSE_CLICK.DOUBLE_CLICK, x, y, x, y)
     end
 end
 
