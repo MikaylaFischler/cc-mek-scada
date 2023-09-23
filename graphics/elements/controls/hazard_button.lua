@@ -178,7 +178,7 @@ local function hazard_button(args)
     end
 
     -- show the button as disabled
-    function e.disable()
+    function e.on_disabled()
         if args.dis_colors then
             draw_border(args.dis_colors.color_a)
             e.w_set_fgd(args.dis_colors.color_b)
@@ -188,7 +188,7 @@ local function hazard_button(args)
     end
 
     -- show the button as enabled
-    function e.enable()
+    function e.on_enabled()
         draw_border(args.accent)
         e.w_set_fgd(args.fg_bg.fgd)
         e.w_set_cur(3, 2)

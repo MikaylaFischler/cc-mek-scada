@@ -33,9 +33,6 @@ local function radio_button(args)
     assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
         "graphics.elements.controls.radio_button: min_width must be nil or a number > 0")
 
-    -- one line per option
-    args.height = #args.options
-
     -- determine widths
     local max_width = 1
     for i = 1, #args.options do
@@ -47,10 +44,15 @@ local function radio_button(args)
 
     local button_text_width = math.max(max_width, args.min_width or 0)
 
+    -- set automatic args
+    args.can_focus = true
     args.width = button_text_width + 2
+    args.height = #args.options -- one line per option
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    local focused_opt = 1
 
     -- button state (convert nil to 1 if missing)
     e.value = args.default or 1
@@ -74,8 +76,14 @@ local function radio_button(args)
             e.w_write("\x95")
 
             -- write button text
-            e.w_set_fgd(e.fg_bg.fgd)
-            e.w_set_bkg(e.fg_bg.bkg)
+            if i == focused_opt and e.is_focused() and e.enabled then
+                e.w_set_fgd(e.fg_bg.bkg)
+                e.w_set_bkg(e.fg_bg.fgd)
+            else
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
+            end
+
             e.w_write(opt)
         end
     end
@@ -93,12 +101,42 @@ local function radio_button(args)
         end
     end
 
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if event.type == core.events.KEY_CLICK.DOWN then
+            if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
+                e.value = focused_opt
+                draw()
+                args.callback(e.value)
+            elseif event.key == keys.down then
+                if focused_opt < #args.options then
+                    focused_opt = focused_opt + 1
+                    draw()
+                end
+            elseif event.key == keys.up then
+                if focused_opt > 1 then
+                    focused_opt = focused_opt - 1
+                    draw()
+                end
+            end
+        end
+    end
+
     -- set the value
     ---@param val integer new value
     function e.set_value(val)
         e.value = val
         draw()
     end
+
+    -- handle focus
+    e.on_focused = draw
+    e.on_unfocused = draw
+
+    -- handle enable
+    e.on_enabled = draw
+    e.on_disabled = draw
 
     -- initial draw
     draw()

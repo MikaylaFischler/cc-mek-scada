@@ -321,6 +321,12 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param id element_id element identifier
     function protected.on_removed(id) end
 
+    -- handle enabled
+    function protected.on_enabled() end
+
+    -- handle disabled
+    function protected.on_disabled() end
+
     -- handle this element having been focused
     function protected.on_focused() end
 
@@ -368,12 +374,6 @@ function element.new(args, child_offset_x, child_offset_y)
     -- set maximum input value
     ---@param max integer maximum allowed value
     function protected.set_max(max) end
-
-    -- enable the control
-    function protected.enable() end
-
-    -- disable the control
-    function protected.disable() end
 
     -- custom recolor command, varies by element if implemented
     ---@vararg cpair|color color(s)
@@ -599,7 +599,7 @@ function element.new(args, child_offset_x, child_offset_y)
     function public.enable()
         if not protected.enabled then
             protected.enabled = true
-            protected.enable()
+            protected.on_enabled()
         end
     end
 
@@ -607,7 +607,7 @@ function element.new(args, child_offset_x, child_offset_y)
     function public.disable()
         if protected.enabled then
             protected.enabled = false
-            protected.disable()
+            protected.on_disabled()
             public.unfocus_all()
         end
     end

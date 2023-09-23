@@ -158,9 +158,9 @@ local function number_field(args)
         ifield.show()
     end
 
-    -- on enable/disable
-    e.enable = ifield.show
-    e.disable = ifield.show
+    -- handle enable
+    e.on_enabled = ifield.show
+    e.on_disabled = ifield.show
 
     -- initial draw
     ifield.show()

@@ -22,6 +22,7 @@ local function checkbox(args)
     assert(type(args.box_fg_bg) == "table", "graphics.elements.controls.checkbox: box_fg_bg is a required field")
     assert(type(args.callback) == "function", "graphics.elements.controls.checkbox: callback is a required field")
 
+    args.can_focus = true
     args.height = 1
     args.width = 3 + string.len(args.label)
 
@@ -53,6 +54,21 @@ local function checkbox(args)
         end
     end
 
+    -- write label text
+    local function draw_label()
+        if e.enabled and e.is_focused() then
+            e.w_set_cur(3, 1)
+            e.w_set_fgd(e.fg_bg.bkg)
+            e.w_set_bkg(e.fg_bg.fgd)
+            e.w_write(args.label)
+        else
+            e.w_set_cur(3, 1)
+            e.w_set_fgd(e.fg_bg.fgd)
+            e.w_set_bkg(e.fg_bg.bkg)
+            e.w_write(args.label)
+        end
+    end
+
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
@@ -63,6 +79,18 @@ local function checkbox(args)
         end
     end
 
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if event.type == core.events.KEY_CLICK.DOWN then
+            if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
+                e.value = not e.value
+                draw()
+                args.callback(e.value)
+            end
+        end
+    end
+
     -- set the value
     ---@param val integer new value
     function e.set_value(val)
@@ -70,14 +98,17 @@ local function checkbox(args)
         draw()
     end
 
-    -- write label text
-    e.w_set_cur(3, 1)
-    e.w_set_fgd(e.fg_bg.fgd)
-    e.w_set_bkg(e.fg_bg.bkg)
-    e.w_write(args.label)
+    -- handle focus
+    e.on_focused = draw_label
+    e.on_unfocused = draw_label
+
+    -- handle enable
+    e.on_enabled = draw_label
+    e.on_disabled = draw_label
 
     -- initial draw
     draw()
+    draw_label()
 
     return e.complete()
 end

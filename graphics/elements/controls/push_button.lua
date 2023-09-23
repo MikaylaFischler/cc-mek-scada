@@ -112,7 +112,7 @@ local function push_button(args)
     end
 
     -- show butten as enabled
-    function e.enable()
+    function e.on_enabled()
         if args.dis_fg_bg ~= nil then
             e.value = false
             e.w_set_fgd(e.fg_bg.fgd)
@@ -122,7 +122,7 @@ local function push_button(args)
     end
 
     -- show button as disabled
-    function e.disable()
+    function e.on_disabled()
         if args.dis_fg_bg ~= nil then
             e.value = false
             e.w_set_fgd(args.dis_fg_bg.fgd)
@@ -131,7 +131,7 @@ local function push_button(args)
         end
     end
 
-    -- handle focus change
+    -- handle focus
     e.on_focused = show_pressed
     e.on_unfocused = show_unpressed
 

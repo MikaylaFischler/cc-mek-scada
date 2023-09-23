@@ -176,12 +176,12 @@ local function spinbox(args)
     end
 
     -- enable this input
-    function e.enable()
+    function e.on_enabled()
         draw_arrows(args.arrow_fg_bg.fgd)
     end
 
     -- disable this input
-    function e.disable()
+    function e.on_disabled()
         draw_arrows(args.arrow_disable or colors.lightGray)
     end
 
