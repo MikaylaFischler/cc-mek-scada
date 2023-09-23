@@ -1,6 +1,7 @@
 -- Text Value Entry Graphics Element
 
 local util    = require("scada-common.util")
+local events  = require("graphics.events")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -33,14 +34,13 @@ local function text_field(args)
     -- set initial value
     e.value = args.value or ""
 
-    local max_len = 1000 -- temporary
-
+    local max_len = args.max_len or e.frame.w
     local frame_start = 1
     local visible_text = e.value
     local cursor_pos = string.len(visible_text) + 1
 
     local function frame__update_visible()
-        visible_text = string.sub(e.value, frame_start, frame_start + math.min(string.len(e.value), args.width) - 1)
+        visible_text = string.sub(e.value, frame_start, frame_start + math.min(string.len(e.value), e.frame.w) - 1)
     end
 
     -- draw input
@@ -89,14 +89,14 @@ local function text_field(args)
     local function frame__try_lshift()
         if frame_start > 1 then
             frame_start = frame_start - 1
-            show()
+            return true
         end
     end
 
     local function frame__try_rshift()
-        if (frame_start + args.width - 1) < string.len(e.value) then
+        if (frame_start + e.frame.w - 1) < string.len(e.value) then
             frame_start = frame_start + 1
-            show()
+            return true
         end
     end
 
@@ -104,12 +104,14 @@ local function text_field(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- only handle if on an increment or decrement arrow
-        if e.enabled and core.events.was_clicked(event.type) then
-            e.req_focus()
+        if e.enabled then
+            if core.events.was_clicked(event.type) then
+                e.req_focus()
 
-            if event.type == MOUSE_CLICK.UP then
-                cursor_pos = math.min(event.current.x, string.len(visible_text) + 1)
-                show()
+                if event.type == MOUSE_CLICK.UP then
+                    cursor_pos = math.min(event.current.x, string.len(visible_text) + 1)
+                    show()
+                end
             end
         end
     end
@@ -123,25 +125,27 @@ local function text_field(args)
             if cursor_pos <= string.len(visible_text) then
                 cursor_pos = cursor_pos + 1
                 show()
-            else frame__try_rshift() end
+            elseif frame__try_rshift() then show() end
         elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
             if (event.key == keys.backspace or event.key == keys.delete) then
-                -- remove charcter at cursor
-                e.value = string.sub(e.value, 1, frame_start + cursor_pos - 3) .. string.sub(e.value, frame_start + cursor_pos - 1, string.len(e.value))
-                if cursor_pos > 1 then
-                    cursor_pos = cursor_pos - 1
-                    show()
-                else frame__try_lshift() end
+                -- remove charcter at cursor if there is anything to remove
+                if frame_start + cursor_pos > 2 then
+                    e.value = string.sub(e.value, 1, frame_start + cursor_pos - 3) .. string.sub(e.value, frame_start + cursor_pos - 1, string.len(e.value))
+                    if cursor_pos > 1 then
+                        cursor_pos = cursor_pos - 1
+                        show()
+                    elseif frame__try_lshift() then show() end
+                end
             elseif event.key == keys.left then
                 if cursor_pos > 1 then
                     cursor_pos = cursor_pos - 1
                     show()
-                else frame__try_lshift() end
+                elseif frame__try_lshift() then show() end
             elseif event.key == keys.right then
                 if cursor_pos <= string.len(visible_text) then
                     cursor_pos = cursor_pos + 1
                     show()
-                else frame__try_rshift() end
+                elseif frame__try_rshift() then show() end
             end
         end
     end
@@ -149,8 +153,8 @@ local function text_field(args)
     -- set the value
     ---@param val string string to show
     function e.set_value(val)
-        e.value = val
-        frame_start = 1 + math.max(0, string.len(val) - args.width)
+        e.value = string.sub(val, 1, math.min(max_len, string.len(val)))
+        frame_start = 1 + math.max(0, string.len(val) - e.frame.w)
         frame__update_visible()
         cursor_pos = string.len(visible_text) + 1
         show()
