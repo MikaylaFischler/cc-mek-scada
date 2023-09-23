@@ -91,7 +91,7 @@ local function number_field(args)
                 if e.value == 0 then e.value = "" end
                 ifield.try_insert_char(event.name)
             end
-        elseif event.type == KEY_CLICK.DOWN then
+        elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
             if (event.key == keys.backspace or event.key == keys.delete) and (string.len(e.value) > 0) then
                 ifield.backspace()
                 has_decimal = string.find(e.value, "%.") ~= nil
