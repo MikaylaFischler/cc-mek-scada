@@ -270,6 +270,7 @@ types.ALARM_STATE_NAMES = {
 ---| "mouse_drag"
 ---| "mouse_scroll"
 ---| "mouse_up"
+---| "double_click" (custom)
 ---| "paste"
 ---| "peripheral"
 ---| "peripheral_detach"
@@ -285,7 +286,7 @@ types.ALARM_STATE_NAMES = {
 ---| "websocket_failure"
 ---| "websocket_message"
 ---| "websocket_success"
----| "clock_start"          custom, added for reactor PLC
+---| "clock_start" (custom)
 
 ---@alias fluid
 ---| "mekanism:empty_gas"
