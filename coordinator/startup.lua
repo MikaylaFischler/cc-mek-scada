@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.13"
+local COORDINATOR_VERSION = "v1.0.14"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -358,7 +358,7 @@ local function main()
                 sounder.stop()
             end
         elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
-               event == "mouse_drag" or event == "mouse_scroll" then
+               event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
             -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then

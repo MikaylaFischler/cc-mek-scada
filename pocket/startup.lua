@@ -18,7 +18,7 @@ local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.6.1-alpha"
+local POCKET_VERSION = "v0.6.2-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -171,7 +171,8 @@ local function main()
                 -- got a packet
                 local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
                 pocket_comms.handle_packet(packet)
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll"or
+                   event == "double_click" then
                 -- handle a monitor touch event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             end

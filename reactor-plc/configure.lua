@@ -210,7 +210,7 @@ function configurator.configure()
         if event == "timer" then
             -- notify timer callback dispatcher if no other timer case claimed this event
             tcd.handle(param1)
-        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
             -- handle a mouse event
             local m_e = core.events.new_mouse_event(event, param1, param2, param3)
             if m_e then display.handle_mouse(m_e) end
