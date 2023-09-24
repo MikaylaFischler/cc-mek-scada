@@ -522,6 +522,19 @@ function element.new(args, child_offset_x, child_offset_y)
         end
     end
 
+    -- remove all child elements and reset next y
+    function public.remove_all()
+        for i = 1, #protected.children do
+            local child = protected.children[i].get()   ---@type graphics_element
+            child.delete()
+            protected.on_removed(child.get_id())
+        end
+
+        self.next_y = 1
+        protected.children = {}
+        protected.child_id_map = {}
+    end
+
     -- attempt to get a child element by ID (does not include this element itself)
     ---@nodiscard
     ---@param id element_id
