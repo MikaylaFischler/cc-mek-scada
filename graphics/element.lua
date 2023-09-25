@@ -28,6 +28,7 @@ local element = {}
 ---|hazard_button_args
 ---|multi_button_args
 ---|push_button_args
+---|radio_2d_args
 ---|radio_button_args
 ---|sidebar_args
 ---|spinbox_args

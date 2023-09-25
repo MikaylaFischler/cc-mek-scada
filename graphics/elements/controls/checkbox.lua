@@ -6,7 +6,7 @@ local element = require("graphics.element")
 ---@class checkbox_args
 ---@field label string checkbox text
 ---@field box_fg_bg cpair colors for checkbox
----@field callback function function to call on press
+---@field callback? function function to call on press
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -20,7 +20,6 @@ local element = require("graphics.element")
 local function checkbox(args)
     assert(type(args.label) == "string", "graphics.elements.controls.checkbox: label is a required field")
     assert(type(args.box_fg_bg) == "table", "graphics.elements.controls.checkbox: box_fg_bg is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.checkbox: callback is a required field")
 
     args.can_focus = true
     args.height = 1
@@ -72,10 +71,10 @@ local function checkbox(args)
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
-        if e.enabled and core.events.was_clicked(event.type) then
+        if e.enabled and core.events.was_clicked(event.type) and e.in_frame_bounds(event.current.x, event.current.y) then
             e.value = not e.value
             draw()
-            args.callback(e.value)
+            if type(args.callback) == "function" then args.callback(e.value) end
         end
     end
 
@@ -86,7 +85,7 @@ local function checkbox(args)
             if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
                 e.value = not e.value
                 draw()
-                args.callback(e.value)
+                if type(args.callback) == "function" then args.callback(e.value) end
             end
         end
     end

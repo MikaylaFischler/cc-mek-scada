@@ -5,13 +5,15 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local KEY_CLICK = core.events.KEY_CLICK
+
 ---@class radio_button_args
 ---@field options table button options
----@field callback function function to call on touch
 ---@field radio_colors cpair radio button colors (inner & outer)
 ---@field select_color color color for radio button border when selected
 ---@field default? integer default state, defaults to options[1]
 ---@field min_width? integer text length + 2 if omitted
+---@field callback? function function to call on touch
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -25,7 +27,6 @@ local element = require("graphics.element")
 local function radio_button(args)
     assert(type(args.options) == "table", "graphics.elements.controls.radio_button: options is a required field")
     assert(#args.options > 0, "graphics.elements.controls.radio_button: at least one option is required")
-    assert(type(args.callback) == "function", "graphics.elements.controls.radio_button: callback is a required field")
     assert(type(args.radio_colors) == "table", "graphics.elements.controls.radio_button: radio_colors is a required field")
     assert(type(args.select_color) == "number", "graphics.elements.controls.radio_button: select_color is a required field")
     assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0),
@@ -95,8 +96,9 @@ local function radio_button(args)
             -- determine what was pressed
             if args.options[event.current.y] ~= nil then
                 e.value = event.current.y
+                focused_opt = e.value
                 draw()
-                args.callback(e.value)
+                if type(args.callback) == "function" then args.callback(e.value) end
             end
         end
     end
@@ -104,11 +106,11 @@ local function radio_button(args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == core.events.KEY_CLICK.DOWN then
-            if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
+        if event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+            if event.type == KEY_CLICK.DOWN and (event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter) then
                 e.value = focused_opt
                 draw()
-                args.callback(e.value)
+                if type(args.callback) == "function" then args.callback(e.value) end
             elseif event.key == keys.down then
                 if focused_opt < #args.options then
                     focused_opt = focused_opt + 1
@@ -126,8 +128,10 @@ local function radio_button(args)
     -- set the value
     ---@param val integer new value
     function e.set_value(val)
-        e.value = val
-        draw()
+        if val > 0 and val <= #args.options then
+            e.value = val
+            draw()
+        end
     end
 
     -- handle focus
