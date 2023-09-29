@@ -21,20 +21,15 @@ local element = require("graphics.element")
 ---@param args hazard_button_args
 ---@return graphics_element element, element_id id
 local function hazard_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.hazard_button: text is a required field")
-    assert(type(args.accent) == "number", "graphics.elements.controls.hazard_button: accent is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.hazard_button: callback is a required field")
+    assert(type(args.text) == "string", "controls.hazard_button: text is a required field")
+    assert(type(args.accent) == "number", "controls.hazard_button: accent is a required field")
+    assert(type(args.callback) == "function", "controls.hazard_button: callback is a required field")
 
-    -- static dimensions
     args.height = 3
     args.width = string.len(args.text) + 4
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- write the button text
-    e.w_set_cur(3, 2)
-    e.w_write(args.text)
 
     -- draw border
     ---@param accent color accent color
@@ -158,7 +153,6 @@ local function hazard_button(args)
                 -- 1.5 second timeout
                 tcd.dispatch(1.5, on_timeout)
 
-                -- call the touch callback
                 args.callback()
             end
         end
@@ -195,8 +189,16 @@ local function hazard_button(args)
         e.w_write(args.text)
     end
 
-    -- initial draw of border
-    draw_border(args.accent)
+    -- element redraw
+    function e.redraw()
+        -- write the button text and draw border
+        e.w_set_cur(3, 2)
+        e.w_write(args.text)
+        draw_border(args.accent)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

@@ -27,11 +27,12 @@ local element = require("graphics.element")
 ---@param args radio_2d_args
 ---@return graphics_element element, element_id id
 local function radio_2d_button(args)
-    assert(type(args.options) == "table" and #args.options > 0, "graphics.elements.controls.radio_2d: options should be a table with length >= 1")
-    assert(type(args.radio_colors) == "table", "graphics.elements.controls.radio_2d: radio_colors is a required field")
-    assert(type(args.select_color) == "number" or type(args.color_map) == "table", "graphics.elements.controls.radio_2d: select_color or color_map is required")
-    assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0),
-        "graphics.elements.controls.radio_2d: default must be nil or a number > 0")
+    assert(type(args.options) == "table" and #args.options > 0, "controls.radio_2d: options should be a table with length >= 1")
+    assert(util.is_int(args.rows) and util.is_int(args.columns), "controls.radio_2d: rows/columns must be integers")
+    assert((args.rows * args.columns) >= #args.options, "controls.radio_2d: rows x columns size insufficient for provided number of options")
+    assert(type(args.radio_colors) == "table", "controls.radio_2d: radio_colors is a required field")
+    assert(type(args.select_color) == "number" or type(args.color_map) == "table", "controls.radio_2d: select_color or color_map is required")
+    assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0), "controls.radio_2d: default must be nil or a number > 0")
 
     local array = {}
     local col_widths = {}
@@ -74,8 +75,8 @@ local function radio_2d_button(args)
     -- selected option (convert nil to 1 if missing)
     e.value = args.default or 1
 
-    -- show the args.options/states
-    local function draw()
+    -- draw the element
+    function e.redraw()
         local col_x = 1
 
         local radio_color_b = util.trinary(type(args.disable_color) == "number" and not e.enabled, args.disable_color, args.radio_colors.color_b)
@@ -135,7 +136,7 @@ local function radio_2d_button(args)
                 if elem ~= nil and event.initial.x >= elem.x_1 and event.initial.x <= elem.x_2 and event.current.x >= elem.x_1 and event.current.x <= elem.x_2 then
                     e.value = elem.id
                     focused_opt = elem.id
-                    draw()
+                    e.redraw()
                     if type(args.callback) == "function" then args.callback(e.value) end
                     break
                 end
@@ -149,30 +150,30 @@ local function radio_2d_button(args)
         if event.type == core.events.KEY_CLICK.DOWN or event.type == core.events.KEY_CLICK.HELD then
             if event.type == core.events.KEY_CLICK.DOWN and (event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter) then
                 e.value = focused_opt
-                draw()
+                e.redraw()
                 if type(args.callback) == "function" then args.callback(e.value) end
             elseif event.key == keys.down then
                 if focused_opt < #args.options then
                     focused_opt = focused_opt + 1
-                    draw()
+                    e.redraw()
                 end
             elseif event.key == keys.up then
                 if focused_opt > 1 then
                     focused_opt = focused_opt - 1
-                    draw()
+                    e.redraw()
                 end
             elseif event.key == keys.right then
                 if array[focus_y + 1] and array[focus_y + 1][focus_x] then
                     focused_opt = array[focus_y + 1][focus_x].id
                 else focused_opt = array[1][focus_x].id end
-                draw()
+                e.redraw()
             elseif event.key == keys.left then
                 if array[focus_y - 1] and array[focus_y - 1][focus_x] then
                     focused_opt = array[focus_y - 1][focus_x].id
-                    draw()
+                    e.redraw()
                 elseif array[#array][focus_x] then
                     focused_opt = array[#array][focus_x].id
-                    draw()
+                    e.redraw()
                 end
             end
         end
@@ -183,20 +184,20 @@ local function radio_2d_button(args)
     function e.set_value(val)
         if val > 0 and val <= #args.options then
             e.value = val
-            draw()
+            e.redraw()
         end
     end
 
     -- handle focus
-    e.on_focused = draw
-    e.on_unfocused = draw
+    e.on_focused = e.redraw
+    e.on_unfocused = e.redraw
 
     -- handle enable
-    e.on_enabled = draw
-    e.on_disabled = draw
+    e.on_enabled = e.redraw
+    e.on_disabled = e.redraw
 
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

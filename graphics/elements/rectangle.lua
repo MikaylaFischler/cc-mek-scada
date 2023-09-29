@@ -22,7 +22,7 @@ local element = require("graphics.element")
 ---@param args rectangle_args
 ---@return graphics_element element, element_id id
 local function rectangle(args)
-    assert(args.border ~= nil or args.thin ~= true, "graphics.elements.rectangle: thin requires border to be provided")
+    assert(args.border ~= nil or args.thin ~= true, "rectangle: thin requires border to be provided")
 
     -- if thin, then width will always need to be 1
     if args.thin == true then
@@ -65,8 +65,8 @@ local function rectangle(args)
         local inner_width = e.frame.w - width_x2
 
         -- check dimensions
-        assert(width_x2 <= e.frame.w, "graphics.elements.rectangle: border too thick for width")
-        assert(width_x2 <= e.frame.h, "graphics.elements.rectangle: border too thick for height")
+        assert(width_x2 <= e.frame.w, "rectangle: border too thick for width")
+        assert(width_x2 <= e.frame.h, "rectangle: border too thick for height")
 
         -- form the basic line strings and top/bottom blit strings
         local spaces = util.spaces(e.frame.w)
@@ -126,64 +126,69 @@ local function rectangle(args)
         end
 
         -- draw rectangle with borders
-        for y = 1, e.frame.h do
-            e.w_set_cur(1, y)
-            -- top border
-            if y <= border_height then
-                -- partial pixel fill
-                if args.border.even and y == border_height then
-                    if args.thin == true then
-                        e.w_blit(p_a, p_inv_bg, p_inv_fg)
-                    else
-                        local _fg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
-                        local _bg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
+        function e.redraw()
+            for y = 1, e.frame.h do
+                e.w_set_cur(1, y)
+                -- top border
+                if y <= border_height then
+                    -- partial pixel fill
+                    if args.border.even and y == border_height then
+                        if args.thin == true then
+                            e.w_blit(p_a, p_inv_bg, p_inv_fg)
+                        else
+                            local _fg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), p_inv_bg)
+                            local _bg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
 
-                        if width_x2 % 3 == 1 then
-                            e.w_blit(p_b, _fg, _bg)
-                        elseif width_x2 % 3 == 2 then
-                            e.w_blit(p_a, _fg, _bg)
-                        else
-                            -- skip line
-                            e.w_blit(spaces, blit_fg, blit_bg_sides)
-                        end
-                    end
-                else
-                    e.w_blit(spaces, blit_fg, blit_bg_top_bot)
-                end
-            -- bottom border
-            elseif y > (e.frame.h - border_width) then
-                -- partial pixel fill
-                if args.border.even and y == ((e.frame.h - border_width) + 1) then
-                    if args.thin == true then
-                        if args.even_inner == true then
-                            e.w_blit(p_b, blit_bg_top_bot, string.rep(e.fg_bg.blit_bkg, e.frame.w))
-                        else
-                            e.w_blit(p_b, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                            if width_x2 % 3 == 1 then
+                                e.w_blit(p_b, _fg, _bg)
+                            elseif width_x2 % 3 == 2 then
+                                e.w_blit(p_a, _fg, _bg)
+                            else
+                                -- skip line
+                                e.w_blit(spaces, blit_fg, blit_bg_sides)
+                            end
                         end
                     else
-                        local _fg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
-                        local _bg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
-
-                        if width_x2 % 3 == 1 then
-                            e.w_blit(p_a, _fg, _bg)
-                        elseif width_x2 % 3 == 2 then
-                            e.w_blit(p_b, _fg, _bg)
+                        e.w_blit(spaces, blit_fg, blit_bg_top_bot)
+                    end
+                -- bottom border
+                elseif y > (e.frame.h - border_width) then
+                    -- partial pixel fill
+                    if args.border.even and y == ((e.frame.h - border_width) + 1) then
+                        if args.thin == true then
+                            if args.even_inner == true then
+                                e.w_blit(p_b, blit_bg_top_bot, string.rep(e.fg_bg.blit_bkg, e.frame.w))
+                            else
+                                e.w_blit(p_b, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+                            end
                         else
-                            -- skip line
-                            e.w_blit(spaces, blit_fg, blit_bg_sides)
+                            local _fg = util.trinary(args.even_inner == true, blit_bg_top_bot, p_inv_fg)
+                            local _bg = util.trinary(args.even_inner == true, string.rep(e.fg_bg.blit_bkg, e.frame.w), blit_bg_top_bot)
+
+                            if width_x2 % 3 == 1 then
+                                e.w_blit(p_a, _fg, _bg)
+                            elseif width_x2 % 3 == 2 then
+                                e.w_blit(p_b, _fg, _bg)
+                            else
+                                -- skip line
+                                e.w_blit(spaces, blit_fg, blit_bg_sides)
+                            end
                         end
+                    else
+                        e.w_blit(spaces, blit_fg, blit_bg_top_bot)
                     end
                 else
-                    e.w_blit(spaces, blit_fg, blit_bg_top_bot)
-                end
-            else
-                if args.thin == true then
-                    e.w_blit(p_s, blit_fg_sides, blit_bg_sides)
-                else
-                    e.w_blit(p_s, blit_fg, blit_bg_sides)
+                    if args.thin == true then
+                        e.w_blit(p_s, blit_fg_sides, blit_bg_sides)
+                    else
+                        e.w_blit(p_s, blit_fg, blit_bg_sides)
+                    end
                 end
             end
         end
+
+        -- initial draw of border
+        e.redraw()
     end
 
     return e.complete()

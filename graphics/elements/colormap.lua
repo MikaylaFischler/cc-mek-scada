@@ -1,7 +1,5 @@
 -- Color Map Graphics Element
 
-local util    = require("scada-common.util")
-
 local element = require("graphics.element")
 
 ---@class colormap_args
@@ -16,7 +14,7 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function colormap(args)
     local bkg = "008877FFCCEE114455DD9933BBAA2266"
-    local spaces = util.spaces(32)
+    local spaces = string.rep(" ", 32)
 
     args.width = 32
     args.height = 1
@@ -25,8 +23,13 @@ local function colormap(args)
     local e = element.new(args)
 
     -- draw color map
-    e.w_set_cur(1, 1)
-    e.w_blit(spaces, bkg, bkg)
+    function e.redraw()
+        e.w_set_cur(1, 1)
+        e.w_blit(spaces, bkg, bkg)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

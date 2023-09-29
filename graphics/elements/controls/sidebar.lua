@@ -1,6 +1,7 @@
 -- Sidebar Graphics Element
 
 local tcd     = require("scada-common.tcd")
+local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -26,11 +27,10 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args sidebar_args
 ---@return graphics_element element, element_id id
 local function sidebar(args)
-    assert(type(args.tabs) == "table", "graphics.elements.controls.sidebar: tabs is a required field")
-    assert(#args.tabs > 0, "graphics.elements.controls.sidebar: at least one tab is required")
-    assert(type(args.callback) == "function", "graphics.elements.controls.sidebar: callback is a required field")
+    assert(type(args.tabs) == "table", "controls.sidebar: tabs is a required field")
+    assert(#args.tabs > 0, "controls.sidebar: at least one tab is required")
+    assert(type(args.callback) == "function", "controls.sidebar: callback is a required field")
 
-    -- always 3 wide
     args.width = 3
 
     -- create new graphics element base object
@@ -41,10 +41,14 @@ local function sidebar(args)
     -- default to 1st tab
     e.value = 1
 
+    local was_pressed = false
+
     -- show the button state
-    ---@param pressed boolean if the currently selected tab should appear as actively pressed
+    ---@param pressed? boolean if the currently selected tab should appear as actively pressed
     ---@param pressed_idx? integer optional index to show as held (that is not yet selected)
     local function draw(pressed, pressed_idx)
+        pressed = util.trinary(pressed == nil, was_pressed, pressed)
+        was_pressed = pressed
         pressed_idx = pressed_idx or e.value
 
         for i = 1, #args.tabs do
@@ -65,12 +69,8 @@ local function sidebar(args)
             e.w_write("   ")
             e.w_set_cur(1, y + 1)
             if e.value == i then
-                -- show as selected
                 e.w_write(" " .. tab.char .. "\x10")
-            else
-                -- show as unselected
-                e.w_write(" " .. tab.char .. " ")
-            end
+            else e.w_write(" " .. tab.char .. " ") end
             e.w_set_cur(1, y + 2)
             e.w_write("   ")
         end
@@ -113,8 +113,10 @@ local function sidebar(args)
         draw(false)
     end
 
-    -- initial draw
-    draw(false)
+    -- element redraw
+    e.redraw = draw
+
+    e.redraw()
 
     return e.complete()
 end

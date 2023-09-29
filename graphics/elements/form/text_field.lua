@@ -88,16 +88,15 @@ local function text_field(args)
         ifield.set_value(text)
     end
 
-    -- handle focus
+    -- handle focus, enable, and redraw with show()
     e.on_focused = ifield.show
     e.on_unfocused = ifield.show
-
-    -- handle enable
     e.on_enabled = ifield.show
     e.on_disabled = ifield.show
+    e.redraw = ifield.show
 
     -- initial draw
-    ifield.show()
+    e.redraw()
 
     local elem, id = e.complete()
     return elem, id, ifield.censor

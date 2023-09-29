@@ -24,20 +24,16 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args app_button_args
 ---@return graphics_element element, element_id id
 local function app_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.app: text is a required field")
-    assert(type(args.title) == "string", "graphics.elements.controls.app: title is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.app: callback is a required field")
-    assert(type(args.app_fg_bg) == "table", "graphics.elements.controls.app: app_fg_bg is a required field")
+    assert(type(args.text) == "string", "controls.app: text is a required field")
+    assert(type(args.title) == "string", "controls.app: title is a required field")
+    assert(type(args.callback) == "function", "controls.app: callback is a required field")
+    assert(type(args.app_fg_bg) == "table", "controls.app: app_fg_bg is a required field")
 
     args.height = 4
-    args.width  = 5
+    args.width = 5
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- write app title, centered
-    e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
-    e.w_write(args.title)
 
     -- draw the app button
     local function draw()
@@ -120,8 +116,18 @@ local function app_button(args)
         if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
+    -- element redraw
+    function e.redraw()
+        -- write app title, centered
+        e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
+        e.w_write(args.title)
+
+        -- draw button
+        draw()
+    end
+
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

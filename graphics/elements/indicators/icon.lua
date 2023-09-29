@@ -23,17 +23,16 @@ local element = require("graphics.element")
 ---@param args icon_indicator_args
 ---@return graphics_element element, element_id id
 local function icon(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.icon: label is a required field")
-    assert(type(args.states) == "table", "graphics.elements.indicators.icon: states is a required field")
+    assert(type(args.label) == "string", "indicators.icon: label is a required field")
+    assert(type(args.states) == "table", "indicators.icon: states is a required field")
 
-    -- single line
     args.height = 1
-
-    -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    e.value = args.value or 1
 
     -- state blit strings
     local state_blit_cmds = {}
@@ -46,10 +45,6 @@ local function icon(args)
             bkg = string.rep(sym_color.color.blit_bkg, 3)
         })
     end
-
-    -- write label and initial indicator light
-    e.w_set_cur(5, 1)
-    e.w_write(args.label)
 
     -- on state change
     ---@param new_state integer indicator state
@@ -64,8 +59,16 @@ local function icon(args)
     ---@param val integer indicator state
     function e.set_value(val) e.on_update(val) end
 
-    -- initial icon draw
-    e.on_update(args.value or 1)
+    -- element redraw
+    function e.redraw()
+        e.w_set_cur(5, 1)
+        e.w_write(args.label)
+
+        e.on_update(e.value)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

@@ -360,6 +360,8 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param result any
     function protected.response_callback(result) end
 
+    -- accessors and control --
+
     -- get value
     ---@nodiscard
     function protected.get_value() return protected.value end
@@ -386,6 +388,9 @@ function element.new(args, child_offset_x, child_offset_y)
 
 -- luacheck: pop
 ---@diagnostic enable: unused-local, unused-vararg
+
+    -- re-draw this element
+    function protected.redraw() end
 
     -- start animations
     function protected.start_anim() end

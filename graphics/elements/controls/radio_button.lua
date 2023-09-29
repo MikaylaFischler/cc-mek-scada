@@ -25,14 +25,14 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@param args radio_button_args
 ---@return graphics_element element, element_id id
 local function radio_button(args)
-    assert(type(args.options) == "table", "graphics.elements.controls.radio_button: options is a required field")
-    assert(#args.options > 0, "graphics.elements.controls.radio_button: at least one option is required")
-    assert(type(args.radio_colors) == "table", "graphics.elements.controls.radio_button: radio_colors is a required field")
-    assert(type(args.select_color) == "number", "graphics.elements.controls.radio_button: select_color is a required field")
+    assert(type(args.options) == "table", "controls.radio_button: options is a required field")
+    assert(#args.options > 0, "controls.radio_button: at least one option is required")
+    assert(type(args.radio_colors) == "table", "controls.radio_button: radio_colors is a required field")
+    assert(type(args.select_color) == "number", "controls.radio_button: select_color is a required field")
     assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0),
-        "graphics.elements.controls.radio_button: default must be nil or a number > 0")
+        "controls.radio_button: default must be nil or a number > 0")
     assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
-        "graphics.elements.controls.radio_button: min_width must be nil or a number > 0")
+        "controls.radio_button: min_width must be nil or a number > 0")
 
     -- determine widths
     local max_width = 1
@@ -59,7 +59,7 @@ local function radio_button(args)
     e.value = args.default or 1
 
     -- show the button state
-    local function draw()
+    function e.redraw()
         for i = 1, #args.options do
             local opt = args.options[i] ---@type string
 
@@ -97,7 +97,7 @@ local function radio_button(args)
             if args.options[event.current.y] ~= nil then
                 e.value = event.current.y
                 focused_opt = e.value
-                draw()
+                e.redraw()
                 if type(args.callback) == "function" then args.callback(e.value) end
             end
         end
@@ -109,17 +109,17 @@ local function radio_button(args)
         if event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
             if event.type == KEY_CLICK.DOWN and (event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter) then
                 e.value = focused_opt
-                draw()
+                e.redraw()
                 if type(args.callback) == "function" then args.callback(e.value) end
             elseif event.key == keys.down then
                 if focused_opt < #args.options then
                     focused_opt = focused_opt + 1
-                    draw()
+                    e.redraw()
                 end
             elseif event.key == keys.up then
                 if focused_opt > 1 then
                     focused_opt = focused_opt - 1
-                    draw()
+                    e.redraw()
                 end
             end
         end
@@ -130,20 +130,20 @@ local function radio_button(args)
     function e.set_value(val)
         if val > 0 and val <= #args.options then
             e.value = val
-            draw()
+            e.redraw()
         end
     end
 
     -- handle focus
-    e.on_focused = draw
-    e.on_unfocused = draw
+    e.on_focused = e.redraw
+    e.on_unfocused = e.redraw
 
     -- handle enable
-    e.on_enabled = draw
-    e.on_disabled = draw
+    e.on_enabled = e.redraw
+    e.on_disabled = e.redraw
 
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

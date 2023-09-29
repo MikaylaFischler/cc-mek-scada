@@ -29,8 +29,8 @@ local function spinbox(args)
     local wn_prec = args.whole_num_precision
     local fr_prec = args.fractional_precision
 
-    assert(util.is_int(wn_prec), "graphics.element.controls.spinbox_numeric: whole number precision must be an integer")
-    assert(util.is_int(fr_prec), "graphics.element.controls.spinbox_numeric: fractional precision must be an integer")
+    assert(util.is_int(wn_prec), "controls.spinbox_numeric: whole number precision must be an integer")
+    assert(util.is_int(fr_prec), "controls.spinbox_numeric: fractional precision must be an integer")
 
     local fmt, fmt_init ---@type string, string
 
@@ -44,7 +44,7 @@ local function spinbox(args)
 
     local dec_point_x = args.whole_num_precision + 1
 
-    assert(type(args.arrow_fg_bg) == "table", "graphics.element.spinbox_numeric: arrow_fg_bg is a required field")
+    assert(type(args.arrow_fg_bg) == "table", "controls.spinbox_numeric: arrow_fg_bg is a required field")
 
     -- determine widths
     args.width = wn_prec + fr_prec + util.trinary(fr_prec > 0, 1, 0)
@@ -71,8 +71,6 @@ local function spinbox(args)
             e.w_write(" " .. string.rep("\x1f", fr_prec))
         end
     end
-
-    draw_arrows(args.arrow_fg_bg.fgd)
 
     -- populate digits from current value
     local function set_digits()
@@ -125,9 +123,6 @@ local function spinbox(args)
         e.w_write(util.sprintf(fmt, e.value))
     end
 
-    -- init with the default value
-    show_num()
-
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
@@ -138,10 +133,8 @@ local function spinbox(args)
                 local idx = util.trinary(event.current.x > dec_point_x, event.current.x - 1, event.current.x)
                 if digits[idx] ~= nil then
                     if event.current.y == 1 then
-                        -- increment
                         digits[idx] = digits[idx] + 1
                     elseif event.current.y == 3 then
-                        -- decrement
                         digits[idx] = digits[idx] - 1
                     end
 
@@ -176,18 +169,19 @@ local function spinbox(args)
     end
 
     -- enable this input
-    function e.on_enabled()
-        draw_arrows(args.arrow_fg_bg.fgd)
-    end
+    function e.on_enabled() draw_arrows(args.arrow_fg_bg.fgd) end
 
     -- disable this input
-    function e.on_disabled()
-        draw_arrows(args.arrow_disable or colors.lightGray)
+    function e.on_disabled() draw_arrows(args.arrow_disable or colors.lightGray) end
+
+    -- element redraw
+    function e.redraw()
+        show_num()
+        draw_arrows(util.trinary(e.enabled, args.arrow_fg_bg.fgd, args.arrow_disable or colors.lightGray))
     end
 
-    -- default to zero, init digits table
-    e.value = 0
-    set_digits()
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

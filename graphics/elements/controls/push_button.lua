@@ -26,10 +26,9 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@param args push_button_args
 ---@return graphics_element element, element_id id
 local function push_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.push_button: text is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.push_button: callback is a required field")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
-        "graphics.elements.controls.push_button: min_width must be nil or a number > 0")
+    assert(type(args.text) == "string", "controls.push_button: text is a required field")
+    assert(type(args.callback) == "function", "controls.push_button: callback is a required field")
+    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "controls.push_button: min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
 
@@ -46,7 +45,7 @@ local function push_button(args)
     local v_pad = math.floor(e.frame.h / 2) + 1
 
     -- draw the button
-    local function draw()
+    function e.redraw()
         e.window.clear()
 
         -- write the button text
@@ -60,7 +59,7 @@ local function push_button(args)
             e.value = true
             e.w_set_fgd(args.active_fg_bg.fgd)
             e.w_set_bkg(args.active_fg_bg.bkg)
-            draw()
+            e.redraw()
         end
     end
 
@@ -70,7 +69,7 @@ local function push_button(args)
             e.value = false
             e.w_set_fgd(e.fg_bg.fgd)
             e.w_set_bkg(e.fg_bg.bkg)
-            draw()
+            e.redraw()
         end
     end
 
@@ -117,7 +116,7 @@ local function push_button(args)
             e.value = false
             e.w_set_fgd(e.fg_bg.fgd)
             e.w_set_bkg(e.fg_bg.bkg)
-            draw()
+            e.redraw()
         end
     end
 
@@ -127,7 +126,7 @@ local function push_button(args)
             e.value = false
             e.w_set_fgd(args.dis_fg_bg.fgd)
             e.w_set_bkg(args.dis_fg_bg.bkg)
-            draw()
+            e.redraw()
         end
     end
 
@@ -136,7 +135,7 @@ local function push_button(args)
     e.on_unfocused = show_unpressed
 
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

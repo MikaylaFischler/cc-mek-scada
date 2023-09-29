@@ -42,30 +42,6 @@ local function number_field(args)
     -- make an interactive field manager
     local ifield = core.new_ifield(e, args.max_digits, args.fg_bg, args.dis_fg_bg)
 
-
-    -- draw input
-    local function show()
-        if e.enabled then
-            e.w_set_bkg(args.fg_bg.bkg)
-            e.w_set_fgd(args.fg_bg.fgd)
-        else
-            e.w_set_bkg(args.dis_fg_bg.bkg)
-            e.w_set_fgd(args.dis_fg_bg.fgd)
-        end
-
-        -- clear and print
-        e.w_set_cur(1, 1)
-        e.w_write(string.rep(" ", e.frame.w))
-        e.w_set_cur(1, 1)
-        e.w_write(e.value)
-
-        -- show cursor if focused
-        if e.is_focused() and e.enabled then
-            e.w_set_fgd(colors.lightGray)
-            e.w_write("_")
-        end
-    end
-
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
@@ -117,9 +93,7 @@ local function number_field(args)
     -- set the value (must be a number)
     ---@param val number number to show
     function e.set_value(val)
-        if tonumber(val) then
-            ifield.set_value("" .. tonumber(val))
-        end
+        if tonumber(val) then ifield.set_value("" .. tonumber(val)) end
     end
 
     -- set minimum input value
@@ -140,9 +114,6 @@ local function number_field(args)
         end
     end
 
-    -- handle focused
-    e.on_focused = show
-
     -- handle unfocused
     function e.on_unfocused()
         local val = tonumber(e.value)
@@ -162,12 +133,14 @@ local function number_field(args)
         ifield.show()
     end
 
-    -- handle enable
+    -- handle focus (not unfocus), enable, and redraw with show()
+    e.on_focused = ifield.show
     e.on_enabled = ifield.show
     e.on_disabled = ifield.show
+    e.redraw = ifield.show
 
     -- initial draw
-    ifield.show()
+    e.redraw()
 
     return e.complete()
 end

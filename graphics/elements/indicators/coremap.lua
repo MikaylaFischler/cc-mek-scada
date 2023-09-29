@@ -18,8 +18,8 @@ local element = require("graphics.element")
 ---@param args core_map_args
 ---@return graphics_element element, element_id id
 local function core_map(args)
-    assert(util.is_int(args.reactor_l), "graphics.elements.indicators.coremap: reactor_l is a required field")
-    assert(util.is_int(args.reactor_w), "graphics.elements.indicators.coremap: reactor_w is a required field")
+    assert(util.is_int(args.reactor_l), "indicators.coremap: reactor_l is a required field")
+    assert(util.is_int(args.reactor_w), "indicators.coremap: reactor_w is a required field")
 
     -- require max dimensions
     args.width = 18
@@ -30,6 +30,8 @@ local function core_map(args)
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    e.value = 0
 
     local alternator = true
 
@@ -157,11 +159,14 @@ local function core_map(args)
         e.on_update(e.value)
     end
 
-    -- initial (one-time except for resize()) frame draw
-    draw_frame()
+    -- redraw both frame and core
+    function e.redraw()
+        draw_frame()
+        draw_core(e.value)
+    end
 
     -- initial draw
-    e.on_update(0)
+    e.redraw()
 
     return e.complete()
 end
