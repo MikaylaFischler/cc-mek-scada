@@ -111,6 +111,14 @@ function core.pipe(x1, y1, x2, y2, color, thin, align_tr)
     }
 end
 
+-- Assertion Handling
+
+-- extract the custom element assert message, dropping the path to the element file
+function core.extract_assert_msg(msg)
+    local start = string.find(msg, "@") or 1
+    return string.sub(msg, start)
+end
+
 -- Interactive Field Manager
 
 ---@param e graphics_base

@@ -24,7 +24,7 @@ local TEXT_ALIGN = core.TEXT_ALIGN
 ---@param args textbox_args
 ---@return graphics_element element, element_id id
 local function textbox(args)
-    assert(type(args.text) == "string", "textbox: text is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)

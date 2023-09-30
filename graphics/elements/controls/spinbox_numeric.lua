@@ -29,8 +29,8 @@ local function spinbox(args)
     local wn_prec = args.whole_num_precision
     local fr_prec = args.fractional_precision
 
-    assert(util.is_int(wn_prec), "controls.spinbox_numeric: whole number precision must be an integer")
-    assert(util.is_int(fr_prec), "controls.spinbox_numeric: fractional precision must be an integer")
+    element.assert(util.is_int(wn_prec), "whole number precision must be an integer")
+    element.assert(util.is_int(fr_prec), "fractional precision must be an integer")
 
     local fmt, fmt_init ---@type string, string
 
@@ -44,7 +44,7 @@ local function spinbox(args)
 
     local dec_point_x = args.whole_num_precision + 1
 
-    assert(type(args.arrow_fg_bg) == "table", "controls.spinbox_numeric: arrow_fg_bg is a required field")
+    element.assert(type(args.arrow_fg_bg) == "table", "arrow_fg_bg is a required field")
 
     -- determine widths
     args.width = wn_prec + fr_prec + util.trinary(fr_prec > 0, 1, 0)

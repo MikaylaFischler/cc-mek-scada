@@ -23,8 +23,8 @@ local element = require("graphics.element")
 ---@param args icon_indicator_args
 ---@return graphics_element element, element_id id
 local function icon(args)
-    assert(type(args.label) == "string", "indicators.icon: label is a required field")
-    assert(type(args.states) == "table", "indicators.icon: states is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.states) == "table", "states is a required field")
 
     args.height = 1
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4

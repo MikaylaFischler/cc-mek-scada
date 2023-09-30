@@ -18,8 +18,8 @@ local element = require("graphics.element")
 ---@param args core_map_args
 ---@return graphics_element element, element_id id
 local function core_map(args)
-    assert(util.is_int(args.reactor_l), "indicators.coremap: reactor_l is a required field")
-    assert(util.is_int(args.reactor_w), "indicators.coremap: reactor_w is a required field")
+    element.assert(util.is_int(args.reactor_l), "reactor_l is a required field")
+    element.assert(util.is_int(args.reactor_w), "reactor_w is a required field")
 
     -- require max dimensions
     args.width = 18

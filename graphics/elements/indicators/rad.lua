@@ -24,10 +24,10 @@ local element = require("graphics.element")
 ---@param args rad_indicator_args
 ---@return graphics_element element, element_id id
 local function rad(args)
-    assert(type(args.value) ~= "number", "indicators.rad: value is a required number field")
-    assert(type(args.label) == "string", "indicators.rad: label is a required field")
-    assert(type(args.format) == "string", "indicators.rad: format is a required field")
-    assert(util.is_int(args.width), "indicators.rad: width is a required field")
+    element.assert(type(args.value) ~= "number", "value is a required number field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.format) == "string", "format is a required field")
+    element.assert(util.is_int(args.width), "width is a required field")
 
     args.height = 1
 

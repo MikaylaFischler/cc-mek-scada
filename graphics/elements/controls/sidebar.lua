@@ -27,16 +27,16 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args sidebar_args
 ---@return graphics_element element, element_id id
 local function sidebar(args)
-    assert(type(args.tabs) == "table", "controls.sidebar: tabs is a required field")
-    assert(#args.tabs > 0, "controls.sidebar: at least one tab is required")
-    assert(type(args.callback) == "function", "controls.sidebar: callback is a required field")
+    element.assert(type(args.tabs) == "table", "tabs is a required field")
+    element.assert(#args.tabs > 0, "at least one tab is required")
+    element.assert(type(args.callback) == "function", "callback is a required field")
 
     args.width = 3
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    assert(e.frame.h >= (#args.tabs * 3), "graphics.elements.controls.sidebar: height insufficent to display all tabs")
+    element.assert(e.frame.h >= (#args.tabs * 3), "height insufficent to display all tabs")
 
     -- default to 1st tab
     e.value = 1

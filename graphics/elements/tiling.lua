@@ -22,7 +22,7 @@ local element = require("graphics.element")
 ---@param args tiling_args
 ---@return graphics_element element, element_id id
 local function tiling(args)
-    assert(type(args.fill_c) == "table", "tiling: fill_c is a required field")
+    element.assert(type(args.fill_c) == "table", "fill_c is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -47,10 +47,10 @@ local function tiling(args)
     end
 
     -- check dimensions
-    assert(inner_width > 0, "tiling: inner_width <= 0")
-    assert(inner_height > 0, "tiling: inner_height <= 0")
-    assert(start_x <= inner_width, "tiling: start_x > inner_width")
-    assert(start_y <= inner_height, "tiling: start_y > inner_height")
+    element.assert(inner_width > 0, "inner_width <= 0")
+    element.assert(inner_height > 0, "inner_height <= 0")
+    element.assert(start_x <= inner_width, "start_x > inner_width")
+    element.assert(start_y <= inner_height, "start_y > inner_height")
 
     -- draw tiling box
     function e.redraw()

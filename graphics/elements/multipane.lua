@@ -19,7 +19,7 @@ local element = require("graphics.element")
 ---@param args multipane_args
 ---@return graphics_element element, element_id id
 local function multipane(args)
-    assert(type(args.panes) == "table", "multipane: panes is a required field")
+    element.assert(type(args.panes) == "table", "panes is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)

@@ -24,10 +24,10 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args app_button_args
 ---@return graphics_element element, element_id id
 local function app_button(args)
-    assert(type(args.text) == "string", "controls.app: text is a required field")
-    assert(type(args.title) == "string", "controls.app: title is a required field")
-    assert(type(args.callback) == "function", "controls.app: callback is a required field")
-    assert(type(args.app_fg_bg) == "table", "controls.app: app_fg_bg is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.title) == "string", "title is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.app_fg_bg) == "table", "app_fg_bg is a required field")
 
     args.height = 4
     args.width = 5

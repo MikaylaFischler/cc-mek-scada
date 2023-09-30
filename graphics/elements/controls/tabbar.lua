@@ -27,10 +27,10 @@ local element = require("graphics.element")
 ---@param args tabbar_args
 ---@return graphics_element element, element_id id
 local function tabbar(args)
-    assert(type(args.tabs) == "table", "controls.tabbar: tabs is a required field")
-    assert(#args.tabs > 0, "controls.tabbar: at least one tab is required")
-    assert(type(args.callback) == "function", "controls.tabbar: callback is a required field")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "controls.tabbar: min_width must be nil or a number > 0")
+    element.assert(type(args.tabs) == "table", "tabs is a required field")
+    element.assert(#args.tabs > 0, "at least one tab is required")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
     args.height = 1
 
@@ -48,7 +48,7 @@ local function tabbar(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    assert(e.frame.w >= (button_width * #args.tabs), "graphics.elements.controls.tabbar: width insufficent to display all tabs")
+    element.assert(e.frame.w >= (button_width * #args.tabs), "width insufficent to display all tabs")
 
     -- default to 1st tab
     e.value = 1

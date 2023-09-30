@@ -24,10 +24,10 @@ local element = require("graphics.element")
 ---@param args data_indicator_args
 ---@return graphics_element element, element_id id
 local function data(args)
-    assert(type(args.label) == "string", "indicators.data: label is a required field")
-    assert(type(args.format) == "string", "indicators.data: format is a required field")
-    assert(args.value ~= nil, "indicators.data: value is a required field")
-    assert(util.is_int(args.width), "indicators.data: width is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.format) == "string", "format is a required field")
+    element.assert(args.value ~= nil, "value is a required field")
+    element.assert(util.is_int(args.width), "width is a required field")
 
     args.height = 1
 

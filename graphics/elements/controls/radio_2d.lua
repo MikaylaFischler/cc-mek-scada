@@ -27,12 +27,12 @@ local element = require("graphics.element")
 ---@param args radio_2d_args
 ---@return graphics_element element, element_id id
 local function radio_2d_button(args)
-    assert(type(args.options) == "table" and #args.options > 0, "controls.radio_2d: options should be a table with length >= 1")
-    assert(util.is_int(args.rows) and util.is_int(args.columns), "controls.radio_2d: rows/columns must be integers")
-    assert((args.rows * args.columns) >= #args.options, "controls.radio_2d: rows x columns size insufficient for provided number of options")
-    assert(type(args.radio_colors) == "table", "controls.radio_2d: radio_colors is a required field")
-    assert(type(args.select_color) == "number" or type(args.color_map) == "table", "controls.radio_2d: select_color or color_map is required")
-    assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0), "controls.radio_2d: default must be nil or a number > 0")
+    element.assert(type(args.options) == "table" and #args.options > 0, "options should be a table with length >= 1")
+    element.assert(util.is_int(args.rows) and util.is_int(args.columns), "rows/columns must be integers")
+    element.assert((args.rows * args.columns) >= #args.options, "rows x columns size insufficient for provided number of options")
+    element.assert(type(args.radio_colors) == "table", "radio_colors is a required field")
+    element.assert(type(args.select_color) == "number" or type(args.color_map) == "table", "select_color or color_map is required")
+    element.assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0), "default must be nil or a number > 0")
 
     local array = {}
     local col_widths = {}

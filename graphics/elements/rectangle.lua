@@ -22,7 +22,7 @@ local element = require("graphics.element")
 ---@param args rectangle_args
 ---@return graphics_element element, element_id id
 local function rectangle(args)
-    assert(args.border ~= nil or args.thin ~= true, "rectangle: thin requires border to be provided")
+    element.assert(args.border ~= nil or args.thin ~= true, "thin requires border to be provided")
 
     -- if thin, then width will always need to be 1
     if args.thin == true then
@@ -65,8 +65,8 @@ local function rectangle(args)
         local inner_width = e.frame.w - width_x2
 
         -- check dimensions
-        assert(width_x2 <= e.frame.w, "rectangle: border too thick for width")
-        assert(width_x2 <= e.frame.h, "rectangle: border too thick for height")
+        element.assert(width_x2 <= e.frame.w, "border too thick for width")
+        element.assert(width_x2 <= e.frame.h, "border too thick for height")
 
         -- form the basic line strings and top/bottom blit strings
         local spaces = util.spaces(e.frame.w)

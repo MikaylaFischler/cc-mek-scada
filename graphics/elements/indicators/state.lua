@@ -25,13 +25,11 @@ local element = require("graphics.element")
 ---@param args state_indicator_args
 ---@return graphics_element element, element_id id
 local function state_indicator(args)
-    assert(type(args.states) == "table", "indicators.state: states is a required field")
+    element.assert(type(args.states) == "table", "states is a required field")
 
     if util.is_int(args.height) then
-        assert(args.height % 2 == 1, "indicators.state: height should be an odd number")
-    else
-        args.height = 1
-    end
+        element.assert(args.height % 2 == 1, "height should be an odd number")
+    else args.height = 1 end
 
     args.width = args.min_width or 1
 

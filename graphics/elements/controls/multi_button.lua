@@ -29,11 +29,11 @@ local element = require("graphics.element")
 ---@param args multi_button_args
 ---@return graphics_element element, element_id id
 local function multi_button(args)
-    assert(type(args.options) == "table", "controls.multi_button: options is a required field")
-    assert(#args.options > 0, "controls.multi_button: at least one option is required")
-    assert(type(args.callback) == "function", "controls.multi_button: callback is a required field")
-    assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0), "controls.multi_button: default must be nil or a number > 0")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "controls.multi_button: min_width must be nil or a number > 0")
+    element.assert(type(args.options) == "table", "options is a required field")
+    element.assert(#args.options > 0, "at least one option is required")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.default) == "nil" or (type(args.default) == "number" and args.default > 0), "default must be nil or a number > 0")
+    element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
     -- single line
     args.height = 1

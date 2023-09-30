@@ -25,13 +25,13 @@ local flasher = require("graphics.flasher")
 ---@param args tristate_indicator_light_args
 ---@return graphics_element element, element_id id
 local function tristate_indicator_light(args)
-    assert(type(args.label) == "string", "indicators.trilight: label is a required field")
-    assert(type(args.c1) == "number", "indicators.trilight: c1 is a required field")
-    assert(type(args.c2) == "number", "indicators.trilight: c2 is a required field")
-    assert(type(args.c3) == "number", "indicators.trilight: c3 is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.c1) == "number", "c1 is a required field")
+    element.assert(type(args.c2) == "number", "c2 is a required field")
+    element.assert(type(args.c3) == "number", "c3 is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "indicators.trilight: period is a required field if flash is enabled")
+        element.assert(util.is_int(args.period), "period is a required field if flash is enabled")
     end
 
     args.height = 1

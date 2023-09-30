@@ -2,6 +2,8 @@
 -- Generic Graphics Element
 --
 
+local util = require("scada-common.util")
+
 local core = require("graphics.core")
 
 local events = core.events
@@ -65,6 +67,16 @@ local element = {}
 ---@field key string data key
 ---@field func function callback
 
+-- more detailed assert message for element verification
+---@param condition any assert condition
+---@param msg string assert message
+---@param callstack_offset? integer shift value to change targets of debug.getinfo()
+function element.assert(condition, msg, callstack_offset)
+    callstack_offset = callstack_offset or 0
+    local caller = debug.getinfo(3 + callstack_offset)
+    assert(condition, util.c(caller.source, ":", caller.currentline, "{", debug.getinfo(2 + callstack_offset).name, "}: ", msg))
+end
+
 -- a base graphics element, should not be created on its own
 ---@nodiscard
 ---@param args graphics_args arguments
@@ -77,7 +89,7 @@ function element.new(args, child_offset_x, child_offset_y)
         elem_type = debug.getinfo(2).name,
         define_completed = false,
         p_window = nil,                                 ---@type table
-        position = { x = 1, y = 1 },                    ---@type coordinate_2d
+        position = events.new_coord_2d(1, 1),
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         next_y = 1,                                     -- next child y coordinate
         next_id = 0,                                    -- next child ID
@@ -99,11 +111,9 @@ function element.new(args, child_offset_x, child_offset_y)
         child_id_map = {}
     }
 
-    local name_brief = "graphics.element{" .. self.elem_type .. "}: "
-
     -- element as string
     function self.mt.__tostring()
-        return "graphics.element{" .. self.elem_type .. "} @ " .. tostring(self)
+        return util.c("graphics.element{", self.elem_type, "} @ ", self)
     end
 
     ---@class graphics_element
@@ -207,10 +217,10 @@ function element.new(args, child_offset_x, child_offset_y)
         end
 
         -- check frame
-        assert(f.x >= 1, name_brief .. "frame x not >= 1")
-        assert(f.y >= 1, name_brief .. "frame y not >= 1")
-        assert(f.w >= 1, name_brief .. "frame width not >= 1")
-        assert(f.h >= 1, name_brief .. "frame height not >= 1")
+        element.assert(f.x >= 1, "frame x not >= 1", 2)
+        element.assert(f.y >= 1, "frame y not >= 1", 2)
+        element.assert(f.w >= 1, "frame width not >= 1", 2)
+        element.assert(f.h >= 1, "frame height not >= 1", 2)
 
         -- create window
         protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, args.hidden ~= true)
@@ -409,7 +419,7 @@ function element.new(args, child_offset_x, child_offset_y)
     end
 
     -- check window
-    assert(self.p_window, name_brief .. "no parent window provided")
+    element.assert(self.p_window, "no parent window provided", 1)
 
     -- prepare the template
     if args.parent == nil then

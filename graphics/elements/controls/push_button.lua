@@ -26,9 +26,9 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@param args push_button_args
 ---@return graphics_element element, element_id id
 local function push_button(args)
-    assert(type(args.text) == "string", "controls.push_button: text is a required field")
-    assert(type(args.callback) == "function", "controls.push_button: callback is a required field")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "controls.push_button: min_width must be nil or a number > 0")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
 

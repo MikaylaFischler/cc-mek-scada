@@ -21,9 +21,9 @@ local element = require("graphics.element")
 ---@param args hazard_button_args
 ---@return graphics_element element, element_id id
 local function hazard_button(args)
-    assert(type(args.text) == "string", "controls.hazard_button: text is a required field")
-    assert(type(args.accent) == "number", "controls.hazard_button: accent is a required field")
-    assert(type(args.callback) == "function", "controls.hazard_button: callback is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.accent) == "number", "accent is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
 
     args.height = 3
     args.width = string.len(args.text) + 4

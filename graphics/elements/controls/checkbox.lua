@@ -18,8 +18,8 @@ local element = require("graphics.element")
 ---@param args checkbox_args
 ---@return graphics_element element, element_id id
 local function checkbox(args)
-    assert(type(args.label) == "string", "controls.checkbox: label is a required field")
-    assert(type(args.box_fg_bg) == "table", "controls.checkbox: box_fg_bg is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.box_fg_bg) == "table", "box_fg_bg is a required field")
 
     args.can_focus = true
     args.height = 1

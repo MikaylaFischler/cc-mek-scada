@@ -23,11 +23,11 @@ local flasher = require("graphics.flasher")
 ---@param args indicator_light_args
 ---@return graphics_element element, element_id id
 local function indicator_light(args)
-    assert(type(args.label) == "string", "indicators.light: label is a required field")
-    assert(type(args.colors) == "table", "indicators.light: colors is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.colors) == "table", "colors is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "indicators.light: period is a required field if flash is enabled")
+        element.assert(util.is_int(args.period), "period is a required field if flash is enabled")
     end
 
     args.height = 1

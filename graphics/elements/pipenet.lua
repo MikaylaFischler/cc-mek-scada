@@ -24,7 +24,7 @@ local element = require("graphics.element")
 ---@param args pipenet_args
 ---@return graphics_element element, element_id id
 local function pipenet(args)
-    assert(type(args.pipes) == "table", "pipenet: pipes is a required field")
+    element.assert(type(args.pipes) == "table", "pipes is a required field")
 
     args.width = 0
     args.height = 0
