@@ -18,7 +18,7 @@ local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.6.2-alpha"
+local POCKET_VERSION = "v0.6.3-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -111,9 +111,8 @@ local function main()
     -- start the UI
     ----------------------------------------
 
-    local ui_ok, message = pcall(renderer.start_ui)
+    local ui_ok, message = renderer.try_start_ui()
     if not ui_ok then
-        renderer.close_ui()
         println(util.c("UI error: ", message))
         log.error(util.c("startup> GUI render failed with error ", message))
     else

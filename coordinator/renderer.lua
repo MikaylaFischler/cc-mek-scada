@@ -133,19 +133,30 @@ function renderer.init_dmesg()
     log.direct_dmesg(engine.dmesg_window)
 end
 
--- start the coordinator front panel
-function renderer.start_fp()
+-- try to start the front panel
+---@return boolean success, any error_msg
+function renderer.try_start_fp()
+    local status, msg = true, nil
+
     if not engine.fp_ready then
         -- show front panel view on terminal
-        engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
-        panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
+        status, msg = pcall(function ()
+            engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
+            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
+        end)
 
-        -- start flasher callback task
-        flasher.run()
-
-        -- report front panel as ready
-        engine.fp_ready = true
+        if status then
+            -- start flasher callback task and report ready
+            flasher.run()
+            engine.fp_ready = true
+        else
+            -- report fail and close front panel
+            msg = core.extract_assert_msg(msg)
+            renderer.close_fp()
+        end
     end
+
+    return status, msg
 end
 
 -- close out the front panel
@@ -178,7 +189,7 @@ function renderer.close_fp()
     end
 end
 
--- start the coordinator GUI
+-- try to start the main GUI
 ---@return boolean success, any error_msg
 function renderer.try_start_ui()
     local status, msg = true, nil

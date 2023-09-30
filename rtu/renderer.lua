@@ -5,19 +5,24 @@
 local panel_view = require("rtu.panel.front_panel")
 local style      = require("rtu.panel.style")
 
+local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
 local DisplayBox = require("graphics.elements.displaybox")
 
+---@class rtu_renderer
 local renderer = {}
 
 local ui = {
     display = nil
 }
 
--- start the UI
+-- try to start the UI
 ---@param units table RTU units
-function renderer.start_ui(units)
+---@return boolean success, any error_msg
+function renderer.try_start_ui(units)
+    local status, msg = true, nil
+
     if ui.display == nil then
         -- reset terminal
         term.setTextColor(colors.white)
@@ -30,13 +35,23 @@ function renderer.start_ui(units)
             term.setPaletteColor(style.colors[i].c, style.colors[i].hex)
         end
 
-        -- start flasher callback task
-        flasher.run()
-
         -- init front panel view
-        ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
-        panel_view(ui.display, units)
+        status, msg = pcall(function ()
+            ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
+            panel_view(ui.display, units)
+        end)
+
+        if status then
+            -- start flasher callback task
+            flasher.run()
+        else
+            -- report fail and close ui
+            msg = core.extract_assert_msg(msg)
+            renderer.close_ui()
+        end
     end
+
+    return status, msg
 end
 
 -- close out the UI

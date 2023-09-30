@@ -19,7 +19,7 @@ local plc      = require("reactor-plc.plc")
 local renderer = require("reactor-plc.renderer")
 local threads  = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.5.9"
+local R_PLC_VERSION = "v1.5.10"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -184,10 +184,9 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message
-            plc_state.fp_ok, message = pcall(renderer.start_ui)
+            plc_state.fp_ok, message = renderer.try_start_ui()
 
             if not plc_state.fp_ok then
-                renderer.close_ui()
                 println_ts(util.c("UI error: ", message))
                 println("init> running without front panel")
                 log.error(util.c("front panel GUI render failed with error ", message))

@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.0.5"
+local SUPERVISOR_VERSION = "v1.0.6"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -117,10 +117,9 @@ local function main()
     databus.tx_hw_modem(true)
 
     -- start UI
-    local fp_ok, message = pcall(renderer.start_ui)
+    local fp_ok, message = renderer.try_start_ui()
 
     if not fp_ok then
-        renderer.close_ui()
         println_ts(util.c("UI error: ", message))
         log.error(util.c("front panel GUI render failed with error ", message))
     else

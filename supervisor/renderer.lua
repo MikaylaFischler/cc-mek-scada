@@ -6,18 +6,23 @@ local panel_view = require("supervisor.panel.front_panel")
 local pgi        = require("supervisor.panel.pgi")
 local style      = require("supervisor.panel.style")
 
+local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
 local DisplayBox = require("graphics.elements.displaybox")
 
+---@class supervisor_renderer
 local renderer = {}
 
 local ui = {
     display = nil
 }
 
--- start the UI
-function renderer.start_ui()
+-- try to start the UI
+---@return boolean success, any error_msg
+function renderer.try_start_ui()
+    local status, msg = true, nil
+
     if ui.display == nil then
         -- reset terminal
         term.setTextColor(colors.white)
@@ -31,12 +36,22 @@ function renderer.start_ui()
         end
 
         -- init front panel view
-        ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
-        panel_view(ui.display)
+        status, msg = pcall(function ()
+            ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
+            panel_view(ui.display)
+        end)
 
-        -- start flasher callback task
-        flasher.run()
+        if status then
+            -- start flasher callback task
+            flasher.run()
+        else
+            -- report fail and close ui
+            msg = core.extract_assert_msg(msg)
+            renderer.close_ui()
+        end
     end
+
+    return status, msg
 end
 
 -- close out the UI

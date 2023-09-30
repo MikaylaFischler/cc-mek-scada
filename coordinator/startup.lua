@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.15"
+local COORDINATOR_VERSION = "v1.0.16"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -182,9 +182,8 @@ local function main()
 
     log_graphics("starting front panel UI...")
 
-    local fp_ok, fp_message = pcall(renderer.start_fp)
+    local fp_ok, fp_message = renderer.try_start_fp()
     if not fp_ok then
-        renderer.close_fp()
         log_graphics(util.c("front panel UI error: ", fp_message))
         println_ts("front panel UI creation failed")
         log.fatal(util.c("front panel GUI render failed with error ", fp_message))
