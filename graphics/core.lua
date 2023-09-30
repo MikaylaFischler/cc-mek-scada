@@ -115,7 +115,7 @@ end
 
 -- extract the custom element assert message, dropping the path to the element file
 function core.extract_assert_msg(msg)
-    local start = string.find(msg, "@") or 1
+    local start = (string.find(msg, "@") + 1) or 1
     return string.sub(msg, start)
 end
 

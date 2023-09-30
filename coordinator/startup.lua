@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.14"
+local COORDINATOR_VERSION = "v1.0.15"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -198,9 +198,8 @@ local function main()
 
         local draw_start = util.time_ms()
 
-        local ui_ok, ui_message = pcall(renderer.start_ui)
+        local ui_ok, ui_message = renderer.try_start_ui()
         if not ui_ok then
-            renderer.close_ui()
             log_graphics(util.c("main UI error: ", ui_message))
             log.fatal(util.c("main GUI render failed with error ", ui_message))
         else

@@ -15,10 +15,12 @@ local panel_view = require("coordinator.ui.layout.front_panel")
 local main_view  = require("coordinator.ui.layout.main_view")
 local unit_view  = require("coordinator.ui.layout.unit_view")
 
+local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
 local DisplayBox = require("graphics.elements.displaybox")
 
+---@class coord_renderer
 local renderer = {}
 
 -- render engine
@@ -177,35 +179,46 @@ function renderer.close_fp()
 end
 
 -- start the coordinator GUI
-function renderer.start_ui()
+---@return boolean success, any error_msg
+function renderer.try_start_ui()
+    local status, msg = true, nil
+
     if not engine.ui_ready then
         -- hide dmesg
         engine.dmesg_window.setVisible(false)
 
-        -- show main view on main monitor
-        if engine.monitors.primary ~= nil then
-            engine.ui.main_display = DisplayBox{window=engine.monitors.primary,fg_bg=style.root}
-            main_view(engine.ui.main_display)
+        status, msg = pcall(function ()
+            -- show main view on main monitor
+            if engine.monitors.primary ~= nil then
+                engine.ui.main_display = DisplayBox{window=engine.monitors.primary,fg_bg=style.root}
+                main_view(engine.ui.main_display)
+            end
+
+            -- show flow view on flow monitor
+            if engine.monitors.flow ~= nil then
+                engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+                flow_view(engine.ui.flow_display)
+            end
+
+            -- show unit views on unit displays
+            for idx, display in pairs(engine.monitors.unit_displays) do
+                engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
+                unit_view(engine.ui.unit_displays[idx], idx)
+            end
+        end)
+
+        if status then
+            -- start flasher callback task and report ready
+            flasher.run()
+            engine.ui_ready = true
+        else
+            -- report fail and close ui
+            msg = core.extract_assert_msg(msg)
+            renderer.close_ui()
         end
-
-        -- show flow view on flow monitor
-        if engine.monitors.flow ~= nil then
-            engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
-            flow_view(engine.ui.flow_display)
-        end
-
-        -- show unit views on unit displays
-        for idx, display in pairs(engine.monitors.unit_displays) do
-            engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
-            unit_view(engine.ui.unit_displays[idx], idx)
-        end
-
-        -- start flasher callback task
-        flasher.run()
-
-        -- report ui as ready
-        engine.ui_ready = true
     end
+
+    return status, msg
 end
 
 -- close out the UI
