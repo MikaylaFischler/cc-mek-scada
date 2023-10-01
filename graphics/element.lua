@@ -775,11 +775,14 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- hide the element and disables animations<br>
     -- this alone does not cause an element to be fully hidden, it only prevents updates from being shown<br>
+    ---@see graphics_element.redraw
     ---@see graphics_element.content_redraw
-    function public.hide()
+    ---@param clear? boolean true to visibly hide this element (redraws the parent)
+    function public.hide(clear)
         public.freeze_all() -- stop animations for efficiency/performance
         public.unfocus_all()
         protected.window.setVisible(false)
+        if clear and args.parent then args.parent.redraw() end
     end
 
     -- start/resume animation(s)
@@ -803,8 +806,14 @@ function element.new(args, child_offset_x, child_offset_y)
         for _, child in pairs(protected.children) do child.get().freeze_all() end
     end
 
-    -- re-draw the element
-    function public.redraw() protected.window.redraw() end
+    -- re-draw this element and all its children
+    function public.redraw()
+        protected.window.setBackgroundColor(protected.fg_bg.bkg)
+        protected.window.setTextColor(protected.fg_bg.fgd)
+        protected.window.clear()
+        protected.redraw()
+        for _, child in pairs(protected.children) do child.get().redraw() end
+    end
 
     -- if a content window is set, clears it then re-draws all children
     function public.content_redraw()
