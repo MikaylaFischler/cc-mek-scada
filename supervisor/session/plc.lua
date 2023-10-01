@@ -25,8 +25,9 @@ local PLC_S_CMDS = {
     SCRAM = 1,
     ASCRAM = 2,
     ENABLE = 3,
-    RPS_RESET = 4,
-    RPS_AUTO_RESET = 5
+    DISABLE = 4,
+    RPS_RESET = 5,
+    RPS_AUTO_RESET = 6
 }
 
 local PLC_S_DATA = {
@@ -80,6 +81,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         retry_times = {
             struct_req = (util.time() + 500),
             status_req = (util.time() + 500),
+            disable_req = 0,
             scram_req = 0,
             ascram_req = 0,
             burn_rate_req = 0,
@@ -87,6 +89,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         },
         -- command acknowledgements
         acks = {
+            disable = true,
             scram = true,
             ascram = true,
             burn_rate = true,
@@ -627,6 +630,11 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                             if not self.auto_lock then
                                 _send(RPLC_TYPE.RPS_ENABLE, {})
                             end
+                        elseif cmd == PLC_S_CMDS.DISABLE then
+                            -- disable the reactor
+                            self.acks.disable = false
+                            self.retry_times.disable_req = util.time() + INITIAL_WAIT
+                            _send(RPLC_TYPE.RPS_DISABLE, {})
                         elseif cmd == PLC_S_CMDS.SCRAM then
                             -- SCRAM reactor
                             self.acks.scram = false
@@ -777,6 +785,15 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
 
                         rtimes.burn_rate_req = util.time() + RETRY_PERIOD
                     end
+                end
+            end
+
+            -- reactor disable request retry
+
+            if not self.acks.disable then
+            if rtimes.disable_req - util.time() <= 0 then
+                    _send(RPLC_TYPE.RPS_DISABLE, {})
+                    rtimes.disable_req = util.time() + RETRY_PERIOD
                 end
             end
 

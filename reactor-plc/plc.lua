@@ -284,8 +284,9 @@ function plc.rps_init(reactor, is_formed)
         self.state[state_keys.sys_fail] = true
     end
 
-    -- SCRAM the reactor now (blocks waiting for server tick)
+    -- SCRAM the reactor now<br>
     ---@return boolean success
+    --- EVENT_CONSUMER: this function consumes events
     function public.scram()
         log.info("RPS: reactor SCRAM")
 
@@ -300,8 +301,9 @@ function plc.rps_init(reactor, is_formed)
         end
     end
 
-    -- start the reactor now (blocks waiting for server tick)
+    -- start the reactor now<br>
     ---@return boolean success
+    --- EVENT_CONSUMER: this function consumes events
     function public.activate()
         if not self.tripped then
             log.info("RPS: reactor start")
@@ -654,10 +656,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
     -- send structure properties (these should not change, server will cache these)
     local function _send_struct()
-        local min_pos = { x = 0, y = 0, z = 0 }
-        local max_pos = { x = 0, y = 0, z = 0 }
-
-        local mek_data = { false, 0, 0, 0, min_pos, max_pos, 0, 0, 0, 0, 0, 0, 0, 0 }
+        local mek_data = { false, 0, 0, 0, types.new_zero_coordinate(), types.new_zero_coordinate(), 0, 0, 0, 0, 0, 0, 0, 0 }
 
         local tasks = {
             function () mek_data[1]  = reactor.getLength() end,
@@ -727,21 +726,18 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             local heating_rate = 0.0    ---@type number
 
             if (not no_reactor) and rps.is_formed() then
-                if _update_status_cache() then
-                    mek_data = self.status_cache
-                end
-
+                if _update_status_cache() then mek_data = self.status_cache end
                 heating_rate = reactor.getHeatingRate()
             end
 
             local sys_status = {
-                util.time(),                    -- timestamp
-                (not self.scrammed),            -- requested control state
-                no_reactor,                     -- no reactor peripheral connected
-                formed,                         -- reactor formed
-                self.auto_ack_token,            -- token to indicate auto command has been received before this status update
-                heating_rate,                   -- heating rate
-                mek_data                        -- mekanism status data
+                util.time(),         -- timestamp
+                (not self.scrammed), -- requested control state
+                no_reactor,          -- no reactor peripheral connected
+                formed,              -- reactor formed
+                self.auto_ack_token, -- indicate auto command received prior to this status update
+                heating_rate,        -- heating rate
+                mek_data             -- mekanism status data
             }
 
             _send(RPLC_TYPE.STATUS, sys_status)
@@ -879,6 +875,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                         -- enable the reactor
                         self.scrammed = false
                         _send_ack(packet.type, rps.activate())
+                    elseif packet.type == RPLC_TYPE.RPS_DISABLE then
+                        -- disable the reactor, but do not trip
+                        self.scrammed = true
+                        _send_ack(packet.type, rps.scram())
                     elseif packet.type == RPLC_TYPE.RPS_SCRAM then
                         -- disable the reactor per manual request
                         self.scrammed = true

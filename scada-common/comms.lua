@@ -17,7 +17,7 @@ local max_distance = nil
 local comms = {}
 
 -- protocol version (non-protocol changes tracked by util.lua version)
-comms.version = "2.3.0"
+comms.version = "2.4.0"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -33,13 +33,14 @@ local RPLC_TYPE = {
     MEK_STRUCT = 1,      -- mekanism build structure
     MEK_BURN_RATE = 2,   -- set burn rate
     RPS_ENABLE = 3,      -- enable reactor
-    RPS_SCRAM = 4,       -- SCRAM reactor (manual request)
-    RPS_ASCRAM = 5,      -- SCRAM reactor (automatic request)
-    RPS_STATUS = 6,      -- RPS status
-    RPS_ALARM = 7,       -- RPS alarm broadcast
-    RPS_RESET = 8,       -- clear RPS trip (if in bad state, will trip immediately)
-    RPS_AUTO_RESET = 9,  -- clear RPS trip if it is just a timeout or auto scram
-    AUTO_BURN_RATE = 10  -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
+    RPS_DISABLE = 4,     -- disable the reactor
+    RPS_SCRAM = 5,       -- SCRAM reactor (manual request)
+    RPS_ASCRAM = 6,      -- SCRAM reactor (automatic request)
+    RPS_STATUS = 7,      -- RPS status
+    RPS_ALARM = 8,       -- RPS alarm broadcast
+    RPS_RESET = 9,       -- clear RPS trip (if in bad state, will trip immediately)
+    RPS_AUTO_RESET = 10, -- clear RPS trip if it is just a timeout or auto scram
+    AUTO_BURN_RATE = 11  -- set an automatic burn rate, PLC will respond with status, enable toggle speed limited
 }
 
 ---@enum MGMT_TYPE
@@ -396,9 +397,7 @@ function comms.modbus_packet()
 
             -- populate raw array
             self.raw = { self.txn_id, self.unit_id, self.func_code }
-            for i = 1, self.length do
-                insert(self.raw, data[i])
-            end
+            for i = 1, self.length do insert(self.raw, data[i]) end
         else
             log.error("comms.modbus_packet.make(): data not table")
         end
@@ -484,9 +483,7 @@ function comms.rplc_packet()
 
             -- populate raw array
             self.raw = { self.id, self.type }
-            for i = 1, #data do
-                insert(self.raw, data[i])
-            end
+            for i = 1, #data do insert(self.raw, data[i]) end
         else
             log.error("comms.rplc_packet.make(): data not table")
         end
@@ -568,9 +565,7 @@ function comms.mgmt_packet()
 
             -- populate raw array
             self.raw = { self.type }
-            for i = 1, #data do
-                insert(self.raw, data[i])
-            end
+            for i = 1, #data do insert(self.raw, data[i]) end
         else
             log.error("comms.mgmt_packet.make(): data not table")
         end
@@ -649,9 +644,7 @@ function comms.crdn_packet()
 
             -- populate raw array
             self.raw = { self.type }
-            for i = 1, #data do
-                insert(self.raw, data[i])
-            end
+            for i = 1, #data do insert(self.raw, data[i]) end
         else
             log.error("comms.crdn_packet.make(): data not table")
         end
