@@ -182,7 +182,7 @@ local function radio_2d_button(args)
     -- set the value
     ---@param val integer new value
     function e.set_value(val)
-        if val > 0 and val <= #args.options then
+        if type(val) == "number" and val > 0 and val <= #args.options then
             e.value = val
             e.redraw()
         end

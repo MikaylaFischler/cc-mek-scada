@@ -6,6 +6,7 @@ local element = require("graphics.element")
 ---@class checkbox_args
 ---@field label string checkbox text
 ---@field box_fg_bg cpair colors for checkbox
+---@field default? boolean default value
 ---@field callback? function function to call on press
 ---@field parent graphics_element
 ---@field id? string element id
@@ -28,7 +29,7 @@ local function checkbox(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    e.value = false
+    e.value = args.default == true
 
     -- show the button state
     local function draw()
