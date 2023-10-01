@@ -71,7 +71,7 @@ local tool_ctl = {
     load_legacy = nil       ---@type function
 }
 
----@class _plc_cfg
+---@class plc_config
 local tmp_cfg = {
     Networked = false,
     UnitID = 0,
@@ -88,7 +88,7 @@ local tmp_cfg = {
     LogDebug = false,
 }
 
----@class _plc_cfg
+---@class plc_config
 local ini_cfg = {}
 
 local fields = {
@@ -112,6 +112,25 @@ local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
 local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
 local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
 
+local color_name_map = {
+    [colors.red] = "red",
+    [colors.orange] = "orange",
+    [colors.yellow] = "yellow",
+    [colors.lime] = "lime",
+    [colors.green] = "green",
+    [colors.cyan] = "cyan",
+    [colors.lightBlue] = "lightBlue",
+    [colors.blue] = "blue",
+    [colors.purple] = "purple",
+    [colors.magenta] = "magenta",
+    [colors.pink] = "pink",
+    [colors.white] = "white",
+    [colors.lightGray] = "lightGray",
+    [colors.gray] = "gray",
+    [colors.black] = "black",
+    [colors.brown] = "brown"
+}
+
 -- convert text representation to index
 ---@param side string
 local function side_to_idx(side)
@@ -120,8 +139,8 @@ local function side_to_idx(side)
     end
 end
 
--- convert text representation to index
----@param color string
+-- convert color to index
+---@param color color
 local function color_to_idx(color)
     for k, v in ipairs(color_options_map) do
         if v == color then return k end
@@ -129,7 +148,7 @@ local function color_to_idx(color)
 end
 
 -- load data from the settings file
----@param target _plc_cfg
+---@param target plc_config
 local function load_settings(target)
     target.Networked = settings.get("Networked", false)
     target.UnitID = settings.get("UnitID", 1)
@@ -171,13 +190,13 @@ local function config_view(display)
 
     -- MAIN PAGE
 
-    local y_offset = 0
+    local y_start = 5
 
     TextBox{parent=main_page,x=2,y=2,height=2,text_align=CENTER,text="Welcome to the Reactor PLC configurator! Please select one of the following options."}
 
     if tool_ctl.ask_config then
-        y_offset = 3
-        TextBox{parent=main_page,x=2,y=5,height=2,text_align=CENTER,text="Notice: This device has no valid config. The configurator has been automatically started.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=2,text_align=CENTER,text="Notice: This device has no valid config. The configurator has been automatically started.",fg_bg=cpair(colors.red,colors.lightGray)}
+        y_start = y_start + 3
     end
 
     local function view_config()
@@ -188,12 +207,12 @@ local function config_view(display)
     end
 
     if fs.exists("/reactor-plc/config.lua") then
-        y_offset = y_offset + 5
-        PushButton{parent=main_page,x=2,y=y_offset,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
+        PushButton{parent=main_page,x=2,y=y_start,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
+        y_start = y_start + 2
     end
 
-    PushButton{parent=main_page,x=2,y=y_offset+2,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_offset+4,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
@@ -213,10 +232,15 @@ local function config_view(display)
     TextBox{parent=plc_c_1,x=1,y=1,height=1,text_align=CENTER,text="Would you like to set this PLC as networked?"}
     TextBox{parent=plc_c_1,x=1,y=3,height=4,text_align=CENTER,text="If you have a supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=cpair(colors.gray,colors.lightGray)}
 
-    local networked = CheckBox{parent=plc_c_1,x=1,y=8,label="Networked",box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)tool_ctl.set_networked(v)end}
+    local networked = CheckBox{parent=plc_c_1,x=1,y=8,label="Networked",default=ini_cfg.Networked,box_fg_bg=cpair(colors.orange,colors.black)}
+
+    local function submit_networked()
+        tool_ctl.set_networked(networked.get_value())
+        plc_pane.set_value(2)
+    end
 
     PushButton{parent=plc_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=function()plc_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_networked,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=plc_c_2,x=1,y=1,height=1,text_align=CENTER,text="Please enter the reactor unit ID for this PLC."}
     TextBox{parent=plc_c_2,x=1,y=3,height=3,text_align=CENTER,text="If this is a networked PLC, currently only IDs 1 through 4 are acceptable.",fg_bg=cpair(colors.gray,colors.lightGray)}
@@ -241,7 +265,7 @@ local function config_view(display)
     TextBox{parent=plc_c_3,x=1,y=1,height=4,text_align=CENTER,text="When networked, the supervisor takes care of emergency coolant via RTUs. However, you can configure independent emergency coolant via the PLC. "}
     TextBox{parent=plc_c_3,x=1,y=6,height=5,text_align=CENTER,text="This independent control can be used with or without a supervisor. To configure, you would next select the interface of the redstone output connected to one or more mekanism pipes.",fg_bg=cpair(colors.gray,colors.lightGray)}
 
-    local en_em_cool = CheckBox{parent=plc_c_3,x=1,y=11,label="Enable PLC Emergency Coolant Control",box_fg_bg=cpair(colors.orange,colors.black),value=ini_cfg.EmerCoolEnable}
+    local en_em_cool = CheckBox{parent=plc_c_3,x=1,y=11,label="Enable PLC Emergency Coolant Control",default=ini_cfg.EmerCoolEnable,box_fg_bg=cpair(colors.orange,colors.black)}
 
     local function next_from_plc()
         if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(4) end
@@ -256,12 +280,12 @@ local function config_view(display)
     PushButton{parent=plc_c_3,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_en_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=plc_c_4,x=1,y=1,height=1,text_align=CENTER,text="Emergency Coolant Redstone Output Side"}
-    local side = Radio2D{parent=plc_c_4,x=1,y=2,rows=2,columns=3,value=side_to_idx(ini_cfg.EmerCoolSide),options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.orange}
+    local side = Radio2D{parent=plc_c_4,x=1,y=2,rows=2,columns=3,default=side_to_idx(ini_cfg.EmerCoolSide),options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.orange}
 
     TextBox{parent=plc_c_4,x=1,y=5,height=1,text_align=CENTER,text="Bundled Redstone Configuration"}
-    local bundled = CheckBox{parent=plc_c_4,x=1,y=6,label="Is Bundled?",box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)tool_ctl.bundled_emcool(v)end}
-    local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,value=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=cpair(colors.gray,colors.lightGray)}
-    color.disable()
+    local bundled = CheckBox{parent=plc_c_4,x=1,y=6,label="Is Bundled?",default=ini_cfg.EmerCoolColor~=nil,box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)tool_ctl.bundled_emcool(v)end}
+    local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,default=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=cpair(colors.gray,colors.lightGray)}
+    if ini_cfg.EmerCoolColor == nil then color.disable() end
 
     local function submit_emcool()
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
@@ -326,12 +350,14 @@ local function config_view(display)
     local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_ct_tr()
-        if tonumber(timeout.get_value()) ~= nil and tonumber(range.get_value()) ~= nil then
-            tmp_cfg.ConnTimeout = timeout.get_value()
-            tmp_cfg.TrustedRange = range.get_value()
+        local timeout_val = tonumber(timeout.get_value())
+        local range_val = tonumber(range.get_value())
+        if timeout_val ~= nil and range_val ~= nil then
+            tmp_cfg.ConnTimeout = timeout_val
+            tmp_cfg.TrustedRange = range_val
             net_pane.set_value(3)
             p2_err.hide(true)
-        elseif tonumber(timeout.get_value()) == nil then
+        elseif timeout_val == nil then
             p2_err.set_value("Please set the connection timeout.")
             p2_err.show()
         else
@@ -348,7 +374,13 @@ local function config_view(display)
 
     TextBox{parent=net_c_3,x=1,y=11,height=1,text_align=CENTER,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=cpair(colors.black,colors.white)}
-    local hide_key = CheckBox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=function(v)censor(util.trinary(v,"*",nil))end}
+
+    local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
+
+    local hide_key = CheckBox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+
+    hide_key.set_value(true)
+    censor_key(true)
 
     local function submit_auth()
         tmp_cfg.AuthKey = key.get_value()
@@ -367,12 +399,12 @@ local function config_view(display)
     TextBox{parent=log_c_1,x=1,y=1,height=1,text_align=CENTER,text="Please configure logging below."}
 
     TextBox{parent=log_c_1,x=1,y=3,height=1,text_align=CENTER,text="Log File Mode"}
-    local mode = RadioButton{parent=log_c_1,x=1,y=4,value=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
+    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
     TextBox{parent=log_c_1,x=1,y=7,height=1,text_align=CENTER,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=cpair(colors.black,colors.white)}
 
-    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,value=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black),callback=function(v)end}
+    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black),callback=function(v)end}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text_align=CENTER,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=cpair(colors.gray,colors.lightGray)}
 
     local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -431,14 +463,15 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("rplc.settings") then
+        if settings.save("reactor-plc.settings") then
             load_settings(tmp_cfg)
 
             try_set(networked, tmp_cfg.Networked)
             try_set(u_id, tmp_cfg.UnitID)
             try_set(en_em_cool, tmp_cfg.EmerCoolEnable)
-            try_set(side, tmp_cfg.EmerCoolSide)
-            try_set(color, tmp_cfg.EmerCoolColor)
+            try_set(side, side_to_idx(tmp_cfg.EmerCoolSide))
+            try_set(bundled, tmp_cfg.EmerCoolColor ~= nil)
+            if tmp_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(tmp_cfg.EmerCoolColor)) end
             try_set(svr_chan, tmp_cfg.SVR_Channel)
             try_set(plc_chan, tmp_cfg.PLC_Channel)
             try_set(timeout, tmp_cfg.ConnTimeout)
@@ -530,7 +563,7 @@ local function config_view(display)
     end
 
     -- generate the summary list
-    ---@param cfg _plc_cfg
+    ---@param cfg plc_config
     function tool_ctl.gen_summary(cfg)
         setting_list.remove_all()
 
@@ -542,10 +575,12 @@ local function config_view(display)
             local height = 1
             local label_w = string.len(f[2])
             local val_max_w = (inner_width - label_w) + 1
-            local val = util.strval(cfg[f[1]])
+            local raw = cfg[f[1]]
+            local val = util.strval(raw)
 
             if f[1] == "AuthKey" and hide_key.get_value() then val = string.rep("*", string.len(val)) end
-            if f[1] == "LogMode" then val = util.trinary(cfg[f[1]] == log.MODE.APPEND, "append", "replace") end
+            if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
+            if f[1] == "EmerCoolColor" and raw ~= nil then val = color_name_map[raw] end
             if val == "nil" then val = "n/a" end
 
             local c = util.trinary(alternate, cpair(colors.gray,colors.lightGray), cpair(colors.gray,colors.white))
@@ -580,7 +615,7 @@ end
 ---@param ask_config? boolean indicate if this is being called by the PLC startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
-    tool_ctl.has_config = settings.load("/rplc.settings")
+    tool_ctl.has_config = settings.load("/reactor-plc.settings")
 
     load_settings(ini_cfg)
 
@@ -601,7 +636,7 @@ function configurator.configure(ask_config)
 
             -- handle event
             if event == "timer" then
-                -- notify timer callback dispatcher if no other timer case claimed this event
+                -- notify timer callback dispatcher
                 tcd.handle(param1)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
                 -- handle a mouse event
@@ -616,10 +651,7 @@ function configurator.configure(ask_config)
                 display.handle_paste(param1)
             end
 
-            -- check for termination request
-            if event == "terminate" then
-                return
-            end
+            if event == "terminate" then return end
         end
     end)
 
@@ -630,9 +662,7 @@ function configurator.configure(ask_config)
     end
 
     reset_term()
-    if status then
-        println("exited configurator")
-    else
+    if not status then
         println("configurator error: " .. error)
     end
 

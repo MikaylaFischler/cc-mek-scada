@@ -33,6 +33,8 @@ plc.config = config
 
 -- load the PLC configuration
 function plc.load_config()
+    assert(settings.load("/reactor-plc.settings"), "failed to load settings file, please reconfigure.")
+
     config.Networked = settings.get("Networked")
     config.UnitID = settings.get("UnitID")
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
