@@ -98,11 +98,17 @@ local function number_field(args)
 
     -- set minimum input value
     ---@param min integer minimum allowed value
-    function e.set_min(min) args.min = min end
+    function e.set_min(min)
+        args.min = min
+        e.on_unfocused()
+    end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
-    function e.set_max(max) args.max = max end
+    function e.set_max(max)
+        args.max = max
+        e.on_unfocused()
+    end
 
     -- replace text with pasted text if its a number
     ---@param text string string pasted
@@ -123,8 +129,10 @@ local function number_field(args)
         if type(val) == "number" then
             if type(args.max) == "number" and val > max then
                 e.value = "" .. max
+                ifield.nav_start()
             elseif type(args.min) == "number" and val < min then
                 e.value = "" .. min
+                ifield.nav_start()
             end
         else
             e.value = ""
