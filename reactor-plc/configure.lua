@@ -404,7 +404,7 @@ local function config_view(display)
     TextBox{parent=log_c_1,x=1,y=7,height=1,text_align=CENTER,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=cpair(colors.black,colors.white)}
 
-    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black),callback=function(v)end}
+    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text_align=CENTER,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=cpair(colors.gray,colors.lightGray)}
 
     local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
