@@ -5,8 +5,8 @@
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
-local config     = require("reactor-plc.config")
 local databus    = require("reactor-plc.databus")
+local plc        = require("reactor-plc.plc")
 
 local style      = require("reactor-plc.panel.style")
 
@@ -86,7 +86,7 @@ local function init(panel)
     local active = LED{parent=status,x=2,width=12,label="RCT ACTIVE",colors=ind_grn}
 
     -- only show emergency coolant LED if emergency coolant is configured for this device
-    if type(config.EMERGENCY_COOL) == "table" then
+    if plc.config.EmerCoolEnable then
         local emer_cool = LED{parent=status,x=2,width=14,label="EMER COOLANT",colors=cpair(colors.yellow,colors.yellow_off)}
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
