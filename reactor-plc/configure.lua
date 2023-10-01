@@ -591,7 +591,7 @@ function configurator.configure(ask_config)
         term.setPaletteColor(style.colors[i].c, style.colors[i].hex)
     end
 
-    pcall(function ()
+    local status, error = pcall(function ()
         -- init front panel view
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
@@ -630,7 +630,13 @@ function configurator.configure(ask_config)
     end
 
     reset_term()
-    println("exited configurator.")
+    if status then
+        println("exited configurator")
+    else
+        println("configurator error: " .. error)
+    end
+
+    return status, error
 end
 
 return configurator
