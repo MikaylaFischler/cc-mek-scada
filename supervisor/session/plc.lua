@@ -390,6 +390,15 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                     cmd = UNIT_COMMAND.START,
                     ack = ack
                 })
+            elseif pkt.type == RPLC_TYPE.RPS_DISABLE then
+                -- disable acknowledgement
+                local ack = _get_ack(pkt)
+                if ack then
+                    self.acks.disable = true
+                    self.sDB.control_state = false
+                elseif ack == false then
+                    log.debug(log_header .. "disable failed!")
+                end
             elseif pkt.type == RPLC_TYPE.RPS_SCRAM then
                 -- manual SCRAM acknowledgement
                 local ack = _get_ack(pkt)
@@ -791,7 +800,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             -- reactor disable request retry
 
             if not self.acks.disable then
-            if rtimes.disable_req - util.time() <= 0 then
+                if rtimes.disable_req - util.time() <= 0 then
                     _send(RPLC_TYPE.RPS_DISABLE, {})
                     rtimes.disable_req = util.time() + RETRY_PERIOD
                 end
@@ -800,7 +809,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             -- SCRAM request retry
 
             if not self.acks.scram then
-            if rtimes.scram_req - util.time() <= 0 then
+                if rtimes.scram_req - util.time() <= 0 then
                     _send(RPLC_TYPE.RPS_SCRAM, {})
                     rtimes.scram_req = util.time() + RETRY_PERIOD
                 end
