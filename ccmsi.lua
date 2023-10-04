@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.11"
+local CCMSI_VERSION = "v1.11a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -181,7 +181,7 @@ local function clean(manifest)
         if fs.isDir(val) then
             if tree[val] ~= nil then _clean_dir("/" .. val, tree[val]) end
             if #fs.list(val) == 0 then fs.delete(val);println("deleted " .. val) end
-        elseif not _in_array(val, tree) then
+        elseif not _in_array(val, tree) and (string.find(val, ".settings") == nil) then
             root_ext = true
             yellow();println(val .. " not used")
         end
