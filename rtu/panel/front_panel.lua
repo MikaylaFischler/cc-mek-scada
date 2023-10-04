@@ -18,18 +18,21 @@ local DataIndicator = require("graphics.elements.indicators.data")
 local LED           = require("graphics.elements.indicators.led")
 local RGBLED        = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
+local fp_label = style.fp_label
 
+local ind_grn = style.ind_grn
+
+local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)
-    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     --
     -- system indicators
@@ -38,13 +41,13 @@ local function init(panel, units)
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
     local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
-    local heartbeat = LED{parent=system,label="HEARTBEAT",colors=cpair(colors.green,colors.green_off)}
+    local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
     on.update(true)
     system.line_break()
 
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
-    local modem = LED{parent=system,label="MODEM",colors=cpair(colors.green,colors.green_off)}
+    local modem = LED{parent=system,label="MODEM",colors=ind_grn}
     local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
     network.update(types.PANEL_LINK_STATE.DISCONNECTED)
     system.line_break()
@@ -52,8 +55,8 @@ local function init(panel, units)
     modem.register(databus.ps, "has_modem", modem.update)
     network.register(databus.ps, "link_state", network.update)
 
-    local rt_main = LED{parent=system,label="RT MAIN",colors=cpair(colors.green,colors.green_off)}
-    local rt_comm = LED{parent=system,label="RT COMMS",colors=cpair(colors.green,colors.green_off)}
+    local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
+    local rt_comm = LED{parent=system,label="RT COMMS",colors=ind_grn}
     system.line_break()
 
     rt_main.register(databus.ps, "routine__main", rt_main.update)
@@ -61,7 +64,7 @@ local function init(panel, units)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=fp_label}
 
     TextBox{parent=system,x=1,y=14,text="SPEAKERS",height=1,width=8,fg_bg=style.label}
     local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=cpair(colors.gray,colors.white)}
@@ -71,9 +74,9 @@ local function init(panel, units)
     -- about label
     --
 
-    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=cpair(colors.lightGray,colors.ivory)}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=fp_label}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -90,7 +93,7 @@ local function init(panel, units)
     -- show routine statuses
     for i = 1, list_length do
         TextBox{parent=threads,x=1,y=i,text=util.sprintf("%02d",i),height=1}
-        local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=cpair(colors.green,colors.green_off)}
+        local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=ind_grn}
         rt_unit.register(databus.ps, "routine__unit_" .. i, rt_unit.update)
     end
 
@@ -115,7 +118,7 @@ local function init(panel, units)
 
         -- assignment (unit # or facility)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
-        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=cpair(colors.lightGray,colors.ivory)}
+        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=fp_label}
     end
 end
 

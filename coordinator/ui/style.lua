@@ -78,10 +78,18 @@ style.lu_colors = cpair(colors.gray, colors.gray)
 style.hzd_fg_bg  = style.wh_gray
 style.dis_colors = cpair(colors.white, colors.lightGray)
 
+style.lg_gray = cpair(colors.lightGray, colors.gray)
+style.lg_white = cpair(colors.lightGray, colors.white)
+style.gray_white = cpair(colors.gray, colors.white)
+
 style.ind_grn = cpair(colors.green, colors.gray)
 style.ind_yel = cpair(colors.yellow, colors.gray)
 style.ind_red = cpair(colors.red, colors.gray)
 style.ind_wht = style.wh_gray
+
+style.fp_text = cpair(colors.black, colors.ivory)
+style.fp_label = cpair(colors.lightGray, colors.ivory)
+style.led_grn = cpair(colors.green, colors.green_off)
 
 -- UI COMPONENTS --
 

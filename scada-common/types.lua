@@ -270,6 +270,7 @@ types.ALARM_STATE_NAMES = {
 ---| "mouse_drag"
 ---| "mouse_scroll"
 ---| "mouse_up"
+---| "double_click" (custom)
 ---| "paste"
 ---| "peripheral"
 ---| "peripheral_detach"
@@ -285,7 +286,7 @@ types.ALARM_STATE_NAMES = {
 ---| "websocket_failure"
 ---| "websocket_message"
 ---| "websocket_success"
----| "clock_start"          custom, added for reactor PLC
+---| "clock_start" (custom)
 
 ---@alias fluid
 ---| "mekanism:empty_gas"
@@ -375,6 +376,7 @@ types.MODBUS_FCODE = {
 -- MODBUS exception codes
 ---@enum MODBUS_EXCODE
 types.MODBUS_EXCODE = {
+    OK = 0x00,
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDR = 0x02,
     ILLEGAL_DATA_VALUE = 0x03,

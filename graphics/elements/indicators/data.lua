@@ -24,25 +24,17 @@ local element = require("graphics.element")
 ---@param args data_indicator_args
 ---@return graphics_element element, element_id id
 local function data(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.data: label is a required field")
-    assert(type(args.format) == "string", "graphics.elements.indicators.data: format is a required field")
-    assert(args.value ~= nil, "graphics.elements.indicators.data: value is a required field")
-    assert(util.is_int(args.width), "graphics.elements.indicators.data: width is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.format) == "string", "format is a required field")
+    element.assert(args.value ~= nil, "value is a required field")
+    element.assert(util.is_int(args.width), "width is a required field")
 
-    -- single line
     args.height = 1
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- label color
-    if args.lu_colors ~= nil then
-        e.window.setTextColor(args.lu_colors.color_a)
-    end
-
-    -- write label
-    e.window.setCursorPos(1, 1)
-    e.window.write(args.label)
+    e.value = args.value
 
     local value_color = e.fg_bg.fgd
     local label_len   = string.len(args.label)
@@ -60,25 +52,25 @@ local function data(args)
         e.value = value
 
         -- clear old data and label
-        e.window.setCursorPos(data_start, 1)
-        e.window.write(util.spaces(clear_width))
+        e.w_set_cur(data_start, 1)
+        e.w_write(util.spaces(clear_width))
 
         -- write data
         local data_str = util.sprintf(args.format, value)
-        e.window.setCursorPos(data_start, 1)
-        e.window.setTextColor(value_color)
+        e.w_set_cur(data_start, 1)
+        e.w_set_fgd(value_color)
         if args.commas then
-            e.window.write(util.comma_format(data_str))
+            e.w_write(util.comma_format(data_str))
         else
-            e.window.write(data_str)
+            e.w_write(data_str)
         end
 
         -- write label
         if args.unit ~= nil then
             if args.lu_colors ~= nil then
-                e.window.setTextColor(args.lu_colors.color_b)
+                e.w_set_fgd(args.lu_colors.color_b)
             end
-            e.window.write(" " .. args.unit)
+            e.w_write(" " .. args.unit)
         end
     end
 
@@ -93,8 +85,17 @@ local function data(args)
         e.on_update(e.value)
     end
 
-    -- initial value draw
-    e.on_update(args.value)
+    -- element redraw
+    function e.redraw()
+        if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
+        e.w_set_cur(1, 1)
+        e.w_write(args.label)
+
+        e.on_update(e.value)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

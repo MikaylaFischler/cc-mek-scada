@@ -55,7 +55,7 @@ function txnctrl.new()
     -- mark a transaction as resolved to get its transaction type
     ---@nodiscard
     ---@param txn_id integer
-    ---@return integer txn_type
+    ---@return integer|nil txn_type
     function public.resolve(txn_id)
         local txn_type = nil
 

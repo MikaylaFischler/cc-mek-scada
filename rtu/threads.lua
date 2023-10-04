@@ -279,7 +279,8 @@ function threads.thread__main(smem)
                         end
                     end
                 end
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
+                   event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             elseif event == "speaker_audio_empty" then

@@ -25,13 +25,13 @@ local flasher = require("graphics.flasher")
 ---@param args alarm_indicator_light
 ---@return graphics_element element, element_id id
 local function alarm_indicator_light(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.alight: label is a required field")
-    assert(type(args.c1) == "number", "graphics.elements.indicators.alight: c1 is a required field")
-    assert(type(args.c2) == "number", "graphics.elements.indicators.alight: c2 is a required field")
-    assert(type(args.c3) == "number", "graphics.elements.indicators.alight: c3 is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.c1) == "number", "c1 is a required field")
+    element.assert(type(args.c2) == "number", "c2 is a required field")
+    element.assert(type(args.c3) == "number", "c3 is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "graphics.elements.indicators.alight: period is a required field if flash is enabled")
+        element.assert(util.is_int(args.period), "period is a required field if flash is enabled")
     end
 
     -- single line
@@ -51,19 +51,21 @@ local function alarm_indicator_light(args)
     -- create new graphics element base object
     local e = element.new(args)
 
+    e.value = 1
+
     -- called by flasher when enabled
     local function flash_callback()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if flash_on then
             if e.value == 2 then
-                e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
             end
         else
             if e.value == 3 then
-                e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
             else
-                e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
             end
         end
 
@@ -76,7 +78,7 @@ local function alarm_indicator_light(args)
         local was_off = e.value ~= 2
 
         e.value = new_state
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if args.flash then
             if was_off and (new_state == 2) then
@@ -87,17 +89,17 @@ local function alarm_indicator_light(args)
                 flasher.stop(flash_callback)
 
                 if new_state == 3 then
-                    e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                    e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
                 else
-                    e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                    e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
                 end
             end
         elseif new_state == 2 then
-            e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
         elseif new_state == 3 then
-            e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
         else
-            e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
     end
 
@@ -105,9 +107,14 @@ local function alarm_indicator_light(args)
     ---@param val integer indicator state
     function e.set_value(val) e.on_update(val) end
 
-    -- write label and initial indicator light
-    e.on_update(1)
-    e.window.write(args.label)
+    -- draw label and indicator light
+    function e.redraw()
+        e.on_update(e.value)
+        e.w_write(args.label)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

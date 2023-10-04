@@ -27,13 +27,11 @@ local element = require("graphics.element")
 ---@param args tabbar_args
 ---@return graphics_element element, element_id id
 local function tabbar(args)
-    assert(type(args.tabs) == "table", "graphics.elements.controls.tabbar: tabs is a required field")
-    assert(#args.tabs > 0, "graphics.elements.controls.tabbar: at least one tab is required")
-    assert(type(args.callback) == "function", "graphics.elements.controls.tabbar: callback is a required field")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
-        "graphics.elements.controls.tabbar: min_width must be nil or a number > 0")
+    element.assert(type(args.tabs) == "table", "tabs is a required field")
+    element.assert(#args.tabs > 0, "at least one tab is required")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
-    -- always 1 tall
     args.height = 1
 
     -- determine widths
@@ -50,7 +48,7 @@ local function tabbar(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    assert(e.frame.w >= (button_width * #args.tabs), "graphics.elements.controls.tabbar: width insufficent to display all tabs")
+    element.assert(e.frame.w >= (button_width * #args.tabs), "width insufficent to display all tabs")
 
     -- default to 1st tab
     e.value = 1
@@ -67,21 +65,21 @@ local function tabbar(args)
     end
 
     -- show the tab state
-    local function draw()
+    function e.redraw()
         for i = 1, #args.tabs do
             local tab = args.tabs[i]    ---@type tabbar_tab
 
-            e.window.setCursorPos(tab._start_x, 1)
+            e.w_set_cur(tab._start_x, 1)
 
             if e.value == i then
-                e.window.setTextColor(tab.color.fgd)
-                e.window.setBackgroundColor(tab.color.bkg)
+                e.w_set_fgd(tab.color.fgd)
+                e.w_set_bkg(tab.color.bkg)
             else
-                e.window.setTextColor(e.fg_bg.fgd)
-                e.window.setBackgroundColor(e.fg_bg.bkg)
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
             end
 
-            e.window.write(util.pad(tab.name, button_width))
+            e.w_write(util.pad(tab.name, button_width))
         end
     end
 
@@ -109,7 +107,7 @@ local function tabbar(args)
             -- tap always has identical coordinates, so this always passes for taps
             if tab_ini == tab_cur and tab_cur ~= nil then
                 e.value = tab_cur
-                draw()
+                e.redraw()
                 args.callback(e.value)
             end
         end
@@ -119,11 +117,11 @@ local function tabbar(args)
     ---@param val integer new value
     function e.set_value(val)
         e.value = val
-        draw()
+        e.redraw()
     end
 
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

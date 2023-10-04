@@ -25,47 +25,41 @@ local flasher = require("graphics.flasher")
 ---@param args tristate_indicator_light_args
 ---@return graphics_element element, element_id id
 local function tristate_indicator_light(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.trilight: label is a required field")
-    assert(type(args.c1) == "number", "graphics.elements.indicators.trilight: c1 is a required field")
-    assert(type(args.c2) == "number", "graphics.elements.indicators.trilight: c2 is a required field")
-    assert(type(args.c3) == "number", "graphics.elements.indicators.trilight: c3 is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.c1) == "number", "c1 is a required field")
+    element.assert(type(args.c2) == "number", "c2 is a required field")
+    element.assert(type(args.c3) == "number", "c3 is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "graphics.elements.indicators.trilight: period is a required field if flash is enabled")
+        element.assert(util.is_int(args.period), "period is a required field if flash is enabled")
     end
 
-    -- single line
     args.height = 1
-
-    -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
-
-    -- flasher state
-    local flash_on = true
-
-    -- blit translations
-    local c1 = colors.toBlit(args.c1)
-    local c2 = colors.toBlit(args.c2)
-    local c3 = colors.toBlit(args.c3)
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- init value for initial check in on_update
     e.value = 1
+
+    local flash_on = true
+
+    local c1 = colors.toBlit(args.c1)
+    local c2 = colors.toBlit(args.c2)
+    local c3 = colors.toBlit(args.c3)
 
     -- called by flasher when enabled
     local function flash_callback()
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if flash_on then
             if e.value == 2 then
-                e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
             elseif e.value == 3 then
-                e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
             end
         else
-            e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
 
         flash_on = not flash_on
@@ -77,7 +71,7 @@ local function tristate_indicator_light(args)
         local was_off = e.value <= 1
 
         e.value = new_state
-        e.window.setCursorPos(1, 1)
+        e.w_set_cur(1, 1)
 
         if args.flash then
             if was_off and (new_state > 1) then
@@ -87,14 +81,14 @@ local function tristate_indicator_light(args)
                 flash_on = false
                 flasher.stop(flash_callback)
 
-                e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+                e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
             end
         elseif new_state == 2 then
-            e.window.blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c2, c2 .. e.fg_bg.blit_bkg)
         elseif new_state == 3 then
-            e.window.blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c3, c3 .. e.fg_bg.blit_bkg)
         else
-            e.window.blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
+            e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
     end
 
@@ -102,9 +96,14 @@ local function tristate_indicator_light(args)
     ---@param val integer indicator state
     function e.set_value(val) e.on_update(val) end
 
-    -- write label and initial indicator light
-    e.on_update(1)
-    e.window.write(args.label)
+    -- draw light and label
+    function e.redraw()
+        e.on_update(1)
+        e.w_write(args.label)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

@@ -22,12 +22,10 @@ local element = require("graphics.element")
 ---@param args tiling_args
 ---@return graphics_element element, element_id id
 local function tiling(args)
-    assert(type(args.fill_c) == "table", "graphics.elements.tiling: fill_c is a required field")
+    element.assert(type(args.fill_c) == "table", "fill_c is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- draw tiling box
 
     local fill_a = args.fill_c.blit_a
     local fill_b = args.fill_c.blit_b
@@ -38,13 +36,9 @@ local function tiling(args)
     local start_y = 1
     local inner_width = math.floor(e.frame.w / util.trinary(even, 2, 1))
     local inner_height = e.frame.h
-    local alternator = true
 
     -- border
     if args.border_c ~= nil then
-        e.window.setBackgroundColor(args.border_c)
-        e.window.clear()
-
         start_x = 1 + util.trinary(even, 2, 1)
         start_y = 2
 
@@ -53,34 +47,47 @@ local function tiling(args)
     end
 
     -- check dimensions
-    assert(inner_width > 0, "graphics.elements.tiling: inner_width <= 0")
-    assert(inner_height > 0, "graphics.elements.tiling: inner_height <= 0")
-    assert(start_x <= inner_width, "graphics.elements.tiling: start_x > inner_width")
-    assert(start_y <= inner_height, "graphics.elements.tiling: start_y > inner_height")
+    element.assert(inner_width > 0, "inner_width <= 0")
+    element.assert(inner_height > 0, "inner_height <= 0")
+    element.assert(start_x <= inner_width, "start_x > inner_width")
+    element.assert(start_y <= inner_height, "start_y > inner_height")
 
-    -- create pattern
-    for y = start_y, inner_height + (start_y - 1) do
-        e.window.setCursorPos(start_x, y)
-        for _ = 1, inner_width do
-            if alternator then
-                if even then
-                    e.window.blit("  ", "00", fill_a .. fill_a)
-                else
-                    e.window.blit(" ", "0", fill_a)
-                end
-            else
-                if even then
-                    e.window.blit("  ", "00", fill_b .. fill_b)
-                else
-                    e.window.blit(" ", "0", fill_b)
-                end
-            end
+    -- draw tiling box
+    function e.redraw()
+        local alternator = true
 
-            alternator = not alternator
+        if args.border_c ~= nil then
+            e.w_set_bkg(args.border_c)
+            e.window.clear()
         end
 
-        if inner_width % 2 == 0 then alternator = not alternator end
+        -- draw pattern
+        for y = start_y, inner_height + (start_y - 1) do
+            e.w_set_cur(start_x, y)
+            for _ = 1, inner_width do
+                if alternator then
+                    if even then
+                        e.w_blit("  ", "00", fill_a .. fill_a)
+                    else
+                        e.w_blit(" ", "0", fill_a)
+                    end
+                else
+                    if even then
+                        e.w_blit("  ", "00", fill_b .. fill_b)
+                    else
+                        e.w_blit(" ", "0", fill_b)
+                    end
+                end
+
+                alternator = not alternator
+            end
+
+            if inner_width % 2 == 0 then alternator = not alternator end
+        end
     end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

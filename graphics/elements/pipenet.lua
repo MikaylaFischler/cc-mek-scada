@@ -24,12 +24,11 @@ local element = require("graphics.element")
 ---@param args pipenet_args
 ---@return graphics_element element, element_id id
 local function pipenet(args)
-    assert(type(args.pipes) == "table", "graphics.elements.indicators.pipenet: pipes is a required field")
+    element.assert(type(args.pipes) == "table", "pipes is a required field")
 
     args.width = 0
     args.height = 0
 
-    -- determine width/height
     for i = 1, #args.pipes do
         local pipe = args.pipes[i]  ---@type pipe
 
@@ -57,8 +56,8 @@ local function pipenet(args)
         if any_thin then break end
     end
 
-    if not any_thin then
-        -- draw all pipes
+    -- draw all pipes by drawing out lines
+    local function vector_draw()
         for p = 1, #args.pipes do
             local pipe = args.pipes[p]  ---@type pipe
 
@@ -73,7 +72,7 @@ local function pipenet(args)
                 y_step = util.trinary(pipe.y1 == pipe.y2, 0, y_step)
             end
 
-            e.window.setCursorPos(x, y)
+            e.w_set_cur(x, y)
 
             local c = core.cpair(pipe.color, e.fg_bg.bkg)
 
@@ -84,24 +83,24 @@ local function pipenet(args)
                         if i == pipe.w then
                             -- corner
                             if y_step > 0 then
-                                e.window.blit("\x93", c.blit_bkg, c.blit_fgd)
+                                e.w_blit("\x93", c.blit_bkg, c.blit_fgd)
                             else
-                                e.window.blit("\x8e", c.blit_fgd, c.blit_bkg)
+                                e.w_blit("\x8e", c.blit_fgd, c.blit_bkg)
                             end
                         else
-                            e.window.blit("\x8c", c.blit_fgd, c.blit_bkg)
+                            e.w_blit("\x8c", c.blit_fgd, c.blit_bkg)
                         end
                     else
                         if i == pipe.w and y_step > 0 then
                             -- corner
-                            e.window.blit(" ", c.blit_bkg, c.blit_fgd)
+                            e.w_blit(" ", c.blit_bkg, c.blit_fgd)
                         else
-                            e.window.blit("\x8f", c.blit_fgd, c.blit_bkg)
+                            e.w_blit("\x8f", c.blit_fgd, c.blit_bkg)
                         end
                     end
 
                     x = x + x_step
-                    e.window.setCursorPos(x, y)
+                    e.w_set_cur(x, y)
                 end
 
                 -- back up one
@@ -109,12 +108,12 @@ local function pipenet(args)
 
                 for _ = 1, pipe.h - 1 do
                     y = y + y_step
-                    e.window.setCursorPos(x, y)
+                    e.w_set_cur(x, y)
 
                     if pipe.thin then
-                        e.window.blit("\x95", c.blit_bkg, c.blit_fgd)
+                        e.w_blit("\x95", c.blit_bkg, c.blit_fgd)
                     else
-                        e.window.blit(" ", c.blit_bkg, c.blit_fgd)
+                        e.w_blit(" ", c.blit_bkg, c.blit_fgd)
                     end
                 end
             else
@@ -124,26 +123,26 @@ local function pipenet(args)
                         if i == pipe.h then
                             -- corner
                             if y_step < 0 then
-                                e.window.blit("\x97", c.blit_bkg, c.blit_fgd)
+                                e.w_blit("\x97", c.blit_bkg, c.blit_fgd)
                             elseif y_step > 0 then
-                                e.window.blit("\x8d", c.blit_fgd, c.blit_bkg)
+                                e.w_blit("\x8d", c.blit_fgd, c.blit_bkg)
                             else
-                                e.window.blit("\x8c", c.blit_fgd, c.blit_bkg)
+                                e.w_blit("\x8c", c.blit_fgd, c.blit_bkg)
                             end
                         else
-                            e.window.blit("\x95", c.blit_fgd, c.blit_bkg)
+                            e.w_blit("\x95", c.blit_fgd, c.blit_bkg)
                         end
                     else
                         if i == pipe.h and y_step < 0 then
                             -- corner
-                            e.window.blit("\x83", c.blit_bkg, c.blit_fgd)
+                            e.w_blit("\x83", c.blit_bkg, c.blit_fgd)
                         else
-                            e.window.blit(" ", c.blit_bkg, c.blit_fgd)
+                            e.w_blit(" ", c.blit_bkg, c.blit_fgd)
                         end
                     end
 
                     y = y + y_step
-                    e.window.setCursorPos(x, y)
+                    e.w_set_cur(x, y)
                 end
 
                 -- back up one
@@ -151,21 +150,119 @@ local function pipenet(args)
 
                 for _ = 1, pipe.w - 1 do
                     x = x + x_step
-                    e.window.setCursorPos(x, y)
+                    e.w_set_cur(x, y)
 
                     if pipe.thin then
-                        e.window.blit("\x8c", c.blit_fgd, c.blit_bkg)
+                        e.w_blit("\x8c", c.blit_fgd, c.blit_bkg)
                     else
-                        e.window.blit("\x83", c.blit_bkg, c.blit_fgd)
+                        e.w_blit("\x83", c.blit_bkg, c.blit_fgd)
                     end
                 end
             end
         end
-    else
-        -- build map if using thin pipes, easist way to check adjacent blocks (cannot 'cheat' like with standard width)
+    end
+
+    -- draw a particular map cell
+    ---@param map table 2D cell map
+    ---@param x integer x coord
+    ---@param y integer y coord
+    local function draw_map_cell(map, x, y)
+        local entry = map[x][y] ---@type _pipe_map_entry already confirmed not false
+        local char
+        local invert = false
+
+        local function check(cx, cy)
+            return (map[cx] ~= nil) and (map[cx][cy] ~= nil) and (map[cx][cy] ~= false) and (map[cx][cy].fg == entry.fg)
+        end
+
+        if entry.thin then
+            if check(x - 1, y) then -- if left
+                if check(x, y - 1) then -- if above
+                    if check(x + 1, y) then -- if right
+                        if check(x, y + 1) then -- if below
+                            char = util.trinary(entry.atr, "\x91", "\x9d")
+                            invert = entry.atr
+                        else -- not below
+                            char = util.trinary(entry.atr, "\x8e", "\x8d")
+                        end
+                    else -- not right
+                        if check(x, y + 1) then -- if below
+                            char = util.trinary(entry.atr, "\x91", "\x95")
+                            invert = entry.atr
+                        else -- not below
+                            char = util.trinary(entry.atr, "\x8e", "\x85")
+                        end
+                    end
+                elseif check(x, y + 1) then-- not above, if below
+                    if check(x + 1, y) then -- if right
+                        char = util.trinary(entry.atr, "\x93", "\x9c")
+                        invert = entry.atr
+                    else -- not right
+                        char = util.trinary(entry.atr, "\x93", "\x94")
+                        invert = entry.atr
+                    end
+                else -- not above, not below
+                    char = "\x8c"
+                end
+            elseif check(x + 1, y) then -- not left, if right
+                if check(x, y - 1) then -- if above
+                    if check(x, y + 1) then -- if below
+                        char = util.trinary(entry.atr, "\x95", "\x9d")
+                        invert = entry.atr
+                    else -- not below
+                        char = util.trinary(entry.atr, "\x8a", "\x8d")
+                    end
+                else -- not above
+                    if check(x, y + 1) then -- if below
+                        char = util.trinary(entry.atr, "\x97", "\x9c")
+                        invert = entry.atr
+                    else -- not below
+                        char = "\x8c"
+                    end
+                end
+            else -- not left, not right
+                char = "\x95"
+                invert = entry.atr
+            end
+        else
+            if check(x, y - 1) then -- above
+                -- not below and (if left or right)
+                if (not check(x, y + 1)) and (check(x - 1, y) or check(x + 1, y)) then
+                    char = util.trinary(entry.atr, "\x8f", " ")
+                    invert = not entry.atr
+                else -- not below w/ sides only
+                    char = " "
+                    invert = true
+                end
+            elseif check(x, y + 1) then -- not above, if below
+                -- if left or right
+                if (check(x - 1, y) or check(x + 1, y)) then
+                    char = "\x83"
+                    invert = true
+                else -- not left or right
+                    char = " "
+                    invert = true
+                end
+            else -- not above, not below
+                char = util.trinary(entry.atr, "\x8f", "\x83")
+                invert = not entry.atr
+            end
+        end
+
+        e.w_set_cur(x, y)
+
+        if invert then
+            e.w_blit(char, entry.bg, entry.fg)
+        else
+            e.w_blit(char, entry.fg, entry.bg)
+        end
+    end
+
+    -- draw all pipes by assembling and marking up a 2D map<br>
+    -- this is an easy way to check adjacent blocks, which is required to properly draw thin pipes
+    local function map_draw()
         local map = {}
 
-        -- allocate map
         for x = 1, args.width do
             table.insert(map, {})
             for _ = 1, args.height do table.insert(map[x], false) end
@@ -215,100 +312,18 @@ local function pipenet(args)
         -- render
         for x = 1, args.width do
             for y = 1, args.height do
-                local entry = map[x][y] ---@type _pipe_map_entry|false
-                local char
-                local invert = false
-
-                if entry ~= false then
-                    local function check(cx, cy)
-                        return (map[cx] ~= nil) and (map[cx][cy] ~= nil) and (map[cx][cy] ~= false) and (map[cx][cy].fg == entry.fg)
-                    end
-
-                    if entry.thin then
-                        if check(x - 1, y) then -- if left
-                            if check(x, y - 1) then -- if above
-                                if check(x + 1, y) then -- if right
-                                    if check(x, y + 1) then -- if below
-                                        char = util.trinary(entry.atr, "\x91", "\x9d")
-                                        invert = entry.atr
-                                    else -- not below
-                                        char = util.trinary(entry.atr, "\x8e", "\x8d")
-                                    end
-                                else -- not right
-                                    if check(x, y + 1) then -- if below
-                                        char = util.trinary(entry.atr, "\x91", "\x95")
-                                        invert = entry.atr
-                                    else -- not below
-                                        char = util.trinary(entry.atr, "\x8e", "\x85")
-                                    end
-                                end
-                            elseif check(x, y + 1) then-- not above, if below
-                                if check(x + 1, y) then -- if right
-                                    char = util.trinary(entry.atr, "\x93", "\x9c")
-                                    invert = entry.atr
-                                else -- not right
-                                    char = util.trinary(entry.atr, "\x93", "\x94")
-                                    invert = entry.atr
-                                end
-                            else -- not above, not below
-                                char = "\x8c"
-                            end
-                        elseif check(x + 1, y) then -- not left, if right
-                            if check(x, y - 1) then -- if above
-                                if check(x, y + 1) then -- if below
-                                    char = util.trinary(entry.atr, "\x95", "\x9d")
-                                    invert = entry.atr
-                                else -- not below
-                                    char = util.trinary(entry.atr, "\x8a", "\x8d")
-                                end
-                            else -- not above
-                                if check(x, y + 1) then -- if below
-                                    char = util.trinary(entry.atr, "\x97", "\x9c")
-                                    invert = entry.atr
-                                else -- not below
-                                    char = "\x8c"
-                                end
-                            end
-                        else -- not left, not right
-                            char = "\x95"
-                            invert = entry.atr
-                        end
-                    else
-                        if check(x, y - 1) then -- above
-                            -- not below and (if left or right)
-                            if (not check(x, y + 1)) and (check(x - 1, y) or check(x + 1, y)) then
-                                char = util.trinary(entry.atr, "\x8f", " ")
-                                invert = not entry.atr
-                            else -- not below w/ sides only
-                                char = " "
-                                invert = true
-                            end
-                        elseif check(x, y + 1) then -- not above, if below
-                            -- if left or right
-                            if (check(x - 1, y) or check(x + 1, y)) then
-                                char = "\x83"
-                                invert = true
-                            else -- not left or right
-                                char = " "
-                                invert = true
-                            end
-                        else -- not above, not below
-                            char = util.trinary(entry.atr, "\x8f", "\x83")
-                            invert = not entry.atr
-                        end
-                    end
-
-                    e.window.setCursorPos(x, y)
-
-                    if invert then
-                        e.window.blit(char, entry.bg, entry.fg)
-                    else
-                        e.window.blit(char, entry.fg, entry.bg)
-                    end
-                end
+                if map[x][y] ~= false then draw_map_cell(map, x, y) end
             end
         end
     end
+
+    -- element redraw
+    function e.redraw()
+        if any_thin then map_draw() else vector_draw() end
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

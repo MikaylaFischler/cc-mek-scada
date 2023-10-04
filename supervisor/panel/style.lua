@@ -39,4 +39,16 @@ style.colors = {
     { c = colors.brown,     hex = 0x672223 }    -- RED OFF
 }
 
+-- COMMON COLOR PAIRS --
+
+style.text_fg_bg = cpair(colors.black, colors.ivory)
+style.bw_fg_bg = cpair(colors.black, colors.white)
+style.fp_label = cpair(colors.lightGray, colors.ivory)
+
+style.black_lg = cpair(colors.black, colors.lightGray)
+style.lg_white = cpair(colors.lightGray, colors.white)
+style.gray_white = cpair(colors.gray, colors.white)
+
+style.ind_grn = cpair(colors.green, colors.green_off)
+
 return style

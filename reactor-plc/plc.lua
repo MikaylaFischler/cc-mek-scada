@@ -16,7 +16,7 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local RPLC_TYPE = comms.RPLC_TYPE
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local RPS_LIMITS = const.RPS_LIMITS
@@ -26,14 +26,61 @@ local RPS_LIMITS = const.RPS_LIMITS
 local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
 local PCALL_START_MSG = "pcall: Reactor is already active."
 
+---@type plc_config
+local config = {}
+
+plc.config = config
+
+-- load the PLC configuration
+function plc.load_config()
+    if not settings.load("/reactor-plc.settings") then return false end
+
+    config.Networked = settings.get("Networked")
+    config.UnitID = settings.get("UnitID")
+    config.EmerCoolEnable = settings.get("EmerCoolEnable")
+    config.EmerCoolSide = settings.get("EmerCoolSide")
+    config.EmerCoolColor = settings.get("EmerCoolColor")
+    config.SVR_Channel = settings.get("SVR_Channel")
+    config.PLC_Channel = settings.get("PLC_Channel")
+    config.ConnTimeout = settings.get("ConnTimeout")
+    config.TrustedRange = settings.get("TrustedRange")
+    config.AuthKey = settings.get("AuthKey")
+    config.LogMode = settings.get("LogMode")
+    config.LogPath = settings.get("LogPath")
+    config.LogDebug = settings.get("LogDebug")
+
+    local cfv = util.new_validator()
+
+    cfv.assert_type_bool(config.Networked)
+    cfv.assert_type_int(config.UnitID)
+    cfv.assert_type_bool(config.EmerCoolEnable)
+    cfv.assert_channel(config.SVR_Channel)
+    cfv.assert_channel(config.PLC_Channel)
+    cfv.assert_type_int(config.ConnTimeout)
+    cfv.assert_min(config.ConnTimeout, 2)
+    cfv.assert_type_num(config.TrustedRange)
+    cfv.assert_min(config.TrustedRange, 0)
+    cfv.assert_type_str(config.AuthKey)
+    cfv.assert_type_int(config.LogMode)
+    cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
+
+    -- check emergency coolant configuration if enabled
+    if config.EmerCoolEnable then
+        cfv.assert_eq(rsio.is_valid_side(config.EmerCoolSide), true)
+        cfv.assert_eq(config.EmerCoolColor == nil or rsio.is_color(config.EmerCoolColor), true)
+    end
+
+    return cfv.valid()
+end
+
 -- RPS: Reactor Protection System<br>
 -- identifies dangerous states and SCRAMs reactor if warranted<br>
 -- autonomous from main SCADA supervisor/coordinator control
 ---@nodiscard
 ---@param reactor table
 ---@param is_formed boolean
----@param emer_cool nil|table emergency coolant configuration
-function plc.rps_init(reactor, is_formed, emer_cool)
+function plc.rps_init(reactor, is_formed)
     local state_keys = {
         high_dmg = 1,
         high_temp = 2,
@@ -73,22 +120,22 @@ function plc.rps_init(reactor, is_formed, emer_cool)
     ---@param state boolean true to enable emergency coolant, false to disable
     local function _set_emer_cool(state)
         -- check if this was configured: if it's a table, fields have already been validated.
-        if type(emer_cool) == "table" then
+        if config.EmerCoolEnable then
             local level = rsio.digital_write_active(rsio.IO.U_EMER_COOL, state)
 
             if level ~= false then
-                if rsio.is_color(emer_cool.color) then
-                    local output = rs.getBundledOutput(emer_cool.side)
+                if rsio.is_color(config.EmerCoolColor) then
+                    local output = rs.getBundledOutput(config.EmerCoolSide)
 
                     if rsio.digital_write(level) then
-                        output = colors.combine(output, emer_cool.color)
+                        output = colors.combine(output, config.EmerCoolColor)
                     else
-                        output = colors.subtract(output, emer_cool.color)
+                        output = colors.subtract(output, config.EmerCoolColor)
                     end
 
-                    rs.setBundledOutput(emer_cool.side, output)
+                    rs.setBundledOutput(config.EmerCoolSide, output)
                 else
-                    rs.setOutput(emer_cool.side, rsio.digital_write(level))
+                    rs.setOutput(config.EmerCoolSide, rsio.digital_write(level))
                 end
 
                 if state ~= self.emer_cool_active then
@@ -238,8 +285,9 @@ function plc.rps_init(reactor, is_formed, emer_cool)
         self.state[state_keys.sys_fail] = true
     end
 
-    -- SCRAM the reactor now (blocks waiting for server tick)
+    -- SCRAM the reactor now<br>
     ---@return boolean success
+    --- EVENT_CONSUMER: this function consumes events
     function public.scram()
         log.info("RPS: reactor SCRAM")
 
@@ -254,8 +302,9 @@ function plc.rps_init(reactor, is_formed, emer_cool)
         end
     end
 
-    -- start the reactor now (blocks waiting for server tick)
+    -- start the reactor now<br>
     ---@return boolean success
+    --- EVENT_CONSUMER: this function consumes events
     function public.activate()
         if not self.tripped then
             log.info("RPS: reactor start")
@@ -443,16 +492,12 @@ end
 
 -- Reactor PLC Communications
 ---@nodiscard
----@param id integer reactor ID
 ---@param version string PLC version
 ---@param nic nic network interface device
----@param plc_channel integer PLC comms channel
----@param svr_channel integer supervisor server channel
----@param range integer trusted device connection range
 ---@param reactor table reactor device
 ---@param rps rps RPS reference
 ---@param conn_watchdog watchdog watchdog reference
-function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, rps, conn_watchdog)
+function plc.comms(version, nic, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = 0,
@@ -466,13 +511,13 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
         max_burn_rate = nil
     }
 
-    comms.set_trusted_range(range)
+    comms.set_trusted_range(config.TrustedRange)
 
     -- PRIVATE FUNCTIONS --
 
     -- configure network channels
     nic.closeAll()
-    nic.open(plc_channel)
+    nic.open(config.PLC_Channel)
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPE
@@ -481,15 +526,15 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
         local s_pkt = comms.scada_packet()
         local r_pkt = comms.rplc_packet()
 
-        r_pkt.make(id, msg_type, msg)
+        r_pkt.make(config.UnitID, msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
 
-        nic.transmit(svr_channel, plc_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -498,7 +543,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(svr_channel, plc_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -600,7 +645,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     -- keep alive ack
     ---@param srv_time integer
     local function _send_keep_alive_ack(srv_time)
-        _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
+        _send_mgmt(MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
     -- general ack
@@ -612,10 +657,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
 
     -- send structure properties (these should not change, server will cache these)
     local function _send_struct()
-        local min_pos = { x = 0, y = 0, z = 0 }
-        local max_pos = { x = 0, y = 0, z = 0 }
-
-        local mek_data = { false, 0, 0, 0, min_pos, max_pos, 0, 0, 0, 0, 0, 0, 0, 0 }
+        local mek_data = { false, 0, 0, 0, types.new_zero_coordinate(), types.new_zero_coordinate(), 0, 0, 0, 0, 0, 0, 0, 0 }
 
         local tasks = {
             function () mek_data[1]  = reactor.getLength() end,
@@ -668,12 +710,12 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
     function public.close()
         conn_watchdog.cancel()
         public.unlink()
-        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        _send_mgmt(MGMT_TYPE.CLOSE, {})
     end
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
-        _send_mgmt(SCADA_MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, id })
+        _send_mgmt(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, config.UnitID })
     end
 
     -- send live status information
@@ -685,21 +727,18 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
             local heating_rate = 0.0    ---@type number
 
             if (not no_reactor) and rps.is_formed() then
-                if _update_status_cache() then
-                    mek_data = self.status_cache
-                end
-
+                if _update_status_cache() then mek_data = self.status_cache end
                 heating_rate = reactor.getHeatingRate()
             end
 
             local sys_status = {
-                util.time(),                    -- timestamp
-                (not self.scrammed),            -- requested control state
-                no_reactor,                     -- no reactor peripheral connected
-                formed,                         -- reactor formed
-                self.auto_ack_token,            -- token to indicate auto command has been received before this status update
-                heating_rate,                   -- heating rate
-                mek_data                        -- mekanism status data
+                util.time(),         -- timestamp
+                (not self.scrammed), -- requested control state
+                no_reactor,          -- no reactor peripheral connected
+                formed,              -- reactor formed
+                self.auto_ack_token, -- indicate auto command received prior to this status update
+                heating_rate,        -- heating rate
+                mek_data             -- mekanism status data
             }
 
             _send(RPLC_TYPE.STATUS, sys_status)
@@ -769,7 +808,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
         local src_addr = packet.scada_frame.src_addr()
 
         -- handle packets now that we have prints setup
-        if l_chan == plc_channel then
+        if l_chan == config.PLC_Channel then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
@@ -837,6 +876,10 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                         -- enable the reactor
                         self.scrammed = false
                         _send_ack(packet.type, rps.activate())
+                    elseif packet.type == RPLC_TYPE.RPS_DISABLE then
+                        -- disable the reactor, but do not trip
+                        self.scrammed = true
+                        _send_ack(packet.type, rps.scram())
                     elseif packet.type == RPLC_TYPE.RPS_SCRAM then
                         -- disable the reactor per manual request
                         self.scrammed = true
@@ -929,7 +972,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                 ---@cast packet mgmt_frame
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
-                    if packet.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+                    if packet.type == MGMT_TYPE.KEEP_ALIVE then
                         -- keep alive request received, echo back
                         if packet.length == 1 and type(packet.data[1]) == "number" then
                             local timestamp = packet.data[1]
@@ -945,7 +988,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                         else
                             log.debug("SCADA_MGMT keep alive packet length/type mismatch")
                         end
-                    elseif packet.type == SCADA_MGMT_TYPE.CLOSE then
+                    elseif packet.type == MGMT_TYPE.CLOSE then
                         -- handle session close
                         conn_watchdog.cancel()
                         public.unlink()
@@ -954,7 +997,7 @@ function plc.comms(id, version, nic, plc_channel, svr_channel, range, reactor, r
                     else
                         log.debug("received unsupported SCADA_MGMT packet type " .. packet.type)
                     end
-                elseif packet.type == SCADA_MGMT_TYPE.ESTABLISH then
+                elseif packet.type == MGMT_TYPE.ESTABLISH then
                     -- link request confirmation
                     if packet.length == 1 then
                         local est_ack = packet.data[1]

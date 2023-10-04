@@ -7,7 +7,7 @@ local databus = require("supervisor.databus")
 local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
-local SCADA_MGMT_TYPE = comms.SCADA_MGMT_TYPE
+local MGMT_TYPE = comms.MGMT_TYPE
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -76,7 +76,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
     end
 
     -- send a SCADA management packet
-    ---@param msg_type SCADA_MGMT_TYPE
+    ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
         local s_pkt = comms.scada_packet()
@@ -108,7 +108,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_frame
-            if pkt.type == SCADA_MGMT_TYPE.KEEP_ALIVE then
+            if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
@@ -127,13 +127,13 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
                 else
                     log.debug(log_header .. "SCADA keep alive packet length mismatch")
                 end
-            elseif pkt.type == SCADA_MGMT_TYPE.CLOSE then
+            elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
-            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_TONE_GET then
+            elseif pkt.type == MGMT_TYPE.DIAG_TONE_GET then
                 -- get the state of alarm tones
-                _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_GET, facility.get_alarm_tones())
-            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_TONE_SET then
+                _send_mgmt(MGMT_TYPE.DIAG_TONE_GET, facility.get_alarm_tones())
+            elseif pkt.type == MGMT_TYPE.DIAG_TONE_SET then
                 local valid = false
 
                 -- attempt to set a tone state
@@ -144,7 +144,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
 
                             -- try to set tone states, then send back if testing is allowed
                             local allow_testing, test_tone_states = facility.diag_set_test_tone(pkt.data[1], pkt.data[2])
-                            _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
+                            _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
                         else
                             log.debug(log_header .. "SCADA diag tone set packet data type mismatch")
                         end
@@ -155,8 +155,8 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
                     log.debug(log_header .. "DIAG_TONE_SET is blocked without HMAC for security")
                 end
 
-                if not valid then _send_mgmt(SCADA_MGMT_TYPE.DIAG_TONE_SET, { false }) end
-            elseif pkt.type == SCADA_MGMT_TYPE.DIAG_ALARM_SET then
+                if not valid then _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { false }) end
+            elseif pkt.type == MGMT_TYPE.DIAG_ALARM_SET then
                 local valid = false
 
                 -- attempt to set an alarm state
@@ -167,7 +167,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
 
                             -- try to set alarm states, then send back if testing is allowed
                             local allow_testing, test_alarm_states = facility.diag_set_test_alarm(pkt.data[1], pkt.data[2])
-                            _send_mgmt(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
+                            _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
                         else
                             log.debug(log_header .. "SCADA diag alarm set packet data type mismatch")
                         end
@@ -178,7 +178,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
                     log.debug(log_header .. "DIAG_ALARM_SET is blocked without HMAC for security")
                 end
 
-                if not valid then _send_mgmt(SCADA_MGMT_TYPE.DIAG_ALARM_SET, { false }) end
+                if not valid then _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { false }) end
             else
                 log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
@@ -204,7 +204,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
     -- close the connection
     function public.close()
         _close()
-        _send_mgmt(SCADA_MGMT_TYPE.CLOSE, {})
+        _send_mgmt(MGMT_TYPE.CLOSE, {})
         println("connection to pocket diag session " .. id .. " closed by server")
         log.info(log_header .. "session closed by server")
     end
@@ -261,7 +261,7 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout, facility, 
 
             periodics.keep_alive = periodics.keep_alive + elapsed
             if periodics.keep_alive >= PERIODICS.KEEP_ALIVE then
-                _send_mgmt(SCADA_MGMT_TYPE.KEEP_ALIVE, { util.time() })
+                _send_mgmt(MGMT_TYPE.KEEP_ALIVE, { util.time() })
                 periodics.keep_alive = 0
             end
 

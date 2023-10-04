@@ -8,7 +8,7 @@ local cc_strings = require("cc.strings")
 local util = {}
 
 -- scada-common version
-util.version = "1.0.2"
+util.version = "1.1.2"
 
 -- ENVIRONMENT CONSTANTS --
 
@@ -76,25 +76,12 @@ function util.strval(val)
     end
 end
 
--- repeat a string n times
----@nodiscard
----@param str string
----@param n integer
----@return string
-function util.strrep(str, n)
-    local repeated = ""
-
-    for _ = 1, n do repeated = repeated .. str end
-
-    return repeated
-end
-
 -- repeat a space n times
 ---@nodiscard
 ---@param n integer
 ---@return string
 function util.spaces(n)
-    return util.strrep(" ", n)
+    return string.rep(" ", n)
 end
 
 -- pad text to a minimum width

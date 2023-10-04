@@ -17,7 +17,7 @@ local cpair = core.cpair
 
 local NAV_PAGE = iocontrol.NAV_PAGE
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 -- new diagnostics page view
 ---@param root graphics_element parent
@@ -28,7 +28,7 @@ local function new_view(root)
 
     local diag_home = Div{parent=main,x=1,y=1}
 
-    TextBox{parent=diag_home,text="Diagnostic Apps",x=1,y=2,height=1,alignment=TEXT_ALIGN.CENTER}
+    TextBox{parent=diag_home,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}
 
     local alarm_test = Div{parent=main,x=1,y=1}
 
@@ -63,15 +63,15 @@ local function new_view(root)
 
     local audio = Div{parent=alarm_test,x=1,y=1}
 
-    TextBox{parent=audio,y=1,text="Alarm Sounder Tests",height=1,alignment=TEXT_ALIGN.CENTER}
+    TextBox{parent=audio,y=1,text="Alarm Sounder Tests",height=1,alignment=ALIGN.CENTER}
 
-    ttest.ready_warn = TextBox{parent=audio,y=2,text="",height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
+    ttest.ready_warn = TextBox{parent=audio,y=2,text="",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
 
     PushButton{parent=audio,x=13,y=18,text="\x11 BACK",min_width=8,fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=c_wht_gray,callback=navigate_diag}
 
     local tones = Div{parent=audio,x=2,y=3,height=10,width=8,fg_bg=cpair(colors.black,colors.yellow)}
 
-    TextBox{parent=tones,text="Tones",height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
+    TextBox{parent=tones,text="Tones",height=1,alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
 
     local test_btns = {}
     test_btns[1] = SwitchButton{parent=tones,text="TEST 1",min_width=8,active_fg_bg=c_wht_gray,callback=ttest.test_1}
@@ -94,7 +94,7 @@ local function new_view(root)
 
     local alarms = Div{parent=audio,x=11,y=3,height=15,fg_bg=cpair(colors.lightGray,colors.black)}
 
-    TextBox{parent=alarms,text="Alarms (\x13)",height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
+    TextBox{parent=alarms,text="Alarms (\x13)",height=1,alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
 
     local alarm_btns = {}
     alarm_btns[1] = Checkbox{parent=alarms,label="BREACH",min_width=15,box_fg_bg=c_red_gray,callback=ttest.test_breach}
@@ -121,7 +121,7 @@ local function new_view(root)
 
     local states = Div{parent=audio,x=2,y=14,height=5,width=8}
 
-    TextBox{parent=states,text="States",height=1,alignment=TEXT_ALIGN.CENTER}
+    TextBox{parent=states,text="States",height=1,alignment=ALIGN.CENTER}
     local t_1 = IndicatorLight{parent=states,label="1",colors=c_blue_gray}
     local t_2 = IndicatorLight{parent=states,label="2",colors=c_blue_gray}
     local t_3 = IndicatorLight{parent=states,label="3",colors=c_blue_gray}

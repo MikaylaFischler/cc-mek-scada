@@ -215,7 +215,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     ---@param value any
     ---@return boolean ok, MODBUS_EXCODE
     local function _5_write_single_coil(c_addr, value)
-        local response = nil
+        local response = MODBUS_EXCODE.OK
         local _, coils, _, _ = rtu_dev.io_count()
         local return_ok = c_addr <= coils
 
@@ -239,7 +239,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     ---@param value any
     ---@return boolean ok, MODBUS_EXCODE
     local function _6_write_single_holding_register(hr_addr, value)
-        local response = nil
+        local response = MODBUS_EXCODE.OK
         local _, _, _, hold_regs = rtu_dev.io_count()
         local return_ok = hr_addr <= hold_regs
 
@@ -263,7 +263,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     ---@param values any
     ---@return boolean ok, MODBUS_EXCODE
     local function _15_write_multiple_coils(c_addr_start, values)
-        local response = nil
+        local response = MODBUS_EXCODE.OK
         local _, coils, _, _ = rtu_dev.io_count()
         local count = #values
         local return_ok = ((c_addr_start + count) <= (coils + 1)) and (count > 0)
@@ -292,7 +292,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     ---@param values any
     ---@return boolean ok, MODBUS_EXCODE
     local function _16_write_multiple_holding_registers(hr_addr_start, values)
-        local response = nil
+        local response = MODBUS_EXCODE.OK
         local _, _, _, hold_regs = rtu_dev.io_count()
         local count = #values
         local return_ok = ((hr_addr_start + count) <= (hold_regs + 1)) and (count > 0)
@@ -403,7 +403,7 @@ function modbus.new(rtu_dev, use_parallel_read)
         end
 
         if type(response) == "table" then
-        elseif type(response) == "nil" then
+        elseif response == MODBUS_EXCODE.OK then
             response = {}
         else
             response = { response }

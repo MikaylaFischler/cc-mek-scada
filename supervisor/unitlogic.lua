@@ -358,6 +358,7 @@ end
 ---@param self _unit_self unit instance
 ---@param tripped boolean if the alarm condition is still active
 ---@param alarm alarm_def alarm table
+---@return boolean new_trip if the alarm just changed to being tripped
 local function _update_alarm_state(self, tripped, alarm)
     local AISTATE = self.types.AISTATE
     local int_state = alarm.state
@@ -439,7 +440,8 @@ local function _update_alarm_state(self, tripped, alarm)
     if alarm.state ~= int_state then
         local change_str = util.c(AISTATE_NAMES[int_state], " -> ", AISTATE_NAMES[alarm.state])
         log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): ", change_str))
-    end
+        return alarm.state == AISTATE.TRIPPED
+    else return false end
 end
 
 -- evaluate alarm conditions
@@ -469,11 +471,17 @@ function logic.update_alarms(self)
 
     -- Reactor Damage
     local rps_dmg_90 = plc_cache.rps_status.high_dmg and not self.last_rps_trips.high_dmg
-    _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage)
+    if _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage) then
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorDamage.id]," <<"))
+        log.debug(util.c("| plc_cache.damage[", plc_cache.damage, "] rps_dmg_90[", rps_dmg_90, "]"))
+    end
 
     -- Over-Temperature
     local rps_high_temp = plc_cache.rps_status.high_temp and not self.last_rps_trips.high_temp
-    _update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp)
+    if _update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp) then
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorOverTemp.id]," <<"))
+        log.debug(util.c("| plc_cache.temp[", plc_cache.temp, "] rps_high_temp[", rps_high_temp, "]"))
+    end
 
     -- High Temperature
     _update_alarm_state(self, plc_cache.temp >= ALARM_LIMS.HIGH_TEMP, self.alarms.ReactorHighTemp)
@@ -483,7 +491,10 @@ function logic.update_alarms(self)
 
     -- High Waste
     local rps_high_waste = plc_cache.rps_status.ex_waste and not self.last_rps_trips.ex_waste
-    _update_alarm_state(self, (plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste)
+    if _update_alarm_state(self, (plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste) then
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorHighWaste.id]," <<"))
+        log.debug(util.c("| plc_cache.waste[", plc_cache.waste, "] rps_high_waste[", rps_high_waste, "]"))
+    end
 
     -- RPS Transient (excludes timeouts and manual trips)
     local rps_alarm = false
@@ -514,7 +525,13 @@ function logic.update_alarms(self)
         rcs_trans = rcs_trans or annunc.RCSFlowLow or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
     end
 
-    _update_alarm_state(self, rcs_trans, self.alarms.RCSTransient)
+    if _update_alarm_state(self, rcs_trans, self.alarms.RCSTransient) then
+        log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.RCSTransient.id]," <<"))
+        log.debug(util.c("| any_low[", any_low, "] any_over[", any_over, "] gen_trip[", gen_trip, "]"))
+        log.debug(util.c("| RCPTrip[", annunc.RCPTrip, "] MaxWaterReturnFeed[", annunc.MaxWaterReturnFeed, "]"))
+        log.debug(util.c("| RCSFlowLow[", annunc.RCSFlowLow, "] BoilRateMismatch[", annunc.BoilRateMismatch,
+                    "] CoolantFeedMismatch[", annunc.CoolantFeedMismatch, "] SteamFeedMismatch[", annunc.SteamFeedMismatch, "]"))
+    end
 
     -- Turbine Trip
     local any_trip = false
@@ -522,9 +539,7 @@ function logic.update_alarms(self)
     _update_alarm_state(self, any_trip, self.alarms.TurbineTrip)
 
     -- update last trips table
-    for key, val in pairs(plc_cache.rps_status) do
-        self.last_rps_trips[key] = val
-    end
+    for key, val in pairs(plc_cache.rps_status) do self.last_rps_trips[key] = val end
 end
 
 -- update the internal automatic safety control performed while in auto control mode

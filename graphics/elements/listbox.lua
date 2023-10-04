@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class listbox_args
 ---@field scroll_height integer height of internal scrolling container (must fit all elements vertically tiled)
@@ -63,34 +63,34 @@ local function listbox(args)
 
         -- draw up/down arrows
         if pressed_arrow == 1 then
-            e.window.setTextColor(active_fg_bg.fgd)
-            e.window.setBackgroundColor(active_fg_bg.bkg)
-            e.window.setCursorPos(e.frame.w, 1)
-            e.window.write("\x1e")
-            e.window.setTextColor(nav_fg_bg.fgd)
-            e.window.setBackgroundColor(nav_fg_bg.bkg)
-            e.window.setCursorPos(e.frame.w, e.frame.h)
-            e.window.write("\x1f")
+            e.w_set_fgd(active_fg_bg.fgd)
+            e.w_set_bkg(active_fg_bg.bkg)
+            e.w_set_cur(e.frame.w, 1)
+            e.w_write("\x1e")
+            e.w_set_fgd(nav_fg_bg.fgd)
+            e.w_set_bkg(nav_fg_bg.bkg)
+            e.w_set_cur(e.frame.w, e.frame.h)
+            e.w_write("\x1f")
         elseif pressed_arrow == -1 then
-            e.window.setTextColor(nav_fg_bg.fgd)
-            e.window.setBackgroundColor(nav_fg_bg.bkg)
-            e.window.setCursorPos(e.frame.w, 1)
-            e.window.write("\x1e")
-            e.window.setTextColor(active_fg_bg.fgd)
-            e.window.setBackgroundColor(active_fg_bg.bkg)
-            e.window.setCursorPos(e.frame.w, e.frame.h)
-            e.window.write("\x1f")
+            e.w_set_fgd(nav_fg_bg.fgd)
+            e.w_set_bkg(nav_fg_bg.bkg)
+            e.w_set_cur(e.frame.w, 1)
+            e.w_write("\x1e")
+            e.w_set_fgd(active_fg_bg.fgd)
+            e.w_set_bkg(active_fg_bg.bkg)
+            e.w_set_cur(e.frame.w, e.frame.h)
+            e.w_write("\x1f")
         else
-            e.window.setTextColor(nav_fg_bg.fgd)
-            e.window.setBackgroundColor(nav_fg_bg.bkg)
-            e.window.setCursorPos(e.frame.w, 1)
-            e.window.write("\x1e")
-            e.window.setCursorPos(e.frame.w, e.frame.h)
-            e.window.write("\x1f")
+            e.w_set_fgd(nav_fg_bg.fgd)
+            e.w_set_bkg(nav_fg_bg.bkg)
+            e.w_set_cur(e.frame.w, 1)
+            e.w_write("\x1e")
+            e.w_set_cur(e.frame.w, e.frame.h)
+            e.w_write("\x1f")
         end
 
-        e.window.setTextColor(e.fg_bg.fgd)
-        e.window.setBackgroundColor(e.fg_bg.bkg)
+        e.w_set_fgd(e.fg_bg.fgd)
+        e.w_set_bkg(e.fg_bg.bkg)
     end
 
     -- render the scroll bar and re-cacluate height & bounds
@@ -115,23 +115,23 @@ local function listbox(args)
         for i = 2, e.frame.h - 1 do
             if (i >= offset and i < (bar_height + offset)) and (bar_height ~= max_bar_height) then
                 if args.nav_fg_bg ~= nil then
-                    e.window.setBackgroundColor(args.nav_fg_bg.fgd)
+                    e.w_set_bkg(args.nav_fg_bg.fgd)
                 else
-                    e.window.setBackgroundColor(e.fg_bg.fgd)
+                    e.w_set_bkg(e.fg_bg.fgd)
                 end
             else
                 if args.nav_fg_bg ~= nil then
-                    e.window.setBackgroundColor(args.nav_fg_bg.bkg)
+                    e.w_set_bkg(args.nav_fg_bg.bkg)
                 else
-                    e.window.setBackgroundColor(e.fg_bg.bkg)
+                    e.w_set_bkg(e.fg_bg.bkg)
                 end
             end
 
-            e.window.setCursorPos(e.frame.w, i)
-            e.window.write(" ")
+            e.w_set_cur(e.frame.w, i)
+            e.w_write(" ")
         end
 
-        e.window.setBackgroundColor(e.fg_bg.bkg)
+        e.w_set_bkg(e.fg_bg.bkg)
     end
 
     -- update item y positions and move elements
@@ -223,7 +223,7 @@ local function listbox(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP then
+            if event.type == MOUSE_CLICK.TAP then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
                         draw_arrows(1)
@@ -235,7 +235,7 @@ local function listbox(args)
                         if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
                     end
                 end
-            elseif event.type == CLICK_TYPE.DOWN then
+            elseif event.type == MOUSE_CLICK.DOWN then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
                         draw_arrows(1)
@@ -250,10 +250,10 @@ local function listbox(args)
                         mouse_last_y = event.current.y
                     end
                 end
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 holding_bar = false
                 draw_arrows(0)
-            elseif event.type == CLICK_TYPE.DRAG then
+            elseif event.type == MOUSE_CLICK.DRAG then
                 if holding_bar then
                     -- if mouse is within vertical frame, including the grip point
                     if event.current.y > (1 + bar_grip_pos) and event.current.y <= ((e.frame.h - bar_height) + bar_grip_pos) then
@@ -266,16 +266,22 @@ local function listbox(args)
                         mouse_last_y = event.current.y
                     end
                 end
-            elseif event.type == CLICK_TYPE.SCROLL_DOWN then
+            elseif event.type == MOUSE_CLICK.SCROLL_DOWN then
                 scroll_down()
-            elseif event.type == CLICK_TYPE.SCROLL_UP then
+            elseif event.type == MOUSE_CLICK.SCROLL_UP then
                 scroll_up()
             end
         end
     end
 
-    draw_arrows(0)
-    draw_bar()
+    -- element redraw
+    function e.redraw()
+        draw_arrows(0)
+        draw_bar()
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

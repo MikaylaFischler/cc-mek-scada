@@ -1,7 +1,6 @@
 -- Hazard-bordered Button Graphics Element
 
 local tcd     = require("scada-common.tcd")
-local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -22,47 +21,42 @@ local element = require("graphics.element")
 ---@param args hazard_button_args
 ---@return graphics_element element, element_id id
 local function hazard_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.hazard_button: text is a required field")
-    assert(type(args.accent) == "number", "graphics.elements.controls.hazard_button: accent is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.hazard_button: callback is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.accent) == "number", "accent is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
 
-    -- static dimensions
     args.height = 3
     args.width = string.len(args.text) + 4
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- write the button text
-    e.window.setCursorPos(3, 2)
-    e.window.write(args.text)
-
     -- draw border
     ---@param accent color accent color
     local function draw_border(accent)
         -- top
-        e.window.setTextColor(accent)
-        e.window.setBackgroundColor(args.fg_bg.bkg)
-        e.window.setCursorPos(1, 1)
-        e.window.write("\x99" .. util.strrep("\x89", args.width - 2) .. "\x99")
+        e.w_set_fgd(accent)
+        e.w_set_bkg(args.fg_bg.bkg)
+        e.w_set_cur(1, 1)
+        e.w_write("\x99" .. string.rep("\x89", args.width - 2) .. "\x99")
 
         -- center left
-        e.window.setCursorPos(1, 2)
-        e.window.setTextColor(args.fg_bg.bkg)
-        e.window.setBackgroundColor(accent)
-        e.window.write("\x99")
+        e.w_set_cur(1, 2)
+        e.w_set_fgd(args.fg_bg.bkg)
+        e.w_set_bkg(accent)
+        e.w_write("\x99")
 
         -- center right
-        e.window.setTextColor(args.fg_bg.bkg)
-        e.window.setBackgroundColor(accent)
-        e.window.setCursorPos(args.width, 2)
-        e.window.write("\x99")
+        e.w_set_fgd(args.fg_bg.bkg)
+        e.w_set_bkg(accent)
+        e.w_set_cur(args.width, 2)
+        e.w_write("\x99")
 
         -- bottom
-        e.window.setTextColor(accent)
-        e.window.setBackgroundColor(args.fg_bg.bkg)
-        e.window.setCursorPos(1, 3)
-        e.window.write("\x99" .. util.strrep("\x98", args.width - 2) .. "\x99")
+        e.w_set_fgd(accent)
+        e.w_set_bkg(args.fg_bg.bkg)
+        e.w_set_cur(1, 3)
+        e.w_write("\x99" .. string.rep("\x98", args.width - 2) .. "\x99")
     end
 
     -- on request timeout: recursively calls itself to double flash button text
@@ -73,9 +67,9 @@ local function hazard_button(args)
 
         if n == 0 then
             -- go back off
-            e.window.setTextColor(args.fg_bg.fgd)
-            e.window.setCursorPos(3, 2)
-            e.window.write(args.text)
+            e.w_set_fgd(args.fg_bg.fgd)
+            e.w_set_cur(3, 2)
+            e.w_write(args.text)
         end
 
         if n >= 4 then
@@ -83,18 +77,18 @@ local function hazard_button(args)
         elseif n % 2 == 0 then
             -- toggle text color on after 0.25 seconds
             tcd.dispatch(0.25, function ()
-                e.window.setTextColor(args.accent)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
+                e.w_set_fgd(args.accent)
+                e.w_set_cur(3, 2)
+                e.w_write(args.text)
                 on_timeout(n + 1)
                 on_timeout(n + 1)
             end)
         elseif n % 1 then
             -- toggle text color off after 0.25 seconds
             tcd.dispatch(0.25, function ()
-                e.window.setTextColor(args.fg_bg.fgd)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
+                e.w_set_fgd(args.fg_bg.fgd)
+                e.w_set_cur(3, 2)
+                e.w_write(args.text)
                 on_timeout(n + 1)
             end)
         end
@@ -102,9 +96,9 @@ local function hazard_button(args)
 
     -- blink routine for success indication
     local function on_success()
-        e.window.setTextColor(args.fg_bg.fgd)
-        e.window.setCursorPos(3, 2)
-        e.window.write(args.text)
+        e.w_set_fgd(args.fg_bg.fgd)
+        e.w_set_cur(3, 2)
+        e.w_write(args.text)
     end
 
     -- blink routine for failure indication
@@ -115,9 +109,9 @@ local function hazard_button(args)
 
         if n == 0 then
             -- go back off
-            e.window.setTextColor(args.fg_bg.fgd)
-            e.window.setCursorPos(3, 2)
-            e.window.write(args.text)
+            e.w_set_fgd(args.fg_bg.fgd)
+            e.w_set_cur(3, 2)
+            e.w_write(args.text)
         end
 
         if n >= 2 then
@@ -125,17 +119,17 @@ local function hazard_button(args)
         elseif n % 2 == 0 then
             -- toggle text color on after 0.5 seconds
             tcd.dispatch(0.5, function ()
-                e.window.setTextColor(args.accent)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
+                e.w_set_fgd(args.accent)
+                e.w_set_cur(3, 2)
+                e.w_write(args.text)
                 on_failure(n + 1)
             end)
         elseif n % 1 then
             -- toggle text color off after 0.25 seconds
             tcd.dispatch(0.25, function ()
-                e.window.setTextColor(args.fg_bg.fgd)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
+                e.w_set_fgd(args.fg_bg.fgd)
+                e.w_set_cur(3, 2)
+                e.w_write(args.text)
                 on_failure(n + 1)
             end)
         end
@@ -147,9 +141,9 @@ local function hazard_button(args)
         if e.enabled then
             if core.events.was_clicked(event.type) then
                 -- change text color to indicate clicked
-                e.window.setTextColor(args.accent)
-                e.window.setCursorPos(3, 2)
-                e.window.write(args.text)
+                e.w_set_fgd(args.accent)
+                e.w_set_cur(3, 2)
+                e.w_write(args.text)
 
                 -- abort any other callbacks
                 tcd.abort(on_timeout)
@@ -159,7 +153,6 @@ local function hazard_button(args)
                 -- 1.5 second timeout
                 tcd.dispatch(1.5, on_timeout)
 
-                -- call the touch callback
                 args.callback()
             end
         end
@@ -175,29 +168,37 @@ local function hazard_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
     -- show the button as disabled
-    function e.disable()
+    function e.on_disabled()
         if args.dis_colors then
             draw_border(args.dis_colors.color_a)
-            e.window.setTextColor(args.dis_colors.color_b)
-            e.window.setCursorPos(3, 2)
-            e.window.write(args.text)
+            e.w_set_fgd(args.dis_colors.color_b)
+            e.w_set_cur(3, 2)
+            e.w_write(args.text)
         end
     end
 
     -- show the button as enabled
-    function e.enable()
+    function e.on_enabled()
         draw_border(args.accent)
-        e.window.setTextColor(args.fg_bg.fgd)
-        e.window.setCursorPos(3, 2)
-        e.window.write(args.text)
+        e.w_set_fgd(args.fg_bg.fgd)
+        e.w_set_cur(3, 2)
+        e.w_write(args.text)
     end
 
-    -- initial draw of border
-    draw_border(args.accent)
+    -- element redraw
+    function e.redraw()
+        -- write the button text and draw border
+        e.w_set_cur(3, 2)
+        e.w_write(args.text)
+        draw_border(args.accent)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

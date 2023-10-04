@@ -2,6 +2,8 @@
 -- Reactor Unit SCADA Coordinator GUI
 --
 
+local types             = require("scada-common.types")
+
 local iocontrol         = require("coordinator.iocontrol")
 
 local style             = require("coordinator.ui.style")
@@ -26,7 +28,7 @@ local PushButton        = require("graphics.elements.controls.push_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 local border = core.border
@@ -34,6 +36,9 @@ local border = core.border
 local bw_fg_bg = style.bw_fg_bg
 local lu_cpair = style.lu_colors
 local hzd_fg_bg = style.hzd_fg_bg
+local dis_colors = style.dis_colors
+
+local gry_wht = style.gray_white
 
 local ind_grn = style.ind_grn
 local ind_yel = style.ind_yel
@@ -57,7 +62,7 @@ local function init(parent, id)
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
 
-    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -----------------------------
     -- main stats and core map --
@@ -93,7 +98,7 @@ local function init(parent, id)
     waste.register(u_ps, "waste_fill", waste.update)
 
     ccool.register(u_ps, "ccool_type", function (type)
-        if type == "mekanism:sodium" then
+        if type == types.FLUID.SODIUM then
             ccool.recolor(cpair(colors.lightBlue, colors.gray))
         else
             ccool.recolor(cpair(colors.blue, colors.gray))
@@ -101,7 +106,7 @@ local function init(parent, id)
     end)
 
     hcool.register(u_ps, "hcool_type", function (type)
-        if type == "mekanism:superheated_sodium" then
+        if type == types.FLUID.SUPERHEATED_SODIUM then
             hcool.recolor(cpair(colors.orange, colors.gray))
         else
             hcool.recolor(cpair(colors.white, colors.gray))
@@ -129,8 +134,8 @@ local function init(parent, id)
     -------------------
 
     local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=cpair(colors.gray, colors.white)}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(u_ps, "U_StatusLine1", stat_line_1.set_value)
     stat_line_2.register(u_ps, "U_StatusLine2", stat_line_2.set_value)
@@ -190,7 +195,7 @@ local function init(parent, id)
 
     -- RPS annunciator panel
 
-    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=8}
+    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=8}
     local rps = Rectangle{parent=main,border=border(1,colors.cyan,true),thin=true,width=33,height=12,x=46,y=9}
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
@@ -218,7 +223,7 @@ local function init(parent, id)
 
     -- cooling annunciator panel
 
-    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
+    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
@@ -341,10 +346,8 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
-    local dis_colors = cpair(colors.white, colors.lightGray)
-
-    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=cpair(colors.gray,colors.white)}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=cpair(colors.gray,colors.white),fg_bg=bw_fg_bg}
+    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=gry_wht}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
@@ -379,7 +382,7 @@ local function init(parent, id)
 
     reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=48}
+    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=48}
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
@@ -467,20 +470,20 @@ local function init(parent, id)
     -- automatic control settings --
     --------------------------------
 
-    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=TEXT_ALIGN.CENTER,width=13,height=1,x=32,y=36}
+    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=ALIGN.CENTER,width=13,height=1,x=32,y=36}
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
     local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
     local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
-    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.blue,colors.white),radio_bg=colors.gray}
+    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.gray,colors.white),select_color=colors.purple}
 
     group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 
     auto_div.line_break()
 
     local function set_group() unit.set_group(group.get_value() - 1) end
-    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=cpair(colors.gray,colors.white),callback=set_group}
+    local set_grp_btn = PushButton{parent=auto_div,text="SET",x=4,min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=gry_wht,callback=set_group}
 
     auto_div.line_break()
 

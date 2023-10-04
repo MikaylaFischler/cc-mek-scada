@@ -8,7 +8,7 @@ local HMAC = function()
 
     local public = {};
     local blockSize = 64;
-    local Digest = nil;
+    local Digest;
     local outerPadding = {};
     local innerPadding = {}
     local digest;

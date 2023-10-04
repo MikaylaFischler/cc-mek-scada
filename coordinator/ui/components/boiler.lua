@@ -12,20 +12,19 @@ local VerticalBar    = require("graphics.elements.indicators.vbar")
 local cpair = core.cpair
 local border = core.border
 
+local text_fg_bg = style.text_colors
+
 -- new boiler view
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
-    local boiler = Rectangle{parent=root,border=border(1, colors.gray, true),width=31,height=7,x=x,y=y}
-
-    local text_fg_bg = cpair(colors.black, colors.lightGray)
-    local lu_col = cpair(colors.gray, colors.gray)
+    local boiler = Rectangle{parent=root,border=border(1,colors.gray,true),width=31,height=7,x=x,y=y}
 
     local status = StateIndicator{parent=boiler,x=9,y=1,states=style.boiler.states,value=1,min_width=12}
-    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
-    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
+    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=style.lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
+    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=style.lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 
     status.register(ps, "computed_status", status.update)
     temp.register(ps, "temperature", temp.update)

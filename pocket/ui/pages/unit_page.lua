@@ -7,14 +7,14 @@ local TextBox = require("graphics.elements.textbox")
 
 -- local cpair = core.cpair
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 -- new unit page view
 ---@param root graphics_element parent
 local function new_view(root)
     local main = Div{parent=root,x=1,y=1}
 
-    TextBox{parent=main,text="UNITS",x=1,y=1,height=1,alignment=TEXT_ALIGN.CENTER}
+    TextBox{parent=main,text="UNITS",x=1,y=1,height=1,alignment=ALIGN.CENTER}
 
     return main
 end

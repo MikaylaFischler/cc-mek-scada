@@ -1,11 +1,12 @@
 -- Sidebar Graphics Element
 
 local tcd     = require("scada-common.tcd")
+local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class sidebar_tab
 ---@field char string character identifier
@@ -26,25 +27,28 @@ local CLICK_TYPE = core.events.CLICK_TYPE
 ---@param args sidebar_args
 ---@return graphics_element element, element_id id
 local function sidebar(args)
-    assert(type(args.tabs) == "table", "graphics.elements.controls.sidebar: tabs is a required field")
-    assert(#args.tabs > 0, "graphics.elements.controls.sidebar: at least one tab is required")
-    assert(type(args.callback) == "function", "graphics.elements.controls.sidebar: callback is a required field")
+    element.assert(type(args.tabs) == "table", "tabs is a required field")
+    element.assert(#args.tabs > 0, "at least one tab is required")
+    element.assert(type(args.callback) == "function", "callback is a required field")
 
-    -- always 3 wide
     args.width = 3
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    assert(e.frame.h >= (#args.tabs * 3), "graphics.elements.controls.sidebar: height insufficent to display all tabs")
+    element.assert(e.frame.h >= (#args.tabs * 3), "height insufficent to display all tabs")
 
     -- default to 1st tab
     e.value = 1
 
+    local was_pressed = false
+
     -- show the button state
-    ---@param pressed boolean if the currently selected tab should appear as actively pressed
+    ---@param pressed? boolean if the currently selected tab should appear as actively pressed
     ---@param pressed_idx? integer optional index to show as held (that is not yet selected)
     local function draw(pressed, pressed_idx)
+        pressed = util.trinary(pressed == nil, was_pressed, pressed)
+        was_pressed = pressed
         pressed_idx = pressed_idx or e.value
 
         for i = 1, #args.tabs do
@@ -52,27 +56,23 @@ local function sidebar(args)
 
             local y = ((i - 1) * 3) + 1
 
-            e.window.setCursorPos(1, y)
+            e.w_set_cur(1, y)
 
             if pressed and i == pressed_idx then
-                e.window.setTextColor(e.fg_bg.fgd)
-                e.window.setBackgroundColor(e.fg_bg.bkg)
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
             else
-                e.window.setTextColor(tab.color.fgd)
-                e.window.setBackgroundColor(tab.color.bkg)
+                e.w_set_fgd(tab.color.fgd)
+                e.w_set_bkg(tab.color.bkg)
             end
 
-            e.window.write("   ")
-            e.window.setCursorPos(1, y + 1)
+            e.w_write("   ")
+            e.w_set_cur(1, y + 1)
             if e.value == i then
-                -- show as selected
-                e.window.write(" " .. tab.char .. "\x10")
-            else
-                -- show as unselected
-                e.window.write(" " .. tab.char .. " ")
-            end
-            e.window.setCursorPos(1, y + 2)
-            e.window.write("   ")
+                e.w_write(" " .. tab.char .. "\x10")
+            else e.w_write(" " .. tab.char .. " ") end
+            e.w_set_cur(1, y + 2)
+            e.w_write("   ")
         end
     end
 
@@ -85,22 +85,22 @@ local function sidebar(args)
             local ini_idx = math.ceil(event.initial.y / 3)
 
             if args.tabs[cur_idx] ~= nil then
-                if event.type == CLICK_TYPE.TAP then
+                if event.type == MOUSE_CLICK.TAP then
                     e.value = cur_idx
                     draw(true)
                     -- show as unpressed in 0.25 seconds
                     tcd.dispatch(0.25, function () draw(false) end)
                     args.callback(e.value)
-                elseif event.type == CLICK_TYPE.DOWN then
+                elseif event.type == MOUSE_CLICK.DOWN then
                     draw(true, cur_idx)
-                elseif event.type == CLICK_TYPE.UP then
+                elseif event.type == MOUSE_CLICK.UP then
                     if cur_idx == ini_idx and e.in_frame_bounds(event.current.x, event.current.y) then
                         e.value = cur_idx
                         draw(false)
                         args.callback(e.value)
                     else draw(false) end
                 end
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 draw(false)
             end
         end
@@ -113,8 +113,10 @@ local function sidebar(args)
         draw(false)
     end
 
-    -- initial draw
-    draw(false)
+    -- element redraw
+    e.redraw = draw
+
+    e.redraw()
 
     return e.complete()
 end

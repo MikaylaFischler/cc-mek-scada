@@ -16,7 +16,7 @@ local logger = {
     path = "/log.txt",
     mode = MODE.APPEND,
     debug = false,
-    file = nil,
+    file = nil,         ---@type table|nil
     dmesg_out = nil,
     dmesg_restore_coord = { 1, 1 },
     dmesg_scroll_count = 0
@@ -54,7 +54,7 @@ local function _log(msg)
         end
     end
 
-    if out_of_space or (free_space(logger.path) < 100) then
+    if out_of_space or (free_space(logger.path) < 512) then
         -- delete the old log file before opening a new one
         logger.file.close()
         fs.delete(logger.path)
