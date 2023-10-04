@@ -278,12 +278,6 @@ local function listbox(args)
     function e.redraw()
         draw_arrows(0)
         draw_bar()
-
-        -- redraw all children
-        for i = 1, #list do
-            local item = list[i]    ---@type listbox_item
-            item.e.redraw()
-        end
     end
 
     -- initial draw

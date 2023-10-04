@@ -132,11 +132,9 @@ local function radio_button(args)
         end
     end
 
-    -- handle focus
+    -- handle focus & enable
     e.on_focused = e.redraw
     e.on_unfocused = e.redraw
-
-    -- handle enable
     e.on_enabled = e.redraw
     e.on_disabled = e.redraw
 

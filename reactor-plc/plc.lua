@@ -33,7 +33,7 @@ plc.config = config
 
 -- load the PLC configuration
 function plc.load_config()
-    assert(settings.load("/reactor-plc.settings"), "failed to load settings file, please reconfigure.")
+    if not settings.load("/reactor-plc.settings") then return false end
 
     config.Networked = settings.get("Networked")
     config.UnitID = settings.get("UnitID")
@@ -59,6 +59,7 @@ function plc.load_config()
     cfv.assert_type_int(config.ConnTimeout)
     cfv.assert_min(config.ConnTimeout, 2)
     cfv.assert_type_num(config.TrustedRange)
+    cfv.assert_min(config.TrustedRange, 0)
     cfv.assert_type_str(config.AuthKey)
     cfv.assert_type_int(config.LogMode)
     cfv.assert_type_str(config.LogPath)

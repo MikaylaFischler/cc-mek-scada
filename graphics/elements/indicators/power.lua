@@ -23,7 +23,7 @@ local element = require("graphics.element")
 ---@param args power_indicator_args
 ---@return graphics_element element, element_id id
 local function power(args)
-    element.assert(type(args.value) == "number", "value is a required number field")
+    element.assert(type(args.value) == "number", "value is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
 
     args.height = 1

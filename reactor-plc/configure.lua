@@ -16,8 +16,8 @@ local TextBox     = require("graphics.elements.textbox")
 
 local CheckBox    = require("graphics.elements.controls.checkbox")
 local PushButton  = require("graphics.elements.controls.push_button")
-local RadioButton = require("graphics.elements.controls.radio_button")
 local Radio2D     = require("graphics.elements.controls.radio_2d")
+local RadioButton = require("graphics.elements.controls.radio_button")
 
 local NumberField = require("graphics.elements.form.number_field")
 local TextField   = require("graphics.elements.form.text_field")
@@ -68,7 +68,12 @@ local tool_ctl = {
     bundled_emcool = nil,   ---@type function
     gen_summary = nil,      ---@type function
     show_current_cfg = nil, ---@type function
-    load_legacy = nil       ---@type function
+    load_legacy = nil,      ---@type function
+
+    show_auth_key = nil,    ---@type function
+    show_key_btn = nil,     ---@type graphics_element
+    auth_key_textbox = nil, ---@type graphics_element
+    auth_key_value = ""
 }
 
 ---@class plc_config
@@ -160,7 +165,7 @@ local function load_settings(target)
     target.ConnTimeout = settings.get("ConnTimeout", 5)
     target.TrustedRange = settings.get("TrustedRange", 0)
     target.AuthKey = settings.get("AuthKey", "")
-    target.LogMode = settings.get("LogMode", 0)
+    target.LogMode = settings.get("LogMode", log.MODE.APPEND)
     target.LogPath = settings.get("LogPath", "/log.txt")
     target.LogDebug = settings.get("LogDebug", false)
 end
@@ -171,10 +176,8 @@ local function config_view(display)
     local nav_fg_bg = cpair(colors.black,colors.white)
     local btn_act_fg_bg = cpair(colors.white,colors.gray)
 
-    local function exit()
 ---@diagnostic disable-next-line: undefined-field
-        os.queueEvent("terminate")
-    end
+    local function exit() os.queueEvent("terminate") end
 
     TextBox{parent=display,y=1,text="Reactor PLC Configurator",alignment=CENTER,height=1,fg_bg=style.header}
 
@@ -289,7 +292,7 @@ local function config_view(display)
 
     local function submit_emcool()
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
-        tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
+        tmp_cfg.EmerCoolColor = color_options_map[color.get_value()]
         next_from_plc()
     end
 
@@ -307,7 +310,7 @@ local function config_view(display)
     TextBox{parent=net_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
     TextBox{parent=net_c_1,x=1,y=1,height=1,text_align=CENTER,text="Please set the network channels below."}
-    TextBox{parent=net_c_1,x=1,y=3,height=4,text_align=CENTER,text="Each of the 5 uniquely named channels must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=net_c_1,x=1,y=3,height=4,text_align=CENTER,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=cpair(colors.gray,colors.lightGray)}
 
     TextBox{parent=net_c_1,x=1,y=8,height=1,text_align=CENTER,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=cpair(colors.black,colors.white)}
@@ -464,22 +467,22 @@ local function config_view(display)
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
         if settings.save("reactor-plc.settings") then
-            load_settings(tmp_cfg)
+            load_settings(ini_cfg)
 
-            try_set(networked, tmp_cfg.Networked)
-            try_set(u_id, tmp_cfg.UnitID)
-            try_set(en_em_cool, tmp_cfg.EmerCoolEnable)
-            try_set(side, side_to_idx(tmp_cfg.EmerCoolSide))
-            try_set(bundled, tmp_cfg.EmerCoolColor ~= nil)
-            if tmp_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(tmp_cfg.EmerCoolColor)) end
-            try_set(svr_chan, tmp_cfg.SVR_Channel)
-            try_set(plc_chan, tmp_cfg.PLC_Channel)
-            try_set(timeout, tmp_cfg.ConnTimeout)
-            try_set(range, tmp_cfg.TrustedRange)
-            try_set(key, tmp_cfg.AuthKey)
-            try_set(mode, tmp_cfg.LogMode)
-            try_set(path, tmp_cfg.LogPath)
-            try_set(en_dbg, tmp_cfg.LogDebug)
+            try_set(networked, ini_cfg.Networked)
+            try_set(u_id, ini_cfg.UnitID)
+            try_set(en_em_cool, ini_cfg.EmerCoolEnable)
+            try_set(side, side_to_idx(ini_cfg.EmerCoolSide))
+            try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
+            if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
+            try_set(svr_chan, ini_cfg.SVR_Channel)
+            try_set(plc_chan, ini_cfg.PLC_Channel)
+            try_set(timeout, ini_cfg.ConnTimeout)
+            try_set(range, ini_cfg.TrustedRange)
+            try_set(key, ini_cfg.AuthKey)
+            try_set(mode, ini_cfg.LogMode)
+            try_set(path, ini_cfg.LogPath)
+            try_set(en_dbg, ini_cfg.LogDebug)
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
@@ -493,6 +496,7 @@ local function config_view(display)
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_2,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
@@ -554,12 +558,18 @@ local function config_view(display)
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
         tmp_cfg.LogMode = config.LOG_MODE
         tmp_cfg.LogPath = config.LOG_PATH
-        tmp_cfg.LogDebug = config.LOG_DEBUG
+        tmp_cfg.LogDebug = config.LOG_DEBUG or false
 
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
         main_pane.set_value(5)
         tool_ctl.importing_legacy = true
+    end
+
+    -- expose the auth key on the summary page
+    function tool_ctl.show_auth_key()
+        tool_ctl.show_key_btn.disable()
+        tool_ctl.auth_key_textbox.set_value(tool_ctl.auth_key_value)
     end
 
     -- generate the summary list
@@ -570,6 +580,9 @@ local function config_view(display)
         local alternate = false
         local inner_width = setting_list.get_width() - 1
 
+        tool_ctl.show_key_btn.enable()
+        tool_ctl.auth_key_value = cfg.AuthKey or "" -- to show auth key
+
         for i = 1, #fields do
             local f = fields[i]
             local height = 1
@@ -578,7 +591,7 @@ local function config_view(display)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" and hide_key.get_value() then val = string.rep("*", string.len(val)) end
+            if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
             if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
             if f[1] == "EmerCoolColor" and raw ~= nil then val = color_name_map[raw] end
             if val == "nil" then val = "n/a" end
@@ -594,11 +607,14 @@ local function config_view(display)
             local line = Div{parent=setting_list,height=height,fg_bg=c}
             TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
 
+            local textbox
             if height > 1 then
-                TextBox{parent=line,x=1,y=2,text=val,height=height-1,alignment=LEFT}
+                textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1,alignment=LEFT}
             else
-                TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
+                textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
             end
+
+            if f[1] == "AuthKey" then tool_ctl.auth_key_textbox = textbox end
         end
     end
 end
@@ -627,7 +643,6 @@ function configurator.configure(ask_config)
     end
 
     local status, error = pcall(function ()
-        -- init front panel view
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
 

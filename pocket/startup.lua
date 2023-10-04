@@ -170,7 +170,7 @@ local function main()
                 -- got a packet
                 local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
                 pocket_comms.handle_packet(packet)
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll"or
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
                    event == "double_click" then
                 -- handle a monitor touch event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))

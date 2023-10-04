@@ -315,8 +315,8 @@ function element.new(args, child_offset_x, child_offset_y)
     -- defocus this element
     function protected.defocus() public.unfocus_all() end
 
-    -- request focus management to focus this element
-    function protected.req_focus() args.parent.__focus_child(public) end
+    -- focus this element and take away focus from all other elements
+    function protected.take_focus() args.parent.__focus_child(public) end
 
     -- action handlers --
 
@@ -426,7 +426,7 @@ function element.new(args, child_offset_x, child_offset_y)
         self.id = args.id or "__ROOT__"
         protected.prepare_template(0, 0, 1)
     else
-        self.id, self.ordinal = args.parent.__add_child(args.id, protected)
+        self.id = args.parent.__add_child(args.id, protected)
     end
 
     ----------------------

@@ -106,10 +106,10 @@ local function main()
 
         -- system objects
         plc_sys = {
-            rps = nil,         ---@type rps
-            nic = nil,         ---@type nic
-            plc_comms = nil,   ---@type plc_comms
-            conn_watchdog = nil---@type watchdog
+            rps = nil,          ---@type rps
+            nic = nil,          ---@type nic
+            plc_comms = nil,    ---@type plc_comms
+            conn_watchdog = nil ---@type watchdog
         },
 
         -- message queues

@@ -118,11 +118,8 @@ local function app_button(args)
 
     -- element redraw
     function e.redraw()
-        -- write app title, centered
         e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
         e.w_write(args.title)
-
-        -- draw button
         draw()
     end
 

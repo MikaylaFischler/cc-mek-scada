@@ -33,7 +33,7 @@ local function rad(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    e.value = types.new_zero_radiation_reading()
+    e.value = args.value or types.new_zero_radiation_reading()
 
     local label_len = string.len(args.label)
     local data_start = 1

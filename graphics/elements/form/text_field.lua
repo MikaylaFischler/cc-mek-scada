@@ -43,7 +43,7 @@ local function text_field(args)
         -- only handle if on an increment or decrement arrow
         if e.enabled then
             if core.events.was_clicked(event.type) then
-                e.req_focus()
+                e.take_focus()
 
                 if event.type == MOUSE_CLICK.UP then
                     ifield.move_cursor(event.current.x)

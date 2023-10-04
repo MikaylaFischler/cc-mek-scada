@@ -115,8 +115,7 @@ end
 
 -- extract the custom element assert message, dropping the path to the element file
 function core.extract_assert_msg(msg)
-    local start = (string.find(msg, "@") + 1) or 1
-    return string.sub(msg, start)
+    return string.sub(msg, (string.find(msg, "@") + 1) or 1)
 end
 
 -- Interactive Field Manager
@@ -163,11 +162,8 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
     function public.censor(censor)
         if type(censor) == "string" and string.len(censor) == 1 then
             self.censor = censor
-            public.show()
-        else
-            self.censor = nil
-            public.show()
-        end
+        else self.censor = nil end
+        public.show()
     end
 
     -- show the field
