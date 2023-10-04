@@ -5,11 +5,11 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 ---@class textbox_args
 ---@field text string text to show
----@field alignment? TEXT_ALIGN text alignment, left by default
+---@field alignment? ALIGN text alignment, left by default
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -31,7 +31,7 @@ local function textbox(args)
 
     e.value = args.text
 
-    local alignment = args.alignment or TEXT_ALIGN.LEFT
+    local alignment = args.alignment or ALIGN.LEFT
 
     -- draw textbox
     function e.redraw()
@@ -45,9 +45,9 @@ local function textbox(args)
             local len = string.len(lines[i])
 
             -- use cursor position to align this line
-            if alignment == TEXT_ALIGN.CENTER then
+            if alignment == ALIGN.CENTER then
                 e.w_set_cur(math.floor((e.frame.w - len) / 2) + 1, i)
-            elseif alignment == TEXT_ALIGN.RIGHT then
+            elseif alignment == ALIGN.RIGHT then
                 e.w_set_cur((e.frame.w - len) + 1, i)
             else
                 e.w_set_cur(1, i)

@@ -23,7 +23,7 @@ local HazardButton      = require("graphics.elements.controls.hazard_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 local border = core.border
@@ -246,8 +246,8 @@ local function new_view(root, x, y)
     mode.register(facility.ps, "process_mode", mode.set_value)
 
     local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,x=1,y=16,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=gry_wht}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(facility.ps, "status_line_1", stat_line_1.set_value)
     stat_line_2.register(facility.ps, "status_line_2", stat_line_2.set_value)
@@ -328,7 +328,7 @@ local function new_view(root, x, y)
     local waste_sel = Div{parent=proc,width=21,height=24,x=81,y=1}
 
     TextBox{parent=waste_sel,text=" ",width=21,height=1,x=1,y=1,fg_bg=blk_brn}
-    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=TEXT_ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.brown)}
+    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.brown)}
 
     local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
     local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}

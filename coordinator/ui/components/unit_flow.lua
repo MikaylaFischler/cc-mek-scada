@@ -19,7 +19,7 @@ local DataIndicator     = require("graphics.elements.indicators.data")
 local IndicatorLight    = require("graphics.elements.indicators.light")
 local TriIndicatorLight = require("graphics.elements.indicators.trilight")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local sprintf = util.sprintf
 
@@ -69,8 +69,8 @@ local function make(parent, x, y, wide, unit)
     ------------------
 
     local reactor = Rectangle{parent=root,x=1,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
-    TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=TEXT_ALIGN.CENTER,height=1}
-    TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1}
+    TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=ALIGN.CENTER,height=1}
+    TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER,height=1}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
     TextBox{parent=root,x=3,y=5,text="\x19",width=1,height=1,fg_bg=lg_gray}
 
@@ -109,8 +109,8 @@ local function make(parent, x, y, wide, unit)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
         local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
-        TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=TEXT_ALIGN.CENTER,height=1}
-        TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=TEXT_ALIGN.CENTER,height=1}
+        TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=ALIGN.CENTER,height=1}
+        TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=ALIGN.CENTER,height=1}
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
@@ -128,8 +128,8 @@ local function make(parent, x, y, wide, unit)
     end
 
     local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
-    TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=TEXT_ALIGN.CENTER,height=1}
-    TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=TEXT_ALIGN.CENTER,height=1}
+    TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=ALIGN.CENTER,height=1}
+    TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER,height=1}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
     for i = 1, unit.num_turbines do
@@ -175,8 +175,8 @@ local function make(parent, x, y, wide, unit)
 
     local function _machine(mx, my, name)
         local l = string.len(name) + 2
-        TextBox{parent=waste,x=mx,y=my,text=string.rep("\x8f",l),alignment=TEXT_ALIGN.CENTER,fg_bg=lg_gray,width=l,height=1}
-        TextBox{parent=waste,x=mx,y=my+1,text=name,alignment=TEXT_ALIGN.CENTER,fg_bg=wh_gray,width=l,height=1}
+        TextBox{parent=waste,x=mx,y=my,text=string.rep("\x8f",l),alignment=ALIGN.CENTER,fg_bg=lg_gray,width=l,height=1}
+        TextBox{parent=waste,x=mx,y=my+1,text=name,alignment=ALIGN.CENTER,fg_bg=wh_gray,width=l,height=1}
     end
 
     local waste_rate = DataIndicator{parent=waste,x=1,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
@@ -203,7 +203,7 @@ local function make(parent, x, y, wide, unit)
     _machine(_wide(97, 83), 4, "PRC [Po] \x1a");
     _machine(_wide(116, 94), 6, "SPENT WASTE \x1b")
 
-    TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=TEXT_ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
+    TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
     local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=7,thin=true,fg_bg=bw_fg_bg}
     local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=ind_grn}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c,label="CNT",unit="",format="%2d",value=0,width=7}

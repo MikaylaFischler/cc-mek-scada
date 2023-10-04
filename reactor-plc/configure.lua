@@ -26,9 +26,9 @@ local println = util.println
 
 local cpair = core.cpair
 
-local LEFT = core.TEXT_ALIGN.LEFT
-local CENTER = core.TEXT_ALIGN.CENTER
-local RIGHT = core.TEXT_ALIGN.RIGHT
+local LEFT = core.ALIGN.LEFT
+local CENTER = core.ALIGN.CENTER
+local RIGHT = core.ALIGN.RIGHT
 
 ---@class plc_configurator
 local configurator = {}

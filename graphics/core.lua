@@ -14,8 +14,8 @@ core.events = events
 
 -- Core Types
 
----@enum TEXT_ALIGN
-core.TEXT_ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
+---@enum ALIGN
+core.ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
 
 ---@class graphics_border
 ---@field width integer

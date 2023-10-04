@@ -24,7 +24,7 @@ local TabBar    = require("graphics.elements.controls.tabbar")
 local LED       = require("graphics.elements.indicators.led")
 local RGBLED    = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -36,7 +36,7 @@ local led_grn = style.led_grn
 local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps
 
-    TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.fp.header}
+    TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.fp.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
 
@@ -90,8 +90,8 @@ local function init(panel, num_units)
     --
 
     local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp_label}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)

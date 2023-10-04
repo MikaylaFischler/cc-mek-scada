@@ -28,7 +28,7 @@ local PushButton        = require("graphics.elements.controls.push_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 local border = core.border
@@ -62,7 +62,7 @@ local function init(parent, id)
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
 
-    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -----------------------------
     -- main stats and core map --
@@ -134,8 +134,8 @@ local function init(parent, id)
     -------------------
 
     local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=TEXT_ALIGN.CENTER,fg_bg=gry_wht}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(u_ps, "U_StatusLine1", stat_line_1.set_value)
     stat_line_2.register(u_ps, "U_StatusLine2", stat_line_2.set_value)
@@ -195,7 +195,7 @@ local function init(parent, id)
 
     -- RPS annunciator panel
 
-    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=8}
+    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=8}
     local rps = Rectangle{parent=main,border=border(1,colors.cyan,true),thin=true,width=33,height=12,x=46,y=9}
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
@@ -223,7 +223,7 @@ local function init(parent, id)
 
     -- cooling annunciator panel
 
-    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=22}
+    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
@@ -382,7 +382,7 @@ local function init(parent, id)
 
     reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=46,y=48}
+    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=48}
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
@@ -470,7 +470,7 @@ local function init(parent, id)
     -- automatic control settings --
     --------------------------------
 
-    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=TEXT_ALIGN.CENTER,width=13,height=1,x=32,y=36}
+    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=ALIGN.CENTER,width=13,height=1,x=32,y=36}
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
     local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
