@@ -22,16 +22,17 @@ local element = require("graphics.element")
 ---@param args hbar_args
 ---@return graphics_element element, element_id id
 local function hbar(args)
-    -- properties/state
-    local last_num_bars = -1
-
     -- create new graphics element base object
     local e = element.new(args)
+
+    e.value = 0.0
 
     -- bar width is width - 5 characters for " 100%" if showing percent
     local bar_width = util.trinary(args.show_percent, e.frame.w - 5, e.frame.w)
 
-    assert(bar_width > 0, "graphics.elements.indicators.hbar: too small for bar")
+    element.assert(bar_width > 0, "too small for bar")
+
+    local last_num_bars = -1
 
     -- determine bar colors
     local bar_bkg = e.fg_bg.blit_bkg
@@ -105,20 +106,21 @@ local function hbar(args)
     function e.recolor(bar_fg_bg)
         bar_bkg = bar_fg_bg.blit_bkg
         bar_fgd = bar_fg_bg.blit_fgd
-
-        -- re-draw
-        last_num_bars = 0
-        if type(e.value) == "number" then
-            e.on_update(e.value)
-        end
+        e.redraw()
     end
 
     -- set the percentage value
     ---@param val number 0.0 to 1.0
     function e.set_value(val) e.on_update(val) end
 
-    -- initialize to 0
-    e.on_update(0)
+    -- element redraw
+    function e.redraw()
+        last_num_bars = -1
+        e.on_update(e.value)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

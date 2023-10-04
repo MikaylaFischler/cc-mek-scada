@@ -7,19 +7,15 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "1.1.2"
+core.version = "2.0.0"
 
 core.flasher = flasher
 core.events = events
 
 -- Core Types
 
----@enum TEXT_ALIGN
-core.TEXT_ALIGN = {
-    LEFT = 1,
-    CENTER = 2,
-    RIGHT = 3
-}
+---@enum ALIGN
+core.ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
 
 ---@class graphics_border
 ---@field width integer
@@ -73,15 +69,9 @@ end
 function core.cpair(a, b)
     return {
         -- color pairs
-        color_a = a,
-        color_b = b,
-        blit_a = colors.toBlit(a),
-        blit_b = colors.toBlit(b),
+        color_a = a, color_b = b, blit_a = colors.toBlit(a), blit_b = colors.toBlit(b),
         -- aliases
-        fgd = a,
-        bkg = b,
-        blit_fgd = colors.toBlit(a),
-        blit_bkg = colors.toBlit(b)
+        fgd = a, bkg = b, blit_fgd = colors.toBlit(a), blit_bkg = colors.toBlit(b)
     }
 end
 
@@ -119,6 +109,217 @@ function core.pipe(x1, y1, x2, y2, color, thin, align_tr)
         thin = thin or false,
         align_tr = align_tr or false
     }
+end
+
+-- Assertion Handling
+
+-- extract the custom element assert message, dropping the path to the element file
+function core.extract_assert_msg(msg)
+    return string.sub(msg, (string.find(msg, "@") + 1) or 1)
+end
+
+-- Interactive Field Manager
+
+---@param e graphics_base
+---@param max_len any
+---@param fg_bg any
+---@param dis_fg_bg any
+function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
+    local self = {
+        frame_start = 1,
+        visible_text = e.value,
+        cursor_pos = string.len(e.value) + 1,
+        selected_all = false
+    }
+
+    -- update visible text
+    local function _update_visible()
+        self.visible_text = string.sub(e.value, self.frame_start, self.frame_start + math.min(string.len(e.value), e.frame.w) - 1)
+    end
+
+    -- try shifting frame left
+    local function _try_lshift()
+        if self.frame_start > 1 then
+            self.frame_start = self.frame_start - 1
+            return true
+        end
+    end
+
+    -- try shifting frame right
+    local function _try_rshift()
+        if (self.frame_start + e.frame.w - 1) <= string.len(e.value) then
+            self.frame_start = self.frame_start + 1
+            return true
+        end
+    end
+
+    ---@class ifield
+    local public = {}
+
+    -- censor the display (for private info, for example) with the provided character<br>
+    -- disable by passing no argument
+    ---@param censor string? character to hide data with
+    function public.censor(censor)
+        if type(censor) == "string" and string.len(censor) == 1 then
+            self.censor = censor
+        else self.censor = nil end
+        public.show()
+    end
+
+    -- show the field
+    function public.show()
+        _update_visible()
+
+        if e.enabled then
+            e.w_set_bkg(fg_bg.bkg)
+            e.w_set_fgd(fg_bg.fgd)
+        else
+            e.w_set_bkg(dis_fg_bg.bkg)
+            e.w_set_fgd(dis_fg_bg.fgd)
+        end
+
+        -- clear and print
+        e.w_set_cur(1, 1)
+        e.w_write(string.rep(" ", e.frame.w))
+        e.w_set_cur(1, 1)
+
+        local function _write()
+            if self.censor then
+                e.w_write(string.rep(self.censor, string.len(self.visible_text)))
+            else
+                e.w_write(self.visible_text)
+            end
+        end
+
+        if e.is_focused() and e.enabled then
+            -- write text with cursor
+            if self.selected_all then
+                e.w_set_bkg(fg_bg.fgd)
+                e.w_set_fgd(fg_bg.bkg)
+                _write()
+            elseif self.cursor_pos >= (string.len(self.visible_text) + 1) then
+                -- write text with cursor at the end, no need to blit
+                _write()
+                e.w_set_fgd(colors.lightGray)
+                e.w_write("_")
+            else
+                local a, b = "", ""
+
+                if self.cursor_pos <= string.len(self.visible_text) then
+                    a = fg_bg.blit_bkg
+                    b = fg_bg.blit_fgd
+                end
+
+                local b_fgd = string.rep(fg_bg.blit_fgd, self.cursor_pos - 1) .. a .. string.rep(fg_bg.blit_fgd, string.len(self.visible_text) - self.cursor_pos)
+                local b_bkg = string.rep(fg_bg.blit_bkg, self.cursor_pos - 1) .. b .. string.rep(fg_bg.blit_bkg, string.len(self.visible_text) - self.cursor_pos)
+
+                if self.censor then
+                    e.w_blit(string.rep(self.censor, string.len(self.visible_text)), b_fgd, b_bkg)
+                else
+                    e.w_blit(self.visible_text, b_fgd, b_bkg)
+                end
+            end
+        else
+            self.selected_all = false
+
+            -- write text without cursor
+            _write()
+        end
+    end
+
+    -- move cursor to x
+    ---@param x integer
+    function public.move_cursor(x)
+        self.selected_all = false
+        self.cursor_pos = math.min(x, string.len(self.visible_text) + 1)
+        public.show()
+    end
+
+    -- select all text
+    function public.select_all()
+        self.selected_all = true
+        public.show()
+    end
+
+    -- set field value
+    ---@param val string
+    function public.set_value(val)
+        e.value = string.sub(val, 1, math.min(max_len, string.len(val)))
+        public.nav_end()
+    end
+
+    -- try to insert a character if there is space
+    ---@param char string
+    function public.try_insert_char(char)
+        -- limit length
+        if string.len(e.value) >= max_len then return end
+
+        -- replace if selected all, insert otherwise
+        if self.selected_all then
+            self.selected_all = false
+            self.cursor_pos = 2
+            self.frame_start = 1
+
+            e.value = char
+            public.show()
+        else
+            e.value = string.sub(e.value, 1, self.frame_start + self.cursor_pos - 2) .. char .. string.sub(e.value, self.frame_start + self.cursor_pos - 1, string.len(e.value))
+            _update_visible()
+            public.nav_right()
+        end
+    end
+
+    -- remove charcter before cursor if there is anything to remove, or delete all if selected all
+    function public.backspace()
+        if self.selected_all then
+            self.selected_all = false
+            e.value = ""
+            self.cursor_pos = 1
+            self.frame_start = 1
+            public.show()
+        else
+            if self.frame_start + self.cursor_pos > 2 then
+                e.value = string.sub(e.value, 1, self.frame_start + self.cursor_pos - 3) .. string.sub(e.value, self.frame_start + self.cursor_pos - 1, string.len(e.value))
+                if self.cursor_pos > 1 then
+                    self.cursor_pos = self.cursor_pos - 1
+                    public.show()
+                elseif _try_lshift() then public.show() end
+            end
+        end
+    end
+
+    -- move cursor left by one
+    function public.nav_left()
+        if self.cursor_pos > 1 then
+            self.cursor_pos = self.cursor_pos - 1
+            public.show()
+        elseif _try_lshift() then public.show() end
+    end
+
+    -- move cursor right by one
+    function public.nav_right()
+        if self.cursor_pos < math.min(string.len(self.visible_text) + 1, e.frame.w) then
+            self.cursor_pos = self.cursor_pos + 1
+            public.show()
+        elseif _try_rshift() then public.show() end
+    end
+
+    -- move cursor to the start
+    function public.nav_start()
+        self.cursor_pos = 1
+        self.frame_start = 1
+        public.show()
+    end
+
+    -- move cursor to the end
+    function public.nav_end()
+        self.frame_start = math.max(1, string.len(e.value) - e.frame.w + 2)
+        _update_visible()
+        self.cursor_pos = string.len(self.visible_text) + 1
+        public.show()
+    end
+
+    return public
 end
 
 return core

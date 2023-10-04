@@ -25,7 +25,7 @@ local TabBar        = require("graphics.elements.controls.tabbar")
 local LED           = require("graphics.elements.indicators.led")
 local DataIndicator = require("graphics.elements.indicators.data")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -40,7 +40,7 @@ local ind_grn = style.ind_grn
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
-    TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
 
@@ -73,8 +73,8 @@ local function init(panel)
     --
 
     local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp_label}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -93,7 +93,7 @@ local function init(panel)
         local plc_entry = Div{parent=plc_list,height=3,fg_bg=bw_fg_bg}
 
         TextBox{parent=plc_entry,x=1,y=1,text="",width=8,height=1,fg_bg=black_lg}
-        TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=black_lg}
+        TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,height=1,fg_bg=black_lg}
         TextBox{parent=plc_entry,x=1,y=3,text="",width=8,height=1,fg_bg=black_lg}
 
         local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=ind_grn}

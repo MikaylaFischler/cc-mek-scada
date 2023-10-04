@@ -18,7 +18,7 @@ local DataIndicator = require("graphics.elements.indicators.data")
 local LED           = require("graphics.elements.indicators.led")
 local RGBLED        = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -32,7 +32,7 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 ---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)
-    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     --
     -- system indicators
@@ -75,8 +75,8 @@ local function init(panel, units)
     --
 
     local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=fp_label}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)

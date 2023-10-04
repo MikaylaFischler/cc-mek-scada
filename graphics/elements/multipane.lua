@@ -19,23 +19,30 @@ local element = require("graphics.element")
 ---@param args multipane_args
 ---@return graphics_element element, element_id id
 local function multipane(args)
-    assert(type(args.panes) == "table", "graphics.elements.multipane: panes is a required field")
+    element.assert(type(args.panes) == "table", "panes is a required field")
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    e.value = 1
+
+    -- show the selected pane
+    function e.redraw()
+        for i = 1, #args.panes do args.panes[i].hide() end
+        args.panes[e.value].show()
+    end
 
     -- select which pane is shown
     ---@param value integer pane to show
     function e.set_value(value)
         if (e.value ~= value) and (value > 0) and (value <= #args.panes) then
             e.value = value
-
-            for i = 1, #args.panes do args.panes[i].hide() end
-            args.panes[value].show()
+            e.redraw()
         end
     end
 
-    e.set_value(1)
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

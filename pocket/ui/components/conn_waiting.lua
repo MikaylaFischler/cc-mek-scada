@@ -11,7 +11,7 @@ local TextBox     = require("graphics.elements.textbox")
 
 local WaitingAnim = require("graphics.elements.animations.waiting")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -29,10 +29,10 @@ local function init(parent, y, is_api)
 
     if is_api then
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.blue,style.root.bkg)}
-        TextBox{parent=box,text="Connecting to API",alignment=TEXT_ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
+        TextBox{parent=box,text="Connecting to API",alignment=ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
     else
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.green,style.root.bkg)}
-        TextBox{parent=box,text="Connecting to Supervisor",alignment=TEXT_ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
+        TextBox{parent=box,text="Connecting to Supervisor",alignment=ALIGN.CENTER,y=5,height=1,fg_bg=cpair(colors.white,style.root.bkg)}
     end
 
     return root

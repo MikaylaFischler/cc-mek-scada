@@ -14,7 +14,7 @@ local Div          = require("graphics.elements.div")
 local PipeNetwork  = require("graphics.elements.pipenet")
 local TextBox      = require("graphics.elements.textbox")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local pipe = core.pipe
 
@@ -44,7 +44,7 @@ local function make(parent, x, y, unit)
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}
 
     -- unit header message
-    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     -------------
     -- REACTOR --

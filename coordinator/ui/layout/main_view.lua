@@ -16,7 +16,7 @@ local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -25,10 +25,10 @@ local function init(main)
     local units = iocontrol.get_db().units
 
     -- window header message
-    local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
     local ping = DataIndicator{parent=main,x=1,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=style.lg_white,width=12,fg_bg=style.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
-    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=TEXT_ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
+    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
 
     ping.register(facility.ps, "sv_ping", ping.update)
     datetime.register(facility.ps, "date_time", datetime.set_value)
@@ -73,7 +73,7 @@ local function init(main)
 
     assert(cnc_bottom_align_start >= cnc_y_start, "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
-    TextBox{parent=main,y=cnc_bottom_align_start,text=string.rep("\x8c", header.get_width()),alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.lg_gray}
+    TextBox{parent=main,y=cnc_bottom_align_start,text=string.rep("\x8c", header.get_width()),alignment=ALIGN.CENTER,height=1,fg_bg=style.lg_gray}
 
     cnc_bottom_align_start = cnc_bottom_align_start + 2
 

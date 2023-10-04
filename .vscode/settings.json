@@ -5,6 +5,7 @@
         "colors",
         "fs",
         "http",
+        "keys",
         "parallel",
         "periphemu",
         "peripheral",

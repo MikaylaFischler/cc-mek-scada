@@ -20,13 +20,13 @@ local element = require("graphics.element")
 ---@param args vbar_args
 ---@return graphics_element element, element_id id
 local function vbar(args)
-    -- properties/state
-    local last_num_bars = -1
-
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- blit strings
+    e.value = 0.0
+
+    local last_num_bars = -1
+
     local fgd = string.rep(e.fg_bg.blit_fgd, e.frame.w)
     local bkg = string.rep(e.fg_bg.blit_bkg, e.frame.w)
     local spaces = util.spaces(e.frame.w)
@@ -52,10 +52,7 @@ local function vbar(args)
         if num_bars ~= last_num_bars then
             last_num_bars = num_bars
 
-            -- start bottom up
             local y = e.frame.h
-
-            -- start at base of vertical bar
             e.w_set_cur(1, y)
 
             -- fill percentage
@@ -83,22 +80,26 @@ local function vbar(args)
         end
     end
 
+    -- set the percentage value
+    ---@param val number 0.0 to 1.0
+    function e.set_value(val) e.on_update(val) end
+
+    -- element redraw
+    function e.redraw()
+        last_num_bars = -1
+        e.on_update(e.value)
+    end
+
     -- change bar color
     ---@param fg_bg cpair new bar colors
     function e.recolor(fg_bg)
         fgd = string.rep(fg_bg.blit_fgd, e.frame.w)
         bkg = string.rep(fg_bg.blit_bkg, e.frame.w)
-
-        -- re-draw
-        last_num_bars = 0
-        if type(e.value) == "number" then
-            e.on_update(e.value)
-        end
+        e.redraw()
     end
 
-    -- set the percentage value
-    ---@param val number 0.0 to 1.0
-    function e.set_value(val) e.on_update(val) end
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

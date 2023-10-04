@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.6.4"
+local RTU_VERSION = "v1.6.6"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -480,10 +480,9 @@ local function main()
     if configure() then
         -- start UI
         local message
-        rtu_state.fp_ok, message = pcall(renderer.start_ui, units)
+        rtu_state.fp_ok, message = renderer.try_start_ui(units)
 
         if not rtu_state.fp_ok then
-            renderer.close_ui()
             println_ts(util.c("UI error: ", message))
             println("startup> running without front panel")
             log.error(util.c("front panel GUI render failed with error ", message))

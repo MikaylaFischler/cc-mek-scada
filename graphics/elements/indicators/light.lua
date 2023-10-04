@@ -23,24 +23,22 @@ local flasher = require("graphics.flasher")
 ---@param args indicator_light_args
 ---@return graphics_element element, element_id id
 local function indicator_light(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.light: label is a required field")
-    assert(type(args.colors) == "table", "graphics.elements.indicators.light: colors is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.colors) == "table", "colors is a required field")
 
     if args.flash then
-        assert(util.is_int(args.period), "graphics.elements.indicators.light: period is a required field if flash is enabled")
+        element.assert(util.is_int(args.period), "period is a required field if flash is enabled")
     end
 
-    -- single line
     args.height = 1
-
-    -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
-    -- flasher state
     local flash_on = true
 
     -- create new graphics element base object
     local e = element.new(args)
+
+    e.value = false
 
     -- called by flasher when enabled
     local function flash_callback()
@@ -88,10 +86,15 @@ local function indicator_light(args)
     ---@param val boolean indicator state
     function e.set_value(val) e.on_update(val) end
 
-    -- write label and initial indicator light
-    e.on_update(false)
-    e.w_set_cur(3, 1)
-    e.w_write(args.label)
+    -- draw label and indicator light
+    function e.redraw()
+        e.on_update(false)
+        e.w_set_cur(3, 1)
+        e.w_write(args.label)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

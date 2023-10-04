@@ -16,7 +16,7 @@ local VerticalBar    = require("graphics.elements.indicators.vbar")
 local cpair = core.cpair
 local border = core.border
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local text_fg_bg = style.text_colors
 local lu_col = style.lu_colors
@@ -35,7 +35,7 @@ local function new_view(root, x, y, data, ps, id)
     local matrix = Div{parent=root,fg_bg=style.root,width=33,height=24,x=x,y=y}
 
     TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=style.lg_gray}
-    TextBox{parent=matrix,text=title,alignment=TEXT_ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=style.lg_gray}
+    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=style.lg_gray}
 
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
 

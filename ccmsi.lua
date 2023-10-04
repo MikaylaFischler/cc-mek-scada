@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.10"
+local CCMSI_VERSION = "v1.11"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -158,7 +158,7 @@ local function _clean_dir(dir, tree)
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
             if #fs.list(path) == 0 then fs.delete(path);println("deleted " .. path) end
-        elseif not _in_array(val, tree) then
+        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@fixme remove condition after migration to settings files
             fs.delete(path)
             println("deleted " .. path)
         end
@@ -172,7 +172,7 @@ local function clean(manifest)
 
     table.insert(tree, "install_manifest.json")
     table.insert(tree, "ccmsi.lua")
-    table.insert(tree, "log.txt") -- this won't necessarily work correctly
+    table.insert(tree, "log.txt") ---@fixme fix after migration to settings files?
 
     lgray()
 
@@ -203,8 +203,8 @@ if #opts == 0 or opts[1] == "help" then
     yellow()
     println("               ccmsi check <branch> for target")
     lgray()
-    println(" install     - fresh install, overwrites config")
-    println(" update      - update files EXCEPT for config/logs")
+    println(" install     - fresh install, overwrites config.lua")
+    println(" update      - update files EXCEPT for config.lua")
     println(" uninstall   - delete files INCLUDING config/logs")
     white();println("<app>");lgray()
     println(" reactor-plc - reactor PLC firmware")
@@ -543,26 +543,36 @@ elseif mode == "uninstall" then
 
     local file_list = manifest.files
     local dependencies = manifest.depends[app]
-    local config_file = app .. "/config.lua"
 
     table.insert(dependencies, app)
 
     -- delete log file
+    local log_deleted = false
+    local settings_file = app .. ".settings"
+    local legacy_config_file = app .. "/config.lua"
+
     lgray()
-    if fs.exists(config_file) then
-        local log_deleted = pcall(function ()
+    if fs.exists(legacy_config_file) then
+        log_deleted = pcall(function ()
             local config = require(app .. ".config")
             if fs.exists(config.LOG_PATH) then
                 fs.delete(config.LOG_PATH)
                 println("deleted log file " .. config.LOG_PATH)
             end
         end)
-
-        if not log_deleted then
-            red();println("Failed to delete log file.")
-            white();println("press any key to continue...")
-            any_key();lgray()
+    elseif fs.exists(settings_file) and settings.load(settings_file) then
+        local log = settings.get("LogPath")
+        if log ~= nil and fs.exists(log) then
+            log_deleted = true
+            fs.delete(log)
+            println("deleted log file " .. log)
         end
+    end
+
+    if not log_deleted then
+        red();println("Failed to delete log file.")
+        white();println("press any key to continue...")
+        any_key();lgray()
     end
 
     -- delete all installed files
@@ -582,6 +592,11 @@ elseif mode == "uninstall" then
             fs.delete(folder)
             println("deleted directory " .. folder)
         end
+    end
+
+    if fs.exists(settings_file) then
+        fs.delete(settings_file)
+        println("deleted " .. settings_file)
     end
 
     fs.delete("install_manifest.json")

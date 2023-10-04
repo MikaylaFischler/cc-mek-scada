@@ -5,7 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local CLICK_TYPE = core.events.CLICK_TYPE
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class app_button_args
 ---@field text string app icon text
@@ -24,20 +24,16 @@ local CLICK_TYPE = core.events.CLICK_TYPE
 ---@param args app_button_args
 ---@return graphics_element element, element_id id
 local function app_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.app: text is a required field")
-    assert(type(args.title) == "string", "graphics.elements.controls.app: title is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.app: callback is a required field")
-    assert(type(args.app_fg_bg) == "table", "graphics.elements.controls.app: app_fg_bg is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.title) == "string", "title is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.app_fg_bg) == "table", "app_fg_bg is a required field")
 
     args.height = 4
-    args.width  = 5
+    args.width = 5
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- write app title, centered
-    e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
-    e.w_write(args.title)
 
     -- draw the app button
     local function draw()
@@ -98,14 +94,14 @@ local function app_button(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled then
-            if event.type == CLICK_TYPE.TAP then
+            if event.type == MOUSE_CLICK.TAP then
                 show_pressed()
                 -- show as unpressed in 0.25 seconds
                 if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_unpressed) end
                 args.callback()
-            elseif event.type == CLICK_TYPE.DOWN then
+            elseif event.type == MOUSE_CLICK.DOWN then
                 show_pressed()
-            elseif event.type == CLICK_TYPE.UP then
+            elseif event.type == MOUSE_CLICK.UP then
                 show_unpressed()
                 if e.in_frame_bounds(event.current.x, event.current.y) then
                     args.callback()
@@ -117,11 +113,18 @@ local function app_button(args)
     -- set the value (true simulates pressing the app button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
+    end
+
+    -- element redraw
+    function e.redraw()
+        e.w_set_cur(math.floor((e.frame.w - string.len(args.title)) / 2) + 1, 4)
+        e.w_write(args.title)
+        draw()
     end
 
     -- initial draw
-    draw()
+    e.redraw()
 
     return e.complete()
 end

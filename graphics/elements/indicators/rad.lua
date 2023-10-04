@@ -10,7 +10,7 @@ local element = require("graphics.element")
 ---@field format string data format (lua string format)
 ---@field commas? boolean whether to use commas if a number is given (default to false)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
----@field value any default value
+---@field value? radiation_reading default value
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -24,24 +24,16 @@ local element = require("graphics.element")
 ---@param args rad_indicator_args
 ---@return graphics_element element, element_id id
 local function rad(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.rad: label is a required field")
-    assert(type(args.format) == "string", "graphics.elements.indicators.rad: format is a required field")
-    assert(util.is_int(args.width), "graphics.elements.indicators.rad: width is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.format) == "string", "format is a required field")
+    element.assert(util.is_int(args.width), "width is a required field")
 
-    -- single line
     args.height = 1
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- label color
-    if args.lu_colors ~= nil then
-        e.w_set_fgd(args.lu_colors.color_a)
-    end
-
-    -- write label
-    e.w_set_cur(1, 1)
-    e.w_write(args.label)
+    e.value = args.value or types.new_zero_radiation_reading()
 
     local label_len = string.len(args.label)
     local data_start = 1
@@ -82,8 +74,17 @@ local function rad(args)
     ---@param val any new value
     function e.set_value(val) e.on_update(val) end
 
-    -- initial value draw
-    e.on_update(types.new_zero_radiation_reading())
+    -- element redraw
+    function e.redraw()
+        if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
+        e.w_set_cur(1, 1)
+        e.w_write(args.label)
+
+        e.on_update(e.value)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

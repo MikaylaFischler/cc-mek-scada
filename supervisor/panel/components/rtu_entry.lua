@@ -13,7 +13,7 @@ local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -31,7 +31,7 @@ local function init(parent, id)
     local ps_prefix = "rtu_" .. id .. "_"
 
     TextBox{parent=entry,x=1,y=1,text="",width=8,height=1,fg_bg=black_lg}
-    local rtu_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=TEXT_ALIGN.CENTER,width=8,height=1,fg_bg=black_lg,nav_active=cpair(colors.gray,colors.black)}
+    local rtu_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=ALIGN.CENTER,width=8,height=1,fg_bg=black_lg,nav_active=cpair(colors.gray,colors.black)}
     TextBox{parent=entry,x=1,y=3,text="",width=8,height=1,fg_bg=black_lg}
     rtu_addr.register(databus.ps, ps_prefix .. "addr", rtu_addr.set_value)
 

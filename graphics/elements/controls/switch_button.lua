@@ -21,15 +21,13 @@ local element = require("graphics.element")
 ---@param args switch_button_args
 ---@return graphics_element element, element_id id
 local function switch_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.switch_button: text is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.switch_button: callback is a required field")
-    assert(type(args.active_fg_bg) == "table", "graphics.elements.controls.switch_button: active_fg_bg is a required field")
-    assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0),
-        "graphics.elements.controls.switch_button: min_width must be nil or a number > 0")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
+    element.assert(type(args.active_fg_bg) == "table", "active_fg_bg is a required field")
+    element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
 
-    -- single line height, calculate width
     args.height = 1
     args.min_width = args.min_width or 0
     args.width = math.max(text_width, args.min_width)
@@ -37,44 +35,32 @@ local function switch_button(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- button state (convert nil to false if missing)
     e.value = args.default or false
 
     local h_pad = math.floor((e.frame.w - text_width) / 2) + 1
     local v_pad = math.floor(e.frame.h / 2) + 1
 
     -- show the button state
-    local function draw_state()
+    function e.redraw()
         if e.value then
-            -- show as pressed
             e.w_set_fgd(args.active_fg_bg.fgd)
             e.w_set_bkg(args.active_fg_bg.bkg)
         else
-            -- show as unpressed
             e.w_set_fgd(e.fg_bg.fgd)
             e.w_set_bkg(e.fg_bg.bkg)
         end
 
-        -- clear to redraw background
         e.window.clear()
-
-        -- write the button text
         e.w_set_cur(h_pad, v_pad)
         e.w_write(args.text)
     end
-
-    -- initial draw
-    draw_state()
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         if e.enabled and core.events.was_clicked(event.type) then
-            -- toggle state
             e.value = not e.value
-            draw_state()
-
-            -- call the touch callback with state
+            e.redraw()
             args.callback(e.value)
         end
     end
@@ -82,10 +68,12 @@ local function switch_button(args)
     -- set the value
     ---@param val boolean new value
     function e.set_value(val)
-        -- set state
         e.value = val
-        draw_state()
+        e.redraw()
     end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

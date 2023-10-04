@@ -4,58 +4,46 @@
 
 require("/initenv").init_env()
 
-local comms    = require("scada-common.comms")
-local crash    = require("scada-common.crash")
-local log      = require("scada-common.log")
-local mqueue   = require("scada-common.mqueue")
-local network  = require("scada-common.network")
-local ppm      = require("scada-common.ppm")
-local rsio     = require("scada-common.rsio")
-local util     = require("scada-common.util")
+local comms     = require("scada-common.comms")
+local crash     = require("scada-common.crash")
+local log       = require("scada-common.log")
+local mqueue    = require("scada-common.mqueue")
+local network   = require("scada-common.network")
+local ppm       = require("scada-common.ppm")
+local util      = require("scada-common.util")
 
-local config   = require("reactor-plc.config")
-local databus  = require("reactor-plc.databus")
-local plc      = require("reactor-plc.plc")
-local renderer = require("reactor-plc.renderer")
-local threads  = require("reactor-plc.threads")
+local configure = require("reactor-plc.configure")
+local databus   = require("reactor-plc.databus")
+local plc       = require("reactor-plc.plc")
+local renderer  = require("reactor-plc.renderer")
+local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.5.9"
+local R_PLC_VERSION = "v1.6.0"
 
 local println = util.println
 local println_ts = util.println_ts
 
 ----------------------------------------
--- config validation
+-- get configuration
 ----------------------------------------
 
-local cfv = util.new_validator()
-
-cfv.assert_type_bool(config.NETWORKED)
-cfv.assert_type_int(config.REACTOR_ID)
-cfv.assert_channel(config.SVR_CHANNEL)
-cfv.assert_channel(config.PLC_CHANNEL)
-cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.COMMS_TIMEOUT)
-cfv.assert_min(config.COMMS_TIMEOUT, 2)
-cfv.assert_type_str(config.LOG_PATH)
-cfv.assert_type_int(config.LOG_MODE)
-
-assert(cfv.valid(), "bad config file: missing/invalid fields")
-
--- check emergency coolant configuration
-if type(config.EMERGENCY_COOL) == "table" then
-    if not rsio.is_valid_side(config.EMERGENCY_COOL.side) then
-        assert(false, "bad config file: emergency coolant side unrecognized")
-    elseif config.EMERGENCY_COOL.color ~= nil and not rsio.is_color(config.EMERGENCY_COOL.color) then
-        assert(false, "bad config file: emergency coolant invalid redstone channel color provided")
+if not plc.load_config() then
+    -- try to reconfigure (user action)
+    local success, error = configure.configure(true)
+    if success then
+        assert(plc.load_config(), "failed to load valid reactor PLC configuration")
+    else
+        assert(success, "reactor PLC configuration error: " .. error)
     end
 end
+
+local config = plc.config
 
 ----------------------------------------
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
+log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
 log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)
@@ -75,32 +63,32 @@ local function main()
 
     -- record firmware versions and ID
     databus.tx_versions(R_PLC_VERSION, comms.version)
-    databus.tx_id(config.REACTOR_ID)
+    databus.tx_id(config.UnitID)
 
     -- mount connected devices
     ppm.mount_all()
 
     -- message authentication init
-    if type(config.AUTH_KEY) == "string" then
-        network.init_mac(config.AUTH_KEY)
+    if string.len(config.AuthKey) > 0 then
+        network.init_mac(config.AuthKey)
     end
 
     -- shared memory across threads
     ---@class plc_shared_memory
     local __shared_memory = {
         -- networked setting
-        networked = config.NETWORKED,   ---@type boolean
+        networked = config.Networked,
 
         -- PLC system state flags
         ---@class plc_state
         plc_state = {
-            init_ok        = true,
-            fp_ok          = false,
-            shutdown       = false,
-            degraded       = true,
+            init_ok = true,
+            fp_ok = false,
+            shutdown = false,
+            degraded = true,
             reactor_formed = true,
-            no_reactor     = true,
-            no_modem       = true
+            no_reactor = true,
+            no_modem = true
         },
 
         -- control setpoints
@@ -118,10 +106,10 @@ local function main()
 
         -- system objects
         plc_sys = {
-            rps = nil,              ---@type rps
-            nic = nil,              ---@type nic
-            plc_comms = nil,        ---@type plc_comms
-            conn_watchdog = nil     ---@type watchdog
+            rps = nil,          ---@type rps
+            nic = nil,          ---@type nic
+            plc_comms = nil,    ---@type plc_comms
+            conn_watchdog = nil ---@type watchdog
         },
 
         -- message queues
@@ -184,10 +172,9 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message
-            plc_state.fp_ok, message = pcall(renderer.start_ui)
+            plc_state.fp_ok, message = renderer.try_start_ui()
 
             if not plc_state.fp_ok then
-                renderer.close_ui()
                 println_ts(util.c("UI error: ", message))
                 println("init> running without front panel")
                 log.error(util.c("front panel GUI render failed with error ", message))
@@ -197,18 +184,17 @@ local function main()
 
         if plc_state.init_ok then
             -- init reactor protection system
-            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed, config.EMERGENCY_COOL)
+            smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state.reactor_formed)
             log.debug("init> rps init")
 
             if __shared_memory.networked then
                 -- comms watchdog
-                smem_sys.conn_watchdog = util.new_watchdog(config.COMMS_TIMEOUT)
+                smem_sys.conn_watchdog = util.new_watchdog(config.ConnTimeout)
                 log.debug("init> conn watchdog started")
 
                 -- create network interface then setup comms
                 smem_sys.nic = network.nic(smem_dev.modem)
-                smem_sys.plc_comms = plc.comms(config.REACTOR_ID, R_PLC_VERSION, smem_sys.nic, config.PLC_CHANNEL, config.SVR_CHANNEL,
-                                                config.TRUSTED_RANGE, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+                smem_sys.plc_comms = plc.comms(R_PLC_VERSION, smem_sys.nic, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
                 log.debug("init> comms init")
             else
                 _println_no_fp("init> starting in offline mode")
@@ -216,7 +202,7 @@ local function main()
             end
 
             -- notify user of emergency coolant configuration status
-            if config.EMERGENCY_COOL ~= nil then
+            if config.EmerCoolEnable then
                 println("init> emergency coolant control ready")
                 log.info("init> running with emergency coolant control available")
             end

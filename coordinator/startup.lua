@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.12"
+local COORDINATOR_VERSION = "v1.0.16"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -182,9 +182,8 @@ local function main()
 
     log_graphics("starting front panel UI...")
 
-    local fp_ok, fp_message = pcall(renderer.start_fp)
+    local fp_ok, fp_message = renderer.try_start_fp()
     if not fp_ok then
-        renderer.close_fp()
         log_graphics(util.c("front panel UI error: ", fp_message))
         println_ts("front panel UI creation failed")
         log.fatal(util.c("front panel GUI render failed with error ", fp_message))
@@ -198,9 +197,8 @@ local function main()
 
         local draw_start = util.time_ms()
 
-        local ui_ok, ui_message = pcall(renderer.start_ui)
+        local ui_ok, ui_message = renderer.try_start_ui()
         if not ui_ok then
-            renderer.close_ui()
             log_graphics(util.c("main UI error: ", ui_message))
             log.fatal(util.c("main GUI render failed with error ", ui_message))
         else
@@ -358,7 +356,7 @@ local function main()
                 sounder.stop()
             end
         elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
-               event == "mouse_drag" or event == "mouse_scroll" then
+               event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
             -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "speaker_audio_empty" then

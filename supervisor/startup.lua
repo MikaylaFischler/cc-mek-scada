@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.0.5"
+local SUPERVISOR_VERSION = "v1.0.6"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -117,10 +117,9 @@ local function main()
     databus.tx_hw_modem(true)
 
     -- start UI
-    local fp_ok, message = pcall(renderer.start_ui)
+    local fp_ok, message = renderer.try_start_ui()
 
     if not fp_ok then
-        renderer.close_ui()
         println_ts(util.c("UI error: ", message))
         log.error(util.c("front panel GUI render failed with error ", message))
     else
@@ -214,7 +213,8 @@ local function main()
             -- got a packet
             local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
             superv_comms.handle_packet(packet)
-        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" then
+        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
+               event == "double_click" then
             -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         end

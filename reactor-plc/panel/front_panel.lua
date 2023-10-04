@@ -5,8 +5,8 @@
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
-local config     = require("reactor-plc.config")
 local databus    = require("reactor-plc.databus")
+local plc        = require("reactor-plc.plc")
 
 local style      = require("reactor-plc.panel.style")
 
@@ -23,7 +23,7 @@ local LED        = require("graphics.elements.indicators.led")
 local LEDPair    = require("graphics.elements.indicators.ledpair")
 local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 local border = core.border
@@ -34,7 +34,7 @@ local ind_red = style.ind_red
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
-    local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=TEXT_ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
 
     --
@@ -86,7 +86,7 @@ local function init(panel)
     local active = LED{parent=status,x=2,width=12,label="RCT ACTIVE",colors=ind_grn}
 
     -- only show emergency coolant LED if emergency coolant is configured for this device
-    if type(config.EMERGENCY_COOL) == "table" then
+    if plc.config.EmerCoolEnable then
         local emer_cool = LED{parent=status,x=2,width=14,label="EMER COOLANT",colors=cpair(colors.yellow,colors.yellow_off)}
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
@@ -108,8 +108,8 @@ local function init(panel)
     --
 
     local about   = Rectangle{parent=panel,width=32,height=3,x=2,y=16,border=border(1,colors.ivory),thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=TEXT_ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)

@@ -26,7 +26,7 @@ local Sidebar      = require("graphics.elements.controls.sidebar")
 local LINK_STATE = iocontrol.LINK_STATE
 local NAV_PAGE   = iocontrol.NAV_PAGE
 
-local TEXT_ALIGN = core.TEXT_ALIGN
+local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
@@ -37,7 +37,7 @@ local function init(main)
     local ps  = iocontrol.get_db().ps
 
     -- window header message
-    TextBox{parent=main,y=1,text="",alignment=TEXT_ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
 
     --
     -- root panel panes (connection screens + main screen)

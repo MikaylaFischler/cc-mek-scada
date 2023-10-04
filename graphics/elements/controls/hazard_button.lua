@@ -21,20 +21,15 @@ local element = require("graphics.element")
 ---@param args hazard_button_args
 ---@return graphics_element element, element_id id
 local function hazard_button(args)
-    assert(type(args.text) == "string", "graphics.elements.controls.hazard_button: text is a required field")
-    assert(type(args.accent) == "number", "graphics.elements.controls.hazard_button: accent is a required field")
-    assert(type(args.callback) == "function", "graphics.elements.controls.hazard_button: callback is a required field")
+    element.assert(type(args.text) == "string", "text is a required field")
+    element.assert(type(args.accent) == "number", "accent is a required field")
+    element.assert(type(args.callback) == "function", "callback is a required field")
 
-    -- static dimensions
     args.height = 3
     args.width = string.len(args.text) + 4
 
     -- create new graphics element base object
     local e = element.new(args)
-
-    -- write the button text
-    e.w_set_cur(3, 2)
-    e.w_write(args.text)
 
     -- draw border
     ---@param accent color accent color
@@ -158,7 +153,6 @@ local function hazard_button(args)
                 -- 1.5 second timeout
                 tcd.dispatch(1.5, on_timeout)
 
-                -- call the touch callback
                 args.callback()
             end
         end
@@ -174,11 +168,11 @@ local function hazard_button(args)
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
-        if val then e.handle_mouse(core.events.mouse_generic(core.events.CLICK_TYPE.UP, 1, 1)) end
+        if val then e.handle_mouse(core.events.mouse_generic(core.events.MOUSE_CLICK.UP, 1, 1)) end
     end
 
     -- show the button as disabled
-    function e.disable()
+    function e.on_disabled()
         if args.dis_colors then
             draw_border(args.dis_colors.color_a)
             e.w_set_fgd(args.dis_colors.color_b)
@@ -188,15 +182,23 @@ local function hazard_button(args)
     end
 
     -- show the button as enabled
-    function e.enable()
+    function e.on_enabled()
         draw_border(args.accent)
         e.w_set_fgd(args.fg_bg.fgd)
         e.w_set_cur(3, 2)
         e.w_write(args.text)
     end
 
-    -- initial draw of border
-    draw_border(args.accent)
+    -- element redraw
+    function e.redraw()
+        -- write the button text and draw border
+        e.w_set_cur(3, 2)
+        e.w_write(args.text)
+        draw_border(args.accent)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end

@@ -24,25 +24,17 @@ local element = require("graphics.element")
 ---@param args data_indicator_args
 ---@return graphics_element element, element_id id
 local function data(args)
-    assert(type(args.label) == "string", "graphics.elements.indicators.data: label is a required field")
-    assert(type(args.format) == "string", "graphics.elements.indicators.data: format is a required field")
-    assert(args.value ~= nil, "graphics.elements.indicators.data: value is a required field")
-    assert(util.is_int(args.width), "graphics.elements.indicators.data: width is a required field")
+    element.assert(type(args.label) == "string", "label is a required field")
+    element.assert(type(args.format) == "string", "format is a required field")
+    element.assert(args.value ~= nil, "value is a required field")
+    element.assert(util.is_int(args.width), "width is a required field")
 
-    -- single line
     args.height = 1
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    -- label color
-    if args.lu_colors ~= nil then
-        e.w_set_fgd(args.lu_colors.color_a)
-    end
-
-    -- write label
-    e.w_set_cur(1, 1)
-    e.w_write(args.label)
+    e.value = args.value
 
     local value_color = e.fg_bg.fgd
     local label_len   = string.len(args.label)
@@ -93,8 +85,17 @@ local function data(args)
         e.on_update(e.value)
     end
 
-    -- initial value draw
-    e.on_update(args.value)
+    -- element redraw
+    function e.redraw()
+        if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
+        e.w_set_cur(1, 1)
+        e.w_write(args.label)
+
+        e.on_update(e.value)
+    end
+
+    -- initial draw
+    e.redraw()
 
     return e.complete()
 end
