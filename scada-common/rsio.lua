@@ -7,9 +7,7 @@ local util = require("scada-common.util")
 ---@class rsio
 local rsio = {}
 
-----------------------
--- RS I/O CONSTANTS --
-----------------------
+--#region RS I/O Constants
 
 ---@enum IO_LVL I/O logic level
 local IO_LVL = {
@@ -53,30 +51,31 @@ local IO_PORT = {
 
     -- facility
     F_ALARM       = 7,  -- active high, facility-wide alarm (any high priority unit alarm)
+    F_ALARM_ANY   = 8,  -- active high, any alarm regardless of priority
 
     -- waste
-    WASTE_PU      = 8,  -- active low, waste -> plutonium -> pellets route
-    WASTE_PO      = 9,  -- active low, waste -> polonium route
-    WASTE_POPL    = 10, -- active low, polonium -> pellets route
-    WASTE_AM      = 11, -- active low, polonium -> anti-matter route
+    WASTE_PU      = 9,  -- active low, waste -> plutonium -> pellets route
+    WASTE_PO      = 10, -- active low, waste -> polonium route
+    WASTE_POPL    = 11, -- active low, polonium -> pellets route
+    WASTE_AM      = 12, -- active low, polonium -> anti-matter route
 
     -- reactor
-    R_ACTIVE      = 12, -- active high, if the reactor is active
-    R_AUTO_CTRL   = 13, -- active high, if the reactor burn rate is automatic
-    R_SCRAMMED    = 14, -- active high, if the reactor is scrammed
-    R_AUTO_SCRAM  = 15, -- active high, if the reactor was automatically scrammed
-    R_HIGH_DMG    = 16, -- active high, if the reactor damage is high
-    R_HIGH_TEMP   = 17, -- active high, if the reactor is at a high temperature
-    R_LOW_COOLANT = 18, -- active high, if the reactor has very low coolant
-    R_EXCESS_HC   = 19, -- active high, if the reactor has excess heated coolant
-    R_EXCESS_WS   = 20, -- active high, if the reactor has excess waste
-    R_INSUFF_FUEL = 21, -- active high, if the reactor has insufficent fuel
-    R_PLC_FAULT   = 22, -- active high, if the reactor PLC reports a device access fault
-    R_PLC_TIMEOUT = 23, -- active high, if the reactor PLC has not been heard from
+    R_ACTIVE      = 13, -- active high, reactor is active
+    R_AUTO_CTRL   = 14, -- active high, reactor burn rate is automatic
+    R_SCRAMMED    = 15, -- active high, reactor is scrammed
+    R_AUTO_SCRAM  = 16, -- active high, reactor was automatically scrammed
+    R_HIGH_DMG    = 17, -- active high, reactor damage is high
+    R_HIGH_TEMP   = 18, -- active high, reactor is at a high temperature
+    R_LOW_COOLANT = 19, -- active high, reactor has very low coolant
+    R_EXCESS_HC   = 20, -- active high, reactor has excess heated coolant
+    R_EXCESS_WS   = 21, -- active high, reactor has excess waste
+    R_INSUFF_FUEL = 22, -- active high, reactor has insufficent fuel
+    R_PLC_FAULT   = 23, -- active high, reactor PLC reports a device access fault
+    R_PLC_TIMEOUT = 24, -- active high, reactor PLC has not been heard from
 
     -- unit outputs
-    U_ALARM       = 24, -- active high, unit alarm
-    U_EMER_COOL   = 25  -- active low, emergency coolant control
+    U_ALARM       = 25, -- active high, unit alarm
+    U_EMER_COOL   = 26  -- active low, emergency coolant control
 }
 
 rsio.IO_LVL = IO_LVL
@@ -84,9 +83,9 @@ rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
 
------------------------
--- UTILITY FUNCTIONS --
------------------------
+--#endregion
+
+--#region Utility Functions
 
 -- port to string
 ---@nodiscard
@@ -100,6 +99,7 @@ function rsio.to_string(port)
         "R_ENABLE",
         "U_ACK",
         "F_ALARM",
+        "F_ALARM_ANY",
         "WASTE_PU",
         "WASTE_PO",
         "WASTE_POPL",
@@ -152,6 +152,8 @@ local RS_DIO_MAP = {
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
 
     -- F_ALARM
+    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    -- F_ALARM_ANY
     { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
     -- WASTE_PU
@@ -207,6 +209,7 @@ function rsio.get_io_mode(port)
         IO_MODE.DIGITAL_IN,     -- R_ENABLE
         IO_MODE.DIGITAL_IN,     -- U_ACK
         IO_MODE.DIGITAL_OUT,    -- F_ALARM
+        IO_MODE.DIGITAL_OUT,    -- F_ALARM_ANY
         IO_MODE.DIGITAL_OUT,    -- WASTE_PU
         IO_MODE.DIGITAL_OUT,    -- WASTE_PO
         IO_MODE.DIGITAL_OUT,    -- WASTE_POPL
@@ -234,9 +237,9 @@ function rsio.get_io_mode(port)
     end
 end
 
---------------------
--- GENERIC CHECKS --
---------------------
+--#endregion
+
+--#region Generic Checks
 
 local RS_SIDES = rs.getSides()
 
@@ -269,9 +272,9 @@ function rsio.is_color(color)
     return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0)
 end
 
------------------
--- DIGITAL I/O --
------------------
+--#endregion
+
+--#region Digital I/O
 
 -- get digital I/O level reading from a redstone boolean input value
 ---@nodiscard
@@ -285,9 +288,7 @@ end
 ---@nodiscard
 ---@param level IO_LVL logic level
 ---@return boolean
-function rsio.digital_write(level)
-    return level == IO_LVL.HIGH
-end
+function rsio.digital_write(level) return level == IO_LVL.HIGH end
 
 -- returns the level corresponding to active
 ---@nodiscard
@@ -317,9 +318,9 @@ function rsio.digital_is_active(port, level)
     end
 end
 
-----------------
--- ANALOG I/O --
-----------------
+--#endregion
+
+--#region Analog I/O
 
 -- read an analog value scaled from min to max
 ---@nodiscard
@@ -342,5 +343,7 @@ function rsio.analog_write(value, min, max)
     local scaled_value = (value - min) / (max - min)
     return math.floor(scaled_value * 15)
 end
+
+--#endregion
 
 return rsio

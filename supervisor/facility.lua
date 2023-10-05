@@ -746,18 +746,21 @@ function facility.new(num_reactors, cooling_conf)
             -- handle facility ack
             if self.io_ctl.digital_read(IO.F_ACK) then public.ack_all() end
 
-            -- update facility alarm output (check if emergency+ alarms are active)
-            local has_alarm = false
+            -- update facility alarm outputs
+            local has_prio_alarm, has_any_alarm = false, false
             for i = 1, #self.units do
-                local u = self.units[i]     ---@type reactor_unit
+                local u = self.units[i] ---@type reactor_unit
 
                 if u.has_alarm_min_prio(PRIO.EMERGENCY) then
-                    has_alarm = true
+                    has_prio_alarm, has_any_alarm = true, true
                     break
+                elseif u.has_alarm_min_prio(PRIO.TIMELY) then
+                    has_any_alarm = true
                 end
             end
 
-            self.io_ctl.digital_write(IO.F_ALARM, has_alarm)
+            self.io_ctl.digital_write(IO.F_ALARM, has_prio_alarm)
+            self.io_ctl.digital_write(IO.F_ALARM_ANY, has_any_alarm)
         end
 
         ----------------
