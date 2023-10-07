@@ -10,13 +10,10 @@ local util = {}
 -- scada-common version
 util.version = "1.1.3"
 
--- ENVIRONMENT CONSTANTS --
-
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
 
--- OPERATORS --
---#region
+--#region OPERATORS
 
 -- trinary operator
 ---@nodiscard
@@ -30,37 +27,27 @@ end
 
 --#endregion
 
--- PRINT --
---#region
+--#region PRINT
 
 -- print
 ---@param message any
-function util.print(message)
-    term.write(tostring(message))
-end
+function util.print(message) term.write(tostring(message)) end
 
 -- print line
 ---@param message any
-function util.println(message)
-    print(tostring(message))
-end
+function util.println(message) print(tostring(message)) end
 
 -- timestamped print
 ---@param message any
-function util.print_ts(message)
-    term.write(os.date("[%H:%M:%S] ") .. tostring(message))
-end
+function util.print_ts(message) term.write(os.date("[%H:%M:%S] ") .. tostring(message)) end
 
 -- timestamped print line
 ---@param message any
-function util.println_ts(message)
-    print(os.date("[%H:%M:%S] ") .. tostring(message))
-end
+function util.println_ts(message) print(os.date("[%H:%M:%S] ") .. tostring(message)) end
 
 --#endregion
 
--- STRING TOOLS --
---#region
+--#region STRING TOOLS
 
 -- get a value as a string
 ---@nodiscard
@@ -71,18 +58,14 @@ function util.strval(val)
     -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
     if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
         return "[" .. tostring(val) .. "]"
-    else
-        return tostring(val)
-    end
+    else return tostring(val) end
 end
 
 -- repeat a space n times
 ---@nodiscard
 ---@param n integer
 ---@return string
-function util.spaces(n)
-    return string.rep(" ", n)
-end
+function util.spaces(n) return string.rep(" ", n) end
 
 -- pad text to a minimum width
 ---@nodiscard
@@ -113,9 +96,7 @@ function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 ---@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
     local str = ""
-
     for _, v in ipairs(arg) do str = str .. util.strval(v) end
-
     return str
 end
 
@@ -127,9 +108,7 @@ util.c = util.concat
 ---@param format string
 ---@vararg any
 ---@diagnostic disable-next-line: unused-vararg
-function util.sprintf(format, ...)
-    return string.format(format, table.unpack(arg))
-end
+function util.sprintf(format, ...) return string.format(format, table.unpack(arg)) end
 
 -- luacheck: unused args
 
@@ -158,31 +137,18 @@ end
 
 --#endregion
 
--- MATH --
---#region
-
--- is a value an integer
----@nodiscard
----@param x any value
----@return boolean is_integer if the number is an integer
-function util.is_int(x)
-    return type(x) == "number" and x == math.floor(x)
-end
+--#region MATH
 
 -- get the sign of a number
 ---@nodiscard
 ---@param x number value
 ---@return integer sign (-1 for < 0, 1 otherwise)
-function util.sign(x)
-    return util.trinary(x < 0, -1, 1)
-end
+function util.sign(x) return util.trinary(x < 0, -1, 1) end
 
 -- round a number to an integer
 ---@nodiscard
 ---@return integer rounded
-function util.round(x)
-    return math.floor(x + 0.5)
-end
+function util.round(x) return math.floor(x + 0.5) end
 
 -- get a new moving average object
 ---@nodiscard
@@ -232,7 +198,49 @@ function util.mov_avg(length, default)
     return public
 end
 
--- TIME --
+--#endregion
+
+--#region TYPES
+
+-- is a value a boolean
+---@nodiscard
+---@param x any value
+---@return boolean is_boolean
+function util.is_bool(x) return type(x) == "boolean" end
+
+-- is a value a number
+---@nodiscard
+---@param x any value
+---@return boolean is_number
+function util.is_num(x) return type(x) == "number" end
+
+-- is a value an integer
+---@nodiscard
+---@param x any value
+---@return boolean is_integer
+function util.is_int(x) return type(x) == "number" and x == math.floor(x) end
+
+-- is a value a string
+---@nodiscard
+---@param x any value
+---@return boolean is_string
+function util.is_str(x) return type(x) == "string" end
+
+-- is a value a table
+---@nodiscard
+---@param x any value
+---@return boolean is_table
+function util.is_tbl(x) return type(x) == "table" end
+
+-- is a value a function
+---@nodiscard
+---@param x any value
+---@return boolean is_function
+function util.is_func(x) return type(x) == "function" end
+
+--#endregion
+
+--#region TIME
 
 -- current time
 ---@nodiscard
@@ -257,8 +265,7 @@ function util.time() return util.time_ms() end
 
 --#endregion
 
--- OS --
---#region
+--#region OS
 
 -- OS pull event raw wrapper with types
 ---@nodiscard
@@ -299,8 +306,7 @@ end
 
 --#endregion
 
--- PARALLELIZATION --
---#region
+--#region PARALLELIZATION
 
 -- protected sleep call so we still are in charge of catching termination
 ---@param t integer seconds
@@ -330,8 +336,7 @@ end
 
 --#endregion
 
--- TABLE UTILITIES --
---#region
+--#region TABLE UTILITIES
 
 -- delete elements from a table if the passed function returns false when passed a table element<br>
 -- put briefly: deletes elements that return false, keeps elements that return true
@@ -371,8 +376,7 @@ end
 
 --#endregion
 
--- MEKANISM POWER --
---#region
+--#region MEKANISM POWER
 
 -- convert Joules to FE
 ---@nodiscard
@@ -441,8 +445,7 @@ end
 
 --#endregion
 
--- UTILITY CLASSES --
---#region
+--#region UTILITY CLASSES
 
 -- WATCHDOG --
 
@@ -519,11 +522,11 @@ function util.new_validator()
     ---@class validator
     local public = {}
 
-    function public.assert_type_bool(value) valid = valid and type(value) == "boolean" end
-    function public.assert_type_num(value) valid = valid and type(value) == "number" end
+    function public.assert_type_bool(value) valid = valid and util.is_bool(value) end
+    function public.assert_type_num(value) valid = valid and util.is_num(value) end
     function public.assert_type_int(value) valid = valid and util.is_int(value) end
-    function public.assert_type_str(value) valid = valid and type(value) == "string" end
-    function public.assert_type_table(value) valid = valid and type(value) == "table" end
+    function public.assert_type_str(value) valid = valid and util.is_str(value) end
+    function public.assert_type_table(value) valid = valid and util.is_tbl(value) end
 
     function public.assert_eq(check, expect) valid = valid and check == expect end
     function public.assert_min(check, min) valid = valid and check >= min end
@@ -533,7 +536,7 @@ function util.new_validator()
     function public.assert_range(check, min, max) valid = valid and check >= min and check <= max end
     function public.assert_range_ex(check, min, max) valid = valid and check > min and check < max end
 
-    function public.assert_channel(channel) valid = valid and type(channel) == "number" and channel >= 0 and channel <= 65535 end
+    function public.assert_channel(channel) valid = valid and util.is_int(channel) and channel >= 0 and channel <= 65535 end
 
     -- check if all assertions passed successfully
     ---@nodiscard
