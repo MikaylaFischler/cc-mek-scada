@@ -311,7 +311,7 @@ function comms.authd_packet()
         self.valid = false
         self.raw = self.modem_msg_in.msg
 
-        if (type(max_distance) == "number") and (type(distance) == "number") and (distance > max_distance) then
+        if (type(max_distance) == "number") and ((type(distance) ~= "number") or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
             -- log.debug("comms.authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else

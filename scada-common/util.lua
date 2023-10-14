@@ -4,19 +4,26 @@
 
 local cc_strings = require("cc.strings")
 
+local math = math
+local string = string
+local table = table
+local os = os
+
+local getmetatable = getmetatable
+local print = print
+local tostring = tostring
+local type = type
+
 ---@class util
 local util = {}
 
 -- scada-common version
-util.version = "1.1.3"
-
--- ENVIRONMENT CONSTANTS --
+util.version = "1.1.5"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
 
--- OPERATORS --
---#region
+--#region OPERATORS
 
 -- trinary operator
 ---@nodiscard
@@ -30,37 +37,29 @@ end
 
 --#endregion
 
--- PRINT --
---#region
+--#region PRINT
+
+local p_time = "[%H:%M:%S] "
 
 -- print
 ---@param message any
-function util.print(message)
-    term.write(tostring(message))
-end
+function util.print(message) term.write(tostring(message)) end
 
 -- print line
 ---@param message any
-function util.println(message)
-    print(tostring(message))
-end
+function util.println(message) print(tostring(message)) end
 
 -- timestamped print
 ---@param message any
-function util.print_ts(message)
-    term.write(os.date("[%H:%M:%S] ") .. tostring(message))
-end
+function util.print_ts(message) term.write(os.date(p_time) .. tostring(message)) end
 
 -- timestamped print line
 ---@param message any
-function util.println_ts(message)
-    print(os.date("[%H:%M:%S] ") .. tostring(message))
-end
+function util.println_ts(message) print(os.date(p_time) .. tostring(message)) end
 
 --#endregion
 
--- STRING TOOLS --
---#region
+--#region STRING TOOLS
 
 -- get a value as a string
 ---@nodiscard
@@ -68,21 +67,18 @@ end
 ---@return string
 function util.strval(val)
     local t = type(val)
+    if t == "string" then return val end
     -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
     if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
-        return "[" .. tostring(val) .. "]"
-    else
-        return tostring(val)
-    end
+        return table.concat{"[", tostring(val), "]"}
+    else return tostring(val) end
 end
 
 -- repeat a space n times
 ---@nodiscard
 ---@param n integer
 ---@return string
-function util.spaces(n)
-    return string.rep(" ", n)
-end
+function util.spaces(n) return string.rep(" ", n) end
 
 -- pad text to a minimum width
 ---@nodiscard
@@ -94,7 +90,7 @@ function util.pad(str, n)
     local lpad = math.floor((n - len) / 2)
     local rpad = (n - len) - lpad
 
-    return util.spaces(lpad) .. str .. util.spaces(rpad)
+    return table.concat{util.spaces(lpad), str, util.spaces(rpad)}
 end
 
 -- wrap a string into a table of lines
@@ -112,11 +108,9 @@ function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 ---@return string
 ---@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
-    local str = ""
-
-    for _, v in ipairs(arg) do str = str .. util.strval(v) end
-
-    return str
+    local strings = {}
+    for i = 1, #arg do strings[i] = util.strval(arg[i]) end
+    return table.concat(strings)
 end
 
 -- alias
@@ -127,9 +121,7 @@ util.c = util.concat
 ---@param format string
 ---@vararg any
 ---@diagnostic disable-next-line: unused-vararg
-function util.sprintf(format, ...)
-    return string.format(format, table.unpack(arg))
-end
+function util.sprintf(format, ...) return string.format(format, table.unpack(arg)) end
 
 -- luacheck: unused args
 
@@ -144,7 +136,7 @@ function util.comma_format(num)
     local i = 1
 
     while i > 0 do
-        formatted, i = formatted:gsub("^(%s-%d+)(%d%d%d)", '%1,%2')
+        formatted, i = formatted:gsub("^(%s-%d+)(%d%d%d)", "%1,%2")
         if i > 0 then commas = commas + 1 end
     end
 
@@ -158,31 +150,24 @@ end
 
 --#endregion
 
--- MATH --
---#region
+--#region MATH
 
 -- is a value an integer
 ---@nodiscard
 ---@param x any value
----@return boolean is_integer if the number is an integer
-function util.is_int(x)
-    return type(x) == "number" and x == math.floor(x)
-end
+---@return boolean is_integer
+function util.is_int(x) return type(x) == "number" and x == math.floor(x) end
 
 -- get the sign of a number
 ---@nodiscard
 ---@param x number value
 ---@return integer sign (-1 for < 0, 1 otherwise)
-function util.sign(x)
-    return util.trinary(x < 0, -1, 1)
-end
+function util.sign(x) return util.trinary(x < 0, -1, 1) end
 
 -- round a number to an integer
 ---@nodiscard
 ---@return integer rounded
-function util.round(x)
-    return math.floor(x + 0.5)
-end
+function util.round(x) return math.floor(x + 0.5) end
 
 -- get a new moving average object
 ---@nodiscard
@@ -191,7 +176,7 @@ end
 function util.mov_avg(length, default)
     local data = {}
     local index = 1
-    local last_t = 0    ---@type number|nil
+    local last_t = 0 ---@type number|nil
 
     ---@class moving_average
     local public = {}
@@ -207,9 +192,7 @@ function util.mov_avg(length, default)
     ---@param x number new value
     ---@param t number? optional last update time to prevent duplicated entries
     function public.record(x, t)
-        if type(t) == "number" and last_t == t then
-            return
-        end
+        if type(t) == "number" and last_t == t then return end
 
         data[index] = x
         last_t = t
@@ -232,23 +215,21 @@ function util.mov_avg(length, default)
     return public
 end
 
--- TIME --
+--#endregion
+
+--#region TIME
 
 -- current time
 ---@nodiscard
 ---@return integer milliseconds
-function util.time_ms()
 ---@diagnostic disable-next-line: undefined-field
-    return os.epoch('local')
-end
+function util.time_ms() return os.epoch("local") end
 
 -- current time
 ---@nodiscard
 ---@return number seconds
-function util.time_s()
 ---@diagnostic disable-next-line: undefined-field
-    return os.epoch('local') / 1000.0
-end
+function util.time_s() return os.epoch("local") / 1000.0 end
 
 -- current time
 ---@nodiscard
@@ -257,17 +238,14 @@ function util.time() return util.time_ms() end
 
 --#endregion
 
--- OS --
---#region
+--#region OS
 
 -- OS pull event raw wrapper with types
 ---@nodiscard
 ---@param target_event? string event to wait for
 ---@return os_event event, any param1, any param2, any param3, any param4, any param5
-function util.pull_event(target_event)
 ---@diagnostic disable-next-line: undefined-field
-    return os.pullEventRaw(target_event)
-end
+function util.pull_event(target_event) return os.pullEventRaw(target_event) end
 
 -- OS queue event raw wrapper with types
 ---@param event os_event
@@ -285,30 +263,23 @@ end
 ---@nodiscard
 ---@param t number timer duration in seconds
 ---@return integer timer ID
-function util.start_timer(t)
 ---@diagnostic disable-next-line: undefined-field
-    return os.startTimer(t)
-end
+function util.start_timer(t) return os.startTimer(t) end
 
 -- cancel an OS timer
 ---@param timer integer timer ID
-function util.cancel_timer(timer)
 ---@diagnostic disable-next-line: undefined-field
-    os.cancelTimer(timer)
-end
+function util.cancel_timer(timer) os.cancelTimer(timer) end
 
 --#endregion
 
--- PARALLELIZATION --
---#region
+--#region PARALLELIZATION
 
 -- protected sleep call so we still are in charge of catching termination
 ---@param t integer seconds
 --- EVENT_CONSUMER: this function consumes events
-function util.psleep(t)
 ---@diagnostic disable-next-line: undefined-field
-    pcall(os.sleep, t)
-end
+function util.psleep(t) pcall(os.sleep, t) end
 
 -- no-op to provide a brief pause (1 tick) to yield<br>
 --- EVENT_CONSUMER: this function consumes events
@@ -330,8 +301,7 @@ end
 
 --#endregion
 
--- TABLE UTILITIES --
---#region
+--#region TABLE UTILITIES
 
 -- delete elements from a table if the passed function returns false when passed a table element<br>
 -- put briefly: deletes elements that return false, keeps elements that return true
@@ -371,8 +341,7 @@ end
 
 --#endregion
 
--- MEKANISM POWER --
---#region
+--#region MEKANISM POWER
 
 -- convert Joules to FE
 ---@nodiscard
@@ -401,8 +370,7 @@ local function ZFE(fe) return fe / 1000000000000000000000.0 end -- how & why did
 ---@param format? string format override
 ---@return string str, string? unit
 function util.power_format(fe, combine_label, format)
-    local unit
-    local value
+    local unit, value
 
     if type(format) ~= "string" then format = "%.2f" end
 
@@ -441,8 +409,7 @@ end
 
 --#endregion
 
--- UTILITY CLASSES --
---#region
+--#region UTILITY CLASSES
 
 -- WATCHDOG --
 
@@ -451,32 +418,25 @@ end
 ---@nodiscard
 ---@param timeout number timeout duration
 function util.new_watchdog(timeout)
-    local self = {
-        timeout = timeout,
-        wd_timer = util.start_timer(timeout)
-    }
+    local self = { timeout = timeout, wd_timer = util.start_timer(timeout) }
 
     ---@class watchdog
     local public = {}
 
     -- check if a timer is this watchdog
     ---@nodiscard
-    ---@param timer number timer event timer ID
+    ---@param timer number event timer ID
     function public.is_timer(timer) return self.wd_timer == timer end
 
     -- satiate the beast
     function public.feed()
-        if self.wd_timer ~= nil then
-            util.cancel_timer(self.wd_timer)
-        end
+        public.cancel()
         self.wd_timer = util.start_timer(self.timeout)
     end
 
     -- cancel the watchdog
     function public.cancel()
-        if self.wd_timer ~= nil then
-            util.cancel_timer(self.wd_timer)
-        end
+        if self.wd_timer ~= nil then util.cancel_timer(self.wd_timer) end
     end
 
     return public
@@ -489,10 +449,7 @@ end
 ---@nodiscard
 ---@param period number clock period
 function util.new_clock(period)
-    local self = {
-        period = period,
-        timer = nil
-    }
+    local self = { period = period, timer = nil }
 
     ---@class clock
     local public = {}
@@ -533,7 +490,7 @@ function util.new_validator()
     function public.assert_range(check, min, max) valid = valid and check >= min and check <= max end
     function public.assert_range_ex(check, min, max) valid = valid and check > min and check < max end
 
-    function public.assert_channel(channel) valid = valid and type(channel) == "number" and channel >= 0 and channel <= 65535 end
+    function public.assert_channel(channel) valid = valid and util.is_int(channel) and channel >= 0 and channel <= 65535 end
 
     -- check if all assertions passed successfully
     ---@nodiscard

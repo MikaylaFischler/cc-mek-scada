@@ -75,7 +75,7 @@ function logic.update_annunciator(self)
                     (next(self.plc_i.get_status()) ~= nil) and (next(self.plc_i.get_struct()) ~= nil)
 
         -- update auto control limit
-        if (self.db.control.lim_br100 == 0) or ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
+        if (plc_db.mek_struct.max_burn > 0) and ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
             self.db.control.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
         end
 

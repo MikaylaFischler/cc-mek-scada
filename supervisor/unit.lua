@@ -498,7 +498,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             self.plc_s = nil
             self.plc_i = nil
             self.db.control.br100 = 0
-            self.db.control.lim_br100 = 0
         end
 
         -- unlink RTU unit sessions if they are closed
@@ -525,12 +524,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             end
         end
 
-        -- check plc formed/faulted
+        -- plc instance checks
         if self.plc_i ~= nil then
+            -- check if degraded
             local rps = self.plc_i.get_rps()
-            if rps.fault or rps.sys_fail then
-                self.db.control.degraded = true
-            end
+            if rps.fault or rps.sys_fail then self.db.control.degraded = true end
+
+            -- re-engage auto lock if it reconnected without it
+            if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
         end
 
         -- update deltas
