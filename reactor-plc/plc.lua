@@ -63,6 +63,11 @@ function plc.load_config()
         cfv.assert_type_num(config.TrustedRange)
         cfv.assert_min(config.TrustedRange, 0)
         cfv.assert_type_str(config.AuthKey)
+
+        if type(config.AuthKey) == "string" then
+            local len = string.len(config.AuthKey)
+            cfv.assert_eq(len == 0 or len >= 8, true)
+        end
     end
 
     cfv.assert_type_int(config.LogMode)

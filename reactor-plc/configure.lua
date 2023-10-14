@@ -30,6 +30,11 @@ local LEFT = core.ALIGN.LEFT
 local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
+-- changes to the config data/format to let the user know
+local changes = {
+    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } }
+}
+
 ---@class plc_configurator
 local configurator = {}
 
@@ -37,7 +42,6 @@ local style = {}
 
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
-style.label = cpair(colors.gray, colors.lightGray)
 
 style.colors = {
     { c = colors.red,       hex = 0xdf4949 },
@@ -54,6 +58,11 @@ style.colors = {
     { c = colors.lightGray, hex = 0xcacaca },
     { c = colors.gray,      hex = 0x575757 }
 }
+
+local bw_fg_bg = cpair(colors.black, colors.white)
+local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
+local nav_fg_bg = bw_fg_bg
+local btn_act_fg_bg = cpair(colors.white, colors.gray)
 
 local tool_ctl = {
     ask_config = false,
@@ -173,8 +182,6 @@ end
 -- create the config view
 ---@param display graphics_element
 local function config_view(display)
-    local nav_fg_bg = cpair(colors.black,colors.white)
-    local btn_act_fg_bg = cpair(colors.white,colors.gray)
 
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
@@ -188,8 +195,9 @@ local function config_view(display)
     local net_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
+    local changelog = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,summary}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,summary,changelog}}
 
     -- MAIN PAGE
 
@@ -198,8 +206,8 @@ local function config_view(display)
     TextBox{parent=main_page,x=2,y=2,height=2,text_align=CENTER,text="Welcome to the Reactor PLC configurator! Please select one of the following options."}
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=2,text_align=CENTER,text="Notice: This device has no valid config. The configurator has been automatically started.",fg_bg=cpair(colors.red,colors.lightGray)}
-        y_start = y_start + 3
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text_align=CENTER,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        y_start = y_start + 5
     end
 
     local function view_config()
@@ -220,6 +228,7 @@ local function config_view(display)
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- PLC CONFIG
 
@@ -233,7 +242,7 @@ local function config_view(display)
     TextBox{parent=plc_cfg,x=1,y=2,height=1,text_align=CENTER,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
     TextBox{parent=plc_c_1,x=1,y=1,height=1,text_align=CENTER,text="Would you like to set this PLC as networked?"}
-    TextBox{parent=plc_c_1,x=1,y=3,height=4,text_align=CENTER,text="If you have a supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=plc_c_1,x=1,y=3,height=4,text_align=CENTER,text="If you have a supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=g_lg_fg_bg}
 
     local networked = CheckBox{parent=plc_c_1,x=1,y=8,label="Networked",default=ini_cfg.Networked,box_fg_bg=cpair(colors.orange,colors.black)}
 
@@ -246,10 +255,10 @@ local function config_view(display)
     PushButton{parent=plc_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_networked,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=plc_c_2,x=1,y=1,height=1,text_align=CENTER,text="Please enter the reactor unit ID for this PLC."}
-    TextBox{parent=plc_c_2,x=1,y=3,height=3,text_align=CENTER,text="If this is a networked PLC, currently only IDs 1 through 4 are acceptable.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=plc_c_2,x=1,y=3,height=3,text_align=CENTER,text="If this is a networked PLC, currently only IDs 1 through 4 are acceptable.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=plc_c_2,x=1,y=6,height=1,text_align=CENTER,text="Unit #"}
-    local u_id = NumberField{parent=plc_c_2,x=7,y=6,width=5,max_digits=3,default=ini_cfg.UnitID,min=1,fg_bg=cpair(colors.black,colors.white)}
+    local u_id = NumberField{parent=plc_c_2,x=7,y=6,width=5,max_digits=3,default=ini_cfg.UnitID,min=1,fg_bg=bw_fg_bg}
 
     local u_id_err = TextBox{parent=plc_c_2,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please set a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -266,7 +275,7 @@ local function config_view(display)
     PushButton{parent=plc_c_2,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_id,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=plc_c_3,x=1,y=1,height=4,text_align=CENTER,text="When networked, the supervisor takes care of emergency coolant via RTUs. However, you can configure independent emergency coolant via the PLC. "}
-    TextBox{parent=plc_c_3,x=1,y=6,height=5,text_align=CENTER,text="This independent control can be used with or without a supervisor. To configure, you would next select the interface of the redstone output connected to one or more mekanism pipes.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=plc_c_3,x=1,y=6,height=5,text_align=CENTER,text="This independent control can be used with or without a supervisor. To configure, you would next select the interface of the redstone output connected to one or more mekanism pipes.",fg_bg=g_lg_fg_bg}
 
     local en_em_cool = CheckBox{parent=plc_c_3,x=1,y=11,label="Enable PLC Emergency Coolant Control",default=ini_cfg.EmerCoolEnable,box_fg_bg=cpair(colors.orange,colors.black)}
 
@@ -287,7 +296,7 @@ local function config_view(display)
 
     TextBox{parent=plc_c_4,x=1,y=5,height=1,text_align=CENTER,text="Bundled Redstone Configuration"}
     local bundled = CheckBox{parent=plc_c_4,x=1,y=6,label="Is Bundled?",default=ini_cfg.EmerCoolColor~=nil,box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)tool_ctl.bundled_emcool(v)end}
-    local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,default=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=cpair(colors.gray,colors.lightGray)}
+    local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,default=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     if ini_cfg.EmerCoolColor == nil then color.disable() end
 
     local function submit_emcool()
@@ -310,14 +319,14 @@ local function config_view(display)
     TextBox{parent=net_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
     TextBox{parent=net_c_1,x=1,y=1,height=1,text_align=CENTER,text="Please set the network channels below."}
-    TextBox{parent=net_c_1,x=1,y=3,height=4,text_align=CENTER,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=net_c_1,x=1,y=3,height=4,text_align=CENTER,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_1,x=1,y=8,height=1,text_align=CENTER,text="Supervisor Channel"}
-    local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=cpair(colors.black,colors.white)}
-    TextBox{parent=net_c_1,x=9,y=9,height=4,text_align=CENTER,text="[SVR_CHANNEL]",fg_bg=cpair(colors.gray,colors.lightGray)}
+    local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=9,y=9,height=4,text_align=CENTER,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_1,x=1,y=11,height=1,text_align=CENTER,text="PLC Channel"}
-    local plc_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=cpair(colors.black,colors.white)}
-    TextBox{parent=net_c_1,x=9,y=12,height=4,text_align=CENTER,text="[PLC_CHANNEL]",fg_bg=cpair(colors.gray,colors.lightGray)}
+    local plc_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=9,y=12,height=4,text_align=CENTER,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
 
     local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -342,13 +351,13 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text_align=CENTER,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=cpair(colors.black,colors.white)}
-    TextBox{parent=net_c_2,x=9,y=2,height=2,text_align=CENTER,text="seconds (default 5)",fg_bg=cpair(colors.gray,colors.lightGray)}
-    TextBox{parent=net_c_2,x=1,y=3,height=4,text_align=CENTER,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_2,x=9,y=2,height=2,text_align=CENTER,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=3,height=4,text_align=CENTER,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=8,height=1,text_align=CENTER,text="Trusted Range"}
-    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=cpair(colors.black,colors.white)}
-    TextBox{parent=net_c_2,x=1,y=10,height=4,text_align=CENTER,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=10,height=4,text_align=CENTER,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
     local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -373,10 +382,10 @@ local function config_view(display)
     PushButton{parent=net_c_2,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_3,x=1,y=1,height=2,text_align=CENTER,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_3,x=1,y=4,height=6,text_align=CENTER,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=net_c_3,x=1,y=4,height=6,text_align=CENTER,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_3,x=1,y=11,height=1,text_align=CENTER,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=cpair(colors.black,colors.white)}
+    local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
 
@@ -385,9 +394,15 @@ local function config_view(display)
     hide_key.set_value(true)
     censor_key(true)
 
+    local key_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
     local function submit_auth()
-        tmp_cfg.AuthKey = key.get_value()
-        main_pane.set_value(4)
+        local v = key.get_value()
+        if string.len(v) == 0 or string.len(v) >= 8 then
+            tmp_cfg.AuthKey = key.get_value()
+            main_pane.set_value(4)
+            key_err.hide(true)
+        else key_err.show() end
     end
 
     PushButton{parent=net_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -405,10 +420,10 @@ local function config_view(display)
     local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
     TextBox{parent=log_c_1,x=1,y=7,height=1,text_align=CENTER,text="Log File Path"}
-    local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=cpair(colors.black,colors.white)}
+    local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
     local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
-    TextBox{parent=log_c_1,x=3,y=11,height=2,text_align=CENTER,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    TextBox{parent=log_c_1,x=3,y=11,height=2,text_align=CENTER,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
     local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -444,7 +459,7 @@ local function config_view(display)
 
     TextBox{parent=summary,x=1,y=2,height=1,text_align=CENTER,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
-    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=cpair(colors.black,colors.white),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_settings()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
@@ -526,6 +541,25 @@ local function config_view(display)
     PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
+    -- CONFIG CHANGE LOG
+
+    local cl = Div{parent=changelog,x=2,y=4,width=49}
+
+    TextBox{parent=changelog,x=1,y=2,height=1,text_align=CENTER,text=" Config Change Log",fg_bg=bw_fg_bg}
+
+    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    for _, change in ipairs(changes) do
+        TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
+        for _, v in ipairs(change[2]) do
+            local e = Div{parent=c_log,height=#util.strwrap(v,46)}
+            TextBox{parent=e,y=1,x=1,text="- ",height=1,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
+        end
+    end
+
+    PushButton{parent=cl,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
     -- set tool functions now that we have the elements
 
     function tool_ctl.set_networked(enable)
@@ -596,7 +630,7 @@ local function config_view(display)
             if f[1] == "EmerCoolColor" and raw ~= nil then val = color_name_map[raw] end
             if val == "nil" then val = "n/a" end
 
-            local c = util.trinary(alternate, cpair(colors.gray,colors.lightGray), cpair(colors.gray,colors.white))
+            local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
 
             if string.len(val) > val_max_w then
