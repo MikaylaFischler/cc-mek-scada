@@ -217,10 +217,10 @@ function element.new(args, child_offset_x, child_offset_y)
         end
 
         -- check frame
-        element.assert(f.x >= 1, "frame x not >= 1", 2)
-        element.assert(f.y >= 1, "frame y not >= 1", 2)
-        element.assert(f.w >= 1, "frame width not >= 1", 2)
-        element.assert(f.h >= 1, "frame height not >= 1", 2)
+        element.assert(f.x >= 1, "frame x not >= 1", 3)
+        element.assert(f.y >= 1, "frame y not >= 1", 3)
+        element.assert(f.w >= 1, "frame width not >= 1", 3)
+        element.assert(f.h >= 1, "frame height not >= 1", 3)
 
         -- create window
         protected.window = window.create(self.p_window, f.x, f.y, f.w, f.h, args.hidden ~= true)
