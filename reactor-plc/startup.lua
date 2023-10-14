@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.6.0"
+local R_PLC_VERSION = "v1.6.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -69,7 +69,7 @@ local function main()
     ppm.mount_all()
 
     -- message authentication init
-    if string.len(config.AuthKey) > 0 then
+    if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
         network.init_mac(config.AuthKey)
     end
 
