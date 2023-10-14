@@ -18,7 +18,7 @@ local type = type
 local util = {}
 
 -- scada-common version
-util.version = "1.1.3"
+util.version = "1.1.4"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -66,8 +66,9 @@ function util.println_ts(message) print(os.date(p_time) .. tostring(message)) en
 ---@param val any
 ---@return string
 function util.strval(val)
+    if type(val) == "string" then return val end
     -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
-    if (util.is_tbl(val) and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or util.is_func(val) then
+    if (type(val) == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or type(val) == "function" then
         return table.concat{"[", tostring(val), "]"}
     else return tostring(val) end
 end
@@ -123,9 +124,6 @@ function util.sprintf(format, ...) return string.format(format, table.unpack(arg
 
 -- luacheck: unused args
 
-local gsub_p_a, gsub_r_a = "^(%s-%d+)(%d%d%d)", "%1,%2"
-local gsub_p_b, gsub_r_b = " %s-", ""
-
 -- format a number string with commas as the thousands separator<br>
 -- subtracts from spaces at the start if present for each comma used
 ---@nodiscard
@@ -137,11 +135,11 @@ function util.comma_format(num)
     local i = 1
 
     while i > 0 do
-        formatted, i = formatted:gsub(gsub_p_a, gsub_r_a)
+        formatted, i = formatted:gsub("^(%s-%d+)(%d%d%d)", "%1,%2")
         if i > 0 then commas = commas + 1 end
     end
 
-    local _, num_spaces = formatted:gsub(gsub_p_b, gsub_r_b)
+    local _, num_spaces = formatted:gsub(" %s-", "")
     local remove = math.min(num_spaces, commas)
 
     formatted = string.sub(formatted, remove + 1)
@@ -152,6 +150,12 @@ end
 --#endregion
 
 --#region MATH
+
+-- is a value an integer
+---@nodiscard
+---@param x any value
+---@return boolean is_integer
+function util.is_int(x) return type(x) == "number" and x == math.floor(x) end
 
 -- get the sign of a number
 ---@nodiscard
@@ -187,7 +191,7 @@ function util.mov_avg(length, default)
     ---@param x number new value
     ---@param t number? optional last update time to prevent duplicated entries
     function public.record(x, t)
-        if util.is_num(t) and last_t == t then return end
+        if type(t) == "number" and last_t == t then return end
 
         data[index] = x
         last_t = t
@@ -212,64 +216,19 @@ end
 
 --#endregion
 
---#region TYPES
-
--- for speed
-local b_str, n_str, s_str, t_str, f_str = "boolean", "number", "string", "table", "function"
-
--- is a value a boolean
----@nodiscard
----@param x any value
----@return boolean is_boolean
-function util.is_bool(x) return type(x) == b_str end
-
--- is a value a number
----@nodiscard
----@param x any value
----@return boolean is_number
-function util.is_num(x) return type(x) == n_str end
-
--- is a value an integer
----@nodiscard
----@param x any value
----@return boolean is_integer
-function util.is_int(x) return type(x) == n_str and x == math.floor(x) end
-
--- is a value a string
----@nodiscard
----@param x any value
----@return boolean is_string
-function util.is_str(x) return type(x) == s_str end
-
--- is a value a table
----@nodiscard
----@param x any value
----@return boolean is_table
-function util.is_tbl(x) return type(x) == t_str end
-
--- is a value a function
----@nodiscard
----@param x any value
----@return boolean is_function
-function util.is_func(x) return type(x) == f_str end
-
---#endregion
-
 --#region TIME
-
-local t_l = "local"
 
 -- current time
 ---@nodiscard
 ---@return integer milliseconds
 ---@diagnostic disable-next-line: undefined-field
-function util.time_ms() return os.epoch(t_l) end
+function util.time_ms() return os.epoch("local") end
 
 -- current time
 ---@nodiscard
 ---@return number seconds
 ---@diagnostic disable-next-line: undefined-field
-function util.time_s() return os.epoch(t_l) / 1000.0 end
+function util.time_s() return os.epoch("local") / 1000.0 end
 
 -- current time
 ---@nodiscard
@@ -516,11 +475,11 @@ function util.new_validator()
     ---@class validator
     local public = {}
 
-    function public.assert_type_bool(value) valid = valid and util.is_bool(value) end
-    function public.assert_type_num(value) valid = valid and util.is_num(value) end
+    function public.assert_type_bool(value) valid = valid and type(value) == "boolean" end
+    function public.assert_type_num(value) valid = valid and type(value) == "number" end
     function public.assert_type_int(value) valid = valid and util.is_int(value) end
-    function public.assert_type_str(value) valid = valid and util.is_str(value) end
-    function public.assert_type_table(value) valid = valid and util.is_tbl(value) end
+    function public.assert_type_str(value) valid = valid and type(value) == "string" end
+    function public.assert_type_table(value) valid = valid and type(value) == "table" end
 
     function public.assert_eq(check, expect) valid = valid and check == expect end
     function public.assert_min(check, min) valid = valid and check >= min end
