@@ -66,9 +66,10 @@ function util.println_ts(message) print(os.date(p_time) .. tostring(message)) en
 ---@param val any
 ---@return string
 function util.strval(val)
-    if type(val) == "string" then return val end
+    local t = type(val)
+    if t == "string" then return val end
     -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
-    if (type(val) == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or type(val) == "function" then
+    if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
         return table.concat{"[", tostring(val), "]"}
     else return tostring(val) end
 end
