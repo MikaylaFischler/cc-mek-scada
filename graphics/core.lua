@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.0.0"
+core.version = "2.0.1"
 
 core.flasher = flasher
 core.events = events
@@ -115,7 +115,7 @@ end
 
 -- extract the custom element assert message, dropping the path to the element file
 function core.extract_assert_msg(msg)
-    return string.sub(msg, (string.find(msg, "@") + 1) or 1)
+    return string.sub(msg, (string.find(msg, "@") or 0) + 1)
 end
 
 -- Interactive Field Manager
