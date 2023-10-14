@@ -590,7 +590,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         end
     end
 
-    -- check if the auto lock is active
+    -- check if the manual lockout for automatic control is active
     function public.is_auto_locked() return self.auto_lock end
 
     -- set the burn rate on behalf of automatic control
