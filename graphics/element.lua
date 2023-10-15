@@ -666,7 +666,7 @@ function element.new(args, child_offset_x, child_offset_y)
     -- unfocus this element and all its children
     function public.unfocus_all()
         public.unfocus()
-        for _, child in pairs(protected.children) do child.get().unfocus() end
+        for _, child in pairs(protected.children) do child.get().unfocus_all() end
     end
 
     -- custom recolor command, varies by element if implemented
