@@ -158,6 +158,9 @@ local function listbox(args)
         scroll_frame.reposition(1, 1 + scroll_offset)
         scroll_frame.setVisible(true)
 
+        -- shift mouse events
+        e.mouse_window_shift.y = scroll_offset
+
         draw_bar()
     end
 
@@ -219,6 +222,28 @@ local function listbox(args)
         end
     end
 
+    -- handle a child in the list being focused, make sure it is visible
+    function e.on_child_focused(child)
+        for i = 1, #list do
+            local item = list[i]    ---@type listbox_item
+            if item.e == child then
+                if (item.y + scroll_offset) <= 0 then
+                    scroll_offset = 1 - item.y
+                    update_positions()
+                    draw_bar()
+                elseif (item.y + scroll_offset) == 1 then
+                    -- do nothing, it's right at the top (if the bottom doesn't fit we can't easily fix that)
+                elseif ((item.h + item.y - 1) + scroll_offset) > e.frame.h then
+                    scroll_offset = 1 - ((item.h + item.y) - e.frame.h)
+                    update_positions()
+                    draw_bar()
+                end
+
+                return
+            end
+        end
+    end
+
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
@@ -226,23 +251,27 @@ local function listbox(args)
             if event.type == MOUSE_CLICK.TAP then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
-                        draw_arrows(1)
                         scroll_up()
-                        if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        if event.current.y == 1 then
+                            draw_arrows(1)
+                            if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        end
                     elseif event.current.y == e.frame.h or event.current.y > bar_bounds[2] then
-                        draw_arrows(-1)
                         scroll_down()
-                        if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        if event.current.y == e.frame.h then
+                            draw_arrows(-1)
+                            if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        end
                     end
                 end
             elseif event.type == MOUSE_CLICK.DOWN then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
-                        draw_arrows(1)
                         scroll_up()
+                        if event.current.y == 1 then draw_arrows(1) end
                     elseif event.current.y == e.frame.h or event.current.y > bar_bounds[2] then
-                        draw_arrows(-1)
                         scroll_down()
+                        if event.current.y == e.frame.h then draw_arrows(-1) end
                     else
                         -- clicked on bar
                         holding_bar = true
