@@ -27,12 +27,56 @@ local println = util.println
 
 local cpair = core.cpair
 
+local IO = rsio.IO
+
 local LEFT = core.ALIGN.LEFT
 local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
+-- rsio port descriptions
+local PORT_DESC = {
+    "Facility SCRAM",
+    "Facility Acknowledge",
+    "Reactor SCRAM",
+    "Reactor RPS Reset",
+    "Reactor Enable",
+    "Unit Acknowledge",
+    "Facility Alarm (high prio)",
+    "Facility Alarm (any)",
+    "Waste Plutonium Valve",
+    "Waste Polonium Valve",
+    "Waste Po Pellets Valve",
+    "Waste Antimatter Valve",
+    "Reactor Active",
+    "Reactor in Auto Control",
+    "RPS Tripped",
+    "RPS Auto SCRAM",
+    "RPS High Damage",
+    "RPS High Temperature",
+    "RPS Low Coolant",
+    "RPS Excess Heated Coolant",
+    "RPS Excess Waste",
+    "RPS Insufficient Fuel",
+    "RPS PLC Fault",
+    "RPS Supervisor Timeout",
+    "Unit Alarm",
+    "Unit Emergency Cool. Valve"
+}
+
+-- designation (0 = facility, 1 = unit)
+local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+
+assert(#PORT_DESC == rsio.NUM_PORTS)
+assert(#PORT_DSGN == rsio.NUM_PORTS)
+
 -- changes to the config data/format to let the user know
 local changes = {}
+
+---@class rtu_rs_definition
+---@field unit integer|nil
+---@field port IO_PORT
+---@field side side
+---@field color color|nil
 
 ---@class rtu_configurator
 local configurator = {}
@@ -68,20 +112,29 @@ local tool_ctl = {
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
+    rs_cfg_editing = false, ---@type integer|false
 
     view_gw_cfg = nil,      ---@type graphics_element
     dev_cfg = nil,          ---@type graphics_element
     rs_cfg = nil,           ---@type graphics_element
     settings_apply = nil,   ---@type graphics_element
 
+    go_home = nil,          ---@type function
     gen_summary = nil,      ---@type function
     show_current_cfg = nil, ---@type function
     load_legacy = nil,      ---@type function
+    gen_rs_summary = nil,   ---@type function
 
     show_auth_key = nil,    ---@type function
     show_key_btn = nil,     ---@type graphics_element
     auth_key_textbox = nil, ---@type graphics_element
-    auth_key_value = ""
+    auth_key_value = "",
+
+    rs_cfg_selection = nil, ---@type graphics_element
+    rs_cfg_unit_l = nil,    ---@type graphics_element
+    rs_cfg_unit = nil,      ---@type graphics_element
+    rs_cfg_color = nil,     ---@type graphics_element
+    rs_cfg_shortcut = nil   ---@type graphics_element
 }
 
 ---@class rtu_config
@@ -154,6 +207,15 @@ local function color_to_idx(color)
     end
 end
 
+-- deep copy a redstone definitions table
+local function deep_copy_rs(data)
+    local array = {}
+    for _, d in ipairs(data) do
+        table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color })
+    end
+    return array
+end
+
 -- load data from the settings file
 ---@param target rtu_config
 local function load_settings(target)
@@ -215,10 +277,15 @@ local function config_view(display)
         y_start = y_start + 2
     end
 
+    local function show_rs_conns()
+        tool_ctl.gen_rs_summary(ini_cfg)
+        main_pane.set_value(8)
+    end
+
     PushButton{parent=main_page,x=2,y=y_start,min_width=19,text="Configure Gateway",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_gw_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=28,text="View Gateway Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.dev_cfg = PushButton{parent=main_page,x=2,y=y_start+4,min_width=18,text="RTU Unit Devices",callback=function()main_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-    tool_ctl.rs_cfg = PushButton{parent=main_page,x=2,y=y_start+6,min_width=22,text="Redstone Connections",callback=function()main_pane.set_value(8)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.rs_cfg = PushButton{parent=main_page,x=2,y=y_start+6,min_width=22,text="Redstone Connections",callback=show_rs_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     if not tool_ctl.has_config then
         tool_ctl.view_gw_cfg.disable()
@@ -459,13 +526,7 @@ local function config_view(display)
 
     TextBox{parent=sum_c_2,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
 
-    local function go_home()
-        main_pane.set_value(1)
-        net_pane.set_value(1)
-        sum_pane.set_value(1)
-    end
-
-    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
     TextBox{parent=sum_c_3,x=1,y=1,height=2,text_align=CENTER,text="The old config.lua file will now be deleted, then the configurator will exit."}
@@ -475,12 +536,12 @@ local function config_view(display)
         exit()
     end
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=8,text="Cancel",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,x=1,y=14,min_width=8,text="Cancel",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
     TextBox{parent=sum_c_4,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
 
-    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
     --#endregion
@@ -506,6 +567,179 @@ local function config_view(display)
 
     --#endregion
 
+    --#region REDSTONE
+
+    local rs_c_1 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_2 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_3 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_4 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_5 = Div{parent=rs_cfg,x=2,y=4,width=49}
+
+    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5}}
+
+    TextBox{parent=rs_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
+
+    TextBox{parent=rs_c_1,x=1,y=1,height=1,text=" port          side/color       unit/facility",fg_bg=g_lg_fg_bg}
+    local rs_list = ListBox{parent=rs_c_1,x=1,y=2,height=11,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local function rs_revert()
+        tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
+        tool_ctl.gen_rs_summary(tmp_cfg)
+    end
+
+    local function rs_apply()
+        settings.set("Redstone", tmp_cfg.Redstone)
+
+        if settings.save("rtu.settings") then
+            load_settings(ini_cfg)
+            rs_pane.set_value(4)
+        else
+            rs_pane.set_value(5)
+        end
+    end
+
+    PushButton{parent=rs_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=rs_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_2,x=1,y=1,height=1,text="Select one of the below ports to use."}
+
+    local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local new_rs_port = IO.F_SCRAM
+    local function new_rs(port)
+        tool_ctl.rs_cfg_editing = false
+
+        local text
+
+        if port == -1 then
+            tool_ctl.rs_cfg_color.hide(true)
+            tool_ctl.rs_cfg_shortcut.show()
+            text = "You selected the ALL_WASTE shortcut."
+        else
+            tool_ctl.rs_cfg_shortcut.hide(true)
+            tool_ctl.rs_cfg_color.show()
+            text = "You selected " .. rsio.to_string(port) .. " (for "
+            if PORT_DSGN[port] == 1 then
+                text = text .. "a unit)."
+                tool_ctl.rs_cfg_unit_l.show()
+                tool_ctl.rs_cfg_unit.show()
+            else
+                tool_ctl.rs_cfg_unit_l.hide(true)
+                tool_ctl.rs_cfg_unit.hide(true)
+                text = text .. "the facility)."
+            end
+        end
+
+        tool_ctl.rs_cfg_selection.set_value(text)
+        new_rs_port = port
+        rs_pane.set_value(3)
+    end
+
+    -- add entries to redstone option list
+    local all_w_macro = Div{parent=rs_ports,height=1}
+    PushButton{parent=all_w_macro,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    TextBox{parent=all_w_macro,x=16,y=1,width=5,height=1,text="[n/a]",fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=all_w_macro,x=22,y=1,height=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
+    for i = 1, rsio.NUM_PORTS do
+        local name = rsio.to_string(i)
+        local io_dir = util.trinary(rsio.get_io_mode(i) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local btn_color = util.trinary(rsio.get_io_mode(i) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
+        local entry = Div{parent=rs_ports,height=1}
+        PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(i)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
+        TextBox{parent=entry,x=16,y=1,width=5,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+        TextBox{parent=entry,x=22,y=1,height=1,text=PORT_DESC[i],fg_bg=cpair(colors.gray,colors.white)}
+    end
+
+    PushButton{parent=rs_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text_align=CENTER,text=""}
+
+    tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text_align=CENTER,text="Unit ID"}
+    tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_digits=2,min=1,max=4,fg_bg=bw_fg_bg}
+
+    TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text_align=CENTER,text="Output Side"}
+    local side = Radio2D{parent=rs_c_3,x=1,y=4,rows=2,columns=3,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
+
+    local function set_bundled(bundled)
+        if bundled then tool_ctl.rs_cfg_color.enable() else tool_ctl.rs_cfg_color.disable() end
+    end
+
+    tool_ctl.rs_cfg_shortcut = TextBox{parent=rs_c_3,x=1,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
+    tool_ctl.rs_cfg_shortcut.hide(true)
+
+    local bundled = CheckBox{parent=rs_c_3,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled}
+    tool_ctl.rs_cfg_color = Radio2D{parent=rs_c_3,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    tool_ctl.rs_cfg_color.disable()
+
+    local rs_err = TextBox{parent=rs_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Unit ID must be within 1 through 4.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    rs_err.hide(true)
+
+    local function back_from_rs_opts()
+        rs_err.hide(true)
+        if tool_ctl.rs_cfg_editing ~= false then rs_pane.set_value(1) else rs_pane.set_value(2) end
+    end
+
+    local function save_rs_entry()
+        local u = tonumber(tool_ctl.rs_cfg_unit.get_value())
+
+        if PORT_DSGN[new_rs_port] == 0 or (util.is_int(u) and u > 0 and u < 5) then
+            rs_err.hide(true)
+
+            if new_rs_port >= 0 then
+                ---@type rtu_rs_definition
+                local def = {
+                    unit = util.trinary(PORT_DSGN[new_rs_port] == 1, u, nil),
+                    port = new_rs_port,
+                    side = side_options_map[side.get_value()],
+                    color = util.trinary(bundled.get_value(), color_options_map[tool_ctl.rs_cfg_color.get_value()], nil)
+                }
+
+                if tool_ctl.rs_cfg_editing == false then
+                    table.insert(tmp_cfg.Redstone, def)
+                else
+                    def.port = tmp_cfg.Redstone[tool_ctl.rs_cfg_editing].port
+                    tmp_cfg.Redstone[tool_ctl.rs_cfg_editing] = def
+                end
+            elseif new_rs_port == -1 then
+                local default_sides = { "left", "back", "right", "front" }
+                local default_colors = { colors.red, colors.orange, colors.yellow, colors.lime }
+                for i = 0, 3 do
+                    table.insert(tmp_cfg.Redstone, {
+                        unit = util.trinary(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
+                        port = IO.WASTE_PU + i,
+                        side = util.trinary(bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
+                        color = util.trinary(bundled.get_value(), default_colors[i + 1], nil)
+                    })
+                end
+            end
+
+            rs_pane.set_value(1)
+            tool_ctl.gen_rs_summary(tmp_cfg)
+
+            side.set_value(1)
+            bundled.set_value(false)
+            tool_ctl.rs_cfg_color.set_value(1)
+            tool_ctl.rs_cfg_color.disable()
+        else
+            rs_err.show()
+        end
+    end
+
+    PushButton{parent=rs_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,x=44,y=14,min_width=6,text="Save",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_4,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    PushButton{parent=rs_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_5,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=rs_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
     -- set tool functions now that we have the elements
 
     -- load a legacy config file
@@ -526,6 +760,14 @@ local function config_view(display)
         sum_pane.set_value(1)
         main_pane.set_value(5)
         tool_ctl.importing_legacy = true
+    end
+
+    -- go back to the home page
+    function tool_ctl.go_home()
+        main_pane.set_value(1)
+        net_pane.set_value(1)
+        sum_pane.set_value(1)
+        rs_pane.set_value(1)
     end
 
     -- expose the auth key on the summary page
@@ -578,6 +820,70 @@ local function config_view(display)
             if f[1] == "AuthKey" then tool_ctl.auth_key_textbox = textbox end
         end
     end
+
+    local function edit_rs_entry(idx)
+        local def = tmp_cfg.Redstone[idx]   ---@type rtu_rs_definition
+
+        tool_ctl.rs_cfg_editing = idx
+
+        local text = "Editing " .. rsio.to_string(def.port) .. " (for "
+        if PORT_DSGN[def.port] == 1 then
+            text = text .. "a unit)."
+            tool_ctl.rs_cfg_unit_l.show()
+            tool_ctl.rs_cfg_unit.show()
+            tool_ctl.rs_cfg_unit.set_value(def.unit or 1)
+        else
+            tool_ctl.rs_cfg_unit_l.hide(true)
+            tool_ctl.rs_cfg_unit.hide(true)
+            text = text .. "the facility)."
+        end
+
+        local value = 1
+        if def.color ~= nil then
+            value = color_to_idx(def.color)
+            tool_ctl.rs_cfg_color.enable()
+        else
+            tool_ctl.rs_cfg_color.disable()
+        end
+
+        tool_ctl.rs_cfg_selection.set_value(text)
+        side.set_value(side_to_idx(def.side))
+        bundled.set_value(def.color ~= nil)
+        tool_ctl.rs_cfg_color.set_value(value)
+        rs_pane.set_value(3)
+    end
+
+    local function delete_rs_entry(idx)
+        table.remove(tmp_cfg.Redstone, idx)
+        tool_ctl.gen_rs_summary(tmp_cfg)
+    end
+
+    -- generate the redstone summary list
+    ---@param cfg rtu_config
+    function tool_ctl.gen_rs_summary(cfg)
+        rs_list.remove_all()
+
+        for i = 1, #cfg.Redstone do
+            local def = cfg.Redstone[i]   ---@type rtu_rs_definition
+
+            local name = rsio.to_string(def.port)
+            local io_dir = util.trinary(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+            local conn = def.side
+            local unit = util.strval(def.unit or "F")
+
+            if def.color ~= nil then
+                conn = def.side .. "/" .. color_name_map[def.color]
+            end
+
+            local entry = Div{parent=rs_list,height=1}
+            TextBox{parent=entry,x=1,y=1,width=1,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+            TextBox{parent=entry,x=2,y=1,width=14,height=1,text=name}
+            TextBox{parent=entry,x=16,y=1,width=string.len(conn),height=1,text=conn,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=entry,x=33,y=1,width=1,height=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
+            PushButton{parent=entry,x=35,y=1,min_width=6,height=1,text="EDIT",callback=function()edit_rs_entry(i)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+            PushButton{parent=entry,x=41,y=1,min_width=8,height=1,text="DELETE",callback=function()delete_rs_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+        end
+    end
 end
 
 -- reset terminal screen
@@ -595,6 +901,8 @@ function configurator.configure(ask_config)
     tool_ctl.has_config = settings.load("/rtu.settings")
 
     load_settings(ini_cfg)
+
+    tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
 
     reset_term()
 
