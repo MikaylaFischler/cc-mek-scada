@@ -301,7 +301,7 @@ local function config_view(display)
 
     local function submit_emcool()
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
-        tmp_cfg.EmerCoolColor = color_options_map[color.get_value()]
+        tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
         next_from_plc()
     end
 
