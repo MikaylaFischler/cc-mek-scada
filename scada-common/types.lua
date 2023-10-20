@@ -252,6 +252,14 @@ types.ALARM_STATE_NAMES = {
 -- STRING TYPES --
 --#region
 
+---@alias side
+---|"top"
+---|"bottom"
+---|"left"
+---|"right"
+---|"front"
+---|"back"
+
 ---@alias os_event
 ---| "alarm"
 ---| "char"

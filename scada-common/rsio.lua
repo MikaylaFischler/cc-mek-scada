@@ -82,46 +82,59 @@ rsio.IO_LVL = IO_LVL
 rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
+rsio.NUM_PORTS = IO_PORT.U_EMER_COOL
+
+-- self checks
+
+local dup_chk = {}
+for _, v in pairs(IO_PORT) do
+    assert(dup_chk[v] ~= true, "duplicate in port list")
+    dup_chk[v] = true
+end
+
+assert(#dup_chk == rsio.NUM_PORTS, "port list malformed")
 
 --#endregion
 
 --#region Utility Functions
 
+local PORT_NAMES = {
+    "F_SCRAM",
+    "F_ACK",
+    "R_SCRAM",
+    "R_RESET",
+    "R_ENABLE",
+    "U_ACK",
+    "F_ALARM",
+    "F_ALARM_ANY",
+    "WASTE_PU",
+    "WASTE_PO",
+    "WASTE_POPL",
+    "WASTE_AM",
+    "R_ACTIVE",
+    "R_AUTO_CTRL",
+    "R_SCRAMMED",
+    "R_AUTO_SCRAM",
+    "R_HIGH_DMG",
+    "R_HIGH_TEMP",
+    "R_LOW_COOLANT",
+    "R_EXCESS_HC",
+    "R_EXCESS_WS",
+    "R_INSUFF_FUEL",
+    "R_PLC_FAULT",
+    "R_PLC_TIMEOUT",
+    "U_ALARM",
+    "U_EMER_COOL"
+}
+
+assert(rsio.NUM_PORTS == #PORT_NAMES, "port names length incorrect")
+
 -- port to string
 ---@nodiscard
 ---@param port IO_PORT
 function rsio.to_string(port)
-    local names = {
-        "F_SCRAM",
-        "F_ACK",
-        "R_SCRAM",
-        "R_RESET",
-        "R_ENABLE",
-        "U_ACK",
-        "F_ALARM",
-        "F_ALARM_ANY",
-        "WASTE_PU",
-        "WASTE_PO",
-        "WASTE_POPL",
-        "WASTE_AM",
-        "R_ACTIVE",
-        "R_AUTO_CTRL",
-        "R_SCRAMMED",
-        "R_AUTO_SCRAM",
-        "R_HIGH_DMG",
-        "R_HIGH_TEMP",
-        "R_LOW_COOLANT",
-        "R_EXCESS_HC",
-        "R_EXCESS_WS",
-        "R_INSUFF_FUEL",
-        "R_PLC_FAULT",
-        "R_PLC_TIMEOUT",
-        "U_ALARM",
-        "U_EMER_COOL"
-    }
-
-    if util.is_int(port) and port > 0 and port <= #names then
-        return names[port]
+    if util.is_int(port) and port > 0 and port <= #PORT_NAMES then
+        return PORT_NAMES[port]
     else
         return "UNKNOWN"
     end
