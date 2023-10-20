@@ -5,6 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local KEY_CLICK = core.events.KEY_CLICK
 local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class listbox_args
@@ -33,6 +34,8 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args listbox_args
 ---@return graphics_element element, element_id id
 local function listbox(args)
+    args.can_focus = true
+
     -- create new graphics element base object
     local e = element.new(args)
 
@@ -128,7 +131,7 @@ local function listbox(args)
             end
 
             e.w_set_cur(e.frame.w, i)
-            e.w_write(" ")
+            if e.is_focused() then e.w_write("\x7f") else e.w_write(" ") end
         end
 
         e.w_set_bkg(e.fg_bg.bkg)
@@ -222,6 +225,10 @@ local function listbox(args)
         end
     end
 
+    -- handle focus
+    e.on_focused = draw_bar
+    e.on_unfocused = draw_bar
+
     -- handle a child in the list being focused, make sure it is visible
     function e.on_child_focused(child)
         for i = 1, #list do
@@ -299,6 +306,24 @@ local function listbox(args)
                 scroll_down()
             elseif event.type == MOUSE_CLICK.SCROLL_UP then
                 scroll_up()
+            end
+        end
+    end
+
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+            if event.key == keys.up then
+                scroll_up()
+            elseif event.key == keys.down then
+                scroll_down()
+            elseif event.key == keys.home then
+                scroll_offset = 0
+                update_positions()
+            elseif event.key == keys["end"] then
+                scroll_offset = max_down_scroll
+                update_positions()
             end
         end
     end
