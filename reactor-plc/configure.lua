@@ -519,7 +519,6 @@ local function config_view(display)
     PushButton{parent=sum_c_3,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
     TextBox{parent=sum_c_4,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-
     PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
