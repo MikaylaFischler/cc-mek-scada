@@ -161,10 +161,10 @@ local function peri_init(iface)
 
     setmetatable(self.device, mt)
 
-    return {
-        type = self.type,
-        dev  = self.device
-    }
+    ---@class ppm_entry
+    local entry = { type = self.type, dev  = self.device }
+
+    return entry
 end
 
 ----------------------
@@ -310,7 +310,11 @@ function ppm.list_avail() return peripheral.getNames() end
 -- list mounted peripherals
 ---@nodiscard
 ---@return table mounts
-function ppm.list_mounts() return ppm_sys.mounts end
+function ppm.list_mounts()
+    local list = {}
+    for k, v in pairs(ppm_sys.mounts) do list[k] = v end
+    return list
+end
 
 -- get a mounted peripheral side/interface by device table
 ---@nodiscard
