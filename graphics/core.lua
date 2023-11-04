@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.0.6"
+core.version = "2.0.7"
 
 core.flasher = flasher
 core.events = events
@@ -173,7 +173,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
         if e.enabled then
             e.w_set_bkg(fg_bg.bkg)
             e.w_set_fgd(fg_bg.fgd)
-        else
+        elseif dis_fg_bg ~= nil then
             e.w_set_bkg(dis_fg_bg.bkg)
             e.w_set_fgd(dis_fg_bg.fgd)
         end
