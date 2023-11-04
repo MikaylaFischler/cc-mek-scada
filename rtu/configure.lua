@@ -6,6 +6,7 @@ local log         = require("scada-common.log")
 local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
+local ppm         = require("scada-common.ppm")
 
 local core        = require("graphics.core")
 
@@ -24,6 +25,7 @@ local NumberField = require("graphics.elements.form.number_field")
 local TextField   = require("graphics.elements.form.text_field")
 
 local println = util.println
+local tri = util.trinary
 
 local cpair = core.cpair
 
@@ -78,6 +80,15 @@ local changes = {}
 ---@field side side
 ---@field color color|nil
 
+---@class rtu_peri_definition
+---@field unit integer|nil
+---@field index integer|nil
+---@field name string
+
+local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
+local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
+local NEEDS_IDX = { "boilerValve", "turbineValve", "dynamicValve" }
+
 ---@class rtu_configurator
 local configurator = {}
 
@@ -112,29 +123,44 @@ local tool_ctl = {
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
-    rs_cfg_editing = false, ---@type integer|false
+    peri_cfg_editing = false, ---@type string|false
+    peri_cfg_manual = false,
+    rs_cfg_editing = false,   ---@type integer|false
 
-    view_gw_cfg = nil,      ---@type graphics_element
-    dev_cfg = nil,          ---@type graphics_element
-    rs_cfg = nil,           ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_gw_cfg = nil,        ---@type graphics_element
+    dev_cfg = nil,            ---@type graphics_element
+    rs_cfg = nil,             ---@type graphics_element
+    settings_apply = nil,     ---@type graphics_element
 
-    go_home = nil,          ---@type function
-    gen_summary = nil,      ---@type function
-    show_current_cfg = nil, ---@type function
-    load_legacy = nil,      ---@type function
-    gen_rs_summary = nil,   ---@type function
+    go_home = nil,            ---@type function
+    gen_summary = nil,        ---@type function
+    show_current_cfg = nil,   ---@type function
+    load_legacy = nil,        ---@type function
+    p_assign = nil,           ---@type function
+    update_peri_list = nil,   ---@type function
+    gen_peri_summary = nil,   ---@type function
+    gen_rs_summary = nil,     ---@type function
 
-    show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_auth_key = nil,      ---@type function
+    show_key_btn = nil,       ---@type graphics_element
+    auth_key_textbox = nil,   ---@type graphics_element
     auth_key_value = "",
 
-    rs_cfg_selection = nil, ---@type graphics_element
-    rs_cfg_unit_l = nil,    ---@type graphics_element
-    rs_cfg_unit = nil,      ---@type graphics_element
-    rs_cfg_color = nil,     ---@type graphics_element
-    rs_cfg_shortcut = nil   ---@type graphics_element
+    ppm_devs = nil,           ---@type graphics_element
+    p_name_msg = nil,         ---@type graphics_element
+    p_prompt = nil,           ---@type graphics_element
+    p_idx = nil,              ---@type graphics_element
+    p_unit = nil,             ---@type graphics_element
+    p_assign_btn = nil,       ---@type graphics_element
+    p_assign_end = nil,       ---@type graphics_element
+    p_desc = nil,             ---@type graphics_element
+    p_desc_ext = nil,         ---@type graphics_element
+
+    rs_cfg_selection = nil,   ---@type graphics_element
+    rs_cfg_unit_l = nil,      ---@type graphics_element
+    rs_cfg_unit = nil,        ---@type graphics_element
+    rs_cfg_color = nil,       ---@type graphics_element
+    rs_cfg_shortcut = nil     ---@type graphics_element
 }
 
 ---@class rtu_config
@@ -154,42 +180,26 @@ local tmp_cfg = {
 
 ---@class rtu_config
 local ini_cfg = {}
+---@class rtu_config
+local settings_cfg = {}
 
 local fields = {
-    { "SpeakerVolume", "Speaker Volume" },
-    { "SVR_Channel", "SVR Channel" },
-    { "RTU_Channel", "RTU Channel" },
-    { "ConnTimeout", "Connection Timeout" },
-    { "TrustedRange", "Trusted Range" },
-    { "AuthKey", "Facility Auth Key" },
-    { "LogMode", "Log Mode" },
-    { "LogPath", "Log Path" },
-    { "LogDebug","Log Debug Messages" }
+    { "SpeakerVolume", "Speaker Volume", 1.0 },
+    { "SVR_Channel", "SVR Channel", 16240 },
+    { "RTU_Channel", "RTU Channel", 16242 },
+    { "ConnTimeout", "Connection Timeout", 5 },
+    { "TrustedRange", "Trusted Range", 0 },
+    { "AuthKey", "Facility Auth Key", "" },
+    { "LogMode", "Log Mode", log.MODE.APPEND },
+    { "LogPath", "Log Path", "/log.txt" },
+    { "LogDebug","Log Debug Messages", false }
 }
 
 local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
 local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
 local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
 local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
-
-local color_name_map = {
-    [colors.red] = "red",
-    [colors.orange] = "orange",
-    [colors.yellow] = "yellow",
-    [colors.lime] = "lime",
-    [colors.green] = "green",
-    [colors.cyan] = "cyan",
-    [colors.lightBlue] = "lightBlue",
-    [colors.blue] = "blue",
-    [colors.purple] = "purple",
-    [colors.magenta] = "magenta",
-    [colors.pink] = "pink",
-    [colors.white] = "white",
-    [colors.lightGray] = "lightGray",
-    [colors.gray] = "gray",
-    [colors.black] = "black",
-    [colors.brown] = "brown"
-}
+local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
 
 -- convert text representation to index
 ---@param side string
@@ -207,30 +217,34 @@ local function color_to_idx(color)
     end
 end
 
--- deep copy a redstone definitions table
+-- deep copy peripherals defs
+local function deep_copy_peri(data)
+    local array = {}
+    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, index = d.index, name = d.name }) end
+    return array
+    end
+
+-- deep copy redstone defs
 local function deep_copy_rs(data)
     local array = {}
-    for _, d in ipairs(data) do
-        table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color })
-    end
+    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color }) end
     return array
 end
 
 -- load data from the settings file
 ---@param target rtu_config
-local function load_settings(target)
-    target.SpeakerVolume = settings.get("SpeakerVolume", 1.0)
-    target.Peripherals = settings.get("Peripherals", {})
-    target.Redstone = settings.get("Redstone", {})
+---@param raw boolean? true to not use default values
+local function load_settings(target, raw)
+    for _, v in pairs(fields) do settings.unset(v[1]) end
 
-    target.SVR_Channel = settings.get("SVR_Channel", 16240)
-    target.RTU_Channel = settings.get("RTU_Channel", 16242)
-    target.ConnTimeout = settings.get("ConnTimeout", 5)
-    target.TrustedRange = settings.get("TrustedRange", 0)
-    target.AuthKey = settings.get("AuthKey", "")
-    target.LogMode = settings.get("LogMode", log.MODE.APPEND)
-    target.LogPath = settings.get("LogPath", "/log.txt")
-    target.LogDebug = settings.get("LogDebug", false)
+    local loaded = settings.load("/rtu.settings")
+
+    for _, v in pairs(fields) do target[v[1]] = settings.get(v[1], tri(raw, nil, v[3])) end
+
+    target.Peripherals = settings.get("Peripherals", tri(raw, nil, {}))
+    target.Redstone = settings.get("Redstone", tri(raw, nil, {}))
+
+    return loaded
 end
 
 -- create the config view
@@ -267,7 +281,7 @@ local function config_view(display)
 
     local function view_config()
         tool_ctl.viewing_config = true
-        tool_ctl.gen_summary(ini_cfg)
+        tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
         main_pane.set_value(5)
     end
@@ -277,6 +291,11 @@ local function config_view(display)
         y_start = y_start + 2
     end
 
+    local function show_peri_conns()
+        tool_ctl.gen_peri_summary(ini_cfg)
+        main_pane.set_value(7)
+    end
+
     local function show_rs_conns()
         tool_ctl.gen_rs_summary(ini_cfg)
         main_pane.set_value(8)
@@ -284,7 +303,7 @@ local function config_view(display)
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=19,text="Configure Gateway",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_gw_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=28,text="View Gateway Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-    tool_ctl.dev_cfg = PushButton{parent=main_page,x=2,y=y_start+4,min_width=18,text="RTU Unit Devices",callback=function()main_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.dev_cfg = PushButton{parent=main_page,x=2,y=y_start+4,min_width=24,text="Peripheral Connections",callback=show_peri_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.rs_cfg = PushButton{parent=main_page,x=2,y=y_start+6,min_width=22,text="Redstone Connections",callback=show_rs_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     if not tool_ctl.has_config then
@@ -502,6 +521,7 @@ local function config_view(display)
 
         if settings.save("rtu.settings") then
             load_settings(ini_cfg)
+            load_settings(settings_cfg, true)
 
             try_set(s_vol, ini_cfg.SpeakerVolume)
             try_set(svr_chan, ini_cfg.SVR_Channel)
@@ -512,6 +532,9 @@ local function config_view(display)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
+
+            tool_ctl.dev_cfg.enable()
+            tool_ctl.rs_cfg.enable()
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
@@ -567,6 +590,299 @@ local function config_view(display)
 
     --#endregion
 
+    --#region DEVICES
+
+    local peri_c_1 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_2 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_3 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_4 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_5 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_6 = Div{parent=peri_cfg,x=2,y=4,width=49}
+    local peri_c_7 = Div{parent=peri_cfg,x=2,y=4,width=49}
+
+    local peri_pane = MultiPane{parent=peri_cfg,x=1,y=4,panes={peri_c_1,peri_c_2,peri_c_3,peri_c_4,peri_c_5,peri_c_6,peri_c_7}}
+
+    TextBox{parent=peri_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
+
+    local peri_list = ListBox{parent=peri_c_1,x=1,y=1,height=12,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local function peri_revert()
+        tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
+        tool_ctl.gen_peri_summary(tmp_cfg)
+    end
+
+    local function peri_apply()
+        settings.set("Peripherals", tmp_cfg.Peripherals)
+
+        if settings.save("rtu.settings") then
+            load_settings(ini_cfg)
+            load_settings(settings_cfg, true)
+            peri_pane.set_value(5)
+        else
+            peri_pane.set_value(6)
+        end
+    end
+
+    PushButton{parent=peri_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=peri_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_1,x=35,y=14,min_width=7,text="Add +",callback=function()peri_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_1,x=43,y=14,min_width=7,text="Apply",callback=peri_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=peri_c_2,x=1,y=1,height=1,text="Select one of the below devices to use."}
+
+    tool_ctl.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_2,x=26,y=14,min_width=24,text="I don't see my device!",callback=function()peri_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU, or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
+    TextBox{parent=peri_c_7,x=1,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
+    PushButton{parent=peri_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    local new_peri_attrs = { "", "" }
+    local function new_peri(name, type)
+        new_peri_attrs = { name, type }
+        tool_ctl.peri_cfg_editing = false
+
+        tool_ctl.p_name_msg.set_value("Configuring peripheral on '" .. name .. "':")
+        tool_ctl.p_desc_ext.set_value("")
+
+        if type == "boilerValve" then
+            tool_ctl.p_prompt.set_value("This is the #     boiler for reactor unit #    .")
+            tool_ctl.p_idx.show()
+            tool_ctl.p_idx.redraw()
+            tool_ctl.p_idx.enable()
+            tool_ctl.p_idx.set_max(2)
+            tool_ctl.p_unit.reposition(44, 4)
+            tool_ctl.p_unit.enable()
+            tool_ctl.p_assign_btn.hide(true)
+            tool_ctl.p_assign_end.hide(true)
+            tool_ctl.p_desc.reposition(1, 7)
+            tool_ctl.p_desc.set_value("Each unit can have at most 2 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have boiler #1 and another can have #2, but both cannot have #1.")
+        elseif type == "turbineValve" then
+            tool_ctl.p_prompt.set_value("This is the #     turbine for reactor unit #    .")
+            tool_ctl.p_idx.show()
+            tool_ctl.p_idx.redraw()
+            tool_ctl.p_idx.enable()
+            tool_ctl.p_idx.set_max(3)
+            tool_ctl.p_unit.reposition(45, 4)
+            tool_ctl.p_unit.enable()
+            tool_ctl.p_assign_btn.hide(true)
+            tool_ctl.p_assign_end.hide(true)
+            tool_ctl.p_desc.reposition(1, 7)
+            tool_ctl.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have turbine #1 and another can have #2, but both cannot have #1.")
+        elseif type == "solarNeutronActivator" then
+            tool_ctl.p_idx.hide()
+            tool_ctl.p_prompt.set_value("This SNA is for reactor unit #    .")
+            tool_ctl.p_unit.reposition(31, 4)
+            tool_ctl.p_unit.enable()
+            tool_ctl.p_assign_btn.hide(true)
+            tool_ctl.p_assign_end.hide(true)
+            tool_ctl.p_desc_ext.set_value("Before adding lots of SNAs: multiply the \"PEAK\" rate on the flow monitor (after connecting at least 1 SNA) by 10 to get the mB/t of waste that they can process. Enough SNAs to provide 2x to 3x of your max burn rate should be a good margin to catch up after night or cloudy weather. Too many devices (such as SNAs) on one RTU can cause lag.")
+        elseif type == "dynamicValve" then
+            tool_ctl.p_prompt.set_value("This is the #     dynamic tank for...")
+            tool_ctl.p_idx.show()
+            tool_ctl.p_idx.redraw()
+            tool_ctl.p_idx.set_max(4)
+            tool_ctl.p_unit.reposition(18, 6)
+
+            if tool_ctl.p_assign_btn.get_value() == 1 then
+                tool_ctl.p_idx.enable()
+                tool_ctl.p_unit.disable()
+            else
+                tool_ctl.p_idx.set_value(1)
+                tool_ctl.p_idx.disable()
+                tool_ctl.p_unit.enable()
+            end
+
+            tool_ctl.p_assign_btn.show()
+            tool_ctl.p_assign_btn.redraw()
+            tool_ctl.p_assign_end.show()
+            tool_ctl.p_assign_end.redraw()
+            tool_ctl.p_desc.reposition(1, 8)
+            tool_ctl.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
+        elseif type == "environmentDetector" then
+            tool_ctl.p_idx.hide()
+            tool_ctl.p_prompt.set_value("This will be an environment detector for...")
+            tool_ctl.p_unit.reposition(18, 6)
+            if tool_ctl.p_assign_btn.get_value() == 1 then tool_ctl.p_unit.disable() else tool_ctl.p_unit.enable() end
+            tool_ctl.p_assign_btn.show()
+            tool_ctl.p_assign_btn.redraw()
+            tool_ctl.p_assign_end.show()
+            tool_ctl.p_assign_end.redraw()
+            tool_ctl.p_desc.reposition(1, 8)
+            tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility, in which case the maximum radiation reading from those assigned to that particular unit or the facility will be used.")
+        elseif type == "inductionPort" or type == "spsPort" then
+            local dev = util.trinary(type == "inductionPort", "induction matrix", "SPS")
+            tool_ctl.p_idx.hide(true)
+            tool_ctl.p_unit.hide(true)
+            tool_ctl.p_prompt.set_value("This will be the " .. dev .. " for the facility.")
+            tool_ctl.p_assign_btn.hide(true)
+            tool_ctl.p_assign_end.hide(true)
+            tool_ctl.p_desc.reposition(1, 7)
+            tool_ctl.p_desc.set_value("There can only be one of these devices per SCADA network, so it will be assigned as the sole " .. dev .. " for the facility. There must only be one of these across all the RTUs you have.")
+        else
+            assert(false, "invalid peripheral type after type validation")
+        end
+
+        peri_pane.set_value(4)
+    end
+
+    -- update peripherals list
+    function tool_ctl.update_peri_list()
+        local alternate = true
+        local mounts = ppm.list_mounts()
+
+        -- filter out in-use peripherals
+        for _, v in ipairs(tmp_cfg.Peripherals) do mounts[v.name] = nil end
+
+        tool_ctl.ppm_devs.remove_all()
+        for name, entry in pairs(mounts) do
+            if util.table_contains(RTU_DEV_TYPES, entry.type) then
+                local bkg = util.trinary(alternate, colors.white, colors.lightGray)
+
+                ---@cast entry ppm_entry
+                local line = Div{parent=tool_ctl.ppm_devs,height=2,fg_bg=cpair(colors.black,bkg)}
+                PushButton{parent=line,x=1,y=1,min_width=9,alignment=LEFT,height=1,text="> SELECT",callback=function()tool_ctl.peri_cfg_manual=false;new_peri(name,entry.type)end,fg_bg=cpair(colors.black,colors.purple),active_fg_bg=cpair(colors.white,colors.black)}
+                TextBox{parent=line,x=11,y=1,height=1,text=name,fg_bg=cpair(colors.black,bkg)}
+                TextBox{parent=line,x=11,y=2,height=1,text=entry.type,fg_bg=cpair(colors.gray,bkg)}
+
+                alternate = not alternate
+            end
+        end
+    end
+
+    tool_ctl.update_peri_list()
+
+    PushButton{parent=peri_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=peri_c_3,x=1,y=1,height=4,text_align=CENTER,text="This feature is intended for advanced users. If you are clicking this just because your device is not shown, follow the connection instructions in 'I don't see my device!'."}
+    TextBox{parent=peri_c_3,x=1,y=6,height=4,text_align=CENTER,text="Peripheral Name"}
+    local p_name = TextField{parent=peri_c_3,x=1,y=7,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
+    local p_type = Radio2D{parent=peri_c_3,x=1,y=9,rows=4,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    local man_p_err = TextBox{parent=peri_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please enter a peripheral name.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    man_p_err.hide(true)
+
+    local function submit_manual_peri()
+        local name = p_name.get_value()
+        if string.len(name) > 0 then
+            tool_ctl.entering_manual = true
+            man_p_err.hide(true)
+            new_peri(name, RTU_DEV_TYPES[p_type.get_value()])
+        else man_p_err.show() end
+    end
+
+    PushButton{parent=peri_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_3,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_manual_peri,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text_align=CENTER,text=""}
+    tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text_align=CENTER,text=""}
+    tool_ctl.p_idx = NumberField{parent=peri_c_4,x=14,y=4,width=4,max_digits=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility.","a unit. (unit #"},callback=function(v)tool_ctl.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    tool_ctl.p_assign_end = TextBox{parent=peri_c_4,x=22,y=6,height=6,width=1,text_align=LEFT,text=")"}
+
+    tool_ctl.p_unit = NumberField{parent=peri_c_4,x=44,y=4,width=4,max_digits=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_unit.disable()
+
+    function tool_ctl.p_assign(opt)
+        if opt == 1 then
+            tool_ctl.p_unit.disable()
+            tool_ctl.p_idx.enable()
+        else
+            tool_ctl.p_unit.enable()
+            tool_ctl.p_idx.set_value(1)
+            tool_ctl.p_idx.disable()
+        end
+    end
+
+    tool_ctl.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
+    tool_ctl.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
+
+    local p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    p_err.hide(true)
+
+    local function back_from_peri_opts()
+        if tool_ctl.peri_cfg_editing ~= false then
+            peri_pane.set_value(1)
+        elseif tool_ctl.entering_manual then
+            peri_pane.set_value(3)
+        else
+            peri_pane.set_value(2)
+        end
+
+        tool_ctl.entering_manual = false
+    end
+
+    local function save_peri_entry()
+        local peri_name = new_peri_attrs[1]
+        local peri_type = new_peri_attrs[2]
+
+        local unit, index = nil, nil
+
+        local for_facility = tool_ctl.p_assign_btn.get_value() == 1
+        local u = tonumber(tool_ctl.p_unit.get_value())
+        local idx = tonumber(tool_ctl.p_idx.get_value())
+
+        if util.table_contains(NEEDS_UNIT, peri_type) then
+            if (peri_type == "dynamicValve" or peri_type == "environmentDetector") and for_facility then
+                -- skip
+            elseif not (util.is_int(u) and u > 0 and u < 5) then
+                p_err.set_value("Unit ID must be within 1 through 4.")
+                p_err.show()
+                return
+            else unit = u end
+        end
+
+        if peri_type == "boilerValve" then
+            if not (idx == 1 or idx == 2) then
+                p_err.set_value("Index must be 1 or 2.")
+                p_err.show()
+                return
+            else index = idx end
+        elseif peri_type == "turbineValve" then
+            if not (idx == 1 or idx == 2 or idx == 3) then
+                p_err.set_value("Index must be 1, 2, or 3.")
+                p_err.show()
+                return
+            else index = idx end
+        elseif peri_type == "dynamicValve" and not for_facility then
+            if not (util.is_int(idx) and idx > 0 and idx < 5) then
+                p_err.set_value("Index must be within 1 through 4.")
+                p_err.show()
+                return
+            else index = idx end
+        end
+
+        p_err.hide(true)
+
+        ---@type rtu_peri_definition
+        local def = { name = peri_name, unit = unit, index = index }
+
+        if tool_ctl.peri_cfg_editing == false then
+            table.insert(tmp_cfg.Peripherals, def)
+        else
+            def.name = tmp_cfg.Peripherals[tool_ctl.peri_cfg_editing].name
+            tmp_cfg.Peripherals[tool_ctl.peri_cfg_editing] = def
+        end
+
+        peri_pane.set_value(1)
+        tool_ctl.gen_peri_summary(tmp_cfg)
+
+        tool_ctl.p_idx.set_value(1)
+    end
+
+    PushButton{parent=peri_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_peri_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=peri_c_5,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    PushButton{parent=peri_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=peri_c_6,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=peri_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_6,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
     --#region REDSTONE
 
     local rs_c_1 = Div{parent=rs_cfg,x=2,y=4,width=49}
@@ -592,6 +908,7 @@ local function config_view(display)
 
         if settings.save("rtu.settings") then
             load_settings(ini_cfg)
+            load_settings(settings_cfg, true)
             rs_pane.set_value(4)
         else
             rs_pane.set_value(5)
@@ -722,13 +1039,11 @@ local function config_view(display)
             bundled.set_value(false)
             tool_ctl.rs_cfg_color.set_value(1)
             tool_ctl.rs_cfg_color.disable()
-        else
-            rs_err.show()
-        end
+        else rs_err.show() end
     end
 
     PushButton{parent=rs_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=rs_c_3,x=44,y=14,min_width=6,text="Save",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_4,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
     PushButton{parent=rs_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -767,6 +1082,7 @@ local function config_view(display)
         main_pane.set_value(1)
         net_pane.set_value(1)
         sum_pane.set_value(1)
+        peri_pane.set_value(1)
         rs_pane.set_value(1)
     end
 
@@ -797,7 +1113,7 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
             if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
-            if val == "nil" then val = "n/a" end
+            if val == "nil" then val = "<not set>" end
 
             local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
@@ -880,8 +1196,55 @@ local function config_view(display)
             TextBox{parent=entry,x=2,y=1,width=14,height=1,text=name}
             TextBox{parent=entry,x=16,y=1,width=string.len(conn),height=1,text=conn,fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=entry,x=33,y=1,width=1,height=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
-            PushButton{parent=entry,x=35,y=1,min_width=6,height=1,text="EDIT",callback=function()edit_rs_entry(i)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+            PushButton{parent=entry,x=35,y=1,min_width=6,height=1,text="EDIT",callback=function()edit_rs_entry(i)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
             PushButton{parent=entry,x=41,y=1,min_width=8,height=1,text="DELETE",callback=function()delete_rs_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+        end
+    end
+
+    local function edit_peri_entry(idx, name, type)
+        new_peri(name, type)
+        tool_ctl.peri_cfg_editing = idx -- must be after new_peri
+    end
+
+    local function delete_peri_entry(idx)
+        table.remove(tmp_cfg.Peripherals, idx)
+        tool_ctl.gen_peri_summary(tmp_cfg)
+    end
+
+    -- generate the peripherals summary list
+    ---@param cfg rtu_config
+    function tool_ctl.gen_peri_summary(cfg)
+        peri_list.remove_all()
+
+        for i = 1, #cfg.Peripherals do
+            local def = cfg.Peripherals[i]  ---@type rtu_peri_definition
+
+            local t = ppm.get_type(def.name)
+            local t_str = "<disconnected> (connect to edit)"
+            local disconnected = t == nil
+
+            if not disconnected then t_str = "[" .. t .. "]" end
+
+            local desc = "  \x1a "
+
+            if type(def.index) == "number" then
+                desc = desc .. "#" .. def.index .. " "
+            end
+
+            if type(def.unit) == "number" then
+                desc = desc .. "for unit " .. def.unit
+            else
+                desc = desc .. "for the facility"
+            end
+
+            local entry = Div{parent=peri_list,height=3}
+            TextBox{parent=entry,x=1,y=1,height=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=entry,x=1,y=2,height=1,text="  \x1a "..t_str,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=entry,x=1,y=3,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+            local edit_btn = PushButton{parent=entry,x=41,y=2,min_width=8,height=1,text="EDIT",callback=function()edit_peri_entry(i,def.name,t)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+            PushButton{parent=entry,x=41,y=3,min_width=8,height=1,text="DELETE",callback=function()delete_peri_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+
+            if disconnected then edit_btn.disable() end
         end
     end
 end
@@ -898,13 +1261,15 @@ end
 ---@param ask_config? boolean indicate if this is being called by the RTU startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
-    tool_ctl.has_config = settings.load("/rtu.settings")
+    tool_ctl.has_config = load_settings(ini_cfg)
+    load_settings(settings_cfg, true)
 
-    load_settings(ini_cfg)
-
+    tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
     tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
 
     reset_term()
+
+    ppm.mount_all()
 
     -- set overridden colors
     for i = 1, #style.colors do
@@ -933,6 +1298,12 @@ function configurator.configure(ask_config)
             elseif event == "paste" then
                 -- handle a paste event
                 display.handle_paste(param1)
+            elseif event == "peripheral_detach" then
+                ppm.handle_unmount(param1)
+                tool_ctl.update_peri_list()
+            elseif event == "peripheral" then
+                ppm.mount(param1)
+                tool_ctl.update_peri_list()
             end
 
             if event == "terminate" then return end
