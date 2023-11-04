@@ -23,6 +23,7 @@ local NumberField = require("graphics.elements.form.number_field")
 local TextField   = require("graphics.elements.form.text_field")
 
 local println = util.println
+local tri = util.trinary
 
 local cpair = core.cpair
 
@@ -104,46 +105,31 @@ local tmp_cfg = {
 
 ---@class plc_config
 local ini_cfg = {}
+---@class plc_config
+local settings_cfg = {}
 
+-- all settings fields, their nice names, and their default values
 local fields = {
-    { "Networked", "Networked" },
-    { "UnitID", "Unit ID" },
-    { "EmerCoolEnable", "Emergency Coolant" },
-    { "EmerCoolSide", "Emergency Coolant Side" },
-    { "EmerCoolColor", "Emergency Coolant Color" },
-    { "SVR_Channel", "SVR Channel" },
-    { "PLC_Channel", "PLC Channel" },
-    { "ConnTimeout", "Connection Timeout" },
-    { "TrustedRange", "Trusted Range" },
-    { "AuthKey", "Facility Auth Key" },
-    { "LogMode", "Log Mode" },
-    { "LogPath", "Log Path" },
-    { "LogDebug","Log Debug Messages" }
+    { "Networked", "Networked", false },
+    { "UnitID", "Unit ID", 1 },
+    { "EmerCoolEnable", "Emergency Coolant", false },
+    { "EmerCoolSide", "Emergency Coolant Side", nil },
+    { "EmerCoolColor", "Emergency Coolant Color", nil },
+    { "SVR_Channel", "SVR Channel", 16240 },
+    { "PLC_Channel", "PLC Channel", 16241 },
+    { "ConnTimeout", "Connection Timeout", 5 },
+    { "TrustedRange", "Trusted Range", 0 },
+    { "AuthKey", "Facility Auth Key" , ""},
+    { "LogMode", "Log Mode", log.MODE.APPEND },
+    { "LogPath", "Log Path", "/log.txt" },
+    { "LogDebug","Log Debug Messages", false }
 }
 
 local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
 local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
 local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
 local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
-
-local color_name_map = {
-    [colors.red] = "red",
-    [colors.orange] = "orange",
-    [colors.yellow] = "yellow",
-    [colors.lime] = "lime",
-    [colors.green] = "green",
-    [colors.cyan] = "cyan",
-    [colors.lightBlue] = "lightBlue",
-    [colors.blue] = "blue",
-    [colors.purple] = "purple",
-    [colors.magenta] = "magenta",
-    [colors.pink] = "pink",
-    [colors.white] = "white",
-    [colors.lightGray] = "lightGray",
-    [colors.gray] = "gray",
-    [colors.black] = "black",
-    [colors.brown] = "brown"
-}
+local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
 
 -- convert text representation to index
 ---@param side string
@@ -163,20 +149,15 @@ end
 
 -- load data from the settings file
 ---@param target plc_config
-local function load_settings(target)
-    target.Networked = settings.get("Networked", false)
-    target.UnitID = settings.get("UnitID", 1)
-    target.EmerCoolEnable = settings.get("EmerCoolEnable", false)
-    target.EmerCoolSide = settings.get("EmerCoolSide", nil)
-    target.EmerCoolColor = settings.get("EmerCoolColor", nil)
-    target.SVR_Channel = settings.get("SVR_Channel", 16240)
-    target.PLC_Channel = settings.get("PLC_Channel", 16241)
-    target.ConnTimeout = settings.get("ConnTimeout", 5)
-    target.TrustedRange = settings.get("TrustedRange", 0)
-    target.AuthKey = settings.get("AuthKey", "")
-    target.LogMode = settings.get("LogMode", log.MODE.APPEND)
-    target.LogPath = settings.get("LogPath", "/log.txt")
-    target.LogDebug = settings.get("LogDebug", false)
+---@param raw boolean? true to not use default values
+local function load_settings(target, raw)
+    for _, v in pairs(fields) do settings.unset(v[1]) end
+
+    local loaded = settings.load("/reactor-plc.settings")
+
+    for _, v in pairs(fields) do target[v[1]] = settings.get(v[1], tri(raw, nil, v[3])) end
+
+    return loaded
 end
 
 -- create the config view
@@ -212,7 +193,7 @@ local function config_view(display)
 
     local function view_config()
         tool_ctl.viewing_config = true
-        tool_ctl.gen_summary(ini_cfg)
+        tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
         main_pane.set_value(5)
     end
@@ -483,6 +464,7 @@ local function config_view(display)
 
         if settings.save("reactor-plc.settings") then
             load_settings(ini_cfg)
+            load_settings(settings_cfg, true)
 
             try_set(networked, ini_cfg.Networked)
             try_set(u_id, ini_cfg.UnitID)
@@ -628,7 +610,7 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
             if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
             if f[1] == "EmerCoolColor" and raw ~= nil then val = color_name_map[raw] end
-            if val == "nil" then val = "n/a" end
+            if val == "nil" then val = "<not set>" end
 
             local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
@@ -665,9 +647,8 @@ end
 ---@param ask_config? boolean indicate if this is being called by the PLC startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
-    tool_ctl.has_config = settings.load("/reactor-plc.settings")
-
-    load_settings(ini_cfg)
+    tool_ctl.has_config = load_settings(ini_cfg)
+    load_settings(settings_cfg, true)
 
     reset_term()
 
