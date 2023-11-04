@@ -131,6 +131,7 @@ local tool_ctl = {
     dev_cfg = nil,            ---@type graphics_element
     rs_cfg = nil,             ---@type graphics_element
     settings_apply = nil,     ---@type graphics_element
+    settings_confirm = nil,   ---@type graphics_element
 
     go_home = nil,            ---@type function
     gen_summary = nil,        ---@type function
@@ -283,6 +284,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
+        tool_ctl.settings_confirm.hide(true)
         main_pane.set_value(5)
     end
 
@@ -308,8 +310,8 @@ local function config_view(display)
 
     if not tool_ctl.has_config then
         tool_ctl.view_gw_cfg.disable()
-        -- tool_ctl.dev_cfg.disable()
-        -- tool_ctl.rs_cfg.disable()
+        tool_ctl.dev_cfg.disable()
+        tool_ctl.rs_cfg.disable()
     end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
@@ -477,6 +479,7 @@ local function config_view(display)
             tool_ctl.viewing_config = false
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
+            tool_ctl.settings_confirm.hide(true)
             main_pane.set_value(5)
         else path_err.show() end
     end
@@ -492,8 +495,10 @@ local function config_view(display)
     local sum_c_2 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_3 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_4 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_5 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_6 = Div{parent=summary,x=2,y=4,width=49}
 
-    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
+    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4,sum_c_5,sum_c_6}}
 
     TextBox{parent=summary,x=1,y=2,height=1,text_align=CENTER,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
@@ -504,7 +509,6 @@ local function config_view(display)
             main_pane.set_value(1)
             tool_ctl.viewing_config = false
             tool_ctl.importing_legacy = false
-            tool_ctl.settings_apply.show()
         else
             main_pane.set_value(4)
         end
@@ -538,34 +542,46 @@ local function config_view(display)
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
-                sum_pane.set_value(3)
-            else sum_pane.set_value(2) end
+                sum_pane.set_value(5)
         else sum_pane.set_value(4) end
+        else sum_pane.set_value(6) end
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_confirm = PushButton{parent=sum_c_1,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_confirm.hide()
 
-    TextBox{parent=sum_c_2,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    TextBox{parent=sum_c_2,x=1,y=1,height=1,text_align=CENTER,text="The following peripherals will be imported:"}
+    local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=2,text_align=CENTER,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_3,x=1,y=1,height=1,text_align=CENTER,text="The following redstone entries will be imported:"}
+    local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    PushButton{parent=sum_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=sum_c_4,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    TextBox{parent=sum_c_5,x=1,y=1,height=2,text_align=CENTER,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
         fs.delete("/rtu/config.lua")
         exit()
     end
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=8,text="Cancel",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_3,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_5,x=1,y=14,min_width=8,text="Cancel",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_5,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_4,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-
-    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=sum_c_6,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=sum_c_6,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_6,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
     --#endregion
 
@@ -1071,9 +1087,58 @@ local function config_view(display)
         tmp_cfg.LogPath = config.LOG_PATH
         tmp_cfg.LogDebug = config.LOG_DEBUG or false
 
+        peri_import_list.remove_all()
+        for _, entry in ipairs(config.RTU_DEVICES) do
+            if entry.for_reactor == 0 then entry.for_reactor = nil end
+
+            local def = { name = entry.name, unit = entry.for_reactor, index = entry.index }
+            table.insert(tmp_cfg.Peripherals, def)
+
+            local desc = "  \x1a "
+
+            if type(def.index) == "number" then
+                desc = desc .. "#" .. def.index .. " "
+            end
+
+            if type(def.unit) == "number" then
+                desc = desc .. "for unit " .. def.unit
+            else
+                desc = desc .. "for the facility"
+            end
+
+            local line = Div{parent=peri_import_list,height=2}
+            TextBox{parent=line,x=1,y=1,height=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=line,x=1,y=2,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+        end
+
+        rs_import_list.remove_all()
+        for _, entry in ipairs(config.RTU_REDSTONE) do
+            if entry.for_reactor == 0 then entry.for_reactor = nil end
+            for _, io_entry in ipairs(entry.io) do
+                local def = { unit = entry.for_reactor, port = io_entry.port, side = io_entry.side, color = io_entry.bundled_color }
+                table.insert(tmp_cfg.Redstone, def)
+
+                local name = rsio.to_string(def.port)
+                local io_dir = util.trinary(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+                local conn = def.side
+                local unit = "facility"
+
+                if def.unit then unit = "unit " .. def.unit end
+                if def.color ~= nil then conn = def.side .. "/" .. color_name_map[def.color] end
+
+                local line = Div{parent=rs_import_list,height=1}
+                TextBox{parent=line,x=1,y=1,width=1,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+                TextBox{parent=line,x=2,y=1,width=14,height=1,text=name}
+                TextBox{parent=line,x=18,y=1,width=string.len(conn),height=1,text=conn,fg_bg=cpair(colors.gray,colors.white)}
+                TextBox{parent=line,x=40,y=1,height=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
+            end
+        end
+
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
         main_pane.set_value(5)
+        tool_ctl.settings_apply.hide(true)
+        tool_ctl.settings_confirm.show()
         tool_ctl.importing_legacy = true
     end
 
@@ -1187,9 +1252,7 @@ local function config_view(display)
             local conn = def.side
             local unit = util.strval(def.unit or "F")
 
-            if def.color ~= nil then
-                conn = def.side .. "/" .. color_name_map[def.color]
-            end
+            if def.color ~= nil then conn = def.side .. "/" .. color_name_map[def.color] end
 
             local entry = Div{parent=rs_list,height=1}
             TextBox{parent=entry,x=1,y=1,width=1,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
