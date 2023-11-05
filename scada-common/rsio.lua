@@ -279,7 +279,7 @@ end
 
 -- check if a color is a valid single color
 ---@nodiscard
----@param color integer
+---@param color any
 ---@return boolean valid
 function rsio.is_color(color)
     return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0)

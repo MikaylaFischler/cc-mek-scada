@@ -18,7 +18,7 @@ local type = type
 local util = {}
 
 -- scada-common version
-util.version = "1.1.7"
+util.version = "1.1.8"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -482,6 +482,7 @@ function util.new_validator()
     function public.assert_type_str(value) valid = valid and type(value) == "string" end
     function public.assert_type_table(value) valid = valid and type(value) == "table" end
 
+    function public.assert(check) valid = valid and (check == true) end
     function public.assert_eq(check, expect) valid = valid and check == expect end
     function public.assert_min(check, min) valid = valid and check >= min end
     function public.assert_min_ex(check, min) valid = valid and check > min end
