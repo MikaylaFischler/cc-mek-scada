@@ -481,6 +481,8 @@ local function config_view(display)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
 
+            tool_ctl.view_cfg.enable()
+
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
                 sum_pane.set_value(3)
