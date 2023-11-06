@@ -56,8 +56,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
         return nil
     end
 
-    -- for redstone, use unit ID not device index
-    local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. unit_id .. "): "
+    local log_tag = util.c("session.rtu(", session_id, ").redstone[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),

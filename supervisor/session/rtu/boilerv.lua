@@ -43,7 +43,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").boilerv(" .. advert.index .. "): "
+    local log_tag = util.c("session.rtu(", session_id, ").boilerv(", advert.index, ")[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),

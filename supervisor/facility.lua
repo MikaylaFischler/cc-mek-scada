@@ -1093,22 +1093,22 @@ function facility.new(num_reactors, cooling_conf)
             build.induction = {}
             for i = 1, #self.induction do
                 local matrix = self.induction[i]    ---@type unit_session
-                build.induction[matrix.get_device_idx()] = { matrix.get_db().formed, matrix.get_db().build }
+                build.induction[i] = { matrix.get_db().formed, matrix.get_db().build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
-                local sps = self.sps[i]             ---@type unit_session
-                build.sps[sps.get_device_idx()] = { sps.get_db().formed, sps.get_db().build }
+                local sps = self.sps[i] ---@type unit_session
+                build.sps[i] = { sps.get_db().formed, sps.get_db().build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
             build.tanks = {}
             for i = 1, #self.tanks do
-                local tank = self.tanks[i]          ---@type unit_session
+                local tank = self.tanks[i]  ---@type unit_session
                 build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }
             end
         end
@@ -1160,7 +1160,7 @@ function facility.new(num_reactors, cooling_conf)
         for i = 1, #self.induction do
             local matrix = self.induction[i]    ---@type unit_session
             local db     = matrix.get_db()      ---@type imatrix_session_db
-            status.induction[matrix.get_device_idx()] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
+            status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of sps
@@ -1168,7 +1168,7 @@ function facility.new(num_reactors, cooling_conf)
         for i = 1, #self.sps do
             local sps = self.sps[i]     ---@type unit_session
             local db  = sps.get_db()    ---@type sps_session_db
-            status.sps[sps.get_device_idx()] = { sps.is_faulted(), db.formed, db.state, db.tanks }
+            status.sps[i] = { sps.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of dynamic tanks
@@ -1183,7 +1183,7 @@ function facility.new(num_reactors, cooling_conf)
         status.rad_mon = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]   ---@type unit_session
-            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), envd.get_db().radiation }
+            status.rad_mon[i] = { envd.is_faulted(), envd.get_db().radiation }
         end
 
         return status
