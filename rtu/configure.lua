@@ -156,6 +156,7 @@ local tool_ctl = {
     p_assign_end = nil,       ---@type graphics_element
     p_desc = nil,             ---@type graphics_element
     p_desc_ext = nil,         ---@type graphics_element
+    p_err = nil,              ---@type graphics_element
 
     rs_cfg_selection = nil,   ---@type graphics_element
     rs_cfg_unit_l = nil,      ---@type graphics_element
@@ -200,7 +201,6 @@ local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
 local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
 local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
 local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
-local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
 
 -- convert text representation to index
 ---@param side string
@@ -223,7 +223,7 @@ local function deep_copy_peri(data)
     local array = {}
     for _, d in ipairs(data) do table.insert(array, { unit = d.unit, index = d.index, name = d.name }) end
     return array
-    end
+end
 
 -- deep copy redstone defs
 local function deep_copy_rs(data)
@@ -236,7 +236,7 @@ end
 ---@param target rtu_config
 ---@param raw boolean? true to not use default values
 local function load_settings(target, raw)
-    for _, v in pairs(fields) do settings.unset(v[1]) end
+    for k, _ in pairs(tmp_cfg) do settings.unset(k) end
 
     local loaded = settings.load("/rtu.settings")
 
@@ -271,13 +271,14 @@ local function config_view(display)
 
     --#region MAIN PAGE
 
-    local y_start = 5
-
-    TextBox{parent=main_page,x=2,y=2,height=2,text_align=CENTER,text="Welcome to the RTU gateway configurator! Please select one of the following options."}
+    local y_start = 2
 
     if tool_ctl.ask_config then
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text_align=CENTER,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
+    else
+        TextBox{parent=main_page,x=2,y=2,height=2,text_align=CENTER,text="Welcome to the RTU gateway configurator! Please select one of the following options."}
+        y_start = y_start + 3
     end
 
     local function view_config()
@@ -520,8 +521,11 @@ local function config_view(display)
         if data ~= nil then element.set_value(data) end
     end
 
-    local function save_and_continue()
-        for k, v in pairs(tmp_cfg) do settings.set(k, v) end
+    ---@param exclude_conns boolean? true to exclude saving peripheral/redstone connections
+    local function save_and_continue(exclude_conns)
+        for k, v in pairs(tmp_cfg) do
+            if not (exclude_conns and (k == "Peripherals" or k == "Redstone")) then settings.set(k, v) end
+        end
 
         if settings.save("rtu.settings") then
             load_settings(ini_cfg)
@@ -537,19 +541,27 @@ local function config_view(display)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
 
+            if not exclude_conns then
+                tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
+                tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
+
+                tool_ctl.update_peri_list()
+            end
+
             tool_ctl.dev_cfg.enable()
             tool_ctl.rs_cfg.enable()
+            tool_ctl.view_gw_cfg.enable()
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
                 sum_pane.set_value(5)
-        else sum_pane.set_value(4) end
+            else sum_pane.set_value(4) end
         else sum_pane.set_value(6) end
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-    tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=function()save_and_continue(true)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
     tool_ctl.settings_confirm = PushButton{parent=sum_c_1,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
     tool_ctl.settings_confirm.hide()
 
@@ -648,8 +660,10 @@ local function config_view(display)
 
     tool_ctl.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
+    PushButton{parent=peri_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=26,y=14,min_width=24,text="I don't see my device!",callback=function()peri_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+
     TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU, or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
     TextBox{parent=peri_c_7,x=1,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
     PushButton{parent=peri_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -659,6 +673,7 @@ local function config_view(display)
         new_peri_attrs = { name, type }
         tool_ctl.peri_cfg_editing = false
 
+        tool_ctl.p_err.hide(true)
         tool_ctl.p_name_msg.set_value("Configuring peripheral on '" .. name .. "':")
         tool_ctl.p_desc_ext.set_value("")
 
@@ -769,8 +784,6 @@ local function config_view(display)
 
     tool_ctl.update_peri_list()
 
-    PushButton{parent=peri_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
     TextBox{parent=peri_c_3,x=1,y=1,height=4,text_align=CENTER,text="This feature is intended for advanced users. If you are clicking this just because your device is not shown, follow the connection instructions in 'I don't see my device!'."}
     TextBox{parent=peri_c_3,x=1,y=6,height=4,text_align=CENTER,text="Peripheral Name"}
     local p_name = TextField{parent=peri_c_3,x=1,y=7,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
@@ -813,8 +826,8 @@ local function config_view(display)
     tool_ctl.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
     tool_ctl.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
 
-    local p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
-    p_err.hide(true)
+    tool_ctl.p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    tool_ctl.p_err.hide(true)
 
     local function back_from_peri_opts()
         if tool_ctl.peri_cfg_editing ~= false then
@@ -842,33 +855,33 @@ local function config_view(display)
             if (peri_type == "dynamicValve" or peri_type == "environmentDetector") and for_facility then
                 -- skip
             elseif not (util.is_int(u) and u > 0 and u < 5) then
-                p_err.set_value("Unit ID must be within 1 through 4.")
-                p_err.show()
+                tool_ctl.p_err.set_value("Unit ID must be within 1 through 4.")
+                tool_ctl.p_err.show()
                 return
             else unit = u end
         end
 
         if peri_type == "boilerValve" then
             if not (idx == 1 or idx == 2) then
-                p_err.set_value("Index must be 1 or 2.")
-                p_err.show()
+                tool_ctl.p_err.set_value("Index must be 1 or 2.")
+                tool_ctl.p_err.show()
                 return
             else index = idx end
         elseif peri_type == "turbineValve" then
             if not (idx == 1 or idx == 2 or idx == 3) then
-                p_err.set_value("Index must be 1, 2, or 3.")
-                p_err.show()
+                tool_ctl.p_err.set_value("Index must be 1, 2, or 3.")
+                tool_ctl.p_err.show()
                 return
             else index = idx end
-        elseif peri_type == "dynamicValve" and not for_facility then
+        elseif peri_type == "dynamicValve" and for_facility then
             if not (util.is_int(idx) and idx > 0 and idx < 5) then
-                p_err.set_value("Index must be within 1 through 4.")
-                p_err.show()
+                tool_ctl.p_err.set_value("Index must be within 1 through 4.")
+                tool_ctl.p_err.show()
                 return
             else index = idx end
         end
 
-        p_err.hide(true)
+        tool_ctl.p_err.hide(true)
 
         ---@type rtu_peri_definition
         local def = { name = peri_name, unit = unit, index = index }
@@ -1124,7 +1137,7 @@ local function config_view(display)
                 local unit = "facility"
 
                 if def.unit then unit = "unit " .. def.unit end
-                if def.color ~= nil then conn = def.side .. "/" .. color_name_map[def.color] end
+                if def.color ~= nil then conn = def.side .. "/" .. rsio.color_name(def.color) end
 
                 local line = Div{parent=rs_import_list,height=1}
                 TextBox{parent=line,x=1,y=1,width=1,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
@@ -1202,6 +1215,67 @@ local function config_view(display)
         end
     end
 
+    ---@param def rtu_peri_definition
+    ---@param idx integer
+    ---@param type string
+    local function edit_peri_entry(idx, def, type)
+        -- set inputs BEFORE calling new_peri()
+        if def.index ~= nil then tool_ctl.p_idx.set_value(def.index) end
+        if def.unit == nil then
+            tool_ctl.p_assign_btn.set_value(1)
+        else
+            tool_ctl.p_unit.set_value(def.unit)
+            tool_ctl.p_assign_btn.set_value(2)
+        end
+
+        new_peri(def.name, type)
+
+        -- set editing mode AFTER new_peri()
+        tool_ctl.peri_cfg_editing = idx
+    end
+
+    local function delete_peri_entry(idx)
+        table.remove(tmp_cfg.Peripherals, idx)
+        tool_ctl.gen_peri_summary(tmp_cfg)
+    end
+
+    -- generate the peripherals summary list
+    ---@param cfg rtu_config
+    function tool_ctl.gen_peri_summary(cfg)
+        peri_list.remove_all()
+
+        for i = 1, #cfg.Peripherals do
+            local def = cfg.Peripherals[i]  ---@type rtu_peri_definition
+
+            local t = ppm.get_type(def.name)
+            local t_str = "<disconnected> (connect to edit)"
+            local disconnected = t == nil
+
+            if not disconnected then t_str = "[" .. t .. "]" end
+
+            local desc = "  \x1a "
+
+            if type(def.index) == "number" then
+                desc = desc .. "#" .. def.index .. " "
+            end
+
+            if type(def.unit) == "number" then
+                desc = desc .. "for unit " .. def.unit
+            else
+                desc = desc .. "for the facility"
+            end
+
+            local entry = Div{parent=peri_list,height=3}
+            TextBox{parent=entry,x=1,y=1,height=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=entry,x=1,y=2,height=1,text="  \x1a "..t_str,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=entry,x=1,y=3,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+            local edit_btn = PushButton{parent=entry,x=41,y=2,min_width=8,height=1,text="EDIT",callback=function()edit_peri_entry(i,def,t or "")end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+            PushButton{parent=entry,x=41,y=3,min_width=8,height=1,text="DELETE",callback=function()delete_peri_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+
+            if disconnected then edit_btn.disable() end
+        end
+    end
+
     local function edit_rs_entry(idx)
         local def = tmp_cfg.Redstone[idx]   ---@type rtu_rs_definition
 
@@ -1252,7 +1326,7 @@ local function config_view(display)
             local conn = def.side
             local unit = util.strval(def.unit or "F")
 
-            if def.color ~= nil then conn = def.side .. "/" .. color_name_map[def.color] end
+            if def.color ~= nil then conn = def.side .. "/" .. rsio.color_name(def.color) end
 
             local entry = Div{parent=rs_list,height=1}
             TextBox{parent=entry,x=1,y=1,width=1,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
@@ -1261,53 +1335,6 @@ local function config_view(display)
             TextBox{parent=entry,x=33,y=1,width=1,height=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
             PushButton{parent=entry,x=35,y=1,min_width=6,height=1,text="EDIT",callback=function()edit_rs_entry(i)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
             PushButton{parent=entry,x=41,y=1,min_width=8,height=1,text="DELETE",callback=function()delete_rs_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-        end
-    end
-
-    local function edit_peri_entry(idx, name, type)
-        new_peri(name, type)
-        tool_ctl.peri_cfg_editing = idx -- must be after new_peri
-    end
-
-    local function delete_peri_entry(idx)
-        table.remove(tmp_cfg.Peripherals, idx)
-        tool_ctl.gen_peri_summary(tmp_cfg)
-    end
-
-    -- generate the peripherals summary list
-    ---@param cfg rtu_config
-    function tool_ctl.gen_peri_summary(cfg)
-        peri_list.remove_all()
-
-        for i = 1, #cfg.Peripherals do
-            local def = cfg.Peripherals[i]  ---@type rtu_peri_definition
-
-            local t = ppm.get_type(def.name)
-            local t_str = "<disconnected> (connect to edit)"
-            local disconnected = t == nil
-
-            if not disconnected then t_str = "[" .. t .. "]" end
-
-            local desc = "  \x1a "
-
-            if type(def.index) == "number" then
-                desc = desc .. "#" .. def.index .. " "
-            end
-
-            if type(def.unit) == "number" then
-                desc = desc .. "for unit " .. def.unit
-            else
-                desc = desc .. "for the facility"
-            end
-
-            local entry = Div{parent=peri_list,height=3}
-            TextBox{parent=entry,x=1,y=1,height=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
-            TextBox{parent=entry,x=1,y=2,height=1,text="  \x1a "..t_str,fg_bg=cpair(colors.gray,colors.white)}
-            TextBox{parent=entry,x=1,y=3,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
-            local edit_btn = PushButton{parent=entry,x=41,y=2,min_width=8,height=1,text="EDIT",callback=function()edit_peri_entry(i,def.name,t)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-            PushButton{parent=entry,x=41,y=3,min_width=8,height=1,text="DELETE",callback=function()delete_peri_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-
-            if disconnected then edit_btn.disable() end
         end
     end
 end

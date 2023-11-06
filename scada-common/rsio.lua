@@ -285,6 +285,18 @@ function rsio.is_color(color)
     return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0)
 end
 
+-- color to string
+---@nodiscard
+---@param color color
+---@return string
+function rsio.color_name(color)
+    local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
+
+    if rsio.is_color(color) then
+        return color_name_map[color]
+    else return "unknown" end
+end
+
 --#endregion
 
 --#region Digital I/O

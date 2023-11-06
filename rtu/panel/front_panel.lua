@@ -109,12 +109,10 @@ local function init(panel, units)
         unit_hw.register(databus.ps, "unit_hw_" .. i, unit_hw.update)
 
         -- unit name identifier (type + index)
-        local name = util.c(UNIT_TYPE_LABELS[unit.type + 1], " ", unit.index)
-        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=name,height=1}
+        local function get_name(t) return util.c(UNIT_TYPE_LABELS[t + 1], " ", util.trinary(util.is_int(unit.index), unit.index, "")) end
+        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),height=1}
 
-        name_box.register(databus.ps, "unit_type_" .. i, function (t)
-            name_box.set_value(util.c(UNIT_TYPE_LABELS[t + 1], " ", unit.index))
-        end)
+        name_box.register(databus.ps, "unit_type_" .. i, function (t) name_box.set_value(get_name(t)) end)
 
         -- assignment (unit # or facility)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)

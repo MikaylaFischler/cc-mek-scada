@@ -28,6 +28,174 @@ local UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
 local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 
+---@param smem rtu_shared_memory
+---@param println_ts function
+---@param iface string
+---@param type string
+---@param device table
+---@param unit rtu_unit_registry_entry
+local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
+    local sys = smem.rtu_sys
+
+    -- find disconnected device to reconnect
+    -- note: cannot check isFormed as that would yield this coroutine and consume events
+    if unit.name == iface then
+        local resend_advert = false
+        local faulted       = false
+        local unknown       = false
+        local invalid       = false
+
+        -- found, re-link
+        unit.device = device
+
+        if unit.type == RTU_UNIT_TYPE.VIRTUAL then
+            resend_advert = true
+            if type == "boilerValve" then
+                -- boiler multiblock
+                if unit.reactor < 1 or unit.reactor > 4 then
+                    invalid = true
+                    log.error(util.c("boiler '", unit.name, "' cannot init, not assigned to a valid unit in config"))
+                end
+
+                if (unit.index == false) or unit.index < 1 or unit.index > 2 then
+                    invalid = true
+                    log.error(util.c("boiler '", unit.name, "' cannot init, invalid index provided in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.BOILER_VALVE
+            elseif type == "turbineValve" then
+                -- turbine multiblock
+                if unit.reactor < 1 or unit.reactor > 4 then
+                    invalid = true
+                    log.error(util.c("turbine '", unit.name, "' cannot init, not assigned to a valid unit in config"))
+                end
+
+                if (unit.index == false) or unit.index < 1 or unit.index > 3 then
+                    invalid = true
+                    log.error(util.c("turbine '", unit.name, "' cannot init, invalid index provided in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.TURBINE_VALVE
+            elseif type == "dynamicValve" then
+                -- dynamic tank multiblock
+                if unit.reactor < 0 or unit.reactor > 4 then
+                    invalid = true
+                    log.error(util.c("dynamic tank '", unit.name, "' cannot init, no valid assignment provided in config"))
+                end
+
+                if (unit.reactor == 0 and ((unit.index == false) or unit.index < 1 or unit.index > 4)) or
+                   (unit.reactor > 0 and unit.index ~= 1) then
+                    invalid = true
+                    log.error(util.c("dynamic tank '", unit.name, "' cannot init, invalid index provided in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.DYNAMIC_VALVE
+            elseif type == "inductionPort" then
+                -- induction matrix multiblock
+                if unit.reactor ~= 0 then
+                    invalid = true
+                    log.error(util.c("induction matrix '", unit.name, "' cannot init, not assigned to facility in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.IMATRIX
+            elseif type == "spsPort" then
+                -- SPS multiblock
+                if unit.reactor ~= 0 then
+                    invalid = true
+                    log.error(util.c("SPS '", unit.name, "' cannot init, not assigned to facility in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.SPS
+            elseif type == "solarNeutronActivator" then
+                -- SNA
+                if unit.reactor < 1 or unit.reactor > 4 then
+                    invalid = true
+                    log.error(util.c("SNA '", unit.name, "' cannot init, not assigned to a valid unit in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.SNA
+            elseif type == "environmentDetector" then
+                -- advanced peripherals environment detector
+                if unit.reactor < 0 or unit.reactor > 4 then
+                    invalid = true
+                    log.error(util.c("environment detector '", unit.name, "' cannot init, no valid assignment provided in config"))
+                end
+
+                unit.type = RTU_UNIT_TYPE.ENV_DETECTOR
+            else
+                resend_advert = false
+                log.error(util.c("virtual device '", unit.name, "' cannot init to an unknown type (", type, ")"))
+            end
+
+            databus.tx_unit_hw_type(unit.uid, unit.type)
+        end
+
+        -- if disconnected on startup, config wouldn't have been validated
+        -- checking now that it has connected; the config isn't valid, so don't connect it
+        if invalid then
+            unit.hw_state = UNIT_HW_STATE.OFFLINE
+            databus.tx_unit_hw_status(unit.uid, unit.hw_state)
+            return
+        end
+
+        -- note for multiblock structures: if not formed, indexing the multiblock functions results in a PPM fault
+
+        if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
+            unit.rtu, faulted = boilerv_rtu.new(device)
+            unit.formed = util.trinary(faulted, false, nil)
+        elseif unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
+            unit.rtu, faulted = turbinev_rtu.new(device)
+            unit.formed = util.trinary(faulted, false, nil)
+        elseif unit.type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
+            unit.rtu, faulted = dynamicv_rtu.new(device)
+            unit.formed = util.trinary(faulted, false, nil)
+        elseif unit.type == RTU_UNIT_TYPE.IMATRIX then
+            unit.rtu, faulted = imatrix_rtu.new(device)
+            unit.formed = util.trinary(faulted, false, nil)
+        elseif unit.type == RTU_UNIT_TYPE.SPS then
+            unit.rtu, faulted = sps_rtu.new(device)
+            unit.formed = util.trinary(faulted, false, nil)
+        elseif unit.type == RTU_UNIT_TYPE.SNA then
+            unit.rtu, faulted = sna_rtu.new(device)
+        elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
+            unit.rtu, faulted = envd_rtu.new(device)
+        else
+            unknown = true
+            log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
+        end
+
+        if unit.is_multiblock then
+            unit.hw_state = UNIT_HW_STATE.UNFORMED
+            if unit.formed == false then
+                log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
+            end
+        elseif faulted then
+            unit.hw_state = UNIT_HW_STATE.FAULTED
+        elseif not unknown then
+            unit.hw_state = UNIT_HW_STATE.OK
+        else
+            unit.hw_state = UNIT_HW_STATE.OFFLINE
+        end
+
+        databus.tx_unit_hw_status(unit.uid, unit.hw_state)
+
+        if not unknown then
+            unit.modbus_io = modbus.new(unit.rtu, true)
+
+            local type_name = types.rtu_type_to_string(unit.type)
+            local message = util.c("reconnected the ", type_name, " on interface ", unit.name)
+            println_ts(message)
+            log.info(message)
+
+            if resend_advert then
+                sys.rtu_comms.send_advertisement(sys.units)
+            else
+                sys.rtu_comms.send_remounted(unit.uid)
+            end
+        end
+    end
+end
+
 -- main thread
 ---@nodiscard
 ---@param smem rtu_shared_memory
@@ -180,102 +348,7 @@ function threads.thread__main(smem)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do
-                            local unit = units[i]   ---@type rtu_unit_registry_entry
-
-                            -- find disconnected device to reconnect
-                            -- note: cannot check isFormed as that would yield this coroutine and consume events
-                            if unit.name == param1 then
-                                local resend_advert = false
-                                local faulted       = false
-                                local unknown       = false
-
-                                -- found, re-link
-                                unit.device = device
-
-                                if unit.type == RTU_UNIT_TYPE.VIRTUAL then
-                                    resend_advert = true
-                                    if type == "boilerValve" then
-                                        -- boiler multiblock
-                                        unit.type = RTU_UNIT_TYPE.BOILER_VALVE
-                                    elseif type == "turbineValve" then
-                                        -- turbine multiblock
-                                        unit.type = RTU_UNIT_TYPE.TURBINE_VALVE
-                                    elseif type == "inductionPort" then
-                                        -- induction matrix multiblock
-                                        unit.type = RTU_UNIT_TYPE.IMATRIX
-                                    elseif type == "spsPort" then
-                                        -- SPS multiblock
-                                        unit.type = RTU_UNIT_TYPE.SPS
-                                    elseif type == "solarNeutronActivator" then
-                                        -- SNA
-                                        unit.type = RTU_UNIT_TYPE.SNA
-                                    elseif type == "environmentDetector" then
-                                        -- advanced peripherals environment detector
-                                        unit.type = RTU_UNIT_TYPE.ENV_DETECTOR
-                                    else
-                                        resend_advert = false
-                                        log.error(util.c("virtual device '", unit.name, "' cannot init to an unknown type (", type, ")"))
-                                    end
-
-                                    databus.tx_unit_hw_type(unit.uid, unit.type)
-                                end
-
-                                -- note for multiblock structures: if not formed, indexing the multiblock functions results in a PPM fault
-
-                                if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
-                                    unit.rtu, faulted = boilerv_rtu.new(device)
-                                    unit.formed = util.trinary(faulted, false, nil)
-                                elseif unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
-                                    unit.rtu, faulted = turbinev_rtu.new(device)
-                                    unit.formed = util.trinary(faulted, false, nil)
-                                elseif unit.type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
-                                    unit.rtu, faulted = dynamicv_rtu.new(device)
-                                    unit.formed = util.trinary(faulted, false, nil)
-                                elseif unit.type == RTU_UNIT_TYPE.IMATRIX then
-                                    unit.rtu, faulted = imatrix_rtu.new(device)
-                                    unit.formed = util.trinary(faulted, false, nil)
-                                elseif unit.type == RTU_UNIT_TYPE.SPS then
-                                    unit.rtu, faulted = sps_rtu.new(device)
-                                    unit.formed = util.trinary(faulted, false, nil)
-                                elseif unit.type == RTU_UNIT_TYPE.SNA then
-                                    unit.rtu, faulted = sna_rtu.new(device)
-                                elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
-                                    unit.rtu, faulted = envd_rtu.new(device)
-                                else
-                                    unknown = true
-                                    log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)
-                                end
-
-                                if unit.is_multiblock then
-                                    unit.hw_state = UNIT_HW_STATE.UNFORMED
-                                    if unit.formed == false then
-                                        log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
-                                    end
-                                elseif faulted then
-                                    unit.hw_state = UNIT_HW_STATE.FAULTED
-                                elseif not unknown then
-                                    unit.hw_state = UNIT_HW_STATE.OK
-                                else
-                                    unit.hw_state = UNIT_HW_STATE.OFFLINE
-                                end
-
-                                databus.tx_unit_hw_status(unit.uid, unit.hw_state)
-
-                                if not unknown then
-                                    unit.modbus_io = modbus.new(unit.rtu, true)
-
-                                    local type_name = types.rtu_type_to_string(unit.type)
-                                    local message = util.c("reconnected the ", type_name, " on interface ", unit.name)
-                                    println_ts(message)
-                                    log.info(message)
-
-                                    if resend_advert then
-                                        rtu_comms.send_advertisement(units)
-                                    else
-                                        rtu_comms.send_remounted(unit.uid)
-                                    end
-                                end
-                            end
+                            handle_unit_mount(smem, println_ts, param1, type, device, units[i])
                         end
                     end
                 end

@@ -5,7 +5,6 @@ local log     = require("scada-common.log")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
-local config  = require("rtu.config")
 local databus = require("rtu.databus")
 local modbus  = require("rtu.modbus")
 
@@ -16,6 +15,51 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+
+---@type rtu_config
+local config = {}
+
+rtu.config = config
+
+-- load the RTU configuration
+function rtu.load_config()
+    if not settings.load("/rtu.settings") then return false end
+
+    config.Peripherals = settings.get("Peripherals")
+    config.Redstone = settings.get("Redstone")
+
+    config.SpeakerVolume = settings.get("SpeakerVolume")
+    config.SVR_Channel = settings.get("SVR_Channel")
+    config.RTU_Channel = settings.get("RTU_Channel")
+    config.ConnTimeout = settings.get("ConnTimeout")
+    config.TrustedRange = settings.get("TrustedRange")
+    config.AuthKey = settings.get("AuthKey")
+    config.LogMode = settings.get("LogMode")
+    config.LogPath = settings.get("LogPath")
+    config.LogDebug = settings.get("LogDebug")
+
+    local cfv = util.new_validator()
+
+    cfv.assert_type_num(config.SpeakerVolume)
+    cfv.assert_channel(config.SVR_Channel)
+    cfv.assert_channel(config.RTU_Channel)
+    cfv.assert_type_int(config.ConnTimeout)
+    cfv.assert_min(config.ConnTimeout, 2)
+    cfv.assert_type_num(config.TrustedRange)
+    cfv.assert_min(config.TrustedRange, 0)
+    cfv.assert_type_str(config.AuthKey)
+
+    if type(config.AuthKey) == "string" then
+        local len = string.len(config.AuthKey)
+        cfv.assert_eq(len == 0 or len >= 8, true)
+    end
+
+    cfv.assert_type_int(config.LogMode)
+    cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
+
+    return cfv.valid()
+end
 
 -- create a new RTU unit
 ---@nodiscard
@@ -175,7 +219,7 @@ function rtu.init_sounder(speaker)
     function spkr_ctl.continue()
         if spkr_ctl.playing then
             if spkr_ctl.speaker ~= nil and spkr_ctl.stream.has_next_block() then
-                local success = spkr_ctl.speaker.playAudio(spkr_ctl.stream.get_next_block(), config.SOUNDER_VOLUME)
+                local success = spkr_ctl.speaker.playAudio(spkr_ctl.stream.get_next_block(), config.SpeakerVolume)
                 if not success then log.error(util.c("rtu_sounder(", spkr_ctl.name, "): error playing audio")) end
             end
         end
@@ -203,11 +247,8 @@ end
 ---@nodiscard
 ---@param version string RTU version
 ---@param nic nic network interface device
----@param rtu_channel integer PLC comms channel
----@param svr_channel integer supervisor server channel
----@param range integer trusted device connection range
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
+function rtu.comms(version, nic, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = 0,
@@ -218,13 +259,13 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
 
     local insert = table.insert
 
-    comms.set_trusted_range(range)
+    comms.set_trusted_range(config.TrustedRange)
 
     -- PRIVATE FUNCTIONS --
 
     -- configure modem channels
     nic.closeAll()
-    nic.open(rtu_channel)
+    nic.open(config.RTU_Channel)
 
     -- send a scada management packet
     ---@param msg_type MGMT_TYPE
@@ -236,7 +277,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(svr_channel, rtu_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -280,7 +321,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
     function public.send_modbus(m_pkt)
         local s_pkt = comms.scada_packet()
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        nic.transmit(svr_channel, rtu_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
 
@@ -365,7 +406,7 @@ function rtu.comms(version, nic, rtu_channel, svr_channel, range, conn_watchdog)
         local l_chan   = packet.scada_frame.local_channel()
         local src_addr = packet.scada_frame.src_addr()
 
-        if l_chan == rtu_channel then
+        if l_chan == config.RTU_Channel then
             -- check sequence number
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num()
