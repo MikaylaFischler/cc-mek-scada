@@ -5,6 +5,7 @@
 local log         = require("scada-common.log")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
+local rsio        = require("scada-common.rsio")
 
 local core        = require("graphics.core")
 
@@ -129,7 +130,6 @@ local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
 local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
 local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
 local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
-local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
 
 -- convert text representation to index
 ---@param side string
@@ -610,7 +610,7 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
             if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
-            if f[1] == "EmerCoolColor" and raw ~= nil then val = color_name_map[raw] end
+            if f[1] == "EmerCoolColor" and raw ~= nil then val = rsio.color_name(raw) end
             if val == "nil" then val = "<not set>" end
 
             local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
