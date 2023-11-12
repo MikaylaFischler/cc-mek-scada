@@ -133,6 +133,9 @@ local function number_field(args)
             elseif type(args.min) == "number" and val < min then
                 e.value = "" .. min
                 ifield.nav_start()
+            else
+                e.value = "" .. val
+                ifield.nav_end()
             end
         else
             e.value = ""

@@ -469,7 +469,7 @@ function iocontrol.record_unit_builds(builds)
 
     -- note: if not all units and RTUs are connected, some will be nil
     for id, build in pairs(builds) do
-        local unit = io.units[id]    ---@type ioctl_unit
+        local unit = io.units[id] ---@type ioctl_unit
 
         local log_header = util.c("iocontrol.record_unit_builds[UNIT ", id, "]: ")
 
@@ -694,8 +694,8 @@ function iocontrol.update_facility_status(status)
 
                 for id, sps in pairs(rtu_statuses.sps) do
                     if type(fac.sps_data_tbl[id]) == "table" then
-                        local data = fac.sps_data_tbl[id]   ---@type sps_session_db
-                        local ps   = fac.sps_ps_tbl[id]     ---@type psil
+                        local data = fac.sps_data_tbl[id] ---@type sps_session_db
+                        local ps   = fac.sps_ps_tbl[id]   ---@type psil
 
                         local rtu_faulted = _record_multiblock_status(sps, data, ps)
 
@@ -732,8 +732,8 @@ function iocontrol.update_facility_status(status)
 
                 for id, tank in pairs(rtu_statuses.tanks) do
                     if type(fac.tank_data_tbl[id]) == "table" then
-                        local data = fac.tank_data_tbl[id]  ---@type dynamicv_session_db
-                        local ps   = fac.tank_ps_tbl[id]    ---@type psil
+                        local data = fac.tank_data_tbl[id] ---@type dynamicv_session_db
+                        local ps   = fac.tank_ps_tbl[id]   ---@type psil
 
                         local rtu_faulted = _record_multiblock_status(tank, data, ps)
 
@@ -760,20 +760,34 @@ function iocontrol.update_facility_status(status)
             end
 
             -- environment detector status
-            if type(rtu_statuses.rad_mon) == "table" then
-                if #rtu_statuses.rad_mon > 0 then
-                    local rad_mon = rtu_statuses.rad_mon[1]
-                    local rtu_faulted = rad_mon[1]  ---@type boolean
-                    fac.radiation     = rad_mon[2]  ---@type number
+            if type(rtu_statuses.envds) == "table" then
+                local max_rad, max_reading, any_conn, any_faulted = 0, types.new_zero_radiation_reading(), false, false
 
-                    fac.ps.publish("rad_computed_status", util.trinary(rtu_faulted, 2, 3))
-                    fac.ps.publish("radiation", fac.radiation)
+                for _, envd in pairs(rtu_statuses.envds) do
+                    local rtu_faulted = envd[1] ---@type boolean
+                    local radiation   = envd[2] ---@type radiation_reading
+                    local rad_raw     = envd[3] ---@type number
+
+                    any_conn = true
+                    any_faulted = any_faulted or rtu_faulted
+
+                    if rad_raw > max_rad then
+                        max_rad = rad_raw
+                        max_reading = radiation
+                    end
+                end
+
+                if any_conn then
+                    fac.radiation = max_reading
+                    fac.ps.publish("rad_computed_status", util.trinary(any_faulted, 2, 3))
                 else
                     fac.radiation = types.new_zero_radiation_reading()
                     fac.ps.publish("rad_computed_status", 1)
                 end
+
+                fac.ps.publish("radiation", fac.radiation)
             else
-                log.debug(log_header .. "radiation monitor list not a table")
+                log.debug(log_header .. "environment detector list not a table")
                 valid = false
             end
         else
@@ -917,8 +931,8 @@ function iocontrol.update_unit_statuses(statuses)
 
                         for id, boiler in pairs(rtu_statuses.boilers) do
                             if type(unit.boiler_data_tbl[id]) == "table" then
-                                local data = unit.boiler_data_tbl[id]   ---@type boilerv_session_db
-                                local ps   = unit.boiler_ps_tbl[id]     ---@type psil
+                                local data = unit.boiler_data_tbl[id] ---@type boilerv_session_db
+                                local ps   = unit.boiler_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(boiler, data, ps)
 
@@ -960,8 +974,8 @@ function iocontrol.update_unit_statuses(statuses)
 
                         for id, turbine in pairs(rtu_statuses.turbines) do
                             if type(unit.turbine_data_tbl[id]) == "table" then
-                                local data = unit.turbine_data_tbl[id]  ---@type turbinev_session_db
-                                local ps   = unit.turbine_ps_tbl[id]    ---@type psil
+                                local data = unit.turbine_data_tbl[id] ---@type turbinev_session_db
+                                local ps   = unit.turbine_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(turbine, data, ps)
 
@@ -1033,9 +1047,9 @@ function iocontrol.update_unit_statuses(statuses)
 
                     -- solar neutron activator status info
                     if type(rtu_statuses.sna) == "table" then
-                        unit.num_snas      = rtu_statuses.sna[1]    ---@type integer
-                        unit.sna_prod_rate = rtu_statuses.sna[2]    ---@type number
-                        unit.sna_peak_rate = rtu_statuses.sna[3]    ---@type number
+                        unit.num_snas      = rtu_statuses.sna[1] ---@type integer
+                        unit.sna_prod_rate = rtu_statuses.sna[2] ---@type number
+                        unit.sna_peak_rate = rtu_statuses.sna[3] ---@type number
 
                         unit.unit_ps.publish("sna_count", unit.num_snas)
                         unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
@@ -1048,16 +1062,28 @@ function iocontrol.update_unit_statuses(statuses)
                     end
 
                     -- environment detector status
-                    if type(rtu_statuses.rad_mon) == "table" then
-                        if #rtu_statuses.rad_mon > 0 then
-                            local rad_mon = rtu_statuses.rad_mon[1]
-                            -- local rtu_faulted = rad_mon[1]  ---@type boolean
-                            unit.radiation = rad_mon[2]  ---@type number
+                    if type(rtu_statuses.envds) == "table" then
+                        local max_rad, max_reading, any_conn = 0, types.new_zero_radiation_reading(), false
 
-                            unit.unit_ps.publish("radiation", unit.radiation)
+                        for _, envd in pairs(rtu_statuses.envds) do
+                            local radiation = envd[2] ---@type radiation_reading
+                            local rad_raw   = envd[3] ---@type number
+
+                            any_conn = true
+
+                            if rad_raw > max_rad then
+                                max_rad = rad_raw
+                                max_reading = radiation
+                            end
+                        end
+
+                        if any_conn then
+                            unit.radiation = max_reading
                         else
                             unit.radiation = types.new_zero_radiation_reading()
                         end
+
+                        unit.unit_ps.publish("radiation", unit.radiation)
                     else
                         log.debug(log_header .. "radiation monitor list not a table")
                         valid = false

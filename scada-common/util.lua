@@ -14,11 +14,15 @@ local print = print
 local tostring = tostring
 local type = type
 
+local t_concat = table.concat
+local t_insert = table.insert
+local t_unpack = table.unpack
+
 ---@class util
 local util = {}
 
 -- scada-common version
-util.version = "1.1.5"
+util.version = "1.1.9"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -70,7 +74,7 @@ function util.strval(val)
     if t == "string" then return val end
     -- this depends on Lua short-circuiting the or check for metatables (note: metatables won't have metatables)
     if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
-        return table.concat{"[", tostring(val), "]"}
+        return t_concat{"[", tostring(val), "]"}
     else return tostring(val) end
 end
 
@@ -90,7 +94,7 @@ function util.pad(str, n)
     local lpad = math.floor((n - len) / 2)
     local rpad = (n - len) - lpad
 
-    return table.concat{util.spaces(lpad), str, util.spaces(rpad)}
+    return t_concat{util.spaces(lpad), str, util.spaces(rpad)}
 end
 
 -- wrap a string into a table of lines
@@ -109,8 +113,9 @@ function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 ---@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
     local strings = {}
-    for i = 1, #arg do strings[i] = util.strval(arg[i]) end
-    return table.concat(strings)
+---@diagnostic disable-next-line: undefined-field
+    for i = 1, arg.n do strings[i] = util.strval(arg[i]) end
+    return t_concat(strings)
 end
 
 -- alias
@@ -121,7 +126,7 @@ util.c = util.concat
 ---@param format string
 ---@vararg any
 ---@diagnostic disable-next-line: unused-vararg
-function util.sprintf(format, ...) return string.format(format, table.unpack(arg)) end
+function util.sprintf(format, ...) return string.format(format, t_unpack(arg)) end
 
 -- luacheck: unused args
 
@@ -185,7 +190,7 @@ function util.mov_avg(length, default)
     ---@param x number value
     function public.reset(x)
         data = {}
-        for _ = 1, length do table.insert(data, x) end
+        for _ = 1, length do t_insert(data, x) end
     end
 
     -- record a new value
@@ -482,6 +487,7 @@ function util.new_validator()
     function public.assert_type_str(value) valid = valid and type(value) == "string" end
     function public.assert_type_table(value) valid = valid and type(value) == "table" end
 
+    function public.assert(check) valid = valid and (check == true) end
     function public.assert_eq(check, expect) valid = valid and check == expect end
     function public.assert_min(check, min) valid = valid and check >= min end
     function public.assert_min_ex(check, min) valid = valid and check > min end

@@ -60,7 +60,7 @@ def make_manifest(size):
         },
         "files" : {
             # common files
-            "system" : [ "initenv.lua", "startup.lua", "configure.lua" ],
+            "system" : [ "initenv.lua", "startup.lua", "configure.lua", "LICENSE" ],
             "common" : list_files("./scada-common"),
             "graphics" : list_files("./graphics"),
             "lockbox" : list_files("./lockbox"),

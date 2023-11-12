@@ -5,6 +5,8 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local ALIGN = core.ALIGN
+
 local MOUSE_CLICK = core.events.MOUSE_CLICK
 local KEY_CLICK = core.events.KEY_CLICK
 
@@ -12,6 +14,7 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field text string button text
 ---@field callback function function to call on touch
 ---@field min_width? integer text length if omitted
+---@field alignment? ALIGN text align if min width > length
 ---@field active_fg_bg? cpair foreground/background colors when pressed
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
@@ -31,6 +34,7 @@ local function push_button(args)
     element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
 
     local text_width = string.len(args.text)
+    local alignment = args.alignment or ALIGN.CENTER
 
     -- set automatic settings
     args.can_focus = true
@@ -41,8 +45,14 @@ local function push_button(args)
     -- create new graphics element base object
     local e = element.new(args)
 
-    local h_pad = math.floor((e.frame.w - text_width) / 2) + 1
+    local h_pad = 1
     local v_pad = math.floor(e.frame.h / 2) + 1
+
+    if alignment == ALIGN.CENTER then
+        h_pad = math.floor((e.frame.w - text_width) / 2) + 1
+    elseif alignment == ALIGN.RIGHT then
+        h_pad = (e.frame.w - text_width) + 1
+    end
 
     -- draw the button
     function e.redraw()

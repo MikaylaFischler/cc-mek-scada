@@ -82,46 +82,59 @@ rsio.IO_LVL = IO_LVL
 rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
+rsio.NUM_PORTS = IO_PORT.U_EMER_COOL
+
+-- self checks
+
+local dup_chk = {}
+for _, v in pairs(IO_PORT) do
+    assert(dup_chk[v] ~= true, "duplicate in port list")
+    dup_chk[v] = true
+end
+
+assert(#dup_chk == rsio.NUM_PORTS, "port list malformed")
 
 --#endregion
 
 --#region Utility Functions
 
+local PORT_NAMES = {
+    "F_SCRAM",
+    "F_ACK",
+    "R_SCRAM",
+    "R_RESET",
+    "R_ENABLE",
+    "U_ACK",
+    "F_ALARM",
+    "F_ALARM_ANY",
+    "WASTE_PU",
+    "WASTE_PO",
+    "WASTE_POPL",
+    "WASTE_AM",
+    "R_ACTIVE",
+    "R_AUTO_CTRL",
+    "R_SCRAMMED",
+    "R_AUTO_SCRAM",
+    "R_HIGH_DMG",
+    "R_HIGH_TEMP",
+    "R_LOW_COOLANT",
+    "R_EXCESS_HC",
+    "R_EXCESS_WS",
+    "R_INSUFF_FUEL",
+    "R_PLC_FAULT",
+    "R_PLC_TIMEOUT",
+    "U_ALARM",
+    "U_EMER_COOL"
+}
+
+assert(rsio.NUM_PORTS == #PORT_NAMES, "port names length incorrect")
+
 -- port to string
 ---@nodiscard
 ---@param port IO_PORT
 function rsio.to_string(port)
-    local names = {
-        "F_SCRAM",
-        "F_ACK",
-        "R_SCRAM",
-        "R_RESET",
-        "R_ENABLE",
-        "U_ACK",
-        "F_ALARM",
-        "F_ALARM_ANY",
-        "WASTE_PU",
-        "WASTE_PO",
-        "WASTE_POPL",
-        "WASTE_AM",
-        "R_ACTIVE",
-        "R_AUTO_CTRL",
-        "R_SCRAMMED",
-        "R_AUTO_SCRAM",
-        "R_HIGH_DMG",
-        "R_HIGH_TEMP",
-        "R_LOW_COOLANT",
-        "R_EXCESS_HC",
-        "R_EXCESS_WS",
-        "R_INSUFF_FUEL",
-        "R_PLC_FAULT",
-        "R_PLC_TIMEOUT",
-        "U_ALARM",
-        "U_EMER_COOL"
-    }
-
-    if util.is_int(port) and port > 0 and port <= #names then
-        return names[port]
+    if util.is_int(port) and port > 0 and port <= #PORT_NAMES then
+        return PORT_NAMES[port]
     else
         return "UNKNOWN"
     end
@@ -266,10 +279,22 @@ end
 
 -- check if a color is a valid single color
 ---@nodiscard
----@param color integer
+---@param color any
 ---@return boolean valid
 function rsio.is_color(color)
     return util.is_int(color) and (color > 0) and (_B_AND(color, (color - 1)) == 0)
+end
+
+-- color to string
+---@nodiscard
+---@param color color
+---@return string
+function rsio.color_name(color)
+    local color_name_map = { [colors.red] = "red", [colors.orange] = "orange", [colors.yellow] = "yellow", [colors.lime] = "lime", [colors.green] = "green", [colors.cyan] = "cyan", [colors.lightBlue] = "lightBlue", [colors.blue] = "blue", [colors.purple] = "purple", [colors.magenta] = "magenta", [colors.pink] = "pink", [colors.white] = "white", [colors.lightGray] = "lightGray", [colors.gray] = "gray", [colors.black] = "black", [colors.brown] = "brown" }
+
+    if rsio.is_color(color) then
+        return color_name_map[color]
+    else return "unknown" end
 end
 
 --#endregion

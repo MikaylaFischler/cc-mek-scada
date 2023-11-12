@@ -100,7 +100,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
             -- validate unit advertisement
 
             local advert_validator = util.new_validator()
-            advert_validator.assert_type_int(unit_advert.index)
+            advert_validator.assert(util.is_int(unit_advert.index) or (unit_advert.index == false))
             advert_validator.assert_type_int(unit_advert.reactor)
 
             if u_type == RTU_UNIT_TYPE.REDSTONE then
@@ -108,7 +108,7 @@ function rtu.new_session(id, s_addr, in_queue, out_queue, timeout, advertisement
             end
 
             if advert_validator.valid() then
-                advert_validator.assert_min(unit_advert.index, 1)
+                if util.is_int(unit_advert.index) then advert_validator.assert_min(unit_advert.index, 1) end
                 advert_validator.assert_min(unit_advert.reactor, 0)
                 advert_validator.assert_max(unit_advert.reactor, #self.fac_units)
                 if not advert_validator.valid() then u_type = false end

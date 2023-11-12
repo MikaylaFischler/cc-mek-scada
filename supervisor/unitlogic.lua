@@ -47,8 +47,9 @@ function logic.update_annunciator(self)
 
     local num_boilers = self.num_boilers
     local num_turbines = self.num_turbines
+    local annunc = self.db.annunciator
 
-    self.db.annunciator.RCSFault = false
+    annunc.RCSFault = false
 
     -- variables for boiler, or reactor if no boilers used
     local total_boil_rate = 0.0
@@ -57,14 +58,14 @@ function logic.update_annunciator(self)
     -- REACTOR --
     -------------
 
-    self.db.annunciator.AutoControl = self.auto_engaged
+    annunc.AutoControl = self.auto_engaged
 
     -- check PLC status
-    self.db.annunciator.PLCOnline = self.plc_i ~= nil
+    annunc.PLCOnline = self.plc_i ~= nil
 
-    local plc_ready = self.db.annunciator.PLCOnline
+    local plc_ready = annunc.PLCOnline
 
-    if self.db.annunciator.PLCOnline then
+    if plc_ready then
         local plc_db = self.plc_i.get_db()
 
         -- update ready state
@@ -110,29 +111,29 @@ function logic.update_annunciator(self)
 
         -- heartbeat blink about every second
         if self.last_heartbeat + 1000 < plc_db.last_status_update then
-            self.db.annunciator.PLCHeartbeat = not self.db.annunciator.PLCHeartbeat
+            annunc.PLCHeartbeat = not annunc.PLCHeartbeat
             self.last_heartbeat = plc_db.last_status_update
         end
 
         local flow_low = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, ANNUNC_LIMS.RCSFlowLow_NA, ANNUNC_LIMS.RCSFlowLow_H2O)
 
         -- update other annunciator fields
-        self.db.annunciator.ReactorSCRAM = plc_db.rps_tripped
-        self.db.annunciator.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
-        self.db.annunciator.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
-        self.db.annunciator.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.low_cool)
-        self.db.annunciator.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < flow_low
-        self.db.annunciator.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
-        self.db.annunciator.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
-        self.db.annunciator.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
-        self.db.annunciator.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
-        self.db.annunciator.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
+        annunc.ReactorSCRAM = plc_db.rps_tripped
+        annunc.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
+        annunc.AutoReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.AUTOMATIC
+        annunc.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.low_cool)
+        annunc.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < flow_low
+        annunc.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
+        annunc.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
+        annunc.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
+        annunc.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
+        annunc.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
         local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
         local high_rate = plc_db.mek_status.burn_rate >= (plc_db.mek_status.ccool_amnt * 0.27 / heating_rate_conv)
         -- this advisory applies when no coolant is buffered (which we can't easily determine)<br>
         -- it's a rough estimation, see GitHub cc-mek-scada/wiki/High-Rate-Calculation
-        self.db.annunciator.HighStartupRate = not plc_db.mek_status.status and high_rate
+        annunc.HighStartupRate = not plc_db.mek_status.status and high_rate
 
         -- if no boilers, use reactor heating rate to check for boil rate mismatch
         if num_boilers == 0 then
@@ -146,21 +147,25 @@ function logic.update_annunciator(self)
     -- MISC RTUs --
     ---------------
 
-    self.db.annunciator.RadiationMonitor = 1
-    self.db.annunciator.RadiationWarning = false
+    local max_rad, any_faulted = 0, false
+
     for i = 1, #self.envd do
-        local envd = self.envd[i]   ---@type unit_session
-        self.db.annunciator.RadiationMonitor = util.trinary(envd.is_faulted(), 2, 3)
-        self.db.annunciator.RadiationWarning = envd.get_db().radiation_raw >= ANNUNC_LIMS.RadiationWarning
-        break
+        local envd = self.envd[i] ---@type unit_session
+        local db = envd.get_db()  ---@type envd_session_db
+        any_faulted = any_faulted or envd.is_faulted()
+        if db.radiation_raw > max_rad then max_rad = db.radiation_raw end
     end
 
-    self.db.annunciator.EmergencyCoolant = 1
+    annunc.RadiationMonitor = util.trinary(#self.envd == 0, 1, util.trinary(any_faulted, 2, 3))
+    annunc.RadiationWarning = max_rad >= ANNUNC_LIMS.RadiationWarning
+
+    annunc.EmergencyCoolant = 1
+
     for i = 1, #self.redstone do
-        local db = self.redstone[i].get_db()    ---@type redstone_session_db
-        local io = db.io[IO.U_EMER_COOL]        ---@type rs_db_dig_io|nil
+        local db = self.redstone[i].get_db() ---@type redstone_session_db
+        local io = db.io[IO.U_EMER_COOL]     ---@type rs_db_dig_io|nil
         if io ~= nil then
-            self.db.annunciator.EmergencyCoolant = util.trinary(io.read(), 3, 2)
+            annunc.EmergencyCoolant = util.trinary(io.read(), 3, 2)
             break
         end
     end
@@ -172,7 +177,7 @@ function logic.update_annunciator(self)
     local boilers_ready = num_boilers == #self.boilers
 
     -- clear boiler online flags
-    for i = 1, num_boilers do self.db.annunciator.BoilerOnline[i] = false end
+    for i = 1, num_boilers do annunc.BoilerOnline[i] = false end
 
     -- aggregated statistics
     local boiler_steam_dt_sum = 0.0
@@ -185,7 +190,7 @@ function logic.update_annunciator(self)
             local boiler = session.get_db() ---@type boilerv_session_db
             local idx = session.get_device_idx()
 
-            self.db.annunciator.RCSFault = self.db.annunciator.RCSFault or (not boiler.formed) or session.is_faulted()
+            annunc.RCSFault = annunc.RCSFault or (not boiler.formed) or session.is_faulted()
 
             -- update ready state
             --  - must be formed
@@ -199,8 +204,8 @@ function logic.update_annunciator(self)
             boiler_steam_dt_sum = _get_dt(DT_KEYS.BoilerSteam .. idx)
             boiler_water_dt_sum = _get_dt(DT_KEYS.BoilerWater .. idx)
 
-            self.db.annunciator.BoilerOnline[idx] = true
-            self.db.annunciator.WaterLevelLow[idx] = boiler.tanks.water_fill < ANNUNC_LIMS.WaterLevelLow
+            annunc.BoilerOnline[idx] = true
+            annunc.WaterLevelLow[idx] = boiler.tanks.water_fill < ANNUNC_LIMS.WaterLevelLow
         end
 
         -- check heating rate low
@@ -209,14 +214,14 @@ function logic.update_annunciator(self)
 
             -- check for inactive boilers while reactor is active
             for i = 1, #self.boilers do
-                local boiler = self.boilers[i]  ---@type unit_session
+                local boiler = self.boilers[i] ---@type unit_session
                 local idx = boiler.get_device_idx()
-                local db = boiler.get_db()      ---@type boilerv_session_db
+                local db = boiler.get_db()     ---@type boilerv_session_db
 
                 if r_db.mek_status.status then
-                    self.db.annunciator.HeatingRateLow[idx] = db.state.boil_rate == 0
+                    annunc.HeatingRateLow[idx] = db.state.boil_rate == 0
                 else
-                    self.db.annunciator.HeatingRateLow[idx] = false
+                    annunc.HeatingRateLow[idx] = false
                 end
             end
         end
@@ -234,9 +239,9 @@ function logic.update_annunciator(self)
 
     if num_boilers > 0 then
         for i = 1, #self.boilers do
-            local boiler = self.boilers[i]      ---@type unit_session
+            local boiler = self.boilers[i] ---@type unit_session
             local idx = boiler.get_device_idx()
-            local db = boiler.get_db()          ---@type boilerv_session_db
+            local db = boiler.get_db()     ---@type boilerv_session_db
 
             local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
 
@@ -256,7 +261,7 @@ function logic.update_annunciator(self)
         cfmismatch = cfmismatch or _get_dt(DT_KEYS.ReactorCCool) < -10.0 or (gaining_hc and r_db.mek_status.ccool_fill == 0)
     end
 
-    self.db.annunciator.CoolantFeedMismatch = cfmismatch
+    annunc.CoolantFeedMismatch = cfmismatch
 
     --------------
     -- TURBINES --
@@ -265,7 +270,7 @@ function logic.update_annunciator(self)
     local turbines_ready = num_turbines == #self.turbines
 
     -- clear turbine online flags
-    for i = 1, num_turbines do self.db.annunciator.TurbineOnline[i] = false end
+    for i = 1, num_turbines do annunc.TurbineOnline[i] = false end
 
     -- aggregated statistics
     local total_flow_rate = 0
@@ -277,10 +282,10 @@ function logic.update_annunciator(self)
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
-        local session = self.turbines[i]    ---@type unit_session
-        local turbine = session.get_db()    ---@type turbinev_session_db
+        local session = self.turbines[i] ---@type unit_session
+        local turbine = session.get_db() ---@type turbinev_session_db
 
-        self.db.annunciator.RCSFault = self.db.annunciator.RCSFault or (not turbine.formed) or session.is_faulted()
+        annunc.RCSFault = annunc.RCSFault or (not turbine.formed) or session.is_faulted()
 
         -- update ready state
         --  - must be formed
@@ -295,59 +300,44 @@ function logic.update_annunciator(self)
         max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
         self.db.control.blade_count = self.db.control.blade_count + turbine.build.blades
 
-        self.db.annunciator.TurbineOnline[session.get_device_idx()] = true
+        annunc.TurbineOnline[session.get_device_idx()] = true
     end
 
     -- check for boil rate mismatch (> 4% error) either between reactor and turbine or boiler and turbine
-    self.db.annunciator.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
+    annunc.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
 
     -- check for steam feed mismatch and max return rate
     local steam_dt_max = util.trinary(num_boilers == 0, ANNUNC_LIMS.SFM_MaxSteamDT_H20, ANNUNC_LIMS.SFM_MaxSteamDT_NA)
     local water_dt_min = util.trinary(num_boilers == 0, ANNUNC_LIMS.SFM_MinWaterDT_H20, ANNUNC_LIMS.SFM_MinWaterDT_NA)
     local sfmismatch = math.abs(total_flow_rate - total_input_rate) > ANNUNC_LIMS.SteamFeedMismatch
     sfmismatch = sfmismatch or boiler_steam_dt_sum > steam_dt_max or boiler_water_dt_sum < water_dt_min
-    self.db.annunciator.SteamFeedMismatch = sfmismatch
-    self.db.annunciator.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
+    annunc.SteamFeedMismatch = sfmismatch
+    annunc.MaxWaterReturnFeed = max_water_return_rate == total_flow_rate and total_flow_rate ~= 0
 
     -- turbine safety checks
     for i = 1, #self.turbines do
-        local turbine = self.turbines[i]    ---@type unit_session
-        local db = turbine.get_db()         ---@type turbinev_session_db
+        local turbine = self.turbines[i] ---@type unit_session
+        local db = turbine.get_db()      ---@type turbinev_session_db
         local idx = turbine.get_device_idx()
 
         -- check if steam dumps are open
         if db.state.dumping_mode == DUMPING_MODE.IDLE then
-            self.db.annunciator.SteamDumpOpen[idx] = TRI_FAIL.OK
+            annunc.SteamDumpOpen[idx] = TRI_FAIL.OK
         elseif db.state.dumping_mode == DUMPING_MODE.DUMPING_EXCESS then
-            self.db.annunciator.SteamDumpOpen[idx] = TRI_FAIL.PARTIAL
+            annunc.SteamDumpOpen[idx] = TRI_FAIL.PARTIAL
         else
-            self.db.annunciator.SteamDumpOpen[idx] = TRI_FAIL.FULL
+            annunc.SteamDumpOpen[idx] = TRI_FAIL.FULL
         end
 
         -- check if turbines are at max speed but not keeping up
-        self.db.annunciator.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0.0)
+        annunc.TurbineOverSpeed[idx] = (db.state.flow_rate == db.build.max_flow_rate) and (_get_dt(DT_KEYS.TurbineSteam .. idx) > 0.0)
 
-        --[[
-            Generator Trip
-            a generator trip is when a generator suddenly and unexpectedly loses it's external load, which occurs when a power plant
-            is disconnected from the grid. in our case, this is when the turbine is disconnected, or what it's connected to becomes
-            fully charged. this is identified by detecting if:
-                - the internal power storage of the turbine is increasing AND
-                - there is at least 5% energy fill (preventing false trips with periodic power extraction from other mods)
-            this would then mean there is no external load and there will be a turbine trip soon if this is not resolved
-        ]]--
-        self.db.annunciator.GeneratorTrip[idx] = (_get_dt(DT_KEYS.TurbinePower .. idx) > 0.0) and (db.tanks.energy_fill > 0.05)
+        -- see notes at cc-mek-scada/wiki/Annunciator-Panels#Generator-Trip
+        annunc.GeneratorTrip[idx] = (_get_dt(DT_KEYS.TurbinePower .. idx) > 0.0) and (db.tanks.energy_fill > 0.05)
 
-        --[[
-            Turbine Trip
-            a turbine trip is when the turbine stops, which means we are no longer receiving water and lose the ability to cool.
-            this can be identified by these conditions:
-            - the current flow rate is 0 mB/t and it should not be
-                - can initially catch this by detecting a 0 flow rate with a non-zero input rate, but eventually the steam will fill up
-                - can later identified by presence of steam in tank with a 0 flow rate
-        ]]--
+        -- see notes at cc-mek-scada/wiki/Annunciator-Panels#Turbine-Trip
         local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
-        self.db.annunciator.TurbineTrip[idx] = has_steam and db.state.flow_rate == 0
+        annunc.TurbineTrip[idx] = has_steam and db.state.flow_rate == 0
     end
 
     -- update auto control ready state for this unit
@@ -577,6 +567,7 @@ end
 ---@param self _unit_self unit instance
 function logic.update_status_text(self)
     local AISTATE = self.types.AISTATE
+    local annunc = self.db.annunciator
 
     -- check if an alarm is active (tripped or ack'd)
     ---@nodiscard
@@ -666,13 +657,13 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if self.db.annunciator.ReactorHighDeltaT then
+            if annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
-            elseif self.db.annunciator.ReactorTempHigh then
+            elseif annunc.ReactorTempHigh then
                 self.status_text[2] = "core temp high, system nominal"
-            elseif self.db.annunciator.FuelInputRateLow then
+            elseif annunc.FuelInputRateLow then
                 self.status_text[2] = "insufficient fuel input rate"
-            elseif self.db.annunciator.WasteLineOcclusion then
+            elseif annunc.WasteLineOcclusion then
                 self.status_text[2] = "insufficient waste output rate"
             elseif (util.time_ms() - self.last_rate_change_ms) <= FLOW_STABILITY_DELAY_MS then
                 self.status_text[2] = "awaiting flow stability"
@@ -711,7 +702,7 @@ function logic.update_status_text(self)
             end
 
             self.status_text = { "RPS SCRAM", cause }
-        elseif self.db.annunciator.RadiationWarning then
+        elseif annunc.RadiationWarning then
             -- elevated, non-hazardous level of radiation is low priority, so display it now if everything else was fine
             self.status_text = { "RADIATION DETECTED", "elevated level of radiation" }
         else
@@ -726,7 +717,7 @@ function logic.update_status_text(self)
                 self.status_text[2] = "core hot"
             end
         end
-    elseif self.db.annunciator.RadiationWarning then
+    elseif annunc.RadiationWarning then
         -- in case PLC was disconnected but radiation is present
         self.status_text = { "RADIATION DETECTED", "elevated level of radiation" }
     else
@@ -738,6 +729,7 @@ end
 ---@param self _unit_self unit instance
 function logic.handle_redstone(self)
     local AISTATE = self.types.AISTATE
+    local annunc = self.db.annunciator
 
     -- check if an alarm is active (tripped or ack'd)
     ---@nodiscard
@@ -806,7 +798,7 @@ function logic.handle_redstone(self)
     -----------------------
 
     local enable_emer_cool = self.plc_cache.rps_status.low_cool or
-        (self.auto_engaged and self.db.annunciator.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
+        (self.auto_engaged and annunc.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
 
     -- don't turn off emergency coolant on sufficient coolant level since it might drop again
     -- turn off once system is OK again
@@ -822,7 +814,7 @@ function logic.handle_redstone(self)
             end
         end
 
-        if self.db.annunciator.EmergencyCoolant > 1 and self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and self.emcool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve closed"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to not dump steam"))
         end
@@ -849,7 +841,7 @@ function logic.handle_redstone(self)
             end
         end
 
-        if self.db.annunciator.EmergencyCoolant > 1 and not self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and not self.emcool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve opened"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to dump excess steam"))
         end

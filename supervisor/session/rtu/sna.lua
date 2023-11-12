@@ -36,11 +36,11 @@ local PERIODICS = {
 function sna.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.SNA then
-        log.error("attempt to instantiate sna RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate sna RTU for type " .. types.rtu_type_to_string(advert.type))
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").sna(" .. advert.index .. "): "
+    local log_tag = util.c("session.rtu(", session_id, ").sna[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),

@@ -49,13 +49,16 @@ local PERIODICS = {
 ---@param advert rtu_advertisement RTU advertisement table
 ---@param out_queue mqueue RTU unit message out queue
 function dynamicv.new(session_id, unit_id, advert, out_queue)
-    -- type check
+    -- checks
     if advert.type ~= RTU_UNIT_TYPE.DYNAMIC_VALVE then
-        log.error("attempt to instantiate dynamicv RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate dynamicv RTU for type " .. types.rtu_type_to_string(advert.type))
+        return nil
+    elseif not util.is_int(advert.index) then
+        log.error("attempt to instantiate dynamicv RTU without index")
         return nil
     end
 
-    local log_tag = "session.rtu(" .. session_id .. ").dynamicv(" .. advert.index .. "): "
+    local log_tag = util.c("session.rtu(", session_id, ").dynamicv(", advert.index, ")[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),

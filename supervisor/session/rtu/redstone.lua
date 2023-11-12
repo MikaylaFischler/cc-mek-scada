@@ -52,12 +52,11 @@ local PERIODICS = {
 function redstone.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.REDSTONE then
-        log.error("attempt to instantiate redstone RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate redstone RTU for type " .. types.rtu_type_to_string(advert.type))
         return nil
     end
 
-    -- for redstone, use unit ID not device index
-    local log_tag = "session.rtu(" .. session_id .. ").redstone(" .. unit_id .. "): "
+    local log_tag = util.c("session.rtu(", session_id, ").redstone[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
