@@ -149,7 +149,7 @@ local function main()
         -- go through redstone definitions list
         for entry_idx = 1, #rtu_redstone do
             local entry = rtu_redstone[entry_idx]   ---@type rtu_rs_definition
-            local assignment = ""
+            local assignment
             local for_reactor = entry.unit
             local iface_name = util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
 
