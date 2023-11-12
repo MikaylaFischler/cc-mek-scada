@@ -122,6 +122,7 @@ local tool_ctl = {
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
+    importing_any_dc = false,
     peri_cfg_editing = false, ---@type string|false
     peri_cfg_manual = false,
     rs_cfg_editing = false,   ---@type integer|false
@@ -273,10 +274,10 @@ local function config_view(display)
     local y_start = 2
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text_align=CENTER,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     else
-        TextBox{parent=main_page,x=2,y=2,height=2,text_align=CENTER,text="Welcome to the RTU gateway configurator! Please select one of the following options."}
+        TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the RTU gateway configurator! Please select one of the following options."}
         y_start = y_start + 3
     end
 
@@ -323,16 +324,16 @@ local function config_view(display)
 
     local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=spkr_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
+    TextBox{parent=spkr_cfg,x=1,y=2,height=1,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
 
-    TextBox{parent=spkr_c,x=1,y=1,height=2,text_align=CENTER,text="Speakers can be connected to this RTU gateway without RTU unit configuration entries."}
-    TextBox{parent=spkr_c,x=1,y=4,height=3,text_align=CENTER,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
+    TextBox{parent=spkr_c,x=1,y=1,height=2,text="Speakers can be connected to this RTU gateway without RTU unit configuration entries."}
+    TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
 
     local s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_digits=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
 
-    TextBox{parent=spkr_c,x=1,y=10,height=3,text_align=CENTER,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
 
-    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,height=1,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_vol()
         local vol = tonumber(s_vol.get_value())
@@ -356,19 +357,19 @@ local function config_view(display)
 
     local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3}}
 
-    TextBox{parent=net_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
+    TextBox{parent=net_cfg,x=1,y=2,height=1,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,height=1,text_align=CENTER,text="Please set the network channels below."}
-    TextBox{parent=net_c_1,x=1,y=3,height=4,text_align=CENTER,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=1,height=1,text="Please set the network channels below."}
+    TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=8,height=1,text_align=CENTER,text="Supervisor Channel"}
+    TextBox{parent=net_c_1,x=1,y=8,height=1,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=9,height=4,text_align=CENTER,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_1,x=1,y=11,height=1,text_align=CENTER,text="RTU Channel"}
+    TextBox{parent=net_c_1,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=11,height=1,text="RTU Channel"}
     local rtu_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.RTU_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=12,height=4,text_align=CENTER,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=9,y=12,height=4,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c = tonumber(svr_chan.get_value())
@@ -390,16 +391,16 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,height=1,text_align=CENTER,text="Connection Timeout"}
+    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
     local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=9,y=2,height=2,text_align=CENTER,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=3,height=4,text_align=CENTER,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=8,height=1,text_align=CENTER,text="Trusted Range"}
+    TextBox{parent=net_c_2,x=1,y=8,height=1,text="Trusted Range"}
     local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=10,height=4,text_align=CENTER,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
-    local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_ct_tr()
         local timeout_val = tonumber(timeout.get_value())
@@ -421,10 +422,10 @@ local function config_view(display)
     PushButton{parent=net_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=2,text_align=CENTER,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_3,x=1,y=4,height=6,text_align=CENTER,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
+    TextBox{parent=net_c_3,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=11,height=1,text_align=CENTER,text="Facility Auth Key"}
+    TextBox{parent=net_c_3,x=1,y=11,height=1,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
@@ -434,7 +435,7 @@ local function config_view(display)
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -454,20 +455,20 @@ local function config_view(display)
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=log_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
+    TextBox{parent=log_cfg,x=1,y=2,height=1,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
 
-    TextBox{parent=log_c_1,x=1,y=1,height=1,text_align=CENTER,text="Please configure logging below."}
+    TextBox{parent=log_c_1,x=1,y=1,height=1,text="Please configure logging below."}
 
-    TextBox{parent=log_c_1,x=1,y=3,height=1,text_align=CENTER,text="Log File Mode"}
+    TextBox{parent=log_c_1,x=1,y=3,height=1,text="Log File Mode"}
     local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
-    TextBox{parent=log_c_1,x=1,y=7,height=1,text_align=CENTER,text="Log File Path"}
+    TextBox{parent=log_c_1,x=1,y=7,height=1,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
     local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
-    TextBox{parent=log_c_1,x=3,y=11,height=2,text_align=CENTER,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=log_c_1,x=3,y=11,height=2,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
-    local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_log()
         if path.get_value() ~= "" then
@@ -497,21 +498,25 @@ local function config_view(display)
     local sum_c_4 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_5 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_6 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_7 = Div{parent=summary,x=2,y=4,width=49}
 
-    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4,sum_c_5,sum_c_6}}
+    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4,sum_c_5,sum_c_6,sum_c_7}}
 
-    TextBox{parent=summary,x=1,y=2,height=1,text_align=CENTER,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
     local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_settings()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
-            main_pane.set_value(1)
+            if tool_ctl.importing_legacy and tool_ctl.importing_any_dc then
+                sum_pane.set_value(7)
+            else
+                tool_ctl.importing_legacy = false
+                tool_ctl.go_home()
+            end
+
             tool_ctl.viewing_config = false
-            tool_ctl.importing_legacy = false
-        else
-            main_pane.set_value(4)
-        end
+        else main_pane.set_value(4) end
     end
 
     ---@param element graphics_element
@@ -564,23 +569,23 @@ local function config_view(display)
     tool_ctl.settings_confirm = PushButton{parent=sum_c_1,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
     tool_ctl.settings_confirm.hide()
 
-    TextBox{parent=sum_c_2,x=1,y=1,height=1,text_align=CENTER,text="The following peripherals will be imported:"}
+    TextBox{parent=sum_c_2,x=1,y=1,height=1,text="The following peripherals will be imported:"}
     local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=1,text_align=CENTER,text="The following redstone entries will be imported:"}
+    TextBox{parent=sum_c_3,x=1,y=1,height=1,text="The following redstone entries will be imported:"}
     local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=sum_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_4,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    TextBox{parent=sum_c_4,x=1,y=1,height=1,text="Settings saved!"}
     PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_5,x=1,y=1,height=2,text_align=CENTER,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_5,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
         fs.delete("/rtu/config.lua")
@@ -590,9 +595,14 @@ local function config_view(display)
     PushButton{parent=sum_c_5,x=1,y=14,min_width=8,text="Cancel",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_5,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_6,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    TextBox{parent=sum_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
     PushButton{parent=sum_c_6,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_6,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    TextBox{parent=sum_c_7,x=1,y=1,height=8,text="Warning!\n\nSome of the devices in your old config file aren't currently connected. If the device isn't connected, the options can't be properly validated. Please either connect your devices and try again or complete the import without validation on those entry's settings."}
+    TextBox{parent=sum_c_7,x=1,y=10,height=3,text="Afterwards, either (a) edit then save entries for currently disconnected devices to properly configure or (b) delete those entries."}
+    PushButton{parent=sum_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_7,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -600,7 +610,7 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
-    TextBox{parent=changelog,x=1,y=2,height=1,text_align=CENTER,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
 
     local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
@@ -629,7 +639,7 @@ local function config_view(display)
 
     local peri_pane = MultiPane{parent=peri_cfg,x=1,y=4,panes={peri_c_1,peri_c_2,peri_c_3,peri_c_4,peri_c_5,peri_c_6,peri_c_7}}
 
-    TextBox{parent=peri_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
+    TextBox{parent=peri_cfg,x=1,y=2,height=1,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
 
     local peri_list = ListBox{parent=peri_c_1,x=1,y=1,height=12,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
@@ -785,11 +795,11 @@ local function config_view(display)
 
     tool_ctl.update_peri_list()
 
-    TextBox{parent=peri_c_3,x=1,y=1,height=4,text_align=CENTER,text="This feature is intended for advanced users. If you are clicking this just because your device is not shown, follow the connection instructions in 'I don't see my device!'."}
-    TextBox{parent=peri_c_3,x=1,y=6,height=4,text_align=CENTER,text="Peripheral Name"}
+    TextBox{parent=peri_c_3,x=1,y=1,height=4,text="This feature is intended for advanced users. If you are clicking this just because your device is not shown, follow the connection instructions in 'I don't see my device!'."}
+    TextBox{parent=peri_c_3,x=1,y=6,height=4,text="Peripheral Name"}
     local p_name = TextField{parent=peri_c_3,x=1,y=7,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
     local p_type = Radio2D{parent=peri_c_3,x=1,y=9,rows=4,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
-    local man_p_err = TextBox{parent=peri_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Please enter a peripheral name.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local man_p_err = TextBox{parent=peri_c_3,x=8,y=14,height=1,width=35,text="Please enter a peripheral name.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     man_p_err.hide(true)
 
     local function submit_manual_peri()
@@ -804,11 +814,11 @@ local function config_view(display)
     PushButton{parent=peri_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_3,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_manual_peri,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text_align=CENTER,text=""}
-    tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text_align=CENTER,text=""}
+    tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text=""}
+    tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text=""}
     tool_ctl.p_idx = NumberField{parent=peri_c_4,x=14,y=4,width=4,max_digits=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility.","a unit. (unit #"},callback=function(v)tool_ctl.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
-    tool_ctl.p_assign_end = TextBox{parent=peri_c_4,x=22,y=6,height=6,width=1,text_align=LEFT,text=")"}
+    tool_ctl.p_assign_end = TextBox{parent=peri_c_4,x=22,y=6,height=6,width=1,text=")"}
 
     tool_ctl.p_unit = NumberField{parent=peri_c_4,x=44,y=4,width=4,max_digits=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.p_unit.disable()
@@ -826,10 +836,10 @@ local function config_view(display)
         end
     end
 
-    tool_ctl.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
-    tool_ctl.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text_align=LEFT,text="",fg_bg=g_lg_fg_bg}
+    tool_ctl.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text="",fg_bg=g_lg_fg_bg}
+    tool_ctl.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text="",fg_bg=g_lg_fg_bg}
 
-    tool_ctl.p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text_align=LEFT,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    tool_ctl.p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     tool_ctl.p_err.hide(true)
 
     local function back_from_peri_opts()
@@ -913,11 +923,11 @@ local function config_view(display)
     PushButton{parent=peri_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_peri_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_5,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    TextBox{parent=peri_c_5,x=1,y=1,height=1,text="Settings saved!"}
     PushButton{parent=peri_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_6,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    TextBox{parent=peri_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
     PushButton{parent=peri_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_6,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -934,7 +944,7 @@ local function config_view(display)
 
     local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6}}
 
-    TextBox{parent=rs_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
+    TextBox{parent=rs_cfg,x=1,y=2,height=1,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
     TextBox{parent=rs_c_1,x=1,y=1,height=1,text=" port          side/color       unit/facility",fg_bg=g_lg_fg_bg}
     local rs_list = ListBox{parent=rs_c_1,x=1,y=2,height=11,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
@@ -961,7 +971,7 @@ local function config_view(display)
     PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_6,x=1,y=1,height=5,text_align=CENTER,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
+    TextBox{parent=rs_c_6,x=1,y=1,height=5,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
     PushButton{parent=rs_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_2,x=1,y=1,height=1,text="Select one of the below ports to use."}
@@ -1024,12 +1034,12 @@ local function config_view(display)
 
     PushButton{parent=rs_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text_align=CENTER,text=""}
+    tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text=""}
 
-    tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text_align=CENTER,text="Unit ID"}
+    tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text="Unit ID"}
     tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_digits=2,min=1,max=4,fg_bg=bw_fg_bg}
 
-    TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text_align=CENTER,text="Output Side"}
+    TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text="Output Side"}
     local side = Radio2D{parent=rs_c_3,x=1,y=4,rows=2,columns=3,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
 
     local function set_bundled(bundled)
@@ -1043,7 +1053,7 @@ local function config_view(display)
     tool_ctl.rs_cfg_color = Radio2D{parent=rs_c_3,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     tool_ctl.rs_cfg_color.disable()
 
-    local rs_err = TextBox{parent=rs_c_3,x=8,y=14,height=1,width=35,text_align=LEFT,text="Unit ID must be within 1 through 4.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local rs_err = TextBox{parent=rs_c_3,x=8,y=14,height=1,width=35,text="Unit ID must be within 1 through 4.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     rs_err.hide(true)
 
     local function back_from_rs_opts()
@@ -1098,11 +1108,11 @@ local function config_view(display)
     PushButton{parent=rs_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_3,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_4,x=1,y=1,height=1,text_align=CENTER,text="Settings saved!"}
+    TextBox{parent=rs_c_4,x=1,y=1,height=1,text="Settings saved!"}
     PushButton{parent=rs_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_5,x=1,y=1,height=5,text_align=CENTER,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    TextBox{parent=rs_c_5,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
     PushButton{parent=rs_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -1114,6 +1124,8 @@ local function config_view(display)
     function tool_ctl.load_legacy()
         local config = require("rtu.config")
 
+        tool_ctl.importing_any_dc = false
+
         tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.RTU_Channel = config.RTU_CHANNEL
@@ -1124,11 +1136,62 @@ local function config_view(display)
         tmp_cfg.LogPath = config.LOG_PATH
         tmp_cfg.LogDebug = config.LOG_DEBUG or false
 
+        local mounts = ppm.list_mounts()
+
         peri_import_list.remove_all()
         for _, entry in ipairs(config.RTU_DEVICES) do
-            if entry.for_reactor == 0 then entry.for_reactor = nil end
+            local for_facility = entry.for_reactor == 0
+            local ini_unit = util.trinary(for_facility, nil, entry.for_reactor)
 
-            local def = { name = entry.name, unit = entry.for_reactor, index = entry.index }
+            local def = { name = entry.name, unit = ini_unit, index = entry.index }
+            local mount = mounts[def.name] ---@type ppm_entry|nil
+
+            local status = "  \x1a not connected, please re-config later"
+            local color = colors.orange
+
+            if mount ~= nil then
+                -- lets make sure things are valid
+                local unit, index, err = nil, nil, false
+                local u, idx = def.unit, def.index
+
+                if util.table_contains(NEEDS_UNIT, mount.type) then
+                    if (mount.type == "dynamicValve" or mount.type == "environmentDetector") and for_facility then
+                        -- skip
+                    elseif not (util.is_int(u) and u > 0 and u < 5) then
+                        err = true
+                    else unit = u end
+                end
+
+                if mount.type == "boilerValve" then
+                    if not (idx == 1 or idx == 2) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "turbineValve" then
+                    if not (idx == 1 or idx == 2 or idx == 3) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "dynamicValve" and for_facility then
+                    if not (util.is_int(idx) and idx > 0 and idx < 5) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "dynamicValve" then
+                    index = 1
+                elseif mount.type == "environmentDetector" then
+                    if not (util.is_int(idx) and idx > 0) then
+                        err = true
+                    else index = idx end
+                end
+
+                if err then
+                    status = "  \x1a invalid, please re-config later"
+                else
+                    def.index = index
+                    def.unit = unit
+                    status = "  \x1a validated"
+                    color = colors.green
+                end
+            else tool_ctl.importing_any_dc = true end
+
             table.insert(tmp_cfg.Peripherals, def)
 
             local desc = "  \x1a "
@@ -1143,9 +1206,10 @@ local function config_view(display)
                 desc = desc .. "for the facility"
             end
 
-            local line = Div{parent=peri_import_list,height=2}
+            local line = Div{parent=peri_import_list,height=3}
             TextBox{parent=line,x=1,y=1,height=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
-            TextBox{parent=line,x=1,y=2,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=line,x=1,y=2,height=1,text=status,fg_bg=cpair(color,colors.white)}
+            TextBox{parent=line,x=1,y=3,height=1,text=desc,fg_bg=cpair(colors.gray,colors.white)}
         end
 
         rs_import_list.remove_all()
@@ -1172,7 +1236,7 @@ local function config_view(display)
         end
 
         tool_ctl.gen_summary(tmp_cfg)
-        sum_pane.set_value(1)
+        if tool_ctl.importing_any_dc then sum_pane.set_value(7) else sum_pane.set_value(1) end
         main_pane.set_value(5)
         tool_ctl.settings_apply.hide(true)
         tool_ctl.settings_confirm.show()
@@ -1181,6 +1245,10 @@ local function config_view(display)
 
     -- go back to the home page
     function tool_ctl.go_home()
+        tool_ctl.viewing_config = false
+        tool_ctl.importing_legacy = false
+        tool_ctl.importing_any_dc = false
+
         main_pane.set_value(1)
         net_pane.set_value(1)
         sum_pane.set_value(1)
