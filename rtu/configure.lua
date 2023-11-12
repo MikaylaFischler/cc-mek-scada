@@ -928,8 +928,9 @@ local function config_view(display)
     local rs_c_3 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_4 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_5 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_6 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5}}
+    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6}}
 
     TextBox{parent=rs_cfg,x=1,y=2,height=1,text_align=CENTER,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
@@ -958,12 +959,24 @@ local function config_view(display)
     PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
+    TextBox{parent=rs_c_6,x=1,y=1,height=5,text_align=CENTER,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
+    PushButton{parent=rs_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
     TextBox{parent=rs_c_2,x=1,y=1,height=1,text="Select one of the below ports to use."}
 
     local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local new_rs_port = IO.F_SCRAM
     local function new_rs(port)
+        if (rsio.get_io_mode(port) == rsio.IO_DIR.IN) then
+            for i = 1, #tmp_cfg.Redstone do
+                if tmp_cfg.Redstone[i].port == port then
+                    rs_pane.set_value(6)
+                    return
+                end
+            end
+        end
+
         tool_ctl.rs_cfg_editing = false
 
         local text
