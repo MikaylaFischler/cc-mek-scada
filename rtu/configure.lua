@@ -710,6 +710,10 @@ local function config_view(display)
             tool_ctl.p_desc_ext.set_value("Before adding lots of SNAs: multiply the \"PEAK\" rate on the flow monitor (after connecting at least 1 SNA) by 10 to get the mB/t of waste that they can process. Enough SNAs to provide 2x to 3x of your max burn rate should be a good margin to catch up after night or cloudy weather. Too many devices (such as SNAs) on one RTU can cause lag.")
         elseif type == "dynamicValve" then
             tool_ctl.p_prompt.set_value("This is the #     dynamic tank for...")
+            tool_ctl.p_assign_btn.show()
+            tool_ctl.p_assign_btn.redraw()
+            tool_ctl.p_assign_end.show()
+            tool_ctl.p_assign_end.redraw()
             tool_ctl.p_idx.show()
             tool_ctl.p_idx.redraw()
             tool_ctl.p_idx.set_max(4)
@@ -724,23 +728,19 @@ local function config_view(display)
                 tool_ctl.p_unit.enable()
             end
 
-            tool_ctl.p_assign_btn.show()
-            tool_ctl.p_assign_btn.redraw()
-            tool_ctl.p_assign_end.show()
-            tool_ctl.p_assign_end.redraw()
             tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
         elseif type == "environmentDetector" then
             tool_ctl.p_prompt.set_value("This is the #     environment detector for...")
+            tool_ctl.p_assign_btn.show()
+            tool_ctl.p_assign_btn.redraw()
+            tool_ctl.p_assign_end.show()
+            tool_ctl.p_assign_end.redraw()
             tool_ctl.p_idx.show()
             tool_ctl.p_idx.redraw()
             tool_ctl.p_idx.set_max(99)
             tool_ctl.p_unit.reposition(18, 6)
             if tool_ctl.p_assign_btn.get_value() == 1 then tool_ctl.p_unit.disable() else tool_ctl.p_unit.enable() end
-            tool_ctl.p_assign_btn.show()
-            tool_ctl.p_assign_btn.redraw()
-            tool_ctl.p_assign_end.show()
-            tool_ctl.p_assign_end.redraw()
             tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility. In that case, the maximum radiation reading from those assigned to that particular unit or the facility will be used for alarms and display.")
         elseif type == "inductionPort" or type == "spsPort" then
@@ -882,6 +882,8 @@ local function config_view(display)
                 tool_ctl.p_err.show()
                 return
             else index = idx end
+        elseif peri_type == "dynamicValve" then
+            index = 1
         elseif peri_type == "environmentDetector" then
             if not (util.is_int(idx) and idx > 0) then
                 tool_ctl.p_err.set_value("Index must be greater than 0.")

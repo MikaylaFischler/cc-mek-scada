@@ -760,23 +760,24 @@ function iocontrol.update_facility_status(status)
             end
 
             -- environment detector status
-            if type(rtu_statuses.rad_mon) == "table" then
-                if #rtu_statuses.rad_mon > 0 then
-                    local max_rad, max_reading, any_faulted = 0, types.new_zero_radiation_reading(), false
+            if type(rtu_statuses.envds) == "table" then
+                local max_rad, max_reading, any_conn, any_faulted = 0, types.new_zero_radiation_reading(), false, false
 
-                    for i = 1, #rtu_statuses.rad_mon do
-                        local rad_mon = rtu_statuses.rad_mon[i]
-                        local rtu_faulted = rad_mon[1] ---@type boolean
-                        local radiation   = rad_mon[2] ---@type radiation_reading
-                        local rad_raw     = rad_mon[3] ---@type number
+                for _, envd in pairs(rtu_statuses.envds) do
+                    local rtu_faulted = envd[1] ---@type boolean
+                    local radiation   = envd[2] ---@type radiation_reading
+                    local rad_raw     = envd[3] ---@type number
 
-                        any_faulted = any_faulted or rtu_faulted
-                        if rad_raw > max_rad then
-                            max_rad = rad_raw
-                            max_reading = radiation
-                        end
+                    any_conn = true
+                    any_faulted = any_faulted or rtu_faulted
+
+                    if rad_raw > max_rad then
+                        max_rad = rad_raw
+                        max_reading = radiation
                     end
+                end
 
+                if any_conn then
                     fac.radiation = max_reading
                     fac.ps.publish("rad_computed_status", util.trinary(any_faulted, 2, 3))
                 else
@@ -786,7 +787,7 @@ function iocontrol.update_facility_status(status)
 
                 fac.ps.publish("radiation", fac.radiation)
             else
-                log.debug(log_header .. "radiation monitor list not a table")
+                log.debug(log_header .. "environment detector list not a table")
                 valid = false
             end
         else
@@ -1061,22 +1062,22 @@ function iocontrol.update_unit_statuses(statuses)
                     end
 
                     -- environment detector status
-                    if type(rtu_statuses.rad_mon) == "table" then
-                        local max_rad, max_reading = 0, types.new_zero_radiation_reading()
+                    if type(rtu_statuses.envds) == "table" then
+                        local max_rad, max_reading, any_conn = 0, types.new_zero_radiation_reading(), false
 
-                        if #rtu_statuses.rad_mon > 0 then
+                        for _, envd in pairs(rtu_statuses.envds) do
+                            local radiation = envd[2] ---@type radiation_reading
+                            local rad_raw   = envd[3] ---@type number
 
-                            for id = 1, #rtu_statuses.rad_mon do
-                                local rad_mon = rtu_statuses.rad_mon[id]
-                                local radiation = rad_mon[2] ---@type radiation_reading
-                                local rad_raw   = rad_mon[3] ---@type number
+                            any_conn = true
 
-                                if rad_raw > max_rad then
-                                    max_rad = rad_raw
-                                    max_reading = radiation
-                                end
+                            if rad_raw > max_rad then
+                                max_rad = rad_raw
+                                max_reading = radiation
                             end
+                        end
 
+                        if any_conn then
                             unit.radiation = max_reading
                         else
                             unit.radiation = types.new_zero_radiation_reading()
