@@ -663,7 +663,7 @@ local function config_view(display)
     PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=26,y=14,min_width=24,text="I don't see my device!",callback=function()peri_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU, or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
+    TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
     TextBox{parent=peri_c_7,x=1,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
     PushButton{parent=peri_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -1397,18 +1397,14 @@ function configurator.configure(ask_config)
 
             -- handle event
             if event == "timer" then
-                -- notify timer callback dispatcher
                 tcd.handle(param1)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
-                -- handle a mouse event
                 local m_e = core.events.new_mouse_event(event, param1, param2, param3)
                 if m_e then display.handle_mouse(m_e) end
             elseif event == "char" or event == "key" or event == "key_up" then
-                -- handle a key event
                 local k_e = core.events.new_key_event(event, param1, param2)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
-                -- handle a paste event
                 display.handle_paste(param1)
             elseif event == "peripheral_detach" then
                 ppm.handle_unmount(param1)

@@ -667,18 +667,14 @@ function configurator.configure(ask_config)
 
             -- handle event
             if event == "timer" then
-                -- notify timer callback dispatcher
                 tcd.handle(param1)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
-                -- handle a mouse event
                 local m_e = core.events.new_mouse_event(event, param1, param2, param3)
                 if m_e then display.handle_mouse(m_e) end
             elseif event == "char" or event == "key" or event == "key_up" then
-                -- handle a key event
                 local k_e = core.events.new_key_event(event, param1, param2)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
-                -- handle a paste event
                 display.handle_paste(param1)
             end
 
