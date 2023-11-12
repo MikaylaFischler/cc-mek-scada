@@ -783,12 +783,12 @@ function iocontrol.update_facility_status(status)
                     fac.radiation = types.new_zero_radiation_reading()
                     fac.ps.publish("rad_computed_status", 1)
                 end
+
+                fac.ps.publish("radiation", fac.radiation)
             else
                 log.debug(log_header .. "radiation monitor list not a table")
                 valid = false
             end
-
-            fac.ps.publish("radiation", fac.radiation)
         else
             log.debug(log_header .. "rtu statuses not a table")
             valid = false
@@ -1081,12 +1081,12 @@ function iocontrol.update_unit_statuses(statuses)
                         else
                             unit.radiation = types.new_zero_radiation_reading()
                         end
+
+                        unit.unit_ps.publish("radiation", unit.radiation)
                     else
                         log.debug(log_header .. "radiation monitor list not a table")
                         valid = false
                     end
-
-                    unit.unit_ps.publish("radiation", unit.radiation)
                 else
                     log.debug(log_header .. "rtu list not a table")
                     valid = false

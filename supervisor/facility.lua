@@ -638,7 +638,7 @@ function facility.new(num_reactors, cooling_conf)
                     if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
                 end
 
-                astatus.radiation = max_rad > ALARM_LIMS.FAC_HIGH_RAD
+                astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
             else
                 -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
                 -- operator can restart the system or hit the stop/reset button
