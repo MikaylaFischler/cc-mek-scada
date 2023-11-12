@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.11b"
+local CCMSI_VERSION = "v1.11c"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -276,7 +276,7 @@ if mode == "check" then
     end
 
     if manifest.versions.installer ~= local_manifest.versions.installer then
-        yellow();println("\nA newer version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
+        yellow();println("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
     end
 elseif mode == "install" or mode == "update" then
     local update_installer = app == "installer"
@@ -314,7 +314,7 @@ elseif mode == "install" or mode == "update" then
     end
 
     if manifest.versions.installer ~= CCMSI_VERSION then
-        if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
+        if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now") then
             lgray();println("GET ccmsi.lua")
             local dl, err = http.get(repo_path .. "ccmsi.lua")
