@@ -37,9 +37,12 @@ local PERIODICS = {
 ---@param advert rtu_advertisement RTU advertisement table
 ---@param out_queue mqueue RTU unit message out queue
 function imatrix.new(session_id, unit_id, advert, out_queue)
-    -- type check
+    -- checks
     if advert.type ~= RTU_UNIT_TYPE.IMATRIX then
-        log.error("attempt to instantiate imatrix RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate imatrix RTU for type " .. types.rtu_type_to_string(advert.type))
+        return nil
+    elseif not util.is_int(advert.index) then
+        log.error("attempt to instantiate dynamicv RTU without index")
         return nil
     end
 

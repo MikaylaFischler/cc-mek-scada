@@ -28,13 +28,16 @@ local PERIODICS = {
 ---@param advert rtu_advertisement
 ---@param out_queue mqueue
 function envd.new(session_id, unit_id, advert, out_queue)
-    -- type check
+    -- checks
     if advert.type ~= RTU_UNIT_TYPE.ENV_DETECTOR then
-        log.error("attempt to instantiate envd RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate envd RTU for type " .. types.rtu_type_to_string(advert.type))
+        return nil
+    elseif not util.is_int(advert.index) then
+        log.error("attempt to instantiate envd RTU without index")
         return nil
     end
 
-    local log_tag = util.c("session.rtu(", session_id, ").envd[@", unit_id, "]: ")
+    local log_tag = util.c("session.rtu(", session_id, ").envd(", advert.index, ")[@", unit_id, "]: ")
 
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),

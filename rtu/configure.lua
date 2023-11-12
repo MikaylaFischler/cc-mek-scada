@@ -87,7 +87,6 @@ local changes = {}
 
 local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
 local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
-local NEEDS_IDX = { "boilerValve", "turbineValve", "dynamicValve" }
 
 ---@class rtu_configurator
 local configurator = {}
@@ -732,8 +731,10 @@ local function config_view(display)
             tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
         elseif type == "environmentDetector" then
-            tool_ctl.p_idx.hide()
-            tool_ctl.p_prompt.set_value("This will be an environment detector for...")
+            tool_ctl.p_prompt.set_value("This is the #     environment detector for...")
+            tool_ctl.p_idx.show()
+            tool_ctl.p_idx.redraw()
+            tool_ctl.p_idx.set_max(99)
             tool_ctl.p_unit.reposition(18, 6)
             if tool_ctl.p_assign_btn.get_value() == 1 then tool_ctl.p_unit.disable() else tool_ctl.p_unit.enable() end
             tool_ctl.p_assign_btn.show()
@@ -741,12 +742,12 @@ local function config_view(display)
             tool_ctl.p_assign_end.show()
             tool_ctl.p_assign_end.redraw()
             tool_ctl.p_desc.reposition(1, 8)
-            tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility, in which case the maximum radiation reading from those assigned to that particular unit or the facility will be used.")
+            tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility. In that case, the maximum radiation reading from those assigned to that particular unit or the facility will be used for alarms and display.")
         elseif type == "inductionPort" or type == "spsPort" then
             local dev = util.trinary(type == "inductionPort", "induction matrix", "SPS")
             tool_ctl.p_idx.hide(true)
             tool_ctl.p_unit.hide(true)
-            tool_ctl.p_prompt.set_value("This will be the " .. dev .. " for the facility.")
+            tool_ctl.p_prompt.set_value("This is the " .. dev .. " for the facility.")
             tool_ctl.p_assign_btn.hide(true)
             tool_ctl.p_assign_end.hide(true)
             tool_ctl.p_desc.reposition(1, 7)
@@ -815,11 +816,13 @@ local function config_view(display)
     function tool_ctl.p_assign(opt)
         if opt == 1 then
             tool_ctl.p_unit.disable()
-            tool_ctl.p_idx.enable()
+            if new_peri_attrs[2] == "dynamicValve" then tool_ctl.p_idx.enable() end
         else
             tool_ctl.p_unit.enable()
-            tool_ctl.p_idx.set_value(1)
-            tool_ctl.p_idx.disable()
+            if new_peri_attrs[2] == "dynamicValve" then
+                tool_ctl.p_idx.set_value(1)
+                tool_ctl.p_idx.disable()
+            end
         end
     end
 
@@ -876,6 +879,12 @@ local function config_view(display)
         elseif peri_type == "dynamicValve" and for_facility then
             if not (util.is_int(idx) and idx > 0 and idx < 5) then
                 tool_ctl.p_err.set_value("Index must be within 1 through 4.")
+                tool_ctl.p_err.show()
+                return
+            else index = idx end
+        elseif peri_type == "environmentDetector" then
+            if not (util.is_int(idx) and idx > 0) then
+                tool_ctl.p_err.set_value("Index must be greater than 0.")
                 tool_ctl.p_err.show()
                 return
             else index = idx end

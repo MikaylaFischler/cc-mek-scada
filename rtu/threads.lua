@@ -121,6 +121,11 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
                     log.error(util.c("environment detector '", unit.name, "' cannot init, no valid assignment provided in config"))
                 end
 
+                if (unit.index == false) or unit.index < 1 then
+                    invalid = true
+                    log.error(util.c("environment detector '", unit.name, "' cannot init, invalid index provided in config"))
+                end
+
                 unit.type = RTU_UNIT_TYPE.ENV_DETECTOR
             else
                 resend_advert = false

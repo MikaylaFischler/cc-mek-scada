@@ -284,7 +284,7 @@ local function main()
 
             -- CHECK: index range
             local function validate_index(min, max)
-                if (util.is_int(index) and index < min) and (max == nil or index > max) then
+                if (util.is_int(index) and index < min) and (max ~= nil and index > max) then
                     local message = util.c("configure> device entry #", i, ": index ", index, " isn't >= ", min, " and <= ", max)
                     println(message)
                     log.fatal(message)
@@ -413,6 +413,7 @@ local function main()
                 rtu_iface, faulted = sna_rtu.new(device)
             elseif type == "environmentDetector" then
                 -- advanced peripherals environment detector
+                if not validate_index(1) then return false end
                 if not validate_assign(entry.unit == nil) then return false end
 
                 rtu_type = RTU_UNIT_TYPE.ENV_DETECTOR

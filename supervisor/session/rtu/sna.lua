@@ -36,7 +36,7 @@ local PERIODICS = {
 function sna.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.SNA then
-        log.error("attempt to instantiate sna RTU for type '" .. types.rtu_type_to_string(advert.type) .. "'. this is a bug.")
+        log.error("attempt to instantiate sna RTU for type " .. types.rtu_type_to_string(advert.type))
         return nil
     end
 

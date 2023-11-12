@@ -867,7 +867,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         status.rad_mon = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]   ---@type unit_session
-            status.rad_mon[i] = { envd.is_faulted(), envd.get_db().radiation }
+            local db   = envd.get_db()  ---@type envd_session_db
+            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
         return status
