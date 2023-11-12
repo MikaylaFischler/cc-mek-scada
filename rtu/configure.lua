@@ -578,7 +578,7 @@ local function config_view(display)
     TextBox{parent=sum_c_3,x=1,y=1,height=1,text="The following redstone entries will be imported:"}
     local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_4,x=1,y=1,height=1,text="Settings saved!"}
@@ -1146,7 +1146,7 @@ local function config_view(display)
             local def = { name = entry.name, unit = ini_unit, index = entry.index }
             local mount = mounts[def.name] ---@type ppm_entry|nil
 
-            local status = "  \x1a not connected, please re-config later"
+            local status = "  \x13 not connected, please re-config later"
             local color = colors.orange
 
             if mount ~= nil then
@@ -1183,11 +1183,11 @@ local function config_view(display)
                 end
 
                 if err then
-                    status = "  \x1a invalid, please re-config later"
+                    status = "  \x13 invalid, please re-config later"
                 else
                     def.index = index
                     def.unit = unit
-                    status = "  \x1a validated"
+                    status = "  \x04 validated"
                     color = colors.green
                 end
             else tool_ctl.importing_any_dc = true end
