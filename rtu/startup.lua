@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.7.0"
+local RTU_VERSION = "v1.7.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -84,7 +84,7 @@ local function main()
     ppm.mount_all()
 
     -- message authentication init
-    if type(config.AuthKey) == "string" then
+    if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
         network.init_mac(config.AuthKey)
     end
 
