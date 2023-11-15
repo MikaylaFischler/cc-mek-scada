@@ -1135,6 +1135,8 @@ local function config_view(display)
         tmp_cfg.LogMode = config.LOG_MODE
         tmp_cfg.LogPath = config.LOG_PATH
         tmp_cfg.LogDebug = config.LOG_DEBUG or false
+        tmp_cfg.Peripherals = {}
+        tmp_cfg.Redstone = {}
 
         local mounts = ppm.list_mounts()
 
