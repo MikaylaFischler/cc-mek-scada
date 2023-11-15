@@ -5,6 +5,7 @@ local tcd     = require("scada-common.tcd")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local KEY_CLICK = core.events.KEY_CLICK
 local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class listbox_args
@@ -33,6 +34,8 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args listbox_args
 ---@return graphics_element element, element_id id
 local function listbox(args)
+    args.can_focus = true
+
     -- create new graphics element base object
     local e = element.new(args)
 
@@ -128,7 +131,7 @@ local function listbox(args)
             end
 
             e.w_set_cur(e.frame.w, i)
-            e.w_write(" ")
+            if e.is_focused() then e.w_write("\x7f") else e.w_write(" ") end
         end
 
         e.w_set_bkg(e.fg_bg.bkg)
@@ -157,6 +160,9 @@ local function listbox(args)
 
         scroll_frame.reposition(1, 1 + scroll_offset)
         scroll_frame.setVisible(true)
+
+        -- shift mouse events
+        e.mouse_window_shift.y = scroll_offset
 
         draw_bar()
     end
@@ -219,6 +225,32 @@ local function listbox(args)
         end
     end
 
+    -- handle focus
+    e.on_focused = draw_bar
+    e.on_unfocused = draw_bar
+
+    -- handle a child in the list being focused, make sure it is visible
+    function e.on_child_focused(child)
+        for i = 1, #list do
+            local item = list[i]    ---@type listbox_item
+            if item.e == child then
+                if (item.y + scroll_offset) <= 0 then
+                    scroll_offset = 1 - item.y
+                    update_positions()
+                    draw_bar()
+                elseif (item.y + scroll_offset) == 1 then
+                    -- do nothing, it's right at the top (if the bottom doesn't fit we can't easily fix that)
+                elseif ((item.h + item.y - 1) + scroll_offset) > e.frame.h then
+                    scroll_offset = 1 - ((item.h + item.y) - e.frame.h)
+                    update_positions()
+                    draw_bar()
+                end
+
+                return
+            end
+        end
+    end
+
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
@@ -226,23 +258,27 @@ local function listbox(args)
             if event.type == MOUSE_CLICK.TAP then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
-                        draw_arrows(1)
                         scroll_up()
-                        if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        if event.current.y == 1 then
+                            draw_arrows(1)
+                            if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        end
                     elseif event.current.y == e.frame.h or event.current.y > bar_bounds[2] then
-                        draw_arrows(-1)
                         scroll_down()
-                        if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        if event.current.y == e.frame.h then
+                            draw_arrows(-1)
+                            if args.nav_active ~= nil then tcd.dispatch(0.25, function () draw_arrows(0) end) end
+                        end
                     end
                 end
             elseif event.type == MOUSE_CLICK.DOWN then
                 if event.current.x == e.frame.w then
                     if event.current.y == 1 or event.current.y < bar_bounds[1] then
-                        draw_arrows(1)
                         scroll_up()
+                        if event.current.y == 1 then draw_arrows(1) end
                     elseif event.current.y == e.frame.h or event.current.y > bar_bounds[2] then
-                        draw_arrows(-1)
                         scroll_down()
+                        if event.current.y == e.frame.h then draw_arrows(-1) end
                     else
                         -- clicked on bar
                         holding_bar = true
@@ -270,6 +306,24 @@ local function listbox(args)
                 scroll_down()
             elseif event.type == MOUSE_CLICK.SCROLL_UP then
                 scroll_up()
+            end
+        end
+    end
+
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+            if event.key == keys.up then
+                scroll_up()
+            elseif event.key == keys.down then
+                scroll_down()
+            elseif event.key == keys.home then
+                scroll_offset = 0
+                update_positions()
+            elseif event.key == keys["end"] then
+                scroll_offset = max_down_scroll
+                update_positions()
             end
         end
     end

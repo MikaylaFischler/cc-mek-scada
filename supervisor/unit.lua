@@ -864,10 +864,11 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         status.sna = { #self.snas, public.get_sna_rate(), total_peak }
 
         -- radiation monitors (environment detectors)
-        status.rad_mon = {}
+        status.envds = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]   ---@type unit_session
-            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), envd.get_db().radiation }
+            local db   = envd.get_db()  ---@type envd_session_db
+            status.envds[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
         return status

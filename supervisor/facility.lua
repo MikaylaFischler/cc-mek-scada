@@ -232,9 +232,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- link a redstone RTU session
     ---@param rs_unit unit_session
-    function public.add_redstone(rs_unit)
-        table.insert(self.redstone, rs_unit)
-    end
+    function public.add_redstone(rs_unit) table.insert(self.redstone, rs_unit) end
 
     -- link an induction matrix RTU session
     ---@param imatrix unit_session
@@ -258,23 +256,11 @@ function facility.new(num_reactors, cooling_conf)
 
     -- link a dynamic tank RTU session
     ---@param dynamic_tank unit_session
-    ---@return boolean linked dynamic tank accepted (max 1)
-    function public.add_tank(dynamic_tank)
-        if #self.tanks == 0 then
-            table.insert(self.tanks, dynamic_tank)
-            return true
-        else return false end
-    end
+    function public.add_tank(dynamic_tank) table.insert(self.tanks, dynamic_tank) end
 
     -- link an environment detector RTU session
     ---@param envd unit_session
-    ---@return boolean linked environment detector accepted (max 1)
-    function public.add_envd(envd)
-        if #self.envd == 0 then
-            table.insert(self.envd, envd)
-            return true
-        else return false end
-    end
+    function public.add_envd(envd) table.insert(self.envd, envd) end
 
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
@@ -643,11 +629,16 @@ function facility.new(num_reactors, cooling_conf)
             end
 
             -- check for facility radiation
-            if self.envd[1] ~= nil then
-                local envd = self.envd[1]   ---@type unit_session
-                local e_db = envd.get_db()  ---@type envd_session_db
+            if #self.envd > 0 then
+                local max_rad = 0
 
-                astatus.radiation = e_db.radiation_raw > ALARM_LIMS.FAC_HIGH_RAD
+                for i = 1, #self.envd do
+                    local envd = self.envd[i]  ---@type unit_session
+                    local e_db = envd.get_db() ---@type envd_session_db
+                    if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
+                end
+
+                astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
             else
                 -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
                 -- operator can restart the system or hit the stop/reset button
@@ -1093,22 +1084,22 @@ function facility.new(num_reactors, cooling_conf)
             build.induction = {}
             for i = 1, #self.induction do
                 local matrix = self.induction[i]    ---@type unit_session
-                build.induction[matrix.get_device_idx()] = { matrix.get_db().formed, matrix.get_db().build }
+                build.induction[i] = { matrix.get_db().formed, matrix.get_db().build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
-                local sps = self.sps[i]             ---@type unit_session
-                build.sps[sps.get_device_idx()] = { sps.get_db().formed, sps.get_db().build }
+                local sps = self.sps[i] ---@type unit_session
+                build.sps[i] = { sps.get_db().formed, sps.get_db().build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
             build.tanks = {}
             for i = 1, #self.tanks do
-                local tank = self.tanks[i]          ---@type unit_session
+                local tank = self.tanks[i]  ---@type unit_session
                 build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }
             end
         end
@@ -1160,7 +1151,7 @@ function facility.new(num_reactors, cooling_conf)
         for i = 1, #self.induction do
             local matrix = self.induction[i]    ---@type unit_session
             local db     = matrix.get_db()      ---@type imatrix_session_db
-            status.induction[matrix.get_device_idx()] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
+            status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of sps
@@ -1168,7 +1159,7 @@ function facility.new(num_reactors, cooling_conf)
         for i = 1, #self.sps do
             local sps = self.sps[i]     ---@type unit_session
             local db  = sps.get_db()    ---@type sps_session_db
-            status.sps[sps.get_device_idx()] = { sps.is_faulted(), db.formed, db.state, db.tanks }
+            status.sps[i] = { sps.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of dynamic tanks
@@ -1180,10 +1171,11 @@ function facility.new(num_reactors, cooling_conf)
         end
 
         -- radiation monitors (environment detectors)
-        status.rad_mon = {}
+        status.envds = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]   ---@type unit_session
-            status.rad_mon[envd.get_device_idx()] = { envd.is_faulted(), envd.get_db().radiation }
+            local db   = envd.get_db()  ---@type envd_session_db
+            status.envds[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
         return status

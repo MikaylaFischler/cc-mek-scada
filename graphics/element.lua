@@ -91,6 +91,8 @@ function element.new(args, child_offset_x, child_offset_y)
         p_window = nil,                                 ---@type table
         position = events.new_coord_2d(1, 1),
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
+        offset_x = 0,
+        offset_y = 0,
         next_y = 1,                                     -- next child y coordinate
         next_id = 0,                                    -- next child ID
         subscriptions = {},
@@ -105,6 +107,7 @@ function element.new(args, child_offset_x, child_offset_y)
         value = nil,            ---@type any
         window = nil,           ---@type table
         content_window = nil,   ---@type table|nil
+        mouse_window_shift = { x = 0, y = 0 },
         fg_bg = core.cpair(colors.white, colors.black),
         frame = core.gframe(1, 1, 1, 1),
         children = {},
@@ -193,6 +196,10 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param offset_y integer y offset for mouse events
     ---@param next_y integer next line if no y was provided
     function protected.prepare_template(offset_x, offset_y, next_y)
+        -- record offsets in case there is a reposition
+        self.offset_x = offset_x
+        self.offset_y = offset_y
+
         -- get frame coordinates/size
         if args.gframe ~= nil then
             protected.frame.x = args.gframe.x
@@ -343,6 +350,10 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- handle this element having been unfocused
     function protected.on_unfocused() end
+
+    -- handle this element having had a child focused
+    ---@param child graphics_element
+    function protected.on_child_focused(child) end
 
     -- handle this element having been shown
     function protected.on_shown() end
@@ -520,6 +531,13 @@ function element.new(args, child_offset_x, child_offset_y)
         else args.parent.__focus_child(child) end
     end
 
+    -- a child was focused, used to make sure it is actually visible to the user in the content frame
+    ---@param child graphics_element
+    function public.__child_focused(child)
+        protected.on_child_focused(child)
+        if not self.is_root then args.parent.__child_focused(public) end
+    end
+
     -- get a child element
     ---@nodiscard
     ---@param id element_id
@@ -652,6 +670,7 @@ function element.new(args, child_offset_x, child_offset_y)
         if args.can_focus and protected.enabled and not self.focused then
             self.focused = true
             protected.on_focused()
+            if not self.is_root then args.parent.__child_focused(public) end
         end
     end
 
@@ -666,7 +685,7 @@ function element.new(args, child_offset_x, child_offset_y)
     -- unfocus this element and all its children
     function public.unfocus_all()
         public.unfocus()
-        for _, child in pairs(protected.children) do child.get().unfocus() end
+        for _, child in pairs(protected.children) do child.get().unfocus_all() end
     end
 
     -- custom recolor command, varies by element if implemented
@@ -681,7 +700,22 @@ function element.new(args, child_offset_x, child_offset_y)
     -- offsets relative to parent frame are where (1, 1) would be on top of the parent's top left corner
     ---@param x integer x position relative to parent frame
     ---@param y integer y position relative to parent frame
-    function public.reposition(x, y) protected.window.reposition(x, y) end
+    function public.reposition(x, y)
+        protected.window.reposition(x, y)
+
+        -- record position
+        self.position.x, self.position.y = protected.window.getPosition()
+
+        -- shift per parent child offset
+        self.position.x = self.position.x + self.offset_x
+        self.position.y = self.position.y + self.offset_y
+
+        -- calculate mouse event bounds
+        self.bounds.x1 = self.position.x
+        self.bounds.x2 = self.position.x + protected.frame.w - 1
+        self.bounds.y1 = self.position.y
+        self.bounds.y2 = self.position.y + protected.frame.h - 1
+    end
 
     -- FUNCTION CALLBACKS --
 
@@ -704,10 +738,11 @@ function element.new(args, child_offset_x, child_offset_y)
                 end
 
                 local event_T = events.mouse_transposed(event, self.position.x, self.position.y)
-
-                -- handle the mouse event then pass to children
                 protected.handle_mouse(event_T)
-                for _, child in pairs(protected.children) do child.get().handle_mouse(event_T) end
+
+                -- shift child event if the content window has moved then pass to children
+                local c_event_T = events.mouse_transposed(event_T, protected.mouse_window_shift.x + 1, protected.mouse_window_shift.y + 1)
+                for _, child in pairs(protected.children) do child.get().handle_mouse(c_event_T) end
             elseif event.type == events.MOUSE_CLICK.DOWN or event.type == events.MOUSE_CLICK.TAP then
                 -- clicked out, unfocus this element and children
                 public.unfocus_all()

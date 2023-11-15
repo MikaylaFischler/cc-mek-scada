@@ -36,8 +36,9 @@ Mod Requirements:
 
 Mod Recommendations:
 - Advanced Peripherals (adds the capability to detect environmental radiation levels)
+- Immersive Engineering (provides bundled redstone, though any mod containing bundled redstone will do)
 
-v10.1+ is required due the complete support of CC:Tweaked added in Mekanism v10.1
+v10.1+ is required due to the complete support of CC:Tweaked added in Mekanism v10.1
 
 ## Installation
 

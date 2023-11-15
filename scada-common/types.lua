@@ -63,7 +63,7 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 
 ---@class rtu_advertisement
 ---@field type RTU_UNIT_TYPE
----@field index integer
+---@field index integer|false
 ---@field reactor integer
 ---@field rsio table|nil
 
@@ -251,6 +251,14 @@ types.ALARM_STATE_NAMES = {
 
 -- STRING TYPES --
 --#region
+
+---@alias side
+---|"top"
+---|"bottom"
+---|"left"
+---|"right"
+---|"front"
+---|"back"
 
 ---@alias os_event
 ---| "alarm"

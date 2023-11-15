@@ -152,7 +152,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     function public.get_unit_id() return unit_id end
     -- get the device index
     ---@nodiscard
-    function public.get_device_idx() return self.device_index end
+    function public.get_device_idx() return self.device_index or 0 end
     -- get the reactor ID
     ---@nodiscard
     function public.get_reactor() return self.reactor end

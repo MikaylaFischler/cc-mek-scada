@@ -13,6 +13,7 @@ local MODE = { APPEND = 0, NEW = 1 }
 log.MODE = MODE
 
 local logger = {
+    not_ready = true,
     path = "/log.txt",
     mode = MODE.APPEND,
     debug = false,
@@ -32,6 +33,8 @@ local free_space = fs.getFreeSpace
 -- private log write function
 ---@param msg string
 local function _log(msg)
+    if logger.not_ready then return end
+
     local out_of_space = false
     local time_stamp = os.date("[%c] ")
     local stamped = time_stamp .. util.strval(msg)
@@ -94,6 +97,8 @@ function log.init(path, write_mode, include_debug, dmesg_redirect)
     else
         logger.dmesg_out = term.current()
     end
+
+    logger.not_ready = false
 end
 
 -- close the log file handle

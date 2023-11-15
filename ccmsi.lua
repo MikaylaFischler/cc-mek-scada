@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.11a"
+local CCMSI_VERSION = "v1.11c"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -32,6 +32,7 @@ local function red() term.setTextColor(colors.red) end
 local function orange() term.setTextColor(colors.orange) end
 local function yellow() term.setTextColor(colors.yellow) end
 local function green() term.setTextColor(colors.green) end
+local function cyan() term.setTextColor(colors.cyan) end
 local function blue() term.setTextColor(colors.blue) end
 local function white() term.setTextColor(colors.white) end
 local function lgray() term.setTextColor(colors.lightGray) end
@@ -199,7 +200,7 @@ if #opts == 0 or opts[1] == "help" then
     println("usage: ccmsi <mode> <app> <branch>")
     println("<mode>")
     lgray()
-    println(" check       - check latest versions avilable")
+    println(" check       - check latest versions available")
     yellow()
     println("               ccmsi check <branch> for target")
     lgray()
@@ -266,18 +267,16 @@ if mode == "check" then
             blue();print(local_manifest.versions[key])
             if value ~= local_manifest.versions[key] then
                 white();print(" (")
-                term.setTextColor(colors.cyan)
-                print(value);white();println(" available)")
+                cyan();print(value);white();println(" available)")
             else green();println(" (up to date)") end
         else
             lgray();print("not installed");white();print(" (latest ")
-            term.setTextColor(colors.cyan)
-            print(value);white();println(")")
+            cyan();print(value);white();println(")")
         end
     end
 
     if manifest.versions.installer ~= local_manifest.versions.installer then
-        yellow();println("\nA newer version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
+        yellow();println("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
     end
 elseif mode == "install" or mode == "update" then
     local update_installer = app == "installer"
@@ -315,7 +314,7 @@ elseif mode == "install" or mode == "update" then
     end
 
     if manifest.versions.installer ~= CCMSI_VERSION then
-        if not update_installer then yellow();println("A newer version of the installer is available, it is recommended to update to it.");white() end
+        if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now") then
             lgray();println("GET ccmsi.lua")
             local dl, err = http.get(repo_path .. "ccmsi.lua")
