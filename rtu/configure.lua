@@ -531,9 +531,13 @@ local function config_view(display)
             if not (exclude_conns and (k == "Peripherals" or k == "Redstone")) then settings.set(k, v) end
         end
 
+        -- always set these if missing
+        if settings.get("Peripherals") == nil then settings.set("Peripherals", {}) end
+        if settings.get("Redstone") == nil then settings.set("Redstone", {}) end
+
         if settings.save("rtu.settings") then
-            load_settings(ini_cfg)
             load_settings(settings_cfg, true)
+            load_settings(ini_cfg)
 
             try_set(s_vol, ini_cfg.SpeakerVolume)
             try_set(svr_chan, ini_cfg.SVR_Channel)
@@ -582,8 +586,8 @@ local function config_view(display)
     PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_4,x=1,y=1,height=1,text="Settings saved!"}
-    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_5,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
@@ -652,8 +656,8 @@ local function config_view(display)
         settings.set("Peripherals", tmp_cfg.Peripherals)
 
         if settings.save("rtu.settings") then
-            load_settings(ini_cfg)
             load_settings(settings_cfg, true)
+            load_settings(ini_cfg)
             peri_pane.set_value(5)
         else
             peri_pane.set_value(6)
@@ -958,8 +962,8 @@ local function config_view(display)
         settings.set("Redstone", tmp_cfg.Redstone)
 
         if settings.save("rtu.settings") then
-            load_settings(ini_cfg)
             load_settings(settings_cfg, true)
+            load_settings(ini_cfg)
             rs_pane.set_value(4)
         else
             rs_pane.set_value(5)
@@ -1445,9 +1449,9 @@ end
 ---@param ask_config? boolean indicate if this is being called by the RTU startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
-    tool_ctl.has_config = load_settings(ini_cfg)
-    load_settings(settings_cfg, true)
 
+    load_settings(settings_cfg, true)
+    tool_ctl.has_config = load_settings(ini_cfg)
     tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
     tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
 
