@@ -463,8 +463,8 @@ local function config_view(display)
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
         if settings.save("reactor-plc.settings") then
-            load_settings(ini_cfg)
             load_settings(settings_cfg, true)
+            load_settings(ini_cfg)
 
             try_set(networked, ini_cfg.Networked)
             try_set(u_id, ini_cfg.UnitID)
@@ -648,8 +648,9 @@ end
 ---@param ask_config? boolean indicate if this is being called by the PLC startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
-    tool_ctl.has_config = load_settings(ini_cfg)
+
     load_settings(settings_cfg, true)
+    tool_ctl.has_config = load_settings(ini_cfg)
 
     reset_term()
 

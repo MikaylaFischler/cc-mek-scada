@@ -58,6 +58,9 @@ function rtu.load_config()
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
 
+    cfv.assert_type_table(config.Peripherals)
+    cfv.assert_type_table(config.Redstone)
+
     return cfv.valid()
 end
 
