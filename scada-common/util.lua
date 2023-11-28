@@ -16,13 +16,13 @@ local type = type
 
 local t_concat = table.concat
 local t_insert = table.insert
-local t_unpack = table.unpack
+local t_pack   = table.pack
 
 ---@class util
 local util = {}
 
 -- scada-common version
-util.version = "1.1.9"
+util.version = "1.1.10"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -104,17 +104,13 @@ end
 ---@return table lines
 function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
 
--- luacheck: no unused args
-
 -- concatenation with built-in to string
 ---@nodiscard
 ---@vararg any
 ---@return string
----@diagnostic disable-next-line: unused-vararg
 function util.concat(...)
-    local strings = {}
----@diagnostic disable-next-line: undefined-field
-    for i = 1, arg.n do strings[i] = util.strval(arg[i]) end
+    local args, strings = t_pack(...), {}
+    for i = 1, args.n do strings[i] = util.strval(args[i]) end
     return t_concat(strings)
 end
 
@@ -125,10 +121,7 @@ util.c = util.concat
 ---@nodiscard
 ---@param format string
 ---@vararg any
----@diagnostic disable-next-line: unused-vararg
-function util.sprintf(format, ...) return string.format(format, t_unpack(arg)) end
-
--- luacheck: unused args
+function util.sprintf(format, ...) return string.format(format, ...) end
 
 -- format a number string with commas as the thousands separator<br>
 -- subtracts from spaces at the start if present for each comma used
