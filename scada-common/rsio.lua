@@ -127,7 +127,37 @@ local PORT_NAMES = {
     "U_EMER_COOL"
 }
 
+local MODES = {
+    IO_MODE.DIGITAL_IN,  -- F_SCRAM
+    IO_MODE.DIGITAL_IN,  -- F_ACK
+    IO_MODE.DIGITAL_IN,  -- R_SCRAM
+    IO_MODE.DIGITAL_IN,  -- R_RESET
+    IO_MODE.DIGITAL_IN,  -- R_ENABLE
+    IO_MODE.DIGITAL_IN,  -- U_ACK
+    IO_MODE.DIGITAL_OUT, -- F_ALARM
+    IO_MODE.DIGITAL_OUT, -- F_ALARM_ANY
+    IO_MODE.DIGITAL_OUT, -- WASTE_PU
+    IO_MODE.DIGITAL_OUT, -- WASTE_PO
+    IO_MODE.DIGITAL_OUT, -- WASTE_POPL
+    IO_MODE.DIGITAL_OUT, -- WASTE_AM
+    IO_MODE.DIGITAL_OUT, -- R_ACTIVE
+    IO_MODE.DIGITAL_OUT, -- R_AUTO_CTRL
+    IO_MODE.DIGITAL_OUT, -- R_SCRAMMED
+    IO_MODE.DIGITAL_OUT, -- R_AUTO_SCRAM
+    IO_MODE.DIGITAL_OUT, -- R_HIGH_DMG
+    IO_MODE.DIGITAL_OUT, -- R_HIGH_TEMP
+    IO_MODE.DIGITAL_OUT, -- R_LOW_COOLANT
+    IO_MODE.DIGITAL_OUT, -- R_EXCESS_HC
+    IO_MODE.DIGITAL_OUT, -- R_EXCESS_WS
+    IO_MODE.DIGITAL_OUT, -- R_INSUFF_FUEL
+    IO_MODE.DIGITAL_OUT, -- R_PLC_FAULT
+    IO_MODE.DIGITAL_OUT, -- R_PLC_TIMEOUT
+    IO_MODE.DIGITAL_OUT, -- U_ALARM
+    IO_MODE.DIGITAL_OUT  -- U_EMER_COOL
+}
+
 assert(rsio.NUM_PORTS == #PORT_NAMES, "port names length incorrect")
+assert(rsio.NUM_PORTS == #MODES, "modes length incorrect")
 
 -- port to string
 ---@nodiscard
@@ -209,45 +239,26 @@ local RS_DIO_MAP = {
     { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
 }
 
+assert(rsio.NUM_PORTS == #RS_DIO_MAP, "RS_DIO_MAP length incorrect")
+
+-- get the I/O direction of a port
+---@nodiscard
+---@param port IO_PORT
+---@return IO_DIR
+function rsio.get_io_dir(port)
+    if util.is_int(port) and port > 0 and port <= rsio.NUM_PORTS then
+        return RS_DIO_MAP[port].mode
+    else return IO_DIR.IN end
+end
+
 -- get the mode of a port
 ---@nodiscard
 ---@param port IO_PORT
 ---@return IO_MODE
 function rsio.get_io_mode(port)
-    local modes = {
-        IO_MODE.DIGITAL_IN,     -- F_SCRAM
-        IO_MODE.DIGITAL_IN,     -- F_ACK
-        IO_MODE.DIGITAL_IN,     -- R_SCRAM
-        IO_MODE.DIGITAL_IN,     -- R_RESET
-        IO_MODE.DIGITAL_IN,     -- R_ENABLE
-        IO_MODE.DIGITAL_IN,     -- U_ACK
-        IO_MODE.DIGITAL_OUT,    -- F_ALARM
-        IO_MODE.DIGITAL_OUT,    -- F_ALARM_ANY
-        IO_MODE.DIGITAL_OUT,    -- WASTE_PU
-        IO_MODE.DIGITAL_OUT,    -- WASTE_PO
-        IO_MODE.DIGITAL_OUT,    -- WASTE_POPL
-        IO_MODE.DIGITAL_OUT,    -- WASTE_AM
-        IO_MODE.DIGITAL_OUT,    -- R_ACTIVE
-        IO_MODE.DIGITAL_OUT,    -- R_AUTO_CTRL
-        IO_MODE.DIGITAL_OUT,    -- R_SCRAMMED
-        IO_MODE.DIGITAL_OUT,    -- R_AUTO_SCRAM
-        IO_MODE.DIGITAL_OUT,    -- R_HIGH_DMG
-        IO_MODE.DIGITAL_OUT,    -- R_HIGH_TEMP
-        IO_MODE.DIGITAL_OUT,    -- R_LOW_COOLANT
-        IO_MODE.DIGITAL_OUT,    -- R_EXCESS_HC
-        IO_MODE.DIGITAL_OUT,    -- R_EXCESS_WS
-        IO_MODE.DIGITAL_OUT,    -- R_INSUFF_FUEL
-        IO_MODE.DIGITAL_OUT,    -- R_PLC_FAULT
-        IO_MODE.DIGITAL_OUT,    -- R_PLC_TIMEOUT
-        IO_MODE.DIGITAL_OUT,    -- U_ALARM
-        IO_MODE.DIGITAL_OUT     -- U_EMER_COOL
-    }
-
-    if util.is_int(port) and port > 0 and port <= #modes then
-        return modes[port]
-    else
-        return IO_MODE.ANALOG_IN
-    end
+    if util.is_int(port) and port > 0 and port <= rsio.NUM_PORTS then
+        return MODES[port]
+    else return IO_MODE.ANALOG_IN end
 end
 
 --#endregion
@@ -261,7 +272,7 @@ local RS_SIDES = rs.getSides()
 ---@param port IO_PORT
 ---@return boolean valid
 function rsio.is_valid_port(port)
-    return util.is_int(port) and (port > 0) and (port <= IO_PORT.U_EMER_COOL)
+    return util.is_int(port) and port > 0 and port <= rsio.NUM_PORTS
 end
 
 -- check if a side is valid

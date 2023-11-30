@@ -161,6 +161,7 @@ local tool_ctl = {
     rs_cfg_selection = nil,   ---@type graphics_element
     rs_cfg_unit_l = nil,      ---@type graphics_element
     rs_cfg_unit = nil,        ---@type graphics_element
+    rs_cfg_side_l = nil,      ---@type graphics_element
     rs_cfg_color = nil,       ---@type graphics_element
     rs_cfg_shortcut = nil     ---@type graphics_element
 }
@@ -850,7 +851,7 @@ local function config_view(display)
     tool_ctl.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text="",fg_bg=g_lg_fg_bg}
     tool_ctl.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text="",fg_bg=g_lg_fg_bg}
 
-    tool_ctl.p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    tool_ctl.p_err = TextBox{parent=peri_c_4,x=8,y=14,height=1,width=32,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     tool_ctl.p_err.hide(true)
 
     local function back_from_peri_opts()
@@ -879,7 +880,7 @@ local function config_view(display)
             if (peri_type == "dynamicValve" or peri_type == "environmentDetector") and for_facility then
                 -- skip
             elseif not (util.is_int(u) and u > 0 and u < 5) then
-                tool_ctl.p_err.set_value("Unit ID must be within 1 through 4.")
+                tool_ctl.p_err.set_value("Unit ID must be within 1 to 4.")
                 tool_ctl.p_err.show()
                 return
             else unit = u end
@@ -899,7 +900,7 @@ local function config_view(display)
             else index = idx end
         elseif peri_type == "dynamicValve" and for_facility then
             if not (util.is_int(idx) and idx > 0 and idx < 5) then
-                tool_ctl.p_err.set_value("Index must be within 1 through 4.")
+                tool_ctl.p_err.set_value("Index must be within 1 to 4.")
                 tool_ctl.p_err.show()
                 return
             else index = idx end
@@ -991,7 +992,7 @@ local function config_view(display)
 
     local new_rs_port = IO.F_SCRAM
     local function new_rs(port)
-        if (rsio.get_io_mode(port) == rsio.IO_DIR.IN) then
+        if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
             for i = 1, #tmp_cfg.Redstone do
                 if tmp_cfg.Redstone[i].port == port then
                     rs_pane.set_value(6)
@@ -1007,9 +1008,11 @@ local function config_view(display)
         if port == -1 then
             tool_ctl.rs_cfg_color.hide(true)
             tool_ctl.rs_cfg_shortcut.show()
+            tool_ctl.rs_cfg_side_l.set_value("Output Side")
             text = "You selected the ALL_WASTE shortcut."
         else
             tool_ctl.rs_cfg_shortcut.hide(true)
+            tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
             tool_ctl.rs_cfg_color.show()
             text = "You selected " .. rsio.to_string(port) .. " (for "
             if PORT_DSGN[port] == 1 then
@@ -1035,8 +1038,8 @@ local function config_view(display)
     TextBox{parent=all_w_macro,x=22,y=1,height=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
     for i = 1, rsio.NUM_PORTS do
         local name = rsio.to_string(i)
-        local io_dir = util.trinary(rsio.get_io_mode(i) == rsio.IO_DIR.IN, "[in]", "[out]")
-        local btn_color = util.trinary(rsio.get_io_mode(i) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
+        local io_dir = util.trinary(rsio.get_io_dir(i) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local btn_color = util.trinary(rsio.get_io_dir(i) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
         local entry = Div{parent=rs_ports,height=1}
         PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(i)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
         TextBox{parent=entry,x=16,y=1,width=5,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
@@ -1050,7 +1053,7 @@ local function config_view(display)
     tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text="Unit ID"}
     tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_digits=2,min=1,max=4,fg_bg=bw_fg_bg}
 
-    TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text="Output Side"}
+    tool_ctl.rs_cfg_side_l = TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text="Output Side"}
     local side = Radio2D{parent=rs_c_3,x=1,y=4,rows=2,columns=3,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
 
     local function set_bundled(bundled)
@@ -1064,7 +1067,7 @@ local function config_view(display)
     tool_ctl.rs_cfg_color = Radio2D{parent=rs_c_3,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     tool_ctl.rs_cfg_color.disable()
 
-    local rs_err = TextBox{parent=rs_c_3,x=8,y=14,height=1,width=35,text="Unit ID must be within 1 through 4.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local rs_err = TextBox{parent=rs_c_3,x=8,y=14,height=1,width=30,text="Unit ID must be within 1 to 4.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     rs_err.hide(true)
 
     local function back_from_rs_opts()
@@ -1233,7 +1236,7 @@ local function config_view(display)
                 table.insert(tmp_cfg.Redstone, def)
 
                 local name = rsio.to_string(def.port)
-                local io_dir = util.trinary(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+                local io_dir = util.trinary(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
                 local conn = def.side
                 local unit = "facility"
 
@@ -1407,6 +1410,7 @@ local function config_view(display)
         end
 
         tool_ctl.rs_cfg_selection.set_value(text)
+        tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(idx) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
         bundled.set_value(def.color ~= nil)
         tool_ctl.rs_cfg_color.set_value(value)
