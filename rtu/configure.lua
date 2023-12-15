@@ -345,8 +345,8 @@ local function config_view(display)
         else s_vol_err.show() end
     end
 
-    PushButton{parent=spkr_c,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=spkr_c,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -389,8 +389,8 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=net_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
     local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
@@ -420,8 +420,8 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=net_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_2,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_3,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
     TextBox{parent=net_c_3,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
@@ -447,8 +447,8 @@ local function config_view(display)
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_3,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -486,8 +486,8 @@ local function config_view(display)
         else path_err.show() end
     end
 
-    PushButton{parent=log_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=log_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -568,7 +568,7 @@ local function config_view(display)
         else sum_pane.set_value(6) end
     end
 
-    PushButton{parent=sum_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=function()save_and_continue(true)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
     tool_ctl.settings_confirm = PushButton{parent=sum_c_1,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
@@ -577,13 +577,13 @@ local function config_view(display)
     TextBox{parent=sum_c_2,x=1,y=1,height=1,text="The following peripherals will be imported:"}
     local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_2,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_3,x=1,y=1,height=1,text="The following redstone entries will be imported:"}
     local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()sum_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_4,x=1,y=1,height=1,text="Settings saved!"}
@@ -606,7 +606,7 @@ local function config_view(display)
 
     TextBox{parent=sum_c_7,x=1,y=1,height=8,text="Warning!\n\nSome of the devices in your old config file aren't currently connected. If the device isn't connected, the options can't be properly validated. Please either connect your devices and try again or complete the import without validation on those entry's settings."}
     TextBox{parent=sum_c_7,x=1,y=10,height=3,text="Afterwards, either (a) edit then save entries for currently disconnected devices to properly configure or (b) delete those entries."}
-    PushButton{parent=sum_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_7,x=1,y=14,text="\x1b Back",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_7,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -628,7 +628,7 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=cl,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -665,7 +665,7 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=peri_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=peri_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_1,x=35,y=14,min_width=7,text="Add +",callback=function()peri_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_1,x=43,y=14,min_width=7,text="Apply",callback=peri_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
@@ -674,13 +674,13 @@ local function config_view(display)
 
     tool_ctl.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=peri_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_2,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=26,y=14,min_width=24,text="I don't see my device!",callback=function()peri_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
     TextBox{parent=peri_c_7,x=1,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
-    PushButton{parent=peri_c_7,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_7,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local new_peri_attrs = { "", "" }
     local function new_peri(name, type)
@@ -823,8 +823,8 @@ local function config_view(display)
         else man_p_err.show() end
     end
 
-    PushButton{parent=peri_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=peri_c_3,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_manual_peri,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_3,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_3,x=44,y=14,text="Next \x1a",callback=submit_manual_peri,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text=""}
     tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text=""}
@@ -932,15 +932,15 @@ local function config_view(display)
         tool_ctl.p_idx.set_value(1)
     end
 
-    PushButton{parent=peri_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_4,x=1,y=14,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_peri_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=peri_c_5,x=1,y=1,height=1,text="Settings saved!"}
-    PushButton{parent=peri_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_5,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=peri_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=peri_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_6,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_6,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -978,13 +978,13 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=rs_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=rs_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_6,x=1,y=1,height=5,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
-    PushButton{parent=rs_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_6,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_2,x=1,y=1,height=1,text="Select one of the below ports to use."}
 
@@ -1046,7 +1046,7 @@ local function config_view(display)
         TextBox{parent=entry,x=22,y=1,height=1,text=PORT_DESC[i],fg_bg=cpair(colors.gray,colors.white)}
     end
 
-    PushButton{parent=rs_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_2,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text=""}
 
@@ -1119,15 +1119,15 @@ local function config_view(display)
         else rs_err.show() end
     end
 
-    PushButton{parent=rs_c_3,x=1,y=14,min_width=6,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,x=1,y=14,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_3,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_4,x=1,y=1,height=1,text="Settings saved!"}
-    PushButton{parent=rs_c_4,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_4,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_5,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=rs_c_5,x=1,y=14,min_width=6,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_5,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
