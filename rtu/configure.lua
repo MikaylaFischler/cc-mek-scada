@@ -1389,6 +1389,8 @@ local function config_view(display)
     local function edit_rs_entry(idx)
         local def = tmp_cfg.Redstone[idx]   ---@type rtu_rs_definition
 
+        tool_ctl.rs_cfg_shortcut.hide(true)
+        tool_ctl.rs_cfg_color.show()
         tool_ctl.rs_cfg_editing = idx
 
         local text = "Editing " .. rsio.to_string(def.port) .. " (for "
