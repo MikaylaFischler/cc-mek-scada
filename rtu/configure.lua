@@ -928,6 +928,7 @@ local function config_view(display)
 
         peri_pane.set_value(1)
         tool_ctl.gen_peri_summary(tmp_cfg)
+        tool_ctl.update_peri_list()
 
         tool_ctl.p_idx.set_value(1)
     end
@@ -1345,6 +1346,7 @@ local function config_view(display)
     local function delete_peri_entry(idx)
         table.remove(tmp_cfg.Peripherals, idx)
         tool_ctl.gen_peri_summary(tmp_cfg)
+        tool_ctl.update_peri_list()
     end
 
     -- generate the peripherals summary list
