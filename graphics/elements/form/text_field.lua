@@ -45,7 +45,7 @@ local function text_field(args)
             if core.events.was_clicked(event.type) then
                 e.take_focus()
 
-                if event.type == MOUSE_CLICK.UP then
+                if event.type == MOUSE_CLICK.UP and e.in_frame_bounds(event.current.x, event.current.y) then
                     ifield.move_cursor(event.current.x)
                 end
             elseif event.type == MOUSE_CLICK.DOUBLE_CLICK then

@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.11c"
+local CCMSI_VERSION = "v1.12"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -168,28 +168,26 @@ end
 
 -- go through app/common directories to delete unused files
 local function clean(manifest)
-    local root_ext = false
     local tree = gen_tree(manifest)
 
     table.insert(tree, "install_manifest.json")
     table.insert(tree, "ccmsi.lua")
     table.insert(tree, "log.txt") ---@fixme fix after migration to settings files?
 
-    lgray()
-
     local ls = fs.list("/")
     for _, val in pairs(ls) do
-        if fs.isDir(val) then
-            if tree[val] ~= nil then _clean_dir("/" .. val, tree[val]) end
-            if #fs.list(val) == 0 then fs.delete(val);println("deleted " .. val) end
+        if fs.isDriveRoot(val) then
+            yellow();println("skipped mount '" .. val .. "'")
+        elseif fs.isDir(val) then
+            if tree[val] ~= nil then lgray();_clean_dir("/" .. val, tree[val])
+            else white(); if ask_y_n("delete the unused directory '" .. val .. "'") then lgray();_clean_dir("/" .. val) end end
+            if #fs.list(val) == 0 then fs.delete(val);lgray();println("deleted empty directory '" .. val .. "'") end
         elseif not _in_array(val, tree) and (string.find(val, ".settings") == nil) then
-            root_ext = true
-            yellow();println(val .. " not used")
+            white();if ask_y_n("delete the unused file '" .. val .. "'") then fs.delete(val);lgray();println("deleted " .. val) end
         end
     end
 
     white()
-    if root_ext then println("Files in root directory won't be automatically deleted.") end
 end
 
 -- get and validate command line options
@@ -347,7 +345,9 @@ elseif mode == "install" or mode == "update" then
     if mode == "install" then
         println("Installing " .. app .. " files...")
     elseif mode == "update" then
-        println("Updating " .. app .. " files... (keeping old config.lua)")
+        if app == "supervisor" or app == "coordinator" or app == "pocket" then
+            println("Updating " .. app .. " files... (keeping old config.lua)")
+        else println("Updating " .. app .. " files...") end
     end
     white()
 

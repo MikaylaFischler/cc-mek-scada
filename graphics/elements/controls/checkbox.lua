@@ -24,7 +24,7 @@ local function checkbox(args)
 
     args.can_focus = true
     args.height = 1
-    args.width = 3 + string.len(args.label)
+    args.width = 2 + string.len(args.label)
 
     -- create new graphics element base object
     local e = element.new(args)

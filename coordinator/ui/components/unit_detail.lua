@@ -257,7 +257,7 @@ local function init(parent, id)
     if unit.num_boilers > 0 then
         TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
-        b1_wll.register(b_ps[1], "WasterLevelLow", b1_wll.update)
+        b1_wll.register(b_ps[1], "WaterLevelLow", b1_wll.update)
 
         TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
         local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
@@ -273,7 +273,7 @@ local function init(parent, id)
 
         TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
         local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
-        b2_wll.register(b_ps[2], "WasterLevelLow", b2_wll.update)
+        b2_wll.register(b_ps[2], "WaterLevelLow", b2_wll.update)
 
         TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
         local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}

@@ -110,7 +110,7 @@ local function init(panel, units)
 
         -- unit name identifier (type + index)
         local function get_name(t) return util.c(UNIT_TYPE_LABELS[t + 1], " ", util.trinary(util.is_int(unit.index), unit.index, "")) end
-        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),height=1}
+        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),width=15,height=1}
 
         name_box.register(databus.ps, "unit_type_" .. i, function (t) name_box.set_value(get_name(t)) end)
 
