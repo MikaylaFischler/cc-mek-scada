@@ -125,6 +125,7 @@ local tool_ctl = {
     importing_any_dc = false,
     peri_cfg_editing = false, ---@type string|false
     peri_cfg_manual = false,
+    rs_cfg_port = IO.F_SCRAM, ---@type IO_PORT
     rs_cfg_editing = false,   ---@type integer|false
 
     view_gw_cfg = nil,        ---@type graphics_element
@@ -991,7 +992,6 @@ local function config_view(display)
 
     local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local new_rs_port = IO.F_SCRAM
     local function new_rs(port)
         if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
             for i = 1, #tmp_cfg.Redstone do
@@ -1028,7 +1028,7 @@ local function config_view(display)
         end
 
         tool_ctl.rs_cfg_selection.set_value(text)
-        new_rs_port = port
+        tool_ctl.rs_cfg_port = port
         rs_pane.set_value(3)
     end
 
@@ -1077,16 +1077,17 @@ local function config_view(display)
     end
 
     local function save_rs_entry()
+        local port = tool_ctl.rs_cfg_port
         local u = tonumber(tool_ctl.rs_cfg_unit.get_value())
 
-        if PORT_DSGN[new_rs_port] == 0 or (util.is_int(u) and u > 0 and u < 5) then
+        if PORT_DSGN[port] == 0 or (util.is_int(u) and u > 0 and u < 5) then
             rs_err.hide(true)
 
-            if new_rs_port >= 0 then
+            if port >= 0 then
                 ---@type rtu_rs_definition
                 local def = {
-                    unit = util.trinary(PORT_DSGN[new_rs_port] == 1, u, nil),
-                    port = new_rs_port,
+                    unit = util.trinary(PORT_DSGN[port] == 1, u, nil),
+                    port = port,
                     side = side_options_map[side.get_value()],
                     color = util.trinary(bundled.get_value(), color_options_map[tool_ctl.rs_cfg_color.get_value()], nil)
                 }
@@ -1097,7 +1098,7 @@ local function config_view(display)
                     def.port = tmp_cfg.Redstone[tool_ctl.rs_cfg_editing].port
                     tmp_cfg.Redstone[tool_ctl.rs_cfg_editing] = def
                 end
-            elseif new_rs_port == -1 then
+            elseif port == -1 then
                 local default_sides = { "left", "back", "right", "front" }
                 local default_colors = { colors.red, colors.orange, colors.yellow, colors.lime }
                 for i = 0, 3 do
@@ -1391,6 +1392,8 @@ local function config_view(display)
 
         tool_ctl.rs_cfg_shortcut.hide(true)
         tool_ctl.rs_cfg_color.show()
+
+        tool_ctl.rs_cfg_port = def.port
         tool_ctl.rs_cfg_editing = idx
 
         local text = "Editing " .. rsio.to_string(def.port) .. " (for "
