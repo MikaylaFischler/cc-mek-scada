@@ -246,8 +246,7 @@ assert(rsio.NUM_PORTS == #RS_DIO_MAP, "RS_DIO_MAP length incorrect")
 ---@param port IO_PORT
 ---@return IO_DIR
 function rsio.get_io_dir(port)
-    if util.is_int(port) and port > 0 and port <= rsio.NUM_PORTS then
-        return RS_DIO_MAP[port].mode
+    if rsio.is_valid_port(port) then return RS_DIO_MAP[port].mode
     else return IO_DIR.IN end
 end
 
@@ -256,8 +255,7 @@ end
 ---@param port IO_PORT
 ---@return IO_MODE
 function rsio.get_io_mode(port)
-    if util.is_int(port) and port > 0 and port <= rsio.NUM_PORTS then
-        return MODES[port]
+    if rsio.is_valid_port(port) then return MODES[port]
     else return IO_MODE.ANALOG_IN end
 end
 
