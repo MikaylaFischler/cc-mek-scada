@@ -1417,7 +1417,7 @@ local function config_view(display)
         end
 
         tool_ctl.rs_cfg_selection.set_value(text)
-        tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(idx) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
+        tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
         bundled.set_value(def.color ~= nil)
         tool_ctl.rs_cfg_color.set_value(value)
