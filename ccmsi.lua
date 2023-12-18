@@ -180,7 +180,7 @@ local function clean(manifest)
             yellow();println("skipped mount '" .. val .. "'")
         elseif fs.isDir(val) then
             if tree[val] ~= nil then lgray();_clean_dir("/" .. val, tree[val])
-            else white();if ask_y_n("delete the unused directory '" .. val .. "'") then lgray();_clean_dir("/" .. val) end end
+            else white(); if ask_y_n("delete the unused directory '" .. val .. "'") then lgray();_clean_dir("/" .. val) end end
             if #fs.list(val) == 0 then fs.delete(val);lgray();println("deleted empty directory '" .. val .. "'") end
         elseif not _in_array(val, tree) and (string.find(val, ".settings") == nil) then
             white();if ask_y_n("delete the unused file '" .. val .. "'") then fs.delete(val);lgray();println("deleted " .. val) end
