@@ -173,7 +173,8 @@ function threads.thread__main(smem, init)
                         plc_state.degraded = true
                     elseif networked and type == "modem" then
                         -- we only care if this is our wireless modem
-                        if nic.is_modem(device) then
+                        -- note, check init_ok first since nic will be nil if it is false
+                        if plc_state.init_ok and nic.is_modem(device) then
                             nic.disconnect()
 
                             println_ts("comms modem disconnected!")
@@ -193,7 +194,7 @@ function threads.thread__main(smem, init)
                                 end
                             end
                         else
-                            log.warning("non-comms modem disconnected")
+                            log.warning("a modem was disconnected")
                         end
                     end
                 end
@@ -235,7 +236,8 @@ function threads.thread__main(smem, init)
                             rps.reset()
                         end
                     elseif networked and type == "modem" then
-                        if device.isWireless() and not nic.is_connected() then
+                        -- note, check init_ok first since nic will be nil if it is false
+                        if device.isWireless() and not (plc_state.init_ok and nic.is_connected()) then
                             -- reconnected modem
                             plc_dev.modem = device
                             plc_state.no_modem = false
