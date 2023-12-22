@@ -18,7 +18,7 @@ local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.6.3-alpha"
+local POCKET_VERSION = "v0.6.4-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -128,7 +128,7 @@ local function main()
         -- start connection watchdogs
         conn_wd.sv.feed()
         conn_wd.api.feed()
-        log.debug("startup> conn watchdog started")
+        log.debug("startup> conn watchdogs started")
 
         local io_db = iocontrol.get_db()
         local nav   = io_db.nav
@@ -146,11 +146,8 @@ local function main()
                     pocket_comms.link_update()
 
                     -- update any tasks for the active page
-                    if (type(nav.tasks[nav.page]) == "table") then
-                        for i = 1, #nav.tasks[nav.page] do
-                            nav.tasks[nav.page][i]()
-                        end
-                    end
+                    local page_tasks = nav.get_current_page().tasks
+                    for i = 1, #page_tasks do page_tasks[i]() end
 
                     loop_clock.start()
                 elseif conn_wd.sv.is_timer(param1) then

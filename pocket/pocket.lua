@@ -460,5 +460,4 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
     return public
 end
 
-
 return pocket

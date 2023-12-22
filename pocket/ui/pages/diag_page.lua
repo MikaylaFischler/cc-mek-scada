@@ -1,3 +1,7 @@
+--
+-- Diagnostic Tools
+--
+
 local iocontrol      = require("pocket.iocontrol")
 
 local core           = require("graphics.core")
@@ -14,8 +18,6 @@ local PushButton     = require("graphics.elements.controls.push_button")
 local SwitchButton   = require("graphics.elements.controls.switch_button")
 
 local cpair = core.cpair
-
-local NAV_PAGE = iocontrol.NAV_PAGE
 
 local ALIGN = core.ALIGN
 
@@ -36,23 +38,15 @@ local function new_view(root)
 
     local page_pane = MultiPane{parent=main,x=1,y=1,panes=panes}
 
-    local function navigate_diag()
-        page_pane.set_value(1)
-        db.nav.page = NAV_PAGE.DIAG
-        db.nav.sub_pages[NAV_PAGE.DIAG] = NAV_PAGE.DIAG
-    end
-
-    local function navigate_alarm()
-        page_pane.set_value(2)
-        db.nav.page = NAV_PAGE.D_ALARMS
-        db.nav.sub_pages[NAV_PAGE.DIAG] = NAV_PAGE.D_ALARMS
-    end
+    local npage_diag = db.nav.new_page(nil, 6, page_pane)
+    local npage_home = db.nav.new_page(npage_diag, 1)
+    local npage_alarm = db.nav.new_page(npage_diag, 2)
 
     ------------------------
     -- Alarm Testing Page --
     ------------------------
 
-    db.nav.register_task(NAV_PAGE.D_ALARMS, db.diag.tone_test.get_tone_states)
+    table.insert(npage_alarm.tasks, db.diag.tone_test.get_tone_states)
 
     local ttest = db.diag.tone_test
 
@@ -67,7 +61,7 @@ local function new_view(root)
 
     ttest.ready_warn = TextBox{parent=audio,y=2,text="",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
 
-    PushButton{parent=audio,x=13,y=18,text="\x11 BACK",min_width=8,fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=c_wht_gray,callback=navigate_diag}
+    PushButton{parent=audio,x=13,y=18,text="\x11 BACK",min_width=8,fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=c_wht_gray,callback=npage_home.nav_to}
 
     local tones = Div{parent=audio,x=2,y=3,height=10,width=8,fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -137,7 +131,7 @@ local function new_view(root)
     -- App List --
     --------------
 
-    App{parent=diag_home,x=3,y=4,text="\x0f",title="Alarm",callback=navigate_alarm,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    App{parent=diag_home,x=3,y=4,text="\x0f",title="Alarm",callback=npage_alarm.nav_to,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
     App{parent=diag_home,x=10,y=4,text="\x1e",title="LoopT",callback=function()end,app_fg_bg=cpair(colors.black,colors.cyan)}
     App{parent=diag_home,x=17,y=4,text="@",title="Comps",callback=function()end,app_fg_bg=cpair(colors.black,colors.orange)}
 

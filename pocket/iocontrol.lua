@@ -23,19 +23,16 @@ local LINK_STATE = {
     LINKED = 3
 }
 
----@enum NAV_PAGE
-local NAV_PAGE = {
-    HOME = 1,
-    UNITS = 2,
-    REACTORS = 3,
-    BOILERS = 4,
-    TURBINES = 5,
-    DIAG = 6,
-    D_ALARMS = 7
-}
-
 iocontrol.LINK_STATE = LINK_STATE
-iocontrol.NAV_PAGE = NAV_PAGE
+
+---@class nav_tree_node
+---@field _p nav_tree_node|nil page's parent
+---@field _c table page's children
+---@field pane_elem graphics_element|nil multipane for this branch
+---@field pane_id integer this page's ID in it's contained pane
+---@field switcher function|nil function to switch this page's active multipane
+---@field nav_to function function to navigate to this page
+---@field tasks table tasks to run on this page
 
 -- initialize facility-independent components of pocket iocontrol
 ---@param comms pocket_comms
@@ -76,21 +73,54 @@ function iocontrol.init_core(comms)
         alarm_buttons = {},
         tone_indicators = {}    -- indicators to update from supervisor tone states
     }
+end
 
-    ---@class pocket_nav
-    io.nav = {
-        page = NAV_PAGE.HOME,   ---@type NAV_PAGE
-        sub_pages = { NAV_PAGE.HOME, NAV_PAGE.UNITS, NAV_PAGE.REACTORS, NAV_PAGE.BOILERS, NAV_PAGE.TURBINES, NAV_PAGE.DIAG },
-        tasks = {}
+-- initialize the page navigation tree
+function iocontrol.init_nav(root_pane)
+    local self = {
+        root = { _p = nil, _c = {}, pane_id = 0, pane_elem = root_pane, nav_to = function () end, tasks = {} }, ---@type nav_tree_node
+        cur_page = nil ---@type nav_tree_node
     }
 
-    -- add a task to be performed periodically while on a given page
-    ---@param page NAV_PAGE page to add task to
-    ---@param task function function to execute
-    function io.nav.register_task(page, task)
-        if io.nav.tasks[page] == nil then io.nav.tasks[page] = {} end
-        table.insert(io.nav.tasks[page], task)
+    function self.root.switcher(pane_id)
+        if self.root._c[pane_id] then self.root._c[pane_id].nav_to() end
     end
+
+    ---@class pocket_nav
+    io.nav = {}
+
+    -- create a new page entry in the page navigation tree
+    ---@param parent nav_tree_node? a parent page or nil to use the root
+    ---@param pane_id integer the pane number for this page in it's parent's multipane
+    ---@param pane graphics_element? this page's multipane, if it has children
+    ---@return nav_tree_node new_page this new page
+    function io.nav.new_page(parent, pane_id, pane)
+        local page = { _p = parent or self.root, _c = {}, pane_id = pane_id, pane_elem = pane, tasks = {} }
+        page._p._c[pane_id] = page
+
+        function page.nav_to()
+            if page._p.pane_elem then page._p.pane_elem.set_value(page.pane_id) end
+            self.cur_page = page
+        end
+
+        if pane then
+            function page.switcher() if page._c[pane_id] then page._c[pane_id].nav_to() end end
+        end
+
+        return page
+    end
+
+    -- get the currently active page
+    function io.nav.get_current_page() return self.cur_page end
+
+    -- attempt to navigate up the tree
+    function io.nav.nav_up()
+        local parent = self.cur_page._p
+        -- if a parent is defined and this element is not root
+        if parent and parent.pane_id ~= 0 then self.cur_page = parent end
+    end
+
+    return self.root
 end
 
 -- initialize facility-dependent components of pocket iocontrol
