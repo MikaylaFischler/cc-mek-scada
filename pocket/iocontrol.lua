@@ -12,6 +12,7 @@ local iocontrol = {}
 
 ---@class pocket_ioctl
 local io = {
+    nav_root = nil, ---@type nav_tree_node
     ps = psil.create()
 }
 
@@ -34,9 +35,69 @@ iocontrol.LINK_STATE = LINK_STATE
 ---@field nav_to function function to navigate to this page
 ---@field tasks table tasks to run on this page
 
+-- allocate the page navigation tree system<br>
+-- navigation is not ready until init_nav has been called
+function iocontrol.alloc_nav()
+    local self = {
+        root = { _p = nil, _c = {}, pane_id = 0, pane_elem = nil, nav_to = function () end, tasks = {} }, ---@type nav_tree_node
+        cur_page = nil ---@type nav_tree_node
+    }
+
+    function self.root.switcher(pane_id)
+        if self.root._c[pane_id] then self.root._c[pane_id].nav_to() end
+    end
+
+    self.cur_page = self.root
+
+    ---@class pocket_nav
+    io.nav = {}
+
+    -- create a new page entry in the page navigation tree
+    ---@param parent nav_tree_node? a parent page or nil to use the root
+    ---@param pane_id integer the pane number for this page in it's parent's multipane
+    ---@param pane graphics_element? this page's multipane, if it has children
+    ---@return nav_tree_node new_page this new page
+    function io.nav.new_page(parent, pane_id, pane)
+        local page = { _p = parent or self.root, _c = {}, pane_id = pane_id, pane_elem = pane, tasks = {} }
+        page._p._c[pane_id] = page
+
+        function page.nav_to()
+            if page._p.pane_elem then page._p.pane_elem.set_value(page.pane_id) end
+            self.cur_page = page
+        end
+
+        if pane then
+            function page.switcher() if page._c[pane_id] then page._c[pane_id].nav_to() end end
+        end
+
+        return page
+    end
+
+    -- get the currently active page
+    function io.nav.get_current_page() return self.cur_page end
+
+    -- attempt to navigate up the tree
+    function io.nav.nav_up()
+        local parent = self.cur_page._p
+        -- if a parent is defined and this element is not root
+        if parent and parent.pane_id ~= 0 then self.cur_page = parent end
+    end
+
+    io.nav_root = self.root
+end
+
+-- complete initialization of navigation by providing the root muiltipane
+---@param root_pane graphics_element navigation root multipane
+function iocontrol.init_nav(root_pane)
+    io.nav_root.pane_elem = root_pane
+    return io.nav_root
+end
+
 -- initialize facility-independent components of pocket iocontrol
 ---@param comms pocket_comms
 function iocontrol.init_core(comms)
+    iocontrol.alloc_nav()
+
     ---@class pocket_ioctl_diag
     io.diag = {}
 
@@ -73,54 +134,6 @@ function iocontrol.init_core(comms)
         alarm_buttons = {},
         tone_indicators = {}    -- indicators to update from supervisor tone states
     }
-end
-
--- initialize the page navigation tree
-function iocontrol.init_nav(root_pane)
-    local self = {
-        root = { _p = nil, _c = {}, pane_id = 0, pane_elem = root_pane, nav_to = function () end, tasks = {} }, ---@type nav_tree_node
-        cur_page = nil ---@type nav_tree_node
-    }
-
-    function self.root.switcher(pane_id)
-        if self.root._c[pane_id] then self.root._c[pane_id].nav_to() end
-    end
-
-    ---@class pocket_nav
-    io.nav = {}
-
-    -- create a new page entry in the page navigation tree
-    ---@param parent nav_tree_node? a parent page or nil to use the root
-    ---@param pane_id integer the pane number for this page in it's parent's multipane
-    ---@param pane graphics_element? this page's multipane, if it has children
-    ---@return nav_tree_node new_page this new page
-    function io.nav.new_page(parent, pane_id, pane)
-        local page = { _p = parent or self.root, _c = {}, pane_id = pane_id, pane_elem = pane, tasks = {} }
-        page._p._c[pane_id] = page
-
-        function page.nav_to()
-            if page._p.pane_elem then page._p.pane_elem.set_value(page.pane_id) end
-            self.cur_page = page
-        end
-
-        if pane then
-            function page.switcher() if page._c[pane_id] then page._c[pane_id].nav_to() end end
-        end
-
-        return page
-    end
-
-    -- get the currently active page
-    function io.nav.get_current_page() return self.cur_page end
-
-    -- attempt to navigate up the tree
-    function io.nav.nav_up()
-        local parent = self.cur_page._p
-        -- if a parent is defined and this element is not root
-        if parent and parent.pane_id ~= 0 then self.cur_page = parent end
-    end
-
-    return self.root
 end
 
 -- initialize facility-dependent components of pocket iocontrol
