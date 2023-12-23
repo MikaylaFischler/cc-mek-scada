@@ -35,7 +35,7 @@ local function init(main)
     local ps = iocontrol.get_db().ps
 
     -- window header message
-    TextBox{parent=main,y=1,text="",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="ALPHA APP - INCOMPLETE",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
 
     --#region root panel panes (connection screens + main screen)
 
