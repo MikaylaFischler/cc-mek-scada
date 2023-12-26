@@ -3,9 +3,9 @@
 --
 
 local log         = require("scada-common.log")
+local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
-local rsio        = require("scada-common.rsio")
 
 local core        = require("graphics.core")
 

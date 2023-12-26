@@ -3,10 +3,10 @@
 --
 
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
-local ppm         = require("scada-common.ppm")
 
 local core        = require("graphics.core")
 
