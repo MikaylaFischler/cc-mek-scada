@@ -5,7 +5,6 @@
 local log         = require("scada-common.log")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
-local rsio        = require("scada-common.rsio")
 
 local core        = require("graphics.core")
 
@@ -13,7 +12,6 @@ local DisplayBox  = require("graphics.elements.displaybox")
 local Div         = require("graphics.elements.div")
 local ListBox     = require("graphics.elements.listbox")
 local MultiPane   = require("graphics.elements.multipane")
-local PipeNet     = require("graphics.elements.pipenet")
 local TextBox     = require("graphics.elements.textbox")
 
 local CheckBox    = require("graphics.elements.controls.checkbox")
@@ -86,7 +84,10 @@ local tool_ctl = {
     auth_key_value = "",
 
     cooling_elems = {},
-    tank_elems = {}
+    tank_elems = {},
+
+    vis_ftanks = {},
+    vis_utanks = {}
 }
 
 ---@class svr_config
@@ -221,6 +222,7 @@ local function config_view(display)
 
     local function submit_num_units()
         local count = tonumber(num_units.get_value())
+        count = 4 ---@fixme test code
         if count ~= nil and count > 0 and count < 5 then
             nu_error.hide(true)
             tmp_cfg.UnitCount = count
@@ -241,13 +243,13 @@ local function config_view(display)
     TextBox{parent=svr_c_2,x=1,y=6,height=1,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
 
     for i = 1, 4 do
-        local num_t, num_b, has_t = 1, 0, false
+        local num_t, num_b, has_t = 1, 0, true ---@fixme test code false
 
         if ini_cfg.CoolingConfig[1] then
             local conf = ini_cfg.CoolingConfig[1]
             if util.is_int(conf.TurbineCount) then num_t = math.min(3, math.max(1, conf.TurbineCount or 1)) end
             if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(1, conf.BoilerCount or 0)) end
-            has_t = conf.TankConnection == true
+            has_t = true ---@fixme test code conf.TankConnection == true
         end
 
         local line = Div{parent=svr_c_2,x=1,y=7+i,height=1}
@@ -351,15 +353,37 @@ local function config_view(display)
 
     local tank_err = TextBox{parent=svr_c_4,x=8,y=14,height=1,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
+    local function show_fconn(i)
+        if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.show()
+        else tool_ctl.vis_ftanks[i].line.show() end
+    end
+
+    local function hide_fconn(i)
+        if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.hide(true)
+        else tool_ctl.vis_ftanks[i].line.hide(true) end
+    end
+
     local function submit_tank_defs()
         local any_fac = false
 
         tmp_cfg.FacilityTankDefs = {}
         for i = 1, tmp_cfg.UnitCount do
+            local def = tmp_cfg.FacilityTankDefs[i]
             if tmp_cfg.CoolingConfig[i].TankConnection then
-                tmp_cfg.FacilityTankDefs[i] = tool_ctl.tank_elems[i].tank_opt.get_value()
-                any_fac = any_fac or (tmp_cfg.FacilityTankDefs[i] == 2)
-            else tmp_cfg.FacilityTankDefs[i] = 0 end
+                def = tool_ctl.tank_elems[i].tank_opt.get_value()
+                any_fac = any_fac or (def == 2)
+            else def = 0 end
+
+            if def == 1 then
+                tool_ctl.vis_utanks[i].line.show()
+                tool_ctl.vis_utanks[i].label.set_value("Tank U" .. i)
+                hide_fconn(i)
+            else
+                if def == 2 then show_fconn(i) else hide_fconn(i) end
+                tool_ctl.vis_utanks[i].line.hide(true)
+            end
+
+            tmp_cfg.FacilityTankDefs[i] = def
         end
 
         -- if any_fac then
@@ -374,52 +398,147 @@ local function config_view(display)
 
     TextBox{parent=svr_c_5,x=1,y=1,height=1,text="Please select your dynamic tank layout."}
     TextBox{parent=svr_c_5,x=12,y=3,height=1,text="Facility Tanks             Unit Tanks",fg_bg=g_lg_fg_bg}
-    local vis = Div{parent=svr_c_5,x=15,y=5}
-    local tanks = TextBox{parent=vis,x=1,y=1,width=6,height=7,text="Tank A"}
-    local units = TextBox{parent=vis,x=14,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
 
+    --#region Tank Layout Visualizer
+
+    local vis = Div{parent=svr_c_5,x=14,y=5}
+
+    local units = TextBox{parent=vis,x=15,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
+
+    -- draw unit tanks and their pipes
     for i = 1, 4 do
-        local line = Div{parent=vis,x=21,y=(i*2)-1,width=12,height=1}
-        TextBox{parent=line,width=5,height=1,text="\x8c\x8c\x8c\x8c\x8c",fg_bg=cpair(colors.blue,colors.lightGray)}
-        local label = TextBox{parent=line,x=7,y=1,width=6,height=1,text="Tank ?"}
+        local line = Div{parent=vis,x=22,y=(i*2)-1,width=13,height=1}
+        TextBox{parent=line,width=5,height=1,text=string.rep("\x8c",5),fg_bg=cpair(colors.blue,colors.lightGray)}
+        local label = TextBox{parent=line,x=7,y=1,width=7,height=1,text="Tank ?"}
+        tool_ctl.vis_utanks[i] = { line = line, label = label }
     end
 
-    local m1_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(3,0,4,2,colors.blue,true), core.pipe(3,2,4,4,colors.blue,true), core.pipe(3,4,4,6,colors.blue,true) }
-    local m2_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(3,0,4,2,colors.blue,true), core.pipe(3,2,4,4,colors.blue,true), core.pipe(0,6,4,6,colors.blue,true) }
-    local m3_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(3,0,4,2,colors.blue,true), core.pipe(0,4,4,4,colors.blue,true), core.pipe(3,4,4,6,colors.blue,true) }
-    local m4_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(0,2,4,2,colors.blue,true), core.pipe(3,2,4,4,colors.blue,true), core.pipe(3,4,4,6,colors.blue,true) }
-    local m5_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(3,0,4,2,colors.blue,true), core.pipe(0,4,4,4,colors.blue,true), core.pipe(0,6,4,6,colors.blue,true) }
-    local m6_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(0,2,4,2,colors.blue,true), core.pipe(3,2,4,4,colors.blue,true), core.pipe(0,6,4,6,colors.blue,true) }
-    local m7_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(0,2,4,2,colors.blue,true), core.pipe(0,4,4,4,colors.blue,true), core.pipe(3,4,4,6,colors.blue,true) }
-    local m8_pipes = { core.pipe(0,0,4,0,colors.blue,true), core.pipe(0,2,4,2,colors.blue,true), core.pipe(0,4,4,4,colors.blue,true), core.pipe(0,6,4,6,colors.blue,true) }
+    local ftank_1 = Div{parent=vis,x=1,y=1,width=13,height=1}
+    TextBox{parent=ftank_1,width=7,height=1,text="Tank F1"}
+    tool_ctl.vis_ftanks[1] = {
+        line = ftank_1, pipe_direct = TextBox{parent=ftank_1,x=9,y=1,width=5,text=string.rep("\x8c",5),fg_bg=cpair(colors.yellow,colors.lightGray)}
+    }
 
-    local pnet_m1 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m1_pipes}
-    local pnet_m2 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m2_pipes}
-    local pnet_m3 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m3_pipes}
-    local pnet_m4 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m4_pipes}
-    local pnet_m5 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m5_pipes}
-    local pnet_m6 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m6_pipes}
-    local pnet_m7 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m7_pipes}
-    local pnet_m8 = PipeNet{parent=vis,x=8,y=1,width=5,height=7,pipes=m8_pipes}
+    -- draw facility tank connections
+    for i = 2, 4 do
+        local line = Div{parent=vis,x=1,y=(i-1)*2,width=13,height=2}
+        local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=cpair(colors.red,colors.lightGray)}
+        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="\x95\n\x8d",fg_bg=cpair(colors.green,colors.lightGray)}
+        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="\x8c\x8c\x8c\x8c",fg_bg=cpair(colors.lightBlue,colors.lightGray),hidden=true}
+        local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text="Tank F?"}
+        tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
+    end
 
-    local pipe_pane = MultiPane{parent=vis,x=8,y=1,width=5,height=7,panes={pnet_m1,pnet_m2,pnet_m3,pnet_m4,pnet_m5,pnet_m6,pnet_m7,pnet_m8}}
+    local function show_pipes(mode)
+        -- is a facility tank connected to this unit
+        ---@param i integer unit 1 - 4
+        ---@return boolean connected
+        local function is_ft(i) return tmp_cfg.FacilityTankDefs[i] == 2 end
 
-    local hide_pipes_1u = Div{parent=vis,x=1,y=2,width=19,height=6,hidden=true}
+        local next_idx = 1
 
-    local function show_pipes(val)
-        local text = {
-            "Tank A",
-            "Tank A\n\n\n\n\n\nTank B",
-            "Tank A\n\n\n\nTank B",
-            "Tank A\n\nTank B",
-            "Tank A\n\n\n\nTank B\n\nTank C",
-            "Tank A\n\nTank B\n\n\n\nTank C",
-            "Tank A\n\nTank B\n\nTank C",
-            "Tank A\n\nTank B\n\nTank C\n\nTank D"
-        }
+        if is_ft(1) then
+            next_idx = 2
 
-        tanks.set_value(text[val])
-        pipe_pane.set_value(val)
+            if (mode == 1 and (is_ft(2) or is_ft(3) or is_ft(4))) or (mode == 2 and (is_ft(2) or is_ft(3))) or ((mode == 3 or mode == 5) and is_ft(2)) then
+                tool_ctl.vis_ftanks[1].pipe_direct.set_value("\x8c\x8c\x8c\x9c\x8c")
+            else
+                tool_ctl.vis_ftanks[1].pipe_direct.set_value(string.rep("\x8c",5))
+            end
+        end
+
+        local _2_12_need_passt = (mode == 1 and (is_ft(3) or is_ft(4))) or (mode == 2 and is_ft(3))
+        local _2_46_need_chain = (mode == 4 and (is_ft(3) or is_ft(4))) or (mode == 6 and is_ft(3))
+
+        if is_ft(2) then
+            tool_ctl.vis_ftanks[2].label.set_value("Tank F" .. next_idx)
+
+            if (mode < 4 or mode == 5) and is_ft(1) then
+                tool_ctl.vis_ftanks[2].label.hide(true)
+                tool_ctl.vis_ftanks[2].pipe_direct.hide(true)
+                if _2_12_need_passt then
+                    tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x9d")
+                else
+                    tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x8d")
+                end
+                tool_ctl.vis_ftanks[2].pipe_chain.show()
+            else
+                tool_ctl.vis_ftanks[2].label.show()
+                next_idx = next_idx + 1
+
+                tool_ctl.vis_ftanks[2].pipe_chain.hide(true)
+                if _2_12_need_passt or _2_46_need_chain then
+                    tool_ctl.vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
+                else
+                    tool_ctl.vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
+                end
+                tool_ctl.vis_ftanks[2].pipe_direct.show()
+            end
+
+            tool_ctl.vis_ftanks[2].line.show()
+        elseif is_ft(1) and _2_12_need_passt then
+            tool_ctl.vis_ftanks[2].label.hide(true)
+            tool_ctl.vis_ftanks[2].pipe_direct.hide(true)
+            tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x95")
+            tool_ctl.vis_ftanks[2].pipe_chain.show()
+            tool_ctl.vis_ftanks[2].line.show()
+        else
+            tool_ctl.vis_ftanks[2].line.hide(true)
+        end
+
+        if is_ft(3) then
+            tool_ctl.vis_ftanks[3].label.set_value("Tank F" .. next_idx)
+
+            if (mode < 3 and (is_ft(1) or is_ft(2))) or ((mode == 4 or mode == 6) and is_ft(2)) then
+                tool_ctl.vis_ftanks[3].label.hide(true)
+                tool_ctl.vis_ftanks[3].pipe_direct.hide(true)
+                if (mode == 1 or mode == 4) and is_ft(4) then
+                    tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x9d")
+                else
+                    tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x8d")
+                end
+                tool_ctl.vis_ftanks[3].pipe_chain.show()
+            else
+                tool_ctl.vis_ftanks[3].label.show()
+                next_idx = next_idx + 1
+
+                tool_ctl.vis_ftanks[3].pipe_chain.hide(true)
+                if (mode == 1 or mode == 3 or mode == 4 or mode == 7) and is_ft(4) then
+                    tool_ctl.vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
+                else
+                    tool_ctl.vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
+                end
+                tool_ctl.vis_ftanks[3].pipe_direct.show()
+            end
+
+            tool_ctl.vis_ftanks[3].line.show()
+        elseif (mode == 1 and is_ft(4) and (is_ft(1) or is_ft(2))) or (mode == 4 and is_ft(2) and is_ft(4)) then
+            tool_ctl.vis_ftanks[3].label.hide(true)
+            tool_ctl.vis_ftanks[3].pipe_direct.hide(true)
+            tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x95")
+            tool_ctl.vis_ftanks[3].pipe_chain.show()
+            tool_ctl.vis_ftanks[3].line.show()
+        else
+            tool_ctl.vis_ftanks[3].line.hide(true)
+        end
+
+        if is_ft(4) then
+            tool_ctl.vis_ftanks[4].label.set_value("Tank F" .. next_idx)
+
+            if (mode == 1 and (is_ft(1) or is_ft(2) or is_ft(3))) or ((mode == 3 or mode == 7) and is_ft(3)) or (mode == 4 and (is_ft(2) or is_ft(3))) then
+                tool_ctl.vis_ftanks[4].label.hide(true)
+                tool_ctl.vis_ftanks[4].pipe_direct.hide(true)
+                tool_ctl.vis_ftanks[4].pipe_chain.show()
+            else
+                tool_ctl.vis_ftanks[4].label.show()
+                tool_ctl.vis_ftanks[4].pipe_chain.hide(true)
+                tool_ctl.vis_ftanks[4].pipe_direct.show()
+            end
+
+            tool_ctl.vis_ftanks[4].line.show()
+        else
+            tool_ctl.vis_ftanks[4].line.hide(true)
+        end
     end
 
     -- local ftm_modes_1u = { "Mode 1" }
@@ -430,16 +549,7 @@ local function config_view(display)
     -- local ftm_btn_3u = RadioButton{parent=svr_c_4,x=1,y=2,callback=show_pipes,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=ftm_modes_3u,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
     local ftm_btn_4u = RadioButton{parent=svr_c_5,x=1,y=4,callback=show_pipes,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=ftm_modes_4u,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
 
-    -- TextBox{parent=plc_c_4,x=1,y=5,height=1,text="Bundled Redstone Configuration"}
-    -- local bundled = CheckBox{parent=plc_c_4,x=1,y=6,label="Is Bundled?",default=ini_cfg.EmerCoolColor~=nil,box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)tool_ctl.bundled_emcool(v)end}
-    -- local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,default=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-    -- if ini_cfg.EmerCoolColor == nil then color.disable() end
-
-    -- local function submit_emcool()
-    --     tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
-    --     tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
-    --     next_from_plc()
-    -- end
+    --#endregion
 
     PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=function()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
