@@ -209,8 +209,9 @@ local function config_view(display)
     local svr_c_3 = Div{parent=svr_cfg,x=2,y=4,width=49}
     local svr_c_4 = Div{parent=svr_cfg,x=2,y=4,width=49}
     local svr_c_5 = Div{parent=svr_cfg,x=2,y=4,width=49}
+    local svr_c_6 = Div{parent=svr_cfg,x=2,y=4,width=49}
 
-    local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5}}
+    local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6}}
 
     TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.green)}
 
@@ -222,7 +223,6 @@ local function config_view(display)
 
     local function submit_num_units()
         local count = tonumber(num_units.get_value())
-        count = 4 ---@fixme test code
         if count ~= nil and count > 0 and count < 5 then
             nu_error.hide(true)
             tmp_cfg.UnitCount = count
@@ -243,13 +243,13 @@ local function config_view(display)
     TextBox{parent=svr_c_2,x=1,y=6,height=1,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
 
     for i = 1, 4 do
-        local num_t, num_b, has_t = 1, 0, true ---@fixme test code false
+        local num_t, num_b, has_t = 1, 0, false
 
         if ini_cfg.CoolingConfig[1] then
             local conf = ini_cfg.CoolingConfig[1]
             if util.is_int(conf.TurbineCount) then num_t = math.min(3, math.max(1, conf.TurbineCount or 1)) end
             if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(1, conf.BoilerCount or 0)) end
-            has_t = true ---@fixme test code conf.TankConnection == true
+            has_t = conf.TankConnection == true
         end
 
         local line = Div{parent=svr_c_2,x=1,y=7+i,height=1}
@@ -302,8 +302,7 @@ local function config_view(display)
                 else elem.div.hide(true) end
             end
 
-            -- if any_has_tank then svr_pane.set_value(3) else main_pane.set_value(3) end
-            svr_pane.set_value(3)
+            if any_has_tank then svr_pane.set_value(3) else main_pane.set_value(3) end
         end
     end
 
@@ -316,23 +315,15 @@ local function config_view(display)
     local en_fac_tanks = CheckBox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode~=0,box_fg_bg=cpair(colors.green,colors.black)}
 
     local function submit_en_fac_tank()
-        -- if en_fac_tanks.get_value() then
-        --     assert(tool_ctl.num_tank_conns >= 1, "attempted to enable facility tanks with no tank connections assigned")
-        --     if tool_ctl.num_tank_conns == 1 then
-        --         -- nothing special for the user to do, set it automatically
-        --         tmp_cfg.FacilityTankMode = 1
-        --         tmp_cfg.FacilityTankDefs = { 2 }
-        --         main_pane.set_value(3)
-        --     else
-        --         svr_pane.set_value(4)
-        --     end
-        -- else
-        --     tmp_cfg.FacilityTankMode = 0
-        --     tmp_cfg.FacilityTankDefs = {}
-        --     main_pane.set_value(3)
-        -- end
-
-        svr_pane.set_value(4) -- for testing
+        if en_fac_tanks.get_value() then
+            assert(tool_ctl.num_tank_conns >= 1, "attempted to enable facility tanks with no tank connections assigned")
+            svr_pane.set_value(4)
+            tmp_cfg.FacilityTankMode = math.min(8, math.max(1, tmp_cfg.FacilityTankMode))
+        else
+            tmp_cfg.FacilityTankMode = 0
+            tmp_cfg.FacilityTankDefs = {}
+            main_pane.set_value(3)
+        end
     end
 
     PushButton{parent=svr_c_3,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -386,11 +377,16 @@ local function config_view(display)
             tmp_cfg.FacilityTankDefs[i] = def
         end
 
-        -- if any_fac then
-        --     tank_err.hide(true)
-        --     svr_pane.set_value(5)
-        -- else tank_err.show() end
-        svr_pane.set_value(5)
+        for i = tmp_cfg.UnitCount + 1, 4 do
+            tool_ctl.vis_utanks[i].line.hide(true)
+        end
+
+        tool_ctl.vis_draw(tmp_cfg.FacilityTankMode)
+
+        if any_fac then
+            tank_err.hide(true)
+            svr_pane.set_value(5)
+        else tank_err.show() end
     end
 
     PushButton{parent=svr_c_4,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -401,9 +397,9 @@ local function config_view(display)
 
     --#region Tank Layout Visualizer
 
-    local vis = Div{parent=svr_c_5,x=14,y=5}
+    local vis = Div{parent=svr_c_5,x=14,y=5,height=7}
 
-    local units = TextBox{parent=vis,x=15,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
+    local vis_unit_list = TextBox{parent=vis,x=15,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
 
     -- draw unit tanks and their pipes
     for i = 1, 4 do
@@ -429,11 +425,20 @@ local function config_view(display)
         tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
     end
 
-    local function show_pipes(mode)
+    -- draw the pipe visualization
+    ---@param mode integer pipe mode
+    function tool_ctl.vis_draw(mode)
         -- is a facility tank connected to this unit
         ---@param i integer unit 1 - 4
         ---@return boolean connected
         local function is_ft(i) return tmp_cfg.FacilityTankDefs[i] == 2 end
+
+        local u_text = ""
+        for i = 1, tmp_cfg.UnitCount do
+            u_text = u_text .. "Unit " .. i .. "\n\n"
+        end
+
+        vis_unit_list.set_value(u_text)
 
         local next_idx = 1
 
@@ -541,106 +546,142 @@ local function config_view(display)
         end
     end
 
-    -- local ftm_modes_1u = { "Mode 1" }
-    -- local ftm_modes_2u = { "Mode 1", "Mode 4" }
-    -- local ftm_modes_3u = { "Mode 1", "Mode 3", "Mode 4", "Mode 7" }
-    local ftm_modes_4u = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
-    -- local ftm_btn_2u = RadioButton{parent=svr_c_4,x=1,y=2,callback=show_pipes,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=ftm_modes_2u,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
-    -- local ftm_btn_3u = RadioButton{parent=svr_c_4,x=1,y=2,callback=show_pipes,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=ftm_modes_3u,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
-    local ftm_btn_4u = RadioButton{parent=svr_c_5,x=1,y=4,callback=show_pipes,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=ftm_modes_4u,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
+    local tank_modes = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
+    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
 
     --#endregion
 
+    local function submit_mode()
+        tmp_cfg.FacilityTankMode = tank_mode.get_value()
+        svr_pane.set_value(4)
+    end
+
     PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=function()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=submit_mode,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    PushButton{parent=svr_c_5,x=8,y=14,min_width=7,text="About",callback=function()svr_pane.set_value(6)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=svr_c_6,height=3,text="This visualization tool shows the pipe connections required for a particular dynamic tank configuration you have selected."}
+    TextBox{parent=svr_c_6,y=5,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same."}
+    TextBox{parent=svr_c_6,y=9,height=4,text="Examples: A U2 tank should be configured on an RTU as a dynamic tank for unit 2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
+
+    PushButton{parent=svr_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- NET CONFIG
 
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_3 = Div{parent=net_cfg,x=2,y=4,width=49}
+    local net_c_4 = Div{parent=net_cfg,x=2,y=4,width=49}
 
-    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3}}
+    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
 
     TextBox{parent=net_cfg,x=1,y=2,height=1,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
     TextBox{parent=net_c_1,x=1,y=1,height=1,text="Please set the network channels below."}
-    TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=8,height=1,text="Supervisor Channel"}
-    local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_1,x=1,y=11,height=1,text="PLC Channel"}
-    local plc_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=12,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=8,height=1,width=18,text="Supervisor Channel"}
+    local svr_chan = NumberField{parent=net_c_1,x=21,y=8,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=29,y=8,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    TextBox{parent=net_c_1,x=1,y=9,height=1,width=11,text="PLC Channel"}
+    local plc_chan = NumberField{parent=net_c_1,x=21,y=9,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=29,y=9,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=net_c_1,x=1,y=10,height=1,width=19,text="RTU Gateway Channel"}
+    local rtu_chan = NumberField{parent=net_c_1,x=21,y=10,width=7,default=ini_cfg.RTU_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=29,y=10,height=4,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=net_c_1,x=1,y=11,height=1,width=19,text="Coordinator Channel"}
+    local crd_chan = NumberField{parent=net_c_1,x=21,y=11,width=7,default=ini_cfg.CRD_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=29,y=11,height=4,text="[CRD_CHANNEL]",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=net_c_1,x=1,y=12,height=1,width=14,text="Pocket Channel"}
+    local pkt_chan = NumberField{parent=net_c_1,x=21,y=12,width=7,default=ini_cfg.PKT_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=29,y=12,height=4,text="[PKT_CHANNEL]",fg_bg=g_lg_fg_bg}
+
+    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
-        local svr_c = tonumber(svr_chan.get_value())
-        local plc_c = tonumber(plc_chan.get_value())
-        if svr_c ~= nil and plc_c ~= nil then
-            tmp_cfg.SVR_Channel = svr_c
-            tmp_cfg.PLC_Channel = plc_c
+        local svr_c, plc_c, rtu_c = tonumber(svr_chan.get_value()), tonumber(plc_chan.get_value()), tonumber(rtu_chan.get_value())
+        local crd_c, pkt_c = tonumber(crd_chan.get_value()), tonumber(pkt_chan.get_value())
+        if svr_c ~= nil and plc_c ~= nil and rtu_c ~= nil and crd_c ~= nil and pkt_c ~= nil then
+            tmp_cfg.SVR_Channel, tmp_cfg.PLC_Channel, tmp_cfg.RTU_Channel = svr_c, plc_c, rtu_c
+            tmp_cfg.CRD_Channel, tmp_cfg.PKT_Channel = crd_c, pkt_c
             net_pane.set_value(2)
             chan_err.hide(true)
-        elseif svr_c == nil then
-            chan_err.set_value("Please set the supervisor channel.")
-            chan_err.show()
-        else
-            chan_err.set_value("Please set the PLC channel.")
-            chan_err.show()
-        end
+        else chan_err.show() end
     end
 
     PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Please set the connection timeouts below."}
+    TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=8,height=1,text="Trusted Range"}
-    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=8,height=1,width=11,text="PLC Timeout"}
+    local plc_timeout = NumberField{parent=net_c_2,x=21,y=8,width=7,default=ini_cfg.PLC_Timeout,min=2,max=25,fg_bg=bw_fg_bg}
 
-    local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    TextBox{parent=net_c_2,x=1,y=9,height=1,width=19,text="RTU Gateway Timeout"}
+    local rtu_timeout = NumberField{parent=net_c_2,x=21,y=9,width=7,default=ini_cfg.RTU_Timeout,min=2,max=25,fg_bg=bw_fg_bg}
 
-    local function submit_ct_tr()
-        local timeout_val = tonumber(timeout.get_value())
-        local range_val = tonumber(range.get_value())
-        if timeout_val ~= nil and range_val ~= nil then
-            tmp_cfg.ConnTimeout = timeout_val
-            tmp_cfg.TrustedRange = range_val
+    TextBox{parent=net_c_2,x=1,y=10,height=1,width=19,text="Coordinator Timeout"}
+    local crd_timeout = NumberField{parent=net_c_2,x=21,y=10,width=7,default=ini_cfg.CRD_Timeout,min=2,max=25,fg_bg=bw_fg_bg}
+
+    TextBox{parent=net_c_2,x=1,y=11,height=1,width=14,text="Pocket Timeout"}
+    local pkt_timeout = NumberField{parent=net_c_2,x=21,y=11,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,fg_bg=bw_fg_bg}
+
+    TextBox{parent=net_c_2,x=29,y=8,height=4,width=7,text="seconds\nseconds\nseconds\nseconds",fg_bg=g_lg_fg_bg}
+
+    local ct_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function submit_timeouts()
+        local plc_cto, rtu_cto, crd_cto, pkt_cto = tonumber(plc_timeout.get_value()), tonumber(rtu_timeout.get_value()), tonumber(crd_timeout.get_value()), tonumber(pkt_timeout.get_value())
+        if plc_cto ~= nil and rtu_cto ~= nil and crd_cto ~= nil and pkt_cto ~= nil then
+            tmp_cfg.PLC_Timeout, tmp_cfg.RTU_Timeout, tmp_cfg.CRD_Timeout, tmp_cfg.PKT_Timeout = plc_cto, rtu_cto, crd_cto, pkt_cto
             net_pane.set_value(3)
-            p2_err.hide(true)
-        elseif timeout_val == nil then
-            p2_err.set_value("Please set the connection timeout.")
-            p2_err.show()
-        else
-            p2_err.set_value("Please set the trusted range.")
-            p2_err.show()
-        end
+            ct_err.hide(true)
+        else ct_err.show() end
     end
 
     PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_3,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=1,height=1,text="Please set the trusted range below."}
+    TextBox{parent=net_c_3,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=11,height=1,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
+
+    local tr_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function submit_tr()
+        local range_val = tonumber(range.get_value())
+        if range_val ~= nil then
+            tmp_cfg.TrustedRange = range_val
+            net_pane.set_value(4)
+            tr_err.hide(true)
+        else tr_err.show() end
+    end
+
+    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
+    TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=net_c_4,x=1,y=11,height=1,text="Facility Auth Key"}
+    local key, _, censor = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
 
-    local hide_key = CheckBox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+    local hide_key = CheckBox{parent=net_c_4,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_4,x=8,y=14,height=1,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -651,8 +692,8 @@ local function config_view(display)
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_4,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_4,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- LOG CONFIG
 
