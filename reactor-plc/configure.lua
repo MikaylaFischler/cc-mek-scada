@@ -34,7 +34,8 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } }
+    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
+    {"v1.6.8", { "ConnTimeout can now have a fractional part" } }
 }
 
 ---@class plc_configurator
@@ -92,13 +93,13 @@ local tmp_cfg = {
     Networked = false,
     UnitID = 0,
     EmerCoolEnable = false,
-    EmerCoolSide = nil,
-    EmerCoolColor = nil,
-    SVR_Channel = nil,
-    PLC_Channel = nil,
-    ConnTimeout = nil,
-    TrustedRange = nil,
-    AuthKey = nil,
+    EmerCoolSide = nil,     ---@type string|nil
+    EmerCoolColor = nil,    ---@type color|nil
+    SVR_Channel = nil,      ---@type integer
+    PLC_Channel = nil,      ---@type integer
+    ConnTimeout = nil,      ---@type number
+    TrustedRange = nil,     ---@type number
+    AuthKey = nil,          ---@type string|nil
     LogMode = 0,
     LogPath = "",
     LogDebug = false,
@@ -332,7 +333,7 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
+    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_digits=6,allow_decimal=true,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
