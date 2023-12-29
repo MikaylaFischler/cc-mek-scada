@@ -135,7 +135,7 @@ function facility.new(num_reactors, cooling_conf)
 
     -- create units
     for i = 1, num_reactors do
-        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BOILERS, cooling_conf.r_cool[i].TURBINES))
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount))
         table.insert(self.group_map, 0)
     end
 

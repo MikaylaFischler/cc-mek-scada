@@ -14,70 +14,66 @@ local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
 
-local config     = require("supervisor.config")
+local configure  = require("supervisor.configure")
 local databus    = require("supervisor.databus")
 local renderer   = require("supervisor.renderer")
 local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.1.0"
+local SUPERVISOR_VERSION = "v1.2.0"
 
 local println = util.println
 local println_ts = util.println_ts
 
 ----------------------------------------
--- config validation
+-- get configuration
 ----------------------------------------
+
+if not supervisor.load_config() then
+    -- try to reconfigure (user action)
+    local success, error = configure.configure(true)
+    if success then
+        assert(supervisor.load_config(), "failed to load valid supervisor configuration")
+    else
+        assert(success, "supervisor configuration error: " .. error)
+    end
+end
+
+local config = supervisor.config
 
 local cfv = util.new_validator()
 
-cfv.assert_channel(config.SVR_CHANNEL)
-cfv.assert_channel(config.PLC_CHANNEL)
-cfv.assert_channel(config.RTU_CHANNEL)
-cfv.assert_channel(config.CRD_CHANNEL)
-cfv.assert_channel(config.PKT_CHANNEL)
-cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.PLC_TIMEOUT)
-cfv.assert_min(config.PLC_TIMEOUT, 2)
-cfv.assert_type_num(config.RTU_TIMEOUT)
-cfv.assert_min(config.RTU_TIMEOUT, 2)
-cfv.assert_type_num(config.CRD_TIMEOUT)
-cfv.assert_min(config.CRD_TIMEOUT, 2)
-cfv.assert_type_num(config.PKT_TIMEOUT)
-cfv.assert_min(config.PKT_TIMEOUT, 2)
-cfv.assert_type_int(config.NUM_REACTORS)
-cfv.assert_type_table(config.REACTOR_COOLING)
-cfv.assert_type_int(config.FAC_TANK_MODE)
-cfv.assert_type_table(config.FAC_TANK_DEFS)
-cfv.assert_type_str(config.LOG_PATH)
-cfv.assert_type_int(config.LOG_MODE)
+assert((config.FacilityTankMode == 0) or (config.UnitCount == #config.FacilityTankDefs),
+    "startup> FacilityTankDefs length not equal to UnitCount")
 
-assert(cfv.valid(), "bad config file: missing/invalid fields")
+for i = 1, config.UnitCount do
+    local def = config.FacilityTankDefs[i]
+    cfv.assert_type_int(def)
+    cfv.assert_range(def, 0, 2)
+    assert(cfv.valid(), "startup> invalid facility tank definition for reactor unit " .. i)
+end
 
-assert((config.FAC_TANK_MODE == 0) or (config.NUM_REACTORS == #config.FAC_TANK_DEFS),
-    "bad config file: FAC_TANK_DEFS length not equal to NUM_REACTORS")
+cfv.assert_eq(#config.CoolingConfig, config.UnitCount)
+assert(cfv.valid(), "startup> the number of reactor cooling configurations is different than the number of units")
 
-cfv.assert_eq(#config.REACTOR_COOLING, config.NUM_REACTORS)
-assert(cfv.valid(), "config: number of cooling configs different than number of units")
-
-for i = 1, config.NUM_REACTORS do
-    cfv.assert_type_table(config.REACTOR_COOLING[i])
-    assert(cfv.valid(), "config: missing cooling entry for reactor " .. i)
-    cfv.assert_type_int(config.REACTOR_COOLING[i].BOILERS)
-    cfv.assert_type_int(config.REACTOR_COOLING[i].TURBINES)
-    cfv.assert_type_bool(config.REACTOR_COOLING[i].TANK)
-    assert(cfv.valid(), "config: missing boilers/turbines for reactor " .. i)
-    cfv.assert_min(config.REACTOR_COOLING[i].BOILERS, 0)
-    cfv.assert_min(config.REACTOR_COOLING[i].TURBINES, 1)
-    assert(cfv.valid(), "config: bad number of boilers/turbines for reactor " .. i)
+for i = 1, config.UnitCount do
+    cfv.assert_type_table(config.CoolingConfig[i])
+    assert(cfv.valid(), "startup> missing cooling entry for reactor unit " .. i)
+    cfv.assert_type_int(config.CoolingConfig[i].BoilerCount)
+    cfv.assert_type_int(config.CoolingConfig[i].TurbineCount)
+    cfv.assert_type_bool(config.CoolingConfig[i].TankConnection)
+    assert(cfv.valid(), "startup> missing boiler/turbine/tank fields for reactor unit " .. i)
+    cfv.assert_range(config.CoolingConfig[i].BoilerCount, 0, 2)
+    cfv.assert_range(config.CoolingConfig[i].TurbineCount, 1, 3)
+    assert(cfv.valid(), "startup> out-of-range number of boilers and/or turbines provided for reactor unit " .. i)
 end
 
 ----------------------------------------
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
+log.init(config.LogPath, config.LogMode, config.LogDebug == true)
 
 log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)
@@ -102,8 +98,8 @@ local function main()
     ppm.mount_all()
 
     -- message authentication init
-    if type(config.AUTH_KEY) == "string" then
-        network.init_mac(config.AUTH_KEY)
+    if type(config.AuthKey) == "string" then
+        network.init_mac(config.AuthKey)
     end
 
     -- get modem
