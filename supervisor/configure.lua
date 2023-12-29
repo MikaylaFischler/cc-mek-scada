@@ -95,7 +95,7 @@ local tmp_cfg = {
     UnitCount = 1,
     CoolingConfig = {},
     FacilityTankMode = 0,
-    FacilityTankDefs = nil,
+    FacilityTankDefs = {},
     SVR_Channel = nil,
     PLC_Channel = nil,
     RTU_Channel = nil,
@@ -553,7 +553,7 @@ local function config_view(display)
 
     local function submit_mode()
         tmp_cfg.FacilityTankMode = tank_mode.get_value()
-        svr_pane.set_value(4)
+        main_pane.set_value(3)
     end
 
     PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -889,7 +889,7 @@ local function config_view(display)
     end
 
     -- generate the summary list
-    ---@param cfg plc_config
+    ---@param cfg svr_config
     function tool_ctl.gen_summary(cfg)
         setting_list.remove_all()
 
@@ -907,9 +907,39 @@ local function config_view(display)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
-            if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
-            if f[1] == "EmerCoolColor" and raw ~= nil then val = rsio.color_name(raw) end
+            if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
+            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "CoolingConfig" and cfg.CoolingConfig then
+                val = ""
+
+                for idx = 1, #cfg.CoolingConfig do
+                    local ccfg = cfg.CoolingConfig[idx]
+                    local b_plural = util.trinary(ccfg.BoilerCount == 1, "", "s")
+                    local t_plural = util.trinary(ccfg.TurbineCount == 1, "", "s")
+                    local tank = util.trinary(ccfg.TankConnection, "has tank conn", "no tank conn")
+                    val = val .. util.trinary(idx == 1, "", "\n") ..
+                            util.sprintf(" \x07 unit %d - %d boiler%s, %d turbine%s, %s", idx, ccfg.BoilerCount, b_plural, ccfg.TurbineCount, t_plural, tank)
+                end
+
+                if val == "" then val = "no facility tanks" end
+            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a unit mode)"
+            elseif f[1] == "FacilityTankDefs" and cfg.FacilityTankDefs then
+                val = ""
+
+                for idx = 1, #cfg.FacilityTankDefs do
+                    local t_mode = "not connected to a tank"
+                    if cfg.FacilityTankDefs[idx] == 1 then
+                        t_mode = "connected to its unit tank"
+                    elseif cfg.FacilityTankDefs[idx] == 2 then
+                        t_mode = "connected to a facility tank"
+                    end
+
+                    val = val .. util.trinary(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
+                end
+
+                if val == "" then val = "no facility tanks" end
+            end
+
             if val == "nil" then val = "<not set>" end
 
             local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
