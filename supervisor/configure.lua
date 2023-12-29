@@ -245,8 +245,8 @@ local function config_view(display)
     for i = 1, 4 do
         local num_t, num_b, has_t = 1, 0, false
 
-        if ini_cfg.CoolingConfig[1] then
-            local conf = ini_cfg.CoolingConfig[1]
+        if ini_cfg.CoolingConfig[i] then
+            local conf = ini_cfg.CoolingConfig[i]
             if util.is_int(conf.TurbineCount) then num_t = math.min(3, math.max(1, conf.TurbineCount or 1)) end
             if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(1, conf.BoilerCount or 0)) end
             has_t = conf.TankConnection == true
@@ -318,7 +318,7 @@ local function config_view(display)
         if en_fac_tanks.get_value() then
             assert(tool_ctl.num_tank_conns >= 1, "attempted to enable facility tanks with no tank connections assigned")
             svr_pane.set_value(4)
-            tmp_cfg.FacilityTankMode = math.min(8, math.max(1, tmp_cfg.FacilityTankMode))
+            tmp_cfg.FacilityTankMode = util.trinary(tmp_cfg.FacilityTankMode == 0, 1, math.min(8, math.max(1, ini_cfg.FacilityTankMode)))
         else
             tmp_cfg.FacilityTankMode = 0
             tmp_cfg.FacilityTankDefs = {}
@@ -332,11 +332,12 @@ local function config_view(display)
     TextBox{parent=svr_c_4,x=1,y=1,height=4,text="Please set unit connections to dynamic tanks, selecting at least one facility tank. The layout for facility tanks will be configured next."}
 
     for i = 1, 4 do
+        local val = math.max(1, ini_cfg.FacilityTankDefs[i] or 2)
         local div = Div{parent=svr_c_4,x=1,y=3+(2*i),height=2}
 
         TextBox{parent=div,x=1,y=1,width=33,height=1,text="Unit "..i.." will be connected to..."}
         TextBox{parent=div,x=6,y=2,width=3,height=1,text="..."}
-        local tank_opt = Radio2D{parent=div,x=10,y=2,rows=1,columns=2,default=2,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+        local tank_opt = Radio2D{parent=div,x=10,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
         local no_tank = TextBox{parent=div,x=9,y=2,width=34,height=1,text="no tank (as you set two steps ago)",fg_bg=cpair(colors.gray,colors.lightGray),hidden=true}
 
         tool_ctl.tank_elems[i] = { div = div, tank_opt = tank_opt, no_tank = no_tank }
@@ -547,7 +548,7 @@ local function config_view(display)
     end
 
     local tank_modes = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
-    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.min(1,ini_cfg.FacilityTankMode)+1,options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
+    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
 
     --#endregion
 
@@ -728,11 +729,7 @@ local function config_view(display)
         else path_err.show() end
     end
 
-    local function back_from_log()
-        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(2) end
-    end
-
-    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=back_from_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- SUMMARY OF CHANGES
@@ -766,38 +763,51 @@ local function config_view(display)
     end
 
     local function save_and_continue()
-        -- for k, v in pairs(tmp_cfg) do settings.set(k, v) end
+        for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        -- if settings.save("reactor-plc.settings") then
-        --     load_settings(settings_cfg, true)
-        --     load_settings(ini_cfg)
+        if settings.save("supervisor.settings") then
+            load_settings(settings_cfg, true)
+            load_settings(ini_cfg)
 
-        --     try_set(networked, ini_cfg.Networked)
-        --     try_set(u_id, ini_cfg.UnitID)
-        --     try_set(en_em_cool, ini_cfg.EmerCoolEnable)
-        --     try_set(side, side_to_idx(ini_cfg.EmerCoolSide))
-        --     try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
-        --     if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
-        --     try_set(svr_chan, ini_cfg.SVR_Channel)
-        --     try_set(plc_chan, ini_cfg.PLC_Channel)
-        --     try_set(timeout, ini_cfg.ConnTimeout)
-        --     try_set(range, ini_cfg.TrustedRange)
-        --     try_set(key, ini_cfg.AuthKey)
-        --     try_set(mode, ini_cfg.LogMode)
-        --     try_set(path, ini_cfg.LogPath)
-        --     try_set(en_dbg, ini_cfg.LogDebug)
+            try_set(num_units, ini_cfg.UnitCount)
+            try_set(tank_mode, ini_cfg.FacilityTankMode)
+            try_set(svr_chan, ini_cfg.SVR_Channel)
+            try_set(plc_chan, ini_cfg.PLC_Channel)
+            try_set(rtu_chan, ini_cfg.RTU_Channel)
+            try_set(crd_chan, ini_cfg.CRD_Channel)
+            try_set(pkt_chan, ini_cfg.PKT_Channel)
+            try_set(plc_timeout, ini_cfg.PLC_Timeout)
+            try_set(rtu_timeout, ini_cfg.RTU_Timeout)
+            try_set(crd_timeout, ini_cfg.CRD_Timeout)
+            try_set(pkt_timeout, ini_cfg.PKT_Timeout)
+            try_set(range, ini_cfg.TrustedRange)
+            try_set(key, ini_cfg.AuthKey)
+            try_set(mode, ini_cfg.LogMode)
+            try_set(path, ini_cfg.LogPath)
+            try_set(en_dbg, ini_cfg.LogDebug)
 
-        --     tool_ctl.view_cfg.enable()
+            for i = 1, #ini_cfg.CoolingConfig do
+                local cfg, elems = ini_cfg.CoolingConfig[i], tool_ctl.cooling_elems[i]
+                try_set(elems.boilers, cfg.BoilerCount)
+                try_set(elems.turbines, cfg.TurbineCount)
+                try_set(elems.tank, cfg.TankConnection)
+            end
 
-        --     if tool_ctl.importing_legacy then
-        --         tool_ctl.importing_legacy = false
-        --         sum_pane.set_value(3)
-        --     else
-        --         sum_pane.set_value(2)
-        --     end
-        -- else
-        --     sum_pane.set_value(4)
-        -- end
+            for i = 1, #ini_cfg.FacilityTankDefs do
+                try_set(tool_ctl.tank_elems[i].tank_opt, ini_cfg.FacilityTankDefs[i])
+            end
+
+            tool_ctl.view_cfg.enable()
+
+            if tool_ctl.importing_legacy then
+                tool_ctl.importing_legacy = false
+                sum_pane.set_value(3)
+            else
+                sum_pane.set_value(2)
+            end
+        else
+            sum_pane.set_value(4)
+        end
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -853,23 +863,23 @@ local function config_view(display)
 
     -- load a legacy config file
     function tool_ctl.load_legacy()
-        local config = require("reactor-plc.config")
+        local config = require("supervisor.config")
 
-        tmp_cfg.Networked = config.NETWORKED
-        tmp_cfg.UnitID = config.REACTOR_ID
-        tmp_cfg.EmerCoolEnable = type(config.EMERGENCY_COOL) == "table"
+        ---@todo finish
 
-        if tmp_cfg.EmerCoolEnable then
-            tmp_cfg.EmerCoolSide = config.EMERGENCY_COOL.side
-            tmp_cfg.EmerCoolColor = config.EMERGENCY_COOL.color
-        else
-            tmp_cfg.EmerCoolSide = nil
-            tmp_cfg.EmerCoolColor = nil
-        end
+        tmp_cfg.UnitCount = config.NUM_REACTORS
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.PLC_Channel = config.PLC_CHANNEL
-        tmp_cfg.ConnTimeout = config.COMMS_TIMEOUT
+        tmp_cfg.RTU_Channel = config.RTU_CHANNEL
+        tmp_cfg.CRD_Channel = config.CRD_CHANNEL
+        tmp_cfg.PKT_Channel = config.PKT_CHANNEL
+
+        tmp_cfg.PLC_Timeout = config.PLC_TIMEOUT
+        tmp_cfg.RTU_Timeout = config.RTU_TIMEOUT
+        tmp_cfg.CRD_Timeout = config.CRD_TIMEOUT
+        tmp_cfg.PKT_Timeout = config.PKT_TIMEOUT
+
         tmp_cfg.TrustedRange = config.TRUSTED_RANGE
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
         tmp_cfg.LogMode = config.LOG_MODE
