@@ -361,7 +361,8 @@ local function config_view(display)
 
         tmp_cfg.FacilityTankDefs = {}
         for i = 1, tmp_cfg.UnitCount do
-            local def = tmp_cfg.FacilityTankDefs[i]
+            local def
+
             if tmp_cfg.CoolingConfig[i].TankConnection then
                 def = tool_ctl.tank_elems[i].tank_opt.get_value()
                 any_fac = any_fac or (def == 2)
