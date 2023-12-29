@@ -168,8 +168,9 @@ local function config_view(display)
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
+    local import_err = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,svr_cfg,net_cfg,log_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,svr_cfg,net_cfg,log_cfg,summary,changelog,import_err}}
 
     -- MAIN PAGE
 
@@ -859,15 +860,66 @@ local function config_view(display)
 
     PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
+    -- IMPORT ERROR
+
+    local i_err = Div{parent=import_err,x=2,y=4,width=49}
+
+    TextBox{parent=import_err,x=1,y=2,height=1,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
+    TextBox{parent=i_err,x=1,y=1,height=1,text="There is a problem with your config.lua file:"}
+
+    local import_err_msg = TextBox{parent=i_err,x=1,y=3,height=6,text=""}
+
+    PushButton{parent=i_err,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=i_err,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
     -- set tool functions now that we have the elements
 
     -- load a legacy config file
     function tool_ctl.load_legacy()
         local config = require("supervisor.config")
 
-        ---@todo finish
-
         tmp_cfg.UnitCount = config.NUM_REACTORS
+
+        if config.REACTOR_COOLING == nil or tmp_cfg.UnitCount ~= #config.REACTOR_COOLING then
+            import_err_msg.set_value("Cooling configuration table length must match the number of units.")
+            main_pane.set_value(7)
+            return
+        end
+
+        for i = 1, tmp_cfg.UnitCount do
+            local cfg = config.REACTOR_COOLING[i]
+
+            if type(cfg) ~= "table" then
+                import_err_msg.set_value("Cooling configuration for unit " .. i .. " must be a table.")
+                main_pane.set_value(7)
+                return
+            end
+
+            tmp_cfg.CoolingConfig[i] = { BoilerCount = cfg.BOILERS or 0, TurbineCount = cfg.TURBINES or 1, TankConnection = cfg.TANK or false }
+        end
+
+        tmp_cfg.FacilityTankMode = config.FAC_TANK_MODE
+
+        if not (util.is_int(tmp_cfg.FacilityTankMode) and tmp_cfg.FacilityTankMode >= 0 and tmp_cfg.FacilityTankMode <= 8) then
+            import_err_msg.set_value("Invalid tank mode present in config. FAC_TANK_MODE must be a number 0 through 8.")
+            main_pane.set_value(7)
+            return
+        end
+
+        if config.FAC_TANK_MODE > 0 then
+            if config.FAC_TANK_DEFS == nil or tmp_cfg.UnitCount ~= #config.FAC_TANK_DEFS then
+                import_err_msg.set_value("Facility tank definitions table length must match the number of units when using facility tanks.")
+                main_pane.set_value(7)
+                return
+            end
+
+            for i = 1, tmp_cfg.UnitCount do
+                tmp_cfg.FacilityTankDefs[i] = config.FAC_TANK_DEFS[i]
+            end
+        else
+            tmp_cfg.FacilityTankMode = 0
+            tmp_cfg.FacilityTankDefs = {}
+        end
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.PLC_Channel = config.PLC_CHANNEL
