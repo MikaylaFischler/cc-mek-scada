@@ -31,8 +31,6 @@ local LEFT = core.ALIGN.LEFT
 local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
-log.init("log.txt", log.MODE.APPEND, true)
-
 -- changes to the config data/format to let the user know
 local changes = {}
 
@@ -217,7 +215,7 @@ local function config_view(display)
     TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.green)}
 
     TextBox{parent=svr_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
-    local num_units = NumberField{parent=svr_c_1,x=1,y=5,width=5,max_digits=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
+    local num_units = NumberField{parent=svr_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=svr_c_1,x=7,y=5,height=1,text="reactors"}
 
     local nu_error = TextBox{parent=svr_c_1,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -256,8 +254,8 @@ local function config_view(display)
         local line = Div{parent=svr_c_2,x=1,y=7+i,height=1}
 
         TextBox{parent=line,text="Unit "..i,width=6}
-        local turbines = NumberField{parent=line,x=9,y=1,width=5,max_digits=2,default=num_t,min=1,max=3,fg_bg=bw_fg_bg}
-        local boilers = NumberField{parent=line,x=20,y=1,width=5,max_digits=2,default=num_b,min=0,max=2,fg_bg=bw_fg_bg}
+        local turbines = NumberField{parent=line,x=9,y=1,width=5,max_chars=2,default=num_t,min=1,max=3,fg_bg=bw_fg_bg}
+        local boilers = NumberField{parent=line,x=20,y=1,width=5,max_chars=2,default=num_b,min=0,max=2,fg_bg=bw_fg_bg}
         local tank = CheckBox{parent=line,x=30,y=1,label="Is Connected",default=has_t,box_fg_bg=cpair(colors.green,colors.black)}
 
         tool_ctl.cooling_elems[i] = { line = line, turbines = turbines, boilers = boilers, tank = tank }
@@ -624,16 +622,16 @@ local function config_view(display)
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=8,height=1,width=11,text="PLC Timeout"}
-    local plc_timeout = NumberField{parent=net_c_2,x=21,y=8,width=7,default=ini_cfg.PLC_Timeout,min=2,max=25,max_digits=6,allow_decimal=true,fg_bg=bw_fg_bg}
+    local plc_timeout = NumberField{parent=net_c_2,x=21,y=8,width=7,default=ini_cfg.PLC_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=9,height=1,width=19,text="RTU Gateway Timeout"}
-    local rtu_timeout = NumberField{parent=net_c_2,x=21,y=9,width=7,default=ini_cfg.RTU_Timeout,min=2,max=25,max_digits=6,allow_decimal=true,fg_bg=bw_fg_bg}
+    local rtu_timeout = NumberField{parent=net_c_2,x=21,y=9,width=7,default=ini_cfg.RTU_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=10,height=1,width=19,text="Coordinator Timeout"}
-    local crd_timeout = NumberField{parent=net_c_2,x=21,y=10,width=7,default=ini_cfg.CRD_Timeout,min=2,max=25,max_digits=6,allow_decimal=true,fg_bg=bw_fg_bg}
+    local crd_timeout = NumberField{parent=net_c_2,x=21,y=10,width=7,default=ini_cfg.CRD_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=11,height=1,width=14,text="Pocket Timeout"}
-    local pkt_timeout = NumberField{parent=net_c_2,x=21,y=11,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,max_digits=6,allow_decimal=true,fg_bg=bw_fg_bg}
+    local pkt_timeout = NumberField{parent=net_c_2,x=21,y=11,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=29,y=8,height=4,width=7,text="seconds\nseconds\nseconds\nseconds",fg_bg=g_lg_fg_bg}
 
@@ -655,7 +653,7 @@ local function config_view(display)
     TextBox{parent=net_c_3,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
-    local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
 
     local tr_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
