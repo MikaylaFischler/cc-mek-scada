@@ -247,7 +247,7 @@ local function config_view(display)
         if ini_cfg.CoolingConfig[i] then
             local conf = ini_cfg.CoolingConfig[i]
             if util.is_int(conf.TurbineCount) then num_t = math.min(3, math.max(1, conf.TurbineCount or 1)) end
-            if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(1, conf.BoilerCount or 0)) end
+            if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(0, conf.BoilerCount or 0)) end
             has_t = conf.TankConnection == true
         end
 
@@ -416,8 +416,8 @@ local function config_view(display)
     for i = 2, 4 do
         local line = Div{parent=vis,x=1,y=(i-1)*2,width=13,height=2}
         local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=pipe_cpair}
-        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="",fg_bg=pipe_cpair}
-        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="",fg_bg=pipe_cpair}
+        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="\x95\n\x8d",fg_bg=pipe_cpair}
+        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="\x8c\x8c\x8c\x8c",fg_bg=pipe_cpair}
         local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text=""}
         tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
     end
