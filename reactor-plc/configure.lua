@@ -3,9 +3,9 @@
 --
 
 local log         = require("scada-common.log")
+local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
-local rsio        = require("scada-common.rsio")
 
 local core        = require("graphics.core")
 
@@ -34,7 +34,8 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } }
+    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
+    {"v1.6.8", { "ConnTimeout can now have a fractional part" } }
 }
 
 ---@class plc_configurator
@@ -92,13 +93,13 @@ local tmp_cfg = {
     Networked = false,
     UnitID = 0,
     EmerCoolEnable = false,
-    EmerCoolSide = nil,
-    EmerCoolColor = nil,
-    SVR_Channel = nil,
-    PLC_Channel = nil,
-    ConnTimeout = nil,
-    TrustedRange = nil,
-    AuthKey = nil,
+    EmerCoolSide = nil,     ---@type string|nil
+    EmerCoolColor = nil,    ---@type color|nil
+    SVR_Channel = nil,      ---@type integer
+    PLC_Channel = nil,      ---@type integer
+    ConnTimeout = nil,      ---@type number
+    TrustedRange = nil,     ---@type number
+    AuthKey = nil,          ---@type string|nil
     LogMode = 0,
     LogPath = "",
     LogDebug = false,
@@ -239,7 +240,7 @@ local function config_view(display)
     TextBox{parent=plc_c_2,x=1,y=3,height=3,text="If this is a networked PLC, currently only IDs 1 through 4 are acceptable.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=plc_c_2,x=1,y=6,height=1,text="Unit #"}
-    local u_id = NumberField{parent=plc_c_2,x=7,y=6,width=5,max_digits=3,default=ini_cfg.UnitID,min=1,fg_bg=bw_fg_bg}
+    local u_id = NumberField{parent=plc_c_2,x=7,y=6,width=5,max_chars=3,default=ini_cfg.UnitID,min=1,fg_bg=bw_fg_bg}
 
     local u_id_err = TextBox{parent=plc_c_2,x=8,y=14,height=1,width=35,text="Please set a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -332,12 +333,12 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
+    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=8,height=1,text="Trusted Range"}
-    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_2,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
     local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}

@@ -58,7 +58,7 @@ function plc.load_config()
     if config.Networked == true then
         cfv.assert_channel(config.SVR_Channel)
         cfv.assert_channel(config.PLC_Channel)
-        cfv.assert_type_int(config.ConnTimeout)
+        cfv.assert_type_num(config.ConnTimeout)
         cfv.assert_min(config.ConnTimeout, 2)
         cfv.assert_type_num(config.TrustedRange)
         cfv.assert_min(config.TrustedRange, 0)
