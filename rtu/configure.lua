@@ -1144,7 +1144,7 @@ local function config_view(display)
 
         tool_ctl.importing_any_dc = false
 
-        tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME
+        tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME or 1
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.RTU_Channel = config.RTU_CHANNEL
         tmp_cfg.ConnTimeout = config.COMMS_TIMEOUT
