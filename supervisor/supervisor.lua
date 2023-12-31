@@ -2,8 +2,6 @@ local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
-local config     = require("supervisor.config")
-
 local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
@@ -12,6 +10,77 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
+
+---@type svr_config
+local config = {}
+
+supervisor.config = config
+
+-- load the supervisor configuration
+function supervisor.load_config()
+    if not settings.load("/supervisor.settings") then return false end
+
+    config.UnitCount = settings.get("UnitCount")
+    config.CoolingConfig = settings.get("CoolingConfig")
+    config.FacilityTankMode = settings.get("FacilityTankMode")
+    config.FacilityTankDefs = settings.get("FacilityTankDefs")
+
+    config.SVR_Channel = settings.get("SVR_Channel")
+    config.PLC_Channel = settings.get("PLC_Channel")
+    config.RTU_Channel = settings.get("RTU_Channel")
+    config.CRD_Channel = settings.get("CRD_Channel")
+    config.PKT_Channel = settings.get("PKT_Channel")
+
+    config.PLC_Timeout = settings.get("PLC_Timeout")
+    config.RTU_Timeout = settings.get("RTU_Timeout")
+    config.CRD_Timeout = settings.get("CRD_Timeout")
+    config.PKT_Timeout = settings.get("PKT_Timeout")
+
+    config.TrustedRange = settings.get("TrustedRange")
+    config.AuthKey = settings.get("AuthKey")
+
+    config.LogMode = settings.get("LogMode")
+    config.LogPath = settings.get("LogPath")
+    config.LogDebug = settings.get("LogDebug")
+
+    local cfv = util.new_validator()
+
+    cfv.assert_type_int(config.UnitCount)
+    cfv.assert_range(config.UnitCount, 1, 4)
+
+    cfv.assert_type_table(config.CoolingConfig)
+    cfv.assert_type_table(config.FacilityTankDefs)
+    cfv.assert_type_int(config.FacilityTankMode)
+    cfv.assert_range(config.FacilityTankMode, 0, 8)
+
+    cfv.assert_channel(config.SVR_Channel)
+    cfv.assert_channel(config.PLC_Channel)
+    cfv.assert_channel(config.RTU_Channel)
+    cfv.assert_channel(config.CRD_Channel)
+    cfv.assert_channel(config.PKT_Channel)
+
+    cfv.assert_type_num(config.PLC_Timeout)
+    cfv.assert_min(config.PLC_Timeout, 2)
+    cfv.assert_type_num(config.RTU_Timeout)
+    cfv.assert_min(config.RTU_Timeout, 2)
+    cfv.assert_type_num(config.CRD_Timeout)
+    cfv.assert_min(config.CRD_Timeout, 2)
+    cfv.assert_type_num(config.PKT_Timeout)
+    cfv.assert_min(config.PKT_Timeout, 2)
+
+    cfv.assert_type_num(config.TrustedRange)
+
+    if type(config.AuthKey) == "string" then
+        local len = string.len(config.AuthKey)
+        cfv.assert_eq(len == 0 or len >= 8, true)
+    end
+
+    cfv.assert_type_int(config.LogMode)
+    cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
+
+    return cfv.valid()
+end
 
 -- supervisory controller communications
 ---@nodiscard
@@ -23,32 +92,23 @@ function supervisor.comms(_version, nic, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
-    -- channel list from config
-    local svr_channel = config.SVR_CHANNEL
-    local plc_channel = config.PLC_CHANNEL
-    local rtu_channel = config.RTU_CHANNEL
-    local crd_channel = config.CRD_CHANNEL
-    local pkt_channel = config.PKT_CHANNEL
-
-    -- configuration data
-    local num_reactors = config.NUM_REACTORS
     ---@class sv_cooling_conf
-    local cooling_conf = { r_cool = config.REACTOR_COOLING, fac_tank_mode = config.FAC_TANK_MODE, fac_tank_defs = config.FAC_TANK_DEFS }
+    local cooling_conf = { r_cool = config.CoolingConfig, fac_tank_mode = config.FacilityTankMode, fac_tank_defs = config.FacilityTankDefs }
 
     local self = {
         last_est_acks = {}
     }
 
-    comms.set_trusted_range(config.TRUSTED_RANGE)
+    comms.set_trusted_range(config.TrustedRange)
 
     -- PRIVATE FUNCTIONS --
 
     -- configure modem channels
     nic.closeAll()
-    nic.open(svr_channel)
+    nic.open(config.SVR_Channel)
 
     -- pass modem, status, and config data to svsessions
-    svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
+    svsessions.init(nic, fp_ok, config, cooling_conf)
 
     -- send an establish request response
     ---@param packet scada_packet
@@ -61,7 +121,7 @@ function supervisor.comms(_version, nic, fp_ok)
         m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(packet.remote_channel(), svr_channel, s_pkt)
+        nic.transmit(packet.remote_channel(), config.SVR_Channel, s_pkt)
         self.last_est_acks[packet.src_addr()] = ack
     end
 
@@ -124,9 +184,9 @@ function supervisor.comms(_version, nic, fp_ok)
             local src_addr = packet.scada_frame.src_addr()
             local protocol = packet.scada_frame.protocol()
 
-            if l_chan ~= svr_channel then
+            if l_chan ~= config.SVR_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
-            elseif r_chan == plc_channel then
+            elseif r_chan == config.PLC_Channel then
                 -- look for an associated session
                 local session = svsessions.find_plc_session(src_addr)
 
@@ -201,7 +261,7 @@ function supervisor.comms(_version, nic, fp_ok)
                 else
                     log.debug(util.c("illegal packet type ", protocol, " on PLC channel"))
                 end
-            elseif r_chan == rtu_channel then
+            elseif r_chan == config.RTU_Channel then
                 -- look for an associated session
                 local session = svsessions.find_rtu_session(src_addr)
 
@@ -265,7 +325,7 @@ function supervisor.comms(_version, nic, fp_ok)
                 else
                     log.debug(util.c("illegal packet type ", protocol, " on RTU channel"))
                 end
-            elseif r_chan == crd_channel then
+            elseif r_chan == config.CRD_Channel then
                 -- look for an associated session
                 local session = svsessions.find_crd_session(src_addr)
 
@@ -299,7 +359,7 @@ function supervisor.comms(_version, nic, fp_ok)
                                     println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                                     log.info(util.c("CRD_ESTABLISH: coordinator (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
 
-                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, { num_reactors, cooling_conf })
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, cooling_conf })
                                 else
                                     if last_ack ~= ESTABLISH_ACK.COLLISION then
                                         log.info("CRD_ESTABLISH: denied new coordinator [@" .. src_addr .. "] due to already being connected to another coordinator")
@@ -332,7 +392,7 @@ function supervisor.comms(_version, nic, fp_ok)
                 else
                     log.debug(util.c("illegal packet type ", protocol, " on coordinator channel"))
                 end
-            elseif r_chan == pkt_channel then
+            elseif r_chan == config.PKT_Channel then
                 -- look for an associated session
                 local session = svsessions.find_pdg_session(src_addr)
 

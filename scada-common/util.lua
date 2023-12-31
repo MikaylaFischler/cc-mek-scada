@@ -22,7 +22,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.1.11"
+util.version = "1.1.12"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -76,6 +76,17 @@ function util.strval(val)
     if (t == "table" and (getmetatable(val) == nil or getmetatable(val).__tostring == nil)) or t == "function" then
         return t_concat{"[", tostring(val), "]"}
     else return tostring(val) end
+end
+
+-- tokenize a string by a separator<br>
+-- does not behave exactly like C's strtok
+---@param str string string to tokenize
+---@param sep string separator to tokenize by
+---@return table token_list
+function util.strtok(str, sep)
+    local list = {}
+    for part in string.gmatch(str, "([^" .. sep .. "]+)") do t_insert(list, part) end
+    return list
 end
 
 -- repeat a space n times

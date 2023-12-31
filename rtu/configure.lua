@@ -3,10 +3,10 @@
 --
 
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
-local ppm         = require("scada-common.ppm")
 
 local core        = require("graphics.core")
 
@@ -72,7 +72,9 @@ assert(#PORT_DESC == rsio.NUM_PORTS)
 assert(#PORT_DSGN == rsio.NUM_PORTS)
 
 -- changes to the config data/format to let the user know
-local changes = {}
+local changes = {
+    {"v1.7.9", { "ConnTimeout can now have a fractional part" } }
+}
 
 ---@class rtu_rs_definition
 ---@field unit integer|nil
@@ -172,11 +174,11 @@ local tmp_cfg = {
     SpeakerVolume = 1.0,
     Peripherals = {},
     Redstone = {},
-    SVR_Channel = nil,
-    RTU_Channel = nil,
-    ConnTimeout = nil,
-    TrustedRange = nil,
-    AuthKey = nil,
+    SVR_Channel = nil,  ---@type integer
+    RTU_Channel = nil,  ---@type integer
+    ConnTimeout = nil,  ---@type number
+    TrustedRange = nil, ---@type number
+    AuthKey = nil,      ---@type string|nil
     LogMode = 0,
     LogPath = "",
     LogDebug = false
@@ -331,7 +333,7 @@ local function config_view(display)
     TextBox{parent=spkr_c,x=1,y=1,height=2,text="Speakers can be connected to this RTU gateway without RTU unit configuration entries."}
     TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
 
-    local s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_digits=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
+    local s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_chars=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
 
     TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
 
@@ -394,12 +396,12 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,fg_bg=bw_fg_bg}
+    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=8,height=1,text="Trusted Range"}
-    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_digits=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_2,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
     local p2_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -829,11 +831,11 @@ local function config_view(display)
 
     tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text=""}
     tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text=""}
-    tool_ctl.p_idx = NumberField{parent=peri_c_4,x=14,y=4,width=4,max_digits=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_idx = NumberField{parent=peri_c_4,x=14,y=4,width=4,max_chars=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility.","a unit. (unit #"},callback=function(v)tool_ctl.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
     tool_ctl.p_assign_end = TextBox{parent=peri_c_4,x=22,y=6,height=6,width=1,text=")"}
 
-    tool_ctl.p_unit = NumberField{parent=peri_c_4,x=44,y=4,width=4,max_digits=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_unit = NumberField{parent=peri_c_4,x=44,y=4,width=4,max_chars=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.p_unit.disable()
 
     function tool_ctl.p_assign(opt)
@@ -1052,7 +1054,7 @@ local function config_view(display)
     tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text=""}
 
     tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text="Unit ID"}
-    tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_digits=2,min=1,max=4,fg_bg=bw_fg_bg}
+    tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
     tool_ctl.rs_cfg_side_l = TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text="Output Side"}
     local side = Radio2D{parent=rs_c_3,x=1,y=4,rows=2,columns=3,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}

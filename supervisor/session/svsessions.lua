@@ -2,16 +2,14 @@ local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
-local config      = require("supervisor.config")
 local databus     = require("supervisor.databus")
 local facility    = require("supervisor.facility")
-
-local svqtypes    = require("supervisor.session.svqtypes")
 
 local coordinator = require("supervisor.session.coordinator")
 local plc         = require("supervisor.session.plc")
 local pocket      = require("supervisor.session.pocket")
 local rtu         = require("supervisor.session.rtu")
+local svqtypes    = require("supervisor.session.svqtypes")
 
 -- Supervisor Sessions Handler
 
@@ -36,7 +34,7 @@ svsessions.SESSION_TYPE = SESSION_TYPE
 local self = {
     nic = nil,          ---@type nic|nil
     fp_ok = false,
-    num_reactors = 0,
+    config = nil,       ---@type svr_config
     facility = nil,     ---@type facility|nil
     sessions = { rtu = {}, plc = {}, crd = {}, pdg = {} },
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 }
@@ -60,7 +58,7 @@ local function _sv_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.nic.transmit(session.r_chan, config.SVR_CHANNEL, msg.message)
+                self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -135,7 +133,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.nic.transmit(session.r_chan, config.SVR_CHANNEL, msg.message)
+            self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
         end
     end
 
@@ -197,13 +195,13 @@ end
 -- initialize svsessions
 ---@param nic nic network interface device
 ---@param fp_ok boolean front panel active
----@param num_reactors integer number of reactors
+---@param config svr_config supervisor configuration
 ---@param cooling_conf sv_cooling_conf cooling configuration definition
-function svsessions.init(nic, fp_ok, num_reactors, cooling_conf)
+function svsessions.init(nic, fp_ok, config, cooling_conf)
     self.nic = nic
     self.fp_ok = fp_ok
-    self.num_reactors = num_reactors
-    self.facility = facility.new(num_reactors, cooling_conf)
+    self.config = config
+    self.facility = facility.new(config.UnitCount, cooling_conf)
 end
 
 -- find an RTU session by the computer ID
@@ -280,14 +278,14 @@ end
 ---@param version string
 ---@return integer|false session_id
 function svsessions.establish_plc_session(source_addr, for_reactor, version)
-    if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.num_reactors then
+    if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
         ---@class plc_session_struct
         local plc_s = {
             s_type = "plc",
             open = true,
             reactor = for_reactor,
             version = version,
-            r_chan = config.PLC_CHANNEL,
+            r_chan = self.config.PLC_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
             out_queue = mqueue.new(),
@@ -296,8 +294,7 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
 
         local id = self.next_ids.plc
 
-        plc_s.instance = plc.new_session(id, source_addr, for_reactor, plc_s.in_queue, plc_s.out_queue,
-                                            config.PLC_TIMEOUT, self.fp_ok)
+        plc_s.instance = plc.new_session(id, source_addr, for_reactor, plc_s.in_queue, plc_s.out_queue, self.config.PLC_Timeout, self.fp_ok)
         table.insert(self.sessions.plc, plc_s)
 
         local units = self.facility.get_units()
@@ -305,8 +302,7 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
 
         local mt = {
             ---@param s plc_session_struct
-            __tostring = function (s)  return util.c("PLC [", s.instance.get_id(), "] for reactor #", s.reactor,
-                                                        " (@", s.s_addr, ")") end
+            __tostring = function (s)  return util.c("PLC [", s.instance.get_id(), "] for reactor #", s.reactor, " (@", s.s_addr, ")") end
         }
 
         setmetatable(plc_s, mt)
@@ -336,7 +332,7 @@ function svsessions.establish_rtu_session(source_addr, advertisement, version)
         s_type = "rtu",
         open = true,
         version = version,
-        r_chan = config.RTU_CHANNEL,
+        r_chan = self.config.RTU_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),
         out_queue = mqueue.new(),
@@ -345,8 +341,7 @@ function svsessions.establish_rtu_session(source_addr, advertisement, version)
 
     local id = self.next_ids.rtu
 
-    rtu_s.instance = rtu.new_session(id, source_addr, rtu_s.in_queue, rtu_s.out_queue, config.RTU_TIMEOUT,
-                                        advertisement, self.facility, self.fp_ok)
+    rtu_s.instance = rtu.new_session(id, source_addr, rtu_s.in_queue, rtu_s.out_queue, self.config.RTU_Timeout, advertisement, self.facility, self.fp_ok)
     table.insert(self.sessions.rtu, rtu_s)
 
     local mt = {
@@ -377,7 +372,7 @@ function svsessions.establish_crd_session(source_addr, version)
             s_type = "crd",
             open = true,
             version = version,
-            r_chan = config.CRD_CHANNEL,
+            r_chan = self.config.CRD_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
             out_queue = mqueue.new(),
@@ -386,8 +381,7 @@ function svsessions.establish_crd_session(source_addr, version)
 
         local id = self.next_ids.crd
 
-        crd_s.instance = coordinator.new_session(id, source_addr, crd_s.in_queue, crd_s.out_queue, config.CRD_TIMEOUT,
-                                                    self.facility, self.fp_ok)
+        crd_s.instance = coordinator.new_session(id, source_addr, crd_s.in_queue, crd_s.out_queue, self.config.CRD_Timeout, self.facility, self.fp_ok)
         table.insert(self.sessions.crd, crd_s)
 
         local mt = {
@@ -421,7 +415,7 @@ function svsessions.establish_pdg_session(source_addr, version)
         s_type = "pkt",
         open = true,
         version = version,
-        r_chan = config.PKT_CHANNEL,
+        r_chan = self.config.PKT_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),
         out_queue = mqueue.new(),
@@ -430,8 +424,7 @@ function svsessions.establish_pdg_session(source_addr, version)
 
     local id = self.next_ids.pdg
 
-    pdg_s.instance = pocket.new_session(id, source_addr, pdg_s.in_queue, pdg_s.out_queue, config.PKT_TIMEOUT, self.facility,
-                                        self.fp_ok)
+    pdg_s.instance = pocket.new_session(id, source_addr, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.facility, self.fp_ok)
     table.insert(self.sessions.pdg, pdg_s)
 
     local mt = {

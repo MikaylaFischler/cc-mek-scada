@@ -110,9 +110,9 @@ function iocontrol.init(conf, comms)
     -- determine tank information
     if io.facility.tank_mode == 0 then
         io.facility.tank_defs = {}
-        -- on facility tank mode 0, setup tank defs to match unit TANK option
+        -- on facility tank mode 0, setup tank defs to match unit tank option
         for i = 1, conf.num_units do
-            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TANK, 1, 0)
+            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TankConnection, 1, 0)
         end
 
         io.facility.tank_list = { table.unpack(io.facility.tank_defs) }
@@ -214,7 +214,7 @@ function iocontrol.init(conf, comms)
             num_boilers = 0,
             num_turbines = 0,
             num_snas = 0,
-            has_tank = conf.cooling.r_cool[i].TANK,
+            has_tank = conf.cooling.r_cool[i].TankConnection,
 
             control_state = false,
             burn_rate_cmd = 0.0,
@@ -295,13 +295,13 @@ function iocontrol.init(conf, comms)
         end
 
         -- create boiler tables
-        for _ = 1, conf.cooling.r_cool[i].BOILERS do
+        for _ = 1, conf.cooling.r_cool[i].BoilerCount do
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, {})
         end
 
         -- create turbine tables
-        for _ = 1, conf.cooling.r_cool[i].TURBINES do
+        for _ = 1, conf.cooling.r_cool[i].TurbineCount do
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
         end
