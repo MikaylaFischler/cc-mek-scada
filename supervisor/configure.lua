@@ -307,7 +307,7 @@ local function config_view(display)
     TextBox{parent=svr_c_3,x=1,y=1,height=6,text="You have set one or more of your units to use dynamic tanks for emergency coolant. You have two paths for configuration. The first is to assign dynamic tanks to reactor units; one tank per reactor, only connected to that reactor. RTU configurations must also assign it as such."}
     TextBox{parent=svr_c_3,x=1,y=8,height=3,text="Alternatively, you can configure them as facility tanks to connect to multiple reactor units. These can intermingle with unit-specific tanks."}
 
-    local en_fac_tanks = CheckBox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode~=0,box_fg_bg=cpair(colors.green,colors.black)}
+    local en_fac_tanks = CheckBox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode>0,box_fg_bg=cpair(colors.green,colors.black)}
 
     local function submit_en_fac_tank()
         if en_fac_tanks.get_value() then
@@ -559,8 +559,8 @@ local function config_view(display)
     PushButton{parent=svr_c_5,x=8,y=14,min_width=7,text="About",callback=function()svr_pane.set_value(6)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=svr_c_6,height=3,text="This visualization tool shows the pipe connections required for a particular dynamic tank configuration you have selected."}
-    TextBox{parent=svr_c_6,y=5,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same."}
-    TextBox{parent=svr_c_6,y=9,height=4,text="Examples: A U2 tank should be configured on an RTU as a dynamic tank for unit 2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
+    TextBox{parent=svr_c_6,y=5,height=4,text="Examples: A U2 tank should be configured on an RTU as the dynamic tank for unit #2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
+    TextBox{parent=svr_c_6,y=10,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=svr_c_6,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -792,6 +792,8 @@ local function config_view(display)
             for i = 1, #ini_cfg.FacilityTankDefs do
                 try_set(tool_ctl.tank_elems[i].tank_opt, ini_cfg.FacilityTankDefs[i])
             end
+
+            en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
 
             tool_ctl.view_cfg.enable()
 

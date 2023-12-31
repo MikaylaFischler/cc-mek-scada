@@ -35,7 +35,6 @@ local self = {
     nic = nil,          ---@type nic|nil
     fp_ok = false,
     config = nil,       ---@type svr_config
-    num_reactors = 0,
     facility = nil,     ---@type facility|nil
     sessions = { rtu = {}, plc = {}, crd = {}, pdg = {} },
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 }
@@ -279,7 +278,7 @@ end
 ---@param version string
 ---@return integer|false session_id
 function svsessions.establish_plc_session(source_addr, for_reactor, version)
-    if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.num_reactors then
+    if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
         ---@class plc_session_struct
         local plc_s = {
             s_type = "plc",
