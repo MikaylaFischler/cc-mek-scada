@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.2.0"
+local SUPERVISOR_VERSION = "v1.2.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -98,7 +98,7 @@ local function main()
     ppm.mount_all()
 
     -- message authentication init
-    if type(config.AuthKey) == "string" then
+    if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
         network.init_mac(config.AuthKey)
     end
 
