@@ -45,7 +45,7 @@ local config = supervisor.config
 local cfv = util.new_validator()
 
 assert((config.FacilityTankMode == 0) or (config.UnitCount == #config.FacilityTankDefs),
-    "startup> FacilityTankDefs length not equal to UnitCount")
+    "startup> the number of facility tank definitions must be equal to the number of units in facility tank mode")
 
 for i = 1, config.UnitCount do
     local def = config.FacilityTankDefs[i]
@@ -73,7 +73,7 @@ end
 -- log init
 ----------------------------------------
 
-log.init(config.LogPath, config.LogMode, config.LogDebug == true)
+log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
 log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)

@@ -134,7 +134,7 @@ local function number_field(args)
         local min = tonumber(args.min)
 
         if type(val) == "number" then
-            if util.is_int(args.max_int_digits) or args.max_frac_digits then
+            if args.max_int_digits or args.max_frac_digits then
                 local str = e.value
                 local ceil = false
 

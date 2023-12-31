@@ -235,8 +235,8 @@ local function config_view(display)
         else nu_error.show() end
     end
 
-    PushButton{parent=svr_c_1,x=1,y=14,min_width=6,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_1,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=svr_c_2,x=1,y=1,height=4,text="Please provide the reactor cooling configuration below. This includes the number of turbines, boilers, and if that reactor has a connection to a dynamic tank for emergency coolant."}
     TextBox{parent=svr_c_2,x=1,y=6,height=1,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
@@ -275,16 +275,12 @@ local function config_view(display)
             cool_err.show()
         else
             local any_has_tank = false
-            tool_ctl.num_tank_conns = 0
 
             tmp_cfg.CoolingConfig = {}
             for i = 1, tmp_cfg.UnitCount do
                 local conf = tool_ctl.cooling_elems[i]
                 tmp_cfg.CoolingConfig[i] = { TurbineCount = tonumber(conf.turbines.get_value()), BoilerCount = tonumber(conf.boilers.get_value()), TankConnection = conf.tank.get_value() }
-                if conf.tank.get_value() then
-                    any_has_tank = true
-                    tool_ctl.num_tank_conns = tool_ctl.num_tank_conns + 1
-                end
+                if conf.tank.get_value() then any_has_tank = true end
             end
 
             for i = 1, 4 do
@@ -305,8 +301,8 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=svr_c_2,x=1,y=14,min_width=6,text="\x1b Back",callback=function()svr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_2,x=44,y=14,min_width=6,text="Next \x1a",callback=submit_cooling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_2,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_2,x=44,y=14,text="Next \x1a",callback=submit_cooling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=svr_c_3,x=1,y=1,height=6,text="You have set one or more of your units to use dynamic tanks for emergency coolant. You have two paths for configuration. The first is to assign dynamic tanks to reactor units; one tank per reactor, only connected to that reactor. RTU configurations must also assign it as such."}
     TextBox{parent=svr_c_3,x=1,y=8,height=3,text="Alternatively, you can configure them as facility tanks to connect to multiple reactor units. These can intermingle with unit-specific tanks."}
@@ -315,7 +311,6 @@ local function config_view(display)
 
     local function submit_en_fac_tank()
         if en_fac_tanks.get_value() then
-            assert(tool_ctl.num_tank_conns >= 1, "attempted to enable facility tanks with no tank connections assigned")
             svr_pane.set_value(4)
             tmp_cfg.FacilityTankMode = util.trinary(tmp_cfg.FacilityTankMode == 0, 1, math.min(8, math.max(1, ini_cfg.FacilityTankMode)))
         else
@@ -344,11 +339,6 @@ local function config_view(display)
 
     local tank_err = TextBox{parent=svr_c_4,x=8,y=14,height=1,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
-    local function show_fconn(i)
-        if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.show()
-        else tool_ctl.vis_ftanks[i].line.show() end
-    end
-
     local function hide_fconn(i)
         if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.hide(true)
         else tool_ctl.vis_ftanks[i].line.hide(true) end
@@ -371,7 +361,10 @@ local function config_view(display)
                 tool_ctl.vis_utanks[i].label.set_value("Tank U" .. i)
                 hide_fconn(i)
             else
-                if def == 2 then show_fconn(i) else hide_fconn(i) end
+                if def == 2 then
+                    if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.show()
+                    else tool_ctl.vis_ftanks[i].line.show() end
+                else hide_fconn(i) end
                 tool_ctl.vis_utanks[i].line.hide(true)
             end
 
@@ -398,6 +391,8 @@ local function config_view(display)
 
     --#region Tank Layout Visualizer
 
+    local pipe_cpair = cpair(colors.blue,colors.lightGray)
+
     local vis = Div{parent=svr_c_5,x=14,y=5,height=7}
 
     local vis_unit_list = TextBox{parent=vis,x=15,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
@@ -405,24 +400,25 @@ local function config_view(display)
     -- draw unit tanks and their pipes
     for i = 1, 4 do
         local line = Div{parent=vis,x=22,y=(i*2)-1,width=13,height=1}
-        TextBox{parent=line,width=5,height=1,text=string.rep("\x8c",5),fg_bg=cpair(colors.blue,colors.lightGray)}
+        TextBox{parent=line,width=5,height=1,text=string.rep("\x8c",5),fg_bg=pipe_cpair}
         local label = TextBox{parent=line,x=7,y=1,width=7,height=1,text="Tank ?"}
         tool_ctl.vis_utanks[i] = { line = line, label = label }
     end
 
+    -- draw facility tank connections
+
     local ftank_1 = Div{parent=vis,x=1,y=1,width=13,height=1}
     TextBox{parent=ftank_1,width=7,height=1,text="Tank F1"}
     tool_ctl.vis_ftanks[1] = {
-        line = ftank_1, pipe_direct = TextBox{parent=ftank_1,x=9,y=1,width=5,text=string.rep("\x8c",5),fg_bg=cpair(colors.yellow,colors.lightGray)}
+        line = ftank_1, pipe_direct = TextBox{parent=ftank_1,x=9,y=1,width=5,text=string.rep("\x8c",5),fg_bg=pipe_cpair}
     }
 
-    -- draw facility tank connections
     for i = 2, 4 do
         local line = Div{parent=vis,x=1,y=(i-1)*2,width=13,height=2}
-        local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=cpair(colors.red,colors.lightGray)}
-        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="\x95\n\x8d",fg_bg=cpair(colors.green,colors.lightGray)}
-        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="\x8c\x8c\x8c\x8c",fg_bg=cpair(colors.lightBlue,colors.lightGray),hidden=true}
-        local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text="Tank F?"}
+        local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=pipe_cpair}
+        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="",fg_bg=pipe_cpair}
+        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="",fg_bg=pipe_cpair}
+        local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text=""}
         tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
     end
 
@@ -566,7 +562,7 @@ local function config_view(display)
     TextBox{parent=svr_c_6,y=5,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same."}
     TextBox{parent=svr_c_6,y=9,height=4,text="Examples: A U2 tank should be configured on an RTU as a dynamic tank for unit 2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
 
-    PushButton{parent=svr_c_6,x=1,y=14,min_width=6,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_6,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- NET CONFIG
 
@@ -983,7 +979,7 @@ local function config_view(display)
                 end
 
                 if val == "" then val = "no facility tanks" end
-            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a unit mode)"
+            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
             elseif f[1] == "FacilityTankDefs" and cfg.FacilityTankDefs then
                 val = ""
 
