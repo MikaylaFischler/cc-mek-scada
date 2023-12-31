@@ -40,7 +40,7 @@ local function new_view(root)
 
     local npage_diag = db.nav.new_page(nil, 6, page_pane)
     local npage_home = db.nav.new_page(npage_diag, 1)
-    local npage_alarm = db.nav.new_page(npage_diag, 2)
+    local npage_alarm = db.nav.new_page(npage_home, 2)
 
     ------------------------
     -- Alarm Testing Page --

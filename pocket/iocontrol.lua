@@ -47,6 +47,18 @@ function iocontrol.alloc_nav()
         if self.root._c[pane_id] then self.root._c[pane_id].nav_to() end
     end
 
+    -- find the pane this element belongs to
+    ---@param parent nav_tree_node
+    local function _find_pane(parent)
+        if parent == nil then
+            return nil
+        elseif parent.pane_elem then
+            return parent.pane_elem
+        else
+            return _find_pane(parent._p)
+        end
+    end
+
     self.cur_page = self.root
 
     ---@class pocket_nav
@@ -62,7 +74,8 @@ function iocontrol.alloc_nav()
         page._p._c[pane_id] = page
 
         function page.nav_to()
-            if page._p.pane_elem then page._p.pane_elem.set_value(page.pane_id) end
+            local p_pane = _find_pane(page._p)
+            if p_pane then p_pane.set_value(page.pane_id) end
             self.cur_page = page
         end
 
@@ -80,7 +93,7 @@ function iocontrol.alloc_nav()
     function io.nav.nav_up()
         local parent = self.cur_page._p
         -- if a parent is defined and this element is not root
-        if parent and parent.pane_id ~= 0 then self.cur_page = parent end
+        if parent then parent.nav_to() end
     end
 
     io.nav_root = self.root
@@ -88,8 +101,15 @@ end
 
 -- complete initialization of navigation by providing the root muiltipane
 ---@param root_pane graphics_element navigation root multipane
-function iocontrol.init_nav(root_pane)
+---@param default_page integer? page to nagivate to if nav_up is called on a base node
+function iocontrol.init_nav(root_pane, default_page)
     io.nav_root.pane_elem = root_pane
+
+    ---@todo keep this?
+    -- if default_page ~= nil then
+    --     io.nav_root.nav_to = function() io.nav_root.switcher(default_page) end
+    -- end
+
     return io.nav_root
 end
 

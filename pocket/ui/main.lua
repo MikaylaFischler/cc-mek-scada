@@ -21,6 +21,7 @@ local Div          = require("graphics.elements.div")
 local MultiPane    = require("graphics.elements.multipane")
 local TextBox      = require("graphics.elements.textbox")
 
+local PushButton   = require("graphics.elements.controls.push_button")
 local Sidebar      = require("graphics.elements.controls.sidebar")
 
 local LINK_STATE = iocontrol.LINK_STATE
@@ -32,7 +33,7 @@ local cpair = core.cpair
 -- create new main view
 ---@param main graphics_element main displaybox
 local function init(main)
-    local ps = iocontrol.get_db().ps
+    local db = iocontrol.get_db()
 
     -- window header message
     TextBox{parent=main,y=1,text="ALPHA APP - INCOMPLETE",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
@@ -47,7 +48,7 @@ local function init(main)
 
     local root_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={conn_sv_wait,conn_api_wait,main_pane}}
 
-    root_pane.register(ps, "link_state", function (state)
+    root_pane.register(db.ps, "link_state", function (state)
         if state == LINK_STATE.UNLINKED or state == LINK_STATE.API_LINK_ONLY then
             root_pane.set_value(1)
         elseif state == LINK_STATE.SV_LINK_ONLY then
@@ -77,6 +78,8 @@ local function init(main)
     local base = iocontrol.init_nav(page_pane)
 
     Sidebar{parent=main_pane,x=1,y=1,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=base.switcher}
+
+    PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
     --#endregion
 end
