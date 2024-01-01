@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.12"
+local CCMSI_VERSION = "v1.12a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -345,8 +345,7 @@ elseif mode == "install" or mode == "update" then
     if mode == "install" then
         println("Installing " .. app .. " files...")
     elseif mode == "update" then
-        if app == "supervisor" or app == "coordinator" or app == "pocket" then
-            println("Updating " .. app .. " files... (keeping old config.lua)")
+        if app == "coordinator" or app == "pocket" then println("Updating " .. app .. " files... (keeping old config.lua)")
         else println("Updating " .. app .. " files...") end
     end
     white()

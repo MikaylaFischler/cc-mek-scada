@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.0.18"
+local COORDINATOR_VERSION = "v1.1.0"
 
 local println = util.println
 local println_ts = util.println_ts
