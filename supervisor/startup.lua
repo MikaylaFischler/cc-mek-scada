@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.2.1"
+local SUPERVISOR_VERSION = "v1.2.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -44,16 +44,6 @@ local config = supervisor.config
 
 local cfv = util.new_validator()
 
-assert((config.FacilityTankMode == 0) or (config.UnitCount == #config.FacilityTankDefs),
-    "startup> the number of facility tank definitions must be equal to the number of units in facility tank mode")
-
-for i = 1, config.UnitCount do
-    local def = config.FacilityTankDefs[i]
-    cfv.assert_type_int(def)
-    cfv.assert_range(def, 0, 2)
-    assert(cfv.valid(), "startup> invalid facility tank definition for reactor unit " .. i)
-end
-
 cfv.assert_eq(#config.CoolingConfig, config.UnitCount)
 assert(cfv.valid(), "startup> the number of reactor cooling configurations is different than the number of units")
 
@@ -67,6 +57,17 @@ for i = 1, config.UnitCount do
     cfv.assert_range(config.CoolingConfig[i].BoilerCount, 0, 2)
     cfv.assert_range(config.CoolingConfig[i].TurbineCount, 1, 3)
     assert(cfv.valid(), "startup> out-of-range number of boilers and/or turbines provided for reactor unit " .. i)
+end
+
+if config.FacilityTankMode > 0 then
+    assert(config.UnitCount == #config.FacilityTankDefs, "startup> the number of facility tank definitions must be equal to the number of units in facility tank mode")
+
+    for i = 1, config.UnitCount do
+        local def = config.FacilityTankDefs[i]
+        cfv.assert_type_int(def)
+        cfv.assert_range(def, 0, 2)
+        assert(cfv.valid(), "startup> invalid facility tank definition for reactor unit " .. i)
+    end
 end
 
 ----------------------------------------

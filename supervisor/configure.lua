@@ -212,7 +212,7 @@ local function config_view(display)
 
     local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6}}
 
-    TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
     TextBox{parent=svr_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     local num_units = NumberField{parent=svr_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
@@ -247,7 +247,7 @@ local function config_view(display)
         if ini_cfg.CoolingConfig[i] then
             local conf = ini_cfg.CoolingConfig[i]
             if util.is_int(conf.TurbineCount) then num_t = math.min(3, math.max(1, conf.TurbineCount or 1)) end
-            if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(1, conf.BoilerCount or 0)) end
+            if util.is_int(conf.BoilerCount) then num_b = math.min(2, math.max(0, conf.BoilerCount or 0)) end
             has_t = conf.TankConnection == true
         end
 
@@ -256,7 +256,7 @@ local function config_view(display)
         TextBox{parent=line,text="Unit "..i,width=6}
         local turbines = NumberField{parent=line,x=9,y=1,width=5,max_chars=2,default=num_t,min=1,max=3,fg_bg=bw_fg_bg}
         local boilers = NumberField{parent=line,x=20,y=1,width=5,max_chars=2,default=num_b,min=0,max=2,fg_bg=bw_fg_bg}
-        local tank = CheckBox{parent=line,x=30,y=1,label="Is Connected",default=has_t,box_fg_bg=cpair(colors.green,colors.black)}
+        local tank = CheckBox{parent=line,x=30,y=1,label="Is Connected",default=has_t,box_fg_bg=cpair(colors.yellow,colors.black)}
 
         tool_ctl.cooling_elems[i] = { line = line, turbines = turbines, boilers = boilers, tank = tank }
     end
@@ -307,7 +307,7 @@ local function config_view(display)
     TextBox{parent=svr_c_3,x=1,y=1,height=6,text="You have set one or more of your units to use dynamic tanks for emergency coolant. You have two paths for configuration. The first is to assign dynamic tanks to reactor units; one tank per reactor, only connected to that reactor. RTU configurations must also assign it as such."}
     TextBox{parent=svr_c_3,x=1,y=8,height=3,text="Alternatively, you can configure them as facility tanks to connect to multiple reactor units. These can intermingle with unit-specific tanks."}
 
-    local en_fac_tanks = CheckBox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode>0,box_fg_bg=cpair(colors.green,colors.black)}
+    local en_fac_tanks = CheckBox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode>0,box_fg_bg=cpair(colors.yellow,colors.black)}
 
     local function submit_en_fac_tank()
         if en_fac_tanks.get_value() then
@@ -331,7 +331,7 @@ local function config_view(display)
 
         TextBox{parent=div,x=1,y=1,width=33,height=1,text="Unit "..i.." will be connected to..."}
         TextBox{parent=div,x=6,y=2,width=3,height=1,text="..."}
-        local tank_opt = Radio2D{parent=div,x=10,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+        local tank_opt = Radio2D{parent=div,x=10,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
         local no_tank = TextBox{parent=div,x=9,y=2,width=34,height=1,text="no tank (as you set two steps ago)",fg_bg=cpair(colors.gray,colors.lightGray),hidden=true}
 
         tool_ctl.tank_elems[i] = { div = div, tank_opt = tank_opt, no_tank = no_tank }
@@ -416,8 +416,8 @@ local function config_view(display)
     for i = 2, 4 do
         local line = Div{parent=vis,x=1,y=(i-1)*2,width=13,height=2}
         local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=pipe_cpair}
-        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="",fg_bg=pipe_cpair}
-        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="",fg_bg=pipe_cpair}
+        local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="\x95\n\x8d",fg_bg=pipe_cpair}
+        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="\x8c\x8c\x8c\x8c",fg_bg=pipe_cpair}
         local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text=""}
         tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
     end
@@ -544,7 +544,7 @@ local function config_view(display)
     end
 
     local tank_modes = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
-    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.green}
+    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
 
     --#endregion
 

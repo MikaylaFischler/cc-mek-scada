@@ -4,8 +4,8 @@
 
 local util          = require("scada-common.util")
 
-local config        = require("supervisor.config")
 local databus       = require("supervisor.databus")
+local supervisor    = require("supervisor.supervisor")
 
 local pgi           = require("supervisor.panel.pgi")
 local style         = require("supervisor.panel.style")
@@ -88,7 +88,7 @@ local function init(panel)
     local plc_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local plc_list = Div{parent=plc_page,x=2,y=2,width=49}
 
-    for i = 1, config.NUM_REACTORS do
+    for i = 1, supervisor.config.UnitCount do
         local ps_prefix = "plc_" .. i .. "_"
         local plc_entry = Div{parent=plc_list,height=3,fg_bg=bw_fg_bg}
 
