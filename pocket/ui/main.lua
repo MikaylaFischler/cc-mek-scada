@@ -24,6 +24,8 @@ local TextBox      = require("graphics.elements.textbox")
 local PushButton   = require("graphics.elements.controls.push_button")
 local Sidebar      = require("graphics.elements.controls.sidebar")
 
+local SignalBar    = require("graphics.elements.indicators.signal")
+
 local LINK_STATE = iocontrol.LINK_STATE
 
 local ALIGN = core.ALIGN
@@ -36,7 +38,12 @@ local function init(main)
     local db = iocontrol.get_db()
 
     -- window header message
-    TextBox{parent=main,y=1,text="ALPHA APP - INCOMPLETE",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="DEV ALPHA APP     S   C   ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    local svr_conn = SignalBar{parent=main,y=1,x=20,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.white,colors.gray)}
+    local crd_conn = SignalBar{parent=main,y=1,x=24,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.white,colors.gray)}
+
+    db.ps.subscribe("svr_conn_quality", svr_conn.set_value)
+    db.ps.subscribe("crd_conn_quality", crd_conn.set_value)
 
     --#region root panel panes (connection screens + main screen)
 

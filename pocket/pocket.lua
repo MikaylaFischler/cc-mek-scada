@@ -250,9 +250,11 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                                     log.warning("pocket coordinator KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
-                                -- log.debug("pocket coordinator RTT = " .. trip_time .. "ms")
+                                log.debug("pocket coordinator TT = " .. trip_time .. "ms")
 
                                 _send_api_keep_alive_ack(timestamp)
+
+                                iocontrol.report_crd_tt(trip_time)
                             else
                                 log.debug("coordinator SCADA keep alive packet length mismatch")
                             end
@@ -340,9 +342,11 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                                     log.warning("pocket supervisor KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
-                                -- log.debug("pocket supervisor RTT = " .. trip_time .. "ms")
+                                log.debug("pocket supervisor TT = " .. trip_time .. "ms")
 
                                 _send_sv_keep_alive_ack(timestamp)
+
+                                iocontrol.report_svr_tt(trip_time)
                             else
                                 log.debug("supervisor SCADA keep alive packet length mismatch")
                             end

@@ -49,6 +49,7 @@ local element = {}
 ---|indicator_light_args
 ---|power_indicator_args
 ---|rad_indicator_args
+---|signal_bar_args
 ---|state_indicator_args
 ---|tristate_indicator_light_args
 ---|vbar_args

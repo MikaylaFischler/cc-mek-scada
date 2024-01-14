@@ -8,13 +8,11 @@ local types = require("scada-common.types")
 
 local ALARM = types.ALARM
 
-local iocontrol = {}
+---@todo nominal trip time is ping (0ms to 10ms usually)
+local WARN_TT = 40
+local HIGH_TT = 80
 
----@class pocket_ioctl
-local io = {
-    nav_root = nil, ---@type nav_tree_node
-    ps = psil.create()
-}
+local iocontrol = {}
 
 ---@enum POCKET_LINK_STATE
 local LINK_STATE = {
@@ -25,6 +23,12 @@ local LINK_STATE = {
 }
 
 iocontrol.LINK_STATE = LINK_STATE
+
+---@class pocket_ioctl
+local io = {
+    nav_root = nil, ---@type nav_tree_node
+    ps = psil.create()
+}
 
 ---@class nav_tree_node
 ---@field _p nav_tree_node|nil page's parent
@@ -161,7 +165,43 @@ function iocontrol.init_fac() end
 
 -- set network link state
 ---@param state POCKET_LINK_STATE
-function iocontrol.report_link_state(state) io.ps.publish("link_state", state) end
+function iocontrol.report_link_state(state)
+    io.ps.publish("link_state", state)
+
+    if state == LINK_STATE.API_LINK_ONLY or state == LINK_STATE.UNLINKED then
+        io.ps.publish("svr_conn_quality", 0)
+    end
+
+    if state == LINK_STATE.SV_LINK_ONLY or state == LINK_STATE.UNLINKED then
+        io.ps.publish("crd_conn_quality", 0)
+    end
+end
+
+-- determine supervisor connection quality (trip time)
+---@param trip_time integer
+function iocontrol.report_svr_tt(trip_time)
+    local state = 3
+    if trip_time > HIGH_TT then
+        state = 1
+    elseif trip_time > WARN_TT then
+        state = 2
+    end
+
+    io.ps.publish("svr_conn_quality", state)
+end
+
+-- determine coordinator connection quality (trip time)
+---@param trip_time integer
+function iocontrol.report_crd_tt(trip_time)
+    local state = 3
+    if trip_time > HIGH_TT then
+        state = 1
+    elseif trip_time > WARN_TT then
+        state = 2
+    end
+
+    io.ps.publish("crd_conn_quality", state)
+end
 
 -- get the IO controller database
 function iocontrol.get_db() return io end
