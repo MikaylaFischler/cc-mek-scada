@@ -9,7 +9,6 @@ local style        = require("pocket.ui.style")
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local boiler_page  = require("pocket.ui.pages.boiler_page")
-local diag_page    = require("pocket.ui.pages.diag_page")
 local home_page    = require("pocket.ui.pages.home_page")
 local reactor_page = require("pocket.ui.pages.reactor_page")
 local turbine_page = require("pocket.ui.pages.turbine_page")
@@ -76,11 +75,10 @@ local function init(main)
         { char = "U", color = cpair(colors.black,colors.yellow) },
         { char = "R", color = cpair(colors.black,colors.cyan) },
         { char = "B", color = cpair(colors.black,colors.lightGray) },
-        { char = "T", color = cpair(colors.black,colors.white) },
-        { char = "D", color = cpair(colors.black,colors.orange) }
+        { char = "T", color = cpair(colors.black,colors.white) }
     }
 
-    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes={home_page(page_div),unit_page(page_div),reactor_page(page_div),boiler_page(page_div),turbine_page(page_div),diag_page(page_div)}}
+    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes={home_page(page_div),unit_page(page_div),reactor_page(page_div),boiler_page(page_div),turbine_page(page_div)}}
 
     local base = iocontrol.init_nav(page_pane)
 

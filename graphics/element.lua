@@ -29,6 +29,7 @@ local element = {}
 ---|checkbox_args
 ---|hazard_button_args
 ---|multi_button_args
+---|app_page_selector_args
 ---|push_button_args
 ---|radio_2d_args
 ---|radio_button_args
