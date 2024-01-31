@@ -269,14 +269,14 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
 
     comms.set_trusted_range(range)
 
-    -- PRIVATE FUNCTIONS --
-
     -- configure network channels
     nic.closeAll()
     nic.open(crd_channel)
 
     -- link nic to apisessions
     apisessions.init(nic)
+
+    -- PRIVATE FUNCTIONS --
 
     -- send a packet to the supervisor
     ---@param msg_type MGMT_TYPE|CRDN_TYPE
