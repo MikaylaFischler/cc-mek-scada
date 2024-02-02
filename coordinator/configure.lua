@@ -76,7 +76,8 @@ local tool_ctl = {
     net_listen = false,
     sv_addr = comms.BROADCAST,
     sv_seq_num = 0,
-    sv_fac_conf = nil,      ---@type facility_conf
+    sv_cool_conf = nil,     ---@type table list of boiler & turbine counts
+    show_sv_cfg = nil,      ---@type function
 
     ask_config = false,
     has_config = false,
@@ -151,6 +152,8 @@ local fields = {
     { "LogDebug","Log Debug Messages", false }
 }
 
+local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min and x <= max end
+
 -- send an management packet to the supervisor
 ---@param msg_type MGMT_TYPE
 ---@param msg table
@@ -181,7 +184,26 @@ local function handle_packet(packet)
 
                 if est_ack == ESTABLISH_ACK.ALLOW then
                     if type(config) == "table" and #config == 2 then
-                        tool_ctl.sv_fac_conf = { num_units = config[1], cooling = config[2] }
+                        local count_ok = is_int_min_max(config[1], 1, 4)
+                        local cool_ok = type(config[2]) == "table" and type(config[2].r_cool) == "table" and #config[2].r_cool == config[1]
+
+                        if count_ok and cool_ok then
+                            tmp_cfg.UnitCount = config[1]
+                            for i = 1, tmp_cfg.UnitCount do
+                                local num_b = config[2].r_cool.BoilerCount
+                                local num_t = config[2].r_cool.TurbineCount
+                                tool_ctl.sv_cool_conf[i] = { num_b, num_t }
+                                cool_ok = cool_ok and is_int_min_max(num_b, 0, 2) and is_int_min_max(num_t, 1, 3)
+                            end
+                        end
+
+                        if not count_ok then
+                            error_msg = "Error: supervisor unit count out of range."
+                        elseif not cool_ok then
+                            error_msg = "Error: supervisor cooling configuration malformed."
+                            tool_ctl.sv_cool_conf = nil
+                        end
+
                         tool_ctl.sv_addr = packet.scada_frame.src_addr()
                         send_sv(MGMT_TYPE.CLOSE, {})
                     else
@@ -427,8 +449,9 @@ local function config_view(display)
 
     local fac_c_1 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_2 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_3 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={fac_c_1,fac_c_2}}
+    local fac_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3}}
 
     TextBox{parent=fac_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -464,9 +487,21 @@ local function config_view(display)
         end
     end
 
+    local function sv_skip()
+        tcd.abort(handle_timeout)
+        tool_ctl.sv_fac_conf = nil
+        tool_ctl.net_listen = false
+        fac_pane.set_value(2)
+    end
+
+    local function sv_next()
+        tool_ctl.show_sv_cfg()
+        fac_pane.set_value(3)
+    end
+
     PushButton{parent=fac_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    tool_ctl.sv_skip = PushButton{parent=fac_c_1,x=44,y=14,text="Skip \x1a",callback=function()fac_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.sv_next = PushButton{parent=fac_c_1,x=44,y=14,text="Next \x1a",callback=function()fac_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,hidden=true}
+    tool_ctl.sv_skip = PushButton{parent=fac_c_1,x=44,y=14,text="Skip \x1a",callback=sv_skip,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.sv_next = PushButton{parent=fac_c_1,x=44,y=14,text="Next \x1a",callback=sv_next,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,hidden=true}
 
     TextBox{parent=fac_c_2,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     local num_units = NumberField{parent=fac_c_2,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
@@ -486,6 +521,13 @@ local function config_view(display)
 
     PushButton{parent=fac_c_2,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_2,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=fac_c_3,x=1,y=1,height=2,text="The following facility configuration was fetched from your supervisor computer."}
+
+    local fac_config_list = ListBox{parent=fac_c_3,x=1,y=4,height=9,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    PushButton{parent=fac_c_3,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- MONITOR CONFIG
 
@@ -802,6 +844,27 @@ local function config_view(display)
         sum_pane.set_value(1)
         main_pane.set_value(5)
         tool_ctl.importing_legacy = true
+    end
+
+    -- show the facility's unit count and cooling configuration data
+    function tool_ctl.show_sv_cfg()
+        local conf = tool_ctl.sv_fac_conf
+        local r_cool = conf.cooling.r_cool
+        fac_config_list.remove_all()
+
+        local str = util.sprintf("\x07 facility has %d reactor units", conf.num_units)
+
+        local line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=line,text=str,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+
+        for i = 1, conf.num_units do
+            local num_b = r_cool[i].BoilerCount
+            local num_t = r_cool[i].TurbineCount
+            str = util.sprintf("\x07 unit %d has %d boiler%s and %d turbine%s", i, num_b, util.trinary(num_b == 1, "", "s"), num_t, util.trinary(num_t == 1, "", "s"))
+
+            local c_line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=c_line,text=str,width=10,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+        end
     end
 
     -- expose the auth key on the summary page
