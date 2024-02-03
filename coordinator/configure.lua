@@ -189,9 +189,11 @@ local function handle_packet(packet)
 
                         if count_ok and cool_ok then
                             tmp_cfg.UnitCount = config[1]
+                            tool_ctl.sv_cool_conf = {}
+
                             for i = 1, tmp_cfg.UnitCount do
-                                local num_b = config[2].r_cool.BoilerCount
-                                local num_t = config[2].r_cool.TurbineCount
+                                local num_b = config[2].r_cool[i].BoilerCount
+                                local num_t = config[2].r_cool[i].TurbineCount
                                 tool_ctl.sv_cool_conf[i] = { num_b, num_t }
                                 cool_ok = cool_ok and is_int_min_max(num_b, 0, 2) and is_int_min_max(num_t, 1, 3)
                             end
@@ -848,22 +850,20 @@ local function config_view(display)
 
     -- show the facility's unit count and cooling configuration data
     function tool_ctl.show_sv_cfg()
-        local conf = tool_ctl.sv_fac_conf
-        local r_cool = conf.cooling.r_cool
+        local conf = tool_ctl.sv_cool_conf
         fac_config_list.remove_all()
 
-        local str = util.sprintf("\x07 facility has %d reactor units", conf.num_units)
+        local str = util.sprintf("Facility has %d reactor units:", #conf)
 
         local line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
         TextBox{parent=line,text=str,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
 
-        for i = 1, conf.num_units do
-            local num_b = r_cool[i].BoilerCount
-            local num_t = r_cool[i].TurbineCount
-            str = util.sprintf("\x07 unit %d has %d boiler%s and %d turbine%s", i, num_b, util.trinary(num_b == 1, "", "s"), num_t, util.trinary(num_t == 1, "", "s"))
+        for i = 1, #conf do
+            local num_b, num_t = conf[i][1], conf[i][2]
+            str = util.sprintf("\x07 Unit %d has %d boiler%s and %d turbine%s", i, num_b, util.trinary(num_b == 1, "", "s"), num_t, util.trinary(num_t == 1, "", "s"))
 
             local c_line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
-            TextBox{parent=c_line,text=str,width=10,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+            TextBox{parent=c_line,text=str,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
         end
     end
 
