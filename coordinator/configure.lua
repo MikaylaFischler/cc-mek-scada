@@ -285,13 +285,14 @@ local function config_view(display)
     local net_cfg = Div{parent=root_pane_div,x=1,y=1}
     local fac_cfg = Div{parent=root_pane_div,x=1,y=1}
     local mon_cfg = Div{parent=root_pane_div,x=1,y=1}
+    local spkr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local crd_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
     local import_err = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,crd_cfg,log_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,summary,changelog,import_err}}
 
     -- MAIN PAGE
 
@@ -327,7 +328,7 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    --#region Network Config
+    --#region Network
 
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
@@ -549,7 +550,7 @@ local function config_view(display)
 
     local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3}}
 
-    TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.lime)}
+    TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
     TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
     local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
@@ -665,7 +666,7 @@ local function config_view(display)
     end
 
     TextBox{parent=mon_c_3,x=1,y=6,height=4,text="Assignment"}
-    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
 
     mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,height=1,text="Unit ID"}
     mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
@@ -717,43 +718,55 @@ local function config_view(display)
 
     --#endregion
 
-    --#region Coordinator General
+    --#region Speaker
+
+    local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
+
+    TextBox{parent=spkr_cfg,x=1,y=2,height=1,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
+
+    TextBox{parent=spkr_c,x=1,y=1,height=2,text="The coordinator uses a speaker to play alarm sounds."}
+    TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
+
+    local s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_chars=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
+
+    TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
+
+    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,height=1,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function submit_vol()
+        local vol = tonumber(s_vol.get_value())
+        if vol ~= nil then
+            s_vol_err.hide(true)
+            tmp_cfg.SpeakerVolume = vol
+            main_pane.set_value(6)
+        else s_vol_err.show() end
+    end
+
+    PushButton{parent=spkr_c,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
+    --#region Coordinator UI
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_3 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_4 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_5 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_6 = Div{parent=crd_cfg,x=2,y=4,width=49}
 
     local crd_pane = MultiPane{parent=crd_cfg,x=1,y=4,panes={crd_c_1}}
 
-    TextBox{parent=crd_cfg,x=1,y=2,height=1,text=" Coordinator Configuration",fg_bg=cpair(colors.black,colors.lime)}
+    TextBox{parent=crd_cfg,x=1,y=2,height=1,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=crd_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
-    local num_units = NumberField{parent=crd_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
-    TextBox{parent=crd_c_1,x=7,y=5,height=1,text="reactors"}
-    TextBox{parent=crd_c_1,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_1,x=1,y=1,height=3,text="Configure the UI interface options below if you wish to customize formats."}
 
-    local nu_error = TextBox{parent=crd_c_1,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    TextBox{parent=crd_c_1,x=1,y=4,height=1,text="Clock Time Format"}
+    local clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
-    local function submit_num_units()
-        local count = tonumber(num_units.get_value())
-        if count ~= nil and count > 0 and count < 5 then
-            nu_error.hide(true)
-            tmp_cfg.UnitCount = count
-
-            local confs = tool_ctl.cooling_elems
-            if count >= 2 then confs[2].line.show() else confs[2].line.hide(true) end
-            if count >= 3 then confs[3].line.show() else confs[3].line.hide(true) end
-            if count == 4 then confs[4].line.show() else confs[4].line.hide(true) end
-
-            crd_pane.set_value(2)
-        else nu_error.show() end
+    local function submit_ui_opts()
+        tmp_cfg.Time24Hour = clock_fmt.get_value() == 1
+        main_pane.set_value(7)
     end
 
-    PushButton{parent=crd_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -786,11 +799,11 @@ local function config_view(display)
             tool_ctl.viewing_config = false
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
-            main_pane.set_value(5)
+            main_pane.set_value(8)
         else path_err.show() end
     end
 
-    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- SUMMARY OF CHANGES
@@ -1129,7 +1142,7 @@ local function config_view(display)
             end
 
             TextBox{parent=line,x=33,y=1,width=4,height=1,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
-            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.edit_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.lime),active_fg_bg=btn_act_fg_bg}
+            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.edit_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
             local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
 
             if assignment == "Unused" then unset.disable() end
