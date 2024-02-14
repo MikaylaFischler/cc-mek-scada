@@ -348,6 +348,16 @@ function util.table_contains(t, element)
     return false
 end
 
+-- count the length of a table, even if the values are not sequential or contain named keys
+---@nodiscard
+---@param t table
+---@return integer length
+function util.table_len(t)
+    local n = 0
+    for _, _ in pairs(t) do n = n + 1 end
+    return n
+end
+
 --#endregion
 
 --#region MEKANISM POWER

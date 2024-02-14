@@ -79,7 +79,7 @@ local tool_ctl = {
     sv_cool_conf = nil,     ---@type table list of boiler & turbine counts
     show_sv_cfg = nil,      ---@type function
 
-    ask_config = false,
+    start_fail = false,
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
@@ -103,11 +103,12 @@ local tool_ctl = {
     sv_skip = nil,          ---@type graphics_element
     sv_next = nil,          ---@type graphics_element
 
-    cooling_elems = {},
-    tank_elems = {},
+    update_mon_reqs = nil,  ---@type function
+    gen_mon_list = function () end,
+    assign_monitor = nil,   ---@type function
 
-    vis_ftanks = {},
-    vis_utanks = {}
+    mon_iface = "",
+    mon_expect = {}
 }
 
 ---@class crd_config
@@ -116,7 +117,9 @@ local tmp_cfg = {
     SpeakerVolume = 1.0,
     Time24Hour = true,
     DisableFlowView = false,
-    Displays = {},
+    MainDisplay = nil,
+    FlowDisplay = nil,
+    UnitDisplays = {},
     SVR_Channel = nil,  ---@type integer
     CRD_Channel = nil,  ---@type integer
     PKT_Channel = nil,  ---@type integer
@@ -177,7 +180,6 @@ local function handle_packet(packet)
         error_msg = "Error: unknown receive channel."
     elseif packet.scada_frame.remote_channel() == tmp_cfg.SVR_Channel and packet.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
         if packet.type == MGMT_TYPE.ESTABLISH then
-            -- connection with supervisor established
             if packet.length == 2 then
                 local est_ack = packet.data[1]
                 local config = packet.data[2]
@@ -297,7 +299,10 @@ local function config_view(display)
 
     TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Coordinator configurator! Please select one of the following options."}
 
-    if tool_ctl.ask_config then
+    if tool_ctl.start_fail == 2 then
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: There is a problem with your monitor configuration. You may have lost a monitor or their sizes may be incorrect. Please reconfigure monitors or correct their sizes.",fg_bg=cpair(colors.red,colors.lightGray)}
+        y_start = y_start + 5
+    elseif tool_ctl.start_fail > 0 then
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
@@ -309,10 +314,10 @@ local function config_view(display)
         main_pane.set_value(5)
     end
 
-    if fs.exists("/supervisor/config.lua") then
-        PushButton{parent=main_page,x=2,y=y_start,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
-        y_start = y_start + 2
-    end
+    -- if fs.exists("/coordinator/config.lua") then
+    --     PushButton{parent=main_page,x=2,y=y_start,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
+    --     y_start = y_start + 2
+    -- end
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
@@ -322,7 +327,7 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    --#region NET CONFIG
+    --#region Network Config
 
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
@@ -447,7 +452,7 @@ local function config_view(display)
 
     --#endregion
 
-    -- FACILITY CONFIG
+    --#region Facility
 
     local fac_c_1 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_2 = Div{parent=fac_cfg,x=2,y=4,width=49}
@@ -498,6 +503,7 @@ local function config_view(display)
 
     local function sv_next()
         tool_ctl.show_sv_cfg()
+        tool_ctl.update_mon_reqs()
         fac_pane.set_value(3)
     end
 
@@ -509,6 +515,7 @@ local function config_view(display)
     local num_units = NumberField{parent=fac_c_2,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_2,x=7,y=5,height=1,text="reactors"}
     TextBox{parent=fac_c_2,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_2,x=1,y=10,height=3,text="Since you skipped supervisor sync, the main monitor minimum height can't be determined precisely. It is marked with * on the next page.",fg_bg=g_lg_fg_bg}
 
     local nu_error = TextBox{parent=fac_c_2,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -517,7 +524,8 @@ local function config_view(display)
         if count ~= nil and count > 0 and count < 5 then
             nu_error.hide(true)
             tmp_cfg.UnitCount = count
-            main_pane.set_value(3)
+            tool_ctl.update_mon_reqs()
+            main_pane.set_value(4)
         else nu_error.show() end
     end
 
@@ -529,39 +537,264 @@ local function config_view(display)
     local fac_config_list = ListBox{parent=fac_c_3,x=1,y=4,height=9,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=fac_c_3,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- MONITOR CONFIG
+    --#endregion
+
+    --#region Monitors
 
     local mon_c_1 = Div{parent=mon_cfg,x=2,y=4,width=49}
+    local mon_c_2 = Div{parent=mon_cfg,x=2,y=4,width=49}
+    local mon_c_3 = Div{parent=mon_cfg,x=2,y=4,width=49}
 
-    local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1}}
+    local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3}}
 
     TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=mon_c_1,x=1,y=1,height=3,text="Your configuration requires the following monitors:"}
+    TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
+    local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local nu_error = TextBox{parent=mon_c_1,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    function tool_ctl.update_mon_reqs()
+        local plural = tmp_cfg.UnitCount > 1
 
-    local function submit_num_units()
-        -- local count = tonumber(num_units.get_value())
-        -- if count ~= nil and count > 0 and count < 5 then
-        --     nu_error.hide(true)
-        --     tmp_cfg.UnitCount = count
+        if tool_ctl.sv_cool_conf ~= nil then
+            local cnf = tool_ctl.sv_cool_conf
 
-        --     local confs = tool_ctl.cooling_elems
-        --     if count >= 2 then confs[2].line.show() else confs[2].line.hide(true) end
-        --     if count >= 3 then confs[3].line.show() else confs[3].line.hide(true) end
-        --     if count == 4 then confs[4].line.show() else confs[4].line.hide(true) end
+            local row1_tall = cnf[1][1] > 1 or cnf[1][2] > 2 or (cnf[2] and (cnf[2][1] > 1 or cnf[2][2] > 2))
+            local row1_short = (cnf[1][1] == 0 and cnf[1][2] == 1) and (cnf[2] == nil or (cnf[2][1] == 0 and cnf[2][2] == 1))
+            local row2_tall = (cnf[3] and (cnf[3][1] > 1 or cnf[3][2] > 2)) or (cnf[4] and (cnf[4][1] > 1 or cnf[4][2] > 2))
+            local row2_short = (cnf[3] == nil or (cnf[3][1] == 0 and cnf[3][2] == 1)) and (cnf[4] == nil or (cnf[4][1] == 0 and cnf[4][2] == 1))
 
-        --     crd_pane.set_value(2)
-        -- else nu_error.show() end
+            if tmp_cfg.UnitCount <= 2 then
+                tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
+            else
+                if row1_tall or row2_tall then
+                    tool_ctl.main_mon_h = util.trinary((row1_short and row2_tall) or (row1_tall and row2_short), 5, 6)
+                else tool_ctl.main_mon_h = 6 end
+            end
+        else
+            tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
+        end
+
+        tool_ctl.flow_mon_h = 2 + tmp_cfg.UnitCount
+
+        local asterisk = util.trinary(tool_ctl.sv_cool_conf == nil, "*", "")
+        local m_at_least = util.trinary(tool_ctl.main_mon_h < 6, "at least ", "")
+        local f_at_least = util.trinary(tool_ctl.flow_mon_h < 6, "at least ", "")
+
+        mon_reqs.remove_all()
+
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
     end
 
-    PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- COORDINATOR CONFIG
+    TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
+
+    local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local function to_block_size(w, h)
+        local width = math.floor((w - 15) / 21) + 1
+        local height = math.floor((h - 10) / 14) + 1
+        return width, height
+    end
+
+    function tool_ctl.gen_mon_list()
+        mon_list.remove_all()
+
+        local monitors = ppm.get_monitor_list()
+        for iface, device in pairs(monitors) do
+            local dev = device.dev
+
+            dev.setTextScale(0.5)
+            dev.setTextColor(colors.white)
+            dev.setBackgroundColor(colors.black)
+            dev.clear()
+            dev.setCursorPos(1, 1)
+            dev.setTextColor(colors.magenta)
+            dev.write("This is monitor")
+            dev.setCursorPos(1, 2)
+            dev.setTextColor(colors.white)
+            dev.write(iface)
+
+            local assignment = "Unused"
+
+            if tmp_cfg.MainDisplay == iface then
+                assignment = "Main"
+            elseif tmp_cfg.FlowDisplay == iface then
+                assignment = "Flow"
+            else
+                for i = 1, tmp_cfg.UnitCount do
+                    if tmp_cfg.UnitDisplays[i] == iface then
+                        assignment = "Unit " .. i
+                        break
+                    end
+                end
+            end
+
+            local line = Div{parent=mon_list,x=1,y=1,height=1}
+
+            TextBox{parent=line,x=1,y=1,width=6,height=1,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
+            TextBox{parent=line,x=8,y=1,height=1,text=iface}
+
+            local w, h = to_block_size(dev.getSize())
+
+            local function unset_mon()
+                if tmp_cfg.MainDisplay == iface then
+                    tmp_cfg.MainDisplay = nil
+                elseif tmp_cfg.FlowDisplay == iface then
+                    tmp_cfg.FlowDisplay = nil
+                else
+                    for i = 1, tmp_cfg.UnitCount do
+                        if tmp_cfg.UnitDisplays[i] == iface then
+                            tmp_cfg.UnitDisplays[i] = nil
+                            break
+                        end
+                    end
+                end
+
+                tool_ctl.gen_mon_list()
+            end
+
+            TextBox{parent=line,x=33,y=1,width=4,height=1,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
+            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.assign_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.lime),active_fg_bg=btn_act_fg_bg}
+            local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
+
+            if assignment == "Unused" then unset.disable() end
+        end
+    end
+
+    tool_ctl.gen_mon_list()
+
+    local assign_err = TextBox{parent=mon_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function submit_monitors()
+        if tmp_cfg.MainDisplay == nil then
+            assign_err.set_value("Please assign the main monitor.")
+        elseif tmp_cfg.FlowDisplay == nil then
+            assign_err.set_value("Please assign the flow monitor.")
+        ---@fixme this will have incorrect behavior if the unit count is reduced
+        elseif util.table_len(tmp_cfg.UnitDisplays) ~= tmp_cfg.UnitCount then
+            for i = 1, tmp_cfg.UnitCount do
+                if tmp_cfg.UnitDisplays[i] == nil then
+                    assign_err.set_value("Please assign the unit " .. i .. " monitor.")
+                    break
+                end
+            end
+        else
+            assign_err.hide(true)
+            main_pane.set_value(5)
+            return
+        end
+
+        assign_err.show()
+    end
+
+    PushButton{parent=mon_c_2,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_2,x=44,y=14,text="Next \x1a",callback=submit_monitors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    local mon_desc = TextBox{parent=mon_c_3,x=1,y=1,height=4,text=""}
+
+    local mon_unit_l, mon_unit = nil, nil   ---@type graphics_element, graphics_element
+
+    local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="That assignment doesn't match monitor dimensions. You'll need to resize the monitor for it to work.",fg_bg=cpair(colors.red,colors.lightGray)}
+
+    local function on_assign(val)
+        if not util.table_contains(tool_ctl.mon_expect, val) then
+            mon_warn.show()
+        else mon_warn.hide(true) end
+
+        if val == 3 then
+            mon_unit_l.show()
+            mon_unit.show()
+            mon_unit.set_value(0)
+        else
+            mon_unit_l.hide(true)
+            mon_unit.hide(true)
+        end
+
+        mon_unit.set_max(tmp_cfg.UnitCount)
+    end
+
+    TextBox{parent=mon_c_3,x=1,y=6,height=4,text="Assignment"}
+    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,height=1,text="Unit ID"}
+    mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
+
+    local mon_u_err = TextBox{parent=mon_c_3,x=8,y=14,height=1,width=35,text="Please provide a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function apply_monitor()
+        local type = mon_assign.get_value()
+        local u_id = tonumber(mon_unit.get_value())
+
+        if type == 1 then
+            tmp_cfg.MainDisplay = tool_ctl.mon_iface
+        elseif type == 2 then
+            tmp_cfg.FlowDisplay = tool_ctl.mon_iface
+        elseif u_id and u_id > 0 then
+            tmp_cfg.UnitDisplays[u_id] = tool_ctl.mon_iface
+        else
+            mon_u_err.show()
+            return
+        end
+
+        tool_ctl.gen_mon_list()
+        mon_u_err.hide(true)
+        mon_pane.set_value(2)
+    end
+
+    PushButton{parent=mon_c_3,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+
+    ---@param iface string
+    ---@param device ppm_entry
+    function tool_ctl.assign_monitor(iface, device)
+        tool_ctl.mon_iface = iface
+
+        local dev = device.dev
+        local w, h = to_block_size(dev.getSize())
+
+        local msg = "This size doesn't match a required screen. Please go back and resize it, or configure below at the risk of it not working."
+
+        mon_assign.set_value(1)
+        tool_ctl.mon_expect = {}
+
+        if w == 4 and h == 4 then
+            msg = "This could work as a unit display. Please configure below."
+            tool_ctl.mon_expect = { 3 }
+            mon_assign.set_value(3)
+            mon_unit.set_value(0)
+        elseif w == 8 then
+            if h >= tool_ctl.main_mon_h and h >= tool_ctl.flow_mon_h then
+                msg = "This could work as either your main monitor or flow monitor. Please configure below."
+                tool_ctl.mon_expect = { 1, 2 }
+                if tmp_cfg.MainDisplay then mon_assign.set_value(2) end
+            elseif h >= tool_ctl.main_mon_h then
+                msg = "This could work as your main monitor. Please configure below."
+                tool_ctl.mon_expect = { 1 }
+            elseif h >= tool_ctl.flow_mon_h then
+                msg = "This could work as your flow monitor. Please configure below."
+                tool_ctl.mon_expect = { 2 }
+                mon_assign.set_value(2)
+            end
+        end
+
+        on_assign(mon_assign.get_value())
+
+        mon_desc.set_value(util.c("You have selected '", iface, "', which has a block size of ", w, " wide by ", h, " tall. ", msg))
+        mon_pane.set_value(3)
+    end
+
+    --#endregion
+
+    --#region Coordinator General
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
     local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
@@ -596,10 +829,12 @@ local function config_view(display)
         else nu_error.show() end
     end
 
-    PushButton{parent=crd_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- LOG CONFIG
+    --#endregion
+
+    --#region Logging
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
@@ -723,8 +958,10 @@ local function config_view(display)
 
     local function go_home()
         main_pane.set_value(1)
-        svr_pane.set_value(1)
         net_pane.set_value(1)
+        fac_pane.set_value(1)
+        mon_pane.set_value(1)
+        crd_pane.set_value(1)
         sum_pane.set_value(1)
     end
 
@@ -958,10 +1195,10 @@ local function reset_term()
     term.setCursorPos(1, 1)
 end
 
--- run the supervisor configurator
----@param ask_config? boolean indicate if this is being called by the supervisor startup app due to an invalid configuration
-function configurator.configure(ask_config)
-    tool_ctl.ask_config = ask_config == true
+-- run the coordinator configurator
+---@param start_fail? integer indicate if this is being called by the coordinator startup app due to an invalid configuration
+function configurator.configure(start_fail)
+    tool_ctl.start_fail = start_fail or 0
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
@@ -995,8 +1232,12 @@ function configurator.configure(ask_config)
                 display.handle_paste(param1)
             elseif event == "peripheral_detach" then
                 ppm.handle_unmount(param1)
+                tool_ctl.gen_mon_list()
             elseif event == "peripheral" then
                 ppm.mount(param1)
+                tool_ctl.gen_mon_list()
+            elseif event == "monitor_resize" then
+                tool_ctl.gen_mon_list()
             elseif event == "modem_message" and tool_ctl.nic ~= nil and tool_ctl.net_listen then
                 local s_pkt = tool_ctl.nic.receive(param1, param2, param3, param4, param5)
 
