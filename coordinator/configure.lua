@@ -105,7 +105,7 @@ local tool_ctl = {
 
     update_mon_reqs = nil,  ---@type function
     gen_mon_list = function () end,
-    assign_monitor = nil,   ---@type function
+    edit_monitor = nil,     ---@type function
 
     mon_iface = "",
     mon_expect = {}
@@ -592,8 +592,16 @@ local function config_view(display)
         TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
     end
 
+    local function next_from_reqs()
+        -- unassign unit monitors above the unit count
+        for i = tmp_cfg.UnitCount + 1, 4 do tmp_cfg.UnitDisplays[i] = nil end
+
+        tool_ctl.gen_mon_list()
+        mon_pane.set_value(2)
+    end
+
     PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
 
@@ -605,73 +613,6 @@ local function config_view(display)
         return width, height
     end
 
-    function tool_ctl.gen_mon_list()
-        mon_list.remove_all()
-
-        local monitors = ppm.get_monitor_list()
-        for iface, device in pairs(monitors) do
-            local dev = device.dev
-
-            dev.setTextScale(0.5)
-            dev.setTextColor(colors.white)
-            dev.setBackgroundColor(colors.black)
-            dev.clear()
-            dev.setCursorPos(1, 1)
-            dev.setTextColor(colors.magenta)
-            dev.write("This is monitor")
-            dev.setCursorPos(1, 2)
-            dev.setTextColor(colors.white)
-            dev.write(iface)
-
-            local assignment = "Unused"
-
-            if tmp_cfg.MainDisplay == iface then
-                assignment = "Main"
-            elseif tmp_cfg.FlowDisplay == iface then
-                assignment = "Flow"
-            else
-                for i = 1, tmp_cfg.UnitCount do
-                    if tmp_cfg.UnitDisplays[i] == iface then
-                        assignment = "Unit " .. i
-                        break
-                    end
-                end
-            end
-
-            local line = Div{parent=mon_list,x=1,y=1,height=1}
-
-            TextBox{parent=line,x=1,y=1,width=6,height=1,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
-            TextBox{parent=line,x=8,y=1,height=1,text=iface}
-
-            local w, h = to_block_size(dev.getSize())
-
-            local function unset_mon()
-                if tmp_cfg.MainDisplay == iface then
-                    tmp_cfg.MainDisplay = nil
-                elseif tmp_cfg.FlowDisplay == iface then
-                    tmp_cfg.FlowDisplay = nil
-                else
-                    for i = 1, tmp_cfg.UnitCount do
-                        if tmp_cfg.UnitDisplays[i] == iface then
-                            tmp_cfg.UnitDisplays[i] = nil
-                            break
-                        end
-                    end
-                end
-
-                tool_ctl.gen_mon_list()
-            end
-
-            TextBox{parent=line,x=33,y=1,width=4,height=1,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
-            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.assign_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.lime),active_fg_bg=btn_act_fg_bg}
-            local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
-
-            if assignment == "Unused" then unset.disable() end
-        end
-    end
-
-    tool_ctl.gen_mon_list()
-
     local assign_err = TextBox{parent=mon_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_monitors()
@@ -679,7 +620,6 @@ local function config_view(display)
             assign_err.set_value("Please assign the main monitor.")
         elseif tmp_cfg.FlowDisplay == nil then
             assign_err.set_value("Please assign the flow monitor.")
-        ---@fixme this will have incorrect behavior if the unit count is reduced
         elseif util.table_len(tmp_cfg.UnitDisplays) ~= tmp_cfg.UnitCount then
             for i = 1, tmp_cfg.UnitCount do
                 if tmp_cfg.UnitDisplays[i] == nil then
@@ -705,7 +645,8 @@ local function config_view(display)
 
     local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="That assignment doesn't match monitor dimensions. You'll need to resize the monitor for it to work.",fg_bg=cpair(colors.red,colors.lightGray)}
 
-    local function on_assign(val)
+    ---@param val integer assignment type
+    local function on_assign_mon(val)
         if not util.table_contains(tool_ctl.mon_expect, val) then
             mon_warn.show()
         else mon_warn.hide(true) end
@@ -713,33 +654,54 @@ local function config_view(display)
         if val == 3 then
             mon_unit_l.show()
             mon_unit.show()
-            mon_unit.set_value(0)
         else
             mon_unit_l.hide(true)
             mon_unit.hide(true)
         end
 
+        local value = mon_unit.get_value()
         mon_unit.set_max(tmp_cfg.UnitCount)
+        if value == "0" or value == nil then mon_unit.set_value(0) end
     end
 
     TextBox{parent=mon_c_3,x=1,y=6,height=4,text="Assignment"}
-    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,height=1,text="Unit ID"}
     mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
     local mon_u_err = TextBox{parent=mon_c_3,x=8,y=14,height=1,width=35,text="Please provide a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
+    -- purge all assignments for a given monitor
+    ---@param iface string
+    local function purge_assignments(iface)
+        if tmp_cfg.MainDisplay == iface then
+            tmp_cfg.MainDisplay = nil
+        elseif tmp_cfg.FlowDisplay == iface then
+            tmp_cfg.FlowDisplay = nil
+        else
+            for i = 1, tmp_cfg.UnitCount do
+                if tmp_cfg.UnitDisplays[i] == iface then
+                    tmp_cfg.UnitDisplays[i] = nil
+                end
+            end
+        end
+    end
+
     local function apply_monitor()
+        local iface = tool_ctl.mon_iface
         local type = mon_assign.get_value()
         local u_id = tonumber(mon_unit.get_value())
 
         if type == 1 then
-            tmp_cfg.MainDisplay = tool_ctl.mon_iface
+            purge_assignments(iface)
+            tmp_cfg.MainDisplay = iface
         elseif type == 2 then
-            tmp_cfg.FlowDisplay = tool_ctl.mon_iface
+            purge_assignments(iface)
+            tmp_cfg.FlowDisplay = iface
         elseif u_id and u_id > 0 then
-            tmp_cfg.UnitDisplays[u_id] = tool_ctl.mon_iface
+            purge_assignments(iface)
+            tmp_cfg.UnitDisplays[u_id] = iface
         else
             mon_u_err.show()
             return
@@ -752,45 +714,6 @@ local function config_view(display)
 
     PushButton{parent=mon_c_3,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-
-    ---@param iface string
-    ---@param device ppm_entry
-    function tool_ctl.assign_monitor(iface, device)
-        tool_ctl.mon_iface = iface
-
-        local dev = device.dev
-        local w, h = to_block_size(dev.getSize())
-
-        local msg = "This size doesn't match a required screen. Please go back and resize it, or configure below at the risk of it not working."
-
-        mon_assign.set_value(1)
-        tool_ctl.mon_expect = {}
-
-        if w == 4 and h == 4 then
-            msg = "This could work as a unit display. Please configure below."
-            tool_ctl.mon_expect = { 3 }
-            mon_assign.set_value(3)
-            mon_unit.set_value(0)
-        elseif w == 8 then
-            if h >= tool_ctl.main_mon_h and h >= tool_ctl.flow_mon_h then
-                msg = "This could work as either your main monitor or flow monitor. Please configure below."
-                tool_ctl.mon_expect = { 1, 2 }
-                if tmp_cfg.MainDisplay then mon_assign.set_value(2) end
-            elseif h >= tool_ctl.main_mon_h then
-                msg = "This could work as your main monitor. Please configure below."
-                tool_ctl.mon_expect = { 1 }
-            elseif h >= tool_ctl.flow_mon_h then
-                msg = "This could work as your flow monitor. Please configure below."
-                tool_ctl.mon_expect = { 2 }
-                mon_assign.set_value(2)
-            end
-        end
-
-        on_assign(mon_assign.get_value())
-
-        mon_desc.set_value(util.c("You have selected '", iface, "', which has a block size of ", w, " wide by ", h, " tall. ", msg))
-        mon_pane.set_value(3)
-    end
 
     --#endregion
 
@@ -1104,6 +1027,115 @@ local function config_view(display)
         end
     end
 
+    -- set/edit a monitor's assignment
+    ---@param iface string
+    ---@param device ppm_entry
+    function tool_ctl.edit_monitor(iface, device)
+        tool_ctl.mon_iface = iface
+
+        local dev = device.dev
+        local w, h = to_block_size(dev.getSize())
+
+        local msg = "This size doesn't match a required screen. Please go back and resize it, or configure below at the risk of it not working."
+
+        tool_ctl.mon_expect = {}
+        mon_assign.set_value(1)
+        mon_unit.set_value(0)
+
+        if w == 4 and h == 4 then
+            msg = "This could work as a unit display. Please configure below."
+            tool_ctl.mon_expect = { 3 }
+            mon_assign.set_value(3)
+        elseif w == 8 then
+            if h >= tool_ctl.main_mon_h and h >= tool_ctl.flow_mon_h then
+                msg = "This could work as either your main monitor or flow monitor. Please configure below."
+                tool_ctl.mon_expect = { 1, 2 }
+                if tmp_cfg.MainDisplay then mon_assign.set_value(2) end
+            elseif h >= tool_ctl.main_mon_h then
+                msg = "This could work as your main monitor. Please configure below."
+                tool_ctl.mon_expect = { 1 }
+            elseif h >= tool_ctl.flow_mon_h then
+                msg = "This could work as your flow monitor. Please configure below."
+                tool_ctl.mon_expect = { 2 }
+                mon_assign.set_value(2)
+            end
+        end
+
+        -- override if a config exists
+        if tmp_cfg.MainDisplay == iface then
+            mon_assign.set_value(1)
+        elseif tmp_cfg.FlowDisplay == iface then
+            mon_assign.set_value(2)
+        else
+            for i = 1, tmp_cfg.UnitCount do
+                if tmp_cfg.UnitDisplays[i] == iface then
+                    mon_assign.set_value(3)
+                    mon_unit.set_value(i)
+                    break
+                end
+            end
+        end
+
+        on_assign_mon(mon_assign.get_value())
+
+        mon_desc.set_value(util.c("You have selected '", iface, "', which has a block size of ", w, " wide by ", h, " tall. ", msg))
+        mon_pane.set_value(3)
+    end
+
+    -- generate the list of available monitors
+    function tool_ctl.gen_mon_list()
+        mon_list.remove_all()
+
+        local monitors = ppm.get_monitor_list()
+        for iface, device in pairs(monitors) do
+            local dev = device.dev
+
+            dev.setTextScale(0.5)
+            dev.setTextColor(colors.white)
+            dev.setBackgroundColor(colors.black)
+            dev.clear()
+            dev.setCursorPos(1, 1)
+            dev.setTextColor(colors.magenta)
+            dev.write("This is monitor")
+            dev.setCursorPos(1, 2)
+            dev.setTextColor(colors.white)
+            dev.write(iface)
+
+            local assignment = "Unused"
+
+            if tmp_cfg.MainDisplay == iface then
+                assignment = "Main"
+            elseif tmp_cfg.FlowDisplay == iface then
+                assignment = "Flow"
+            else
+                for i = 1, tmp_cfg.UnitCount do
+                    if tmp_cfg.UnitDisplays[i] == iface then
+                        assignment = "Unit " .. i
+                        break
+                    end
+                end
+            end
+
+            local line = Div{parent=mon_list,x=1,y=1,height=1}
+
+            TextBox{parent=line,x=1,y=1,width=6,height=1,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
+            TextBox{parent=line,x=8,y=1,height=1,text=iface}
+
+            local w, h = to_block_size(dev.getSize())
+
+            local function unset_mon()
+                purge_assignments(iface)
+                tool_ctl.gen_mon_list()
+            end
+
+            TextBox{parent=line,x=33,y=1,width=4,height=1,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
+            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.edit_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.lime),active_fg_bg=btn_act_fg_bg}
+            local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
+
+            if assignment == "Unused" then unset.disable() end
+        end
+    end
+
     -- expose the auth key on the summary page
     function tool_ctl.show_auth_key()
         tool_ctl.show_key_btn.disable()
@@ -1215,6 +1247,8 @@ function configurator.configure(start_fail)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_mon_list()
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
