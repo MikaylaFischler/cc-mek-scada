@@ -331,7 +331,7 @@ local function config_view(display)
 
         TextBox{parent=div,x=1,y=1,width=33,height=1,text="Unit "..i.." will be connected to..."}
         TextBox{parent=div,x=6,y=2,width=3,height=1,text="..."}
-        local tank_opt = Radio2D{parent=div,x=10,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+        local tank_opt = Radio2D{parent=div,x=9,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
         local no_tank = TextBox{parent=div,x=9,y=2,width=34,height=1,text="no tank (as you set two steps ago)",fg_bg=cpair(colors.gray,colors.lightGray),hidden=true}
 
         tool_ctl.tank_elems[i] = { div = div, tank_opt = tank_opt, no_tank = no_tank }
