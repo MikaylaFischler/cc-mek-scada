@@ -70,6 +70,7 @@ local bw_fg_bg = cpair(colors.black, colors.white)
 local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
 local nav_fg_bg = bw_fg_bg
 local btn_act_fg_bg = cpair(colors.white, colors.gray)
+local dis_fg_bg = cpair(colors.lightGray,colors.white)
 
 local tool_ctl = {
     nic = nil,              ---@type nic
@@ -102,6 +103,8 @@ local tool_ctl = {
     sv_conn_detail = nil,   ---@type graphics_element
     sv_skip = nil,          ---@type graphics_element
     sv_next = nil,          ---@type graphics_element
+
+    apply_mon = nil,        ---@type graphics_element
 
     update_mon_reqs = nil,  ---@type function
     gen_mon_list = function () end,
@@ -140,6 +143,9 @@ local settings_cfg = {}
 -- all settings fields, their nice names, and their default values
 local fields = {
     { "UnitCount", "Number of Reactors", 1 },
+    { "MainDisplay", "Main Monitor", nil },
+    { "FlowDisplay", "Flow Monitor", nil },
+    { "UnitDisplays", "Unit Monitors", {} },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
     { "Use24HourTime", "Use 24-hour Time Format", true },
     { "DisableFlowView", "Don't Use Flow", {} },
@@ -258,6 +264,17 @@ local function handle_timeout()
     tool_ctl.sv_conn_detail.set_value("Supervisor did not reply. Ensure startup app is running on the supervisor.")
 end
 
+-- load tmp_cfg fields from ini_cfg fields for displays
+local function preset_monitor_fields()
+    tmp_cfg.DisableFlowView = ini_cfg.DisableFlowView
+
+    tmp_cfg.MainDisplay = ini_cfg.MainDisplay
+    tmp_cfg.FlowDisplay = ini_cfg.FlowDisplay
+    for i = 1, ini_cfg.UnitCount do
+        tmp_cfg.UnitDisplays[i] = ini_cfg.UnitDisplays[i]
+    end
+end
+
 -- load data from the settings file
 ---@param target crd_config
 ---@param raw boolean? true to not use default values
@@ -294,7 +311,7 @@ local function config_view(display)
 
     local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,summary,changelog,import_err}}
 
-    -- MAIN PAGE
+    -- Main Page
 
     local y_start = 5
 
@@ -321,7 +338,7 @@ local function config_view(display)
     -- end
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
@@ -445,6 +462,8 @@ local function config_view(display)
             tool_ctl.sv_conn_detail.set_value("")
             tool_ctl.sv_next.hide()
             tool_ctl.sv_skip.show()
+            tool_ctl.sv_skip.disable()
+            tcd.dispatch_unique(2, function () tool_ctl.sv_skip.enable() end)
         else key_err.show() end
     end
 
@@ -469,7 +488,7 @@ local function config_view(display)
     tool_ctl.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,height=1,text=""}
     tool_ctl.sv_conn_detail = TextBox{parent=fac_c_1,x=1,y=11,height=2,text=""}
 
-    tool_ctl.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()tool_ctl.sv_connect()end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()tool_ctl.sv_connect()end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
     function tool_ctl.sv_connect()
         tool_ctl.sv_conn_button.disable()
@@ -509,7 +528,7 @@ local function config_view(display)
     end
 
     PushButton{parent=fac_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    tool_ctl.sv_skip = PushButton{parent=fac_c_1,x=44,y=14,text="Skip \x1a",callback=sv_skip,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.sv_skip = PushButton{parent=fac_c_1,x=44,y=14,text="Skip \x1a",callback=sv_skip,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
     tool_ctl.sv_next = PushButton{parent=fac_c_1,x=44,y=14,text="Next \x1a",callback=sv_next,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,hidden=true}
 
     TextBox{parent=fac_c_2,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
@@ -548,7 +567,7 @@ local function config_view(display)
     local mon_c_2 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_3 = Div{parent=mon_cfg,x=2,y=4,width=49}
 
-    local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3}}
+    local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
 
     TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
@@ -589,8 +608,10 @@ local function config_view(display)
         TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
         TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Main View Monitor"}
         TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        if not tmp_cfg.DisableFlowView then
+            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
+            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        end
     end
 
     local function next_from_reqs()
@@ -602,6 +623,7 @@ local function config_view(display)
     end
 
     PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,x=8,y=14,text="Legacy Options",min_width=16,callback=function()mon_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
@@ -619,7 +641,7 @@ local function config_view(display)
     local function submit_monitors()
         if tmp_cfg.MainDisplay == nil then
             assign_err.set_value("Please assign the main monitor.")
-        elseif tmp_cfg.FlowDisplay == nil then
+        elseif tmp_cfg.FlowDisplay == nil and not tmp_cfg.DisableFlowView then
             assign_err.set_value("Please assign the flow monitor.")
         elseif util.table_len(tmp_cfg.UnitDisplays) ~= tmp_cfg.UnitCount then
             for i = 1, tmp_cfg.UnitCount do
@@ -644,13 +666,22 @@ local function config_view(display)
 
     local mon_unit_l, mon_unit = nil, nil   ---@type graphics_element, graphics_element
 
-    local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="That assignment doesn't match monitor dimensions. You'll need to resize the monitor for it to work.",fg_bg=cpair(colors.red,colors.lightGray)}
+    local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="",fg_bg=cpair(colors.red,colors.lightGray)}
 
     ---@param val integer assignment type
     local function on_assign_mon(val)
-        if not util.table_contains(tool_ctl.mon_expect, val) then
+        if val == 2 and tmp_cfg.DisableFlowView then
+            tool_ctl.apply_mon.disable()
+            mon_warn.set_value("You disabled having a flow view monitor. It can't be set unless you go back and enable it.")
             mon_warn.show()
-        else mon_warn.hide(true) end
+        elseif not util.table_contains(tool_ctl.mon_expect, val) then
+            tool_ctl.apply_mon.disable()
+            mon_warn.set_value("That assignment doesn't match monitor dimensions. You'll need to resize the monitor for it to work.")
+            mon_warn.show()
+        else
+            tool_ctl.apply_mon.enable()
+            mon_warn.hide(true)
+        end
 
         if val == 3 then
             mon_unit_l.show()
@@ -665,7 +696,7 @@ local function config_view(display)
         if value == "0" or value == nil then mon_unit.set_value(0) end
     end
 
-    TextBox{parent=mon_c_3,x=1,y=6,height=4,text="Assignment"}
+    TextBox{parent=mon_c_3,x=1,y=6,width=10,height=1,text="Assignment"}
     local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
 
     mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,height=1,text="Unit ID"}
@@ -714,7 +745,20 @@ local function config_view(display)
     end
 
     PushButton{parent=mon_c_3,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.apply_mon = PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
+
+    TextBox{parent=mon_c_4,x=1,y=1,height=3,text="For legacy compatibility with facilities built without space for a flow monitor, you can disable the flow monitor requirement here."}
+    TextBox{parent=mon_c_4,x=1,y=5,height=3,text="Please be aware that THIS WILL BE REMOVED ON RELEASE. It will only be available for the remainder of the beta."}
+
+    local dis_flow_view = CheckBox{parent=mon_c_4,x=1,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
+
+    local function back_from_legacy()
+        tmp_cfg.DisableFlowView = dis_flow_view.get_value()
+        tool_ctl.update_mon_reqs()
+        mon_pane.set_value(1)
+    end
+
+    PushButton{parent=mon_c_4,x=1,y=14,text="\x1b Back",callback=back_from_legacy,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -1247,6 +1291,9 @@ function configurator.configure(start_fail)
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
+
+    -- copy in some important values to start with
+    preset_monitor_fields()
 
     reset_term()
 
