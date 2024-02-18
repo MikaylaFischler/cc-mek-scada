@@ -427,7 +427,7 @@ end
 ---@nodiscard
 ---@param w integer character width
 ---@param h integer character width
----@return integer block_width, integer block_height 
+---@return integer block_width, integer block_height
 function ppm.monitor_block_size(w, h)
     local width = math.floor((w - 15) / 21) + 1
     local height = math.floor((h - 10) / 14) + 1

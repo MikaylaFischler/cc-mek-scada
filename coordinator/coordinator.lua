@@ -113,6 +113,8 @@ function coordinator.load_config()
         mon_cfv.assert_eq(#config.UnitDisplays, config.UnitCount)
 
         if mon_cfv.valid() then
+            local w, h, _
+
             mon_cfv.assert(util.table_contains(names, config.MainDisplay))
 
             if not mon_cfv.valid() then return 2, "Main monitor is not connected." end
@@ -120,7 +122,7 @@ function coordinator.load_config()
             monitors.primary = ppm.get_periph(config.MainDisplay)
             monitors.primary_name = config.MainDisplay
 
-            local w, h = ppm.monitor_block_size(monitors.primary.getSize())
+            w, _ = ppm.monitor_block_size(monitors.primary.getSize())
             mon_cfv.assert(w == 8)
 
             if not mon_cfv.valid() then return 2, "Main monitor width is incorrect." end
@@ -133,7 +135,7 @@ function coordinator.load_config()
                 monitors.flow = ppm.get_periph(config.FlowDisplay)
                 monitors.flow_name = config.FlowDisplay
 
-                w, h = ppm.monitor_block_size(monitors.flow.getSize())
+                w, _ = ppm.monitor_block_size(monitors.flow.getSize())
                 mon_cfv.assert(w == 8)
 
                 if not mon_cfv.valid() then return 2, "Flow monitor width is incorrect." end

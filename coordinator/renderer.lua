@@ -3,8 +3,6 @@
 --
 
 local log        = require("scada-common.log")
-local util       = require("scada-common.util")
-local ppm        = require("scada-common.ppm")
 
 local iocontrol  = require("coordinator.iocontrol")
 
