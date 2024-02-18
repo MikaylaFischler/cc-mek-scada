@@ -147,12 +147,12 @@ local fields = {
     { "FlowDisplay", "Flow Monitor", nil },
     { "UnitDisplays", "Unit Monitors", {} },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
-    { "Use24HourTime", "Use 24-hour Time Format", true },
-    { "DisableFlowView", "Don't Use Flow", {} },
+    { "Time24Hour", "Use 24-hour Time Format", true },
+    { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
     { "PKT_Channel", "PKT Channel", 16244 },
-    { "CRD_Timeout", "CRD Connection Timeout", 5 },
+    { "SVR_Timeout", "Supervisor Connection Timeout", 5 },
     { "API_Timeout", "API Connection Timeout", 5 },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key" , ""},
@@ -329,7 +329,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
-        main_pane.set_value(5)
+        main_pane.set_value(8)
     end
 
     -- if fs.exists("/coordinator/config.lua") then
@@ -392,16 +392,16 @@ local function config_view(display)
     local svr_timeout = NumberField{parent=net_c_2,x=20,y=8,width=7,default=ini_cfg.SVR_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=10,height=1,width=14,text="Pocket Timeout"}
-    local pkt_timeout = NumberField{parent=net_c_2,x=20,y=10,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
+    local api_timeout = NumberField{parent=net_c_2,x=20,y=10,width=7,default=ini_cfg.API_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=28,y=8,height=4,width=7,text="seconds\n\nseconds",fg_bg=g_lg_fg_bg}
 
     local ct_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_timeouts()
-        local svr_cto, pkt_cto = tonumber(svr_timeout.get_value()), tonumber(pkt_timeout.get_value())
-        if svr_cto ~= nil and pkt_cto ~= nil then
-            tmp_cfg.SVR_Timeout, tmp_cfg.PKT_Timeout = svr_cto, pkt_cto
+        local svr_cto, api_cto = tonumber(svr_timeout.get_value()), tonumber(api_timeout.get_value())
+        if svr_cto ~= nil and api_cto ~= nil then
+            tmp_cfg.SVR_Timeout, tmp_cfg.API_Timeout = svr_cto, api_cto
             net_pane.set_value(3)
             ct_err.hide(true)
         else ct_err.show() end
@@ -566,6 +566,7 @@ local function config_view(display)
     local mon_c_1 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_2 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_3 = Div{parent=mon_cfg,x=2,y=4,width=49}
+    local mon_c_4 = Div{parent=mon_cfg,x=2,y=4,width=49}
 
     local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
 
@@ -850,7 +851,9 @@ local function config_view(display)
     PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- SUMMARY OF CHANGES
+    --#endregion
+
+    --#region Summary and Saving
 
     local sum_c_1 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_2 = Div{parent=summary,x=2,y=4,width=49}
@@ -863,14 +866,14 @@ local function config_view(display)
 
     local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local function back_from_settings()
+    local function back_from_summary()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
             main_pane.set_value(1)
             tool_ctl.viewing_config = false
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
         else
-            main_pane.set_value(4)
+            main_pane.set_value(7)
         end
     end
 
@@ -883,39 +886,28 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("supervisor.settings") then
+        if settings.save("coordinator.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
-            try_set(num_units, ini_cfg.UnitCount)
-            try_set(tank_mode, ini_cfg.FacilityTankMode)
             try_set(svr_chan, ini_cfg.SVR_Channel)
-            try_set(plc_chan, ini_cfg.PLC_Channel)
-            try_set(rtu_chan, ini_cfg.RTU_Channel)
             try_set(crd_chan, ini_cfg.CRD_Channel)
             try_set(pkt_chan, ini_cfg.PKT_Channel)
-            try_set(plc_timeout, ini_cfg.PLC_Timeout)
-            try_set(rtu_timeout, ini_cfg.RTU_Timeout)
-            try_set(crd_timeout, ini_cfg.CRD_Timeout)
-            try_set(pkt_timeout, ini_cfg.PKT_Timeout)
+            try_set(svr_timeout, ini_cfg.SVR_Timeout)
+            try_set(api_timeout, ini_cfg.API_Timeout)
             try_set(range, ini_cfg.TrustedRange)
             try_set(key, ini_cfg.AuthKey)
+            try_set(num_units, ini_cfg.UnitCount)
+            try_set(dis_flow_view, ini_cfg.DisableFlowView)
+            try_set(s_vol, ini_cfg.SpeakerVolume)
+            try_set(clock_fmt, util.trinary(ini_cfg.Time24Hour, 1, 2))
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
 
-            for i = 1, #ini_cfg.CoolingConfig do
-                local cfg, elems = ini_cfg.CoolingConfig[i], tool_ctl.cooling_elems[i]
-                try_set(elems.boilers, cfg.BoilerCount)
-                try_set(elems.turbines, cfg.TurbineCount)
-                try_set(elems.tank, cfg.TankConnection)
-            end
+            preset_monitor_fields()
 
-            for i = 1, #ini_cfg.FacilityTankDefs do
-                try_set(tool_ctl.tank_elems[i].tank_opt, ini_cfg.FacilityTankDefs[i])
-            end
-
-            en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
+            tool_ctl.gen_mon_list()
 
             tool_ctl.view_cfg.enable()
 
@@ -930,8 +922,8 @@ local function config_view(display)
         end
     end
 
-    PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_summary,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_2,x=1,y=1,height=1,text="Settings saved!"}
@@ -948,10 +940,11 @@ local function config_view(display)
     PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_3,x=1,y=1,height=2,text="The old config.lua and coord.settings files will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
-        fs.delete("/supervisor/config.lua")
+        fs.delete("/coordinator/config.lua")
+        fs.delete("/coord.settings")
         exit()
     end
 
@@ -962,7 +955,9 @@ local function config_view(display)
     PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    -- CONFIG CHANGE LOG
+    --#endregion
+
+    -- Config Change Log
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
@@ -997,9 +992,9 @@ local function config_view(display)
 
     -- load a legacy config file
     function tool_ctl.load_legacy()
-        local config = require("supervisor.config")
+        local config = require("coordinator.config")
 
-        tmp_cfg.UnitCount = config.NUM_REACTORS
+        tmp_cfg.UnitCount = config.NUM_UNITS
 
         if config.REACTOR_COOLING == nil or tmp_cfg.UnitCount ~= #config.REACTOR_COOLING then
             import_err_msg.set_value("Cooling configuration table length must match the number of units.")
@@ -1043,15 +1038,11 @@ local function config_view(display)
         end
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
-        tmp_cfg.PLC_Channel = config.PLC_CHANNEL
-        tmp_cfg.RTU_Channel = config.RTU_CHANNEL
         tmp_cfg.CRD_Channel = config.CRD_CHANNEL
         tmp_cfg.PKT_Channel = config.PKT_CHANNEL
 
-        tmp_cfg.PLC_Timeout = config.PLC_TIMEOUT
-        tmp_cfg.RTU_Timeout = config.RTU_TIMEOUT
-        tmp_cfg.CRD_Timeout = config.CRD_TIMEOUT
-        tmp_cfg.PKT_Timeout = config.PKT_TIMEOUT
+        tmp_cfg.SVR_Timeout = config.SVR_TIMEOUT
+        tmp_cfg.API_Timeout = config.API_TIMEOUT
 
         tmp_cfg.TrustedRange = config.TRUSTED_RANGE
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
@@ -1200,7 +1191,7 @@ local function config_view(display)
     end
 
     -- generate the summary list
-    ---@param cfg svr_config
+    ---@param cfg crd_config
     function tool_ctl.gen_summary(cfg)
         setting_list.remove_all()
 
@@ -1220,35 +1211,11 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
-            elseif f[1] == "CoolingConfig" and cfg.CoolingConfig then
+            elseif f[1] == "UnitDisplays" then
                 val = ""
-
-                for idx = 1, #cfg.CoolingConfig do
-                    local ccfg = cfg.CoolingConfig[idx]
-                    local b_plural = util.trinary(ccfg.BoilerCount == 1, "", "s")
-                    local t_plural = util.trinary(ccfg.TurbineCount == 1, "", "s")
-                    local tank = util.trinary(ccfg.TankConnection, "has tank conn", "no tank conn")
-                    val = val .. util.trinary(idx == 1, "", "\n") ..
-                            util.sprintf(" \x07 unit %d - %d boiler%s, %d turbine%s, %s", idx, ccfg.BoilerCount, b_plural, ccfg.TurbineCount, t_plural, tank)
+                for idx = 1, #cfg.UnitDisplays do
+                    val = val .. util.trinary(idx == 1, "", "\n") .. util.sprintf(" \x07 Unit %d - %s", idx, cfg.UnitDisplays[idx])
                 end
-
-                if val == "" then val = "no facility tanks" end
-            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
-            elseif f[1] == "FacilityTankDefs" and cfg.FacilityTankDefs then
-                val = ""
-
-                for idx = 1, #cfg.FacilityTankDefs do
-                    local t_mode = "not connected to a tank"
-                    if cfg.FacilityTankDefs[idx] == 1 then
-                        t_mode = "connected to its unit tank"
-                    elseif cfg.FacilityTankDefs[idx] == 2 then
-                        t_mode = "connected to a facility tank"
-                    end
-
-                    val = val .. util.trinary(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
-                end
-
-                if val == "" then val = "no facility tanks" end
             end
 
             if val == "nil" then val = "<not set>" end
@@ -1260,6 +1227,8 @@ local function config_view(display)
                 local lines = util.strwrap(val, inner_width)
                 height = #lines + 1
             end
+
+            if f[1] == "UnitDisplays" and height == 1 then height = 2 end
 
             local line = Div{parent=setting_list,height=height,fg_bg=c}
             TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
