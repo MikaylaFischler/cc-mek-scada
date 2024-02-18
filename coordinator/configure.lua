@@ -19,7 +19,6 @@ local TextBox     = require("graphics.elements.textbox")
 
 local CheckBox    = require("graphics.elements.controls.checkbox")
 local PushButton  = require("graphics.elements.controls.push_button")
-local Radio2D     = require("graphics.elements.controls.radio_2d")
 local RadioButton = require("graphics.elements.controls.radio_button")
 
 local NumberField = require("graphics.elements.form.number_field")
@@ -307,9 +306,8 @@ local function config_view(display)
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
-    local import_err = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,summary,changelog}}
 
     -- Main Page
 
@@ -332,10 +330,10 @@ local function config_view(display)
         main_pane.set_value(8)
     end
 
-    -- if fs.exists("/coordinator/config.lua") then
-    --     PushButton{parent=main_page,x=2,y=y_start,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
-    --     y_start = y_start + 2
-    -- end
+    if fs.exists("/coordinator/config.lua") then
+        PushButton{parent=main_page,x=2,y=y_start,min_width=28,text="Import Legacy 'config.lua'",callback=function()tool_ctl.load_legacy()end,fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=btn_act_fg_bg}
+        y_start = y_start + 2
+    end
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
@@ -976,83 +974,55 @@ local function config_view(display)
 
     PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- IMPORT ERROR
-
-    local i_err = Div{parent=import_err,x=2,y=4,width=49}
-
-    TextBox{parent=import_err,x=1,y=2,height=1,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
-    TextBox{parent=i_err,x=1,y=1,height=1,text="There is a problem with your config.lua file:"}
-
-    local import_err_msg = TextBox{parent=i_err,x=1,y=3,height=6,text=""}
-
-    PushButton{parent=i_err,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=i_err,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
-
     -- set tool functions now that we have the elements
 
     -- load a legacy config file
     function tool_ctl.load_legacy()
         local config = require("coordinator.config")
 
-        tmp_cfg.UnitCount = config.NUM_UNITS
-
-        if config.REACTOR_COOLING == nil or tmp_cfg.UnitCount ~= #config.REACTOR_COOLING then
-            import_err_msg.set_value("Cooling configuration table length must match the number of units.")
-            main_pane.set_value(7)
-            return
-        end
-
-        for i = 1, tmp_cfg.UnitCount do
-            local cfg = config.REACTOR_COOLING[i]
-
-            if type(cfg) ~= "table" then
-                import_err_msg.set_value("Cooling configuration for unit " .. i .. " must be a table.")
-                main_pane.set_value(7)
-                return
-            end
-
-            tmp_cfg.CoolingConfig[i] = { BoilerCount = cfg.BOILERS or 0, TurbineCount = cfg.TURBINES or 1, TankConnection = cfg.TANK or false }
-        end
-
-        tmp_cfg.FacilityTankMode = config.FAC_TANK_MODE
-
-        if not (util.is_int(tmp_cfg.FacilityTankMode) and tmp_cfg.FacilityTankMode >= 0 and tmp_cfg.FacilityTankMode <= 8) then
-            import_err_msg.set_value("Invalid tank mode present in config. FAC_TANK_MODE must be a number 0 through 8.")
-            main_pane.set_value(7)
-            return
-        end
-
-        if config.FAC_TANK_MODE > 0 then
-            if config.FAC_TANK_DEFS == nil or tmp_cfg.UnitCount ~= #config.FAC_TANK_DEFS then
-                import_err_msg.set_value("Facility tank definitions table length must match the number of units when using facility tanks.")
-                main_pane.set_value(7)
-                return
-            end
-
-            for i = 1, tmp_cfg.UnitCount do
-                tmp_cfg.FacilityTankDefs[i] = config.FAC_TANK_DEFS[i]
-            end
-        else
-            tmp_cfg.FacilityTankMode = 0
-            tmp_cfg.FacilityTankDefs = {}
-        end
-
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.CRD_Channel = config.CRD_CHANNEL
         tmp_cfg.PKT_Channel = config.PKT_CHANNEL
-
-        tmp_cfg.SVR_Timeout = config.SVR_TIMEOUT
+        tmp_cfg.SVR_Timeout = config.SV_TIMEOUT
         tmp_cfg.API_Timeout = config.API_TIMEOUT
-
         tmp_cfg.TrustedRange = config.TRUSTED_RANGE
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
+
+        tmp_cfg.UnitCount = config.NUM_UNITS
+        tmp_cfg.DisableFlowView = config.DISABLE_FLOW_VIEW
+        tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME
+        tmp_cfg.Time24Hour = config.TIME_24_HOUR
+
         tmp_cfg.LogMode = config.LOG_MODE
         tmp_cfg.LogPath = config.LOG_PATH
         tmp_cfg.LogDebug = config.LOG_DEBUG or false
 
+        settings.load("/coord.settings")
+
+        tmp_cfg.MainDisplay = settings.get("PRIMARY_DISPLAY")
+        tmp_cfg.FlowDisplay = settings.get("FLOW_DISPLAY")
+        tmp_cfg.UnitDisplays = settings.get("UNIT_DISPLAYS", {})
+
+        if settings.get("ControlStates") == nil then
+            local ctrl_states = {
+                WasteModes = settings.get("WASTE_MODES"),
+                PriorityGroups = settings.get("PRIORITY_GROUPS"),
+                Process = settings.get("PROCESS")
+            }
+
+            settings.set("ControlStates", ctrl_states)
+        end
+
+        settings.unset("PRIMARY_DISPLAY")
+        settings.unset("FLOW_DISPLAY")
+        settings.unset("UNIT_DISPLAYS")
+        settings.unset("WASTE_MODES")
+        settings.unset("PRIORITY_GROUPS")
+        settings.unset("PROCESS")
+
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
-        main_pane.set_value(5)
+        main_pane.set_value(8)
         tool_ctl.importing_legacy = true
     end
 
