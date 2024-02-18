@@ -365,10 +365,10 @@ function coordinator.comms(version, nic, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param config coord_auto_config configuration
-    function public.send_auto_start(config)
+    ---@param auto_cfg coord_auto_config configuration
+    function public.send_auto_start(auto_cfg)
         _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
-            FAC_COMMAND.START, config.mode, config.burn_target, config.charge_target, config.gen_target, config.limits
+            FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
         })
     end
 
