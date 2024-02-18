@@ -80,6 +80,7 @@ local tool_ctl = {
     show_sv_cfg = nil,      ---@type function
 
     start_fail = false,
+    fail_message = "",
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
@@ -316,7 +317,8 @@ local function config_view(display)
     TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Coordinator configurator! Please select one of the following options."}
 
     if tool_ctl.start_fail == 2 then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: There is a problem with your monitor configuration. You may have lost a monitor or their sizes may be incorrect. Please reconfigure monitors or correct their sizes.",fg_bg=cpair(colors.red,colors.lightGray)}
+        local msg = util.c("Notice: There is a problem with your monitor configuration. ", tool_ctl.fail_message, " Please reconfigure monitors or correct their sizes.")
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text=msg,fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     elseif tool_ctl.start_fail > 0 then
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
@@ -1218,10 +1220,13 @@ local function reset_term()
     term.setCursorPos(1, 1)
 end
 
--- run the coordinator configurator
----@param start_fail? integer indicate if this is being called by the coordinator startup app due to an invalid configuration
-function configurator.configure(start_fail)
+-- run the coordinator configurator<br>
+-- start_fail of 0 is OK (not expected, default if not provided), 1 is bad config, 2 is bad monitor config
+---@param start_fail? 0|1|2 indicate if this is being called by the startup app due to an invalid configuration
+---@param message? any string message to display on a start_fail of 2
+function configurator.configure(start_fail, message)
     tool_ctl.start_fail = start_fail or 0
+    tool_ctl.fail_message = util.trinary(type(message) == "string", message, "")
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)

@@ -9,11 +9,6 @@ local process     = require("coordinator.process")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local dialog      = require("coordinator.ui.dialog")
-
-local print = util.print
-local println = util.println
-
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
@@ -26,32 +21,76 @@ local LINK_TIMEOUT = 60.0
 
 local coordinator = {}
 
--- request the user to select a monitor
----@nodiscard
----@param names table available monitors
----@return boolean|string|nil
-local function ask_monitor(names)
-    println("available monitors:")
-    for i = 1, #names do
-        print(" " .. names[i])
+---@type crd_config
+local config = {}
+
+coordinator.config = config
+
+-- load the coordinator configuration<br>
+-- status of 0 is OK, 1 is bad config, 2 is bad monitor config
+---@return 0|1|2 status, nil|monitors_struct|string monitors
+function coordinator.load_config()
+    if not settings.load("/coordinator.settings") then return 1 end
+
+    config.UnitCount = settings.get("UnitCount")
+    config.SpeakerVolume = settings.get("SpeakerVolume")
+    config.Time24Hour = settings.get("Time24Hour")
+
+    config.DisableFlowView = settings.get("DisableFlowView")
+    config.MainDisplay = settings.get("MainDisplay")
+    config.FlowDisplay = settings.get("FlowDisplay")
+    config.UnitDisplays = settings.get("UnitDisplays")
+
+    config.SVR_Channel = settings.get("SVR_Channel")
+    config.CRD_Channel = settings.get("CRD_Channel")
+    config.PKT_Channel = settings.get("PKT_Channel")
+    config.SVR_Timeout = settings.get("SVR_Timeout")
+    config.API_Timeout = settings.get("API_Timeout")
+    config.TrustedRange = settings.get("TrustedRange")
+    config.AuthKey = settings.get("AuthKey")
+
+    config.LogMode = settings.get("LogMode")
+    config.LogPath = settings.get("LogPath")
+    config.LogDebug = settings.get("LogDebug")
+
+    local cfv = util.new_validator()
+
+    cfv.assert_type_int(config.UnitCount)
+    cfv.assert_range(config.UnitCount, 1, 4)
+    cfv.assert_type_bool(config.Time24Hour)
+
+    cfv.assert_type_bool(config.DisableFlowView)
+    cfv.assert_type_table(config.UnitDisplays)
+
+    cfv.assert_type_num(config.SpeakerVolume)
+    cfv.assert_min(config.SpeakerVolume, 0.0)
+    cfv.assert_max(config.SpeakerVolume, 3.0)
+
+    cfv.assert_channel(config.SVR_Channel)
+    cfv.assert_channel(config.CRD_Channel)
+    cfv.assert_channel(config.PKT_Channel)
+
+    cfv.assert_type_num(config.SVR_Timeout)
+    cfv.assert_min(config.SVR_Timeout, 2)
+    cfv.assert_type_num(config.API_Timeout)
+    cfv.assert_min(config.API_Timeout, 2)
+
+    cfv.assert_type_num(config.TrustedRange)
+    cfv.assert_min(config.TrustedRange, 0)
+    cfv.assert_type_str(config.AuthKey)
+
+    if type(config.AuthKey) == "string" then
+        local len = string.len(config.AuthKey)
+        cfv.assert_eq(len == 0 or len >= 8, true)
     end
-    println("")
-    println("select a monitor or type c to cancel")
 
-    local iface = dialog.ask_options(names, "c")
+    cfv.assert_type_int(config.LogMode)
+    cfv.assert_range(config.LogMode, 0, 1)
+    cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
 
-    if iface ~= false and iface ~= nil then
-        util.filter_table(names, function (x) return x ~= iface end)
-    end
+    -- Monitor Setup
 
-    return iface
-end
-
--- configure monitor layout
----@param num_units integer number of units expected
----@param disable_flow_view boolean disable flow view (legacy)
----@return boolean success, monitors_struct? monitors
-function coordinator.configure_monitors(num_units, disable_flow_view)
     ---@class monitors_struct
     local monitors = {
         primary = nil,      ---@type table|nil
@@ -62,146 +101,70 @@ function coordinator.configure_monitors(num_units, disable_flow_view)
         unit_name_map = {}
     }
 
-    local monitors_avail = ppm.get_monitor_list()
-    local names = {}
-    local available = {}
+    local mon_cfv = util.new_validator()
 
     -- get all interface names
-    for iface, _ in pairs(monitors_avail) do
-        table.insert(names, iface)
-        table.insert(available, iface)
-    end
+    local names = {}
+    for iface, _ in pairs(ppm.get_monitor_list()) do table.insert(names, iface) end
 
-    -- we need a certain number of monitors (1 per unit + 1 primary display + 1 flow display)
-    local num_displays_needed = num_units + util.trinary(disable_flow_view, 1, 2)
-    if #names < num_displays_needed then
-        local message = "not enough monitors connected (need " .. num_displays_needed .. ")"
-        println(message)
-        log.warning(message)
-        return false
-    end
+    local function setup_monitors()
+        mon_cfv.assert_type_str(config.MainDisplay)
+        if not config.DisableFlowView then mon_cfv.assert_type_str(config.FlowDisplay) end
+        mon_cfv.assert_eq(#config.UnitDisplays, config.UnitCount)
 
-    -- attempt to load settings
-    if not settings.load("/coord.settings") then
-        log.warning("configure_monitors(): failed to load coordinator settings file (may not exist yet)")
-    else
-        local _primary = settings.get("PRIMARY_DISPLAY")
-        local _flow = settings.get("FLOW_DISPLAY")
-        local _unitd = settings.get("UNIT_DISPLAYS")
+        if mon_cfv.valid() then
+            mon_cfv.assert(util.table_contains(names, config.MainDisplay))
 
-        -- filter out already assigned monitors
-        util.filter_table(available, function (x) return x ~= _primary end)
-        util.filter_table(available, function (x) return x ~= _flow end)
-        if type(_unitd) == "table" then
-            util.filter_table(available, function (x) return not util.table_contains(_unitd, x) end)
-        end
-    end
+            if not mon_cfv.valid() then return 2, "Main monitor is not connected." end
 
-    ---------------------
-    -- PRIMARY DISPLAY --
-    ---------------------
+            monitors.primary = ppm.get_periph(config.MainDisplay)
+            monitors.primary_name = config.MainDisplay
 
-    local iface_primary_display = settings.get("PRIMARY_DISPLAY")   ---@type boolean|string|nil
+            local w, h = ppm.monitor_block_size(monitors.primary.getSize())
+            mon_cfv.assert(w == 8)
 
-    if not util.table_contains(names, iface_primary_display) then
-        println("primary display is not connected")
-        local response = dialog.ask_y_n("would you like to change it", true)
-        if response == false then return false end
-        iface_primary_display = nil
-    end
+            if not mon_cfv.valid() then return 2, "Main monitor width is incorrect." end
 
-    while iface_primary_display == nil and #available > 0 do
-        iface_primary_display = ask_monitor(available)
-    end
+            if not config.DisableFlowView then
+                mon_cfv.assert(util.table_contains(names, config.FlowDisplay))
 
-    if type(iface_primary_display) ~= "string" then return false end
+                if not mon_cfv.valid() then return 2, "Flow monitor is not connected." end
 
-    settings.set("PRIMARY_DISPLAY", iface_primary_display)
-    util.filter_table(available, function (x) return x ~= iface_primary_display end)
+                monitors.flow = ppm.get_periph(config.FlowDisplay)
+                monitors.flow_name = config.FlowDisplay
 
-    monitors.primary = ppm.get_periph(iface_primary_display)
-    monitors.primary_name = iface_primary_display
+                w, h = ppm.monitor_block_size(monitors.flow.getSize())
+                mon_cfv.assert(w == 8)
 
-    --------------------------
-    -- FLOW MONITOR DISPLAY --
-    --------------------------
-
-    if not disable_flow_view then
-        local iface_flow_display = settings.get("FLOW_DISPLAY")  ---@type boolean|string|nil
-
-        if not util.table_contains(names, iface_flow_display) then
-            println("flow monitor display is not connected")
-            local response = dialog.ask_y_n("would you like to change it", true)
-            if response == false then return false end
-            iface_flow_display = nil
-        end
-
-        while iface_flow_display == nil and #available > 0 do
-            iface_flow_display = ask_monitor(available)
-        end
-
-        if type(iface_flow_display) ~= "string" then return false end
-
-        settings.set("FLOW_DISPLAY", iface_flow_display)
-        util.filter_table(available, function (x) return x ~= iface_flow_display end)
-
-        monitors.flow = ppm.get_periph(iface_flow_display)
-        monitors.flow_name = iface_flow_display
-    end
-
-    -------------------
-    -- UNIT DISPLAYS --
-    -------------------
-
-    local unit_displays = settings.get("UNIT_DISPLAYS")
-
-    if unit_displays == nil then
-        unit_displays = {}
-        for i = 1, num_units do
-            local display = nil
-
-            while display == nil and #available > 0 do
-                println("please select monitor for unit #" .. i)
-                display = ask_monitor(available)
+                if not mon_cfv.valid() then return 2, "Flow monitor width is incorrect." end
             end
 
-            if display == false then return false end
+            for i = 1, config.UnitCount do
+                local display = config.UnitDisplays[i]
 
-            unit_displays[i] = display
-        end
-    else
-        -- make sure all displays are connected
-        for i = 1, num_units do
-            local display = unit_displays[i]
+                mon_cfv.assert_type_str(display)
+                mon_cfv.assert(util.table_contains(names, display))
 
-            if not util.table_contains(names, display) then
-                println("unit #" .. i .. " display is not connected")
-                local response = dialog.ask_y_n("would you like to change it", true)
-                if response == false then return false end
-                display = nil
+                if not mon_cfv.valid() then return 2, "Unit " .. i .. " monitor is not connected." end
+
+                monitors.unit_displays[i] = ppm.get_periph(display)
+                monitors.unit_name_map[i] = display
+
+                w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
+                mon_cfv.assert(w == 4 and h == 4)
+
+                if not mon_cfv.valid() then return 2, "Unit " .. i .. " monitor size is incorrect." end
             end
-
-            while display == nil and #available > 0 do
-                display = ask_monitor(available)
-            end
-
-            if display == false then return false end
-
-            unit_displays[i] = display
-        end
+        else return 2, "Monitor configuration invalid." end
     end
 
-    settings.set("UNIT_DISPLAYS", unit_displays)
-    if not settings.save("/coord.settings") then
-        log.warning("configure_monitors(): failed to save coordinator settings file")
-    end
+    if cfv.valid() then
+        local ok, result, message = pcall(setup_monitors)
+        assert(ok, util.c("fatal error while trying to verify monitors: ", result))
+        if result == 2 then return 2, message end
+    else return 1 end
 
-    for i = 1, #unit_displays do
-        monitors.unit_displays[i] = ppm.get_periph(unit_displays[i])
-        monitors.unit_name_map[i] = unit_displays[i]
-    end
-
-    return true, monitors
+    return 0, monitors
 end
 
 -- dmesg print wrapper
@@ -246,13 +209,8 @@ end
 ---@nodiscard
 ---@param version string coordinator version
 ---@param nic nic network interface device
----@param num_units integer number of configured units for number of monitors, checked against SV
----@param crd_channel integer port of configured supervisor
----@param svr_channel integer listening port for supervisor replys
----@param pkt_channel integer listening port for pocket API
----@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pkt_channel, range, sv_watchdog)
+function coordinator.comms(version, nic, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -267,11 +225,11 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
         est_task_done = nil
     }
 
-    comms.set_trusted_range(range)
+    comms.set_trusted_range(config.TrustedRange)
 
     -- configure network channels
     nic.closeAll()
-    nic.open(crd_channel)
+    nic.open(config.CRD_Channel)
 
     -- link nic to apisessions
     apisessions.init(nic)
@@ -296,7 +254,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
         pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
 
-        nic.transmit(svr_channel, crd_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.CRD_Channel, s_pkt)
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
@@ -310,7 +268,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
         m_pkt.make(MGMT_TYPE.ESTABLISH, { ack })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(pkt_channel, crd_channel, s_pkt)
+        nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
         self.last_api_est_acks[packet.src_addr()] = ack
     end
 
@@ -343,7 +301,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
                 self.est_last = self.est_start
 
                 self.est_tick_waiting, self.est_task_done =
-                    coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. svr_channel)
+                    coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_Channel)
 
                 _send_establish()
             else
@@ -356,7 +314,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
                 if abort then
                     coordinator.log_comms("supervisor connection attempt cancelled by user")
                 elseif self.sv_config_err then
-                    coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
+                    coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 elseif not self.sv_linked then
                     if self.last_est_ack == ESTABLISH_ACK.DENY then
                         coordinator.log_comms("supervisor connection attempt denied")
@@ -371,7 +329,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
 
                 ok = false
             elseif self.sv_config_err then
-                coordinator.log_comms("supervisor cooling configuration invalid, check supervisor config file")
+                coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
             elseif (util.time_s() - self.est_last) > 1.0 then
                 _send_establish()
@@ -464,9 +422,9 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
             local src_addr = packet.scada_frame.src_addr()
             local protocol = packet.scada_frame.protocol()
 
-            if l_chan ~= crd_channel then
+            if l_chan ~= config.CRD_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
-            elseif r_chan == pkt_channel then
+            elseif r_chan == config.PKT_Channel then
                 if not self.sv_linked then
                     log.debug("discarding pocket API packet before linked to supervisor")
                 elseif protocol == PROTOCOL.SCADA_CRDN then
@@ -526,7 +484,7 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
                 else
                     log.debug("illegal packet type " .. protocol .. " on pocket channel", true)
                 end
-            elseif r_chan == svr_channel then
+            elseif r_chan == config.SVR_Channel then
                 -- check sequence number
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num()
@@ -699,22 +657,22 @@ function coordinator.comms(version, nic, num_units, crd_channel, svr_channel, pk
                         -- connection with supervisor established
                         if packet.length == 2 then
                             local est_ack = packet.data[1]
-                            local config = packet.data[2]
+                            local sv_config = packet.data[2]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
                                 -- reset to disconnected before validating
                                 iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if type(config) == "table" and #config == 2 then
+                                if type(sv_config) == "table" and #sv_config == 2 then
                                     -- get configuration
 
                                     ---@class facility_conf
                                     local conf = {
-                                        num_units = config[1],  ---@type integer
-                                        cooling = config[2]     ---@type sv_cooling_conf
+                                        num_units = sv_config[1], ---@type integer
+                                        cooling = sv_config[2]    ---@type sv_cooling_conf
                                     }
 
-                                    if conf.num_units == num_units then
+                                    if conf.num_units == config.UnitCount then
                                         -- init io controller
                                         iocontrol.init(conf, public)
 

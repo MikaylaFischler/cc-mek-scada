@@ -4,6 +4,7 @@
 
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
+local ppm        = require("scada-common.ppm")
 
 local iocontrol  = require("coordinator.iocontrol")
 
@@ -91,39 +92,6 @@ function renderer.init_displays()
     for i = 1, #style.fp.colors do
         term.setPaletteColor(style.fp.colors[i].c, style.fp.colors[i].hex)
     end
-end
-
--- check main display width
----@nodiscard
----@return boolean width_okay
-function renderer.validate_main_display_width()
-    local w, _ = engine.monitors.primary.getSize()
-    return w == 164
-end
-
--- check flow display width
----@nodiscard
----@return boolean width_okay
-function renderer.validate_flow_display_width()
-    local w, _ = engine.monitors.flow.getSize()
-    return w == 164
-end
-
--- check display sizes
----@nodiscard
----@return boolean valid all unit display dimensions OK
-function renderer.validate_unit_display_sizes()
-    local valid = true
-
-    for id, monitor in ipairs(engine.monitors.unit_displays) do
-        local w, h = monitor.getSize()
-        if w ~= 79 or h ~= 52 then
-            log.warning(util.c("RENDERER: unit ", id, " display resolution not 79 wide by 52 tall: ", w, ", ", h))
-            valid = false
-        end
-    end
-
-    return valid
 end
 
 -- initialize the dmesg output window
