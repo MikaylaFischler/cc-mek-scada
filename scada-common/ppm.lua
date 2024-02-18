@@ -426,7 +426,7 @@ end
 -- get the block size of a monitor given its width and height <b>at a text scale of 0.5</b>
 ---@nodiscard
 ---@param w integer character width
----@param h integer character width
+---@param h integer character height
 ---@return integer block_width, integer block_height
 function ppm.monitor_block_size(w, h)
     local width = math.floor((w - 15) / 21) + 1

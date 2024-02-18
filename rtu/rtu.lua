@@ -41,8 +41,7 @@ function rtu.load_config()
     local cfv = util.new_validator()
 
     cfv.assert_type_num(config.SpeakerVolume)
-    cfv.assert_min(config.SpeakerVolume, 0.0)
-    cfv.assert_max(config.SpeakerVolume, 3.0)
+    cfv.assert_range(config.SpeakerVolume, 0, 3)
 
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.RTU_Channel)

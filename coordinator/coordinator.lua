@@ -28,7 +28,7 @@ coordinator.config = config
 
 -- load the coordinator configuration<br>
 -- status of 0 is OK, 1 is bad config, 2 is bad monitor config
----@return 0|1|2 status, nil|monitors_struct|string monitors
+---@return 0|1|2 status, nil|monitors_struct|string monitors (or error message)
 function coordinator.load_config()
     if not settings.load("/coordinator.settings") then return 1 end
 
@@ -63,8 +63,7 @@ function coordinator.load_config()
     cfv.assert_type_table(config.UnitDisplays)
 
     cfv.assert_type_num(config.SpeakerVolume)
-    cfv.assert_min(config.SpeakerVolume, 0.0)
-    cfv.assert_max(config.SpeakerVolume, 3.0)
+    cfv.assert_range(config.SpeakerVolume, 0, 3)
 
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.CRD_Channel)
@@ -115,47 +114,39 @@ function coordinator.load_config()
         if mon_cfv.valid() then
             local w, h, _
 
-            mon_cfv.assert(util.table_contains(names, config.MainDisplay))
-
-            if not mon_cfv.valid() then return 2, "Main monitor is not connected." end
+            if not util.table_contains(names, config.MainDisplay) then
+                return 2, "Main monitor is not connected."
+            end
 
             monitors.primary = ppm.get_periph(config.MainDisplay)
             monitors.primary_name = config.MainDisplay
 
             w, _ = ppm.monitor_block_size(monitors.primary.getSize())
-            mon_cfv.assert(w == 8)
-
-            if not mon_cfv.valid() then return 2, "Main monitor width is incorrect." end
+            if w ~= 8 then return 2, "Main monitor width is incorrect." end
 
             if not config.DisableFlowView then
-                mon_cfv.assert(util.table_contains(names, config.FlowDisplay))
-
-                if not mon_cfv.valid() then return 2, "Flow monitor is not connected." end
+                if not util.table_contains(names, config.FlowDisplay) then
+                    return 2, "Flow monitor is not connected."
+                end
 
                 monitors.flow = ppm.get_periph(config.FlowDisplay)
                 monitors.flow_name = config.FlowDisplay
 
                 w, _ = ppm.monitor_block_size(monitors.flow.getSize())
-                mon_cfv.assert(w == 8)
-
-                if not mon_cfv.valid() then return 2, "Flow monitor width is incorrect." end
+                if w ~= 8 then return 2, "Flow monitor width is incorrect." end
             end
 
             for i = 1, config.UnitCount do
                 local display = config.UnitDisplays[i]
-
-                mon_cfv.assert_type_str(display)
-                mon_cfv.assert(util.table_contains(names, display))
-
-                if not mon_cfv.valid() then return 2, "Unit " .. i .. " monitor is not connected." end
+                if type(display) ~= "string" or not util.table_contains(names, display) then
+                    return 2, "Unit " .. i .. " monitor is not connected."
+                end
 
                 monitors.unit_displays[i] = ppm.get_periph(display)
                 monitors.unit_name_map[i] = display
 
                 w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
-                mon_cfv.assert(w == 4 and h == 4)
-
-                if not mon_cfv.valid() then return 2, "Unit " .. i .. " monitor size is incorrect." end
+                if w ~= 4 or h ~= 4 then return 2, "Unit " .. i .. " monitor size is incorrect." end
             end
         else return 2, "Monitor configuration invalid." end
     end
