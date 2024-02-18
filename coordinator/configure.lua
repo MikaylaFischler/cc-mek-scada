@@ -587,9 +587,10 @@ local function config_view(display)
             if tmp_cfg.UnitCount <= 2 then
                 tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
             else
+                -- is only one tall and the other short, or are both tall? -> 5 or 6; are neither tall? -> 5
                 if row1_tall or row2_tall then
                     tool_ctl.main_mon_h = util.trinary((row1_short and row2_tall) or (row1_tall and row2_short), 5, 6)
-                else tool_ctl.main_mon_h = 6 end
+                else tool_ctl.main_mon_h = 5 end
             end
         else
             tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
@@ -628,12 +629,6 @@ local function config_view(display)
     TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
 
     local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
-
-    local function to_block_size(w, h)
-        local width = math.floor((w - 15) / 21) + 1
-        local height = math.floor((h - 10) / 14) + 1
-        return width, height
-    end
 
     local assign_err = TextBox{parent=mon_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -1052,7 +1047,7 @@ local function config_view(display)
         tool_ctl.mon_iface = iface
 
         local dev = device.dev
-        local w, h = to_block_size(dev.getSize())
+        local w, h = ppm.monitor_block_size(dev.getSize())
 
         local msg = "This size doesn't match a required screen. Please go back and resize it, or configure below at the risk of it not working."
 
@@ -1139,7 +1134,7 @@ local function config_view(display)
             TextBox{parent=line,x=1,y=1,width=6,height=1,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
             TextBox{parent=line,x=8,y=1,height=1,text=iface}
 
-            local w, h = to_block_size(dev.getSize())
+            local w, h = ppm.monitor_block_size(dev.getSize())
 
             local function unset_mon()
                 purge_assignments(iface)
