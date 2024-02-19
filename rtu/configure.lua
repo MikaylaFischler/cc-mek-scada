@@ -508,7 +508,7 @@ local function config_view(display)
 
     TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
-    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_settings()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
@@ -578,13 +578,13 @@ local function config_view(display)
     tool_ctl.settings_confirm.hide()
 
     TextBox{parent=sum_c_2,x=1,y=1,height=1,text="The following peripherals will be imported:"}
-    local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=sum_c_2,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_3,x=1,y=1,height=1,text="The following redstone entries will be imported:"}
-    local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=sum_c_3,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
@@ -620,7 +620,7 @@ local function config_view(display)
 
     TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
 
-    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
         TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
@@ -649,7 +649,7 @@ local function config_view(display)
 
     TextBox{parent=peri_cfg,x=1,y=2,height=1,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
 
-    local peri_list = ListBox{parent=peri_c_1,x=1,y=1,height=12,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local peri_list = ListBox{parent=peri_c_1,x=1,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function peri_revert()
         tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
@@ -675,7 +675,7 @@ local function config_view(display)
 
     TextBox{parent=peri_c_2,x=1,y=1,height=1,text="Select one of the below devices to use."}
 
-    tool_ctl.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=51,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    tool_ctl.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=peri_c_2,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
@@ -963,7 +963,7 @@ local function config_view(display)
     TextBox{parent=rs_cfg,x=1,y=2,height=1,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
     TextBox{parent=rs_c_1,x=1,y=1,height=1,text=" port          side/color       unit/facility",fg_bg=g_lg_fg_bg}
-    local rs_list = ListBox{parent=rs_c_1,x=1,y=2,height=11,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local rs_list = ListBox{parent=rs_c_1,x=1,y=2,height=11,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function rs_revert()
         tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
@@ -992,7 +992,7 @@ local function config_view(display)
 
     TextBox{parent=rs_c_2,x=1,y=1,height=1,text="Select one of the below ports to use."}
 
-    local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=51,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function new_rs(port)
         if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
