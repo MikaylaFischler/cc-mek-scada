@@ -3,7 +3,6 @@ local log       = require("scada-common.log")
 local mqueue    = require("scada-common.mqueue")
 local util      = require("scada-common.util")
 
-local config    = require("coordinator.config")
 local iocontrol = require("coordinator.iocontrol")
 
 local pocket    = require("coordinator.session.pocket")
@@ -11,7 +10,10 @@ local pocket    = require("coordinator.session.pocket")
 local apisessions = {}
 
 local self = {
-    nic = nil,
+    nic = nil,          ---@type nic
+    crd_channel = nil,  ---@type integer
+    pkt_channel = nil,  ---@type integer
+    api_timeout = nil,  ---@type number
     next_id = 0,
     sessions = {}
 }
@@ -32,7 +34,7 @@ local function _api_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.nic.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message)
+                self.nic.transmit(self.pkt_channel, self.crd_channel, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -59,7 +61,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.nic.transmit(config.PKT_CHANNEL, config.CRD_CHANNEL, msg.message)
+            self.nic.transmit(self.pkt_channel, self.crd_channel, msg.message)
         end
     end
 
@@ -69,9 +71,15 @@ end
 -- PUBLIC FUNCTIONS --
 
 -- initialize apisessions
----@param nic nic
-function apisessions.init(nic)
+---@param nic nic network interface
+---@param crd_channel integer coordinator channel
+---@param pkt_channel integer pocket channel
+---@param api_timeout number api session timeout
+function apisessions.init(nic, crd_channel, pkt_channel, api_timeout)
     self.nic = nic
+    self.crd_channel = crd_channel
+    self.pkt_channel = pkt_channel
+    self.api_timeout = api_timeout
 end
 
 -- find a session by remote port
@@ -103,7 +111,7 @@ function apisessions.establish_session(source_addr, version)
 
     local id = self.next_id
 
-    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, config.API_TIMEOUT)
+    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, self.api_timeout)
     table.insert(self.sessions, pkt_s)
 
     local mt = {

@@ -224,8 +224,8 @@ function coordinator.comms(version, nic, sv_watchdog)
     nic.closeAll()
     nic.open(config.CRD_Channel)
 
-    -- link nic to apisessions
-    apisessions.init(nic)
+    -- pass config to apisessions
+    apisessions.init(nic, config.CRD_Channel, config.PKT_Channel, config.API_Timeout)
 
     -- PRIVATE FUNCTIONS --
 

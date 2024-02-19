@@ -937,6 +937,12 @@ local function config_view(display)
         tmp_cfg.FlowDisplay = settings.get("FLOW_DISPLAY")
         tmp_cfg.UnitDisplays = settings.get("UNIT_DISPLAYS", {})
 
+        -- if there are extra monitor entries, delete them now
+        -- not doing so will cause the app to fail to start
+        if is_int_min_max(tmp_cfg.UnitCount, 1, 4) then
+            for i = tmp_cfg.UnitCount + 1, 4 do tmp_cfg.UnitDisplays[i] = nil end
+        end
+
         if settings.get("ControlStates") == nil then
             local ctrl_states = {
                 process = settings.get("PROCESS"),
