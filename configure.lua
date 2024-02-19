@@ -8,8 +8,8 @@ elseif fs.exists("supervisor/configure.lua") then
     require("supervisor.configure").configure()
 elseif fs.exists("coordinator/configure.lua") then
     require("coordinator.configure").configure()
-elseif fs.exists("pocket/startup.lua") then
-    print("CONFIGURE> pocket configurator not yet implemented (use 'edit pocket/config.lua' to configure)")
+elseif fs.exists("pocket/configure.lua") then
+    require("pocket.configure").configure()
 else
     print("CONFIGURE> NO CONFIGURATOR FOUND")
     print("CONFIGURE> EXIT")
