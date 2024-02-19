@@ -10,10 +10,8 @@ local pocket    = require("coordinator.session.pocket")
 local apisessions = {}
 
 local self = {
-    nic = nil,          ---@type nic
-    crd_channel = nil,  ---@type integer
-    pkt_channel = nil,  ---@type integer
-    api_timeout = nil,  ---@type number
+    nic = nil,    ---@type nic
+    config = nil, ---@type crd_config
     next_id = 0,
     sessions = {}
 }
@@ -34,7 +32,7 @@ local function _api_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.nic.transmit(self.pkt_channel, self.crd_channel, msg.message)
+                self.nic.transmit(self.config.PKT_Channel, self.config.CRD_Channel, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -61,7 +59,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.nic.transmit(self.pkt_channel, self.crd_channel, msg.message)
+            self.nic.transmit(self.config.PKT_Channel, self.config.CRD_Channel, msg.message)
         end
     end
 
@@ -72,14 +70,10 @@ end
 
 -- initialize apisessions
 ---@param nic nic network interface
----@param crd_channel integer coordinator channel
----@param pkt_channel integer pocket channel
----@param api_timeout number api session timeout
-function apisessions.init(nic, crd_channel, pkt_channel, api_timeout)
+---@param config crd_config coordinator config
+function apisessions.init(nic, config)
     self.nic = nic
-    self.crd_channel = crd_channel
-    self.pkt_channel = pkt_channel
-    self.api_timeout = api_timeout
+    self.config = config
 end
 
 -- find a session by remote port
@@ -111,7 +105,7 @@ function apisessions.establish_session(source_addr, version)
 
     local id = self.next_id
 
-    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, self.api_timeout)
+    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, self.config.API_Timeout)
     table.insert(self.sessions, pkt_s)
 
     local mt = {
