@@ -347,7 +347,7 @@ local function config_view(display)
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(9)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#region Network
 
