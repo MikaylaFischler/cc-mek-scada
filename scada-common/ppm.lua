@@ -421,4 +421,15 @@ function ppm.get_monitor_list()
     return list
 end
 
+-- HELPER FUNCTIONS
+
+-- get the block size of a monitor given its width and height <b>at a text scale of 0.5</b>
+---@nodiscard
+---@param width integer character width
+---@param height integer character height
+---@return integer block_width, integer block_height
+function ppm.monitor_block_size(width, height)
+    return math.floor((width - 15) / 21) + 1, math.floor((height - 10) / 14) + 1
+end
+
 return ppm

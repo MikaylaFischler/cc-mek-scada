@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.2.5"
+local SUPERVISOR_VERSION = "v1.2.6"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -34,7 +34,7 @@ if not supervisor.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(supervisor.load_config(), "failed to load valid supervisor configuration")
+        assert(supervisor.load_config(), "failed to load valid configuration")
     else
         assert(success, "supervisor configuration error: " .. error)
     end
