@@ -939,9 +939,9 @@ local function config_view(display)
 
         if settings.get("ControlStates") == nil then
             local ctrl_states = {
-                WasteModes = settings.get("WASTE_MODES"),
-                PriorityGroups = settings.get("PRIORITY_GROUPS"),
-                Process = settings.get("PROCESS")
+                process = settings.get("PROCESS"),
+                waste_modes = settings.get("WASTE_MODES"),
+                priority_groups = settings.get("PRIORITY_GROUPS"),
             }
 
             settings.set("ControlStates", ctrl_states)
@@ -950,9 +950,9 @@ local function config_view(display)
         settings.unset("PRIMARY_DISPLAY")
         settings.unset("FLOW_DISPLAY")
         settings.unset("UNIT_DISPLAYS")
+        settings.unset("PROCESS")
         settings.unset("WASTE_MODES")
         settings.unset("PRIORITY_GROUPS")
-        settings.unset("PROCESS")
 
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)

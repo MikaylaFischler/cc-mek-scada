@@ -19,15 +19,20 @@ local process = {}
 local self = {
     io = nil,       ---@type ioctl
     comms = nil,    ---@type coord_comms
-    ---@class coord_auto_config
-    config = {
-        mode = PROCESS.INACTIVE,
-        burn_target = 0.0,
-        charge_target = 0.0,
-        gen_target = 0.0,
-        limits = {},
-        waste_product = PRODUCT.PLUTONIUM,
-        pu_fallback = false
+    ---@class coord_control_states
+    control_states = {
+        ---@class coord_auto_config
+        process = {
+            mode = PROCESS.INACTIVE,
+            burn_target = 0.0,
+            charge_target = 0.0,
+            gen_target = 0.0,
+            limits = {},
+            waste_product = PRODUCT.PLUTONIUM,
+            pu_fallback = false
+        },
+        waste_modes = {},
+        priority_groups = {}
     }
 }
 
@@ -42,63 +47,64 @@ function process.init(iocontrol, coord_comms)
     self.io = iocontrol
     self.comms = coord_comms
 
+    local ctl_proc = self.control_states.process
+
     for i = 1, self.io.facility.num_units do
-        self.config.limits[i] = 0.1
+        ctl_proc.limits[i] = 0.1
     end
 
-    -- load settings
-    if not settings.load("/coord.settings") then
-        log.error("process.init(): failed to load coordinator settings file")
-    end
+    local ctrl_states = settings.get("ControlStates", {})
+    local config = ctrl_states.process  ---@type coord_auto_config
 
     -- facility auto control configuration
-    local config = settings.get("PROCESS")  ---@type coord_auto_config|nil
     if type(config) == "table" then
-        self.config.mode = config.mode
-        self.config.burn_target = config.burn_target
-        self.config.charge_target = config.charge_target
-        self.config.gen_target = config.gen_target
-        self.config.limits = config.limits
-        self.config.waste_product = config.waste_product
-        self.config.pu_fallback = config.pu_fallback
+        ctl_proc.mode = config.mode
+        ctl_proc.burn_target = config.burn_target
+        ctl_proc.charge_target = config.charge_target
+        ctl_proc.gen_target = config.gen_target
+        ctl_proc.limits = config.limits
+        ctl_proc.waste_product = config.waste_product
+        ctl_proc.pu_fallback = config.pu_fallback
 
-        self.io.facility.ps.publish("process_mode", self.config.mode)
-        self.io.facility.ps.publish("process_burn_target", self.config.burn_target)
-        self.io.facility.ps.publish("process_charge_target", self.config.charge_target)
-        self.io.facility.ps.publish("process_gen_target", self.config.gen_target)
-        self.io.facility.ps.publish("process_waste_product", self.config.waste_product)
-        self.io.facility.ps.publish("process_pu_fallback", self.config.pu_fallback)
+        self.io.facility.ps.publish("process_mode", ctl_proc.mode)
+        self.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
+        self.io.facility.ps.publish("process_charge_target", ctl_proc.charge_target)
+        self.io.facility.ps.publish("process_gen_target", ctl_proc.gen_target)
+        self.io.facility.ps.publish("process_waste_product", ctl_proc.waste_product)
+        self.io.facility.ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
 
-        for id = 1, math.min(#self.config.limits, self.io.facility.num_units) do
+        for id = 1, math.min(#ctl_proc.limits, self.io.facility.num_units) do
             local unit = self.io.units[id]   ---@type ioctl_unit
-            unit.unit_ps.publish("burn_limit", self.config.limits[id])
+            unit.unit_ps.publish("burn_limit", ctl_proc.limits[id])
         end
 
-        log.info("PROCESS: loaded auto control settings from coord.settings")
+        log.info("PROCESS: loaded auto control settings")
 
         -- notify supervisor of auto waste config
-        self.comms.send_fac_command(FAC_COMMAND.SET_WASTE_MODE, self.config.waste_product)
-        self.comms.send_fac_command(FAC_COMMAND.SET_PU_FB, self.config.pu_fallback)
+        self.comms.send_fac_command(FAC_COMMAND.SET_WASTE_MODE, ctl_proc.waste_product)
+        self.comms.send_fac_command(FAC_COMMAND.SET_PU_FB, ctl_proc.pu_fallback)
     end
 
     -- unit waste states
-    local waste_modes = settings.get("WASTE_MODES")  ---@type table|nil
+    local waste_modes = ctrl_states.waste_modes  ---@type table|nil
     if type(waste_modes) == "table" then
         for id, mode in pairs(waste_modes) do
+            self.control_states.waste_modes[id] = mode
             self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
         end
 
-        log.info("PROCESS: loaded unit waste mode settings from coord.settings")
+        log.info("PROCESS: loaded unit waste mode settings")
     end
 
     -- unit priority groups
-    local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
+    local prio_groups = ctrl_states.priority_groups ---@type table|nil
     if type(prio_groups) == "table" then
         for id, group in pairs(prio_groups) do
+            self.control_states.priority_groups[id] = group
             self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, id, group)
         end
 
-        log.info("PROCESS: loaded priority groups settings from coord.settings")
+        log.info("PROCESS: loaded priority groups settings")
     end
 end
 
@@ -155,15 +161,10 @@ function process.set_unit_waste(id, mode)
     self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
     log.debug(util.c("PROCESS: UNIT[", id, "] SET WASTE ", mode))
 
-    local waste_mode = settings.get("WASTE_MODES")  ---@type table|nil
+    self.control_states.waste_modes[id] = mode
+    settings.set("ControlStates", self.control_states)
 
-    if type(waste_mode) ~= "table" then waste_mode = {} end
-
-    waste_mode[id] = mode
-
-    settings.set("WASTE_MODES", waste_mode)
-
-    if not settings.save("/coord.settings") then
+    if not settings.save("/coordinator.settings") then
         log.error("process.set_unit_waste(): failed to save coordinator settings file")
     end
 end
@@ -198,15 +199,10 @@ function process.set_group(unit_id, group_id)
     self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, unit_id, group_id)
     log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
 
-    local prio_groups = settings.get("PRIORITY_GROUPS") ---@type table|nil
+    self.control_states.priority_groups[unit_id] = group_id
+    settings.set("ControlStates", self.control_states)
 
-    if type(prio_groups) ~= "table" then prio_groups = {} end
-
-    prio_groups[unit_id] = group_id
-
-    settings.set("PRIORITY_GROUPS", prio_groups)
-
-    if not settings.save("/coord.settings") then
+    if not settings.save("/coordinator.settings") then
         log.error("process.set_group(): failed to save coordinator settings file")
     end
 end
@@ -217,20 +213,14 @@ end
 
 -- write auto process control to config file
 local function _write_auto_config()
-    -- attempt to load settings
-    if not settings.load("/coord.settings") then
-        log.warning("process._write_auto_config(): failed to load coordinator settings file")
-    end
-
     -- save config
-    settings.set("PROCESS", self.config)
-    local saved = settings.save("/coord.settings")
-
+    settings.set("ControlStates", self.control_states)
+    local saved = settings.save("/coordinator.settings")
     if not saved then
         log.warning("process._write_auto_config(): failed to save coordinator settings file")
     end
 
-    return not not saved
+    return saved
 end
 
 -- stop automatic process control
@@ -241,7 +231,7 @@ end
 
 -- start automatic process control
 function process.start_auto()
-    self.comms.send_auto_start(self.config)
+    self.comms.send_auto_start(self.control_states.process)
     log.debug("PROCESS: START AUTO CTL")
 end
 
@@ -253,7 +243,7 @@ function process.set_process_waste(product)
     log.debug(util.c("PROCESS: SET WASTE ", product))
 
     -- update config table and save
-    self.config.waste_product = product
+    self.control_states.process.waste_product = product
     _write_auto_config()
 end
 
@@ -265,7 +255,7 @@ function process.set_pu_fallback(enabled)
     log.debug(util.c("PROCESS: SET PU FALLBACK ", enabled))
 
     -- update config table and save
-    self.config.pu_fallback = enabled
+    self.control_states.process.pu_fallback = enabled
     _write_auto_config()
 end
 
@@ -279,11 +269,12 @@ function process.save(mode, burn_target, charge_target, gen_target, limits)
     log.debug("PROCESS: SAVE")
 
     -- update config table
-    self.config.mode = mode
-    self.config.burn_target = burn_target
-    self.config.charge_target = charge_target
-    self.config.gen_target = gen_target
-    self.config.limits = limits
+    local ctl_proc = self.control_states.process
+    ctl_proc.mode = mode
+    ctl_proc.burn_target = burn_target
+    ctl_proc.charge_target = charge_target
+    ctl_proc.gen_target = gen_target
+    ctl_proc.limits = limits
 
     -- save config
     self.io.facility.save_cfg_ack(_write_auto_config())
@@ -294,22 +285,23 @@ end
 function process.start_ack_handle(response)
     local ack = response[1]
 
-    self.config.mode = response[2]
-    self.config.burn_target = response[3]
-    self.config.charge_target = response[4]
-    self.config.gen_target = response[5]
+    local ctl_proc = self.control_states.process
+    ctl_proc.mode = response[2]
+    ctl_proc.burn_target = response[3]
+    ctl_proc.charge_target = response[4]
+    ctl_proc.gen_target = response[5]
 
     for i = 1, math.min(#response[6], self.io.facility.num_units) do
-        self.config.limits[i] = response[6][i]
+        ctl_proc.limits[i] = response[6][i]
 
         local unit = self.io.units[i]   ---@type ioctl_unit
-        unit.unit_ps.publish("burn_limit", self.config.limits[i])
+        unit.unit_ps.publish("burn_limit", ctl_proc.limits[i])
     end
 
-    self.io.facility.ps.publish("process_mode", self.config.mode)
-    self.io.facility.ps.publish("process_burn_target", self.config.burn_target)
-    self.io.facility.ps.publish("process_charge_target", self.config.charge_target)
-    self.io.facility.ps.publish("process_gen_target", self.config.gen_target)
+    self.io.facility.ps.publish("process_mode", ctl_proc.mode)
+    self.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
+    self.io.facility.ps.publish("process_charge_target", ctl_proc.charge_target)
+    self.io.facility.ps.publish("process_gen_target", ctl_proc.gen_target)
 
     self.io.facility.start_ack(ack)
 end
@@ -317,14 +309,14 @@ end
 -- record waste product state after attempting to change it
 ---@param response WASTE_PRODUCT supervisor waste product state
 function process.waste_ack_handle(response)
-    self.config.waste_product = response
+    self.control_states.process.waste_product = response
     self.io.facility.ps.publish("process_waste_product", response)
 end
 
 -- record plutonium fallback state after attempting to change it
 ---@param response boolean supervisor plutonium fallback state
 function process.pu_fb_ack_handle(response)
-    self.config.pu_fallback = response
+    self.control_states.process.pu_fallback = response
     self.io.facility.ps.publish("process_pu_fallback", response)
 end
 
