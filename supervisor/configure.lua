@@ -968,7 +968,7 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
-            elseif f[1] == "CoolingConfig" and cfg.CoolingConfig then
+            elseif f[1] == "CoolingConfig" and type(cfg.CoolingConfig) == "table" then
                 val = ""
 
                 for idx = 1, #cfg.CoolingConfig do
@@ -982,7 +982,7 @@ local function config_view(display)
 
                 if val == "" then val = "no facility tanks" end
             elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
-            elseif f[1] == "FacilityTankDefs" and cfg.FacilityTankDefs then
+            elseif f[1] == "FacilityTankDefs" and type(cfg.FacilityTankDefs) == "table" then
                 val = ""
 
                 for idx = 1, #cfg.FacilityTankDefs do

@@ -31,7 +31,7 @@ if not plc.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(plc.load_config(), "failed to load valid reactor PLC configuration")
+        assert(plc.load_config(), "failed to load valid configuration")
     else
         assert(success, "reactor PLC configuration error: " .. error)
     end

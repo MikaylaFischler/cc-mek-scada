@@ -79,7 +79,7 @@ local tool_ctl = {
     sv_cool_conf = nil,     ---@type table list of boiler & turbine counts
     show_sv_cfg = nil,      ---@type function
 
-    start_fail = false,
+    start_fail = 0,
     fail_message = "",
     has_config = false,
     viewing_config = false,
@@ -120,8 +120,8 @@ local tmp_cfg = {
     SpeakerVolume = 1.0,
     Time24Hour = true,
     DisableFlowView = false,
-    MainDisplay = nil,
-    FlowDisplay = nil,
+    MainDisplay = nil,  ---@type string
+    FlowDisplay = nil,  ---@type string
     UnitDisplays = {},
     SVR_Channel = nil,  ---@type integer
     CRD_Channel = nil,  ---@type integer
@@ -161,9 +161,13 @@ local fields = {
     { "LogDebug","Log Debug Messages", false }
 }
 
+-- check if a value is an integer within a range (inclusive)
+---@param x integer
+---@param min integer
+---@param max integer
 local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min and x <= max end
 
--- send an management packet to the supervisor
+-- send a management packet to the supervisor
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
@@ -490,30 +494,6 @@ local function config_view(display)
 
     tool_ctl.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()tool_ctl.sv_connect()end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
-    function tool_ctl.sv_connect()
-        tool_ctl.sv_conn_button.disable()
-        tool_ctl.sv_conn_detail.set_value("")
-
-        local modem = ppm.get_wireless_modem()
-        if modem == nil then
-            tool_ctl.sv_conn_status.set_value("Please connect an ender/wireless modem.")
-        else
-            tool_ctl.sv_conn_status.set_value("Modem found, connecting...")
-            if tool_ctl.nic == nil then tool_ctl.nic = network.nic(modem) end
-
-            tool_ctl.nic.closeAll()
-            tool_ctl.nic.open(tmp_cfg.CRD_Channel)
-
-            tool_ctl.sv_addr = comms.BROADCAST
-            tool_ctl.sv_seq_num = 0
-            tool_ctl.net_listen = true
-
-            send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.CRD })
-
-            tcd.dispatch_unique(8, handle_timeout)
-        end
-    end
-
     local function sv_skip()
         tcd.abort(handle_timeout)
         tool_ctl.sv_fac_conf = nil
@@ -575,47 +555,6 @@ local function config_view(display)
     TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
     local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    function tool_ctl.update_mon_reqs()
-        local plural = tmp_cfg.UnitCount > 1
-
-        if tool_ctl.sv_cool_conf ~= nil then
-            local cnf = tool_ctl.sv_cool_conf
-
-            local row1_tall = cnf[1][1] > 1 or cnf[1][2] > 2 or (cnf[2] and (cnf[2][1] > 1 or cnf[2][2] > 2))
-            local row1_short = (cnf[1][1] == 0 and cnf[1][2] == 1) and (cnf[2] == nil or (cnf[2][1] == 0 and cnf[2][2] == 1))
-            local row2_tall = (cnf[3] and (cnf[3][1] > 1 or cnf[3][2] > 2)) or (cnf[4] and (cnf[4][1] > 1 or cnf[4][2] > 2))
-            local row2_short = (cnf[3] == nil or (cnf[3][1] == 0 and cnf[3][2] == 1)) and (cnf[4] == nil or (cnf[4][1] == 0 and cnf[4][2] == 1))
-
-            if tmp_cfg.UnitCount <= 2 then
-                tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
-            else
-                -- is only one tall and the other short, or are both tall? -> 5 or 6; are neither tall? -> 5
-                if row1_tall or row2_tall then
-                    tool_ctl.main_mon_h = util.trinary((row1_short and row2_tall) or (row1_tall and row2_short), 5, 6)
-                else tool_ctl.main_mon_h = 5 end
-            end
-        else
-            tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
-        end
-
-        tool_ctl.flow_mon_h = 2 + tmp_cfg.UnitCount
-
-        local asterisk = util.trinary(tool_ctl.sv_cool_conf == nil, "*", "")
-        local m_at_least = util.trinary(tool_ctl.main_mon_h < 6, "at least ", "")
-        local f_at_least = util.trinary(tool_ctl.flow_mon_h < 6, "at least ", "")
-
-        mon_reqs.remove_all()
-
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Main View Monitor"}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        if not tmp_cfg.DisableFlowView then
-            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
-            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        end
-    end
-
     local function next_from_reqs()
         -- unassign unit monitors above the unit count
         for i = tmp_cfg.UnitCount + 1, 4 do tmp_cfg.UnitDisplays[i] = nil end
@@ -672,7 +611,7 @@ local function config_view(display)
             mon_warn.show()
         elseif not util.table_contains(tool_ctl.mon_expect, val) then
             tool_ctl.apply_mon.disable()
-            mon_warn.set_value("That assignment doesn't match monitor dimensions. You'll need to resize the monitor for it to work.")
+            mon_warn.set_value("That assignment doesn't fit monitor dimensions. You'll need to resize the monitor for it to work.")
             mon_warn.show()
         else
             tool_ctl.apply_mon.enable()
@@ -709,9 +648,7 @@ local function config_view(display)
             tmp_cfg.FlowDisplay = nil
         else
             for i = 1, tmp_cfg.UnitCount do
-                if tmp_cfg.UnitDisplays[i] == iface then
-                    tmp_cfg.UnitDisplays[i] = nil
-                end
+                if tmp_cfg.UnitDisplays[i] == iface then tmp_cfg.UnitDisplays[i] = nil end
             end
         end
     end
@@ -744,7 +681,7 @@ local function config_view(display)
     tool_ctl.apply_mon = PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
     TextBox{parent=mon_c_4,x=1,y=1,height=3,text="For legacy compatibility with facilities built without space for a flow monitor, you can disable the flow monitor requirement here."}
-    TextBox{parent=mon_c_4,x=1,y=5,height=3,text="Please be aware that THIS WILL BE REMOVED ON RELEASE. It will only be available for the remainder of the beta."}
+    TextBox{parent=mon_c_4,x=1,y=5,height=3,text="Please be aware that THIS OPTION WILL BE REMOVED ON RELEASE. Disabling it will only be available for the remainder of the beta."}
 
     local dis_flow_view = CheckBox{parent=mon_c_4,x=1,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
 
@@ -1023,22 +960,85 @@ local function config_view(display)
         tool_ctl.importing_legacy = true
     end
 
+    -- attempt a connection to the supervisor to get cooling info
+    function tool_ctl.sv_connect()
+        tool_ctl.sv_conn_button.disable()
+        tool_ctl.sv_conn_detail.set_value("")
+
+        local modem = ppm.get_wireless_modem()
+        if modem == nil then
+            tool_ctl.sv_conn_status.set_value("Please connect an ender/wireless modem.")
+        else
+            tool_ctl.sv_conn_status.set_value("Modem found, connecting...")
+            if tool_ctl.nic == nil then tool_ctl.nic = network.nic(modem) end
+
+            tool_ctl.nic.closeAll()
+            tool_ctl.nic.open(tmp_cfg.CRD_Channel)
+
+            tool_ctl.sv_addr = comms.BROADCAST
+            tool_ctl.sv_seq_num = 0
+            tool_ctl.net_listen = true
+
+            send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.CRD })
+
+            tcd.dispatch_unique(8, handle_timeout)
+        end
+    end
+
     -- show the facility's unit count and cooling configuration data
     function tool_ctl.show_sv_cfg()
         local conf = tool_ctl.sv_cool_conf
         fac_config_list.remove_all()
 
         local str = util.sprintf("Facility has %d reactor units:", #conf)
-
-        local line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=line,text=str,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+        TextBox{parent=fac_config_list,height=1,text=str,fg_bg=cpair(colors.gray,colors.white)}
 
         for i = 1, #conf do
             local num_b, num_t = conf[i][1], conf[i][2]
             str = util.sprintf("\x07 Unit %d has %d boiler%s and %d turbine%s", i, num_b, util.trinary(num_b == 1, "", "s"), num_t, util.trinary(num_t == 1, "", "s"))
+            TextBox{parent=fac_config_list,height=1,text=str,fg_bg=cpair(colors.gray,colors.white)}
+        end
+    end
 
-            local c_line = Div{parent=fac_config_list,height=1,fg_bg=cpair(colors.gray,colors.white)}
-            TextBox{parent=c_line,text=str,fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+    -- update list of monitor requirements
+    function tool_ctl.update_mon_reqs()
+        local plural = tmp_cfg.UnitCount > 1
+
+        if tool_ctl.sv_cool_conf ~= nil then
+            local cnf = tool_ctl.sv_cool_conf
+
+            local row1_tall = cnf[1][1] > 1 or cnf[1][2] > 2 or (cnf[2] and (cnf[2][1] > 1 or cnf[2][2] > 2))
+            local row1_short = (cnf[1][1] == 0 and cnf[1][2] == 1) and (cnf[2] == nil or (cnf[2][1] == 0 and cnf[2][2] == 1))
+            local row2_tall = (cnf[3] and (cnf[3][1] > 1 or cnf[3][2] > 2)) or (cnf[4] and (cnf[4][1] > 1 or cnf[4][2] > 2))
+            local row2_short = (cnf[3] == nil or (cnf[3][1] == 0 and cnf[3][2] == 1)) and (cnf[4] == nil or (cnf[4][1] == 0 and cnf[4][2] == 1))
+
+            if tmp_cfg.UnitCount <= 2 then
+                tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
+            else
+                -- is only one tall and the other short, or are both tall? -> 5 or 6; are neither tall? -> 5
+                if row1_tall or row2_tall then
+                    tool_ctl.main_mon_h = util.trinary((row1_short and row2_tall) or (row1_tall and row2_short), 5, 6)
+                else tool_ctl.main_mon_h = 5 end
+            end
+        else
+            tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
+        end
+
+        tool_ctl.flow_mon_h = 2 + tmp_cfg.UnitCount
+
+        local asterisk = util.trinary(tool_ctl.sv_cool_conf == nil, "*", "")
+        local m_at_least = util.trinary(tool_ctl.main_mon_h < 6, "at least ", "")
+        local f_at_least = util.trinary(tool_ctl.flow_mon_h < 6, "at least ", "")
+
+        mon_reqs.remove_all()
+
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        if not tmp_cfg.DisableFlowView then
+            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
+            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
@@ -1178,7 +1178,7 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
-            elseif f[1] == "UnitDisplays" then
+            elseif f[1] == "UnitDisplays" and type(cfg.UnitDisplays) == "table" then
                 val = ""
                 for idx = 1, #cfg.UnitDisplays do
                     val = val .. util.trinary(idx == 1, "", "\n") .. util.sprintf(" \x07 Unit %d - %s", idx, cfg.UnitDisplays[idx])
@@ -1195,7 +1195,7 @@ local function config_view(display)
                 height = #lines + 1
             end
 
-            if f[1] == "UnitDisplays" and height == 1 then height = 2 end
+            if (f[1] == "UnitDisplays") and (height == 1) and (val ~= "<not set>") then height = 2 end
 
             local line = Div{parent=setting_list,height=height,fg_bg=c}
             TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
@@ -1221,11 +1221,11 @@ local function reset_term()
 end
 
 -- run the coordinator configurator<br>
--- start_fail of 0 is OK (not expected, default if not provided), 1 is bad config, 2 is bad monitor config
----@param start_fail? 0|1|2 indicate if this is being called by the startup app due to an invalid configuration
+-- start_fail of 0 is OK (default if not provided), 1 is bad config, 2 is bad monitor config
+---@param start_code? 0|1|2 indicate error state when called from the startup app
 ---@param message? any string message to display on a start_fail of 2
-function configurator.configure(start_fail, message)
-    tool_ctl.start_fail = start_fail or 0
+function configurator.configure(start_code, message)
+    tool_ctl.start_fail = start_code or 0
     tool_ctl.fail_message = util.trinary(type(message) == "string", message, "")
 
     load_settings(settings_cfg, true)

@@ -47,7 +47,7 @@ if not rtu.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(rtu.load_config(), "failed to load valid RTU configuration")
+        assert(rtu.load_config(), "failed to load valid configuration")
     else
         assert(success, "RTU configuration error: " .. error)
     end
