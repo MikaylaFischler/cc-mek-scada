@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.12b"
+local CCMSI_VERSION = "v1.13"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -26,7 +26,7 @@ local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada
 
 local opts = { ... }
 local mode, app, target
-local install_manifest = manifest_path .. "main/install_manifest.json"
+local install_manifest = manifest_path.."main/install_manifest.json"
 
 local function red() term.setTextColor(colors.red) end
 local function orange() term.setTextColor(colors.orange) end
@@ -59,17 +59,17 @@ local function ask_y_n(question, default)
 end
 
 -- print out a white + blue text message
-local function pkg_message(message, package) white();print(message .. " ");blue();println(package);white() end
+local function pkg_message(message, package) white();print(message.." ");blue();println(package);white() end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
     if v.v_local ~= nil then
         if v.v_local ~= v.v_remote then
-            print("[" .. name .. "] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();println(v.v_remote);white()
+            print("["..name.."] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();println(v.v_remote);white()
         elseif mode == "install" then
-            pkg_message("[" .. name .. "] reinstalling", v.v_local)
+            pkg_message("["..name.."] reinstalling", v.v_local)
         end
-    else pkg_message("[" .. name .. "] new install of", v.v_remote) end
+    else pkg_message("["..name.."] new install of", v.v_remote) end
     return v.v_local ~= v.v_remote
 end
 
@@ -90,7 +90,7 @@ local function get_remote_manifest()
     local response, error = http.get(install_manifest)
     if response == nil then
         orange();println("Failed to get installation manifest from GitHub, cannot update or install.")
-        red();println("HTTP error: " .. error);white()
+        red();println("HTTP error: "..error);white()
         return false, {}
     end
 
@@ -155,13 +155,13 @@ local function _clean_dir(dir, tree)
     if tree == nil then tree = {} end
     local ls = fs.list(dir)
     for _, val in pairs(ls) do
-        local path = dir .. "/" .. val
+        local path = dir.."/"..val
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
-            if #fs.list(path) == 0 then fs.delete(path);println("deleted " .. path) end
-        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@fixme remove condition after migration to settings files
+            if #fs.list(path) == 0 then fs.delete(path);println("deleted "..path) end
+        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then
             fs.delete(path)
-            println("deleted " .. path)
+            println("deleted "..path)
         end
     end
 end
@@ -177,13 +177,13 @@ local function clean(manifest)
     local ls = fs.list("/")
     for _, val in pairs(ls) do
         if fs.isDriveRoot(val) then
-            yellow();println("skipped mount '" .. val .. "'")
+            yellow();println("skipped mount '"..val.."'")
         elseif fs.isDir(val) then
-            if tree[val] ~= nil then lgray();_clean_dir("/" .. val, tree[val])
-            else white(); if ask_y_n("delete the unused directory '" .. val .. "'") then lgray();_clean_dir("/" .. val) end end
-            if #fs.list(val) == 0 then fs.delete(val);lgray();println("deleted empty directory '" .. val .. "'") end
+            if tree[val] ~= nil then lgray();_clean_dir("/"..val, tree[val])
+            else white(); if ask_y_n("delete the unused directory '"..val.."'") then lgray();_clean_dir("/"..val) end end
+            if #fs.list(val) == 0 then fs.delete(val);lgray();println("deleted empty directory '"..val.."'") end
         elseif not _in_array(val, tree) and (string.find(val, ".settings") == nil) then
-            white();if ask_y_n("delete the unused file '" .. val .. "'") then fs.delete(val);lgray();println("deleted " .. val) end
+            white();if ask_y_n("delete the unused file '"..val.."'") then fs.delete(val);lgray();println("deleted "..val) end
         end
     end
 
@@ -192,7 +192,7 @@ end
 
 -- get and validate command line options
 
-println("-- CC Mekanism SCADA Installer " .. CCMSI_VERSION .. " --")
+println("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --")
 
 if #opts == 0 or opts[1] == "help" then
     println("usage: ccmsi <mode> <app> <branch>")
@@ -202,8 +202,8 @@ if #opts == 0 or opts[1] == "help" then
     yellow()
     println("               ccmsi check <branch> for target")
     lgray()
-    println(" install     - fresh install, overwrites config.lua")
-    println(" update      - update files EXCEPT for config.lua")
+    println(" install     - fresh install")
+    println(" update      - update files")
     println(" uninstall   - delete files INCLUDING config/logs")
     white();println("<app>");lgray()
     println(" reactor-plc - reactor PLC firmware")
@@ -239,8 +239,8 @@ else
     end
 
     -- set paths
-    install_manifest = manifest_path .. target .. "/install_manifest.json"
-    repo_path = repo_path .. target .. "/"
+    install_manifest = manifest_path..target.."/install_manifest.json"
+    repo_path = repo_path..target.."/"
 end
 
 -- run selected mode
@@ -260,7 +260,7 @@ if mode == "check" then
     -- list all versions
     for key, value in pairs(manifest.versions) do
         term.setTextColor(colors.purple)
-        print(string.format("%-14s", "[" .. key .. "]"))
+        print(string.format("%-14s", "["..key.."]"))
         if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
             blue();print(local_manifest.versions[key])
             if value ~= local_manifest.versions[key] then
@@ -315,10 +315,10 @@ elseif mode == "install" or mode == "update" then
         if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now") then
             lgray();println("GET ccmsi.lua")
-            local dl, err = http.get(repo_path .. "ccmsi.lua")
+            local dl, err = http.get(repo_path.."ccmsi.lua")
 
             if dl == nil then
-                red();println("HTTP Error " .. err)
+                red();println("HTTP Error "..err)
                 println("Installer download failed.");white()
             else
                 local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
@@ -342,13 +342,8 @@ elseif mode == "install" or mode == "update" then
     ver.lockbox.v_remote = manifest.versions.lockbox
 
     green()
-    if mode == "install" then
-        println("Installing " .. app .. " files...")
-    elseif mode == "update" then
-        if app == "pocket" then println("Updating " .. app .. " files... (keeping old config.lua)")
-        else println("Updating " .. app .. " files...") end
-    end
-    white()
+    if mode == "install" then println("Installing ") else println("Updating ") end
+    println(app.." files...");white()
 
     ver.boot.changed = show_pkg_change("bootldr", ver.boot)
     ver.common.changed = show_pkg_change("common", ver.common)
@@ -374,7 +369,6 @@ elseif mode == "install" or mode == "update" then
     local file_list = manifest.files
     local size_list = manifest.sizes
     local dependencies = manifest.depends[app]
-    local config_file = app .. "/config.lua"
 
     table.insert(dependencies, app)
 
@@ -421,15 +415,15 @@ elseif mode == "install" or mode == "update" then
 
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    println("GET " .. file)
-                    local dl, err = http.get(repo_path .. file)
+                    println("GET "..file)
+                    local dl, err = http.get(repo_path..file)
 
                     if dl == nil then
-                        red();println("HTTP Error " .. err)
+                        red();println("HTTP Error "..err)
                         success = false
                         break
                     else
-                        local handle = fs.open(install_dir .. "/" .. file, "w")
+                        local handle = fs.open(install_dir.."/"..file, "w")
                         handle.write(dl.readAll())
                         handle.close()
                     end
@@ -448,11 +442,9 @@ elseif mode == "install" or mode == "update" then
 
                     local files = file_list[dependency]
                     for _, file in pairs(files) do
-                        if mode == "install" or file ~= config_file then
-                            local temp_file = install_dir .. "/" .. file
-                            if fs.exists(file) then fs.delete(file) end
-                            fs.move(temp_file, file)
-                        end
+                        local temp_file = install_dir.."/"..file
+                        if fs.exists(file) then fs.delete(file) end
+                        fs.move(temp_file, file)
                     end
                 end
             end
@@ -485,19 +477,17 @@ elseif mode == "install" or mode == "update" then
 
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
-                    if mode == "install" or file ~= config_file then
-                        println("GET " .. file)
-                        local dl, err = http.get(repo_path .. file)
+                    println("GET "..file)
+                    local dl, err = http.get(repo_path..file)
 
-                        if dl == nil then
-                            red();println("HTTP Error " .. err)
-                            success = false
-                            break
-                        else
-                            local handle = fs.open("/" .. file, "w")
-                            handle.write(dl.readAll())
-                            handle.close()
-                        end
+                    if dl == nil then
+                        red();println("HTTP Error "..err)
+                        success = false
+                        break
+                    else
+                        local handle = fs.open("/"..file, "w")
+                        handle.write(dl.readAll())
+                        handle.close()
                     end
                 end
             end
@@ -527,11 +517,11 @@ elseif mode == "uninstall" then
     end
 
     if manifest.versions[app] == nil then
-        red();println("Error: '" .. app .. "' is not installed.")
+        red();println("Error: '"..app.."' is not installed.")
         return
     end
 
-    orange();println("Uninstalling all " .. app .. " files...")
+    orange();println("Uninstalling all "..app.." files...")
 
     -- ask for confirmation
     if not ask_y_n("Continue", false) then return end
@@ -546,16 +536,16 @@ elseif mode == "uninstall" then
 
     -- delete log file
     local log_deleted = false
-    local settings_file = app .. ".settings"
-    local legacy_config_file = app .. "/config.lua"
+    local settings_file = app..".settings"
+    local legacy_config_file = app.."/config.lua"
 
     lgray()
     if fs.exists(legacy_config_file) then
         log_deleted = pcall(function ()
-            local config = require(app .. ".config")
+            local config = require(app..".config")
             if fs.exists(config.LOG_PATH) then
                 fs.delete(config.LOG_PATH)
-                println("deleted log file " .. config.LOG_PATH)
+                println("deleted log file "..config.LOG_PATH)
             end
         end)
     elseif fs.exists(settings_file) and settings.load(settings_file) then
@@ -563,7 +553,7 @@ elseif mode == "uninstall" then
         if log ~= nil and fs.exists(log) then
             log_deleted = true
             fs.delete(log)
-            println("deleted log file " .. log)
+            println("deleted log file "..log)
         end
     end
 
@@ -577,7 +567,7 @@ elseif mode == "uninstall" then
     for _, dependency in pairs(dependencies) do
         local files = file_list[dependency]
         for _, file in pairs(files) do
-            if fs.exists(file) then fs.delete(file);println("deleted " .. file) end
+            if fs.exists(file) then fs.delete(file);println("deleted "..file) end
         end
 
         local folder = files[1]
@@ -588,13 +578,16 @@ elseif mode == "uninstall" then
 
         if fs.isDir(folder) then
             fs.delete(folder)
-            println("deleted directory " .. folder)
+            println("deleted directory "..folder)
         end
     end
 
+    if fs.exists(legacy_config_file) then
+        fs.delete(legacy_config_file);println("deleted "..legacy_config_file)
+    end
+
     if fs.exists(settings_file) then
-        fs.delete(settings_file)
-        println("deleted " .. settings_file)
+        fs.delete(settings_file);println("deleted "..settings_file)
     end
 
     fs.delete("install_manifest.json")
