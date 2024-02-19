@@ -79,6 +79,9 @@ local function main()
     -- system startup
     ----------------------------------------
 
+    -- re-mount devices now that logging is ready
+    ppm.mount_all()
+
     -- report versions/init fp PSIL
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
 

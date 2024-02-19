@@ -121,8 +121,11 @@ function coordinator.load_config()
             monitors.primary = ppm.get_periph(config.MainDisplay)
             monitors.primary_name = config.MainDisplay
 
+            monitors.primary.setTextScale(0.5)
             w, _ = ppm.monitor_block_size(monitors.primary.getSize())
-            if w ~= 8 then return 2, "Main monitor width is incorrect." end
+            if w ~= 8 then
+                return 2, util.c("Main monitor width is incorrect (was ", w, ", must be 8).")
+            end
 
             if not config.DisableFlowView then
                 if not util.table_contains(names, config.FlowDisplay) then
@@ -132,8 +135,11 @@ function coordinator.load_config()
                 monitors.flow = ppm.get_periph(config.FlowDisplay)
                 monitors.flow_name = config.FlowDisplay
 
+                monitors.flow.setTextScale(0.5)
                 w, _ = ppm.monitor_block_size(monitors.flow.getSize())
-                if w ~= 8 then return 2, "Flow monitor width is incorrect." end
+                if w ~= 8 then
+                    return 2, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
+                end
             end
 
             for i = 1, config.UnitCount do
@@ -145,8 +151,11 @@ function coordinator.load_config()
                 monitors.unit_displays[i] = ppm.get_periph(display)
                 monitors.unit_name_map[i] = display
 
+                monitors.unit_displays[i].setTextScale(0.5)
                 w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
-                if w ~= 4 or h ~= 4 then return 2, "Unit " .. i .. " monitor size is incorrect." end
+                if w ~= 4 or h ~= 4 then
+                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
+                end
             end
         else return 2, "Monitor configuration invalid." end
     end
