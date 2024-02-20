@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.13"
+local CCMSI_VERSION = "v1.14"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -213,7 +213,7 @@ if #opts == 0 or opts[1] == "help" then
     println(" pocket      - pocket application")
     println(" installer   - ccmsi installer (update only)")
     white();println("<branch>")
-    lgray();println(" main (default) | latest | devel");white()
+    lgray();println(" main (default) | devel");white()
     return
 else
     mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
@@ -233,7 +233,7 @@ else
 
     -- determine target
     if mode == "check" then target = opts[2] else target = opts[3] end
-    if (target ~= "main") and (target ~= "latest") and (target ~= "devel") then
+    if (target ~= "main") and (target ~= "devel") then
         if (target and target ~= "") then yellow();println("Unknown target, defaulting to 'main'");white() end
         target = "main"
     end

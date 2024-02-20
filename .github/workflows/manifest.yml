@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - main
-      - latest
       - devel
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -43,7 +42,7 @@ jobs:
       - name: Create outputs folders
         if: success() || failure()
         shell: bash
-        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/latest deploy/manifests/devel
+        run: mkdir deploy; mkdir deploy/manifests; mkdir deploy/manifests/main deploy/manifests/devel
       - name: Generate manifest and shields for main branch
         id: manifest-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
@@ -51,21 +50,6 @@ jobs:
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
-      # Generate manifest for latest branch
-      - name: Checkout latest
-        id: checkout-latest
-        if: success() || failure()
-        uses: actions/checkout@v3
-        with:
-          ref: 'latest'
-          clean: false
-      - name: Generate manifest for latest
-        id: manifest-latest
-        if: ${{ (success() || failure()) && steps.checkout-latest.outcome == 'success' }}
-        run: python imgen.py
-      - name: Save latest's manifest
-        if: ${{ (success() || failure()) && steps.manifest-latest.outcome == 'success' }}
-        run: mv install_manifest.json deploy/manifests/latest
       # Generate manifest for devel branch
       - name: Checkout devel
         id: checkout-devel
