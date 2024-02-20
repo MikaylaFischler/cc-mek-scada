@@ -347,7 +347,7 @@ local function config_view(display)
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(9)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#region Network
 
@@ -453,20 +453,22 @@ local function config_view(display)
     local function submit_auth()
         local v = key.get_value()
         if string.len(v) == 0 or string.len(v) >= 8 then
+            -- prep supervisor connection screen
+            tool_ctl.sv_next.hide()
+            tool_ctl.sv_skip.disable()
+            tool_ctl.sv_skip.show()
+            tool_ctl.sv_conn_button.enable()
+            tool_ctl.sv_conn_status.set_value("")
+            tool_ctl.sv_conn_detail.set_value("")
+
             tmp_cfg.AuthKey = key.get_value()
-            main_pane.set_value(3)
             key_err.hide(true)
 
             -- init mac for supervisor connection
             if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) end
 
-            -- prep supervisor connection screen
-            tool_ctl.sv_conn_button.enable()
-            tool_ctl.sv_conn_status.set_value("")
-            tool_ctl.sv_conn_detail.set_value("")
-            tool_ctl.sv_next.hide()
-            tool_ctl.sv_skip.show()
-            tool_ctl.sv_skip.disable()
+            main_pane.set_value(3)
+
             tcd.dispatch_unique(2, function () tool_ctl.sv_skip.enable() end)
         else key_err.show() end
     end
@@ -534,7 +536,7 @@ local function config_view(display)
 
     TextBox{parent=fac_c_3,x=1,y=1,height=2,text="The following facility configuration was fetched from your supervisor computer."}
 
-    local fac_config_list = ListBox{parent=fac_c_3,x=1,y=4,height=9,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local fac_config_list = ListBox{parent=fac_c_3,x=1,y=4,height=9,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     PushButton{parent=fac_c_3,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -553,7 +555,7 @@ local function config_view(display)
     TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
     TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
-    local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function next_from_reqs()
         -- unassign unit monitors above the unit count
@@ -569,7 +571,7 @@ local function config_view(display)
 
     TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
 
-    local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local assign_err = TextBox{parent=mon_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -796,7 +798,7 @@ local function config_view(display)
 
     TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
-    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_summary()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
@@ -818,7 +820,7 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("coordinator.settings") then
+        if settings.save("/coordinator.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
@@ -895,7 +897,7 @@ local function config_view(display)
 
     TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
 
-    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
         TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}

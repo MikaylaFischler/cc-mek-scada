@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.2.0"
+local COORDINATOR_VERSION = "v1.2.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -78,6 +78,9 @@ local function main()
     ----------------------------------------
     -- system startup
     ----------------------------------------
+
+    -- re-mount devices now that logging is ready
+    ppm.mount_all()
 
     -- report versions/init fp PSIL
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)

@@ -170,7 +170,7 @@ local function config_view(display)
 
     local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,svr_cfg,net_cfg,log_cfg,summary,changelog,import_err}}
 
-    -- MAIN PAGE
+    -- Main Page
 
     local y_start = 5
 
@@ -201,7 +201,7 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- SUPERVISOR CONFIG
+    --#region Facility
 
     local svr_c_1 = Div{parent=svr_cfg,x=2,y=4,width=49}
     local svr_c_2 = Div{parent=svr_cfg,x=2,y=4,width=49}
@@ -564,7 +564,9 @@ local function config_view(display)
 
     PushButton{parent=svr_c_6,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- NET CONFIG
+    --#endregion
+
+    --#region Network
 
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
@@ -692,7 +694,9 @@ local function config_view(display)
     PushButton{parent=net_c_4,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_4,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- LOG CONFIG
+    --#endregion
+
+    --#region Logging
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
@@ -728,7 +732,9 @@ local function config_view(display)
     PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- SUMMARY OF CHANGES
+    --#endregion
+
+    --#region Summary and Saving
 
     local sum_c_1 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_2 = Div{parent=summary,x=2,y=4,width=49}
@@ -739,7 +745,7 @@ local function config_view(display)
 
     TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
-    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_settings()
         if tool_ctl.viewing_config or tool_ctl.importing_legacy then
@@ -761,7 +767,7 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("supervisor.settings") then
+        if settings.save("/supervisor.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
@@ -838,13 +844,15 @@ local function config_view(display)
     PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    -- CONFIG CHANGE LOG
+    --#endregion
+
+    -- Config Change Log
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
     TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
 
-    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=51,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
         TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
@@ -857,7 +865,7 @@ local function config_view(display)
 
     PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    -- IMPORT ERROR
+    -- Import Error
 
     local i_err = Div{parent=import_err,x=2,y=4,width=49}
 
@@ -1033,7 +1041,7 @@ local function reset_term()
 end
 
 -- run the supervisor configurator
----@param ask_config? boolean indicate if this is being called by the supervisor startup app due to an invalid configuration
+---@param ask_config? boolean indicate if this is being called by the startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
 
