@@ -453,20 +453,22 @@ local function config_view(display)
     local function submit_auth()
         local v = key.get_value()
         if string.len(v) == 0 or string.len(v) >= 8 then
+            -- prep supervisor connection screen
+            tool_ctl.sv_next.hide()
+            tool_ctl.sv_skip.disable()
+            tool_ctl.sv_skip.show()
+            tool_ctl.sv_conn_button.enable()
+            tool_ctl.sv_conn_status.set_value("")
+            tool_ctl.sv_conn_detail.set_value("")
+
             tmp_cfg.AuthKey = key.get_value()
-            main_pane.set_value(3)
             key_err.hide(true)
 
             -- init mac for supervisor connection
             if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) end
 
-            -- prep supervisor connection screen
-            tool_ctl.sv_conn_button.enable()
-            tool_ctl.sv_conn_status.set_value("")
-            tool_ctl.sv_conn_detail.set_value("")
-            tool_ctl.sv_next.hide()
-            tool_ctl.sv_skip.show()
-            tool_ctl.sv_skip.disable()
+            main_pane.set_value(3)
+
             tcd.dispatch_unique(2, function () tool_ctl.sv_skip.enable() end)
         else key_err.show() end
     end
@@ -818,7 +820,7 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("coordinator.settings") then
+        if settings.save("/coordinator.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
