@@ -342,7 +342,7 @@ elseif mode == "install" or mode == "update" then
     ver.lockbox.v_remote = manifest.versions.lockbox
 
     green()
-    if mode == "install" then println("Installing ") else println("Updating ") end
+    if mode == "install" then print("Installing ") else print("Updating ") end
     println(app.." files...");white()
 
     ver.boot.changed = show_pkg_change("bootldr", ver.boot)
