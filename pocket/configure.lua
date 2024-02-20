@@ -169,7 +169,7 @@ local function config_view(display)
         y_start = y_start + 2
     end
 
-    PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure Device",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
@@ -267,6 +267,9 @@ local function config_view(display)
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
 
+    -- declare back first so tabbing makes sense visually
+    PushButton{parent=net_c_4,x=1,y=15,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
     local hide_key = CheckBox{parent=net_c_4,x=8,y=15,label="Hide Key",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
@@ -283,7 +286,6 @@ local function config_view(display)
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_4,x=1,y=15,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_4,x=19,y=15,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -401,7 +403,7 @@ local function config_view(display)
     PushButton{parent=sum_c_2,x=1,y=15,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=19,y=15,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_3,x=1,y=1,height=4,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
         fs.delete("/pocket/config.lua")
