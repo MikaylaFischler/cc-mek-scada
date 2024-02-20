@@ -361,7 +361,7 @@ local function config_view(display)
     local function save_and_continue()
         for k, v in pairs(tmp_cfg) do settings.set(k, v) end
 
-        if settings.save("pocket.settings") then
+        if settings.save("/pocket.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
@@ -487,8 +487,7 @@ local function config_view(display)
             local val = util.strval(raw)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
-            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
-            end
+            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
 
             if val == "nil" then val = "<not set>" end
 

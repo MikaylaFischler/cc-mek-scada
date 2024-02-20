@@ -273,7 +273,7 @@ local function config_view(display)
 
     local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,spkr_cfg,net_cfg,log_cfg,summary,changelog,peri_cfg,rs_cfg}}
 
-    --#region MAIN PAGE
+    --#region Main Page
 
     local y_start = 2
 
@@ -324,7 +324,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region SPEAKER CONFIG
+    --#region Speakers
 
     local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
 
@@ -353,7 +353,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region NET CONFIG
+    --#region Network
 
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
@@ -455,7 +455,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region LOG CONFIG
+    --#region Logging
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
@@ -494,7 +494,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region SUMMARY OF CHANGES
+    --#region Summary and Saving
 
     local sum_c_1 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_2 = Div{parent=summary,x=2,y=4,width=49}
@@ -539,7 +539,7 @@ local function config_view(display)
         if settings.get("Peripherals") == nil then settings.set("Peripherals", {}) end
         if settings.get("Redstone") == nil then settings.set("Redstone", {}) end
 
-        if settings.save("rtu.settings") then
+        if settings.save("/rtu.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
@@ -614,7 +614,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region CONFIG CHANGE LOG
+    --#region Config Change Log
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
@@ -635,7 +635,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region DEVICES
+    --#region Peripherals
 
     local peri_c_1 = Div{parent=peri_cfg,x=2,y=4,width=49}
     local peri_c_2 = Div{parent=peri_cfg,x=2,y=4,width=49}
@@ -659,7 +659,7 @@ local function config_view(display)
     local function peri_apply()
         settings.set("Peripherals", tmp_cfg.Peripherals)
 
-        if settings.save("rtu.settings") then
+        if settings.save("/rtu.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
             peri_pane.set_value(5)
@@ -949,7 +949,7 @@ local function config_view(display)
 
     --#endregion
 
-    --#region REDSTONE
+    --#region Redstone
 
     local rs_c_1 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_2 = Div{parent=rs_cfg,x=2,y=4,width=49}
@@ -973,7 +973,7 @@ local function config_view(display)
     local function rs_apply()
         settings.set("Redstone", tmp_cfg.Redstone)
 
-        if settings.save("rtu.settings") then
+        if settings.save("/rtu.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
             rs_pane.set_value(4)
@@ -1466,7 +1466,7 @@ local function reset_term()
 end
 
 -- run the RTU gateway configurator
----@param ask_config? boolean indicate if this is being called by the RTU startup app due to an invalid configuration
+---@param ask_config? boolean indicate if this is being called by the startup app due to an invalid configuration
 function configurator.configure(ask_config)
     tool_ctl.ask_config = ask_config == true
 
