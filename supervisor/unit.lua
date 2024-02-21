@@ -586,7 +586,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_get_effective_limit()
         local ctrl = self.db.control
         if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
-            log.debug(util.c("UNIT ", self.r_id, ": effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
+            -- log.debug(util.c("UNIT ", self.r_id, ": effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
             ctrl.br100 = 0
             return 0
         else return ctrl.lim_br100 end
