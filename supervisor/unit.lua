@@ -564,6 +564,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_engage()
         self.auto_engaged = true
         if self.plc_i ~= nil then
+            log.debug(util.c("UNIT ", self.r_id, ": engaged auto control"))
             self.plc_i.auto_lock(true)
         end
     end
@@ -572,6 +573,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_disengage()
         self.auto_engaged = false
         if self.plc_i ~= nil then
+            log.debug(util.c("UNIT ", self.r_id, ": disengaged auto control"))
             self.plc_i.auto_lock(false)
             self.db.control.br100 = 0
         end
@@ -582,12 +584,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@nodiscard
     ---@return integer lim_br100
     function public.auto_get_effective_limit()
-        if (not self.db.control.ready) or self.db.control.degraded or self.plc_cache.rps_trip then
-            self.db.control.br100 = 0
+        local ctrl = self.db.control
+        if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
+            -- log.debug(util.c("UNIT ", self.r_id, ": effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
+            ctrl.br100 = 0
             return 0
-        else
-            return self.db.control.lim_br100
-        end
+        else return ctrl.lim_br100 end
     end
 
     -- set the automatic burn rate based on the last set burn rate in 100ths
@@ -595,8 +597,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_commit_br100(ramp)
         if self.auto_engaged then
             if self.plc_i ~= nil then
+                log.debug(util.c("UNIT ", self.r_id, ": commit br100 of ", self.db.control.br100, " with ramp set to ", ramp))
                 self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
-
                 if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end

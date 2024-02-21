@@ -843,9 +843,12 @@ function element.new(args, child_offset_x, child_offset_y)
 
     -- re-draw this element and all its children
     function public.redraw()
+        local bg, fg = protected.window.getBackgroundColor(), protected.window.getTextColor()
         protected.window.setBackgroundColor(protected.fg_bg.bkg)
         protected.window.setTextColor(protected.fg_bg.fgd)
         protected.window.clear()
+        protected.window.setBackgroundColor(bg)
+        protected.window.setTextColor(fg)
         protected.redraw()
         for _, child in pairs(protected.children) do child.get().redraw() end
     end

@@ -2,7 +2,7 @@ local util = require("scada-common.util")
 
 local println = util.println
 
-local BOOTLOADER_VERSION = "0.5"
+local BOOTLOADER_VERSION = "1.0"
 
 println("SCADA BOOTLOADER V" .. BOOTLOADER_VERSION)
 println("BOOT> SCANNING FOR APPLICATIONS...")

@@ -37,14 +37,17 @@ function plc.load_config()
 
     config.Networked = settings.get("Networked")
     config.UnitID = settings.get("UnitID")
+
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
     config.EmerCoolSide = settings.get("EmerCoolSide")
     config.EmerCoolColor = settings.get("EmerCoolColor")
+
     config.SVR_Channel = settings.get("SVR_Channel")
     config.PLC_Channel = settings.get("PLC_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
+
     config.LogMode = settings.get("LogMode")
     config.LogPath = settings.get("LogPath")
     config.LogDebug = settings.get("LogDebug")
@@ -71,6 +74,7 @@ function plc.load_config()
     end
 
     cfv.assert_type_int(config.LogMode)
+    cfv.assert_range(config.LogMode, 0, 1)
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
 

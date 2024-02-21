@@ -41,6 +41,8 @@ function rtu.load_config()
     local cfv = util.new_validator()
 
     cfv.assert_type_num(config.SpeakerVolume)
+    cfv.assert_range(config.SpeakerVolume, 0, 3)
+
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.RTU_Channel)
     cfv.assert_type_num(config.ConnTimeout)
@@ -55,6 +57,7 @@ function rtu.load_config()
     end
 
     cfv.assert_type_int(config.LogMode)
+    cfv.assert_range(config.LogMode, 0, 1)
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
 
