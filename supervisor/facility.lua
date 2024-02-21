@@ -337,7 +337,7 @@ function facility.new(num_reactors, cooling_conf)
         if state_changed then
             self.saturated = false
 
-            log.debug("FAC: state changed from " .. PROCESS_NAMES[self.last_mode + 1] .. " to " .. PROCESS_NAMES[self.mode + 1])
+            log.debug(util.c("FAC: state changed from ", PROCESS_NAMES[self.last_mode + 1], " to ", PROCESS_NAMES[self.mode + 1]))
 
             if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
                 self.start_fail = START_STATUS.OK
@@ -374,6 +374,8 @@ function facility.new(num_reactors, cooling_conf)
                         self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br100 / 100.0)
                     end
                 end
+
+                log.debug(util.c("FAC: computed a max combined burn rate of ", self.max_burn_combined, "mB/t"))
 
                 if blade_count == nil then
                     -- no units
@@ -436,7 +438,7 @@ function facility.new(num_reactors, cooling_conf)
                 self.saturated = true
 
                 self.status_text = { "MONITORED MODE", "running reactors at limit" }
-                log.info(util.c("FAC: MAX_BURN process mode started"))
+                log.info("FAC: MAX_BURN process mode started")
             end
 
             _allocate_burn_rate(self.max_burn_combined, true)
@@ -445,7 +447,7 @@ function facility.new(num_reactors, cooling_conf)
             if state_changed then
                 self.time_start = now
                 self.status_text = { "BURN RATE MODE", "running" }
-                log.info(util.c("FAC: BURN_RATE process mode started"))
+                log.info("FAC: BURN_RATE process mode started")
             end
 
             local unallocated = _allocate_burn_rate(self.burn_target, true)
@@ -459,7 +461,7 @@ function facility.new(num_reactors, cooling_conf)
                 self.accumulator = 0
 
                 self.status_text = { "CHARGE MODE", "running control loop" }
-                log.info(util.c("FAC: CHARGE mode starting PID control"))
+                log.info("FAC: CHARGE mode starting PID control")
             elseif self.last_update ~= charge_update then
                 -- convert to kFE to make constants not microscopic
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
@@ -614,7 +616,7 @@ function facility.new(num_reactors, cooling_conf)
             astatus.matrix_fill = (db.tanks.energy_fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.matrix_fill and db.tanks.energy_fill > ALARM_LIMS.CHARGE_RE_ENABLE)
 
             if was_fill and not astatus.matrix_fill then
-                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (ALARM_LIMS.CHARGE_RE_ENABLE * 100) .. "%")
+                log.info(util.c("FAC: charge state of induction matrix entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
             end
 
             -- check for critical unit alarms

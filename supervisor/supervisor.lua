@@ -199,9 +199,8 @@ function supervisor.comms(_version, nic, fp_ok)
                         -- pass the packet onto the session handler
                         session.in_queue.push_packet(packet)
                     else
-                        -- unknown session, force a re-link
-                        log.debug("PLC_ESTABLISH: no session but not an establish, forcing relink")
-                        _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
+                        -- any other packet should be session related, discard it
+                        log.debug("discarding RPLC packet without a known session")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
