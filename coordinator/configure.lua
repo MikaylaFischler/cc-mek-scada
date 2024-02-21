@@ -498,7 +498,7 @@ local function config_view(display)
 
     local function sv_skip()
         tcd.abort(handle_timeout)
-        tool_ctl.sv_fac_conf = nil
+        tool_ctl.sv_cool_conf = nil
         tool_ctl.net_listen = false
         fac_pane.set_value(2)
     end
@@ -998,7 +998,7 @@ local function config_view(display)
         local conf = tool_ctl.sv_cool_conf
         fac_config_list.remove_all()
 
-        local str = util.sprintf("Facility has %d reactor units:", #conf)
+        local str = util.sprintf("Facility has %d reactor unit%s:", #conf, util.trinary(#conf==1,"","s"))
         TextBox{parent=fac_config_list,height=1,text=str,fg_bg=cpair(colors.gray,colors.white)}
 
         for i = 1, #conf do
