@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.2.2"
+local COORDINATOR_VERSION = "v1.2.3"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -79,8 +79,8 @@ local function main()
     -- system startup
     ----------------------------------------
 
-    -- re-mount devices now that logging is ready
-    ppm.mount_all()
+    -- log mounts now since mounting was done before logging was ready
+    ppm.log_mounts()
 
     -- report versions/init fp PSIL
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
@@ -268,6 +268,11 @@ local function main()
                     sounder.reconnect(device)
                     iocontrol.fp_has_speaker(true)
                 end
+            end
+        elseif event == "monitor_resize" then
+            local is_used, is_ok = renderer.handle_resize(param1)
+            if is_used then
+                log_sys(util.c("configured monitor ", param1, " resized, ", util.trinary(is_ok, "display still fits", "display no longer fits")))
             end
         elseif event == "timer" then
             if loop_clock.is_clock(param1) then

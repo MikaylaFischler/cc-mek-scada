@@ -300,6 +300,17 @@ function ppm.handle_unmount(iface)
     return pm_type, pm_dev
 end
 
+-- log all mounts, to be used if `ppm.mount_all` is called before logging is ready
+function ppm.log_mounts()
+    for iface, mount in pairs(ppm_sys.mounts) do
+        log.info(util.c("PPM: had found a ", mount.type, " (", iface, ")"))
+    end
+
+    if #ppm_sys.mounts == 0 then
+        log.warning("PPM: no devices had been found")
+    end
+end
+
 -- GENERAL ACCESSORS --
 
 -- list all available peripherals
