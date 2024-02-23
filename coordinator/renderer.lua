@@ -94,8 +94,8 @@ end
 
 -- initialize the dmesg output window
 function renderer.init_dmesg()
-    local disp_x, disp_y = engine.monitors.primary.getSize()
-    engine.dmesg_window = window.create(engine.monitors.primary, 1, 1, disp_x, disp_y)
+    local disp_w, disp_h = engine.monitors.primary.getSize()
+    engine.dmesg_window = window.create(engine.monitors.primary, 1, 1, disp_w, disp_h)
     log.direct_dmesg(engine.dmesg_window)
 end
 
@@ -302,9 +302,6 @@ function renderer.handle_reconnect(name, device)
         is_used = true
         engine.monitors.primary = device
 
-        local disp_x, disp_y = engine.monitors.primary.getSize()
-        engine.dmesg_window.reposition(1, 1, disp_x, disp_y, engine.monitors.primary)
-
         renderer.handle_resize(name)
     elseif engine.monitors.flow_name == name then
         is_used = true
@@ -347,10 +344,8 @@ function renderer.handle_resize(name)
 
         -- resize dmesg window if needed, but don't make it thinner
         local disp_w, disp_h = engine.monitors.primary.getSize()
-        local dmsg_w, dmsg_h = engine.dmesg_window.getSize()
-        if disp_h ~= dmsg_h then
-            engine.dmesg_window = window.reposition(1, 1, math.max(disp_w, dmsg_w), disp_h, engine.monitors.primary)
-        end
+        local dmsg_w, _ = engine.dmesg_window.getSize()
+        engine.dmesg_window.reposition(1, 1, math.max(disp_w, dmsg_w), disp_h, engine.monitors.primary)
 
         if ui.main_display then
             ui.main_display.delete()

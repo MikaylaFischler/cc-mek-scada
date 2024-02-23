@@ -53,6 +53,11 @@ function network.init_mac(passkey)
     return init_time
 end
 
+-- de-initialize message authentication system
+function network.deinit_mac()
+    c_eng.key, c_eng.hmac = nil, nil
+end
+
 -- generate HMAC of message
 ---@nodiscard
 ---@param message string initial value concatenated with ciphertext

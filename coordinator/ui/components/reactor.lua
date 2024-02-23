@@ -1,5 +1,7 @@
 local types          = require("scada-common.types")
 
+local iocontrol      = require("coordinator.iocontrol")
+
 local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
@@ -23,15 +25,17 @@ local lu_col = style.lu_colors
 ---@param y integer top left y
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
+    local db = iocontrol.get_db()
+
     local reactor = Rectangle{parent=root,border=border(1, colors.gray, true),width=30,height=7,x=x,y=y}
 
     local status    = StateIndicator{parent=reactor,x=6,y=1,states=style.reactor.states,value=1,min_width=16}
-    local core_temp = DataIndicator{parent=reactor,x=2,y=3,lu_colors=lu_col,label="Core Temp:",unit="K",format="%10.2f",value=0,width=26,fg_bg=text_fg_bg}
+    local core_temp = DataIndicator{parent=reactor,x=2,y=3,lu_colors=lu_col,label="Core Temp:",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg_bg}
     local burn_r    = DataIndicator{parent=reactor,x=2,y=4,lu_colors=lu_col,label="Burn Rate:",unit="mB/t",format="%10.2f",value=0,width=26,fg_bg=text_fg_bg}
     local heating_r = DataIndicator{parent=reactor,x=2,y=5,lu_colors=lu_col,label="Heating:",unit="mB/t",format="%12.0f",value=0,commas=true,width=26,fg_bg=text_fg_bg}
 
     status.register(ps, "computed_status", status.update)
-    core_temp.register(ps, "temp", core_temp.update)
+    core_temp.register(ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
     burn_r.register(ps, "act_burn_rate", burn_r.update)
     heating_r.register(ps, "heating_rate", heating_r.update)
 
