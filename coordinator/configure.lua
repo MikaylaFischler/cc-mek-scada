@@ -469,7 +469,7 @@ local function config_view(display)
             key_err.hide(true)
 
             -- init mac for supervisor connection
-            if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) end
+            if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) else network.deinit_mac() end
 
             main_pane.set_value(3)
 
