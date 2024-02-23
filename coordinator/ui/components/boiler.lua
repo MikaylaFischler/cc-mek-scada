@@ -1,5 +1,7 @@
 local style          = require("coordinator.ui.style")
 
+local iocontrol      = require("coordinator.iocontrol")
+
 local core           = require("graphics.core")
 
 local Rectangle      = require("graphics.elements.rectangle")
@@ -13,6 +15,7 @@ local cpair = core.cpair
 local border = core.border
 
 local text_fg_bg = style.text_colors
+local lu_col = style.lu_colors
 
 -- new boiler view
 ---@param root graphics_element parent
@@ -20,14 +23,16 @@ local text_fg_bg = style.text_colors
 ---@param y integer top left y
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
+    local db = iocontrol.get_db()
+
     local boiler = Rectangle{parent=root,border=border(1,colors.gray,true),width=31,height=7,x=x,y=y}
 
     local status = StateIndicator{parent=boiler,x=9,y=1,states=style.boiler.states,value=1,min_width=12}
-    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=style.lu_col,label="Temp:",unit="K",format="%10.2f",value=0,width=22,fg_bg=text_fg_bg}
-    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=style.lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
+    local temp   = DataIndicator{parent=boiler,x=5,y=3,lu_colors=lu_col,label="Temp:",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
+    local boil_r = DataIndicator{parent=boiler,x=5,y=4,lu_colors=lu_col,label="Boil:",unit="mB/t",format="%10.0f",value=0,commas=true,width=22,fg_bg=text_fg_bg}
 
     status.register(ps, "computed_status", status.update)
-    temp.register(ps, "temperature", temp.update)
+    temp.register(ps, "temperature", function (t) temp.update(db.temp_convert(t)) end)
     boil_r.register(ps, "boil_rate", boil_r.update)
 
     TextBox{parent=boiler,text="H",x=2,y=5,height=1,width=1,fg_bg=text_fg_bg}

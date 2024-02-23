@@ -3,6 +3,7 @@
 --
 
 local types             = require("scada-common.types")
+local util              = require("scada-common.util")
 
 local iocontrol         = require("coordinator.iocontrol")
 
@@ -51,8 +52,9 @@ local period = core.flasher.PERIOD
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)
-    local unit = iocontrol.get_db().units[id]   ---@type ioctl_unit
-    local f_ps = iocontrol.get_db().facility.ps
+    local db = iocontrol.get_db()
+    local unit = db.units[id]   ---@type ioctl_unit
+    local f_ps = db.facility.ps
 
     local main = Div{parent=parent,x=1,y=1}
 
@@ -114,8 +116,9 @@ local function init(parent, id)
     end)
 
     TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
-    local core_temp = DataIndicator{parent=main,x=32,label="",format="%11.2f",value=0,unit="K",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
-    core_temp.register(u_ps, "temp", core_temp.update)
+    local fmt = util.trinary(string.len(db.temp_label) == 2, "%10.2f", "%11.2f")
+    local core_temp = DataIndicator{parent=main,x=32,label="",format=fmt,value=0,commas=true,unit=db.temp_label,lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    core_temp.register(u_ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
 
     TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
     local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}

@@ -47,7 +47,23 @@ end
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
-function iocontrol.init(conf, comms)
+---@param temp_scale integer temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+function iocontrol.init(conf, comms, temp_scale)
+    -- temperature unit label and conversion function (from Kelvin)
+    if temp_scale == 2 then
+        io.temp_label = "\xb0C"
+        io.temp_convert = function (t) return t - 273.15 end
+    elseif temp_scale == 3 then
+        io.temp_label = "\xb0F"
+        io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
+    elseif temp_scale == 4 then
+        io.temp_label = "\xb0R"
+        io.temp_convert = function (t) return 1.8 * t end
+    else
+        io.temp_label = "K"
+        io.temp_convert = function (t) return t end
+    end
+
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
