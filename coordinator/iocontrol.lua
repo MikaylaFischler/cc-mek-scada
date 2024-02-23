@@ -939,7 +939,7 @@ function iocontrol.update_unit_statuses(statuses)
                         local boil_sum = 0
 
                         for id = 1, #unit.boiler_ps_tbl do
-                            if rtu_statuses.boilers[i] == nil then
+                            if rtu_statuses.boilers[id] == nil then
                                 -- disconnected
                                 unit.boiler_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -982,7 +982,7 @@ function iocontrol.update_unit_statuses(statuses)
                         local flow_sum = 0
 
                         for id = 1, #unit.turbine_ps_tbl do
-                            if rtu_statuses.turbines[i] == nil then
+                            if rtu_statuses.turbines[id] == nil then
                                 -- disconnected
                                 unit.turbine_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -1025,7 +1025,7 @@ function iocontrol.update_unit_statuses(statuses)
                     -- dynamic tank statuses
                     if type(rtu_statuses.tanks) == "table" then
                         for id = 1, #unit.tank_ps_tbl do
-                            if rtu_statuses.tanks[i] == nil then
+                            if rtu_statuses.tanks[id] == nil then
                                 -- disconnected
                                 unit.tank_ps_tbl[id].publish("computed_status", 1)
                             end
