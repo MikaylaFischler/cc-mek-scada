@@ -31,10 +31,13 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
+local s_hi_bright = style.theme.highlight_box_bright
+local s_field = style.theme.field_box
+
 local wh_gray = style.wh_gray
-local bw_fg_bg = style.bw_fg_bg
 local text_col = style.text_colors
 local lu_col = style.lu_colors
+local lu_c_d = style.lu_colors_dark
 
 -- create new flow view
 ---@param main graphics_element main displaybox
@@ -240,7 +243,7 @@ local function init(main)
     local flow_x = 3
     if #water_pipes > 0 then
         flow_x = 25
-        PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=colors.lightGray}
+        PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=style.theme.bg}
     end
 
     for i = 1, facility.num_units do
@@ -249,7 +252,7 @@ local function init(main)
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
     end
 
-    PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=colors.lightGray}
+    PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
 
     -----------------
     -- tank valves --
@@ -297,7 +300,7 @@ local function init(main)
 
             TextBox{parent=tank_box,x=2,y=3,text="Fill",height=1,width=10,fg_bg=style.label}
             local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
-            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=bw_fg_bg}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=s_field}
 
             TextBox{parent=tank_box,x=2,y=6,text="Water Level",height=1,width=11,fg_bg=style.label}
             local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
@@ -348,12 +351,12 @@ local function init(main)
     status.register(facility.sps_ps_tbl[1], "computed_status", status.update)
 
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",height=1,width=10,fg_bg=style.label}
-    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.3f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.3f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=s_field}
 
     sps_in.register(facility.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",height=1,width=15,fg_bg=style.label}
-    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=bw_fg_bg}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=s_field}
 
     sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
@@ -362,24 +365,24 @@ local function init(main)
     ----------------
 
     TextBox{parent=main,x=145,y=16,text="RAW WASTE",alignment=ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local raw_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
-    local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
+    local raw_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
 
     sum_raw_waste.register(facility.ps, "burn_sum", sum_raw_waste.update)
 
     TextBox{parent=main,x=145,y=21,text="PROC. WASTE",alignment=ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local pr_waste  = Rectangle{parent=main,x=145,y=22,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=bw_fg_bg}
-    local pu = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
-    local po = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="Po",unit="mB/t",format="%9.3f",value=0,width=17}
-    local popl = DataIndicator{parent=pr_waste,lu_colors=lu_col,label="PoPl",unit="mB/t",format="%7.3f",value=0,width=17}
+    local pr_waste  = Rectangle{parent=main,x=145,y=22,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
+    local pu = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
+    local po = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Po",unit="mB/t",format="%9.3f",value=0,width=17}
+    local popl = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="PoPl",unit="mB/t",format="%7.3f",value=0,width=17}
 
     pu.register(facility.ps, "pu_rate", pu.update)
     po.register(facility.ps, "po_rate", po.update)
     popl.register(facility.ps, "po_pl_rate", popl.update)
 
     TextBox{parent=main,x=145,y=28,text="SPENT WASTE",alignment=ALIGN.CENTER,width=19,height=1,fg_bg=wh_gray}
-    local sp_waste  = Rectangle{parent=main,x=145,y=29,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=bw_fg_bg}
-    local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_col,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
+    local sp_waste  = Rectangle{parent=main,x=145,y=29,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(facility.ps, "spent_waste_rate", sum_sp_waste.update)
 end

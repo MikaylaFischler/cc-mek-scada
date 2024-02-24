@@ -51,6 +51,7 @@ local deepslate = {
     text = colors.white,
     text_inv = colors.black,
     label = colors.lightGray,
+    label_dark = colors.gray,
     disabled = colors.gray,
     bg = colors.black,
     accent_light = colors.gray,
@@ -70,16 +71,16 @@ local deepslate = {
 
     colors = {
         { c = colors.red,       hex = 0xeb6a6c },
-        { c = colors.orange,    hex = 0xf2b564 },
-        { c = colors.yellow,    hex = 0xd9cf81 },
+        { c = colors.orange,    hex = 0xffbb65 },
+        { c = colors.yellow,    hex = 0xeae175 },
         { c = colors.lime,      hex = 0x80ff80 },
-        { c = colors.green,     hex = 0x5fe492 },
-        { c = colors.cyan,      hex = 0x6fdbdf },
-        { c = colors.lightBlue, hex = 0x75beea },
-        { c = colors.blue,      hex = 0x4db4ff },
+        { c = colors.green,     hex = 0x70e19b },
+        { c = colors.cyan,      hex = 0x7ccdd0 },
+        { c = colors.lightBlue, hex = 0x99ceef },
+        { c = colors.blue,      hex = 0x60bcff },
         { c = colors.purple,    hex = 0xc38aea },
-        { c = colors.pink,      hex = 0xf26ba2 },
-        { c = colors.magenta,   hex = 0xf9488a },
+        { c = colors.pink,      hex = 0xff7fb8 },
+        { c = colors.magenta,   hex = 0xf980dd },
         { c = colors.white,     hex = 0xd9d9d9 },
         { c = colors.lightGray, hex = 0x949494 },
         { c = colors.gray,      hex = 0x575757 },
@@ -93,6 +94,7 @@ local smooth_stone = {
     text = colors.black,
     text_inv = colors.white,
     label = colors.gray,
+    label_dark = colors.gray,
     disabled = colors.lightGray,
     bg = colors.lightGray,
     accent_light = colors.white,
@@ -142,6 +144,8 @@ style.hc_text = cpair(style.theme.text, style.theme.text_inv)
 style.text_colors = cpair(style.theme.text, style.theme.bg)
 -- label & unit colors
 style.lu_colors = cpair(style.theme.label, style.theme.label)
+-- label & unit colors (darker if set)
+style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
 
 -- COMMON COLOR PAIRS --
 
