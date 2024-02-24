@@ -261,9 +261,9 @@ local function init(parent, id)
 
     -- boiler annunciator panel(s)
 
-    if available_space > 0 then _add_space() end
-
     if unit.num_boilers > 0 then
+        if available_space > 0 then _add_space() end
+
         TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=hc_text}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b1_wll.register(b_ps[1], "WaterLevelLow", b1_wll.update)
