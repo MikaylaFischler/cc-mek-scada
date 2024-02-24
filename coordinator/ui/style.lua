@@ -65,6 +65,7 @@ local deepslate = {
     disabled_fg = cpair(colors.gray, colors._INHERIT),
 
     highlight_box = cpair(colors.white, colors.gray),
+    highlight_box_bright = cpair(colors.black, colors.lightGray),
     field_box = cpair(colors.white, colors.gray),
 
     colors = {
@@ -106,6 +107,7 @@ local smooth_stone = {
     disabled_fg = cpair(colors.lightGray, colors._INHERIT),
 
     highlight_box = cpair(colors.black, colors.white),
+    highlight_box_bright = cpair(colors.black, colors.white),
     field_box = cpair(colors.black, colors.white),
 
     colors = {
@@ -134,13 +136,19 @@ style.theme = deepslate
 style.root = cpair(style.theme.text, style.theme.bg)
 style.label = cpair(style.theme.label, style.theme.bg)
 
+-- high contrast text (also tags)
+style.hc_text = cpair(style.theme.text, style.theme.text_inv)
+-- text on default background
+style.text_colors = cpair(style.theme.text, style.theme.bg)
+-- label & unit colors
+style.lu_colors = cpair(style.theme.label, style.theme.label)
+
 -- COMMON COLOR PAIRS --
 
 style.wh_gray = cpair(colors.white, colors.gray)
 
 style.bw_fg_bg = cpair(colors.black, colors.white)
-style.text_colors = cpair(colors.black, colors.lightGray)
-style.lu_colors = cpair(style.theme.label, style.theme.label)
+
 style.hzd_fg_bg  = style.wh_gray
 style.dis_colors = cpair(colors.white, colors.lightGray)
 
