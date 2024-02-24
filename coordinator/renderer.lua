@@ -47,8 +47,8 @@ local function _init_display(monitor)
     monitor.setCursorPos(1, 1)
 
     -- set overridden colors
-    for i = 1, #style.colors do
-        monitor.setPaletteColor(style.colors[i].c, style.colors[i].hex)
+    for i = 1, #style.theme.colors do
+        monitor.setPaletteColor(style.theme.colors[i].c, style.theme.colors[i].hex)
     end
 end
 
@@ -142,9 +142,9 @@ function renderer.close_fp()
         engine.fp_ready = false
 
         -- restore colors
-        for i = 1, #style.colors do
-            local r, g, b = term.nativePaletteColor(style.colors[i].c)
-            term.setPaletteColor(style.colors[i].c, r, g, b)
+        for i = 1, #style.theme.colors do
+            local r, g, b = term.nativePaletteColor(style.theme.colors[i].c)
+            term.setPaletteColor(style.theme.colors[i].c, r, g, b)
         end
 
         -- reset terminal

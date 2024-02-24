@@ -64,7 +64,7 @@ local function init(parent, id)
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
 
-    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     -----------------------------
     -- main stats and core map --

@@ -33,7 +33,9 @@ local lu_cpair = style.lu_colors
 local hzd_fg_bg  = style.hzd_fg_bg
 local dis_colors = style.dis_colors
 
-local gry_wht = style.gray_white
+local s_hi_box = style.theme.highlight_box
+local s_field = style.theme.field_box
+local arrow_col = cpair(style.theme.label, s_hi_box.bkg)
 
 local ind_grn = style.ind_grn
 local ind_yel = style.ind_yel
@@ -103,11 +105,11 @@ local function new_view(root, x, y)
     gen_fault.register(facility.ps, "as_gen_fault", gen_fault.update)
 
     TextBox{parent=main,y=23,text="Radiation",height=1,width=13,fg_bg=style.label}
-    local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     radiation.register(facility.ps, "radiation", radiation.update)
 
     TextBox{parent=main,x=15,y=23,text="Linked RTUs",height=1,width=11,fg_bg=style.label}
-    local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=bw_fg_bg}
+    local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=s_field}
     rtu_count.register(facility.ps, "rtu_count", rtu_count.update)
 
     ---------------------
@@ -125,9 +127,9 @@ local function new_view(root, x, y)
     local burn_tag = Div{parent=targets,x=1,y=1,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=burn_tag,x=2,y=2,text="Burn Target",width=7,height=2}
 
-    local burn_target = Div{parent=targets,x=9,y=1,width=23,height=3,fg_bg=gry_wht}
-    local b_target = SpinboxNumeric{parent=burn_target,x=11,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
-    TextBox{parent=burn_target,x=18,y=2,text="mB/t"}
+    local burn_target = Div{parent=targets,x=9,y=1,width=23,height=3,fg_bg=s_hi_box}
+    local b_target = SpinboxNumeric{parent=burn_target,x=11,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_col,arrow_disable=style.theme.disabled}
+    TextBox{parent=burn_target,x=18,y=2,text="mB/t",fg_bg=style.theme.label_fg}
     local burn_sum = DataIndicator{parent=targets,x=9,y=4,label="",format="%18.1f",value=0,unit="mB/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     b_target.register(facility.ps, "process_burn_target", b_target.set_value)
@@ -136,9 +138,9 @@ local function new_view(root, x, y)
     local chg_tag = Div{parent=targets,x=1,y=6,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
 
-    local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=gry_wht}
-    local c_target = SpinboxNumeric{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
-    TextBox{parent=chg_target,x=18,y=2,text="MFE"}
+    local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
+    local c_target = SpinboxNumeric{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_col,arrow_disable=style.theme.disabled}
+    TextBox{parent=chg_target,x=18,y=2,text="MFE",fg_bg=style.theme.label_fg}
     local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="MFE",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
@@ -147,9 +149,9 @@ local function new_view(root, x, y)
     local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
 
-    local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=gry_wht}
-    local g_target = SpinboxNumeric{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
-    TextBox{parent=gen_target,x=18,y=2,text="kFE/t"}
+    local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=s_hi_box}
+    local g_target = SpinboxNumeric{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=arrow_col,arrow_disable=style.theme.disabled}
+    TextBox{parent=gen_target,x=18,y=2,text="kFE/t",fg_bg=style.theme.label_fg}
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="kFE/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     g_target.register(facility.ps, "process_gen_target", g_target.set_value)
@@ -165,17 +167,17 @@ local function new_view(root, x, y)
 
     for i = 1, 4 do
         local unit
-        local tag_fg_bg = gry_wht
-        local lim_fg_bg = style.lg_white
-        local ctl_fg    = colors.lightGray
-        local cur_fg_bg = style.lg_white
-        local cur_lu    = colors.lightGray
+        local tag_fg_bg = cpair(style.theme.disabled, s_hi_box.bkg)
+        local lim_fg_bg = cpair(style.theme.disabled, s_hi_box.bkg)
+        local label_fg  = style.theme.disabled_fg
+        local cur_fg_bg = cpair(style.theme.disabled, s_hi_box.bkg)
+        local cur_lu    = style.theme.disabled
 
         if i <= facility.num_units then
             unit = units[i]   ---@type ioctl_unit
-            tag_fg_bg = cpair(colors.black,colors.lightBlue)
-            lim_fg_bg = bw_fg_bg
-            ctl_fg    = colors.gray
+            tag_fg_bg = cpair(colors.black, colors.lightBlue)
+            lim_fg_bg = s_hi_box
+            label_fg  = style.theme.label_fg
             cur_fg_bg = blk_brn
             cur_lu    = colors.black
         end
@@ -185,9 +187,9 @@ local function new_view(root, x, y)
         local unit_tag = Div{parent=limit_div,x=1,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Limit",width=7,height=2}
 
-        local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=cpair(ctl_fg,colors.white)}
-        local lim = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=gry_wht,fg_bg=lim_fg_bg}
-        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1}
+        local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=s_hi_box}
+        local lim = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_col,arrow_disable=style.theme.disabled,fg_bg=lim_fg_bg}
+        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1,fg_bg=label_fg}
 
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}
 
@@ -209,14 +211,14 @@ local function new_view(root, x, y)
     local stat_div = Div{parent=proc,width=22,height=24,x=57,y=6}
 
     for i = 1, 4 do
-        local tag_fg_bg = gry_wht
-        local ind_fg_bg = style.lg_white
-        local ind_off = colors.lightGray
+        local tag_fg_bg = cpair(style.theme.disabled, s_hi_box.bkg)
+        local ind_fg_bg = cpair(style.theme.disabled, s_hi_box.bkg)
+        local ind_off = style.theme.disabled
 
         if i <= facility.num_units then
             tag_fg_bg = cpair(colors.black, colors.cyan)
-            ind_fg_bg = bw_fg_bg
-            ind_off = colors.gray
+            ind_fg_bg = cpair(style.theme.text, s_hi_box.bkg)
+            ind_off = style.theme.label
         end
 
         local _y = ((i - 1) * 5) + 1
@@ -241,18 +243,18 @@ local function new_view(root, x, y)
     -------------------------
 
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.gray,colors.white),select_color=colors.purple}
+    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 
     mode.register(facility.ps, "process_mode", mode.set_value)
 
     local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,x=1,y=16,fg_bg=bw_fg_bg}
     local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=gry_wht}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.white)}
 
     stat_line_1.register(facility.ps, "status_line_1", stat_line_1.set_value)
     stat_line_2.register(facility.ps, "status_line_2", stat_line_2.set_value)
 
-    local auto_controls = Div{parent=proc,x=1,y=20,width=31,height=5,fg_bg=gry_wht}
+    local auto_controls = Div{parent=proc,x=1,y=20,width=31,height=5,fg_bg=s_hi_box}
 
     -- save the automatic process control configuration without starting
     local function _save_cfg()
@@ -327,15 +329,17 @@ local function new_view(root, x, y)
 
     local waste_sel = Div{parent=proc,width=21,height=24,x=81,y=1}
 
-    TextBox{parent=waste_sel,text=" ",width=21,height=1,x=1,y=1,fg_bg=blk_brn}
-    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cpair(colors.lightGray,colors.brown)}
+    local cutout_fg_bg = cpair(style.theme.bg, colors.brown)
+
+    TextBox{parent=waste_sel,text=" ",width=21,height=1,x=1,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cutout_fg_bg}
 
     local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
     local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}
 
     status.register(facility.ps, "current_waste_product", status.update)
 
-    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.gray,colors.white),select_color=colors.brown}
+    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
     local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,colors.black)}
 
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
@@ -346,13 +350,13 @@ local function new_view(root, x, y)
     fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
 
     TextBox{parent=rect,x=2,y=11,text="Plutonium Rate",height=1,width=17,fg_bg=style.label}
-    local pu_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+    local pu_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
 
     TextBox{parent=rect,x=2,y=14,text="Polonium Rate",height=1,width=17,fg_bg=style.label}
-    local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+    local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
 
     TextBox{parent=rect,x=2,y=17,text="Antimatter Rate",height=1,width=17,fg_bg=style.label}
-    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12d",value=0,lu_colors=lu_cpair,fg_bg=bw_fg_bg,width=17}
+    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12d",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
 
     pu_rate.register(facility.ps, "pu_rate", pu_rate.update)
     po_rate.register(facility.ps, "po_rate", po_rate.update)

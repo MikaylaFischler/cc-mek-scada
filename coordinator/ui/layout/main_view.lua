@@ -12,11 +12,14 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
+local ColorMap      = require("graphics.elements.colormap")
 local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 
 local ALIGN = core.ALIGN
+
+local s_header = style.theme.header
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -25,10 +28,10 @@ local function init(main)
     local units = iocontrol.get_db().units
 
     -- window header message
-    local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
-    local ping = DataIndicator{parent=main,x=1,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=style.lg_white,width=12,fg_bg=style.header}
+    local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=ALIGN.CENTER,height=1,fg_bg=s_header}
+    local ping = DataIndicator{parent=main,x=1,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=style.lg_white,width=12,fg_bg=s_header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
-    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
+    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,height=1,fg_bg=s_header}
 
     ping.register(facility.ps, "sv_ping", ping.update)
     datetime.register(facility.ps, "date_time", datetime.set_value)
@@ -65,6 +68,8 @@ local function init(main)
     end
 
     -- command & control
+
+    ColorMap{parent=main,y=cnc_y_start+2}
 
     cnc_y_start = cnc_y_start
 

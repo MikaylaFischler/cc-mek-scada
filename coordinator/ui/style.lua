@@ -4,6 +4,7 @@
 
 local core = require("graphics.core")
 
+---@class crd_style
 local style = {}
 
 local cpair = core.cpair
@@ -45,28 +46,93 @@ style.fp.colors = {
 
 -- main GUI styling
 
-style.root = cpair(colors.black, colors.lightGray)
-style.header = cpair(colors.white, colors.gray)
-style.label = cpair(colors.gray, colors.lightGray)
+---@class theme
+local deepslate = {
+    text = colors.white,
+    text_inv = colors.black,
+    label = colors.lightGray,
+    disabled = colors.gray,
+    bg = colors.black,
+    accent_light = colors.gray,
+    accent_dark = colors.lightGray,
 
-style.colors = {
-    { c = colors.red,       hex = 0xdf4949 },
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x80ff80 },
-    { c = colors.green,     hex = 0x4aee8a },
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
-    { c = colors.pink,      hex = 0xf26ba2 },
-    { c = colors.magenta,   hex = 0xf9488a },
-    -- { c = colors.white,     hex = 0xf0f0f0 },
-    { c = colors.lightGray, hex = 0xcacaca },
-    { c = colors.gray,      hex = 0x575757 },
-    -- { c = colors.black,     hex = 0x191919 },
-    -- { c = colors.brown,     hex = 0x7f664c }
+    fuel_color = colors.lightGray,
+
+    header = cpair(colors.white, colors.gray),
+
+    text_fg = cpair(colors.white, colors._INHERIT),
+    label_fg = cpair(colors.lightGray, colors._INHERIT),
+    disabled_fg = cpair(colors.gray, colors._INHERIT),
+
+    highlight_box = cpair(colors.white, colors.gray),
+    field_box = cpair(colors.white, colors.gray),
+
+    colors = {
+        { c = colors.red,       hex = 0xeb6a6c },
+        { c = colors.orange,    hex = 0xf2b564 },
+        { c = colors.yellow,    hex = 0xd9cf81 },
+        { c = colors.lime,      hex = 0x80ff80 },
+        { c = colors.green,     hex = 0x5fe492 },
+        { c = colors.cyan,      hex = 0x6fdbdf },
+        { c = colors.lightBlue, hex = 0x75beea },
+        { c = colors.blue,      hex = 0x4db4ff },
+        { c = colors.purple,    hex = 0xc38aea },
+        { c = colors.pink,      hex = 0xf26ba2 },
+        { c = colors.magenta,   hex = 0xf9488a },
+        { c = colors.white,     hex = 0xd9d9d9 },
+        { c = colors.lightGray, hex = 0x949494 },
+        { c = colors.gray,      hex = 0x575757 },
+        { c = colors.black,     hex = 0x262626 },
+        { c = colors.brown,     hex = 0xb18f6a }
+    }
 }
+
+---@type theme
+local smooth_stone = {
+    text = colors.black,
+    text_inv = colors.white,
+    label = colors.gray,
+    disabled = colors.lightGray,
+    bg = colors.lightGray,
+    accent_light = colors.white,
+    accent_dark = colors.gray,
+
+    fuel_color = colors.black,
+
+    header = cpair(colors.white, colors.gray),
+
+    text_fg = cpair(colors.black, colors._INHERIT),
+    label_fg = cpair(colors.gray, colors._INHERIT),
+    disabled_fg = cpair(colors.lightGray, colors._INHERIT),
+
+    highlight_box = cpair(colors.black, colors.white),
+    field_box = cpair(colors.black, colors.white),
+
+    colors = {
+        { c = colors.red,       hex = 0xdf4949 },
+        { c = colors.orange,    hex = 0xffb659 },
+        { c = colors.yellow,    hex = 0xfffc79 },
+        { c = colors.lime,      hex = 0x80ff80 },
+        { c = colors.green,     hex = 0x4aee8a },
+        { c = colors.cyan,      hex = 0x34bac8 },
+        { c = colors.lightBlue, hex = 0x6cc0f2 },
+        { c = colors.blue,      hex = 0x0096ff },
+        { c = colors.purple,    hex = 0xb156ee },
+        { c = colors.pink,      hex = 0xf26ba2 },
+        { c = colors.magenta,   hex = 0xf9488a },
+        { c = colors.white,     hex = 0xf0f0f0 },
+        { c = colors.lightGray, hex = 0xcacaca },
+        { c = colors.gray,      hex = 0x575757 },
+        { c = colors.black,     hex = 0x191919 },
+        { c = colors.brown,     hex = 0x7f664c }
+    }
+}
+
+style.theme = deepslate
+-- style.theme = smooth_stone
+
+style.root = cpair(style.theme.text, style.theme.bg)
+style.label = cpair(style.theme.label, style.theme.bg)
 
 -- COMMON COLOR PAIRS --
 
@@ -74,7 +140,7 @@ style.wh_gray = cpair(colors.white, colors.gray)
 
 style.bw_fg_bg = cpair(colors.black, colors.white)
 style.text_colors = cpair(colors.black, colors.lightGray)
-style.lu_colors = cpair(colors.gray, colors.gray)
+style.lu_colors = cpair(style.theme.label, style.theme.label)
 style.hzd_fg_bg  = style.wh_gray
 style.dis_colors = cpair(colors.white, colors.lightGray)
 

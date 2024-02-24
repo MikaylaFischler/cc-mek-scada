@@ -46,9 +46,9 @@ local function init(main)
     local tank_list = facility.tank_list
 
     -- window header message
-    local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
-    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,height=1,fg_bg=style.header}
+    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,height=1,fg_bg=style.theme.header}
 
     datetime.register(facility.ps, "date_time", datetime.set_value)
 

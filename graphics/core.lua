@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.1.1"
+core.version = "2.2.0"
 
 core.flasher = flasher
 core.events = events
@@ -60,6 +60,9 @@ end
 ---@field bkg color
 ---@field blit_fgd string
 ---@field blit_bkg string
+
+-- add inherited flag, 3 isn't a pure color so it wouldn't be used
+colors._INHERIT = 3
 
 -- create a new color pair definition
 ---@nodiscard
