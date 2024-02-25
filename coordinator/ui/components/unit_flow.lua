@@ -149,6 +149,8 @@ local function make(parent, x, y, wide, unit)
 
     local waste = Div{parent=root,x=3,y=6}
 
+    local waste_c = style.theme.fuel_color
+
     local waste_pipes = {
         pipe(0, 0, _wide(19, 16), 1, colors.brown, true),
         pipe(_wide(14, 13), 1, _wide(19, 17), 5, colors.brown, true),
@@ -162,9 +164,9 @@ local function make(parent, x, y, wide, unit)
         pipe(_wide(74, 63), 4, _wide(95, 81), 4, colors.cyan, true),
         pipe(_wide(74, 63), 8, _wide(133, 111), 8, colors.cyan, true),
 
-        pipe(_wide(108, 94), 1, _wide(132, 110), 6, colors.black, true, true),
-        pipe(_wide(108, 94), 4, _wide(111, 95), 1, colors.black, true, true),
-        pipe(_wide(132, 110), 6, _wide(130, 108), 6, colors.black, true, true)
+        pipe(_wide(108, 94), 1, _wide(132, 110), 6, waste_c, true, true),
+        pipe(_wide(108, 94), 4, _wide(111, 95), 1, waste_c, true, true),
+        pipe(_wide(132, 110), 6, _wide(130, 108), 6, waste_c, true, true)
     }
 
     PipeNetwork{parent=waste,x=1,y=1,pipes=waste_pipes,bg=style.theme.bg}

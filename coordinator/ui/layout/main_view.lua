@@ -12,7 +12,6 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
-local ColorMap      = require("graphics.elements.colormap")
 local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
@@ -68,10 +67,6 @@ local function init(main)
     end
 
     -- command & control
-
-    ColorMap{parent=main,y=cnc_y_start+2}
-
-    cnc_y_start = cnc_y_start
 
     -- induction matrix and process control interfaces are 24 tall + space needed for divider
     local cnc_bottom_align_start = main.get_height() - 26
