@@ -302,7 +302,7 @@ function coordinator.comms(version, nic, sv_watchdog)
 
         if not self.sv_linked then
             if self.est_tick_waiting == nil then
-                self.est_start = util.time_s()
+                self.est_start = os.clock()
                 self.est_last = self.est_start
 
                 self.est_tick_waiting, self.est_task_done =
@@ -310,10 +310,10 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                 _send_establish()
             else
-                self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (util.time_s() - self.est_start)))
+                self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (os.clock() - self.est_start)))
             end
 
-            if abort or (util.time_s() - self.est_start) >= LINK_TIMEOUT then
+            if abort or (os.clock() - self.est_start) >= LINK_TIMEOUT then
                 self.est_task_done(false)
 
                 if abort then
@@ -336,9 +336,9 @@ function coordinator.comms(version, nic, sv_watchdog)
             elseif self.sv_config_err then
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
-            elseif (util.time_s() - self.est_last) > 1.0 then
+            elseif (os.clock() - self.est_last) > 1.0 then
                 _send_establish()
-                self.est_last = util.time_s()
+                self.est_last = os.clock()
             end
         elseif self.est_tick_waiting ~= nil then
             self.est_task_done(true)
