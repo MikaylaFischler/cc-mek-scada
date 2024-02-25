@@ -71,8 +71,8 @@ local deepslate = {
 
     colors = {
         { c = colors.red,       hex = 0xeb6a6c },
-        { c = colors.orange,    hex = 0xffbb65 },
-        { c = colors.yellow,    hex = 0xeae175 },
+        { c = colors.orange,    hex = 0xf2b86c },
+        { c = colors.yellow,    hex = 0xd9cf81 },
         { c = colors.lime,      hex = 0x80ff80 },
         { c = colors.green,     hex = 0x70e19b },
         { c = colors.cyan,      hex = 0x7ccdd0 },
