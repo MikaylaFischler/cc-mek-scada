@@ -22,7 +22,9 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.2.5"
+local COORDINATOR_VERSION = "v1.2.7"
+
+local CHUNK_LOAD_DELAY_S = 20.0
 
 local println = util.println
 local println_ts = util.println_ts
@@ -41,6 +43,25 @@ local log_crypto = coordinator.log_crypto
 ppm.mount_all()
 
 local loaded, monitors = coordinator.load_config()
+
+-- if the computer just started, its chunk may have just loaded (...or the user rebooted)
+-- if monitor config failed, maybe an adjacent chunk containing all or part of a monitor has not loaded yet, so keep trying
+while loaded == 2 and os.clock() < CHUNK_LOAD_DELAY_S do
+    term.clear()
+    term.setCursorPos(1, 1)
+    println("There was a monitor configuration problem at boot.\n")
+    println("Startup will keep trying every 2s in case of chunk load delays.\n")
+    println(util.sprintf("The configurator will be started in %ds if all attempts fail.\n", math.max(0, CHUNK_LOAD_DELAY_S - os.clock())))
+    println("(exit early with ctrl-t)")
+
+---@diagnostic disable-next-line: undefined-field
+    os.sleep(2)
+
+    -- remount and re-attempt
+    ppm.mount_all()
+    loaded, monitors = coordinator.load_config()
+end
+
 if loaded ~= 0 then
     -- try to reconfigure (user action)
     local success, error = configure.configure(loaded, monitors)
