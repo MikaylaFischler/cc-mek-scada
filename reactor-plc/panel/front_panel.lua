@@ -95,8 +95,8 @@ local function init(panel)
     local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
     local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=ind_red,flash=true,period=flasher.PERIOD.BLINK_250_MS}
 
-    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,colors.white,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
-    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=cpair(colors.black,colors.white)}
+    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
+    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
     PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
     PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
@@ -107,9 +107,9 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Rectangle{parent=panel,width=32,height=3,x=2,y=16,border=border(1,colors.ivory),thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=cpair(colors.lightGray,colors.ivory)}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
