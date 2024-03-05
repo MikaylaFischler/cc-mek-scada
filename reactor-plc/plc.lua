@@ -129,6 +129,21 @@ function plc.rps_init(reactor, is_formed)
         end
     end
 
+    -- check if the result of a peripheral call was OK, handle the failure if not
+    ---@nodiscard
+    ---@param result any PPM function call result
+    ---@return boolean succeeded if the result is OK, false if it was a PPM failure
+    local function _check_and_handle_ppm_call(result)
+        if result == ppm.ACCESS_FAULT then
+            _set_fault()
+        elseif result == ppm.UNDEFINED_FIELD then
+            _set_fault()
+            self.formed = false
+        else return true end
+
+        return false
+    end
+
     -- set emergency coolant control (if configured)
     ---@param state boolean true to enable emergency coolant, false to disable
     local function _set_emer_cool(state)
@@ -167,25 +182,20 @@ function plc.rps_init(reactor, is_formed)
     -- check if the reactor is formed
     local function _is_formed()
         local formed = reactor.isFormed()
-        if formed == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        else
+        if _check_and_handle_ppm_call(formed) then
             self.formed = formed
+        end
 
-            if not self.state[state_keys.sys_fail] then
-                self.state[state_keys.sys_fail] = not formed
-            end
+        -- always update, since some ppm failures constitute not being formed
+        if not self.state[state_keys.sys_fail] then
+            self.state[state_keys.sys_fail] = not self.formed
         end
     end
 
     -- check if the reactor is force disabled
     local function _is_force_disabled()
         local disabled = reactor.isForceDisabled()
-        if disabled == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        else
+        if _check_and_handle_ppm_call(disabled) then
             self.force_disabled = disabled
 
             if not self.state[state_keys.force_disabled] then
@@ -197,22 +207,16 @@ function plc.rps_init(reactor, is_formed)
     -- check for high damage
     local function _high_damage()
         local damage_percent = reactor.getDamagePercent()
-        if damage_percent == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.high_dmg] then
+        if _check_and_handle_ppm_call(damage_percent) and not self.state[state_keys.high_dmg] then
             self.state[state_keys.high_dmg] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
         end
     end
 
     -- check if the reactor is at a critically high temperature
     local function _high_temp()
-        -- mekanism: MAX_DAMAGE_TEMPERATURE = 1_200
+        -- mekanism: MAX_DAMAGE_TEMPERATURE = 1200K
         local temp = reactor.getTemperature()
-        if temp == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.high_temp] then
+        if _check_and_handle_ppm_call(temp) and not self.state[state_keys.high_temp] then
             self.state[state_keys.high_temp] = temp >= RPS_LIMITS.MAX_DAMAGE_TEMPERATURE
         end
     end
@@ -220,10 +224,7 @@ function plc.rps_init(reactor, is_formed)
     -- check if there is very low coolant
     local function _low_coolant()
         local coolant_filled = reactor.getCoolantFilledPercentage()
-        if coolant_filled == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.low_coolant] then
+        if _check_and_handle_ppm_call(coolant_filled) and not self.state[state_keys.low_coolant] then
             self.state[state_keys.low_coolant] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
         end
     end
@@ -231,10 +232,7 @@ function plc.rps_init(reactor, is_formed)
     -- check for excess waste (>80% filled)
     local function _excess_waste()
         local w_filled = reactor.getWasteFilledPercentage()
-        if w_filled == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.ex_waste] then
+        if _check_and_handle_ppm_call(w_filled) and not self.state[state_keys.ex_waste] then
             self.state[state_keys.ex_waste] = w_filled > RPS_LIMITS.MAX_WASTE_FILL
         end
     end
@@ -242,10 +240,7 @@ function plc.rps_init(reactor, is_formed)
     -- check for heated coolant backup (>95% filled)
     local function _excess_heated_coolant()
         local hc_filled = reactor.getHeatedCoolantFilledPercentage()
-        if hc_filled == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.ex_hcoolant] then
+        if _check_and_handle_ppm_call(hc_filled) and not self.state[state_keys.ex_hcoolant] then
             self.state[state_keys.ex_hcoolant] = hc_filled > RPS_LIMITS.MAX_HEATED_COLLANT_FILL
         end
     end
@@ -253,10 +248,7 @@ function plc.rps_init(reactor, is_formed)
     -- check if there is no fuel
     local function _insufficient_fuel()
         local fuel = reactor.getFuelFilledPercentage()
-        if fuel == ppm.ACCESS_FAULT then
-            -- lost the peripheral or terminated, handled later
-            _set_fault()
-        elseif not self.state[state_keys.no_fuel] then
+        if _check_and_handle_ppm_call(fuel) and not self.state[state_keys.no_fuel] then
             self.state[state_keys.no_fuel] = fuel <= RPS_LIMITS.NO_FUEL_FILL
         end
     end

@@ -9,7 +9,7 @@ local util = require("scada-common.util")
 local ppm = {}
 
 local ACCESS_FAULT        = nil                 ---@type nil
-local UNDEFINED_FIELD     = "undefined field"
+local UNDEFINED_FIELD     = "__PPM_UNDEF_FIELD__"
 local VIRTUAL_DEVICE_TYPE = "ppm_vdev"
 
 ppm.ACCESS_FAULT          = ACCESS_FAULT
