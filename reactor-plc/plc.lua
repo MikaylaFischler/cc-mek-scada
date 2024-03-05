@@ -469,11 +469,20 @@ function plc.rps_init(reactor, is_formed)
         self.tripped = false
         self.trip_cause = RPS_TRIP_CAUSE.OK
 
-        for i = 1, #self.state do
-            self.state[i] = false
-        end
+        for i = 1, #self.state do self.state[i] = false end
 
         if not quiet then log.info("RPS: reset") end
+    end
+
+    -- partial RPS reset that only clears fault and sys_fail
+    function public.reset_formed()
+        self.tripped = false
+        self.trip_cause = RPS_TRIP_CAUSE.OK
+
+        self.state[state_keys.fault] = false
+        self.state[state_keys.sys_fail] = false
+
+        log.info("RPS: partial reset on formed")
     end
 
     -- reset the automatic and timeout trip flags, then clear trip if that was the trip cause

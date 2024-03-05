@@ -155,7 +155,7 @@ local function peri_init(iface)
 
             self.fault_counts[key] = self.fault_counts[key] + 1
 
-            return (function () return ACCESS_FAULT end)
+            return (function () return UNDEFINED_FIELD end)
         end
     }
 
@@ -306,7 +306,7 @@ function ppm.log_mounts()
         log.info(util.c("PPM: had found a ", mount.type, " (", iface, ")"))
     end
 
-    if #ppm_sys.mounts == 0 then
+    if util.table_len(ppm_sys.mounts) == 0 then
         log.warning("PPM: no devices had been found")
     end
 end
