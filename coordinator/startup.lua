@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.2.9"
+local COORDINATOR_VERSION = "v1.2.10"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -76,9 +76,13 @@ if loaded ~= 0 then
     local success, error = configure.configure(loaded, monitors)
     if success then
         loaded, monitors = coordinator.load_config()
-        assert(loaded == 0, util.trinary(loaded == 1, "failed to load valid configuration", "monitor configuration invalid"))
+        if loaded ~= 0 then
+            println(util.trinary(loaded == 2, "monitor configuration invalid", "failed to load a valid configuration") .. ", please reconfigure")
+            return
+        end
     else
-        assert(success, "coordinator configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 

@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.6.13"
+local R_PLC_VERSION = "v1.6.14"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -31,9 +31,13 @@ if not plc.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(plc.load_config(), "failed to load valid configuration")
+        if not plc.load_config() then
+            println("failed to load a valid configuration, please reconfigure")
+            return
+        end
     else
-        assert(success, "reactor PLC configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 
