@@ -22,7 +22,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.1.16"
+util.version = "1.1.18"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -284,11 +284,13 @@ function util.cancel_timer(timer) os.cancelTimer(timer) end
 
 --#region PARALLELIZATION
 
--- protected sleep call so we still are in charge of catching termination
----@param t integer seconds
+-- protected sleep call so we still are in charge of catching termination<br>
+-- returns the result of pcall
+---@param t number seconds
+---@return boolean success, any result, any ...
 --- EVENT_CONSUMER: this function consumes events
 ---@diagnostic disable-next-line: undefined-field
-function util.psleep(t) pcall(os.sleep, t) end
+function util.psleep(t) return pcall(os.sleep, t) end
 
 -- no-op to provide a brief pause (1 tick) to yield<br>
 --- EVENT_CONSUMER: this function consumes events

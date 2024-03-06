@@ -95,9 +95,9 @@ function coordinator.load_config()
 
     ---@class monitors_struct
     local monitors = {
-        primary = nil,      ---@type table|nil
-        primary_name = "",
-        flow = nil,         ---@type table|nil
+        main = nil,     ---@type table|nil
+        main_name = "",
+        flow = nil,     ---@type table|nil
         flow_name = "",
         unit_displays = {},
         unit_name_map = {}
@@ -121,11 +121,11 @@ function coordinator.load_config()
                 return 2, "Main monitor is not connected."
             end
 
-            monitors.primary = ppm.get_periph(config.MainDisplay)
-            monitors.primary_name = config.MainDisplay
+            monitors.main = ppm.get_periph(config.MainDisplay)
+            monitors.main_name = config.MainDisplay
 
-            monitors.primary.setTextScale(0.5)
-            w, _ = ppm.monitor_block_size(monitors.primary.getSize())
+            monitors.main.setTextScale(0.5)
+            w, _ = ppm.monitor_block_size(monitors.main.getSize())
             if w ~= 8 then
                 return 2, util.c("Main monitor width is incorrect (was ", w, ", must be 8).")
             end

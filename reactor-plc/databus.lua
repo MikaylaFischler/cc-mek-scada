@@ -70,9 +70,9 @@ function databus.tx_link_state(state)
 end
 
 -- transmit reactor enable state across the bus
----@param active boolean reactor active
+---@param active any reactor active
 function databus.tx_reactor_state(active)
-    databus.ps.publish("reactor_active", active)
+    databus.ps.publish("reactor_active", active == true)
 end
 
 -- transmit RPS data across the bus

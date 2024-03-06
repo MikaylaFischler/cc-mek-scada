@@ -77,7 +77,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         tanks = {},
         snas = {},
         envd = {},
-        sna_prod_rate = 0,
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -256,7 +255,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     -- PRIVATE FUNCTIONS --
 
-    --#region time derivative utility functions
+    --#region Time Derivative Utility Functions
 
     -- compute a change with respect to time of the given value
     ---@param key string value key
@@ -331,7 +330,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    --#region redstone I/O
+    --#region Redstone I/O
 
     -- create a generic valve interface
     ---@nodiscard
@@ -398,8 +397,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@class reactor_unit
     local public = {}
 
-    -- ADD/LINK DEVICES --
-    --#region
+    --#region Add/Link Devices
 
     -- link the PLC
     ---@param plc_session plc_session_struct
@@ -489,7 +487,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- UPDATE SESSION --
+    --#region Update Session
 
     -- update (iterate) this unit
     function public.update()
@@ -557,8 +555,9 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
-    -- AUTO CONTROL OPERATIONS --
-    --#region
+    --#endregion
+
+    --#region Auto Control Operations
 
     -- engage automatic control
     function public.auto_engage()
@@ -645,8 +644,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- OPERATIONS --
-    --#region
+    --#region Operations
 
     -- queue a command to disable the reactor
     function public.disable()
@@ -726,8 +724,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- READ STATES/PROPERTIES --
-    --#region
+    --#region Read States/Properties
 
     -- check if an alarm of at least a certain priority level is tripped
     ---@nodiscard
@@ -857,13 +854,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
-        -- basic SNA statistical information
-        local total_peak = 0
+        -- SNA statistical information
+        local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()    ---@type sna_session_db
             total_peak = total_peak + db.state.peak_production
+            total_avail = total_avail + db.state.production_rate
+            total_out = total_out + math.min(db.tanks.input.amount / 10, db.state.production_rate)
         end
-        status.sna = { #self.snas, public.get_sna_rate(), total_peak }
+        status.sna = { #self.snas, total_peak, total_avail, total_out }
 
         -- radiation monitors (environment detectors)
         status.envds = {}
@@ -876,7 +875,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return status
     end
 
-    -- get the current total [max] production rate is
+    -- get the current total max production rate
     ---@nodiscard
     ---@return number total_avail_rate
     function public.get_sna_rate()

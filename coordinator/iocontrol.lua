@@ -235,7 +235,10 @@ function iocontrol.init(conf, comms, temp_scale)
             control_state = false,
             burn_rate_cmd = 0.0,
             radiation = types.new_zero_radiation_reading(),
-            sna_prod_rate = 0.0,
+
+            sna_peak_rate = 0.0,
+            sna_max_rate = 0.0,
+            sna_out_rate = 0.0,
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
@@ -1064,12 +1067,14 @@ function iocontrol.update_unit_statuses(statuses)
                     -- solar neutron activator status info
                     if type(rtu_statuses.sna) == "table" then
                         unit.num_snas      = rtu_statuses.sna[1] ---@type integer
-                        unit.sna_prod_rate = rtu_statuses.sna[2] ---@type number
-                        unit.sna_peak_rate = rtu_statuses.sna[3] ---@type number
+                        unit.sna_peak_rate = rtu_statuses.sna[2] ---@type number
+                        unit.sna_max_rate  = rtu_statuses.sna[3] ---@type number
+                        unit.sna_out_rate  = rtu_statuses.sna[4] ---@type number
 
                         unit.unit_ps.publish("sna_count", unit.num_snas)
-                        unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
                         unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
+                        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
+                        unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
 
                         sna_count_sum = sna_count_sum + unit.num_snas
                     else
@@ -1217,7 +1222,7 @@ function iocontrol.update_unit_statuses(statuses)
 
                 local u_spent_rate = waste_rate
                 local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
-                local u_po_rate = util.trinary(not is_pu, math.min(waste_rate, unit.sna_prod_rate), 0.0)
+                local u_po_rate = unit.sna_out_rate
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
@@ -1225,14 +1230,15 @@ function iocontrol.update_unit_statuses(statuses)
                 unit.unit_ps.publish("sna_in", util.trinary(is_pu, 0, burn_rate))
 
                 if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                    u_spent_rate = u_po_rate
                     unit.unit_ps.publish("po_pl_rate", u_po_rate)
                     unit.unit_ps.publish("po_am_rate", 0)
                     po_pl_rate = po_pl_rate + u_po_rate
                 elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                    u_spent_rate = 0
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", u_po_rate)
                     po_am_rate = po_am_rate + u_po_rate
-                    u_spent_rate = 0
                 else
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", 0)

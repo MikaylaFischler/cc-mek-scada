@@ -22,9 +22,9 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.2.7"
+local COORDINATOR_VERSION = "v1.2.11"
 
-local CHUNK_LOAD_DELAY_S = 20.0
+local CHUNK_LOAD_DELAY_S = 30.0
 
 local println = util.println
 local println_ts = util.println_ts
@@ -42,24 +42,33 @@ local log_crypto = coordinator.log_crypto
 -- mount connected devices (required for monitor setup)
 ppm.mount_all()
 
+local wait_on_load = true
 local loaded, monitors = coordinator.load_config()
 
 -- if the computer just started, its chunk may have just loaded (...or the user rebooted)
 -- if monitor config failed, maybe an adjacent chunk containing all or part of a monitor has not loaded yet, so keep trying
-while loaded == 2 and os.clock() < CHUNK_LOAD_DELAY_S do
+while wait_on_load and loaded == 2 and os.clock() < CHUNK_LOAD_DELAY_S do
     term.clear()
     term.setCursorPos(1, 1)
     println("There was a monitor configuration problem at boot.\n")
     println("Startup will keep trying every 2s in case of chunk load delays.\n")
     println(util.sprintf("The configurator will be started in %ds if all attempts fail.\n", math.max(0, CHUNK_LOAD_DELAY_S - os.clock())))
-    println("(exit early with ctrl-t)")
+    println("(click to skip to the configurator)")
 
----@diagnostic disable-next-line: undefined-field
-    os.sleep(2)
+    local timer_id = util.start_timer(2)
 
-    -- remount and re-attempt
-    ppm.mount_all()
-    loaded, monitors = coordinator.load_config()
+    while true do
+        local event, param1 = util.pull_event()
+        if event == "timer" and param1 == timer_id then
+            -- remount and re-attempt
+            ppm.mount_all()
+            loaded, monitors = coordinator.load_config()
+            break
+        elseif event == "mouse_click" or event == "terminate" then
+            wait_on_load = false
+            break
+        end
+    end
 end
 
 if loaded ~= 0 then
@@ -67,9 +76,13 @@ if loaded ~= 0 then
     local success, error = configure.configure(loaded, monitors)
     if success then
         loaded, monitors = coordinator.load_config()
-        assert(loaded == 0, util.trinary(loaded == 1, "failed to load valid configuration", "monitor configuration invalid"))
+        if loaded ~= 0 then
+            println(util.trinary(loaded == 2, "monitor configuration invalid", "failed to load a valid configuration") .. ", please reconfigure")
+            return
+        end
     else
-        assert(success, "coordinator configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 
