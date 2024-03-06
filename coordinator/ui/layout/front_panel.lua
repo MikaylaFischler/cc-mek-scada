@@ -36,7 +36,7 @@ local led_grn = style.led_grn
 local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps
 
-    TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.fp.header}
+    TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.fp_theme.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
 
@@ -68,7 +68,7 @@ local function init(panel, num_units)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=style.fp_label}
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=style.fp.disabled_fg}
 
     local monitors = Div{parent=main_page,width=16,height=17,x=18,y=2}
 
@@ -89,7 +89,7 @@ local function init(panel, num_units)
     -- about footer
     --
 
-    local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp_label}
+    local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp.disabled_fg}
     local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
     local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
@@ -103,7 +103,7 @@ local function init(panel, num_units)
     -- API page
 
     local api_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local api_list = ListBox{parent=api_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp_text,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local api_list = ListBox{parent=api_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=api_list,height=1,hidden=true} -- padding
 
     -- assemble page panes
@@ -113,11 +113,11 @@ local function init(panel, num_units)
     local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
     local tabs = {
-        { name = "CRD", color = style.fp_text },
-        { name = "API", color = style.fp_text },
+        { name = "CRD", color = style.fp.text },
+        { name = "API", color = style.fp.text },
     }
 
-    TabBar{parent=panel,y=2,tabs=tabs,min_width=9,callback=page_pane.set_value,fg_bg=style.bw_fg_bg}
+    TabBar{parent=panel,y=2,tabs=tabs,min_width=9,callback=page_pane.set_value,fg_bg=style.fp_theme.highlight_box_bright}
 
     -- link pocket API list management to PGI
     pgi.link_elements(api_list, pkt_entry)

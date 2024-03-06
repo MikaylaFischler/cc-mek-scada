@@ -97,8 +97,8 @@ function renderer.init_displays()
     term.setCursorPos(1, 1)
 
     -- set overridden colors
-    for i = 1, #style.fp.colors do
-        term.setPaletteColor(style.fp.colors[i].c, style.fp.colors[i].hex)
+    for i = 1, #style.fp_theme.colors do
+        term.setPaletteColor(style.fp_theme.colors[i].c, style.fp_theme.colors[i].hex)
     end
 end
 
@@ -152,9 +152,9 @@ function renderer.close_fp()
         engine.fp_ready = false
 
         -- restore colors
-        for i = 1, #style.theme.colors do
-            local r, g, b = term.nativePaletteColor(style.theme.colors[i].c)
-            term.setPaletteColor(style.theme.colors[i].c, r, g, b)
+        for i = 1, #style.fp_theme.colors do
+            local r, g, b = term.nativePaletteColor(style.fp_theme.colors[i].c)
+            term.setPaletteColor(style.fp_theme.colors[i].c, r, g, b)
         end
 
         -- reset terminal

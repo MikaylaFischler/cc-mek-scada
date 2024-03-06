@@ -2,94 +2,24 @@
 -- Graphics Style Options
 --
 
-local core = require("graphics.core")
+local core   = require("graphics.core")
+local themes = require("graphics.themes")
 
 ---@class crd_style
 local style = {}
 
 local cpair = core.cpair
 
--- GLOBAL --
-
--- add color mappings for front panel
-colors.ivory = colors.pink
-colors.yellow_hc = colors.purple
-colors.red_off = colors.brown
-colors.yellow_off = colors.magenta
-colors.green_off = colors.lime
-
 -- front panel styling
 
-style.fp = {}
+style.fp_theme = themes.sandstone
+style.fp = themes.get_fp_style(style.fp_theme)
 
-style.fp.root = cpair(colors.black, colors.ivory)
-style.fp.header = cpair(colors.black, colors.lightGray)
-
-style.fp.colors = {
-    { c = colors.red,       hex = 0xdf4949 },   -- RED ON
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xf9fb53 },   -- YELLOW ON
-    { c = colors.lime,      hex = 0x16665a },   -- GREEN OFF
-    { c = colors.green,     hex = 0x6be551 },   -- GREEN ON
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },   -- YELLOW HIGH CONTRAST
-    { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
-    { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
-    -- { c = colors.white,     hex = 0xdcd9ca },
-    { c = colors.lightGray, hex = 0xb1b8b3 },
-    { c = colors.gray,      hex = 0x575757 },
-    -- { c = colors.black,     hex = 0x191919 },
-    { c = colors.brown,     hex = 0x672223 }    -- RED OFF
-}
+style.led_grn = cpair(colors.green, colors.green_off)
 
 -- main GUI styling
 
 ---@class theme
-local deepslate = {
-    text = colors.white,
-    text_inv = colors.black,
-    label = colors.lightGray,
-    label_dark = colors.gray,
-    disabled = colors.gray,
-    bg = colors.black,
-    accent_light = colors.gray,
-    accent_dark = colors.lightGray,
-
-    fuel_color = colors.lightGray,
-
-    header = cpair(colors.white, colors.gray),
-
-    text_fg = cpair(colors.white, colors._INHERIT),
-    label_fg = cpair(colors.lightGray, colors._INHERIT),
-    disabled_fg = cpair(colors.gray, colors._INHERIT),
-
-    highlight_box = cpair(colors.white, colors.gray),
-    highlight_box_bright = cpair(colors.black, colors.lightGray),
-    field_box = cpair(colors.white, colors.gray),
-
-    colors = {
-        { c = colors.red,       hex = 0xeb6a6c },
-        { c = colors.orange,    hex = 0xf2b86c },
-        { c = colors.yellow,    hex = 0xd9cf81 },
-        { c = colors.lime,      hex = 0x80ff80 },
-        { c = colors.green,     hex = 0x70e19b },
-        { c = colors.cyan,      hex = 0x7ccdd0 },
-        { c = colors.lightBlue, hex = 0x99ceef },
-        { c = colors.blue,      hex = 0x60bcff },
-        { c = colors.purple,    hex = 0xc38aea },
-        { c = colors.pink,      hex = 0xff7fb8 },
-        { c = colors.magenta,   hex = 0xf980dd },
-        { c = colors.white,     hex = 0xd9d9d9 },
-        { c = colors.lightGray, hex = 0x949494 },
-        { c = colors.gray,      hex = 0x575757 },
-        { c = colors.black,     hex = 0x262626 },
-        { c = colors.brown,     hex = 0xb18f6a }
-    }
-}
-
----@type theme
 local smooth_stone = {
     text = colors.black,
     text_inv = colors.white,
@@ -132,6 +62,49 @@ local smooth_stone = {
     }
 }
 
+---@type theme
+local deepslate = {
+    text = colors.white,
+    text_inv = colors.black,
+    label = colors.lightGray,
+    label_dark = colors.gray,
+    disabled = colors.gray,
+    bg = colors.black,
+    accent_light = colors.gray,
+    accent_dark = colors.lightGray,
+
+    fuel_color = colors.lightGray,
+
+    header = cpair(colors.white, colors.gray),
+
+    text_fg = cpair(colors.white, colors._INHERIT),
+    label_fg = cpair(colors.lightGray, colors._INHERIT),
+    disabled_fg = cpair(colors.gray, colors._INHERIT),
+
+    highlight_box = cpair(colors.white, colors.gray),
+    highlight_box_bright = cpair(colors.black, colors.lightGray),
+    field_box = cpair(colors.white, colors.gray),
+
+    colors = {
+        { c = colors.red,       hex = 0xeb6a6c },
+        { c = colors.orange,    hex = 0xf2b86c },
+        { c = colors.yellow,    hex = 0xd9cf81 },
+        { c = colors.lime,      hex = 0x80ff80 },
+        { c = colors.green,     hex = 0x70e19b },
+        { c = colors.cyan,      hex = 0x7ccdd0 },
+        { c = colors.lightBlue, hex = 0x99ceef },
+        { c = colors.blue,      hex = 0x60bcff },
+        { c = colors.purple,    hex = 0xc38aea },
+        { c = colors.pink,      hex = 0xff7fb8 },
+        { c = colors.magenta,   hex = 0xf980dd },
+        { c = colors.white,     hex = 0xd9d9d9 },
+        { c = colors.lightGray, hex = 0x949494 },
+        { c = colors.gray,      hex = 0x575757 },
+        { c = colors.black,     hex = 0x262626 },
+        { c = colors.brown,     hex = 0xb18f6a }
+    }
+}
+
 style.theme = deepslate
 -- style.theme = smooth_stone
 
@@ -164,10 +137,6 @@ style.ind_grn = cpair(colors.green, colors.gray)
 style.ind_yel = cpair(colors.yellow, colors.gray)
 style.ind_red = cpair(colors.red, colors.gray)
 style.ind_wht = style.wh_gray
-
-style.fp_text = cpair(colors.black, colors.ivory)
-style.fp_label = cpair(colors.lightGray, colors.ivory)
-style.led_grn = cpair(colors.green, colors.green_off)
 
 -- UI COMPONENTS --
 
