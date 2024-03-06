@@ -77,7 +77,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         tanks = {},
         snas = {},
         envd = {},
-        sna_prod_rate = 0,
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -857,13 +856,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
-        -- basic SNA statistical information
-        local total_peak = 0
+        -- SNA statistical information
+        local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()    ---@type sna_session_db
             total_peak = total_peak + db.state.peak_production
+            total_avail = total_avail + db.state.production_rate
+            total_out = total_out + math.min(db.tanks.input.amount / 10, db.state.production_rate)
         end
-        status.sna = { #self.snas, public.get_sna_rate(), total_peak }
+        status.sna = { #self.snas, total_peak, total_avail, total_out }
 
         -- radiation monitors (environment detectors)
         status.envds = {}
