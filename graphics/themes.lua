@@ -28,6 +28,7 @@ themes.sandstone = {
 
     highlight_box = cpair(colors.black, colors.lightGray),
     highlight_box_bright = cpair(colors.black, colors.white),
+    field_box = cpair(colors.gray, colors.white),
 
     colors = {
         { c = colors.red,       hex = 0xdf4949 },   -- RED ON
@@ -38,7 +39,7 @@ themes.sandstone = {
         { c = colors.cyan,      hex = 0x34bac8 },
         { c = colors.lightBlue, hex = 0x6cc0f2 },
         { c = colors.blue,      hex = 0x0096ff },
-        { c = colors.purple,    hex = 0xb156ee },   -- YELLOW HIGH CONTRAST
+        { c = colors.purple,    hex = 0xe3bc2a },   -- YELLOW HIGH CONTRAST
         { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
         { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
         { c = colors.white,     hex = 0xf0f0f0 },
@@ -61,6 +62,7 @@ themes.basalt = {
 
     highlight_box = cpair(colors.white, colors.gray),
     highlight_box_bright = cpair(colors.black, colors.lightGray),
+    field_box = cpair(colors.white, colors.gray),
 
     colors = {
         { c = colors.red,       hex = 0xdc6466 },   -- RED ON

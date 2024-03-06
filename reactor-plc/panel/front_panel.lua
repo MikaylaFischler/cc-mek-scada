@@ -28,14 +28,18 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 local border = core.border
 
+local s_hi_box = style.theme.highlight_box
+
+local disabled_fg = style.fp.disabled_fg
+
 local ind_grn = style.ind_grn
 local ind_red = style.ind_red
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
-    local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
-    header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
+    local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 
     --
     -- system indicators
@@ -75,7 +79,7 @@ local function init(panel)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=disabled_fg}
 
     --
     -- status & controls
@@ -91,12 +95,12 @@ local function init(panel)
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
-    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
-    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
+    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=s_hi_box}
     local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=ind_red,flash=true,period=flasher.PERIOD.BLINK_250_MS}
 
-    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
-    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
+    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=s_hi_box}
     PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
     PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
@@ -107,7 +111,7 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=cpair(colors.lightGray,colors.ivory)}
+    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
     local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
     local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
@@ -118,7 +122,7 @@ local function init(panel)
     -- rps list
     --
 
-    local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,colors.lightGray),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+    local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=ind_red}
     local rps_auto = LED{parent=rps,label="AUTOMATIC",colors=ind_red}
     local rps_tmo  = LED{parent=rps,label="TIMEOUT",colors=ind_red}
