@@ -255,7 +255,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     -- PRIVATE FUNCTIONS --
 
-    --#region time derivative utility functions
+    --#region Time Derivative Utility Functions
 
     -- compute a change with respect to time of the given value
     ---@param key string value key
@@ -330,7 +330,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    --#region redstone I/O
+    --#region Redstone I/O
 
     -- create a generic valve interface
     ---@nodiscard
@@ -397,8 +397,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@class reactor_unit
     local public = {}
 
-    -- ADD/LINK DEVICES --
-    --#region
+    --#region Add/Link Devices
 
     -- link the PLC
     ---@param plc_session plc_session_struct
@@ -488,7 +487,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- UPDATE SESSION --
+    --#region Update Session
 
     -- update (iterate) this unit
     function public.update()
@@ -556,8 +555,9 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
-    -- AUTO CONTROL OPERATIONS --
-    --#region
+    --#endregion
+
+    --#region Auto Control Operations
 
     -- engage automatic control
     function public.auto_engage()
@@ -644,8 +644,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- OPERATIONS --
-    --#region
+    --#region Operations
 
     -- queue a command to disable the reactor
     function public.disable()
@@ -725,8 +724,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- READ STATES/PROPERTIES --
-    --#region
+    --#region Read States/Properties
 
     -- check if an alarm of at least a certain priority level is tripped
     ---@nodiscard
@@ -877,7 +875,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return status
     end
 
-    -- get the current total [max] production rate is
+    -- get the current total max production rate
     ---@nodiscard
     ---@return number total_avail_rate
     function public.get_sna_rate()
