@@ -52,6 +52,16 @@ local function _init_display(monitor)
     end
 end
 
+-- print out that the monitor is too small
+---@param monitor table monitor
+local function _print_too_small(monitor)
+    monitor.setCursorPos(1, 1)
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.red)
+    monitor.clear()
+    monitor.write("monitor too small")
+end
+
 -- disable the flow view
 ---@param disable boolean
 function renderer.legacy_disable_flow_view(disable)
@@ -64,15 +74,15 @@ function renderer.set_displays(monitors)
     engine.monitors = monitors
 
     -- report to front panel as connected
-    iocontrol.fp_monitor_state("main", engine.monitors.primary ~= nil)
+    iocontrol.fp_monitor_state("main", engine.monitors.main ~= nil)
     iocontrol.fp_monitor_state("flow", engine.monitors.flow ~= nil)
     for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
 end
 
 -- init all displays in use by the renderer
 function renderer.init_displays()
-    -- init primary and flow monitors
-    _init_display(engine.monitors.primary)
+    -- init main and flow monitors
+    _init_display(engine.monitors.main)
     if not engine.disable_flow_view then _init_display(engine.monitors.flow) end
 
     -- init unit displays
@@ -94,8 +104,8 @@ end
 
 -- initialize the dmesg output window
 function renderer.init_dmesg()
-    local disp_w, disp_h = engine.monitors.primary.getSize()
-    engine.dmesg_window = window.create(engine.monitors.primary, 1, 1, disp_w, disp_h)
+    local disp_w, disp_h = engine.monitors.main.getSize()
+    engine.dmesg_window = window.create(engine.monitors.main, 1, 1, disp_w, disp_h)
     log.direct_dmesg(engine.dmesg_window)
 end
 
@@ -166,8 +176,8 @@ function renderer.try_start_ui()
 
         status, msg = pcall(function ()
             -- show main view on main monitor
-            if engine.monitors.primary ~= nil then
-                engine.ui.main_display = DisplayBox{window=engine.monitors.primary,fg_bg=style.root}
+            if engine.monitors.main ~= nil then
+                engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
                 main_view(engine.ui.main_display)
             end
 
@@ -244,14 +254,14 @@ function renderer.handle_disconnect(device)
 
     if not engine.monitors then return false end
 
-    if engine.monitors.primary == device then
+    if engine.monitors.main == device then
         if engine.ui.main_display ~= nil then
             -- delete element tree and clear root UI elements
             engine.ui.main_display.delete()
         end
 
         is_used = true
-        engine.monitors.primary = nil
+        engine.monitors.main = nil
         engine.ui.main_display = nil
 
         iocontrol.fp_monitor_state("main", false)
@@ -298,9 +308,9 @@ function renderer.handle_reconnect(name, device)
     -- note: handle_resize is a more adaptive way of re-initializing a connected monitor
     --       since it can handle a monitor being reconnected that isn't the right size
 
-    if engine.monitors.primary_name == name then
+    if engine.monitors.main_name == name then
         is_used = true
-        engine.monitors.primary = device
+        engine.monitors.main = device
 
         renderer.handle_resize(name)
     elseif engine.monitors.flow_name == name then
@@ -334,8 +344,8 @@ function renderer.handle_resize(name)
 
     if not engine.monitors then return false, false end
 
-    if engine.monitors.primary_name == name and engine.monitors.primary then
-        local device = engine.monitors.primary  ---@type table
+    if engine.monitors.main_name == name and engine.monitors.main then
+        local device = engine.monitors.main  ---@type table
 
         -- this is necessary if the bottom left block was broken and on reconnect
         _init_display(device)
@@ -343,9 +353,9 @@ function renderer.handle_resize(name)
         is_used = true
 
         -- resize dmesg window if needed, but don't make it thinner
-        local disp_w, disp_h = engine.monitors.primary.getSize()
+        local disp_w, disp_h = engine.monitors.main.getSize()
         local dmsg_w, _ = engine.dmesg_window.getSize()
-        engine.dmesg_window.reposition(1, 1, math.max(disp_w, dmsg_w), disp_h, engine.monitors.primary)
+        engine.dmesg_window.reposition(1, 1, math.max(disp_w, dmsg_w), disp_h, engine.monitors.main)
 
         if ui.main_display then
             ui.main_display.delete()
@@ -368,11 +378,7 @@ function renderer.handle_resize(name)
                     ui.main_display = nil
                 end
 
-                device.setCursorPos(1, 1)
-                device.setBackgroundColor(colors.black)
-                device.setTextColor(colors.red)
-                device.clear()
-                device.write("monitor too small")
+                _print_too_small(device)
 
                 iocontrol.fp_monitor_state("main", false)
                 is_ok = false
@@ -407,11 +413,7 @@ function renderer.handle_resize(name)
                     ui.flow_display = nil
                 end
 
-                device.setCursorPos(1, 1)
-                device.setBackgroundColor(colors.black)
-                device.setTextColor(colors.red)
-                device.clear()
-                device.write("monitor too small")
+                _print_too_small(device)
 
                 iocontrol.fp_monitor_state("flow", false)
                 is_ok = false
@@ -448,11 +450,7 @@ function renderer.handle_resize(name)
                             ui.unit_displays[idx] = nil
                         end
 
-                        device.setCursorPos(1, 1)
-                        device.setBackgroundColor(colors.black)
-                        device.setTextColor(colors.red)
-                        device.clear()
-                        device.write("monitor too small")
+                        _print_too_small(device)
 
                         iocontrol.fp_monitor_state(idx, false)
                         is_ok = false
@@ -474,7 +472,7 @@ function renderer.handle_mouse(event)
         if engine.fp_ready and event.monitor == "terminal" then
             engine.ui.front_panel.handle_mouse(event)
         elseif engine.ui_ready then
-            if event.monitor == engine.monitors.primary_name then
+            if event.monitor == engine.monitors.main_name then
                 if engine.ui.main_display then engine.ui.main_display.handle_mouse(event) end
             elseif event.monitor == engine.monitors.flow_name then
                 if engine.ui.flow_display then engine.ui.flow_display.handle_mouse(event) end
