@@ -16,15 +16,15 @@ local StateIndicator = require("graphics.elements.indicators.state")
 local cpair = core.cpair
 local border = core.border
 
-local text_fg = style.theme.text_fg
-local lu_col = style.lu_colors
-
 -- create new reactor view
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
+    local text_fg = style.theme.text_fg
+    local lu_col = style.lu_colors
+
     local db = iocontrol.get_db()
 
     local reactor = Rectangle{parent=root,border=border(1,colors.gray,true),width=30,height=7,x=x,y=y}

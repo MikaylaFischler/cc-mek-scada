@@ -28,14 +28,6 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 local border = core.border
 
-local s_hi_box = style.theme.highlight_box
-local s_field = style.theme.field_box
-
-local lu_cpair = style.lu_colors
-local hzd_fg_bg  = style.hzd_fg_bg
-local dis_colors = style.dis_colors
-local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
-
 local bw_fg_bg = style.bw_fg_bg
 
 local ind_grn = style.ind_grn
@@ -50,6 +42,14 @@ local period = core.flasher.PERIOD
 ---@param x integer top left x
 ---@param y integer top left y
 local function new_view(root, x, y)
+    local s_hi_box = style.theme.highlight_box
+    local s_field = style.theme.field_box
+
+    local lu_cpair = style.lu_colors
+    local hzd_fg_bg  = style.hzd_fg_bg
+    local dis_colors = style.dis_colors
+    local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
+
     assert(root.get_height() >= (y + 24), "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
     local black = cpair(colors.black, colors.black)

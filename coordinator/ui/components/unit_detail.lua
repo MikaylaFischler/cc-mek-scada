@@ -34,16 +34,6 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 local border = core.border
 
-local s_hi_box = style.theme.highlight_box
-local s_hi_bright = style.theme.highlight_box_bright
-local s_field = style.theme.field_box
-
-local hc_text = style.hc_text
-local lu_cpair = style.lu_colors
-local hzd_fg_bg = style.hzd_fg_bg
-local dis_colors = style.dis_colors
-local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
-
 local bw_fg_bg = style.bw_fg_bg
 local gry_wht = style.gray_white
 
@@ -58,6 +48,16 @@ local period = core.flasher.PERIOD
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)
+    local s_hi_box = style.theme.highlight_box
+    local s_hi_bright = style.theme.highlight_box_bright
+    local s_field = style.theme.field_box
+
+    local hc_text = style.hc_text
+    local lu_cpair = style.lu_colors
+    local hzd_fg_bg = style.hzd_fg_bg
+    local dis_colors = style.dis_colors
+    local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
+
     local db = iocontrol.get_db()
     local unit = db.units[id]   ---@type ioctl_unit
     local f_ps = db.facility.ps

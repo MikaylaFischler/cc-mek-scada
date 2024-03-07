@@ -17,15 +17,15 @@ local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local s_hi_box = style.fp_theme.highlight_box
-local s_hi_bright = style.fp_theme.highlight_box_bright
-
-local label_fg = style.fp.label_fg
-
 -- create a pocket list entry
 ---@param parent graphics_element parent
 ---@param id integer PKT session ID
 local function init(parent, id)
+    local s_hi_box = style.fp_theme.highlight_box
+    local s_hi_bright = style.fp_theme.highlight_box_bright
+
+    local label_fg = style.fp.label_fg
+
     local ps = iocontrol.get_db().fp.ps
 
     -- root div

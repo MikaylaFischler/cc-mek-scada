@@ -18,9 +18,6 @@ local border = core.border
 
 local ALIGN = core.ALIGN
 
-local text_fg = style.theme.text_fg
-local lu_col = style.lu_colors
-
 -- new induction matrix view
 ---@param root graphics_element parent
 ---@param x integer top left x
@@ -29,6 +26,9 @@ local lu_col = style.lu_colors
 ---@param ps psil ps interface
 ---@param id number? matrix ID
 local function new_view(root, x, y, data, ps, id)
+    local text_fg = style.theme.text_fg
+    local lu_col = style.lu_colors
+
     local title = "INDUCTION MATRIX"
     if type(id) == "number" then title = title .. id end
 

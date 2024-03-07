@@ -105,8 +105,7 @@ local deepslate = {
     }
 }
 
-style.theme = deepslate
--- style.theme = smooth_stone
+style.theme = smooth_stone
 
 style.root = cpair(style.theme.text, style.theme.bg)
 style.label = cpair(style.theme.label, style.theme.bg)
@@ -119,6 +118,33 @@ style.text_colors = cpair(style.theme.text, style.theme.bg)
 style.lu_colors = cpair(style.theme.label, style.theme.label)
 -- label & unit colors (darker if set)
 style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
+
+-- set themes per configurations
+---@param main integer main theme ID (1 = smooth_stone, 2 = deepslate)
+---@param fp integer  fp theme ID (1 = sandstone, 2 = basalt)
+function style.set_themes(main, fp)
+    if main == 1 then
+        style.theme = smooth_stone
+    elseif main == 2 then
+        style.theme = deepslate
+    end
+
+    style.root = cpair(style.theme.text, style.theme.bg)
+    style.label = cpair(style.theme.label, style.theme.bg)
+
+    style.hc_text = cpair(style.theme.text, style.theme.text_inv)
+    style.text_colors = cpair(style.theme.text, style.theme.bg)
+    style.lu_colors = cpair(style.theme.label, style.theme.label)
+    style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
+
+    if fp == 1 then
+        style.fp_theme = themes.sandstone
+    elseif fp == 2 then
+        style.fp_theme = themes.basalt
+    end
+
+    style.fp = themes.get_fp_style(style.fp_theme)
+end
 
 -- COMMON COLOR PAIRS --
 

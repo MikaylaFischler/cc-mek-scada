@@ -103,14 +103,4 @@ function themes.get_fp_style(theme)
     return style
 end
 
-
-
-
-
-
-
-
-
-
-
 return themes

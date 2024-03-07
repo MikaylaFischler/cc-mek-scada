@@ -22,6 +22,8 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
+local style       = require("coordinator.ui.style")
+
 local COORDINATOR_VERSION = "v1.2.12"
 
 local CHUNK_LOAD_DELAY_S = 30.0
@@ -120,6 +122,7 @@ local function main()
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
 
     -- init renderer
+    style.set_themes(config.MainTheme, config.FrontPanelTheme)
     renderer.legacy_disable_flow_view(config.DisableFlowView)
     renderer.set_displays(monitors)
     renderer.init_displays()

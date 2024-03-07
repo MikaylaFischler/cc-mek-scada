@@ -18,11 +18,11 @@ local DataIndicator = require("graphics.elements.indicators.data")
 
 local ALIGN = core.ALIGN
 
-local s_header = style.theme.header
-
 -- create new main view
 ---@param main graphics_element main displaybox
 local function init(main)
+    local s_header = style.theme.header
+
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 

@@ -15,15 +15,15 @@ local VerticalBar    = require("graphics.elements.indicators.vbar")
 local cpair = core.cpair
 local border = core.border
 
-local text_fg = style.theme.text_fg
-local lu_col = style.lu_colors
-
 -- new turbine view
 ---@param root graphics_element parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface
 local function new_view(root, x, y, ps)
+    local text_fg = style.theme.text_fg
+    local lu_col = style.lu_colors
+
     local turbine = Rectangle{parent=root,border=border(1,colors.gray,true),width=23,height=7,x=x,y=y}
 
     local status    = StateIndicator{parent=turbine,x=7,y=1,states=style.turbine.states,value=1,min_width=12}

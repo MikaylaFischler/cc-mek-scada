@@ -31,17 +31,17 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
-local s_hi_bright = style.theme.highlight_box_bright
-local s_field = style.theme.field_box
-
 local wh_gray = style.wh_gray
-local text_col = style.text_colors
-local lu_col = style.lu_colors
-local lu_c_d = style.lu_colors_dark
 
 -- create new flow view
 ---@param main graphics_element main displaybox
 local function init(main)
+    local s_hi_bright = style.theme.highlight_box_bright
+    local s_field = style.theme.field_box
+    local text_col = style.text_colors
+    local lu_col = style.lu_colors
+    local lu_c_d = style.lu_colors_dark
+
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 

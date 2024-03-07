@@ -27,12 +27,6 @@ local border = core.border
 local cpair = core.cpair
 local pipe = core.pipe
 
-local s_field = style.theme.field_box
-
-local text_c = style.text_colors
-local lu_c = style.lu_colors
-local lu_c_d = style.lu_colors_dark
-
 local wh_gray = style.wh_gray
 local lg_gray = style.lg_gray
 
@@ -46,6 +40,12 @@ local ind_wht = style.ind_wht
 ---@param wide boolean whether to render wide version
 ---@param unit ioctl_unit unit database entry
 local function make(parent, x, y, wide, unit)
+    local s_field = style.theme.field_box
+
+    local text_c = style.text_colors
+    local lu_c = style.lu_colors
+    local lu_c_d = style.lu_colors_dark
+
     local height = 16
 
     local v_start = 1 + ((unit.unit_id - 1) * 5)
