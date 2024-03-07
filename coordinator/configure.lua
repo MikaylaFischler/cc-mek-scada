@@ -806,8 +806,8 @@ local function config_view(display)
             tmp_cfg.LogMode = mode.get_value() - 1
             tmp_cfg.LogPath = path.get_value()
             tmp_cfg.LogDebug = en_dbg.get_value()
-            tool_ctl.color_apply.hide()
-            tool_ctl.color_next.show(true)
+            tool_ctl.color_apply.hide(true)
+            tool_ctl.color_next.show()
             main_pane.set_value(8)
         else path_err.show() end
     end
@@ -1330,13 +1330,13 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "TempScale" then
-                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" else val = "Rankine" end
+                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" elseif raw == 4 then val = "Rankine" end
             elseif f[1] == "MainTheme" then
-                if raw == 1 then val = "Smooth Stone" else val = "Deepslate" end
+                if raw == 1 then val = "Smooth Stone" elseif raw == 2 then val = "Deepslate" end
             elseif f[1] == "FrontPanelTheme" then
-                if raw == 1 then val = "Sandstone" else val = "Basalt" end
+                if raw == 1 then val = "Sandstone" elseif raw == 2 then val = "Basalt" end
             elseif f[1] == "ColorMode" then
-                if raw == 1 then val = "Standard" elseif raw == 2 then val = "Protanopia" elseif raw == 3 then val = "Deuteranopia" else val = "Tritanopia" end
+                if raw == 1 then val = "Standard" elseif raw == 2 then val = "Protanopia" elseif raw == 3 then val = "Deuteranopia" elseif raw == 4 then val = "Tritanopia" end
             elseif f[1] == "UnitDisplays" and type(cfg.UnitDisplays) == "table" then
                 val = ""
                 for idx = 1, #cfg.UnitDisplays do

@@ -28,16 +28,16 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 local border = core.border
 
-local s_hi_box = style.theme.highlight_box
-
-local disabled_fg = style.fp.disabled_fg
-
 local ind_grn = style.ind_grn
 local ind_red = style.ind_red
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
+    local s_hi_box = style.theme.highlight_box
+
+    local disabled_fg = style.fp.disabled_fg
+
     local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 

@@ -183,7 +183,7 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message
-            plc_state.fp_ok, message = renderer.try_start_ui()
+            plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme)
 
             if not plc_state.fp_ok then
                 println_ts(util.c("UI error: ", message))

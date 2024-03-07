@@ -121,7 +121,7 @@ style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
 
 -- set themes per configurations
 ---@param main integer main theme ID (1 = smooth_stone, 2 = deepslate)
----@param fp integer  fp theme ID (1 = sandstone, 2 = basalt)
+---@param fp integer fp theme ID (1 = sandstone, 2 = basalt)
 function style.set_themes(main, fp)
     if main == 1 then
         style.theme = smooth_stone
