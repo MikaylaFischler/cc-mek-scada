@@ -14,7 +14,7 @@ local util        = require("scada-common.util")
 
 local core        = require("graphics.core")
 
-local config      = require("coordinator.config")
+local configure   = require("coordinator.configure")
 local coordinator = require("coordinator.coordinator")
 local iocontrol   = require("coordinator.iocontrol")
 local renderer    = require("coordinator.renderer")
@@ -22,7 +22,9 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.1.0"
+local COORDINATOR_VERSION = "v1.2.11"
+
+local CHUNK_LOAD_DELAY_S = 30.0
 
 local println = util.println
 local println_ts = util.println_ts
@@ -34,32 +36,66 @@ local log_comms = coordinator.log_comms
 local log_crypto = coordinator.log_crypto
 
 ----------------------------------------
--- config validation
+-- get configuration
 ----------------------------------------
 
-local cfv = util.new_validator()
+-- mount connected devices (required for monitor setup)
+ppm.mount_all()
 
-cfv.assert_channel(config.SVR_CHANNEL)
-cfv.assert_channel(config.CRD_CHANNEL)
-cfv.assert_channel(config.PKT_CHANNEL)
-cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.SV_TIMEOUT)
-cfv.assert_min(config.SV_TIMEOUT, 2)
-cfv.assert_type_num(config.API_TIMEOUT)
-cfv.assert_min(config.API_TIMEOUT, 2)
-cfv.assert_type_int(config.NUM_UNITS)
-cfv.assert_type_num(config.SOUNDER_VOLUME)
-cfv.assert_type_bool(config.TIME_24_HOUR)
-cfv.assert_type_str(config.LOG_PATH)
-cfv.assert_type_int(config.LOG_MODE)
+local wait_on_load = true
+local loaded, monitors = coordinator.load_config()
 
-assert(cfv.valid(), "bad config file: missing/invalid fields")
+-- if the computer just started, its chunk may have just loaded (...or the user rebooted)
+-- if monitor config failed, maybe an adjacent chunk containing all or part of a monitor has not loaded yet, so keep trying
+while wait_on_load and loaded == 2 and os.clock() < CHUNK_LOAD_DELAY_S do
+    term.clear()
+    term.setCursorPos(1, 1)
+    println("There was a monitor configuration problem at boot.\n")
+    println("Startup will keep trying every 2s in case of chunk load delays.\n")
+    println(util.sprintf("The configurator will be started in %ds if all attempts fail.\n", math.max(0, CHUNK_LOAD_DELAY_S - os.clock())))
+    println("(click to skip to the configurator)")
+
+    local timer_id = util.start_timer(2)
+
+    while true do
+        local event, param1 = util.pull_event()
+        if event == "timer" and param1 == timer_id then
+            -- remount and re-attempt
+            ppm.mount_all()
+            loaded, monitors = coordinator.load_config()
+            break
+        elseif event == "mouse_click" or event == "terminate" then
+            wait_on_load = false
+            break
+        end
+    end
+end
+
+if loaded ~= 0 then
+    -- try to reconfigure (user action)
+    local success, error = configure.configure(loaded, monitors)
+    if success then
+        loaded, monitors = coordinator.load_config()
+        if loaded ~= 0 then
+            println(util.trinary(loaded == 2, "monitor configuration invalid", "failed to load a valid configuration") .. ", please reconfigure")
+            return
+        end
+    else
+        println("configuration error: " .. error)
+        return
+    end
+end
+
+-- passed checks, good now
+---@cast monitors monitors_struct
+
+local config = coordinator.config
 
 ----------------------------------------
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
+log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
 log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
@@ -77,39 +113,16 @@ local function main()
     -- system startup
     ----------------------------------------
 
-    -- mount connected devices
-    ppm.mount_all()
+    -- log mounts now since mounting was done before logging was ready
+    ppm.log_mounts()
 
     -- report versions/init fp PSIL
     iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
 
-    -- setup monitors
-    local configured, monitors = coordinator.configure_monitors(config.NUM_UNITS, config.DISABLE_FLOW_VIEW == true)
-    if not configured or monitors == nil then
-        println("startup> monitor setup failed")
-        log.fatal("monitor configuration failed")
-        return
-    end
-
     -- init renderer
-    renderer.legacy_disable_flow_view(config.DISABLE_FLOW_VIEW == true)
+    renderer.legacy_disable_flow_view(config.DisableFlowView)
     renderer.set_displays(monitors)
     renderer.init_displays()
-
-    if not renderer.validate_main_display_width() then
-        println("startup> main display must be 8 blocks wide")
-        log.fatal("main display not wide enough")
-        return
-    elseif (config.DISABLE_FLOW_VIEW ~= true) and not renderer.validate_flow_display_width() then
-        println("startup> flow display must be 8 blocks wide")
-        log.fatal("flow display not wide enough")
-        return
-    elseif not renderer.validate_unit_display_sizes() then
-        println("startup> one or more unit display dimensions incorrect; they must be 4x4 blocks")
-        log.fatal("unit display dimensions incorrect")
-        return
-    end
-
     renderer.init_dmesg()
 
     -- lets get started!
@@ -132,7 +145,7 @@ local function main()
     else
         local sounder_start = util.time_ms()
         log_boot("annunciator alarm speaker connected")
-        sounder.init(speaker, config.SOUNDER_VOLUME)
+        sounder.init(speaker, config.SpeakerVolume)
         log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
         log_sys("annunciator alarm configured")
         iocontrol.fp_has_speaker(true)
@@ -143,8 +156,8 @@ local function main()
     ----------------------------------------
 
     -- message authentication init
-    if type(config.AUTH_KEY) == "string" then
-        local init_time = network.init_mac(config.AUTH_KEY)
+    if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
+        local init_time = network.init_mac(config.AuthKey)
         log_crypto("HMAC init took " .. init_time .. "ms")
     end
 
@@ -161,14 +174,13 @@ local function main()
     end
 
     -- create connection watchdog
-    local conn_watchdog = util.new_watchdog(config.SV_TIMEOUT)
+    local conn_watchdog = util.new_watchdog(config.SVR_Timeout)
     conn_watchdog.cancel()
     log.debug("startup> conn watchdog created")
 
     -- create network interface then setup comms
     local nic = network.nic(modem)
-    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, config.NUM_UNITS, config.CRD_CHANNEL,
-                                            config.SVR_CHANNEL, config.PKT_CHANNEL, config.TRUSTED_RANGE, conn_watchdog)
+    local coord_comms = coordinator.comms(COORDINATOR_VERSION, nic, conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 
@@ -214,7 +226,7 @@ local function main()
 
     local link_failed = false
     local ui_ok = true
-    local date_format = util.trinary(config.TIME_24_HOUR, "%X \x04 %A, %B %d %Y", "%r \x04 %A, %B %d %Y")
+    local date_format = util.trinary(config.Time24Hour, "%X \x04 %A, %B %d %Y", "%r \x04 %A, %B %d %Y")
 
     -- start clock
     loop_clock.start()
@@ -290,6 +302,11 @@ local function main()
                     sounder.reconnect(device)
                     iocontrol.fp_has_speaker(true)
                 end
+            end
+        elseif event == "monitor_resize" then
+            local is_used, is_ok = renderer.handle_resize(param1)
+            if is_used then
+                log_sys(util.c("configured monitor ", param1, " resized, ", util.trinary(is_ok, "display still fits", "display no longer fits")))
             end
         elseif event == "timer" then
             if loop_clock.is_clock(param1) then

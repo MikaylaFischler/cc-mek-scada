@@ -13,17 +13,57 @@ local LINK_STATE = iocontrol.LINK_STATE
 
 local pocket = {}
 
+---@type pkt_config
+local config = {}
+
+pocket.config = config
+
+-- load the pocket configuration
+function pocket.load_config()
+    if not settings.load("/pocket.settings") then return false end
+
+    config.SVR_Channel = settings.get("SVR_Channel")
+    config.CRD_Channel = settings.get("CRD_Channel")
+    config.PKT_Channel = settings.get("PKT_Channel")
+    config.ConnTimeout = settings.get("ConnTimeout")
+    config.TrustedRange = settings.get("TrustedRange")
+    config.AuthKey = settings.get("AuthKey")
+
+    config.LogMode = settings.get("LogMode")
+    config.LogPath = settings.get("LogPath")
+    config.LogDebug = settings.get("LogDebug")
+
+    local cfv = util.new_validator()
+
+    cfv.assert_channel(config.SVR_Channel)
+    cfv.assert_channel(config.CRD_Channel)
+    cfv.assert_channel(config.PKT_Channel)
+    cfv.assert_type_num(config.ConnTimeout)
+    cfv.assert_min(config.ConnTimeout, 2)
+    cfv.assert_type_num(config.TrustedRange)
+    cfv.assert_min(config.TrustedRange, 0)
+    cfv.assert_type_str(config.AuthKey)
+
+    if type(config.AuthKey) == "string" then
+        local len = string.len(config.AuthKey)
+        cfv.assert(len == 0 or len >= 8)
+    end
+
+    cfv.assert_type_int(config.LogMode)
+    cfv.assert_range(config.LogMode, 0, 1)
+    cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
+
+    return cfv.valid()
+end
+
 -- pocket coordinator + supervisor communications
 ---@nodiscard
 ---@param version string pocket version
 ---@param nic nic network interface device
----@param pkt_channel integer pocket comms channel
----@param svr_channel integer supervisor access channel
----@param crd_channel integer coordinator access channel
----@param range integer trusted device connection range
 ---@param sv_watchdog watchdog
 ---@param api_watchdog watchdog
-function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range, sv_watchdog, api_watchdog)
+function pocket.comms(version, nic, sv_watchdog, api_watchdog)
     local self = {
         sv = {
             linked = false,
@@ -42,13 +82,13 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
         establish_delay_counter = 0
     }
 
-    comms.set_trusted_range(range)
+    comms.set_trusted_range(config.TrustedRange)
 
     -- PRIVATE FUNCTIONS --
 
     -- configure network channels
     nic.closeAll()
-    nic.open(pkt_channel)
+    nic.open(config.PKT_Channel)
 
     -- send a management packet to the supervisor
     ---@param msg_type MGMT_TYPE
@@ -60,7 +100,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
         pkt.make(msg_type, msg)
         s_pkt.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        nic.transmit(svr_channel, pkt_channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.PKT_Channel, s_pkt)
         self.sv.seq_num = self.sv.seq_num + 1
     end
 
@@ -74,7 +114,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
         pkt.make(msg_type, msg)
         s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        nic.transmit(crd_channel, pkt_channel, s_pkt)
+        nic.transmit(config.CRD_Channel, config.PKT_Channel, s_pkt)
         self.api.seq_num = self.api.seq_num + 1
     end
 
@@ -217,9 +257,9 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
             local protocol = packet.scada_frame.protocol()
             local src_addr = packet.scada_frame.src_addr()
 
-            if l_chan ~= pkt_channel then
+            if l_chan ~= config.PKT_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
-            elseif r_chan == crd_channel then
+            elseif r_chan == config.CRD_Channel then
                 -- check sequence number
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num()
@@ -310,7 +350,7 @@ function pocket.comms(version, nic, pkt_channel, svr_channel, crd_channel, range
                 else
                     log.debug("illegal packet type " .. protocol .. " from coordinator", true)
                 end
-            elseif r_chan == svr_channel then
+            elseif r_chan == config.SVR_Channel then
                 -- check sequence number
                 if self.sv.r_seq_num == nil then
                     self.sv.r_seq_num = packet.scada_frame.seq_num()

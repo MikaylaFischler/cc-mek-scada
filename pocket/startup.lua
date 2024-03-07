@@ -13,38 +13,41 @@ local util      = require("scada-common.util")
 
 local core      = require("graphics.core")
 
-local config    = require("pocket.config")
+local configure = require("pocket.configure")
 local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.6.4-alpha"
+local POCKET_VERSION = "v0.7.2-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
 
 ----------------------------------------
--- config validation
+-- get configuration
 ----------------------------------------
 
-local cfv = util.new_validator()
+if not pocket.load_config() then
+    -- try to reconfigure (user action)
+    local success, error = configure.configure(true)
+    if success then
+        if not pocket.load_config() then
+            println("failed to load a valid configuration, please reconfigure")
+            return
+        end
+    else
+        println("configuration error: " .. error)
+        return
+    end
+end
 
-cfv.assert_channel(config.SVR_CHANNEL)
-cfv.assert_channel(config.CRD_CHANNEL)
-cfv.assert_channel(config.PKT_CHANNEL)
-cfv.assert_type_int(config.TRUSTED_RANGE)
-cfv.assert_type_num(config.COMMS_TIMEOUT)
-cfv.assert_min(config.COMMS_TIMEOUT, 2)
-cfv.assert_type_str(config.LOG_PATH)
-cfv.assert_type_int(config.LOG_MODE)
-
-assert(cfv.valid(), "bad config file: missing/invalid fields")
+local config = pocket.config
 
 ----------------------------------------
 -- log init
 ----------------------------------------
 
-log.init(config.LOG_PATH, config.LOG_MODE, config.LOG_DEBUG == true)
+log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
 log.info("BOOTING pocket.startup " .. POCKET_VERSION)
@@ -69,8 +72,8 @@ local function main()
     ----------------------------------------
 
     -- message authentication init
-    if type(config.AUTH_KEY) == "string" then
-        network.init_mac(config.AUTH_KEY)
+    if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
+        network.init_mac(config.AuthKey)
     end
 
     iocontrol.report_link_state(iocontrol.LINK_STATE.UNLINKED)
@@ -85,8 +88,8 @@ local function main()
 
     -- create connection watchdogs
     local conn_wd = {
-        sv = util.new_watchdog(config.COMMS_TIMEOUT),
-        api = util.new_watchdog(config.COMMS_TIMEOUT)
+        sv = util.new_watchdog(config.ConnTimeout),
+        api = util.new_watchdog(config.ConnTimeout)
     }
 
     conn_wd.sv.cancel()
@@ -96,8 +99,7 @@ local function main()
 
     -- create network interface then setup comms
     local nic = network.nic(modem)
-    local pocket_comms = pocket.comms(POCKET_VERSION, nic, config.PKT_CHANNEL, config.SVR_CHANNEL,
-                                        config.CRD_CHANNEL, config.TRUSTED_RANGE, conn_wd.sv, conn_wd.api)
+    local pocket_comms = pocket.comms(POCKET_VERSION, nic, conn_wd.sv, conn_wd.api)
     log.debug("startup> comms init")
 
     -- base loop clock (2Hz, 10 ticks)

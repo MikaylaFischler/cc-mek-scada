@@ -54,9 +54,7 @@ function logic.update_annunciator(self)
     -- variables for boiler, or reactor if no boilers used
     local total_boil_rate = 0.0
 
-    -------------
-    -- REACTOR --
-    -------------
+    --#region Reactor
 
     annunc.AutoControl = self.auto_engaged
 
@@ -143,9 +141,9 @@ function logic.update_annunciator(self)
         self.plc_cache.ok = false
     end
 
-    ---------------
-    -- MISC RTUs --
-    ---------------
+    --#endregion
+
+    --#region Misc RTUs
 
     local max_rad, any_faulted = 0, false
 
@@ -170,9 +168,9 @@ function logic.update_annunciator(self)
         end
     end
 
-    -------------
-    -- BOILERS --
-    -------------
+    --#endregion
+
+    --#region Boilers
 
     local boilers_ready = num_boilers == #self.boilers
 
@@ -230,9 +228,9 @@ function logic.update_annunciator(self)
         boiler_water_dt_sum = _get_dt(DT_KEYS.ReactorCCool)
     end
 
-    ---------------------------
-    -- COOLANT FEED MISMATCH --
-    ---------------------------
+    --#endregion
+
+    --#region Coolant Feed Mismatch
 
     -- check coolant feed mismatch if using boilers, otherwise calculate with reactor
     local cfmismatch = false
@@ -263,9 +261,9 @@ function logic.update_annunciator(self)
 
     annunc.CoolantFeedMismatch = cfmismatch
 
-    --------------
-    -- TURBINES --
-    --------------
+    --#endregion
+
+    --#region Turbines
 
     local turbines_ready = num_turbines == #self.turbines
 
@@ -339,6 +337,8 @@ function logic.update_annunciator(self)
         local has_steam = db.state.steam_input_rate > 0 or db.tanks.steam_fill > 0.01
         annunc.TurbineTrip[idx] = has_steam and db.state.flow_rate == 0
     end
+
+    --#endregion
 
     -- update auto control ready state for this unit
     self.db.control.ready = plc_ready and boilers_ready and turbines_ready

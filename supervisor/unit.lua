@@ -77,7 +77,6 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         tanks = {},
         snas = {},
         envd = {},
-        sna_prod_rate = 0,
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -256,7 +255,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     -- PRIVATE FUNCTIONS --
 
-    --#region time derivative utility functions
+    --#region Time Derivative Utility Functions
 
     -- compute a change with respect to time of the given value
     ---@param key string value key
@@ -331,7 +330,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    --#region redstone I/O
+    --#region Redstone I/O
 
     -- create a generic valve interface
     ---@nodiscard
@@ -398,8 +397,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@class reactor_unit
     local public = {}
 
-    -- ADD/LINK DEVICES --
-    --#region
+    --#region Add/Link Devices
 
     -- link the PLC
     ---@param plc_session plc_session_struct
@@ -489,7 +487,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- UPDATE SESSION --
+    --#region Update Session
 
     -- update (iterate) this unit
     function public.update()
@@ -557,13 +555,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
-    -- AUTO CONTROL OPERATIONS --
-    --#region
+    --#endregion
+
+    --#region Auto Control Operations
 
     -- engage automatic control
     function public.auto_engage()
         self.auto_engaged = true
         if self.plc_i ~= nil then
+            log.debug(util.c("UNIT ", self.r_id, ": engaged auto control"))
             self.plc_i.auto_lock(true)
         end
     end
@@ -572,6 +572,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_disengage()
         self.auto_engaged = false
         if self.plc_i ~= nil then
+            log.debug(util.c("UNIT ", self.r_id, ": disengaged auto control"))
             self.plc_i.auto_lock(false)
             self.db.control.br100 = 0
         end
@@ -582,12 +583,12 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     ---@nodiscard
     ---@return integer lim_br100
     function public.auto_get_effective_limit()
-        if (not self.db.control.ready) or self.db.control.degraded or self.plc_cache.rps_trip then
-            self.db.control.br100 = 0
+        local ctrl = self.db.control
+        if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
+            -- log.debug(util.c("UNIT ", self.r_id, ": effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
+            ctrl.br100 = 0
             return 0
-        else
-            return self.db.control.lim_br100
-        end
+        else return ctrl.lim_br100 end
     end
 
     -- set the automatic burn rate based on the last set burn rate in 100ths
@@ -595,8 +596,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     function public.auto_commit_br100(ramp)
         if self.auto_engaged then
             if self.plc_i ~= nil then
+                log.debug(util.c("UNIT ", self.r_id, ": commit br100 of ", self.db.control.br100, " with ramp set to ", ramp))
                 self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
-
                 if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end
@@ -643,8 +644,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- OPERATIONS --
-    --#region
+    --#region Operations
 
     -- queue a command to disable the reactor
     function public.disable()
@@ -724,8 +724,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
     --#endregion
 
-    -- READ STATES/PROPERTIES --
-    --#region
+    --#region Read States/Properties
 
     -- check if an alarm of at least a certain priority level is tripped
     ---@nodiscard
@@ -855,13 +854,15 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
-        -- basic SNA statistical information
-        local total_peak = 0
+        -- SNA statistical information
+        local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()    ---@type sna_session_db
             total_peak = total_peak + db.state.peak_production
+            total_avail = total_avail + db.state.production_rate
+            total_out = total_out + math.min(db.tanks.input.amount / 10, db.state.production_rate)
         end
-        status.sna = { #self.snas, public.get_sna_rate(), total_peak }
+        status.sna = { #self.snas, total_peak, total_avail, total_out }
 
         -- radiation monitors (environment detectors)
         status.envds = {}
@@ -874,7 +875,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         return status
     end
 
-    -- get the current total [max] production rate is
+    -- get the current total max production rate
     ---@nodiscard
     ---@return number total_avail_rate
     function public.get_sna_rate()

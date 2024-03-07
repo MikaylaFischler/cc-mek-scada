@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.6.9"
+local R_PLC_VERSION = "v1.6.14"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -31,9 +31,13 @@ if not plc.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(plc.load_config(), "failed to load valid reactor PLC configuration")
+        if not plc.load_config() then
+            println("failed to load a valid configuration, please reconfigure")
+            return
+        end
     else
-        assert(success, "reactor PLC configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 
@@ -131,14 +135,21 @@ local function main()
 
     -- we need a reactor, can at least do some things even if it isn't formed though
     if plc_state.no_reactor then
-        println("init> fission reactor not found");
+        println("init> fission reactor not found")
         log.warning("init> no reactor on startup")
 
         plc_state.init_ok = false
         plc_state.degraded = true
     elseif not smem_dev.reactor.isFormed() then
-        println("init> fission reactor not formed");
+        println("init> fission reactor is not formed")
         log.warning("init> reactor logic adapter present, but reactor is not formed")
+
+        plc_state.degraded = true
+        plc_state.reactor_formed = false
+    elseif smem_dev.reactor.getStatus() == ppm.UNDEFINED_FIELD then
+        -- reactor formed after ppm.mount_all was called
+        println("init> fission reactor was not formed")
+        log.warning("init> reactor reported formed, but multiblock functions are not available")
 
         plc_state.degraded = true
         plc_state.reactor_formed = false

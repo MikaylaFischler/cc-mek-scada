@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.7.11"
+local RTU_VERSION = "v1.7.14"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -47,9 +47,13 @@ if not rtu.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(rtu.load_config(), "failed to load valid RTU configuration")
+        if not rtu.load_config() then
+            println("failed to load a valid configuration, please reconfigure")
+            return
+        end
     else
-        assert(success, "RTU configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 

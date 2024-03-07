@@ -152,6 +152,8 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.test_tone_states, false)
     end
 
+    -- PRIVATE FUNCTIONS --
+
     -- check if all auto-controlled units completed ramping
     ---@nodiscard
     local function _all_units_ramped()
@@ -228,7 +230,7 @@ function facility.new(num_reactors, cooling_conf)
     ---@class facility
     local public = {}
 
-    -- ADD/LINK DEVICES --
+    --#region Add/Link Devices
 
     -- link a redstone RTU session
     ---@param rs_unit unit_session
@@ -268,11 +270,9 @@ function facility.new(num_reactors, cooling_conf)
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (s) return s.get_session_id() ~= session end) end
     end
 
-    -- UPDATE --
+    --#endregion
 
-    -- supervisor sessions reporting the list of active RTU sessions
-    ---@param rtu_sessions table session list of all connected RTUs
-    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
+    --#region Update
 
     -- update (iterate) the facility management
     function public.update()
@@ -323,7 +323,7 @@ function facility.new(num_reactors, cooling_conf)
         -- Run Process Control --
         -------------------------
 
-        --#region Process Control
+        --#region
 
         local avg_charge = self.avg_charge.compute()
         local avg_inflow = self.avg_inflow.compute()
@@ -337,7 +337,7 @@ function facility.new(num_reactors, cooling_conf)
         if state_changed then
             self.saturated = false
 
-            log.debug("FAC: state changed from " .. PROCESS_NAMES[self.last_mode + 1] .. " to " .. PROCESS_NAMES[self.mode + 1])
+            log.debug(util.c("FAC: state changed from ", PROCESS_NAMES[self.last_mode + 1], " to ", PROCESS_NAMES[self.mode + 1]))
 
             if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
                 self.start_fail = START_STATUS.OK
@@ -374,6 +374,8 @@ function facility.new(num_reactors, cooling_conf)
                         self.max_burn_combined = self.max_burn_combined + (u.get_control_inf().lim_br100 / 100.0)
                     end
                 end
+
+                log.debug(util.c("FAC: computed a max combined burn rate of ", self.max_burn_combined, "mB/t"))
 
                 if blade_count == nil then
                     -- no units
@@ -436,7 +438,7 @@ function facility.new(num_reactors, cooling_conf)
                 self.saturated = true
 
                 self.status_text = { "MONITORED MODE", "running reactors at limit" }
-                log.info(util.c("FAC: MAX_BURN process mode started"))
+                log.info("FAC: MAX_BURN process mode started")
             end
 
             _allocate_burn_rate(self.max_burn_combined, true)
@@ -445,7 +447,7 @@ function facility.new(num_reactors, cooling_conf)
             if state_changed then
                 self.time_start = now
                 self.status_text = { "BURN RATE MODE", "running" }
-                log.info(util.c("FAC: BURN_RATE process mode started"))
+                log.info("FAC: BURN_RATE process mode started")
             end
 
             local unallocated = _allocate_burn_rate(self.burn_target, true)
@@ -459,7 +461,7 @@ function facility.new(num_reactors, cooling_conf)
                 self.accumulator = 0
 
                 self.status_text = { "CHARGE MODE", "running control loop" }
-                log.info(util.c("FAC: CHARGE mode starting PID control"))
+                log.info("FAC: CHARGE mode starting PID control")
             elseif self.last_update ~= charge_update then
                 -- convert to kFE to make constants not microscopic
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
@@ -595,7 +597,7 @@ function facility.new(num_reactors, cooling_conf)
         -- Evaluate Automatic SCRAM --
         ------------------------------
 
-        --#region Automatic SCRAM
+        --#region
 
         local astatus = self.ascram_status
 
@@ -614,7 +616,7 @@ function facility.new(num_reactors, cooling_conf)
             astatus.matrix_fill = (db.tanks.energy_fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.matrix_fill and db.tanks.energy_fill > ALARM_LIMS.CHARGE_RE_ENABLE)
 
             if was_fill and not astatus.matrix_fill then
-                log.info("FAC: charge state of induction matrix entered acceptable range <= " .. (ALARM_LIMS.CHARGE_RE_ENABLE * 100) .. "%")
+                log.info(util.c("FAC: charge state of induction matrix entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
             end
 
             -- check for critical unit alarms
@@ -725,6 +727,8 @@ function facility.new(num_reactors, cooling_conf)
         -- Handle Redstone I/O --
         -------------------------
 
+        --#region
+
         if #self.redstone > 0 then
             -- handle facility SCRAM
             if self.io_ctl.digital_read(IO.F_SCRAM) then
@@ -754,9 +758,13 @@ function facility.new(num_reactors, cooling_conf)
             self.io_ctl.digital_write(IO.F_ALARM_ANY, has_any_alarm)
         end
 
+        --#endregion
+
         ----------------
         -- Unit Tasks --
         ----------------
+
+        --#region
 
         local insufficent_po_rate = false
         local need_emcool = false
@@ -796,9 +804,13 @@ function facility.new(num_reactors, cooling_conf)
             end
         end
 
+        --#endregion
+
         ------------------------
         -- Update Alarm Tones --
         ------------------------
+
+        --#region
 
         local allow_test = self.allow_testing and self.test_tone_set
 
@@ -886,6 +898,8 @@ function facility.new(num_reactors, cooling_conf)
             self.test_tone_set = false
             self.test_tone_reset = true
         end
+
+        --#endregion
     end
 
     -- call the update function of all units in the facility<br>
@@ -898,7 +912,9 @@ function facility.new(num_reactors, cooling_conf)
         end
     end
 
-    -- COMMANDS --
+    --#endregion
+
+    --#region Commands
 
     -- SCRAM all reactor units
     function public.scram_all()
@@ -986,7 +1002,9 @@ function facility.new(num_reactors, cooling_conf)
         }
     end
 
-    -- SETTINGS --
+    --#endregion
+
+    --#region Settings
 
     -- set the automatic control group of a unit
     ---@param unit_id integer unit ID
@@ -1027,7 +1045,9 @@ function facility.new(num_reactors, cooling_conf)
         return self.pu_fallback
     end
 
-    -- DIAGNOSTIC TESTING --
+    --#endregion
+
+    --#region Diagnostic Testing
 
     -- attempt to set a test tone state
     ---@param id TONE|0 tone ID or 0 to disable all
@@ -1067,7 +1087,9 @@ function facility.new(num_reactors, cooling_conf)
         return self.allow_testing, self.test_alarm_states
     end
 
-    -- READ STATES/PROPERTIES --
+    --#endregion
+
+    --#region Read States/Properties
 
     -- get current alarm tone on/off states
     ---@nodiscard
@@ -1180,6 +1202,12 @@ function facility.new(num_reactors, cooling_conf)
 
         return status
     end
+
+    --#endregion
+
+    -- supervisor sessions reporting the list of active RTU sessions
+    ---@param rtu_sessions table session list of all connected RTUs
+    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
 
     -- get the units in this facility
     ---@nodiscard
