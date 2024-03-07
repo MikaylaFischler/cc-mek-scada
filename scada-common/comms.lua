@@ -64,7 +64,9 @@ local CRDN_TYPE = {
     FAC_CMD = 3,         -- faility command
     UNIT_BUILDS = 4,     -- build of each reactor unit (reactor + RTUs)
     UNIT_STATUSES = 5,   -- state of each of the reactor units
-    UNIT_CMD = 6         -- command a reactor unit
+    UNIT_CMD = 6,        -- command a reactor unit
+    API_GET_FAC = 7,     -- API: get all the facility data
+    API_GET_UNITS = 8    -- API: get all the reactor unit data
 }
 
 ---@enum ESTABLISH_ACK

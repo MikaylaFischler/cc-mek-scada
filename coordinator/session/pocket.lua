@@ -8,7 +8,7 @@ local iocontrol = require("coordinator.iocontrol")
 local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
--- local CRDN_TYPE = comms.CRDN_TYPE
+local CRDN_TYPE = comms.CRDN_TYPE
 local MGMT_TYPE = comms.MGMT_TYPE
 
 -- retry time constants in ms
@@ -73,18 +73,18 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
     end
 
     -- send a CRDN packet
-    -----@param msg_type CRDN_TYPE
-    -----@param msg table
-    -- local function _send(msg_type, msg)
-    --     local s_pkt = comms.scada_packet()
-    --     local c_pkt = comms.crdn_packet()
+    ---@param msg_type CRDN_TYPE
+    ---@param msg table
+    local function _send(msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local c_pkt = comms.crdn_packet()
 
-    --     c_pkt.make(msg_type, msg)
-    --     s_pkt.make(self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
+        c_pkt.make(msg_type, msg)
+        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
 
-    --     out_queue.push_packet(s_pkt)
-    --     self.seq_num = self.seq_num + 1
-    -- end
+        out_queue.push_packet(s_pkt)
+        self.seq_num = self.seq_num + 1
+    end
 
     -- send a SCADA management packet
     ---@param msg_type MGMT_TYPE
@@ -120,8 +120,41 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
             ---@cast pkt crdn_frame
 
+            local db = iocontrol.get_db()
+
             -- handle packet by type
-            if pkt.type == nil then
+            if pkt.type == CRDN_TYPE.API_GET_FAC then
+                local fac = db.facility
+
+                ---@class api_fac
+                local data = {
+                    num_units = fac.num_units,
+                    num_tanks = util.table_len(fac.tank_data_tbl),
+                    tank_mode = fac.tank_mode,
+                    tank_defs = fac.tank_defs,
+                    sys_ok = fac.all_sys_ok,
+                    rtu_count = fac.rtu_count,
+                    radiation = fac.radiation,
+                    auto = { fac.auto_ready, fac.auto_active, fac.auto_ramping, fac.auto_saturated },
+                    waste = { fac.auto_current_waste_product, fac.auto_pu_fallback_active },
+                    has_matrix = fac.induction_data_tbl[1] ~= nil,
+                    has_sps = fac.sps_data_tbl[1] ~= nil,
+                }
+
+                _send(CRDN_TYPE.API_GET_FAC, data)
+            elseif pkt.type == CRDN_TYPE.API_GET_UNITS then
+                local data = {}
+
+                for i = 1, #db.units do
+                    local u = db.units[i]   ---@type ioctl_unit
+                    table.insert(data, {
+                        u.unit_id,
+                        u.num_boilers,
+                        u.num_turbines,
+                        u.num_snas,
+                        u.has_tank
+                    })
+                end
             else
                 log.debug(log_header .. "handler received unsupported CRDN packet type " .. pkt.type)
             end
