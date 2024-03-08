@@ -65,17 +65,17 @@ themes.basalt = {
     field_box = cpair(colors.white, colors.gray),
 
     colors = {
-        { c = colors.red,       hex = 0xdc6466 },   -- RED ON
+        { c = colors.red,       hex = 0xf18486 },   -- RED ON
         { c = colors.orange,    hex = 0xffb659 },
-        { c = colors.yellow,    hex = 0xebdf75 },   -- YELLOW ON
-        { c = colors.lime,      hex = 0x496b41 },   -- GREEN OFF
-        { c = colors.green,     hex = 0x81db6d },   -- GREEN ON
+        { c = colors.yellow,    hex = 0xefe37c },   -- YELLOW ON
+        { c = colors.lime,      hex = 0x436b41 },   -- GREEN OFF
+        { c = colors.green,     hex = 0x7ae175 },   -- GREEN ON
         { c = colors.cyan,      hex = 0x5ec7d1 },
         { c = colors.lightBlue, hex = 0x7dc6f2 },
         { c = colors.blue,      hex = 0x56aae6 },
         { c = colors.purple,    hex = 0xe9cd68 },   -- YELLOW HIGH CONTRAST
         { c = colors.pink,      hex = 0x4d4e52 },   -- IVORY
-        { c = colors.magenta,   hex = 0x6b6c36 },   -- YELLOW OFF
+        { c = colors.magenta,   hex = 0x757040 },   -- YELLOW OFF
         { c = colors.white,     hex = 0xbfbfbf },
         { c = colors.lightGray, hex = 0x848794 },
         { c = colors.gray,      hex = 0x5c5f68 },
