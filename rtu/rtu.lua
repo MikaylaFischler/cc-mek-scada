@@ -29,14 +29,19 @@ function rtu.load_config()
     config.Redstone = settings.get("Redstone")
 
     config.SpeakerVolume = settings.get("SpeakerVolume")
+
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
+
     config.LogMode = settings.get("LogMode")
     config.LogPath = settings.get("LogPath")
     config.LogDebug = settings.get("LogDebug")
+
+    config.FrontPanelTheme = settings.get("FrontPanelTheme")
+    config.ColorMode = settings.get("ColorMode")
 
     local cfv = util.new_validator()
 
@@ -60,6 +65,11 @@ function rtu.load_config()
     cfv.assert_range(config.LogMode, 0, 1)
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
+
+    cfv.assert_type_int(config.FrontPanelTheme)
+    cfv.assert_range(config.FrontPanelTheme, 1, 2)
+    cfv.assert_type_int(config.ColorMode)
+    cfv.assert_range(config.ColorMode, 1, 4)
 
     cfv.assert_type_table(config.Peripherals)
     cfv.assert_type_table(config.Redstone)

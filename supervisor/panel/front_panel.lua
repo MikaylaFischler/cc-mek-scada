@@ -29,17 +29,17 @@ local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local s_hi_box = style.theme.highlight_box
-local s_hi_bright = style.theme.highlight_box_bright
-
-local label_fg = style.fp.label_fg
-local label_d_fg = style.fp.label_d_fg
-
 local ind_grn = style.ind_grn
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
+    local s_hi_box = style.theme.highlight_box
+    local s_hi_bright = style.theme.highlight_box_bright
+
+    local label_fg = style.fp.label_fg
+    local label_d_fg = style.fp.label_d_fg
+
     TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     local page_div = Div{parent=panel,x=1,y=3}

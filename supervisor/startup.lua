@@ -118,7 +118,7 @@ local function main()
     databus.tx_hw_modem(true)
 
     -- start UI
-    local fp_ok, message = renderer.try_start_ui()
+    local fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme)
 
     if not fp_ok then
         println_ts(util.c("UI error: ", message))

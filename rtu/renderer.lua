@@ -19,11 +19,15 @@ local ui = {
 
 -- try to start the UI
 ---@param units table RTU units
+---@param theme integer front panel theme ID (1 = sandstone, 2 = basalt)
 ---@return boolean success, any error_msg
-function renderer.try_start_ui(units)
+function renderer.try_start_ui(units, theme)
     local status, msg = true, nil
 
     if ui.display == nil then
+        -- set theme
+        style.set_theme(theme)
+
         -- reset terminal
         term.setTextColor(colors.white)
         term.setBackgroundColor(colors.black)

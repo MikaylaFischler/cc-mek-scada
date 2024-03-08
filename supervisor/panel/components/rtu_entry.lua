@@ -17,18 +17,17 @@ local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local s_hi_box = style.theme.highlight_box
-local s_hi_bright = style.theme.highlight_box_bright
-
 local label_fg = style.fp.label_fg
 
 -- create an RTU list entry
 ---@param parent graphics_element parent
 ---@param id integer RTU session ID
 local function init(parent, id)
+    local s_hi_box = style.theme.highlight_box
+
     -- root div
     local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}
-    local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=s_hi_bright}
+    local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
 
     local ps_prefix = "rtu_" .. id .. "_"
 

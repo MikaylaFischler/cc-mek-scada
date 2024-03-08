@@ -36,9 +36,9 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
-    {"v1.6.8", { "ConnTimeout can now have a fractional part" } },
-    {"v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } }
+    { "v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
+    { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
+    { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } }
 }
 
 ---@class plc_configurator
@@ -70,6 +70,7 @@ local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
 local nav_fg_bg = bw_fg_bg
 local btn_act_fg_bg = cpair(colors.white, colors.gray)
 
+---@class _plc_cfg_tool_ctl
 local tool_ctl = {
     ask_config = false,
     has_config = false,

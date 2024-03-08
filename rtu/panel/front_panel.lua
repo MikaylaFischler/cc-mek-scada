@@ -22,8 +22,6 @@ local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local disabled_fg = style.fp.disabled_fg
-
 local ind_grn = style.ind_grn
 
 local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
@@ -32,6 +30,8 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 ---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)
+    local disabled_fg = style.fp.disabled_fg
+
     TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     --

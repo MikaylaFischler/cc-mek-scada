@@ -506,7 +506,7 @@ local function main()
     if sys_config() then
         -- start UI
         local message
-        rtu_state.fp_ok, message = renderer.try_start_ui(units)
+        rtu_state.fp_ok, message = renderer.try_start_ui(units, config.FrontPanelTheme)
 
         if not rtu_state.fp_ok then
             println_ts(util.c("UI error: ", message))

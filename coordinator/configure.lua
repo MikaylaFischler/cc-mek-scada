@@ -42,8 +42,8 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.2.4", { "Added temperature scale options" } },
-    {"v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } }
+    { "v1.2.4", { "Added temperature scale options" } },
+    { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } }
 }
 
 ---@class crd_configurator
