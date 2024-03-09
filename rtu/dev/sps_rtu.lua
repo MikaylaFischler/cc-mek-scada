@@ -7,7 +7,7 @@ local sps_rtu = {}
 ---@param sps table
 ---@return rtu_device interface, boolean faulted
 function sps_rtu.new(sps)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(sps)
 
     -- disable auto fault clearing
     sps.__p_clear_fault()
