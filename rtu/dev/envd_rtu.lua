@@ -7,7 +7,7 @@ local envd_rtu = {}
 ---@param envd table
 ---@return rtu_device interface, boolean faulted
 function envd_rtu.new(envd)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(envd)
 
     -- disable auto fault clearing
     envd.__p_clear_fault()

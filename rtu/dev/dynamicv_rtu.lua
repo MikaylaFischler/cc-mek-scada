@@ -7,7 +7,7 @@ local dynamicv_rtu = {}
 ---@param dynamic_tank table
 ---@return rtu_device interface, boolean faulted
 function dynamicv_rtu.new(dynamic_tank)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(dynamic_tank)
 
     -- disable auto fault clearing
     dynamic_tank.__p_clear_fault()

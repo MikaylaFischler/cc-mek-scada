@@ -7,7 +7,7 @@ local sna_rtu = {}
 ---@param sna table
 ---@return rtu_device interface, boolean faulted
 function sna_rtu.new(sna)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(sna)
 
     -- disable auto fault clearing
     sna.__p_clear_fault()
