@@ -341,7 +341,7 @@ local function new_view(root, x, y)
     status.register(facility.ps, "current_waste_product", status.update)
 
     local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
-    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,colors.black)}
+    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,style.theme.accent_light)}
 
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
     pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
