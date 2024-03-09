@@ -7,7 +7,7 @@ local turbinev_rtu = {}
 ---@param turbine table
 ---@return rtu_device interface, boolean faulted
 function turbinev_rtu.new(turbine)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(turbine)
 
     -- disable auto fault clearing
     turbine.__p_clear_fault()
