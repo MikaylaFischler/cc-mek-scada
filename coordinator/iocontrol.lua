@@ -47,7 +47,23 @@ end
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
-function iocontrol.init(conf, comms)
+---@param temp_scale integer temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+function iocontrol.init(conf, comms, temp_scale)
+    -- temperature unit label and conversion function (from Kelvin)
+    if temp_scale == 2 then
+        io.temp_label = "\xb0C"
+        io.temp_convert = function (t) return t - 273.15 end
+    elseif temp_scale == 3 then
+        io.temp_label = "\xb0F"
+        io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
+    elseif temp_scale == 4 then
+        io.temp_label = "\xb0R"
+        io.temp_convert = function (t) return 1.8 * t end
+    else
+        io.temp_label = "K"
+        io.temp_convert = function (t) return t end
+    end
+
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
@@ -219,7 +235,10 @@ function iocontrol.init(conf, comms)
             control_state = false,
             burn_rate_cmd = 0.0,
             radiation = types.new_zero_radiation_reading(),
-            sna_prod_rate = 0.0,
+
+            sna_peak_rate = 0.0,
+            sna_max_rate = 0.0,
+            sna_out_rate = 0.0,
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
@@ -923,7 +942,7 @@ function iocontrol.update_unit_statuses(statuses)
                         local boil_sum = 0
 
                         for id = 1, #unit.boiler_ps_tbl do
-                            if rtu_statuses.boilers[i] == nil then
+                            if rtu_statuses.boilers[id] == nil then
                                 -- disconnected
                                 unit.boiler_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -966,7 +985,7 @@ function iocontrol.update_unit_statuses(statuses)
                         local flow_sum = 0
 
                         for id = 1, #unit.turbine_ps_tbl do
-                            if rtu_statuses.turbines[i] == nil then
+                            if rtu_statuses.turbines[id] == nil then
                                 -- disconnected
                                 unit.turbine_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -1009,7 +1028,7 @@ function iocontrol.update_unit_statuses(statuses)
                     -- dynamic tank statuses
                     if type(rtu_statuses.tanks) == "table" then
                         for id = 1, #unit.tank_ps_tbl do
-                            if rtu_statuses.tanks[i] == nil then
+                            if rtu_statuses.tanks[id] == nil then
                                 -- disconnected
                                 unit.tank_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -1048,12 +1067,14 @@ function iocontrol.update_unit_statuses(statuses)
                     -- solar neutron activator status info
                     if type(rtu_statuses.sna) == "table" then
                         unit.num_snas      = rtu_statuses.sna[1] ---@type integer
-                        unit.sna_prod_rate = rtu_statuses.sna[2] ---@type number
-                        unit.sna_peak_rate = rtu_statuses.sna[3] ---@type number
+                        unit.sna_peak_rate = rtu_statuses.sna[2] ---@type number
+                        unit.sna_max_rate  = rtu_statuses.sna[3] ---@type number
+                        unit.sna_out_rate  = rtu_statuses.sna[4] ---@type number
 
                         unit.unit_ps.publish("sna_count", unit.num_snas)
-                        unit.unit_ps.publish("sna_prod_rate", unit.sna_prod_rate)
                         unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
+                        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
+                        unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
 
                         sna_count_sum = sna_count_sum + unit.num_snas
                     else
@@ -1201,7 +1222,7 @@ function iocontrol.update_unit_statuses(statuses)
 
                 local u_spent_rate = waste_rate
                 local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
-                local u_po_rate = util.trinary(not is_pu, math.min(waste_rate, unit.sna_prod_rate), 0.0)
+                local u_po_rate = unit.sna_out_rate
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
@@ -1209,14 +1230,15 @@ function iocontrol.update_unit_statuses(statuses)
                 unit.unit_ps.publish("sna_in", util.trinary(is_pu, 0, burn_rate))
 
                 if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                    u_spent_rate = u_po_rate
                     unit.unit_ps.publish("po_pl_rate", u_po_rate)
                     unit.unit_ps.publish("po_am_rate", 0)
                     po_pl_rate = po_pl_rate + u_po_rate
                 elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                    u_spent_rate = 0
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", u_po_rate)
                     po_am_rate = po_am_rate + u_po_rate
-                    u_spent_rate = 0
                 else
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", 0)

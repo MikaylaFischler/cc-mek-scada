@@ -152,6 +152,8 @@ function facility.new(num_reactors, cooling_conf)
         table.insert(self.test_tone_states, false)
     end
 
+    -- PRIVATE FUNCTIONS --
+
     -- check if all auto-controlled units completed ramping
     ---@nodiscard
     local function _all_units_ramped()
@@ -228,7 +230,7 @@ function facility.new(num_reactors, cooling_conf)
     ---@class facility
     local public = {}
 
-    -- ADD/LINK DEVICES --
+    --#region Add/Link Devices
 
     -- link a redstone RTU session
     ---@param rs_unit unit_session
@@ -268,11 +270,9 @@ function facility.new(num_reactors, cooling_conf)
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (s) return s.get_session_id() ~= session end) end
     end
 
-    -- UPDATE --
+    --#endregion
 
-    -- supervisor sessions reporting the list of active RTU sessions
-    ---@param rtu_sessions table session list of all connected RTUs
-    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
+    --#region Update
 
     -- update (iterate) the facility management
     function public.update()
@@ -323,7 +323,7 @@ function facility.new(num_reactors, cooling_conf)
         -- Run Process Control --
         -------------------------
 
-        --#region Process Control
+        --#region
 
         local avg_charge = self.avg_charge.compute()
         local avg_inflow = self.avg_inflow.compute()
@@ -597,7 +597,7 @@ function facility.new(num_reactors, cooling_conf)
         -- Evaluate Automatic SCRAM --
         ------------------------------
 
-        --#region Automatic SCRAM
+        --#region
 
         local astatus = self.ascram_status
 
@@ -727,6 +727,8 @@ function facility.new(num_reactors, cooling_conf)
         -- Handle Redstone I/O --
         -------------------------
 
+        --#region
+
         if #self.redstone > 0 then
             -- handle facility SCRAM
             if self.io_ctl.digital_read(IO.F_SCRAM) then
@@ -756,9 +758,13 @@ function facility.new(num_reactors, cooling_conf)
             self.io_ctl.digital_write(IO.F_ALARM_ANY, has_any_alarm)
         end
 
+        --#endregion
+
         ----------------
         -- Unit Tasks --
         ----------------
+
+        --#region
 
         local insufficent_po_rate = false
         local need_emcool = false
@@ -798,9 +804,13 @@ function facility.new(num_reactors, cooling_conf)
             end
         end
 
+        --#endregion
+
         ------------------------
         -- Update Alarm Tones --
         ------------------------
+
+        --#region
 
         local allow_test = self.allow_testing and self.test_tone_set
 
@@ -888,6 +898,8 @@ function facility.new(num_reactors, cooling_conf)
             self.test_tone_set = false
             self.test_tone_reset = true
         end
+
+        --#endregion
     end
 
     -- call the update function of all units in the facility<br>
@@ -900,7 +912,9 @@ function facility.new(num_reactors, cooling_conf)
         end
     end
 
-    -- COMMANDS --
+    --#endregion
+
+    --#region Commands
 
     -- SCRAM all reactor units
     function public.scram_all()
@@ -988,7 +1002,9 @@ function facility.new(num_reactors, cooling_conf)
         }
     end
 
-    -- SETTINGS --
+    --#endregion
+
+    --#region Settings
 
     -- set the automatic control group of a unit
     ---@param unit_id integer unit ID
@@ -1029,7 +1045,9 @@ function facility.new(num_reactors, cooling_conf)
         return self.pu_fallback
     end
 
-    -- DIAGNOSTIC TESTING --
+    --#endregion
+
+    --#region Diagnostic Testing
 
     -- attempt to set a test tone state
     ---@param id TONE|0 tone ID or 0 to disable all
@@ -1069,7 +1087,9 @@ function facility.new(num_reactors, cooling_conf)
         return self.allow_testing, self.test_alarm_states
     end
 
-    -- READ STATES/PROPERTIES --
+    --#endregion
+
+    --#region Read States/Properties
 
     -- get current alarm tone on/off states
     ---@nodiscard
@@ -1182,6 +1202,12 @@ function facility.new(num_reactors, cooling_conf)
 
         return status
     end
+
+    --#endregion
+
+    -- supervisor sessions reporting the list of active RTU sessions
+    ---@param rtu_sessions table session list of all connected RTUs
+    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
 
     -- get the units in this facility
     ---@nodiscard

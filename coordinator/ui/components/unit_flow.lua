@@ -181,10 +181,10 @@ local function make(parent, x, y, wide, unit)
 
     local waste_rate = DataIndicator{parent=waste,x=1,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
     local pu_rate = DataIndicator{parent=waste,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
-    local po_rate = DataIndicator{parent=waste,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
-    local popl_rate = DataIndicator{parent=waste,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
-    local poam_rate = DataIndicator{parent=waste,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
-    local spent_rate = DataIndicator{parent=waste,x=_wide(117,99),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=bw_fg_bg}
+    local po_rate = DataIndicator{parent=waste,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
+    local popl_rate = DataIndicator{parent=waste,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
+    local poam_rate = DataIndicator{parent=waste,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=bw_fg_bg}
+    local spent_rate = DataIndicator{parent=waste,x=_wide(117,98),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=bw_fg_bg}
 
     waste_rate.register(unit.unit_ps, "act_burn_rate", waste_rate.update)
     pu_rate.register(unit.unit_ps, "pu_rate", pu_rate.update)
@@ -214,7 +214,7 @@ local function make(parent, x, y, wide, unit)
     sna_act.register(unit.unit_ps, "po_rate", function (r) sna_act.update(r > 0) end)
     sna_cnt.register(unit.unit_ps, "sna_count", sna_cnt.update)
     sna_pk.register(unit.unit_ps, "sna_peak_rate", sna_pk.update)
-    sna_max.register(unit.unit_ps, "sna_prod_rate", sna_max.update)
+    sna_max.register(unit.unit_ps, "sna_max_rate", sna_max.update)
     sna_in.register(unit.unit_ps, "sna_in", sna_in.update)
 
     return root

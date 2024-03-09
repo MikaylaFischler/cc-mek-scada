@@ -125,9 +125,8 @@ function threads.thread__main(smem, init)
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
 
-                            -- reset RPS for newly connected reactor
-                            -- without this, is_formed will be out of date and cause it to think its no longer formed again
-                            rps.reset()
+                            -- partial reset of RPS, specific to becoming formed
+                            rps.reset_formed()
                         else
                             -- fully lost the reactor now :(
                             println_ts("reactor lost (failed reconnect)!")
@@ -231,9 +230,8 @@ function threads.thread__main(smem, init)
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
 
-                            -- reset RPS for newly connected reactor
-                            -- without this, is_formed will be out of date and cause it to think its no longer formed again
-                            rps.reset()
+                            -- partial reset of RPS, specific to becoming formed
+                            rps.reset_formed()
                         end
                     elseif networked and type == "modem" then
                         -- note, check init_ok first since nic will be nil if it is false

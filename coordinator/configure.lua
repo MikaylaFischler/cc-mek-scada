@@ -39,7 +39,9 @@ local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
-local changes = {}
+local changes = {
+    {"v1.2.4", { "Added temperature scale options" } }
+}
 
 ---@class crd_configurator
 local configurator = {}
@@ -119,6 +121,7 @@ local tmp_cfg = {
     UnitCount = 1,
     SpeakerVolume = 1.0,
     Time24Hour = true,
+    TempScale = 1,
     DisableFlowView = false,
     MainDisplay = nil,  ---@type string
     FlowDisplay = nil,  ---@type string
@@ -148,6 +151,7 @@ local fields = {
     { "UnitDisplays", "Unit Monitors", {} },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
     { "Time24Hour", "Use 24-hour Time Format", true },
+    { "TempScale", "Temperature Scale", 1 },
     { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
@@ -465,7 +469,7 @@ local function config_view(display)
             key_err.hide(true)
 
             -- init mac for supervisor connection
-            if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) end
+            if string.len(v) >= 8 then network.init_mac(tmp_cfg.AuthKey) else network.deinit_mac() end
 
             main_pane.set_value(3)
 
@@ -739,8 +743,12 @@ local function config_view(display)
     TextBox{parent=crd_c_1,x=1,y=4,height=1,text="Clock Time Format"}
     local clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
+    TextBox{parent=crd_c_1,x=1,y=8,height=1,text="Temperature Scale"}
+    local temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options={"Kelvin","Celsius","Fahrenheit","Rankine"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
     local function submit_ui_opts()
         tmp_cfg.Time24Hour = clock_fmt.get_value() == 1
+        tmp_cfg.TempScale = temp_scale.get_value()
         main_pane.set_value(7)
     end
 
@@ -1186,6 +1194,8 @@ local function config_view(display)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "TempScale" then
+                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" else val = "Rankine" end
             elseif f[1] == "UnitDisplays" and type(cfg.UnitDisplays) == "table" then
                 val = ""
                 for idx = 1, #cfg.UnitDisplays do

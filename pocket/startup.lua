@@ -18,7 +18,7 @@ local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.7.0-alpha"
+local POCKET_VERSION = "v0.7.1-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -31,9 +31,13 @@ if not pocket.load_config() then
     -- try to reconfigure (user action)
     local success, error = configure.configure(true)
     if success then
-        assert(pocket.load_config(), "failed to load valid configuration")
+        if not pocket.load_config() then
+            println("failed to load a valid configuration, please reconfigure")
+            return
+        end
     else
-        assert(success, "pocket configuration error: " .. error)
+        println("configuration error: " .. error)
+        return
     end
 end
 
