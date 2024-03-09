@@ -8,6 +8,7 @@ local network     = require("scada-common.network")
 local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
+local themes      = require("graphics.themes")
 
 local core        = require("graphics.core")
 
@@ -174,9 +175,9 @@ local fields = {
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug","Log Debug Messages", false },
-    { "MainTheme", "Main UI Theme", 1 },
-    { "FrontPanelTheme", "Front Panel Theme", 1 },
-    { "ColorMode", "Color Mode", 1 }
+    { "MainTheme", "Main UI Theme", themes.UI_THEME.SMOOTH_STONE },
+    { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
+    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
 }
 
 -- check if a value is an integer within a range (inclusive)
@@ -832,10 +833,10 @@ local function config_view(display)
     TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access color blind assistive options.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Main UI Theme"}
-    local main_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.MainTheme,options={"Smooth Stone","Deepslate"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local main_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.MainTheme,options=themes.UI_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_1,x=18,y=7,height=1,text="Front Panel Theme"}
-    local fp_theme = RadioButton{parent=clr_c_1,x=18,y=8,default=ini_cfg.FrontPanelTheme,options={"Sandstone","Basalt"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local fp_theme = RadioButton{parent=clr_c_1,x=18,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
 
@@ -857,7 +858,7 @@ local function config_view(display)
         end
     end
 
-    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options={"None","Protanopia","Deuteranopia","Tritanopia"},callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     local _ = IndLight{parent=clr_c_2,x=20,y=8,label="Good",colors=cpair(colors.black,colors.green),value=true}
     _ = IndLight{parent=clr_c_2,x=20,y=9,label="Warning",colors=cpair(colors.black,colors.yellow),value=true}
@@ -1332,11 +1333,11 @@ local function config_view(display)
             elseif f[1] == "TempScale" then
                 if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" elseif raw == 4 then val = "Rankine" end
             elseif f[1] == "MainTheme" then
-                if raw == 1 then val = "Smooth Stone" elseif raw == 2 then val = "Deepslate" end
+                val = util.strval(themes.ui_theme_name(raw))
             elseif f[1] == "FrontPanelTheme" then
-                if raw == 1 then val = "Sandstone" elseif raw == 2 then val = "Basalt" end
+                val = util.strval(themes.fp_theme_name(raw))
             elseif f[1] == "ColorMode" then
-                if raw == 1 then val = "Standard" elseif raw == 2 then val = "Protanopia" elseif raw == 3 then val = "Deuteranopia" elseif raw == 4 then val = "Tritanopia" end
+                val = util.strval(themes.color_mode_name(raw))
             elseif f[1] == "UnitDisplays" and type(cfg.UnitDisplays) == "table" then
                 val = ""
                 for idx = 1, #cfg.UnitDisplays do

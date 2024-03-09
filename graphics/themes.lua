@@ -9,12 +9,76 @@ local cpair = core.cpair
 ---@class graphics_themes
 local themes = {}
 
--- add color mappings for front panel
-colors.ivory = colors.pink
-colors.yellow_hc = colors.purple
-colors.red_off = colors.brown
+-- add color mappings for front panels
+colors.ivory      = colors.pink
+colors.yellow_hc  = colors.purple
+colors.red_off    = colors.brown
 colors.yellow_off = colors.magenta
-colors.green_off = colors.lime
+colors.green_off  = colors.lime
+
+--#region Types
+
+---@enum UI_THEME
+themes.UI_THEME = { SMOOTH_STONE = 1, DEEPSLATE = 2 }
+themes.UI_THEME_NAMES = { "Smooth Stone", "Deepslate" }
+
+-- attempts to get the string name of a main ui theme
+---@nodiscard
+---@param id any
+---@return string|nil
+function themes.ui_theme_name(id)
+    if id == themes.UI_THEME.SMOOTH_STONE or
+       id == themes.UI_THEME.DEEPSLATE then
+        return themes.UI_THEME_NAMES[id]
+    else return nil end
+end
+
+---@enum FP_THEME
+themes.FP_THEME = { SANDSTONE = 1, BASALT = 2 }
+themes.FP_THEME_NAMES = { "Sandstone", "Basalt" }
+
+-- attempts to get the string name of a front panel theme
+---@nodiscard
+---@param id any
+---@return string|nil
+function themes.fp_theme_name(id)
+    if id == themes.FP_THEME.SANDSTONE or
+       id == themes.FP_THEME.BASALT then
+        return themes.FP_THEME_NAMES[id]
+    else return nil end
+end
+
+---@enum COLOR_MODE
+themes.COLOR_MODE = {
+    STANDARD = 1,
+    DEUTERANOPIA = 2,
+    PROTANOPIA = 3,
+    TRITANOPIA = 4
+}
+
+themes.COLOR_MODE_NAMES = {
+    "Standard",
+    "Deuteranopia",
+    "Protanopia",
+    "Tritanopia"
+}
+
+-- attempts to get the string name of a color mode
+---@nodiscard
+---@param id any
+---@return string|nil
+function themes.color_mode_name(id)
+    if id == themes.COLOR_MODE.STANDARD or
+       id == themes.COLOR_MODE.DEUTERANOPIA or
+       id == themes.COLOR_MODE.PROTANOPIA or
+       id == themes.COLOR_MODE.TRITANOPIA then
+        return themes.COLOR_MODE_NAMES[id]
+    else return nil end
+end
+
+--#endregion
+
+--#region Front Panel Themes
 
 ---@class fp_theme
 themes.sandstone = {
@@ -31,22 +95,22 @@ themes.sandstone = {
     field_box = cpair(colors.gray, colors.white),
 
     colors = {
-        { c = colors.red,       hex = 0xdf4949 },   -- RED ON
-        { c = colors.orange,    hex = 0xffb659 },
-        { c = colors.yellow,    hex = 0xf9fb53 },   -- YELLOW ON
-        { c = colors.lime,      hex = 0x16665a },   -- GREEN OFF
-        { c = colors.green,     hex = 0x6be551 },   -- GREEN ON
-        { c = colors.cyan,      hex = 0x34bac8 },
-        { c = colors.lightBlue, hex = 0x6cc0f2 },
-        { c = colors.blue,      hex = 0x0096ff },
-        { c = colors.purple,    hex = 0xe3bc2a },   -- YELLOW HIGH CONTRAST
-        { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
-        { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
-        { c = colors.white,     hex = 0xf0f0f0 },
-        { c = colors.lightGray, hex = 0xb1b8b3 },
-        { c = colors.gray,      hex = 0x575757 },
-        { c = colors.black,     hex = 0x191919 },
-        { c = colors.brown,     hex = 0x672223 }    -- RED OFF
+        { c = colors.red,        hex = 0xdf4949 },
+        { c = colors.orange,     hex = 0xffb659 },
+        { c = colors.yellow,     hex = 0xf9fb53 },
+        { c = colors.green_off,  hex = 0x16665a },
+        { c = colors.green,      hex = 0x6be551 },
+        { c = colors.cyan,       hex = 0x34bac8 },
+        { c = colors.lightBlue,  hex = 0x6cc0f2 },
+        { c = colors.blue,       hex = 0x0096ff },
+        { c = colors.yellow_hc,  hex = 0xe3bc2a },
+        { c = colors.ivory,      hex = 0xdcd9ca },
+        { c = colors.yellow_off, hex = 0x85862c },
+        { c = colors.white,      hex = 0xf0f0f0 },
+        { c = colors.lightGray,  hex = 0xb1b8b3 },
+        { c = colors.gray,       hex = 0x575757 },
+        { c = colors.black,      hex = 0x191919 },
+        { c = colors.red_off,    hex = 0x672223 }
     }
 }
 
@@ -65,22 +129,22 @@ themes.basalt = {
     field_box = cpair(colors.white, colors.gray),
 
     colors = {
-        { c = colors.red,       hex = 0xf18486 },   -- RED ON
-        { c = colors.orange,    hex = 0xffb659 },
-        { c = colors.yellow,    hex = 0xefe37c },   -- YELLOW ON
-        { c = colors.lime,      hex = 0x436b41 },   -- GREEN OFF
-        { c = colors.green,     hex = 0x7ae175 },   -- GREEN ON
-        { c = colors.cyan,      hex = 0x5ec7d1 },
-        { c = colors.lightBlue, hex = 0x7dc6f2 },
-        { c = colors.blue,      hex = 0x56aae6 },
-        { c = colors.purple,    hex = 0xe9cd68 },   -- YELLOW HIGH CONTRAST
-        { c = colors.pink,      hex = 0x4d4e52 },   -- IVORY
-        { c = colors.magenta,   hex = 0x757040 },   -- YELLOW OFF
-        { c = colors.white,     hex = 0xbfbfbf },
-        { c = colors.lightGray, hex = 0x848794 },
-        { c = colors.gray,      hex = 0x5c5f68 },
-        { c = colors.black,     hex = 0x262626 },
-        { c = colors.brown,     hex = 0x653839 }    -- RED OFF
+        { c = colors.red,        hex = 0xf18486 },
+        { c = colors.orange,     hex = 0xffb659 },
+        { c = colors.yellow,     hex = 0xefe37c },
+        { c = colors.green_off,  hex = 0x436b41 },
+        { c = colors.green,      hex = 0x7ae175 },
+        { c = colors.cyan,       hex = 0x5ec7d1 },
+        { c = colors.lightBlue,  hex = 0x7dc6f2 },
+        { c = colors.blue,       hex = 0x56aae6 },
+        { c = colors.yellow_hc,  hex = 0xe9cd68 },
+        { c = colors.ivory,      hex = 0x4d4e52 },
+        { c = colors.yellow_off, hex = 0x757040 },
+        { c = colors.white,      hex = 0xbfbfbf },
+        { c = colors.lightGray,  hex = 0x848794 },
+        { c = colors.gray,       hex = 0x5c5f68 },
+        { c = colors.black,      hex = 0x262626 },
+        { c = colors.red_off,    hex = 0x653839 }
     }
 }
 
@@ -102,5 +166,7 @@ function themes.get_fp_style(theme)
 
     return style
 end
+
+--#endregion
 
 return themes
