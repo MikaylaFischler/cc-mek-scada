@@ -10,7 +10,7 @@ local style = {}
 
 local cpair = core.cpair
 
-style.theme = themes.basalt
+style.theme = themes.sandstone
 style.fp = themes.get_fp_style(style.theme)
 
 style.ind_grn = cpair(colors.green, colors.green_off)

@@ -208,7 +208,7 @@ local fields = {
     { "AuthKey", "Facility Auth Key", "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
-    { "LogDebug","Log Debug Messages", false },
+    { "LogDebug", "Log Debug Messages", false },
     { "FrontPanelTheme", "Front Panel Theme", 1 },
     { "ColorMode", "Color Mode", 1 }
 }
@@ -328,8 +328,8 @@ local function config_view(display)
 
     local function jump_color()
         tool_ctl.jumped_to_color = true
-        tool_ctl.color_next.hide()
-        tool_ctl.color_apply.show(true)
+        tool_ctl.color_next.hide(true)
+        tool_ctl.color_apply.show()
         main_pane.set_value(5)
     end
 
@@ -525,7 +525,7 @@ local function config_view(display)
     TextBox{parent=clr_cfg,x=1,y=2,height=1,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
 
     TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color theme for the front panel."}
-    TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access color blind assistive options.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Front Panel Theme"}
     local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options={"Sandstone","Basalt"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
@@ -601,7 +601,7 @@ local function config_view(display)
     tool_ctl.color_next = PushButton{parent=clr_c_1,x=44,y=14,text="Next \x1a",callback=submit_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.color_apply = PushButton{parent=clr_c_1,x=43,y=14,min_width=7,text="Apply",callback=submit_colors,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    tool_ctl.color_apply.hide()
+    tool_ctl.color_apply.hide(true)
 
     TextBox{parent=clr_c_3,x=1,y=1,height=1,text="Settings saved!"}
     PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
