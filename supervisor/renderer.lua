@@ -19,11 +19,15 @@ local ui = {
 }
 
 -- try to start the UI
+---@param theme integer front panel theme ID (1 = sandstone, 2 = basalt)
 ---@return boolean success, any error_msg
-function renderer.try_start_ui()
+function renderer.try_start_ui(theme)
     local status, msg = true, nil
 
     if ui.display == nil then
+        -- set theme
+        style.set_theme(theme)
+
         -- reset terminal
         term.setTextColor(colors.white)
         term.setBackgroundColor(colors.black)
@@ -31,13 +35,13 @@ function renderer.try_start_ui()
         term.setCursorPos(1, 1)
 
         -- set overridden colors
-        for i = 1, #style.colors do
-            term.setPaletteColor(style.colors[i].c, style.colors[i].hex)
+        for i = 1, #style.theme.colors do
+            term.setPaletteColor(style.theme.colors[i].c, style.theme.colors[i].hex)
         end
 
         -- init front panel view
         status, msg = pcall(function ()
-            ui.display = DisplayBox{window=term.current(),fg_bg=style.root}
+            ui.display = DisplayBox{window=term.current(),fg_bg=style.fp.root}
             panel_view(ui.display)
         end)
 
@@ -70,9 +74,9 @@ function renderer.close_ui()
         ui.display = nil
 
         -- restore colors
-        for i = 1, #style.colors do
-            local r, g, b = term.nativePaletteColor(style.colors[i].c)
-            term.setPaletteColor(style.colors[i].c, r, g, b)
+        for i = 1, #style.theme.colors do
+            local r, g, b = term.nativePaletteColor(style.theme.colors[i].c)
+            term.setPaletteColor(style.theme.colors[i].c, r, g, b)
         end
 
         -- reset terminal

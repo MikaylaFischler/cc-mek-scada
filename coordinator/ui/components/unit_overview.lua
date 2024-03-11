@@ -44,7 +44,7 @@ local function make(parent, x, y, unit)
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}
 
     -- unit header message
-    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     -------------
     -- REACTOR --
@@ -66,7 +66,7 @@ local function make(parent, x, y, unit)
             table.insert(coolant_pipes, pipe(2, 0, 11, 11, colors.orange))
         end
 
-        PipeNetwork{parent=root,x=4,y=10,pipes=coolant_pipes,bg=colors.lightGray}
+        PipeNetwork{parent=root,x=4,y=10,pipes=coolant_pipes,bg=style.theme.bg}
     end
 
     -------------
@@ -164,10 +164,10 @@ local function make(parent, x, y, unit)
             table.insert(steam_pipes_b, pipe(0, 18, 2, 18, colors.blue, false, true))       -- water boiler 2 to turbine 2 junction
         end
 
-        PipeNetwork{parent=root,x=47,y=11,pipes=steam_pipes_a,bg=colors.lightGray}
+        PipeNetwork{parent=root,x=47,y=11,pipes=steam_pipes_a,bg=style.theme.bg}
     end
 
-    PipeNetwork{parent=root,x=54,y=3,pipes=steam_pipes_b,bg=colors.lightGray}
+    PipeNetwork{parent=root,x=54,y=3,pipes=steam_pipes_b,bg=style.theme.bg}
 
     return root
 end

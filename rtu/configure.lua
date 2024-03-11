@@ -24,6 +24,8 @@ local RadioButton = require("graphics.elements.controls.radio_button")
 local NumberField = require("graphics.elements.form.number_field")
 local TextField   = require("graphics.elements.form.text_field")
 
+local IndLight    = require("graphics.elements.indicators.light")
+
 local println = util.println
 local tri = util.trinary
 
@@ -73,7 +75,8 @@ assert(#PORT_DSGN == rsio.NUM_PORTS)
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.7.9", { "ConnTimeout can now have a fractional part" } }
+    { "v1.7.9", { "ConnTimeout can now have a fractional part" } },
+    { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } }
 }
 
 ---@class rtu_rs_definition
@@ -119,13 +122,15 @@ local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
 local nav_fg_bg = bw_fg_bg
 local btn_act_fg_bg = cpair(colors.white, colors.gray)
 
+---@class _rtu_cfg_tool_ctl
 local tool_ctl = {
     ask_config = false,
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
     importing_any_dc = false,
-    peri_cfg_editing = false, ---@type string|false
+    jumped_to_color = false,
+    peri_cfg_editing = false, ---@type integer|false
     peri_cfg_manual = false,
     rs_cfg_port = IO.F_SCRAM, ---@type IO_PORT
     rs_cfg_editing = false,   ---@type integer|false
@@ -133,6 +138,9 @@ local tool_ctl = {
     view_gw_cfg = nil,        ---@type graphics_element
     dev_cfg = nil,            ---@type graphics_element
     rs_cfg = nil,             ---@type graphics_element
+    color_cfg = nil,          ---@type graphics_element
+    color_next = nil,         ---@type graphics_element
+    color_apply = nil,        ---@type graphics_element
     settings_apply = nil,     ---@type graphics_element
     settings_confirm = nil,   ---@type graphics_element
 
@@ -181,7 +189,9 @@ local tmp_cfg = {
     AuthKey = nil,      ---@type string|nil
     LogMode = 0,
     LogPath = "",
-    LogDebug = false
+    LogDebug = false,
+    FrontPanelTheme = 1,
+    ColorMode = 1
 }
 
 ---@class rtu_config
@@ -198,7 +208,9 @@ local fields = {
     { "AuthKey", "Facility Auth Key", "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
-    { "LogDebug","Log Debug Messages", false }
+    { "LogDebug", "Log Debug Messages", false },
+    { "FrontPanelTheme", "Front Panel Theme", 1 },
+    { "ColorMode", "Color Mode", 1 }
 }
 
 local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
@@ -266,12 +278,13 @@ local function config_view(display)
     local spkr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local net_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
+    local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
     local peri_cfg = Div{parent=root_pane_div,x=1,y=1}
     local rs_cfg = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,spkr_cfg,net_cfg,log_cfg,summary,changelog,peri_cfg,rs_cfg}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,spkr_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,peri_cfg,rs_cfg}}
 
     --#region Main Page
 
@@ -290,7 +303,7 @@ local function config_view(display)
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
         tool_ctl.settings_confirm.hide(true)
-        main_pane.set_value(5)
+        main_pane.set_value(6)
     end
 
     if fs.exists("/rtu/config.lua") then
@@ -300,12 +313,12 @@ local function config_view(display)
 
     local function show_peri_conns()
         tool_ctl.gen_peri_summary(ini_cfg)
-        main_pane.set_value(7)
+        main_pane.set_value(8)
     end
 
     local function show_rs_conns()
         tool_ctl.gen_rs_summary(ini_cfg)
-        main_pane.set_value(8)
+        main_pane.set_value(9)
     end
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=19,text="Configure Gateway",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
@@ -313,14 +326,23 @@ local function config_view(display)
     tool_ctl.dev_cfg = PushButton{parent=main_page,x=2,y=y_start+4,min_width=24,text="Peripheral Connections",callback=show_peri_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.rs_cfg = PushButton{parent=main_page,x=2,y=y_start+6,min_width=22,text="Redstone Connections",callback=show_rs_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
+    local function jump_color()
+        tool_ctl.jumped_to_color = true
+        tool_ctl.color_next.hide(true)
+        tool_ctl.color_apply.show()
+        main_pane.set_value(5)
+    end
+
+    PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
     if not tool_ctl.has_config then
         tool_ctl.view_gw_cfg.disable()
         tool_ctl.dev_cfg.disable()
         tool_ctl.rs_cfg.disable()
+        tool_ctl.color_cfg.disable()
     end
-
-    PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -480,17 +502,114 @@ local function config_view(display)
             tmp_cfg.LogMode = mode.get_value() - 1
             tmp_cfg.LogPath = path.get_value()
             tmp_cfg.LogDebug = en_dbg.get_value()
-            tool_ctl.gen_summary(tmp_cfg)
-            tool_ctl.viewing_config = false
-            tool_ctl.importing_legacy = false
-            tool_ctl.settings_apply.show()
-            tool_ctl.settings_confirm.hide(true)
+            tool_ctl.color_apply.hide(true)
+            tool_ctl.color_next.show()
             main_pane.set_value(5)
         else path_err.show() end
     end
 
     PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
+    --#region Color Options
+
+    local clr_c_1 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_2 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_3 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_4 = Div{parent=clr_cfg,x=2,y=4,width=49}
+
+    local clr_pane = MultiPane{parent=clr_cfg,x=1,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
+
+    TextBox{parent=clr_cfg,x=1,y=2,height=1,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+
+    TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color theme for the front panel."}
+    TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Front Panel Theme"}
+    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options={"Sandstone","Basalt"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+
+    TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
+
+    local function recolor(value)
+        if value == 1 then
+            for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
+        elseif value == 2 then
+            term.setPaletteColor(colors.green, 0x1081ff)
+            term.setPaletteColor(colors.yellow, 0xf5e633)
+            term.setPaletteColor(colors.red, 0xff521a)
+        elseif value == 3 then
+            term.setPaletteColor(colors.green, 0x1081ff)
+            term.setPaletteColor(colors.yellow, 0xf7c311)
+            term.setPaletteColor(colors.red, 0xfb5615)
+        elseif value == 4 then
+            term.setPaletteColor(colors.green, 0x00ecff)
+            term.setPaletteColor(colors.yellow, 0xffbc00)
+            term.setPaletteColor(colors.red, 0xff0000)
+        end
+    end
+
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options={"None","Protanopia","Deuteranopia","Tritanopia"},callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+
+    local _ = IndLight{parent=clr_c_2,x=20,y=8,label="Good",colors=cpair(colors.black,colors.green),value=true}
+    _ = IndLight{parent=clr_c_2,x=20,y=9,label="Warning",colors=cpair(colors.black,colors.yellow),value=true}
+    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Bad",colors=cpair(colors.black,colors.red),value=true}
+
+    TextBox{parent=clr_c_2,x=20,y=12,height=6,text="Exact color varies by theme.",fg_bg=g_lg_fg_bg}
+
+    PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    local function back_from_colors()
+        main_pane.set_value(util.trinary(tool_ctl.jumped_to_color, 1, 4))
+        tool_ctl.jumped_to_color = false
+        recolor(1)
+    end
+
+    local function show_access()
+        clr_pane.set_value(2)
+        recolor(c_mode.get_value())
+    end
+
+    local function submit_colors()
+        tmp_cfg.FrontPanelTheme = fp_theme.get_value()
+        tmp_cfg.ColorMode = c_mode.get_value()
+
+        if tool_ctl.jumped_to_color then
+            settings.set("FrontPanelTheme", tmp_cfg.FrontPanelTheme)
+            settings.set("ColorMode", tmp_cfg.ColorMode)
+
+            if settings.save("/rtu.settings") then
+                load_settings(settings_cfg, true)
+                load_settings(ini_cfg)
+                clr_pane.set_value(3)
+            else
+                clr_pane.set_value(4)
+            end
+        else
+            tool_ctl.gen_summary(tmp_cfg)
+            tool_ctl.viewing_config = false
+            tool_ctl.importing_legacy = false
+            tool_ctl.settings_apply.show()
+            tool_ctl.settings_confirm.hide(true)
+            main_pane.set_value(6)
+        end
+    end
+
+    PushButton{parent=clr_c_1,x=1,y=14,text="\x1b Back",callback=back_from_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=clr_c_1,x=8,y=14,min_width=15,text="Accessibility",callback=show_access,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_next = PushButton{parent=clr_c_1,x=44,y=14,text="Next \x1a",callback=submit_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_apply = PushButton{parent=clr_c_1,x=43,y=14,min_width=7,text="Apply",callback=submit_colors,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    tool_ctl.color_apply.hide(true)
+
+    TextBox{parent=clr_c_3,x=1,y=1,height=1,text="Settings saved!"}
+    PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=clr_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=clr_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -520,7 +639,7 @@ local function config_view(display)
             end
 
             tool_ctl.viewing_config = false
-        else main_pane.set_value(4) end
+        else main_pane.set_value(5) end
     end
 
     ---@param element graphics_element
@@ -552,6 +671,8 @@ local function config_view(display)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
+            try_set(fp_theme, ini_cfg.FrontPanelTheme)
+            try_set(c_mode, ini_cfg.ColorMode)
 
             if not exclude_conns then
                 tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
@@ -1257,7 +1378,7 @@ local function config_view(display)
 
         tool_ctl.gen_summary(tmp_cfg)
         if tool_ctl.importing_any_dc then sum_pane.set_value(7) else sum_pane.set_value(1) end
-        main_pane.set_value(5)
+        main_pane.set_value(6)
         tool_ctl.settings_apply.hide(true)
         tool_ctl.settings_confirm.show()
         tool_ctl.importing_legacy = true
@@ -1271,6 +1392,7 @@ local function config_view(display)
 
         main_pane.set_value(1)
         net_pane.set_value(1)
+        clr_pane.set_value(1)
         sum_pane.set_value(1)
         peri_pane.set_value(1)
         rs_pane.set_value(1)
@@ -1301,8 +1423,14 @@ local function config_view(display)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" then val = string.rep("*", string.len(val)) end
-            if f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
+            if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
+            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "FrontPanelTheme" then
+                if raw == 1 then val = "Sandstone" elseif raw == 2 then val = "Basalt" end
+            elseif f[1] == "ColorMode" then
+                if raw == 1 then val = "Standard" elseif raw == 2 then val = "Protanopia" elseif raw == 3 then val = "Deuteranopia" elseif raw == 4 then val = "Tritanopia" end
+            end
+
             if val == "nil" then val = "<not set>" end
 
             local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))

@@ -112,7 +112,7 @@ local fields = {
     { "AuthKey", "Facility Auth Key" , ""},
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
-    { "LogDebug","Log Debug Messages", false }
+    { "LogDebug", "Log Debug Messages", false }
 }
 
 -- load data from the settings file

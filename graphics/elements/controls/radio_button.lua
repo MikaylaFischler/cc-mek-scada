@@ -90,7 +90,8 @@ local function radio_button(args)
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
-        if e.enabled and core.events.was_clicked(event.type) and (event.initial.y == event.current.y) then
+        if e.enabled and core.events.was_clicked(event.type) and
+           (event.initial.y == event.current.y) and e.in_frame_bounds(event.current.x, event.current.y) then
             -- determine what was pressed
             if args.options[event.current.y] ~= nil then
                 e.value = event.current.y

@@ -35,10 +35,6 @@ local cpair = core.cpair
 local border = core.border
 
 local bw_fg_bg = style.bw_fg_bg
-local lu_cpair = style.lu_colors
-local hzd_fg_bg = style.hzd_fg_bg
-local dis_colors = style.dis_colors
-
 local gry_wht = style.gray_white
 
 local ind_grn = style.ind_grn
@@ -52,6 +48,16 @@ local period = core.flasher.PERIOD
 ---@param parent graphics_element parent
 ---@param id integer
 local function init(parent, id)
+    local s_hi_box = style.theme.highlight_box
+    local s_hi_bright = style.theme.highlight_box_bright
+    local s_field = style.theme.field_box
+
+    local hc_text = style.hc_text
+    local lu_cpair = style.lu_colors
+    local hzd_fg_bg = style.hzd_fg_bg
+    local dis_colors = style.dis_colors
+    local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
+
     local db = iocontrol.get_db()
     local unit = db.units[id]   ---@type ioctl_unit
     local f_ps = db.facility.ps
@@ -64,7 +70,7 @@ local function init(parent, id)
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
 
-    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     -----------------------------
     -- main stats and core map --
@@ -75,11 +81,11 @@ local function init(parent, id)
     core_map.register(u_ps, "size", function (s) core_map.resize(s[1], s[2]) end)
 
     TextBox{parent=main,x=12,y=22,text="Heating Rate",height=1,width=12,fg_bg=style.label}
-    local heating_r = DataIndicator{parent=main,x=12,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
+    local heating_r = DataIndicator{parent=main,x=12,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=s_field}
     heating_r.register(u_ps, "heating_rate", heating_r.update)
 
     TextBox{parent=main,x=12,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
-    local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=bw_fg_bg}
+    local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=s_field}
     burn_r.register(u_ps, "burn_rate", burn_r.update)
 
     TextBox{parent=main,text="F",x=2,y=22,width=1,height=1,fg_bg=style.label}
@@ -89,7 +95,7 @@ local function init(parent, id)
     TextBox{parent=main,text="H",x=8,y=22,width=1,height=1,fg_bg=style.label}
     TextBox{parent=main,text="W",x=10,y=22,width=1,height=1,fg_bg=style.label}
 
-    local fuel  = VerticalBar{parent=main,x=2,y=23,fg_bg=cpair(colors.black,colors.gray),height=4,width=1}
+    local fuel  = VerticalBar{parent=main,x=2,y=23,fg_bg=cpair(style.theme.fuel_color,colors.gray),height=4,width=1}
     local ccool = VerticalBar{parent=main,x=4,y=23,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}
     local hcool = VerticalBar{parent=main,x=8,y=23,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local waste = VerticalBar{parent=main,x=10,y=23,fg_bg=cpair(colors.brown,colors.gray),height=4,width=1}
@@ -117,19 +123,19 @@ local function init(parent, id)
 
     TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
     local fmt = util.trinary(string.len(db.temp_label) == 2, "%10.2f", "%11.2f")
-    local core_temp = DataIndicator{parent=main,x=32,label="",format=fmt,value=0,commas=true,unit=db.temp_label,lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local core_temp = DataIndicator{parent=main,x=32,label="",format=fmt,value=0,commas=true,unit=db.temp_label,lu_colors=lu_cpair,width=13,fg_bg=s_field}
     core_temp.register(u_ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
 
     TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
-    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     act_burn_r.register(u_ps, "act_burn_rate", act_burn_r.update)
 
     TextBox{parent=main,x=32,y=28,text="Damage",height=1,width=6,fg_bg=style.label}
-    local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     damage_p.register(u_ps, "damage", damage_p.update)
 
     TextBox{parent=main,x=32,y=31,text="Radiation",height=1,width=21,fg_bg=style.label}
-    local radiation = RadIndicator{parent=main,x=32,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=bw_fg_bg}
+    local radiation = RadIndicator{parent=main,x=32,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     radiation.register(u_ps, "radiation", radiation.update)
 
     -------------------
@@ -255,14 +261,14 @@ local function init(parent, id)
 
     -- boiler annunciator panel(s)
 
-    if available_space > 0 then _add_space() end
-
     if unit.num_boilers > 0 then
-        TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
+        if available_space > 0 then _add_space() end
+
+        TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=hc_text}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b1_wll.register(b_ps[1], "WaterLevelLow", b1_wll.update)
 
-        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=hc_text}
         local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b1_hr.register(b_ps[1], "HeatingRateLow", b1_hr.update)
     end
@@ -274,11 +280,11 @@ local function init(parent, id)
             _add_space()
         end
 
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=hc_text}
         local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b2_wll.register(b_ps[2], "WaterLevelLow", b2_wll.update)
 
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=hc_text}
         local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b2_hr.register(b_ps[2], "HeatingRateLow", b2_hr.update)
     end
@@ -287,19 +293,19 @@ local function init(parent, id)
 
     if available_space > 1 then _add_space() end
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
     t1_sdo.register(t_ps[1], "SteamDumpOpen", t1_sdo.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
     local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
     t1_tos.register(t_ps[1], "TurbineOverSpeed", t1_tos.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
     local t1_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
     t1_gtrp.register(t_ps[1], "GeneratorTrip", t1_gtrp.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
     local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     t1_trp.register(t_ps[1], "TurbineTrip", t1_trp.update)
 
@@ -308,19 +314,19 @@ local function init(parent, id)
             _add_space()
         end
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t2_sdo.register(t_ps[2], "SteamDumpOpen", t2_sdo.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
         local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t2_tos.register(t_ps[2], "TurbineOverSpeed", t2_tos.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
         local t2_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t2_gtrp.register(t_ps[2], "GeneratorTrip", t2_gtrp.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
         local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t2_trp.register(t_ps[2], "TurbineTrip", t2_trp.update)
     end
@@ -328,19 +334,19 @@ local function init(parent, id)
     if unit.num_turbines > 2 then
         if available_space > 3 then _add_space() end
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
         t3_sdo.register(t_ps[3], "SteamDumpOpen", t3_sdo.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t3_tos.register(t_ps[3], "TurbineOverSpeed", t3_tos.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
         local t3_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t3_gtrp.register(t_ps[3], "GeneratorTrip", t3_gtrp.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
         local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t3_trp.register(t_ps[3], "TurbineTrip", t3_trp.update)
     end
@@ -349,9 +355,9 @@ local function init(parent, id)
     -- reactor controls --
     ----------------------
 
-    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=gry_wht}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=gry_wht,fg_bg=bw_fg_bg}
-    TextBox{parent=burn_control,x=9,y=2,text="mB/t"}
+    local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=s_hi_box}
+    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    TextBox{parent=burn_control,x=9,y=2,text="mB/t",fg_bg=style.theme.label_fg}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
     local set_burn_btn = PushButton{parent=burn_control,x=14,y=2,text="SET",min_width=5,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=style.wh_gray,dis_fg_bg=dis_colors,callback=set_burn}
@@ -397,7 +403,7 @@ local function init(parent, id)
     -- alarm management --
     ----------------------
 
-    local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=bw_fg_bg}
+    local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=s_hi_bright}
 
     local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
     local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
@@ -465,9 +471,9 @@ local function init(parent, id)
 
     -- color tags
 
-    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.cyan)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.blue)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(colors.white,colors.blue)}
+    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.cyan)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
 
     --------------------------------
     -- automatic control settings --
@@ -479,7 +485,7 @@ local function init(parent, id)
 
     local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
-    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.gray,colors.white),select_color=colors.purple}
+    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 
     group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 
@@ -491,7 +497,7 @@ local function init(parent, id)
     auto_div.line_break()
 
     TextBox{parent=auto_div,text="Prio. Group",height=1,width=11,fg_bg=style.label}
-    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=11,fg_bg=bw_fg_bg}
+    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=11,fg_bg=s_field}
 
     auto_grp.register(u_ps, "auto_group", auto_grp.set_value)
 
