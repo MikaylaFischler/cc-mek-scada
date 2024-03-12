@@ -11,6 +11,7 @@ local themes = {}
 
 -- add color mappings for front panels
 colors.ivory      = colors.pink
+colors.green_hc   = colors.cyan
 colors.yellow_hc  = colors.purple
 colors.red_off    = colors.brown
 colors.yellow_off = colors.magenta
@@ -100,7 +101,7 @@ themes.sandstone = {
         { c = colors.yellow,     hex = 0xf9fb53 },
         { c = colors.green_off,  hex = 0x16665a },
         { c = colors.green,      hex = 0x6be551 },
-        { c = colors.cyan,       hex = 0x34bac8 },
+        { c = colors.green_hc,   hex = 0x6be551 },
         { c = colors.lightBlue,  hex = 0x6cc0f2 },
         { c = colors.blue,       hex = 0x0096ff },
         { c = colors.yellow_hc,  hex = 0xe3bc2a },
@@ -111,6 +112,39 @@ themes.sandstone = {
         { c = colors.gray,       hex = 0x575757 },
         { c = colors.black,      hex = 0x191919 },
         { c = colors.red_off,    hex = 0x672223 }
+    },
+
+    -- color re-mappings for assistive modes
+    color_modes = {
+        -- standard
+        {},
+        -- deuteranopia
+        {
+            { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_off,  hex = 0x141414 },
+            { c = colors.yellow,     hex = 0xf7c311 },
+            { c = colors.yellow_off, hex = 0x141414 },
+            { c = colors.red,        hex = 0xfb5615 },
+            { c = colors.red_off,    hex = 0x141414 }
+        },
+        -- protanopia
+        {
+            { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_off,  hex = 0x141414 },
+            { c = colors.yellow,     hex = 0xf5e633 },
+            { c = colors.yellow_off, hex = 0x141414 },
+            { c = colors.red,        hex = 0xff521a },
+            { c = colors.red_off,    hex = 0x141414 }
+        },
+        -- tritanopia
+        {
+            { c = colors.green,      hex = 0x40cbd7 },
+            { c = colors.green_off,  hex = 0x141414 },
+            { c = colors.yellow,     hex = 0xffbc00 },
+            { c = colors.yellow_off, hex = 0x141414 },
+            { c = colors.red,        hex = 0xff0000 },
+            { c = colors.red_off,    hex = 0x141414 }
+        }
     }
 }
 
@@ -134,7 +168,7 @@ themes.basalt = {
         { c = colors.yellow,     hex = 0xefe37c },
         { c = colors.green_off,  hex = 0x436b41 },
         { c = colors.green,      hex = 0x7ae175 },
-        { c = colors.cyan,       hex = 0x5ec7d1 },
+        { c = colors.green_hc,   hex = 0x7ae175 },
         { c = colors.lightBlue,  hex = 0x7dc6f2 },
         { c = colors.blue,       hex = 0x56aae6 },
         { c = colors.yellow_hc,  hex = 0xe9cd68 },
@@ -145,6 +179,41 @@ themes.basalt = {
         { c = colors.gray,       hex = 0x5c5f68 },
         { c = colors.black,      hex = 0x262626 },
         { c = colors.red_off,    hex = 0x653839 }
+    },
+
+    color_modes = {
+        -- standard
+        {},
+        -- deuteranopia
+        {
+            { c = colors.green,      hex = 0x3393ff },
+            { c = colors.green_hc,   hex = 0x99c9ff },
+            { c = colors.green_off,  hex = 0x333333 },
+            { c = colors.yellow,     hex = 0xf7c311 },
+            { c = colors.yellow_off, hex = 0x333333 },
+            { c = colors.red,        hex = 0xf18486 },
+            { c = colors.red_off,    hex = 0x333333 }
+        },
+        -- protanopia
+        {
+            { c = colors.green,      hex = 0x3393ff },
+            { c = colors.green_hc,   hex = 0x99c9ff },
+            { c = colors.green_off,  hex = 0x333333 },
+            { c = colors.yellow,     hex = 0xf5e633 },
+            { c = colors.yellow_off, hex = 0x333333 },
+            { c = colors.red,        hex = 0xff8058 },
+            { c = colors.red_off,    hex = 0x333333 }
+        },
+        -- tritanopia
+        {
+            { c = colors.green,      hex = 0x00ecff },
+            { c = colors.green_hc,   hex = 0x00ecff },
+            { c = colors.green_off,  hex = 0x333333 },
+            { c = colors.yellow,     hex = 0xffbc00 },
+            { c = colors.yellow_off, hex = 0x333333 },
+            { c = colors.red,        hex = 0xdf4949 },
+            { c = colors.red_off,    hex = 0x333333 }
+        }
     }
 }
 

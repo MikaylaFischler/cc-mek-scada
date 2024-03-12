@@ -7,6 +7,7 @@ local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
 local core        = require("graphics.core")
+local themes      = require("graphics.themes")
 
 local DisplayBox  = require("graphics.elements.displaybox")
 local Div         = require("graphics.elements.div")
@@ -772,29 +773,29 @@ local function config_view(display)
     TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access color blind assistive options.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Front Panel Theme"}
-    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options={"Sandstone","Basalt"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
 
     local function recolor(value)
         if value == 1 then
             for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
-        elseif value == 2 then
-            term.setPaletteColor(colors.green, 0x1081ff)
-            term.setPaletteColor(colors.yellow, 0xf5e633)
-            term.setPaletteColor(colors.red, 0xff521a)
-        elseif value == 3 then
+        elseif value == themes.COLOR_MODE.DEUTERANOPIA then
             term.setPaletteColor(colors.green, 0x1081ff)
             term.setPaletteColor(colors.yellow, 0xf7c311)
             term.setPaletteColor(colors.red, 0xfb5615)
-        elseif value == 4 then
+        elseif value == themes.COLOR_MODE.PROTANOPIA then
+            term.setPaletteColor(colors.green, 0x1081ff)
+            term.setPaletteColor(colors.yellow, 0xf5e633)
+            term.setPaletteColor(colors.red, 0xff521a)
+        elseif value == themes.COLOR_MODE.TRITANOPIA then
             term.setPaletteColor(colors.green, 0x00ecff)
             term.setPaletteColor(colors.yellow, 0xffbc00)
             term.setPaletteColor(colors.red, 0xff0000)
         end
     end
 
-    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options={"None","Protanopia","Deuteranopia","Tritanopia"},callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     local _ = IndLight{parent=clr_c_2,x=20,y=8,label="Good",colors=cpair(colors.black,colors.green),value=true}
     _ = IndLight{parent=clr_c_2,x=20,y=9,label="Warning",colors=cpair(colors.black,colors.yellow),value=true}
@@ -1107,9 +1108,9 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "FrontPanelTheme" then
-                if raw == 1 then val = "Sandstone" elseif raw == 2 then val = "Basalt" end
+                val = util.strval(themes.fp_theme_name(raw))
             elseif f[1] == "ColorMode" then
-                if raw == 1 then val = "Standard" elseif raw == 2 then val = "Protanopia" elseif raw == 3 then val = "Deuteranopia" elseif raw == 4 then val = "Tritanopia" end
+                val = util.strval(themes.color_mode_name(raw))
             elseif f[1] == "CoolingConfig" and type(cfg.CoolingConfig) == "table" then
                 val = ""
 
