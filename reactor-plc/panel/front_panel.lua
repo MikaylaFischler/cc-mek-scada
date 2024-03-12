@@ -64,8 +64,8 @@ local function init(panel)
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(databus.ps, "link_state", network.update)
     else
-        local nt_lnk = RGBLED{parent=system,label="NT LINKED",colors={colors.red_off,colors.red,colors.green}}
-        local nt_ver = RGBLED{parent=system,label="NT VERSION",colors={colors.red_off,colors.red,colors.green}}
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
         local nt_col = LED{parent=system,label="NT COLLISION",colors=ind_red}
 
         nt_lnk.register(databus.ps, "link_state", function (state)

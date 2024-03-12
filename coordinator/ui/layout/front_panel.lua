@@ -22,6 +22,7 @@ local TextBox   = require("graphics.elements.textbox")
 local TabBar    = require("graphics.elements.controls.tabbar")
 
 local LED       = require("graphics.elements.indicators.led")
+local LEDPair   = require("graphics.elements.indicators.ledpair")
 local RGBLED    = require("graphics.elements.indicators.ledrgb")
 
 local LINK_STATE = types.PANEL_LINK_STATE
@@ -64,8 +65,8 @@ local function init(panel, num_units)
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(ps, "link_state", network.update)
     else
-        local nt_lnk = RGBLED{parent=system,label="NT LINKED",colors={colors.red_off,colors.red,colors.green}}
-        local nt_ver = RGBLED{parent=system,label="NT VERSION",colors={colors.red_off,colors.red,colors.green}}
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
 
         nt_lnk.register(ps, "link_state", function (state)
             local value = 2
