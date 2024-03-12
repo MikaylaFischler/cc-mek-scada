@@ -186,7 +186,7 @@ themes.basalt = {
         {},
         -- deuteranopia
         {
-            { c = colors.green,      hex = 0x3393ff },
+            { c = colors.green,      hex = 0x65aeff },
             { c = colors.green_hc,   hex = 0x99c9ff },
             { c = colors.green_off,  hex = 0x333333 },
             { c = colors.yellow,     hex = 0xf7c311 },
@@ -196,7 +196,7 @@ themes.basalt = {
         },
         -- protanopia
         {
-            { c = colors.green,      hex = 0x3393ff },
+            { c = colors.green,      hex = 0x65aeff },
             { c = colors.green_hc,   hex = 0x99c9ff },
             { c = colors.green_off,  hex = 0x333333 },
             { c = colors.yellow,     hex = 0xf5e633 },
