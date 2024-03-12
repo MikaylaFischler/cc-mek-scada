@@ -30,11 +30,6 @@ local border = core.border
 
 local bw_fg_bg = style.bw_fg_bg
 
-local ind_grn = style.ind_grn
-local ind_yel = style.ind_yel
-local ind_red = style.ind_red
-local ind_wht = style.ind_wht
-
 local period = core.flasher.PERIOD
 
 -- new process control view
@@ -49,6 +44,11 @@ local function new_view(root, x, y)
     local hzd_fg_bg  = style.hzd_fg_bg
     local dis_colors = style.dis_colors
     local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
+
+    local ind_grn = style.ind_grn
+    local ind_yel = style.ind_yel
+    local ind_red = style.ind_red
+    local ind_wht = style.ind_wht
 
     assert(root.get_height() >= (y + 24), "main display not of sufficient vertical resolution (add an additional row of monitors)")
 
@@ -68,7 +68,7 @@ local function new_view(root, x, y)
     facility.ack_alarms_ack = ack_a.on_response
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=ind_grn}
-    local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
+    local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=style.ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd}
     local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=ind_grn}
     local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=ind_grn}
 
@@ -219,7 +219,7 @@ local function new_view(root, x, y)
         if i <= facility.num_units then
             tag_fg_bg = cpair(colors.black, colors.cyan)
             ind_fg_bg = cpair(style.theme.text, s_hi_box.bkg)
-            ind_off = style.theme.label
+            ind_off = style.ind_hi_box_bg
         end
 
         local _y = ((i - 1) * 5) + 1
@@ -228,8 +228,8 @@ local function new_view(root, x, y)
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Status",width=7,height=2}
 
         local lights   = Div{parent=stat_div,x=9,y=_y,width=14,height=4,fg_bg=ind_fg_bg}
-        local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(colors.green,ind_off)}
-        local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(colors.red,ind_off),flash=true,period=period.BLINK_250_MS}
+        local ready    = IndicatorLight{parent=lights,x=2,y=2,label="Ready",colors=cpair(ind_grn.fgd,ind_off)}
+        local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(ind_red.fgd,ind_off),flash=true,period=period.BLINK_250_MS}
 
         if i <= facility.num_units then
             local unit = units[i]   ---@type ioctl_unit
@@ -341,7 +341,7 @@ local function new_view(root, x, y)
     status.register(facility.ps, "current_waste_product", status.update)
 
     local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
-    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,style.theme.accent_light)}
+    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,style.theme.checkbox_bg)}
 
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
     pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)

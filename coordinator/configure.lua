@@ -55,21 +55,7 @@ local style = {}
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
 
-style.colors = {
-    { c = colors.red,       hex = 0xdf4949 },
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x80ff80 },
-    { c = colors.green,     hex = 0x4aee8a },
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
-    { c = colors.pink,      hex = 0xf26ba2 },
-    { c = colors.magenta,   hex = 0xf9488a },
-    { c = colors.lightGray, hex = 0xcacaca },
-    { c = colors.gray,      hex = 0x575757 }
-}
+style.colors = themes.smooth_stone.colors
 
 local bw_fg_bg = cpair(colors.black, colors.white)
 local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
@@ -841,30 +827,26 @@ local function config_view(display)
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
 
     local function recolor(value)
+        local c = themes.smooth_stone.color_modes[value]
+
         if value == 1 then
             for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
-        elseif value == 2 then
-            term.setPaletteColor(colors.green, 0x1081ff)
-            term.setPaletteColor(colors.yellow, 0xf5e633)
-            term.setPaletteColor(colors.red, 0xff521a)
-        elseif value == 3 then
-            term.setPaletteColor(colors.green, 0x1081ff)
-            term.setPaletteColor(colors.yellow, 0xf7c311)
-            term.setPaletteColor(colors.red, 0xfb5615)
-        elseif value == 4 then
-            term.setPaletteColor(colors.green, 0x00ecff)
-            term.setPaletteColor(colors.yellow, 0xffbc00)
-            term.setPaletteColor(colors.red, 0xff0000)
+        else
+            term.setPaletteColor(colors.green, c[1].hex)
+            term.setPaletteColor(colors.yellow, c[2].hex)
+            term.setPaletteColor(colors.red, c[3].hex)
         end
     end
 
-    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    TextBox{parent=clr_c_2,x=1,y=8,height=1,text="Color Mode"}
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=9,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
-    local _ = IndLight{parent=clr_c_2,x=20,y=8,label="Good",colors=cpair(colors.black,colors.green),value=true}
-    _ = IndLight{parent=clr_c_2,x=20,y=9,label="Warning",colors=cpair(colors.black,colors.yellow),value=true}
-    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Bad",colors=cpair(colors.black,colors.red),value=true}
+    TextBox{parent=clr_c_2,x=20,y=8,height=1,text="Preview"}
+    local _ = IndLight{parent=clr_c_2,x=20,y=9,label="Good",colors=cpair(colors.black,colors.green)}
+    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
+    _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
 
-    TextBox{parent=clr_c_2,x=20,y=12,height=6,text="Exact color varies by theme.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 

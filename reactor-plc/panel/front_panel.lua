@@ -23,6 +23,8 @@ local LED        = require("graphics.elements.indicators.led")
 local LEDPair    = require("graphics.elements.indicators.ledpair")
 local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
+local LINK_STATE = types.PANEL_LINK_STATE
+
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
@@ -56,13 +58,47 @@ local function init(panel)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
-    local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+
+    if not style.colorblind then
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
+        network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+        network.register(databus.ps, "link_state", network.update)
+    else
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_col = LED{parent=system,label="NT COLLISION",colors=ind_red}
+
+        nt_lnk.register(databus.ps, "link_state", function (state)
+            local value = 2
+
+            if state == LINK_STATE.DISCONNECTED then
+                value = 1
+            elseif state == LINK_STATE.LINKED then
+                value = 3
+            end
+
+            nt_lnk.update(value)
+        end)
+
+        nt_ver.register(databus.ps, "link_state", function (state)
+            local value = 3
+
+            if state == LINK_STATE.BAD_VERSION then
+                value = 2
+            elseif state == LINK_STATE.DISCONNECTED then
+                value = 1
+            end
+
+            nt_ver.update(value)
+        end)
+
+        nt_col.register(databus.ps, "link_state", function (state) nt_col.update(state == LINK_STATE.COLLISION) end)
+    end
+
     system.line_break()
 
     reactor.register(databus.ps, "reactor_dev_state", reactor.update)
     modem.register(databus.ps, "has_modem", modem.update)
-    network.register(databus.ps, "link_state", network.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=ind_grn}

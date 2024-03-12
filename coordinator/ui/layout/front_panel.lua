@@ -22,7 +22,10 @@ local TextBox   = require("graphics.elements.textbox")
 local TabBar    = require("graphics.elements.controls.tabbar")
 
 local LED       = require("graphics.elements.indicators.led")
+local LEDPair   = require("graphics.elements.indicators.ledpair")
 local RGBLED    = require("graphics.elements.indicators.ledrgb")
+
+local LINK_STATE = types.PANEL_LINK_STATE
 
 local ALIGN = core.ALIGN
 
@@ -56,12 +59,43 @@ local function init(panel, num_units)
     heartbeat.register(ps, "heartbeat", heartbeat.update)
 
     local modem = LED{parent=system,label="MODEM",colors=led_grn}
-    local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+
+    if not style.colorblind then
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
+        network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+        network.register(ps, "link_state", network.update)
+    else
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
+
+        nt_lnk.register(ps, "link_state", function (state)
+            local value = 2
+
+            if state == LINK_STATE.DISCONNECTED then
+                value = 1
+            elseif state == LINK_STATE.LINKED then
+                value = 3
+            end
+
+            nt_lnk.update(value)
+        end)
+
+        nt_ver.register(ps, "link_state", function (state)
+            local value = 3
+
+            if state == LINK_STATE.BAD_VERSION then
+                value = 2
+            elseif state == LINK_STATE.DISCONNECTED then
+                value = 1
+            end
+
+            nt_ver.update(value)
+        end)
+    end
+
     system.line_break()
 
     modem.register(ps, "has_modem", modem.update)
-    network.register(ps, "link_state", network.update)
 
     local speaker = LED{parent=system,label="SPEAKER",colors=led_grn}
     speaker.register(ps, "has_speaker", speaker.update)

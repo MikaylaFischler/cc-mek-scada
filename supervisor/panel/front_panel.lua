@@ -96,7 +96,7 @@ local function init(panel)
         TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,height=1,fg_bg=s_hi_box}
         TextBox{parent=plc_entry,x=1,y=3,text="",width=8,height=1,fg_bg=s_hi_box}
 
-        local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=ind_grn}
+        local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=cpair(colors.green_hc,colors.green_off)}
         conn.register(databus.ps, ps_prefix .. "conn", conn.update)
 
         local plc_addr = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,height=1,fg_bg=label_d_fg}
@@ -126,7 +126,7 @@ local function init(panel)
     local crd_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local crd_box = Div{parent=crd_page,x=2,y=2,width=49,height=4,fg_bg=s_hi_bright}
 
-    local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=ind_grn}
+    local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green_hc,colors.green_off)}
     crd_conn.register(databus.ps, "crd_conn", crd_conn.update)
 
     TextBox{parent=crd_box,x=4,y=3,text="COMPUTER",width=8,height=1,fg_bg=label_d_fg}

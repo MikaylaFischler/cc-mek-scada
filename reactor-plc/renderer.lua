@@ -18,14 +18,15 @@ local ui = {
 }
 
 -- try to start the UI
----@param theme integer front panel theme ID (1 = sandstone, 2 = basalt)
+---@param theme FP_THEME front panel theme
+---@param color_mode COLOR_MODE color mode
 ---@return boolean success, any error_msg
-function renderer.try_start_ui(theme)
+function renderer.try_start_ui(theme, color_mode)
     local status, msg = true, nil
 
     if ui.display == nil then
         -- set theme
-        style.set_theme(theme)
+        style.set_theme(theme, color_mode)
 
         -- reset terminal
         term.setTextColor(colors.white)
@@ -36,6 +37,12 @@ function renderer.try_start_ui(theme)
         -- set overridden colors
         for i = 1, #style.theme.colors do
             term.setPaletteColor(style.theme.colors[i].c, style.theme.colors[i].hex)
+        end
+
+        -- apply color mode
+        local c_mode_overrides = style.theme.color_modes[color_mode]
+        for i = 1, #c_mode_overrides do
+            term.setPaletteColor(c_mode_overrides[i].c, c_mode_overrides[i].hex)
         end
 
         -- init front panel view
