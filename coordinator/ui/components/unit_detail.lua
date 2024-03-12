@@ -37,11 +37,6 @@ local border = core.border
 local bw_fg_bg = style.bw_fg_bg
 local gry_wht = style.gray_white
 
-local ind_grn = style.ind_grn
-local ind_yel = style.ind_yel
-local ind_red = style.ind_red
-local ind_wht = style.ind_wht
-
 local period = core.flasher.PERIOD
 
 -- create a unit view
@@ -57,6 +52,12 @@ local function init(parent, id)
     local hzd_fg_bg = style.hzd_fg_bg
     local dis_colors = style.dis_colors
     local arrow_fg_bg = cpair(style.theme.label, s_hi_box.bkg)
+
+    local ind_bkg = style.ind_bkg
+    local ind_grn = style.ind_grn
+    local ind_yel = style.ind_yel
+    local ind_red = style.ind_red
+    local ind_wht = style.ind_wht
 
     local db = iocontrol.get_db()
     local unit = db.units[id]   ---@type ioctl_unit
@@ -158,9 +159,9 @@ local function init(parent, id)
     local annunciator = Div{parent=main,width=23,height=18,x=22,y=3}
 
     -- connectivity
-    local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(colors.green,colors.red)}
+    local plc_online = IndicatorLight{parent=annunciator,label="PLC Online",colors=cpair(ind_grn.fgd,ind_red.fgd)}
     local plc_hbeat  = IndicatorLight{parent=annunciator,label="PLC Heartbeat",colors=ind_wht}
-    local rad_mon    = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=colors.gray,c2=colors.yellow,c3=colors.green}
+    local rad_mon    = TriIndicatorLight{parent=annunciator,label="Radiation Monitor",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd}
 
     plc_online.register(u_ps, "PLCOnline", plc_online.update)
     plc_hbeat.register(u_ps, "PLCHeartbeat", plc_hbeat.update)
@@ -217,7 +218,7 @@ local function init(parent, id)
     local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=ind_yel}
     local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
     local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
-    local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=cpair(colors.orange,colors.gray),flash=true,period=period.BLINK_500_MS}
+    local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=ind_red,flash=true,period=period.BLINK_500_MS}
 
     rps_trp.register(u_ps, "rps_tripped", rps_trp.update)
     rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
@@ -238,7 +239,7 @@ local function init(parent, id)
     local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=ind_yel}
-    local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=colors.gray,c2=colors.white,c3=colors.green}
+    local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=ind_bkg,c2=ind_wht.fgd,c3=ind_grn.fgd}
     local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=ind_yel}
     local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=ind_yel}
     local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=ind_yel}
@@ -294,7 +295,7 @@ local function init(parent, id)
     if available_space > 1 then _add_space() end
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
-    local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+    local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
     t1_sdo.register(t_ps[1], "SteamDumpOpen", t1_sdo.update)
 
     TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
@@ -315,7 +316,7 @@ local function init(parent, id)
         end
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
-        local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
         t2_sdo.register(t_ps[2], "SteamDumpOpen", t2_sdo.update)
 
         TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
@@ -335,7 +336,7 @@ local function init(parent, id)
         if available_space > 3 then _add_space() end
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
-        local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
         t3_sdo.register(t_ps[3], "SteamDumpOpen", t3_sdo.update)
 
         TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
@@ -405,20 +406,20 @@ local function init(parent, id)
 
     local alarm_panel = Div{parent=main,x=2,y=36,width=29,height=16,fg_bg=s_hi_bright}
 
-    local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_dmg = AlarmLight{parent=alarm_panel,x=6,label="Critical Damage",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
+    local a_brc = AlarmLight{parent=alarm_panel,x=6,y=2,label="Containment Breach",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_rad = AlarmLight{parent=alarm_panel,x=6,label="Containment Radiation",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_dmg = AlarmLight{parent=alarm_panel,x=6,label="Critical Damage",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
     alarm_panel.line_break()
-    local a_rcl = AlarmLight{parent=alarm_panel,x=6,label="Reactor Lost",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_rcd = AlarmLight{parent=alarm_panel,x=6,label="Reactor Damage",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_rot = AlarmLight{parent=alarm_panel,x=6,label="Reactor Over Temp",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_rht = AlarmLight{parent=alarm_panel,x=6,label="Reactor High Temp",c1=colors.gray,c2=colors.yellow,c3=colors.green,flash=true,period=period.BLINK_500_MS}
-    local a_rwl = AlarmLight{parent=alarm_panel,x=6,label="Reactor Waste Leak",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
-    local a_rwh = AlarmLight{parent=alarm_panel,x=6,label="Reactor Waste High",c1=colors.gray,c2=colors.yellow,c3=colors.green,flash=true,period=period.BLINK_500_MS}
+    local a_rcl = AlarmLight{parent=alarm_panel,x=6,label="Reactor Lost",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_rcd = AlarmLight{parent=alarm_panel,x=6,label="Reactor Damage",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_rot = AlarmLight{parent=alarm_panel,x=6,label="Reactor Over Temp",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_rht = AlarmLight{parent=alarm_panel,x=6,label="Reactor High Temp",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_500_MS}
+    local a_rwl = AlarmLight{parent=alarm_panel,x=6,label="Reactor Waste Leak",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
+    local a_rwh = AlarmLight{parent=alarm_panel,x=6,label="Reactor Waste High",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_500_MS}
     alarm_panel.line_break()
-    local a_rps = AlarmLight{parent=alarm_panel,x=6,label="RPS Transient",c1=colors.gray,c2=colors.yellow,c3=colors.green,flash=true,period=period.BLINK_500_MS}
-    local a_clt = AlarmLight{parent=alarm_panel,x=6,label="RCS Transient",c1=colors.gray,c2=colors.yellow,c3=colors.green,flash=true,period=period.BLINK_500_MS}
-    local a_tbt = AlarmLight{parent=alarm_panel,x=6,label="Turbine Trip",c1=colors.gray,c2=colors.red,c3=colors.green,flash=true,period=period.BLINK_250_MS}
+    local a_rps = AlarmLight{parent=alarm_panel,x=6,label="RPS Transient",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_500_MS}
+    local a_clt = AlarmLight{parent=alarm_panel,x=6,label="RCS Transient",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_500_MS}
+    local a_tbt = AlarmLight{parent=alarm_panel,x=6,label="Turbine Trip",c1=ind_bkg,c2=ind_red.fgd,c3=ind_grn.fgd,flash=true,period=period.BLINK_250_MS}
 
     a_brc.register(u_ps, "Alarm_1", a_brc.update)
     a_rad.register(u_ps, "Alarm_2", a_rad.update)

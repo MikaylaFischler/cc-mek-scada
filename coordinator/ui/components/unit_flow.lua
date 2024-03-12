@@ -30,9 +30,6 @@ local pipe = core.pipe
 local wh_gray = style.wh_gray
 local lg_gray = style.lg_gray
 
-local ind_grn = style.ind_grn
-local ind_wht = style.ind_wht
-
 -- make a new unit flow window
 ---@param parent graphics_element parent
 ---@param x integer top left x
@@ -45,6 +42,9 @@ local function make(parent, x, y, wide, unit)
     local text_c = style.text_colors
     local lu_c = style.lu_colors
     local lu_c_d = style.lu_colors_dark
+
+    local ind_grn = style.ind_grn
+    local ind_wht = style.ind_wht
 
     local height = 16
 
@@ -112,7 +112,7 @@ local function make(parent, x, y, wide, unit)
         cc_rate.register(unit.unit_ps, "boiler_boil_sum", function (sum) cc_rate.update(sum * 10) end)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
-        local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
+        local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
         TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=ALIGN.CENTER,height=1}
         TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=ALIGN.CENTER,height=1}
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
@@ -131,7 +131,7 @@ local function make(parent, x, y, wide, unit)
         st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
     end
 
-    local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1, colors.gray, true),width=19,height=5,fg_bg=wh_gray}
+    local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
     TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=ALIGN.CENTER,height=1}
     TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER,height=1}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
@@ -139,7 +139,7 @@ local function make(parent, x, y, wide, unit)
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo
         TextBox{parent=root,x=_wide(125,103),y=ry,text="\x10\x11\x7f",fg_bg=text_c,width=3,height=1}
-        local state = TriIndicatorLight{parent=root,x=_wide(129,107),y=ry,label=v_names[i+4],c1=colors.gray,c2=colors.yellow,c3=colors.red}
+        local state = TriIndicatorLight{parent=root,x=_wide(129,107),y=ry,label=v_names[i+4],c1=style.ind_bkg,c2=style.ind_yel.fgd,c3=style.ind_red.fgd}
         state.register(unit.turbine_ps_tbl[i], "SteamDumpOpen", state.update)
     end
 

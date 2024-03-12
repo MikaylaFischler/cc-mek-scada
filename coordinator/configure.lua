@@ -843,15 +843,15 @@ local function config_view(display)
     local function recolor(value)
         if value == 1 then
             for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
-        elseif value == 2 then
-            term.setPaletteColor(colors.green, 0x1081ff)
-            term.setPaletteColor(colors.yellow, 0xf5e633)
-            term.setPaletteColor(colors.red, 0xff521a)
-        elseif value == 3 then
+        elseif value == themes.COLOR_MODE.DEUTERANOPIA then
             term.setPaletteColor(colors.green, 0x1081ff)
             term.setPaletteColor(colors.yellow, 0xf7c311)
             term.setPaletteColor(colors.red, 0xfb5615)
-        elseif value == 4 then
+        elseif value == themes.COLOR_MODE.PROTANOPIA then
+            term.setPaletteColor(colors.green, 0x1081ff)
+            term.setPaletteColor(colors.yellow, 0xf5e633)
+            term.setPaletteColor(colors.red, 0xff521a)
+        elseif value == themes.COLOR_MODE.TRITANOPIA then
             term.setPaletteColor(colors.green, 0x00ecff)
             term.setPaletteColor(colors.yellow, 0xffbc00)
             term.setPaletteColor(colors.red, 0xff0000)

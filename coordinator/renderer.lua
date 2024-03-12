@@ -16,6 +16,7 @@ local unit_view  = require("coordinator.ui.layout.unit_view")
 
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
+local themes     = require("graphics.themes")
 
 local DisplayBox = require("graphics.elements.displaybox")
 
@@ -24,6 +25,7 @@ local renderer = {}
 
 -- render engine
 local engine = {
+    color_mode = 1,         ---@type COLOR_MODE
     monitors = nil,         ---@type monitors_struct|nil
     dmesg_window = nil,     ---@type table|nil
     ui_ready = false,
@@ -50,6 +52,12 @@ local function _init_display(monitor)
     for i = 1, #style.theme.colors do
         monitor.setPaletteColor(style.theme.colors[i].c, style.theme.colors[i].hex)
     end
+
+    -- apply color mode
+    local c_mode_overrides = style.theme.color_modes[engine.color_mode]
+    for i = 1, #c_mode_overrides do
+        monitor.setPaletteColor(c_mode_overrides[i].c, c_mode_overrides[i].hex)
+    end
 end
 
 -- print out that the monitor is too small
@@ -62,10 +70,13 @@ local function _print_too_small(monitor)
     monitor.write("monitor too small")
 end
 
--- disable the flow view
----@param disable boolean
-function renderer.legacy_disable_flow_view(disable)
-    engine.disable_flow_view = disable
+-- apply renderer configurations
+---@param config crd_config
+function renderer.configure(config)
+    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode ~= themes.COLOR_MODE.STANDARD)
+
+    engine.color_mode = config.ColorMode
+    engine.disable_flow_view = config.DisableFlowView
 end
 
 -- link to the monitor peripherals
@@ -100,6 +111,12 @@ function renderer.init_displays()
     for i = 1, #style.fp_theme.colors do
         term.setPaletteColor(style.fp_theme.colors[i].c, style.fp_theme.colors[i].hex)
     end
+
+    -- apply color mode
+    local c_mode_overrides = style.fp_theme.color_modes[engine.color_mode]
+    for i = 1, #c_mode_overrides do
+        term.setPaletteColor(c_mode_overrides[i].c, c_mode_overrides[i].hex)
+    end
 end
 
 -- initialize the dmesg output window
@@ -118,7 +135,7 @@ function renderer.try_start_fp()
         -- show front panel view on terminal
         status, msg = pcall(function ()
             engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
-            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
+            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays, engine.color_mode)
         end)
 
         if status then

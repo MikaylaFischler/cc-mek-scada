@@ -121,6 +121,7 @@ themes.sandstone = {
         -- deuteranopia
         {
             { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_hc,   hex = 0x1081ff },
             { c = colors.green_off,  hex = 0x141414 },
             { c = colors.yellow,     hex = 0xf7c311 },
             { c = colors.yellow_off, hex = 0x141414 },
@@ -130,6 +131,7 @@ themes.sandstone = {
         -- protanopia
         {
             { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_hc,   hex = 0x1081ff },
             { c = colors.green_off,  hex = 0x141414 },
             { c = colors.yellow,     hex = 0xf5e633 },
             { c = colors.yellow_off, hex = 0x141414 },
@@ -139,6 +141,7 @@ themes.sandstone = {
         -- tritanopia
         {
             { c = colors.green,      hex = 0x40cbd7 },
+            { c = colors.green_hc,   hex = 0x40cbd7 },
             { c = colors.green_off,  hex = 0x141414 },
             { c = colors.yellow,     hex = 0xffbc00 },
             { c = colors.yellow_off, hex = 0x141414 },

@@ -2,6 +2,8 @@
 -- Graphics Style Options
 --
 
+local util   = require("scada-common.util")
+
 local core   = require("graphics.core")
 local themes = require("graphics.themes")
 
@@ -27,6 +29,7 @@ local smooth_stone = {
     label_dark = colors.gray,
     disabled = colors.lightGray,
     bg = colors.lightGray,
+    checkbox_bg = colors.black,
     accent_light = colors.white,
     accent_dark = colors.gray,
 
@@ -59,6 +62,30 @@ local smooth_stone = {
         { c = colors.gray,      hex = 0x575757 },
         { c = colors.black,     hex = 0x191919 },
         { c = colors.brown,     hex = 0x7f664c }
+    },
+
+    -- color re-mappings for assistive modes
+    color_modes = {
+        -- standard
+        {},
+        -- deuteranopia
+        {
+            { c = colors.blue,   hex = 0x1081ff },
+            { c = colors.yellow, hex = 0xf7c311 },
+            { c = colors.red,    hex = 0xfb5615 },
+        },
+        -- protanopia
+        {
+            { c = colors.blue,   hex = 0x1081ff },
+            { c = colors.yellow, hex = 0xf5e633 },
+            { c = colors.red,    hex = 0xff521a },
+        },
+        -- tritanopia
+        {
+            { c = colors.blue,   hex = 0x40cbd7 },
+            { c = colors.yellow, hex = 0xffbc00 },
+            { c = colors.red,    hex = 0xff0000 },
+        }
     }
 }
 
@@ -70,6 +97,7 @@ local deepslate = {
     label_dark = colors.gray,
     disabled = colors.gray,
     bg = colors.black,
+    checkbox_bg = colors.gray,
     accent_light = colors.gray,
     accent_dark = colors.lightGray,
 
@@ -102,44 +130,72 @@ local deepslate = {
         { c = colors.gray,      hex = 0x575757 },
         { c = colors.black,     hex = 0x262626 },
         { c = colors.brown,     hex = 0xb18f6a }
+    },
+
+    -- color re-mappings for assistive modes
+    color_modes = {
+        -- standard
+        {},
+        -- deuteranopia
+        {
+            { c = colors.blue,   hex = 0x65aeff },
+            { c = colors.yellow, hex = 0xf7c311 },
+            { c = colors.red,    hex = 0xfb5615 },
+        },
+        -- protanopia
+        {
+            { c = colors.blue,   hex = 0x65aeff },
+            { c = colors.yellow, hex = 0xf5e633 },
+            { c = colors.red,    hex = 0xff8058 },
+        },
+        -- tritanopia
+        {
+            { c = colors.blue,   hex = 0x00ecff },
+            { c = colors.yellow, hex = 0xffbc00 },
+            { c = colors.red,    hex = 0xdf4949 },
+        }
     }
 }
 
 style.theme = smooth_stone
 
-style.root = cpair(style.theme.text, style.theme.bg)
-style.label = cpair(style.theme.label, style.theme.bg)
-
--- high contrast text (also tags)
-style.hc_text = cpair(style.theme.text, style.theme.text_inv)
--- text on default background
-style.text_colors = cpair(style.theme.text, style.theme.bg)
--- label & unit colors
-style.lu_colors = cpair(style.theme.label, style.theme.label)
--- label & unit colors (darker if set)
-style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
-
 -- set themes per configurations
 ---@param main integer main theme ID (1 = smooth_stone, 2 = deepslate)
 ---@param fp integer fp theme ID (1 = sandstone, 2 = basalt)
-function style.set_themes(main, fp)
-    if main == 1 then
+---@param colorblind boolean true if in a colorblind mode
+function style.set_themes(main, fp, colorblind)
+    style.ind_bkg = colors.gray
+
+    style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.gray)
+
+    if main == themes.UI_THEME.SMOOTH_STONE then
         style.theme = smooth_stone
-    elseif main == 2 then
+        style.ind_bkg = util.trinary(colorblind, colors.black, colors.gray)
+    elseif main == themes.UI_THEME.DEEPSLATE then
         style.theme = deepslate
+        style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.lightGray)
     end
 
     style.root = cpair(style.theme.text, style.theme.bg)
     style.label = cpair(style.theme.label, style.theme.bg)
 
+    -- high contrast text (also tags)
     style.hc_text = cpair(style.theme.text, style.theme.text_inv)
+    -- text on default background
     style.text_colors = cpair(style.theme.text, style.theme.bg)
+    -- label & unit colors
     style.lu_colors = cpair(style.theme.label, style.theme.label)
+    -- label & unit colors (darker if set)
     style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
 
-    if fp == 1 then
+    style.ind_grn = cpair(util.trinary(colorblind, colors.blue, colors.green), style.ind_bkg)
+    style.ind_yel = cpair(colors.yellow, style.ind_bkg)
+    style.ind_red = cpair(colors.red, style.ind_bkg)
+    style.ind_wht = cpair(colors.white, style.ind_bkg)
+
+    if fp == themes.FP_THEME.SANDSTONE then
         style.fp_theme = themes.sandstone
-    elseif fp == 2 then
+    elseif fp == themes.FP_THEME.BASALT then
         style.fp_theme = themes.basalt
     end
 
@@ -158,11 +214,6 @@ style.dis_colors = cpair(colors.white, colors.lightGray)
 style.lg_gray = cpair(colors.lightGray, colors.gray)
 style.lg_white = cpair(colors.lightGray, colors.white)
 style.gray_white = cpair(colors.gray, colors.white)
-
-style.ind_grn = cpair(colors.green, colors.gray)
-style.ind_yel = cpair(colors.yellow, colors.gray)
-style.ind_red = cpair(colors.red, colors.gray)
-style.ind_wht = style.wh_gray
 
 -- UI COMPONENTS --
 
