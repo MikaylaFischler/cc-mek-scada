@@ -17,13 +17,13 @@ local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
-local label_fg = style.fp.label_fg
-
 -- create a pocket diagnostics list entry
 ---@param parent graphics_element parent
 ---@param id integer PDG session ID
 local function init(parent, id)
     local s_hi_box = style.theme.highlight_box
+
+    local label_fg = style.fp.label_fg
 
     -- root div
     local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}

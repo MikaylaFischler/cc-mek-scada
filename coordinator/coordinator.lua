@@ -93,6 +93,7 @@ function coordinator.load_config()
     cfv.assert_type_int(config.LogMode)
     cfv.assert_range(config.LogMode, 0, 1)
     cfv.assert_type_str(config.LogPath)
+    cfv.assert_type_bool(config.LogDebug)
 
     cfv.assert_type_int(config.MainTheme)
     cfv.assert_range(config.MainTheme, 1, 2)
