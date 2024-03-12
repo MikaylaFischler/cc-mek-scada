@@ -45,48 +45,10 @@ local smooth_stone = {
     highlight_box_bright = cpair(colors.black, colors.white),
     field_box = cpair(colors.black, colors.white),
 
-    colors = {
-        { c = colors.red,       hex = 0xdf4949 },
-        { c = colors.orange,    hex = 0xffb659 },
-        { c = colors.yellow,    hex = 0xfffc79 },
-        { c = colors.lime,      hex = 0x80ff80 },
-        { c = colors.green,     hex = 0x4aee8a },
-        { c = colors.cyan,      hex = 0x34bac8 },
-        { c = colors.lightBlue, hex = 0x6cc0f2 },
-        { c = colors.blue,      hex = 0x0096ff },
-        { c = colors.purple,    hex = 0xb156ee },
-        { c = colors.pink,      hex = 0xf26ba2 },
-        { c = colors.magenta,   hex = 0xf9488a },
-        { c = colors.white,     hex = 0xf0f0f0 },
-        { c = colors.lightGray, hex = 0xcacaca },
-        { c = colors.gray,      hex = 0x575757 },
-        { c = colors.black,     hex = 0x191919 },
-        { c = colors.brown,     hex = 0x7f664c }
-    },
+    colors = themes.smooth_stone.colors,
 
     -- color re-mappings for assistive modes
-    color_modes = {
-        -- standard
-        {},
-        -- deuteranopia
-        {
-            { c = colors.blue,   hex = 0x1081ff },
-            { c = colors.yellow, hex = 0xf7c311 },
-            { c = colors.red,    hex = 0xfb5615 },
-        },
-        -- protanopia
-        {
-            { c = colors.blue,   hex = 0x1081ff },
-            { c = colors.yellow, hex = 0xf5e633 },
-            { c = colors.red,    hex = 0xff521a },
-        },
-        -- tritanopia
-        {
-            { c = colors.blue,   hex = 0x40cbd7 },
-            { c = colors.yellow, hex = 0xffbc00 },
-            { c = colors.red,    hex = 0xff0000 },
-        }
-    }
+    color_modes = themes.smooth_stone.color_modes
 }
 
 ---@type theme
@@ -113,48 +75,10 @@ local deepslate = {
     highlight_box_bright = cpair(colors.black, colors.lightGray),
     field_box = cpair(colors.white, colors.gray),
 
-    colors = {
-        { c = colors.red,       hex = 0xeb6a6c },
-        { c = colors.orange,    hex = 0xf2b86c },
-        { c = colors.yellow,    hex = 0xd9cf81 },
-        { c = colors.lime,      hex = 0x80ff80 },
-        { c = colors.green,     hex = 0x70e19b },
-        { c = colors.cyan,      hex = 0x7ccdd0 },
-        { c = colors.lightBlue, hex = 0x99ceef },
-        { c = colors.blue,      hex = 0x60bcff },
-        { c = colors.purple,    hex = 0xc38aea },
-        { c = colors.pink,      hex = 0xff7fb8 },
-        { c = colors.magenta,   hex = 0xf980dd },
-        { c = colors.white,     hex = 0xd9d9d9 },
-        { c = colors.lightGray, hex = 0x949494 },
-        { c = colors.gray,      hex = 0x575757 },
-        { c = colors.black,     hex = 0x262626 },
-        { c = colors.brown,     hex = 0xb18f6a }
-    },
+    colors = themes.deepslate.colors,
 
     -- color re-mappings for assistive modes
-    color_modes = {
-        -- standard
-        {},
-        -- deuteranopia
-        {
-            { c = colors.blue,   hex = 0x65aeff },
-            { c = colors.yellow, hex = 0xf7c311 },
-            { c = colors.red,    hex = 0xfb5615 },
-        },
-        -- protanopia
-        {
-            { c = colors.blue,   hex = 0x65aeff },
-            { c = colors.yellow, hex = 0xf5e633 },
-            { c = colors.red,    hex = 0xff8058 },
-        },
-        -- tritanopia
-        {
-            { c = colors.blue,   hex = 0x00ecff },
-            { c = colors.yellow, hex = 0xffbc00 },
-            { c = colors.red,    hex = 0xdf4949 },
-        }
-    }
+    color_modes = themes.deepslate.color_modes
 }
 
 style.theme = smooth_stone
