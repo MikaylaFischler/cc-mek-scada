@@ -480,9 +480,9 @@ local function config_view(display)
     local c_mode = RadioButton{parent=clr_c_2,x=1,y=9,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=20,y=8,height=1,text="Preview"}
-    local _ = IndLight{parent=clr_c_2,x=20,y=9,label="Good",colors=cpair(colors.black,colors.green),value=true}
-    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow),value=true}
-    _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red),value=true}
+    local _ = IndLight{parent=clr_c_2,x=20,y=9,label="Good",colors=cpair(colors.black,colors.green)}
+    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
+    _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
 
     TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
