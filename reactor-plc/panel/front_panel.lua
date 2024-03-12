@@ -12,7 +12,6 @@ local style      = require("reactor-plc.panel.style")
 
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
-local themes     = require("graphics.themes")
 
 local Div        = require("graphics.elements.div")
 local Rectangle  = require("graphics.elements.rectangle")

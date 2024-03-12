@@ -10,7 +10,6 @@ local databus       = require("rtu.databus")
 local style         = require("rtu.panel.style")
 
 local core          = require("graphics.core")
-local themes        = require("graphics.themes")
 
 local Div           = require("graphics.elements.div")
 local TextBox       = require("graphics.elements.textbox")
