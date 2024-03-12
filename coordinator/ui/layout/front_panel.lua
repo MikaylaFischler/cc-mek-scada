@@ -13,7 +13,6 @@ local style     = require("coordinator.ui.style")
 local pkt_entry = require("coordinator.ui.components.pkt_entry")
 
 local core      = require("graphics.core")
-local themes    = require("graphics.themes")
 
 local Div       = require("graphics.elements.div")
 local ListBox   = require("graphics.elements.listbox")
@@ -36,8 +35,7 @@ local led_grn = style.led_grn
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 ---@param num_units integer number of units (number of unit monitors)
----@param color_mode COLOR_MODE color mode
-local function init(panel, num_units, color_mode)
+local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps
 
     TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.fp_theme.header}
@@ -61,7 +59,7 @@ local function init(panel, num_units, color_mode)
 
     local modem = LED{parent=system,label="MODEM",colors=led_grn}
 
-    if color_mode == themes.COLOR_MODE.STANDARD then
+    if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(ps, "link_state", network.update)

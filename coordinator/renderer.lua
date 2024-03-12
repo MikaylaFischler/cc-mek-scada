@@ -16,7 +16,6 @@ local unit_view  = require("coordinator.ui.layout.unit_view")
 
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
-local themes     = require("graphics.themes")
 
 local DisplayBox = require("graphics.elements.displaybox")
 
@@ -73,7 +72,7 @@ end
 -- apply renderer configurations
 ---@param config crd_config
 function renderer.configure(config)
-    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode ~= themes.COLOR_MODE.STANDARD)
+    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
 
     engine.color_mode = config.ColorMode
     engine.disable_flow_view = config.DisableFlowView
@@ -135,7 +134,7 @@ function renderer.try_start_fp()
         -- show front panel view on terminal
         status, msg = pcall(function ()
             engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
-            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays, engine.color_mode)
+            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
         end)
 
         if status then

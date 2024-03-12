@@ -84,12 +84,13 @@ local deepslate = {
 style.theme = smooth_stone
 
 -- set themes per configurations
----@param main integer main theme ID (1 = smooth_stone, 2 = deepslate)
----@param fp integer fp theme ID (1 = sandstone, 2 = basalt)
----@param colorblind boolean true if in a colorblind mode
-function style.set_themes(main, fp, colorblind)
-    style.ind_bkg = colors.gray
+---@param main UI_THEME main UI theme
+---@param fp FP_THEME front panel theme
+---@param color_mode COLOR_MODE the color mode to use
+function style.set_themes(main, fp, color_mode)
+    local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
 
+    style.ind_bkg = colors.gray
     style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.gray)
 
     if main == themes.UI_THEME.SMOOTH_STONE then
@@ -99,6 +100,8 @@ function style.set_themes(main, fp, colorblind)
         style.theme = deepslate
         style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.lightGray)
     end
+
+    style.colorblind = colorblind
 
     style.root = cpair(style.theme.text, style.theme.bg)
     style.label = cpair(style.theme.label, style.theme.bg)

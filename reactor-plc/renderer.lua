@@ -26,7 +26,7 @@ function renderer.try_start_ui(theme, color_mode)
 
     if ui.display == nil then
         -- set theme
-        style.set_theme(theme)
+        style.set_theme(theme, color_mode)
 
         -- reset terminal
         term.setTextColor(colors.white)
@@ -48,7 +48,7 @@ function renderer.try_start_ui(theme, color_mode)
         -- init front panel view
         status, msg = pcall(function ()
             ui.display = DisplayBox{window=term.current(),fg_bg=style.fp.root}
-            panel_view(ui.display, color_mode)
+            panel_view(ui.display)
         end)
 
         if status then

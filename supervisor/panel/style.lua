@@ -12,19 +12,22 @@ local cpair = core.cpair
 
 style.theme = themes.sandstone
 style.fp = themes.get_fp_style(style.theme)
+style.colorblind = false
 
 style.ind_grn = cpair(colors.green, colors.green_off)
 
 -- set theme per configuration
----@param fp integer fp theme ID (1 = sandstone, 2 = basalt)
-function style.set_theme(fp)
-    if fp == 1 then
+---@param fp FP_THEME front panel theme
+function style.set_theme(fp, color_mode)
+    if fp == themes.FP_THEME.SANDSTONE then
         style.theme = themes.sandstone
-    elseif fp == 2 then
+    elseif fp == themes.FP_THEME.BASALT then
         style.theme = themes.basalt
     end
 
     style.fp = themes.get_fp_style(style.theme)
+
+    style.colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
 end
 
 return style

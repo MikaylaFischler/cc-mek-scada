@@ -36,8 +36,7 @@ local ind_red = style.ind_red
 
 -- create new front panel view
 ---@param panel graphics_element main displaybox
----@param color_mode COLOR_MODE color mode
-local function init(panel, color_mode)
+local function init(panel)
     local s_hi_box = style.theme.highlight_box
 
     local disabled_fg = style.fp.disabled_fg
@@ -61,7 +60,7 @@ local function init(panel, color_mode)
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
 
-    if color_mode == themes.COLOR_MODE.STANDARD then
+    if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(databus.ps, "link_state", network.update)
