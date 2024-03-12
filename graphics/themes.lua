@@ -289,7 +289,7 @@ themes.smooth_stone = {
     }
 }
 
----@class ui_palette
+---@type ui_palette
 themes.deepslate = {
     colors = {
         { c = colors.red,       hex = 0xeb6a6c },

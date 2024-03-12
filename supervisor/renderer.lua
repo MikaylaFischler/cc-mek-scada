@@ -27,7 +27,7 @@ function renderer.try_start_ui(theme, color_mode)
 
     if ui.display == nil then
         -- set theme
-        style.set_theme(theme)
+        style.set_theme(theme, color_mode)
 
         -- reset terminal
         term.setTextColor(colors.white)

@@ -18,6 +18,7 @@ style.ind_grn = cpair(colors.green, colors.green_off)
 
 -- set theme per configuration
 ---@param fp FP_THEME front panel theme
+---@param color_mode COLOR_MODE the color mode to use
 function style.set_theme(fp, color_mode)
     if fp == themes.FP_THEME.SANDSTONE then
         style.theme = themes.sandstone
