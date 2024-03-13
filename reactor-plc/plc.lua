@@ -52,6 +52,9 @@ function plc.load_config()
     config.LogPath = settings.get("LogPath")
     config.LogDebug = settings.get("LogDebug")
 
+    config.FrontPanelTheme = settings.get("FrontPanelTheme")
+    config.ColorMode = settings.get("ColorMode")
+
     local cfv = util.new_validator()
 
     cfv.assert_type_bool(config.Networked)
@@ -77,6 +80,11 @@ function plc.load_config()
     cfv.assert_range(config.LogMode, 0, 1)
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
+
+    cfv.assert_type_int(config.FrontPanelTheme)
+    cfv.assert_range(config.FrontPanelTheme, 1, 2)
+    cfv.assert_type_int(config.ColorMode)
+    cfv.assert_range(config.ColorMode, 1, 4)
 
     -- check emergency coolant configuration if enabled
     if config.EmerCoolEnable then

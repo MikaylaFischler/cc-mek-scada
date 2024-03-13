@@ -131,31 +131,33 @@ local function peri_init(iface)
 
     local mt = {
         __index = function (_, key)
-            -- this will continuously be counting calls here as faults
-            -- unlike other functions, faults here can't be cleared as it is just not defined
-            if self.fault_counts[key] == nil then
-                self.fault_counts[key] = 0
-            end
-
-            -- function failed
-            self.faulted = true
-            self.last_fault = UNDEFINED_FIELD
-
-            ppm_sys.faulted = true
-            ppm_sys.last_fault = UNDEFINED_FIELD
-
-            if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
-                local count_str = ""
-                if self.fault_counts[key] > 0 then
-                    count_str = " [" .. self.fault_counts[key] .. " total calls]"
+            return (function ()
+                -- this will continuously be counting calls here as faults
+                -- unlike other functions, faults here can't be cleared as it is just not defined
+                if self.fault_counts[key] == nil then
+                    self.fault_counts[key] = 0
                 end
 
-                log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
-            end
+                -- function failed
+                self.faulted = true
+                self.last_fault = UNDEFINED_FIELD
 
-            self.fault_counts[key] = self.fault_counts[key] + 1
+                ppm_sys.faulted = true
+                ppm_sys.last_fault = UNDEFINED_FIELD
 
-            return (function () return UNDEFINED_FIELD end)
+                if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                    local count_str = ""
+                    if self.fault_counts[key] > 0 then
+                        count_str = " [" .. self.fault_counts[key] .. " total calls]"
+                    end
+
+                    log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
+                end
+
+                self.fault_counts[key] = self.fault_counts[key] + 1
+
+                return UNDEFINED_FIELD
+            end)
         end
     }
 

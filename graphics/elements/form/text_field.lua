@@ -41,11 +41,11 @@ local function text_field(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- only handle if on an increment or decrement arrow
-        if e.enabled then
+        if e.enabled and e.in_frame_bounds(event.current.x, event.current.y) then
             if core.events.was_clicked(event.type) then
                 e.take_focus()
 
-                if event.type == MOUSE_CLICK.UP and e.in_frame_bounds(event.current.x, event.current.y) then
+                if event.type == MOUSE_CLICK.UP then
                     ifield.move_cursor(event.current.x)
                 end
             elseif event.type == MOUSE_CLICK.DOUBLE_CLICK then

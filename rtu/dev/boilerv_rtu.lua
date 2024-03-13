@@ -7,7 +7,7 @@ local boilerv_rtu = {}
 ---@param boiler table
 ---@return rtu_device interface, boolean faulted
 function boilerv_rtu.new(boiler)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(boiler)
 
     -- disable auto fault clearing
     boiler.__p_clear_fault()

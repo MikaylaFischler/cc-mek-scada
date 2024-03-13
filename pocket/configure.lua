@@ -7,6 +7,7 @@ local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
 local core        = require("graphics.core")
+local themes      = require("graphics.themes")
 
 local DisplayBox  = require("graphics.elements.displaybox")
 local Div         = require("graphics.elements.div")
@@ -41,21 +42,7 @@ local style = {}
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
 
-style.colors = {
-    { c = colors.red,       hex = 0xdf4949 },
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x80ff80 },
-    { c = colors.green,     hex = 0x4aee8a },
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
-    { c = colors.pink,      hex = 0xf26ba2 },
-    { c = colors.magenta,   hex = 0xf9488a },
-    { c = colors.lightGray, hex = 0xcacaca },
-    { c = colors.gray,      hex = 0x575757 }
-}
+style.colors = themes.smooth_stone.colors
 
 local bw_fg_bg = cpair(colors.black, colors.white)
 local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
@@ -112,7 +99,7 @@ local fields = {
     { "AuthKey", "Facility Auth Key" , ""},
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
-    { "LogDebug","Log Debug Messages", false }
+    { "LogDebug", "Log Debug Messages", false }
 }
 
 -- load data from the settings file

@@ -390,7 +390,7 @@ function iocontrol.fp_pkt_rtt(session_id, rtt)
     elseif rtt > WARN_RTT then
         io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.yellow_hc)
     else
-        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.green)
+        io.fp.ps.publish("pkt_" .. session_id .. "_rtt_color", colors.green_hc)
     end
 end
 

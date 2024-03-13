@@ -236,10 +236,23 @@ function element.new(args, child_offset_x, child_offset_y)
 
         -- init colors
         if args.fg_bg ~= nil then
-            protected.fg_bg = args.fg_bg
-        elseif args.parent ~= nil then
-            protected.fg_bg = args.parent.get_fg_bg()
+            protected.fg_bg = core.cpair(args.fg_bg.fgd, args.fg_bg.bkg)
         end
+
+        if args.parent ~= nil then
+            local p_fg_bg = args.parent.get_fg_bg()
+
+            if args.fg_bg == nil then
+                protected.fg_bg = core.cpair(p_fg_bg.fgd, p_fg_bg.bkg)
+            else
+                if protected.fg_bg.fgd == colors._INHERIT then protected.fg_bg = core.cpair(p_fg_bg.fgd, protected.fg_bg.bkg) end
+                if protected.fg_bg.bkg == colors._INHERIT then protected.fg_bg = core.cpair(protected.fg_bg.fgd, p_fg_bg.bkg) end
+            end
+        end
+
+        -- check colors
+        element.assert(protected.fg_bg.fgd ~= colors._INHERIT, "could not determine foreground color to inherit")
+        element.assert(protected.fg_bg.bkg ~= colors._INHERIT, "could not determine background color to inherit")
 
         -- set colors
         protected.window.setBackgroundColor(protected.fg_bg.bkg)

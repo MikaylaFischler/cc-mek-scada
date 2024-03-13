@@ -8,6 +8,7 @@ local network     = require("scada-common.network")
 local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
+local themes      = require("graphics.themes")
 
 local core        = require("graphics.core")
 
@@ -23,6 +24,8 @@ local RadioButton = require("graphics.elements.controls.radio_button")
 
 local NumberField = require("graphics.elements.form.number_field")
 local TextField   = require("graphics.elements.form.text_field")
+
+local IndLight    = require("graphics.elements.indicators.light")
 
 local println = util.println
 local tri = util.trinary
@@ -40,7 +43,8 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    {"v1.2.4", { "Added temperature scale options" } }
+    { "v1.2.4", { "Added temperature scale options" } },
+    { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } }
 }
 
 ---@class crd_configurator
@@ -51,21 +55,7 @@ local style = {}
 style.root = cpair(colors.black, colors.lightGray)
 style.header = cpair(colors.white, colors.gray)
 
-style.colors = {
-    { c = colors.red,       hex = 0xdf4949 },
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x80ff80 },
-    { c = colors.green,     hex = 0x4aee8a },
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
-    { c = colors.pink,      hex = 0xf26ba2 },
-    { c = colors.magenta,   hex = 0xf9488a },
-    { c = colors.lightGray, hex = 0xcacaca },
-    { c = colors.gray,      hex = 0x575757 }
-}
+style.colors = themes.smooth_stone.colors
 
 local bw_fg_bg = cpair(colors.black, colors.white)
 local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
@@ -73,6 +63,7 @@ local nav_fg_bg = bw_fg_bg
 local btn_act_fg_bg = cpair(colors.white, colors.gray)
 local dis_fg_bg = cpair(colors.lightGray,colors.white)
 
+---@class _crd_cfg_tool_ctl
 local tool_ctl = {
     nic = nil,              ---@type nic
     net_listen = false,
@@ -86,8 +77,12 @@ local tool_ctl = {
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
+    jumped_to_color = false,
 
     view_cfg = nil,         ---@type graphics_element
+    color_cfg = nil,        ---@type graphics_element
+    color_next = nil,       ---@type graphics_element
+    color_apply = nil,      ---@type graphics_element
     settings_apply = nil,   ---@type graphics_element
 
     gen_summary = nil,      ---@type function
@@ -136,6 +131,9 @@ local tmp_cfg = {
     LogMode = 0,
     LogPath = "",
     LogDebug = false,
+    MainTheme = 1,
+    FrontPanelTheme = 1,
+    ColorMode = 1
 }
 
 ---@class crd_config
@@ -162,7 +160,10 @@ local fields = {
     { "AuthKey", "Facility Auth Key" , ""},
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
-    { "LogDebug","Log Debug Messages", false }
+    { "LogDebug", "Log Debug Messages", false },
+    { "MainTheme", "Main UI Theme", themes.UI_THEME.SMOOTH_STONE },
+    { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
+    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
 }
 
 -- check if a value is an integer within a range (inclusive)
@@ -313,10 +314,11 @@ local function config_view(display)
     local spkr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local crd_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
+    local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,clr_cfg,summary,changelog}}
 
     -- Main Page
 
@@ -337,7 +339,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
-        main_pane.set_value(8)
+        main_pane.set_value(9)
     end
 
     if fs.exists("/coordinator/config.lua") then
@@ -348,10 +350,21 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
 
-    if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
+    local function jump_color()
+        tool_ctl.jumped_to_color = true
+        tool_ctl.color_next.hide(true)
+        tool_ctl.color_apply.show()
+        main_pane.set_value(8)
+    end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(9)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    if not tool_ctl.has_config then
+        tool_ctl.view_cfg.disable()
+        tool_ctl.color_cfg.disable()
+    end
 
     --#region Network
 
@@ -697,7 +710,7 @@ local function config_view(display)
         mon_pane.set_value(1)
     end
 
-    PushButton{parent=mon_c_4,x=1,y=14,text="\x1b Back",callback=back_from_legacy,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_4,x=44,y=14,min_width=6,text="Done",callback=back_from_legacy,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -733,8 +746,6 @@ local function config_view(display)
     --#region Coordinator UI
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
-
-    local crd_pane = MultiPane{parent=crd_cfg,x=1,y=4,panes={crd_c_1}}
 
     TextBox{parent=crd_cfg,x=1,y=2,height=1,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
@@ -782,16 +793,119 @@ local function config_view(display)
             tmp_cfg.LogMode = mode.get_value() - 1
             tmp_cfg.LogPath = path.get_value()
             tmp_cfg.LogDebug = en_dbg.get_value()
-            tool_ctl.gen_summary(tmp_cfg)
-            tool_ctl.viewing_config = false
-            tool_ctl.importing_legacy = false
-            tool_ctl.settings_apply.show()
+            tool_ctl.color_apply.hide(true)
+            tool_ctl.color_next.show()
             main_pane.set_value(8)
         else path_err.show() end
     end
 
     PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
+    --#region Color Options
+
+    local clr_c_1 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_2 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_3 = Div{parent=clr_cfg,x=2,y=4,width=49}
+    local clr_c_4 = Div{parent=clr_cfg,x=2,y=4,width=49}
+
+    local clr_pane = MultiPane{parent=clr_cfg,x=1,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
+
+    TextBox{parent=clr_cfg,x=1,y=2,height=1,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+
+    TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color themes for the different UI displays."}
+    TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Main UI Theme"}
+    local main_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.MainTheme,options=themes.UI_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+
+    TextBox{parent=clr_c_1,x=18,y=7,height=1,text="Front Panel Theme"}
+    local fp_theme = RadioButton{parent=clr_c_1,x=18,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+
+    TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
+
+    local function recolor(value)
+        local c = themes.smooth_stone.color_modes[value]
+
+        if value == 1 then
+            for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
+        else
+            term.setPaletteColor(colors.green, c[1].hex)
+            term.setPaletteColor(colors.yellow, c[2].hex)
+            term.setPaletteColor(colors.red, c[3].hex)
+        end
+    end
+
+    TextBox{parent=clr_c_2,x=1,y=8,height=1,text="Color Mode"}
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=9,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+
+    TextBox{parent=clr_c_2,x=20,y=8,height=1,text="Preview"}
+    local _ = IndLight{parent=clr_c_2,x=20,y=9,label="Good",colors=cpair(colors.black,colors.green)}
+    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
+    _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
+
+    TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
+
+    PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    local function back_from_colors()
+        main_pane.set_value(util.trinary(tool_ctl.jumped_to_color, 1, 7))
+        tool_ctl.jumped_to_color = false
+        recolor(1)
+    end
+
+    local function show_access()
+        clr_pane.set_value(2)
+        recolor(c_mode.get_value())
+    end
+
+    local function submit_colors()
+        tmp_cfg.MainTheme = main_theme.get_value()
+        tmp_cfg.FrontPanelTheme = fp_theme.get_value()
+        tmp_cfg.ColorMode = c_mode.get_value()
+
+        if tool_ctl.jumped_to_color then
+            settings.set("MainTheme", tmp_cfg.MainTheme)
+            settings.set("FrontPanelTheme", tmp_cfg.FrontPanelTheme)
+            settings.set("ColorMode", tmp_cfg.ColorMode)
+
+            if settings.save("/coordinator.settings") then
+                load_settings(settings_cfg, true)
+                load_settings(ini_cfg)
+                clr_pane.set_value(3)
+            else
+                clr_pane.set_value(4)
+            end
+        else
+            tool_ctl.gen_summary(tmp_cfg)
+            tool_ctl.viewing_config = false
+            tool_ctl.importing_legacy = false
+            tool_ctl.settings_apply.show()
+            main_pane.set_value(9)
+        end
+    end
+
+    PushButton{parent=clr_c_1,x=1,y=14,text="\x1b Back",callback=back_from_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=clr_c_1,x=8,y=14,min_width=15,text="Accessibility",callback=show_access,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_next = PushButton{parent=clr_c_1,x=44,y=14,text="Next \x1a",callback=submit_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.color_apply = PushButton{parent=clr_c_1,x=43,y=14,min_width=7,text="Apply",callback=submit_colors,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    tool_ctl.color_apply.hide(true)
+
+    local function c_go_home()
+        main_pane.set_value(1)
+        clr_pane.set_value(1)
+    end
+
+    TextBox{parent=clr_c_3,x=1,y=1,height=1,text="Settings saved!"}
+    PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=clr_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=clr_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -815,7 +929,7 @@ local function config_view(display)
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
         else
-            main_pane.set_value(7)
+            main_pane.set_value(8)
         end
     end
 
@@ -846,12 +960,16 @@ local function config_view(display)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
+            try_set(main_theme, ini_cfg.MainTheme)
+            try_set(fp_theme, ini_cfg.FrontPanelTheme)
+            try_set(c_mode, ini_cfg.ColorMode)
 
             preset_monitor_fields()
 
             tool_ctl.gen_mon_list()
 
             tool_ctl.view_cfg.enable()
+            tool_ctl.color_cfg.enable()
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
@@ -875,7 +993,7 @@ local function config_view(display)
         net_pane.set_value(1)
         fac_pane.set_value(1)
         mon_pane.set_value(1)
-        crd_pane.set_value(1)
+        clr_pane.set_value(1)
         sum_pane.set_value(1)
     end
 
@@ -972,7 +1090,7 @@ local function config_view(display)
 
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
-        main_pane.set_value(8)
+        main_pane.set_value(9)
         tool_ctl.importing_legacy = true
     end
 
@@ -1195,7 +1313,13 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "TempScale" then
-                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" else val = "Rankine" end
+                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" elseif raw == 4 then val = "Rankine" end
+            elseif f[1] == "MainTheme" then
+                val = util.strval(themes.ui_theme_name(raw))
+            elseif f[1] == "FrontPanelTheme" then
+                val = util.strval(themes.fp_theme_name(raw))
+            elseif f[1] == "ColorMode" then
+                val = util.strval(themes.color_mode_name(raw))
             elseif f[1] == "UnitDisplays" and type(cfg.UnitDisplays) == "table" then
                 val = ""
                 for idx = 1, #cfg.UnitDisplays do

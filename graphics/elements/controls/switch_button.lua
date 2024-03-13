@@ -58,7 +58,7 @@ local function switch_button(args)
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
-        if e.enabled and core.events.was_clicked(event.type) then
+        if e.enabled and core.events.was_clicked(event.type) and e.in_frame_bounds(event.current.x, event.current.y) then
             e.value = not e.value
             e.redraw()
             args.callback(e.value)

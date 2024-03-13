@@ -7,7 +7,7 @@ local imatrix_rtu = {}
 ---@param imatrix table
 ---@return rtu_device interface, boolean faulted
 function imatrix_rtu.new(imatrix)
-    local unit = rtu.init_unit()
+    local unit = rtu.init_unit(imatrix)
 
     -- disable auto fault clearing
     imatrix.__p_clear_fault()

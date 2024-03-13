@@ -18,9 +18,6 @@ local border = core.border
 
 local ALIGN = core.ALIGN
 
-local text_fg_bg = style.text_colors
-local lu_col = style.lu_colors
-
 -- new induction matrix view
 ---@param root graphics_element parent
 ---@param x integer top left x
@@ -29,27 +26,30 @@ local lu_col = style.lu_colors
 ---@param ps psil ps interface
 ---@param id number? matrix ID
 local function new_view(root, x, y, data, ps, id)
+    local text_fg = style.theme.text_fg
+    local lu_col = style.lu_colors
+
     local title = "INDUCTION MATRIX"
     if type(id) == "number" then title = title .. id end
 
     local matrix = Div{parent=root,fg_bg=style.root,width=33,height=24,x=x,y=y}
 
-    TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=style.lg_gray}
-    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=style.lg_gray}
+    local cutout_fg_bg = cpair(style.theme.bg, colors.gray)
+
+    TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=cutout_fg_bg}
 
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
 
-    local label_fg_bg = cpair(colors.gray, colors.lightGray)
-
     local status   = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
-    local energy   = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Energy:  ",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}
-    local capacity = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Capacity:",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}
-    local input    = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="Input:   ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
-    local output   = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="Output:  ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
+    local energy   = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Energy:  ",format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local capacity = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Capacity:",format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local input    = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="Input:   ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local output   = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="Output:  ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
 
-    local avg_chg  = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Avg. Chg:",format="%8.2f",value=0,width=26,fg_bg=text_fg_bg}
-    local avg_in   = PowerIndicator{parent=rect,x=7,y=9,lu_colors=lu_col,label="Avg. In: ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
-    local avg_out  = PowerIndicator{parent=rect,x=7,y=10,lu_colors=lu_col,label="Avg. Out:",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg_bg}
+    local avg_chg  = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Avg. Chg:",format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local avg_in   = PowerIndicator{parent=rect,x=7,y=9,lu_colors=lu_col,label="Avg. In: ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local avg_out  = PowerIndicator{parent=rect,x=7,y=10,lu_colors=lu_col,label="Avg. Out:",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
 
     status.register(ps, "computed_status", status.update)
     energy.register(ps, "energy", function (val) energy.update(util.joules_to_fe(val)) end)
@@ -61,13 +61,13 @@ local function new_view(root, x, y, data, ps, id)
     avg_in.register(ps, "avg_inflow", avg_in.update)
     avg_out.register(ps, "avg_outflow", avg_out.update)
 
-    local fill      = DataIndicator{parent=rect,x=11,y=12,lu_colors=lu_col,label="Fill:",unit="%",format="%8.2f",value=0,width=18,fg_bg=text_fg_bg}
+    local fill      = DataIndicator{parent=rect,x=11,y=12,lu_colors=lu_col,label="Fill:",unit="%",format="%8.2f",value=0,width=18,fg_bg=text_fg}
 
-    local cells     = DataIndicator{parent=rect,x=11,y=14,lu_colors=lu_col,label="Cells:    ",format="%7d",value=0,width=18,fg_bg=text_fg_bg}
-    local providers = DataIndicator{parent=rect,x=11,y=15,lu_colors=lu_col,label="Providers:",format="%7d",value=0,width=18,fg_bg=text_fg_bg}
+    local cells     = DataIndicator{parent=rect,x=11,y=14,lu_colors=lu_col,label="Cells:    ",format="%7d",value=0,width=18,fg_bg=text_fg}
+    local providers = DataIndicator{parent=rect,x=11,y=15,lu_colors=lu_col,label="Providers:",format="%7d",value=0,width=18,fg_bg=text_fg}
 
-    TextBox{parent=rect,text="Transfer Capacity",x=11,y=17,height=1,width=17,fg_bg=label_fg_bg}
-    local trans_cap = PowerIndicator{parent=rect,x=19,y=18,lu_colors=lu_col,label="",format="%5.2f",rate=true,value=0,width=12,fg_bg=text_fg_bg}
+    TextBox{parent=rect,text="Transfer Capacity",x=11,y=17,height=1,width=17,fg_bg=style.theme.label_fg}
+    local trans_cap = PowerIndicator{parent=rect,x=19,y=18,lu_colors=lu_col,label="",format="%5.2f",rate=true,value=0,width=12,fg_bg=text_fg}
 
     cells.register(ps, "cells", cells.update)
     providers.register(ps, "providers", providers.update)
@@ -78,8 +78,8 @@ local function new_view(root, x, y, data, ps, id)
     local in_cap  = VerticalBar{parent=rect,x=7,y=12,fg_bg=cpair(colors.red,colors.gray),height=7,width=1}
     local out_cap = VerticalBar{parent=rect,x=9,y=12,fg_bg=cpair(colors.blue,colors.gray),height=7,width=1}
 
-    TextBox{parent=rect,text="FILL",x=2,y=20,height=1,width=4,fg_bg=text_fg_bg}
-    TextBox{parent=rect,text="I/O",x=7,y=20,height=1,width=3,fg_bg=text_fg_bg}
+    TextBox{parent=rect,text="FILL",x=2,y=20,height=1,width=4,fg_bg=text_fg}
+    TextBox{parent=rect,text="I/O",x=7,y=20,height=1,width=3,fg_bg=text_fg}
 
     local function calc_saturation(val)
         if (type(data.build) == "table") and (type(data.build.transfer_cap) == "number") and (data.build.transfer_cap > 0) then

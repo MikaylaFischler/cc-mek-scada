@@ -29,14 +29,19 @@ function rtu.load_config()
     config.Redstone = settings.get("Redstone")
 
     config.SpeakerVolume = settings.get("SpeakerVolume")
+
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
+
     config.LogMode = settings.get("LogMode")
     config.LogPath = settings.get("LogPath")
     config.LogDebug = settings.get("LogDebug")
+
+    config.FrontPanelTheme = settings.get("FrontPanelTheme")
+    config.ColorMode = settings.get("ColorMode")
 
     local cfv = util.new_validator()
 
@@ -61,15 +66,22 @@ function rtu.load_config()
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
 
+    cfv.assert_type_int(config.FrontPanelTheme)
+    cfv.assert_range(config.FrontPanelTheme, 1, 2)
+    cfv.assert_type_int(config.ColorMode)
+    cfv.assert_range(config.ColorMode, 1, 4)
+
     cfv.assert_type_table(config.Peripherals)
     cfv.assert_type_table(config.Redstone)
 
     return cfv.valid()
 end
 
--- create a new RTU unit
+-- create a new RTU unit<br>
+-- if this is for a PPM peripheral, auto fault clearing MUST stay enabled once access begins
 ---@nodiscard
-function rtu.init_unit()
+---@param device table|nil peripheral device, if applicable
+function rtu.init_unit(device)
     local self = {
         discrete_inputs = {},
         coils = {},
@@ -85,6 +97,10 @@ function rtu.init_unit()
 
     ---@class rtu
     local protected = {}
+
+    -- function to check if the peripheral (if exists) is faulted
+    local function _is_faulted() return false end
+    if device then _is_faulted = device.__p_is_faulted end
 
     -- refresh IO count
     local function _count_io()
@@ -112,9 +128,8 @@ function rtu.init_unit()
     ---@param di_addr integer
     ---@return any value, boolean access_fault
     function public.read_di(di_addr)
-        ppm.clear_fault()
         local value = self.discrete_inputs[di_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- coils: single bit read-write
@@ -133,9 +148,8 @@ function rtu.init_unit()
     ---@param coil_addr integer
     ---@return any value, boolean access_fault
     function public.read_coil(coil_addr)
-        ppm.clear_fault()
         local value = self.coils[coil_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- write coil
@@ -143,9 +157,8 @@ function rtu.init_unit()
     ---@param value any
     ---@return boolean access_fault
     function public.write_coil(coil_addr, value)
-        ppm.clear_fault()
         self.coils[coil_addr].write(value)
-        return ppm.is_faulted()
+        return _is_faulted()
     end
 
     -- input registers: multi-bit read-only
@@ -163,9 +176,8 @@ function rtu.init_unit()
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
     function public.read_input_reg(reg_addr)
-        ppm.clear_fault()
         local value = self.input_regs[reg_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- holding registers: multi-bit read-write
@@ -184,9 +196,8 @@ function rtu.init_unit()
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
     function public.read_holding_reg(reg_addr)
-        ppm.clear_fault()
         local value = self.holding_regs[reg_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- write holding register
@@ -194,9 +205,8 @@ function rtu.init_unit()
     ---@param value any
     ---@return boolean access_fault
     function public.write_holding_reg(reg_addr, value)
-        ppm.clear_fault()
         self.holding_regs[reg_addr].write(value)
-        return ppm.is_faulted()
+        return _is_faulted()
     end
 
     -- public RTU device access

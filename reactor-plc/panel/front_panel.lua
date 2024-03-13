@@ -23,6 +23,8 @@ local LED        = require("graphics.elements.indicators.led")
 local LEDPair    = require("graphics.elements.indicators.ledpair")
 local RGBLED     = require("graphics.elements.indicators.ledrgb")
 
+local LINK_STATE = types.PANEL_LINK_STATE
+
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
@@ -34,8 +36,12 @@ local ind_red = style.ind_red
 -- create new front panel view
 ---@param panel graphics_element main displaybox
 local function init(panel)
-    local header = TextBox{parent=panel,y=1,text="REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
-    header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("REACTOR PLC - UNIT ", id)) end)
+    local s_hi_box = style.theme.highlight_box
+
+    local disabled_fg = style.fp.disabled_fg
+
+    local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 
     --
     -- system indicators
@@ -52,13 +58,47 @@ local function init(panel)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
-    local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+
+    if not style.colorblind then
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
+        network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+        network.register(databus.ps, "link_state", network.update)
+    else
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_col = LED{parent=system,label="NT COLLISION",colors=ind_red}
+
+        nt_lnk.register(databus.ps, "link_state", function (state)
+            local value = 2
+
+            if state == LINK_STATE.DISCONNECTED then
+                value = 1
+            elseif state == LINK_STATE.LINKED then
+                value = 3
+            end
+
+            nt_lnk.update(value)
+        end)
+
+        nt_ver.register(databus.ps, "link_state", function (state)
+            local value = 3
+
+            if state == LINK_STATE.BAD_VERSION then
+                value = 2
+            elseif state == LINK_STATE.DISCONNECTED then
+                value = 1
+            end
+
+            nt_ver.update(value)
+        end)
+
+        nt_col.register(databus.ps, "link_state", function (state) nt_col.update(state == LINK_STATE.COLLISION) end)
+    end
+
     system.line_break()
 
     reactor.register(databus.ps, "reactor_dev_state", reactor.update)
     modem.register(databus.ps, "has_modem", modem.update)
-    network.register(databus.ps, "link_state", network.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=ind_grn}
@@ -75,7 +115,7 @@ local function init(panel)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=cpair(colors.lightGray,colors.ivory)}
+    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=disabled_fg}
 
     --
     -- status & controls
@@ -91,12 +131,12 @@ local function init(panel)
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
-    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,colors.lightGray,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
-    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=cpair(colors.black,colors.lightGray)}
+    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=s_hi_box}
     local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=ind_red,flash=true,period=flasher.PERIOD.BLINK_250_MS}
 
-    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,colors.white,true),even_inner=true,fg_bg=cpair(colors.black,colors.ivory)}
-    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=cpair(colors.black,colors.white)}
+    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=s_hi_box}
     PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
     PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
@@ -107,9 +147,9 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Rectangle{parent=panel,width=32,height=3,x=2,y=16,border=border(1,colors.ivory),thin=true,fg_bg=cpair(colors.black,colors.white)}
-    local fw_v    = TextBox{parent=about,x=2,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=17,y=1,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -118,7 +158,7 @@ local function init(panel)
     -- rps list
     --
 
-    local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,colors.lightGray),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+    local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=ind_red}
     local rps_auto = LED{parent=rps,label="AUTOMATIC",colors=ind_red}
     local rps_tmo  = LED{parent=rps,label="TIMEOUT",colors=ind_red}
