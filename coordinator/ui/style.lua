@@ -2,94 +2,145 @@
 -- Graphics Style Options
 --
 
-local core = require("graphics.core")
+local util   = require("scada-common.util")
 
+local core   = require("graphics.core")
+local themes = require("graphics.themes")
+
+---@class crd_style
 local style = {}
 
 local cpair = core.cpair
 
--- GLOBAL --
-
--- add color mappings for front panel
-colors.ivory = colors.pink
-colors.yellow_hc = colors.purple
-colors.red_off = colors.brown
-colors.yellow_off = colors.magenta
-colors.green_off = colors.lime
-
 -- front panel styling
 
-style.fp = {}
+style.fp_theme = themes.sandstone
+style.fp = themes.get_fp_style(style.fp_theme)
 
-style.fp.root = cpair(colors.black, colors.ivory)
-style.fp.header = cpair(colors.black, colors.lightGray)
-
-style.fp.colors = {
-    { c = colors.red,       hex = 0xdf4949 },   -- RED ON
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xf9fb53 },   -- YELLOW ON
-    { c = colors.lime,      hex = 0x16665a },   -- GREEN OFF
-    { c = colors.green,     hex = 0x6be551 },   -- GREEN ON
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },   -- YELLOW HIGH CONTRAST
-    { c = colors.pink,      hex = 0xdcd9ca },   -- IVORY
-    { c = colors.magenta,   hex = 0x85862c },   -- YELLOW OFF
-    -- { c = colors.white,     hex = 0xdcd9ca },
-    { c = colors.lightGray, hex = 0xb1b8b3 },
-    { c = colors.gray,      hex = 0x575757 },
-    -- { c = colors.black,     hex = 0x191919 },
-    { c = colors.brown,     hex = 0x672223 }    -- RED OFF
-}
+style.led_grn = cpair(colors.green, colors.green_off)
 
 -- main GUI styling
 
-style.root = cpair(colors.black, colors.lightGray)
-style.header = cpair(colors.white, colors.gray)
-style.label = cpair(colors.gray, colors.lightGray)
+---@class theme
+local smooth_stone = {
+    text = colors.black,
+    text_inv = colors.white,
+    label = colors.gray,
+    label_dark = colors.gray,
+    disabled = colors.lightGray,
+    bg = colors.lightGray,
+    checkbox_bg = colors.black,
+    accent_light = colors.white,
+    accent_dark = colors.gray,
 
-style.colors = {
-    { c = colors.red,       hex = 0xdf4949 },
-    { c = colors.orange,    hex = 0xffb659 },
-    { c = colors.yellow,    hex = 0xfffc79 },
-    { c = colors.lime,      hex = 0x80ff80 },
-    { c = colors.green,     hex = 0x4aee8a },
-    { c = colors.cyan,      hex = 0x34bac8 },
-    { c = colors.lightBlue, hex = 0x6cc0f2 },
-    { c = colors.blue,      hex = 0x0096ff },
-    { c = colors.purple,    hex = 0xb156ee },
-    { c = colors.pink,      hex = 0xf26ba2 },
-    { c = colors.magenta,   hex = 0xf9488a },
-    -- { c = colors.white,     hex = 0xf0f0f0 },
-    { c = colors.lightGray, hex = 0xcacaca },
-    { c = colors.gray,      hex = 0x575757 },
-    -- { c = colors.black,     hex = 0x191919 },
-    -- { c = colors.brown,     hex = 0x7f664c }
+    fuel_color = colors.black,
+
+    header = cpair(colors.white, colors.gray),
+
+    text_fg = cpair(colors.black, colors._INHERIT),
+    label_fg = cpair(colors.gray, colors._INHERIT),
+    disabled_fg = cpair(colors.lightGray, colors._INHERIT),
+
+    highlight_box = cpair(colors.black, colors.white),
+    highlight_box_bright = cpair(colors.black, colors.white),
+    field_box = cpair(colors.black, colors.white),
+
+    colors = themes.smooth_stone.colors,
+
+    -- color re-mappings for assistive modes
+    color_modes = themes.smooth_stone.color_modes
 }
+
+---@type theme
+local deepslate = {
+    text = colors.white,
+    text_inv = colors.black,
+    label = colors.lightGray,
+    label_dark = colors.gray,
+    disabled = colors.gray,
+    bg = colors.black,
+    checkbox_bg = colors.gray,
+    accent_light = colors.gray,
+    accent_dark = colors.lightGray,
+
+    fuel_color = colors.lightGray,
+
+    header = cpair(colors.white, colors.gray),
+
+    text_fg = cpair(colors.white, colors._INHERIT),
+    label_fg = cpair(colors.lightGray, colors._INHERIT),
+    disabled_fg = cpair(colors.gray, colors._INHERIT),
+
+    highlight_box = cpair(colors.white, colors.gray),
+    highlight_box_bright = cpair(colors.black, colors.lightGray),
+    field_box = cpair(colors.white, colors.gray),
+
+    colors = themes.deepslate.colors,
+
+    -- color re-mappings for assistive modes
+    color_modes = themes.deepslate.color_modes
+}
+
+style.theme = smooth_stone
+
+-- set themes per configurations
+---@param main UI_THEME main UI theme
+---@param fp FP_THEME front panel theme
+---@param color_mode COLOR_MODE the color mode to use
+function style.set_themes(main, fp, color_mode)
+    local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
+
+    style.ind_bkg = colors.gray
+    style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.gray)
+
+    if main == themes.UI_THEME.SMOOTH_STONE then
+        style.theme = smooth_stone
+        style.ind_bkg = util.trinary(colorblind, colors.black, colors.gray)
+    elseif main == themes.UI_THEME.DEEPSLATE then
+        style.theme = deepslate
+        style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.lightGray)
+    end
+
+    style.colorblind = colorblind
+
+    style.root = cpair(style.theme.text, style.theme.bg)
+    style.label = cpair(style.theme.label, style.theme.bg)
+
+    -- high contrast text (also tags)
+    style.hc_text = cpair(style.theme.text, style.theme.text_inv)
+    -- text on default background
+    style.text_colors = cpair(style.theme.text, style.theme.bg)
+    -- label & unit colors
+    style.lu_colors = cpair(style.theme.label, style.theme.label)
+    -- label & unit colors (darker if set)
+    style.lu_colors_dark = cpair(style.theme.label_dark, style.theme.label_dark)
+
+    style.ind_grn = cpair(util.trinary(colorblind, colors.blue, colors.green), style.ind_bkg)
+    style.ind_yel = cpair(colors.yellow, style.ind_bkg)
+    style.ind_red = cpair(colors.red, style.ind_bkg)
+    style.ind_wht = cpair(colors.white, style.ind_bkg)
+
+    if fp == themes.FP_THEME.SANDSTONE then
+        style.fp_theme = themes.sandstone
+    elseif fp == themes.FP_THEME.BASALT then
+        style.fp_theme = themes.basalt
+    end
+
+    style.fp = themes.get_fp_style(style.fp_theme)
+end
 
 -- COMMON COLOR PAIRS --
 
 style.wh_gray = cpair(colors.white, colors.gray)
 
 style.bw_fg_bg = cpair(colors.black, colors.white)
-style.text_colors = cpair(colors.black, colors.lightGray)
-style.lu_colors = cpair(colors.gray, colors.gray)
+
 style.hzd_fg_bg  = style.wh_gray
 style.dis_colors = cpair(colors.white, colors.lightGray)
 
 style.lg_gray = cpair(colors.lightGray, colors.gray)
 style.lg_white = cpair(colors.lightGray, colors.white)
 style.gray_white = cpair(colors.gray, colors.white)
-
-style.ind_grn = cpair(colors.green, colors.gray)
-style.ind_yel = cpair(colors.yellow, colors.gray)
-style.ind_red = cpair(colors.red, colors.gray)
-style.ind_wht = style.wh_gray
-
-style.fp_text = cpair(colors.black, colors.ivory)
-style.fp_label = cpair(colors.lightGray, colors.ivory)
-style.led_grn = cpair(colors.green, colors.green_off)
 
 -- UI COMPONENTS --
 

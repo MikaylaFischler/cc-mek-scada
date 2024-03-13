@@ -138,23 +138,21 @@ local function hazard_button(args)
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
-        if e.enabled then
-            if core.events.was_clicked(event.type) then
-                -- change text color to indicate clicked
-                e.w_set_fgd(args.accent)
-                e.w_set_cur(3, 2)
-                e.w_write(args.text)
+        if e.enabled and core.events.was_clicked(event.type) and e.in_frame_bounds(event.current.x, event.current.y) then
+            -- change text color to indicate clicked
+            e.w_set_fgd(args.accent)
+            e.w_set_cur(3, 2)
+            e.w_write(args.text)
 
-                -- abort any other callbacks
-                tcd.abort(on_timeout)
-                tcd.abort(on_success)
-                tcd.abort(on_failure)
+            -- abort any other callbacks
+            tcd.abort(on_timeout)
+            tcd.abort(on_success)
+            tcd.abort(on_failure)
 
-                -- 1.5 second timeout
-                tcd.dispatch(1.5, on_timeout)
+            -- 1.5 second timeout
+            tcd.dispatch(1.5, on_timeout)
 
-                args.callback()
-            end
+            args.callback()
         end
     end
 

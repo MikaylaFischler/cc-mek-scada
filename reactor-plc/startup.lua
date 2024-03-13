@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.6.14"
+local R_PLC_VERSION = "v1.7.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -183,7 +183,7 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message
-            plc_state.fp_ok, message = renderer.try_start_ui()
+            plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
 
             if not plc_state.fp_ok then
                 println_ts(util.c("UI error: ", message))

@@ -64,7 +64,7 @@ function databus.tx_plc_rtt(reactor_id, rtt)
     elseif rtt > WARN_RTT then
         databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.yellow_hc)
     else
-        databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.green)
+        databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.green_hc)
     end
 end
 
@@ -95,7 +95,7 @@ function databus.tx_rtu_rtt(session_id, rtt)
     elseif rtt > WARN_RTT then
         databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.yellow_hc)
     else
-        databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.green)
+        databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.green_hc)
     end
 end
 
@@ -134,7 +134,7 @@ function databus.tx_crd_rtt(rtt)
     elseif rtt > WARN_RTT then
         databus.ps.publish("crd_rtt_color", colors.yellow_hc)
     else
-        databus.ps.publish("crd_rtt_color", colors.green)
+        databus.ps.publish("crd_rtt_color", colors.green_hc)
     end
 end
 
@@ -165,7 +165,7 @@ function databus.tx_pdg_rtt(session_id, rtt)
     elseif rtt > WARN_RTT then
         databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.yellow_hc)
     else
-        databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.green)
+        databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.green_hc)
     end
 end
 
