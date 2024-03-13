@@ -196,8 +196,8 @@ local fields = {
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },
-    { "FrontPanelTheme", "Front Panel Theme", 1 },
-    { "ColorMode", "Color Mode", 1 }
+    { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
+    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
 }
 
 local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
