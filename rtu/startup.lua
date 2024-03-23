@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.8.0"
+local RTU_VERSION = "v1.9.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -342,7 +342,7 @@ local function main()
                 is_multiblock = true
                 formed = device.isFormed()
 
-                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                if formed == ppm.ACCESS_FAULT then
                     println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
                     log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed boiler multiblock"))
                     return false
@@ -357,7 +357,7 @@ local function main()
                 is_multiblock = true
                 formed = device.isFormed()
 
-                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                if formed == ppm.ACCESS_FAULT then
                     println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
                     log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed turbine multiblock"))
                     return false
@@ -377,7 +377,7 @@ local function main()
                 is_multiblock = true
                 formed = device.isFormed()
 
-                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                if formed == ppm.ACCESS_FAULT then
                     println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
                     log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed dynamic tank multiblock"))
                     return false
@@ -391,7 +391,7 @@ local function main()
                 is_multiblock = true
                 formed = device.isFormed()
 
-                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                if formed == ppm.ACCESS_FAULT then
                     println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
                     log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed induction matrix multiblock"))
                     return false
@@ -405,7 +405,7 @@ local function main()
                 is_multiblock = true
                 formed = device.isFormed()
 
-                if formed == ppm.UNDEFINED_FIELD or formed == ppm.ACCESS_FAULT then
+                if formed == ppm.ACCESS_FAULT then
                     println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
                     log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed SPS multiblock"))
                     return false
@@ -471,7 +471,8 @@ local function main()
                 for_message = util.c("reactor ", for_reactor)
             end
 
-            log.info(util.c("sys_config> initialized RTU unit #", #units, ": ", name, " (", types.rtu_type_to_string(rtu_type), ") [", index, "] for ", for_message))
+            local index_str = util.trinary(index ~= nil, util.c(" [", index, "]"), "")
+            log.info(util.c("sys_config> initialized RTU unit #", #units, ": ", name, " (", types.rtu_type_to_string(rtu_type), ")", index_str, " for ", for_message))
 
             rtu_unit.uid = #units
 

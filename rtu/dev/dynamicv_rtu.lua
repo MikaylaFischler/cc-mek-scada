@@ -9,12 +9,8 @@ local dynamicv_rtu = {}
 function dynamicv_rtu.new(dynamic_tank)
     local unit = rtu.init_unit(dynamic_tank)
 
-    -- disable auto fault clearing
-    dynamic_tank.__p_clear_fault()
-    dynamic_tank.__p_disable_afc()
-
     -- discrete inputs --
-    unit.connect_di(dynamic_tank.isFormed)
+    unit.connect_di("isFormed")
 
     -- coils --
     unit.connect_coil(function () dynamic_tank.incrementContainerEditMode() end, function () end)
@@ -22,27 +18,22 @@ function dynamicv_rtu.new(dynamic_tank)
 
     -- input registers --
     -- multiblock properties
-    unit.connect_input_reg(dynamic_tank.getLength)
-    unit.connect_input_reg(dynamic_tank.getWidth)
-    unit.connect_input_reg(dynamic_tank.getHeight)
-    unit.connect_input_reg(dynamic_tank.getMinPos)
-    unit.connect_input_reg(dynamic_tank.getMaxPos)
+    unit.connect_input_reg("getLength")
+    unit.connect_input_reg("getWidth")
+    unit.connect_input_reg("getHeight")
+    unit.connect_input_reg("getMinPos")
+    unit.connect_input_reg("getMaxPos")
     -- build properties
-    unit.connect_input_reg(dynamic_tank.getTankCapacity)
-    unit.connect_input_reg(dynamic_tank.getChemicalTankCapacity)
+    unit.connect_input_reg("getTankCapacity")
+    unit.connect_input_reg("getChemicalTankCapacity")
     -- tanks/containers
-    unit.connect_input_reg(dynamic_tank.getStored)
-    unit.connect_input_reg(dynamic_tank.getFilledPercentage)
+    unit.connect_input_reg("getStored")
+    unit.connect_input_reg("getFilledPercentage")
 
     -- holding registers --
-    unit.connect_holding_reg(dynamic_tank.getContainerEditMode, dynamic_tank.setContainerEditMode)
+    unit.connect_holding_reg("getContainerEditMode", "setContainerEditMode")
 
-    -- check if any calls faulted
-    local faulted = dynamic_tank.__p_is_faulted()
-    dynamic_tank.__p_clear_fault()
-    dynamic_tank.__p_enable_afc()
-
-    return unit.interface(), faulted
+    return unit.interface(), false
 end
 
 return dynamicv_rtu

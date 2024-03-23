@@ -144,9 +144,9 @@ function plc.rps_init(reactor, is_formed)
     local function _check_and_handle_ppm_call(result)
         if result == ppm.ACCESS_FAULT then
             _set_fault()
-        elseif result == ppm.UNDEFINED_FIELD then
-            _set_fault()
-            self.formed = false
+
+            -- if undefined, then the reactor isn't formed
+            if reactor.__p_last_fault() == ppm.UNDEFINED_FIELD then self.formed = false end
         else return true end
 
         return false
