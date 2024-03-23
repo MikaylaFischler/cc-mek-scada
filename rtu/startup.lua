@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.9.0"
+local RTU_VERSION = "v1.9.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -71,6 +71,7 @@ log.info("========================================")
 println(">> RTU GATEWAY " .. RTU_VERSION .. " <<")
 
 crash.set_env("rtu", RTU_VERSION)
+crash.dbg_log_env()
 
 ----------------------------------------
 -- main application

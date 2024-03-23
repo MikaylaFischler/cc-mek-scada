@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.7.1"
+local R_PLC_VERSION = "v1.7.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -55,6 +55,7 @@ log.info("========================================")
 println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
 crash.set_env("reactor-plc", R_PLC_VERSION)
+crash.dbg_log_env()
 
 ----------------------------------------
 -- main application

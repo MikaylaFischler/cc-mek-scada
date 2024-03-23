@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.3.0"
+local COORDINATOR_VERSION = "v1.3.1"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -103,6 +103,7 @@ log.info("========================================")
 println(">> SCADA Coordinator " .. COORDINATOR_VERSION .. " <<")
 
 crash.set_env("coordinator", COORDINATOR_VERSION)
+crash.dbg_log_env()
 
 ----------------------------------------
 -- main application
