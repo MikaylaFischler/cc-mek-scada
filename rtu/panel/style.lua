@@ -30,9 +30,9 @@ function style.set_theme(fp, color_mode)
 
     style.fp = themes.get_fp_style(style.theme)
 
-    style.colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
+    style.colorblind = not (color_mode == themes.COLOR_MODE.STANDARD or color_mode == themes.COLOR_MODE.STD_ON_BLACK)
 
-    style.ind_bkg = util.trinary(style.colorblind and (color_mode ~= themes.COLOR_MODE.BLUE_IND), colors.black, colors.gray)
+    style.ind_bkg = util.trinary(color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.BLUE_IND, colors.black, colors.gray)
 end
 
 return style

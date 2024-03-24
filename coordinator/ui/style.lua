@@ -88,8 +88,8 @@ style.theme = smooth_stone
 ---@param fp FP_THEME front panel theme
 ---@param color_mode COLOR_MODE the color mode to use
 function style.set_themes(main, fp, color_mode)
-    local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
-    local black_ind_off = colorblind and (color_mode ~= themes.COLOR_MODE.BLUE_IND)
+    local colorblind = not (color_mode == themes.COLOR_MODE.STANDARD or color_mode == themes.COLOR_MODE.STD_ON_BLACK)
+    local black_ind_off = color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.BLUE_IND
 
     style.ind_bkg = colors.gray
     style.ind_hi_box_bg = util.trinary(black_ind_off, colors.black, colors.gray)

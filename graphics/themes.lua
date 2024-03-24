@@ -56,8 +56,9 @@ themes.COLOR_MODE = {
     PROTANOPIA = 3,
     TRITANOPIA = 4,
     BLUE_IND = 5,
-    BLUE_ON_BLACK = 6,
-    NUM_MODES = 6
+    STD_ON_BLACK = 6,
+    BLUE_ON_BLACK = 7,
+    NUM_MODES = 8
 }
 
 themes.COLOR_MODE_NAMES = {
@@ -65,8 +66,9 @@ themes.COLOR_MODE_NAMES = {
     "Deuteranopia",
     "Protanopia",
     "Tritanopia",
-    "Blue Standard",
-    "Blue + Black Off"
+    "Blue for 'Good'",
+    "Standard + Black",
+    "Blue + Black"
 }
 
 -- attempts to get the string name of a color mode
@@ -79,6 +81,7 @@ function themes.color_mode_name(id)
        id == themes.COLOR_MODE.PROTANOPIA or
        id == themes.COLOR_MODE.TRITANOPIA or
        id == themes.COLOR_MODE.BLUE_IND or
+       id == themes.COLOR_MODE.STD_ON_BLACK or
        id == themes.COLOR_MODE.BLUE_ON_BLACK then
         return themes.COLOR_MODE_NAMES[id]
     else return nil end
@@ -160,6 +163,12 @@ themes.sandstone = {
             { c = colors.green,      hex = 0x1081ff },
             { c = colors.green_hc,   hex = 0x1081ff },
             { c = colors.green_off,  hex = 0x053466 },
+        },
+        -- standard, black backgrounds
+        {
+            { c = colors.green_off,  hex = 0x141414 },
+            { c = colors.yellow_off, hex = 0x141414 },
+            { c = colors.red_off,    hex = 0x141414 }
         },
         -- blue indicators, black backgrounds
         {
@@ -244,6 +253,12 @@ themes.basalt = {
             { c = colors.green_hc,   hex = 0x99c9ff },
             { c = colors.green_off,  hex = 0x365e8a },
         },
+        -- standard, black backgrounds
+        {
+            { c = colors.green_off,  hex = 0x333333 },
+            { c = colors.yellow_off, hex = 0x333333 },
+            { c = colors.red_off,    hex = 0x333333 }
+        },
         -- blue indicators, black backgrounds
         {
             { c = colors.green,      hex = 0x65aeff },
@@ -327,6 +342,8 @@ themes.smooth_stone = {
             { c = colors.yellow, hex = 0xfffc79 },
             { c = colors.red,    hex = 0xdf4949 }
         },
+        -- standard, black backgrounds
+        {},
         -- blue indicators, black backgrounds
         {
             { c = colors.blue,   hex = 0x1081ff },
@@ -385,6 +402,8 @@ themes.deepslate = {
             { c = colors.yellow, hex = 0xd9cf81 },
             { c = colors.red,    hex = 0xeb6a6c }
         },
+        -- standard, black backgrounds
+        {},
         -- blue indicators, black backgrounds
         {
             { c = colors.blue,   hex = 0x65aeff },
