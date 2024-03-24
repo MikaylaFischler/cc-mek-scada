@@ -39,7 +39,8 @@ local RIGHT = core.ALIGN.RIGHT
 local changes = {
     { "v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
     { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
-    { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } }
+    { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
+    { "v1.7.3", { "Added blue indicators color mode" } }
 }
 
 ---@class plc_configurator
@@ -484,7 +485,7 @@ local function config_view(display)
     _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
     _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
 
-    TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_2,x=20,y=13,height=2,width=23,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 

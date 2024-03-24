@@ -57,8 +57,8 @@ local function init(panel, units)
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(databus.ps, "link_state", network.update)
     else
-        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.red_off,c1=colors.red,c2=colors.green}
-        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.red_off,c1=colors.red,c2=colors.green}
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=colors.black,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=colors.black,c1=colors.red,c2=colors.green}
 
         nt_lnk.register(databus.ps, "link_state", function (state)
             local value = 2

@@ -54,14 +54,19 @@ themes.COLOR_MODE = {
     STANDARD = 1,
     DEUTERANOPIA = 2,
     PROTANOPIA = 3,
-    TRITANOPIA = 4
+    TRITANOPIA = 4,
+    BLUE_IND = 5,
+    BLUE_ON_BLACK = 6,
+    NUM_MODES = 6
 }
 
 themes.COLOR_MODE_NAMES = {
     "Standard",
     "Deuteranopia",
     "Protanopia",
-    "Tritanopia"
+    "Tritanopia",
+    "Blue Standard",
+    "Blue + Black Off"
 }
 
 -- attempts to get the string name of a color mode
@@ -72,7 +77,9 @@ function themes.color_mode_name(id)
     if id == themes.COLOR_MODE.STANDARD or
        id == themes.COLOR_MODE.DEUTERANOPIA or
        id == themes.COLOR_MODE.PROTANOPIA or
-       id == themes.COLOR_MODE.TRITANOPIA then
+       id == themes.COLOR_MODE.TRITANOPIA or
+       id == themes.COLOR_MODE.BLUE_IND or
+       id == themes.COLOR_MODE.BLUE_ON_BLACK then
         return themes.COLOR_MODE_NAMES[id]
     else return nil end
 end
@@ -147,6 +154,20 @@ themes.sandstone = {
             { c = colors.yellow_off, hex = 0x141414 },
             { c = colors.red,        hex = 0xff0000 },
             { c = colors.red_off,    hex = 0x141414 }
+        },
+        -- blue indicators
+        {
+            { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_hc,   hex = 0x1081ff },
+            { c = colors.green_off,  hex = 0x053466 },
+        },
+        -- blue indicators, black backgrounds
+        {
+            { c = colors.green,      hex = 0x1081ff },
+            { c = colors.green_hc,   hex = 0x1081ff },
+            { c = colors.green_off,  hex = 0x141414 },
+            { c = colors.yellow_off, hex = 0x141414 },
+            { c = colors.red_off,    hex = 0x141414 }
         }
     }
 }
@@ -180,8 +201,8 @@ themes.basalt = {
         { c = colors.white,      hex = 0xbfbfbf },
         { c = colors.lightGray,  hex = 0x848794 },
         { c = colors.gray,       hex = 0x5c5f68 },
-        { c = colors.black,      hex = 0x262626 },
-        { c = colors.red_off,    hex = 0x653839 }
+        { c = colors.black,      hex = 0x333333 },
+        { c = colors.red_off,    hex = 0x512d2d }
     },
 
     color_modes = {
@@ -215,6 +236,20 @@ themes.basalt = {
             { c = colors.yellow,     hex = 0xffbc00 },
             { c = colors.yellow_off, hex = 0x333333 },
             { c = colors.red,        hex = 0xdf4949 },
+            { c = colors.red_off,    hex = 0x333333 }
+        },
+        -- blue indicators
+        {
+            { c = colors.green,      hex = 0x65aeff },
+            { c = colors.green_hc,   hex = 0x99c9ff },
+            { c = colors.green_off,  hex = 0x365e8a },
+        },
+        -- blue indicators, black backgrounds
+        {
+            { c = colors.green,      hex = 0x65aeff },
+            { c = colors.green_hc,   hex = 0x99c9ff },
+            { c = colors.green_off,  hex = 0x333333 },
+            { c = colors.yellow_off, hex = 0x333333 },
             { c = colors.red_off,    hex = 0x333333 }
         }
     }
@@ -272,19 +307,31 @@ themes.smooth_stone = {
         {
             { c = colors.blue,   hex = 0x1081ff },
             { c = colors.yellow, hex = 0xf7c311 },
-            { c = colors.red,    hex = 0xfb5615 },
+            { c = colors.red,    hex = 0xfb5615 }
         },
         -- protanopia
         {
             { c = colors.blue,   hex = 0x1081ff },
             { c = colors.yellow, hex = 0xf5e633 },
-            { c = colors.red,    hex = 0xff521a },
+            { c = colors.red,    hex = 0xff521a }
         },
         -- tritanopia
         {
             { c = colors.blue,   hex = 0x40cbd7 },
             { c = colors.yellow, hex = 0xffbc00 },
-            { c = colors.red,    hex = 0xff0000 },
+            { c = colors.red,    hex = 0xff0000 }
+        },
+        -- blue indicators
+        {
+            { c = colors.blue,   hex = 0x1081ff },
+            { c = colors.yellow, hex = 0xfffc79 },
+            { c = colors.red,    hex = 0xdf4949 }
+        },
+        -- blue indicators, black backgrounds
+        {
+            { c = colors.blue,   hex = 0x1081ff },
+            { c = colors.yellow, hex = 0xfffc79 },
+            { c = colors.red,    hex = 0xdf4949 }
         }
     }
 }
@@ -318,19 +365,31 @@ themes.deepslate = {
         {
             { c = colors.blue,   hex = 0x65aeff },
             { c = colors.yellow, hex = 0xf7c311 },
-            { c = colors.red,    hex = 0xfb5615 },
+            { c = colors.red,    hex = 0xfb5615 }
         },
         -- protanopia
         {
             { c = colors.blue,   hex = 0x65aeff },
             { c = colors.yellow, hex = 0xf5e633 },
-            { c = colors.red,    hex = 0xff8058 },
+            { c = colors.red,    hex = 0xff8058 }
         },
         -- tritanopia
         {
             { c = colors.blue,   hex = 0x00ecff },
             { c = colors.yellow, hex = 0xffbc00 },
-            { c = colors.red,    hex = 0xdf4949 },
+            { c = colors.red,    hex = 0xdf4949 }
+        },
+        -- blue indicators
+        {
+            { c = colors.blue,   hex = 0x65aeff },
+            { c = colors.yellow, hex = 0xd9cf81 },
+            { c = colors.red,    hex = 0xeb6a6c }
+        },
+        -- blue indicators, black backgrounds
+        {
+            { c = colors.blue,   hex = 0x65aeff },
+            { c = colors.yellow, hex = 0xd9cf81 },
+            { c = colors.red,    hex = 0xeb6a6c }
         }
     }
 }

@@ -5,6 +5,8 @@ local log     = require("scada-common.log")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
+local themes  = require("graphics.themes")
+
 local databus = require("rtu.databus")
 local modbus  = require("rtu.modbus")
 
@@ -69,7 +71,7 @@ function rtu.load_config()
     cfv.assert_type_int(config.FrontPanelTheme)
     cfv.assert_range(config.FrontPanelTheme, 1, 2)
     cfv.assert_type_int(config.ColorMode)
-    cfv.assert_range(config.ColorMode, 1, 4)
+    cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
     cfv.assert_type_table(config.Peripherals)
     cfv.assert_type_table(config.Redstone)

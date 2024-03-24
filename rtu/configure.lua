@@ -77,7 +77,8 @@ assert(#PORT_DSGN == rsio.NUM_PORTS)
 -- changes to the config data/format to let the user know
 local changes = {
     { "v1.7.9", { "ConnTimeout can now have a fractional part" } },
-    { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } }
+    { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } },
+    { "v1.9.2", { "Added blue indicators color mode" } }
 }
 
 ---@class rtu_rs_definition
@@ -539,7 +540,7 @@ local function config_view(display)
     _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
     _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
 
-    TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_2,x=20,y=13,height=2,width=23,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 

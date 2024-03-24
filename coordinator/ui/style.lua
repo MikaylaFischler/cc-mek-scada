@@ -89,16 +89,17 @@ style.theme = smooth_stone
 ---@param color_mode COLOR_MODE the color mode to use
 function style.set_themes(main, fp, color_mode)
     local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
+    local black_ind_off = colorblind and (color_mode ~= themes.COLOR_MODE.BLUE_IND)
 
     style.ind_bkg = colors.gray
-    style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.gray)
+    style.ind_hi_box_bg = util.trinary(black_ind_off, colors.black, colors.gray)
 
     if main == themes.UI_THEME.SMOOTH_STONE then
         style.theme = smooth_stone
-        style.ind_bkg = util.trinary(colorblind, colors.black, colors.gray)
+        style.ind_bkg = util.trinary(black_ind_off, colors.black, colors.gray)
     elseif main == themes.UI_THEME.DEEPSLATE then
         style.theme = deepslate
-        style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.lightGray)
+        style.ind_hi_box_bg = util.trinary(black_ind_off, colors.black, colors.lightGray)
     end
 
     style.colorblind = colorblind
