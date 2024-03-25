@@ -40,7 +40,7 @@ local changes = {
     { "v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
     { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.7.3", { "Added blue indicators color mode" } }
+    { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
 }
 
 ---@class plc_configurator

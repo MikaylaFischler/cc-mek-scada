@@ -78,7 +78,7 @@ assert(#PORT_DSGN == rsio.NUM_PORTS)
 local changes = {
     { "v1.7.9", { "ConnTimeout can now have a fractional part" } },
     { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.9.2", { "Added blue indicators color mode" } }
+    { "v1.9.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
 }
 
 ---@class rtu_rs_definition

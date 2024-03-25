@@ -37,7 +37,7 @@ local RIGHT = core.ALIGN.RIGHT
 -- changes to the config data/format to let the user know
 local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.3.2", { "Added blue indicators color mode" } }
+    { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
 }
 
 ---@class svr_configurator

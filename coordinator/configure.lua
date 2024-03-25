@@ -45,7 +45,7 @@ local RIGHT = core.ALIGN.RIGHT
 local changes = {
     { "v1.2.4", { "Added temperature scale options" } },
     { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.3.3", { "Added blue indicators color mode" } }
+    { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
 }
 
 ---@class crd_configurator

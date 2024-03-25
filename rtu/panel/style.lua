@@ -2,8 +2,6 @@
 -- Graphics Style Options
 --
 
-local util   = require("scada-common.util")
-
 local core   = require("graphics.core")
 local themes = require("graphics.themes")
 
@@ -30,9 +28,13 @@ function style.set_theme(fp, color_mode)
 
     style.fp = themes.get_fp_style(style.theme)
 
-    style.colorblind = not (color_mode == themes.COLOR_MODE.STANDARD or color_mode == themes.COLOR_MODE.STD_ON_BLACK)
+    style.colorblind = color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.STD_ON_BLACK
 
-    style.ind_bkg = util.trinary(color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.BLUE_IND, colors.black, colors.gray)
+    if color_mode == themes.COLOR_MODE.STANDARD or color_mode == themes.COLOR_MODE.BLUE_IND then
+        style.ind_bkg = colors.gray
+    else
+        style.ind_bkg = colors.black
+    end
 end
 
 return style
