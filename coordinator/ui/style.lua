@@ -92,6 +92,7 @@ function style.set_themes(main, fp, color_mode)
     local black_ind_off = color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.BLUE_IND
 
     style.ind_bkg = colors.gray
+    style.fp_ind_bkg = util.trinary(black_ind_off, colors.black, colors.gray)
     style.ind_hi_box_bg = util.trinary(black_ind_off, colors.black, colors.gray)
 
     if main == themes.UI_THEME.SMOOTH_STONE then

@@ -61,12 +61,12 @@ local function init(panel, num_units)
     local modem = LED{parent=system,label="MODEM",colors=led_grn}
 
     if not style.colorblind then
-        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.ind_bkg}}
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.fp_ind_bkg}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(ps, "link_state", network.update)
     else
-        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=style.ind_bkg,c1=colors.red,c2=colors.green}
-        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=style.ind_bkg,c1=colors.red,c2=colors.green}
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
 
         nt_lnk.register(ps, "link_state", function (state)
             local value = 2
