@@ -39,7 +39,8 @@ local RIGHT = core.ALIGN.RIGHT
 local changes = {
     { "v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
     { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
-    { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } }
+    { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
+    { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
 }
 
 ---@class plc_configurator
@@ -462,12 +463,27 @@ local function config_view(display)
     TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Front Panel Theme"}
     local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
-    TextBox{parent=clr_c_2,x=1,y=1,height=6,text="By default, this project uses green/red heavily to distinguish ok and not, with some indicators also using multiple colors. By selecting a color blindness below, blues will be used instead of greens on indicators and multi-color indicators will be split up as space permits."}
+    TextBox{parent=clr_c_2,x=1,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
+
+    TextBox{parent=clr_c_2,x=21,y=7,height=1,text="Preview"}
+    local _ = IndLight{parent=clr_c_2,x=21,y=8,label="Good",colors=cpair(colors.black,colors.green)}
+    _ = IndLight{parent=clr_c_2,x=21,y=9,label="Warning",colors=cpair(colors.black,colors.yellow)}
+    _ = IndLight{parent=clr_c_2,x=21,y=10,label="Bad",colors=cpair(colors.black,colors.red)}
+    local b_off = IndLight{parent=clr_c_2,x=21,y=11,label="Off",colors=cpair(colors.black,colors.black),hidden=true}
+    local g_off = IndLight{parent=clr_c_2,x=21,y=11,label="Off",colors=cpair(colors.gray,colors.gray),hidden=true}
 
     local function recolor(value)
         local c = themes.smooth_stone.color_modes[value]
 
-        if value == 1 then
+        if value == themes.COLOR_MODE.STANDARD or value == themes.COLOR_MODE.BLUE_IND then
+            b_off.hide()
+            g_off.show()
+        else
+            g_off.hide()
+            b_off.show()
+        end
+
+        if #c == 0 then
             for i = 1, #style.colors do term.setPaletteColor(style.colors[i].c, style.colors[i].hex) end
         else
             term.setPaletteColor(colors.green, c[1].hex)
@@ -476,15 +492,10 @@ local function config_view(display)
         end
     end
 
-    TextBox{parent=clr_c_2,x=1,y=8,height=1,text="Color Mode"}
-    local c_mode = RadioButton{parent=clr_c_2,x=1,y=9,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    TextBox{parent=clr_c_2,x=1,y=7,height=1,width=10,text="Color Mode"}
+    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
-    TextBox{parent=clr_c_2,x=20,y=8,height=1,text="Preview"}
-    local _ = IndLight{parent=clr_c_2,x=20,y=9,label="Good",colors=cpair(colors.black,colors.green)}
-    _ = IndLight{parent=clr_c_2,x=20,y=10,label="Warning",colors=cpair(colors.black,colors.yellow)}
-    _ = IndLight{parent=clr_c_2,x=20,y=11,label="Bad",colors=cpair(colors.black,colors.red)}
-
-    TextBox{parent=clr_c_2,x=1,y=14,height=6,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_2,x=21,y=13,height=2,width=18,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
