@@ -16,7 +16,10 @@ local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
 
+-- Maximum burn rate ramp rate, todo: make this user configurable.
 local BURN_RATE_RAMP_MAX_mB_s = 5.0
+
+-- Differential from target divided by this value for proportional ramp rate
 local BURN_RATE_RAMP_DIVISOR = 5
 
 local MQ__RPS_CMD = {
@@ -692,7 +695,7 @@ function threads.thread__setpoint_control(smem)
                                 -- calculate new burn rate
                                 local new_burn_rate ---@type number
 
-                                -- calculate ramp rate based on differential or max
+                                -- calculate ramp rate based on differential, clamped to configured maximum or 0.1
                                 local increment = math.max(math.min(BURN_RATE_RAMP_MAX_mB_s, math.abs(setpoints.burn_rate - current_burn_rate) / BURN_RATE_RAMP_DIVISOR), 0.1)
 
                                 if setpoints.burn_rate > current_burn_rate then

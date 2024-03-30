@@ -58,7 +58,8 @@ local rate_Kp = 0.3
 local rate_Ki = 0.2
 local rate_Kd = 0.4
 
-local decay_accumulator = 0.90
+-- Multiply accumulator by this scalar per second to prevent load induced overshoot
+local accumulator_decay = 0.90
 
 ---@class facility_management
 local facility = {}
@@ -471,7 +472,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
-                    self.accumulator = self.accumulator * decay_accumulator ^ (now - self.last_time)
+                    self.accumulator = self.accumulator * accumulator_decay ^ (now - self.last_time)
                 end
 
                 -- local runtime = now - self.time_start
@@ -541,7 +542,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
-                    self.accumulator = self.accumulator * decay_accumulator ^ (now - self.last_time)
+                    self.accumulator = self.accumulator * accumulator_decay ^ (now - self.last_time)
                 end
 
                 -- local runtime = now - self.time_start
