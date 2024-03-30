@@ -50,13 +50,15 @@ local START_STATUS = {
     BLADE_MISMATCH = 2
 }
 
-local charge_Kp = 0.275
-local charge_Ki = 0.0
-local charge_Kd = 4.5
+local charge_Kp = 0.4
+local charge_Ki = 0.125
+local charge_Kd = 3.0
 
-local rate_Kp = 2.45
-local rate_Ki = 0.4825
-local rate_Kd = -1.0
+local rate_Kp = 0.3
+local rate_Ki = 0.2
+local rate_Kd = 0.4
+
+local decay_accumulator = 0.90
 
 ---@class facility_management
 local facility = {}
@@ -469,6 +471,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
+                    self.accumulator = self.accumulator * decay_accumulator ^ (now - self.last_time)
                 end
 
                 -- local runtime = now - self.time_start
@@ -538,6 +541,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     self.accumulator = self.accumulator + (error * (now - self.last_time))
+                    self.accumulator = self.accumulator * decay_accumulator ^ (now - self.last_time)
                 end
 
                 -- local runtime = now - self.time_start
