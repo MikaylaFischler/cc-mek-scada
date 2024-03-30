@@ -17,7 +17,7 @@ local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
 
 local BURN_RATE_RAMP_MAX_mB_s = 5.0
-local BURN_RATE_RAMP_DIVISOR = 10
+local BURN_RATE_RAMP_DIVISOR = 5
 
 local MQ__RPS_CMD = {
     SCRAM = 1,
