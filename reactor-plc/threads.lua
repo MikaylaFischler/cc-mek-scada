@@ -16,7 +16,8 @@ local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
 local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
 local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
 
-local BURN_RATE_RAMP_mB_s = 5.0
+local BURN_RATE_RAMP_MAX_mB_s = 5.0
+local BURN_RATE_RAMP_DIVISOR = 10
 
 local MQ__RPS_CMD = {
     SCRAM = 1,
@@ -662,8 +663,8 @@ function threads.thread__setpoint_control(smem)
                     if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
                         last_burn_sp = setpoints.burn_rate
 
-                        -- update without ramp if <= 2.5 mB/t change
-                        running = math.abs(setpoints.burn_rate - cur_burn_rate) > 2.5
+                        -- update without ramp if <= 0.5 mB/t change
+                        running = math.abs(setpoints.burn_rate - cur_burn_rate) > 0.5
 
                         if running then
                             log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))
@@ -691,13 +692,16 @@ function threads.thread__setpoint_control(smem)
                                 -- calculate new burn rate
                                 local new_burn_rate ---@type number
 
+                                -- calculate ramp rate based on differential or max
+                                local increment = math.max(math.min(BURN_RATE_RAMP_MAX_mB_s, math.abs(setpoints.burn_rate - current_burn_rate) / BURN_RATE_RAMP_DIVISOR), 0.1)
+
                                 if setpoints.burn_rate > current_burn_rate then
                                     -- need to ramp up
-                                    new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    new_burn_rate = current_burn_rate + (increment * min_elapsed_s)
                                     if new_burn_rate > setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
                                 else
                                     -- need to ramp down
-                                    new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
+                                    new_burn_rate = current_burn_rate - (increment * min_elapsed_s)
                                     if new_burn_rate < setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
                                 end
 
