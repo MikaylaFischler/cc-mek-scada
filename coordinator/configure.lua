@@ -1246,6 +1246,10 @@ local function config_view(display)
     function tool_ctl.gen_mon_list()
         mon_list.remove_all()
 
+        local missing = { main = tmp_cfg.MainDisplay ~= nil, flow = tmp_cfg.FlowDisplay ~= nil, unit = {} }
+        for i = 1, tmp_cfg.UnitCount do missing.unit[i] = tmp_cfg.UnitDisplays[i] ~= nil end
+
+        -- list connected monitors
         local monitors = ppm.get_monitor_list()
         for iface, device in pairs(monitors) do
             local dev = device.dev
@@ -1265,11 +1269,14 @@ local function config_view(display)
 
             if tmp_cfg.MainDisplay == iface then
                 assignment = "Main"
+                missing.main = false
             elseif tmp_cfg.FlowDisplay == iface then
                 assignment = "Flow"
+                missing.flow = false
             else
                 for i = 1, tmp_cfg.UnitCount do
                     if tmp_cfg.UnitDisplays[i] == iface then
+                        missing.unit[i] = false
                         assignment = "Unit " .. i
                         break
                     end
@@ -1293,6 +1300,31 @@ local function config_view(display)
             local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
 
             if assignment == "Unused" then unset.disable() end
+        end
+
+        local dc_list = {} -- disconnected monitor list
+
+        if missing.main then table.insert(dc_list, { "Main", tmp_cfg.MainDisplay }) end
+        if missing.flow then table.insert(dc_list, { "Flow", tmp_cfg.FlowDisplay }) end
+        for i = 1, tmp_cfg.UnitCount do
+            if missing.unit[i] then table.insert(dc_list, { "Unit " .. i, tmp_cfg.UnitDisplays[i] }) end
+        end
+
+        -- add monitors that are assigned but not connected
+        for i = 1, #dc_list do
+            local line = Div{parent=mon_list,x=1,y=1,height=1}
+
+            TextBox{parent=line,x=1,y=1,width=6,height=1,text=dc_list[i][1],fg_bg=cpair(colors.blue,colors.white)}
+            TextBox{parent=line,x=8,y=1,height=1,text="disconnected",fg_bg=cpair(colors.red,colors.white)}
+
+            local function unset_mon()
+                purge_assignments(dc_list[i][2])
+                tool_ctl.gen_mon_list()
+            end
+
+            TextBox{parent=line,x=33,y=1,width=4,height=1,text="?x?",fg_bg=cpair(colors.black,colors.white)}
+            PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()end,dis_fg_bg=cpair(colors.black,colors.gray)}.disable()
+            PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
         end
     end
 
