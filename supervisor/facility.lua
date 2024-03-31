@@ -52,7 +52,7 @@ local START_STATUS = {
 
 local charge_Kp = 0.4
 local charge_Ki = 0.115
-local charge_Kd = 3.0
+local charge_Kd = 6.0
 
 local rate_Kp = 2.45
 local rate_Ki = 0.4825
