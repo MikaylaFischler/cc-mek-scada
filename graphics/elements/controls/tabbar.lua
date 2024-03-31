@@ -98,7 +98,7 @@ local function tabbar(args)
     ---@param event mouse_interaction mouse event
     function e.handle_mouse(event)
         -- determine what was pressed
-        if e.enabled and core.events.was_clicked(event.type) then
+        if e.enabled and core.events.was_clicked(event.type) and e.in_frame_bounds(event.current.x, event.current.y) then
             -- a button may have been pressed, which one was it?
             local tab_ini = which_tab(event.initial.x)
             local tab_cur = which_tab(event.current.x)

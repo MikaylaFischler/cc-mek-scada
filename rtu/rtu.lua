@@ -5,6 +5,8 @@ local log     = require("scada-common.log")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
+local themes  = require("graphics.themes")
+
 local databus = require("rtu.databus")
 local modbus  = require("rtu.modbus")
 
@@ -29,14 +31,19 @@ function rtu.load_config()
     config.Redstone = settings.get("Redstone")
 
     config.SpeakerVolume = settings.get("SpeakerVolume")
+
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
+
     config.LogMode = settings.get("LogMode")
     config.LogPath = settings.get("LogPath")
     config.LogDebug = settings.get("LogDebug")
+
+    config.FrontPanelTheme = settings.get("FrontPanelTheme")
+    config.ColorMode = settings.get("ColorMode")
 
     local cfv = util.new_validator()
 
@@ -61,15 +68,22 @@ function rtu.load_config()
     cfv.assert_type_str(config.LogPath)
     cfv.assert_type_bool(config.LogDebug)
 
+    cfv.assert_type_int(config.FrontPanelTheme)
+    cfv.assert_range(config.FrontPanelTheme, 1, 2)
+    cfv.assert_type_int(config.ColorMode)
+    cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
+
     cfv.assert_type_table(config.Peripherals)
     cfv.assert_type_table(config.Redstone)
 
     return cfv.valid()
 end
 
--- create a new RTU unit
+-- create a new RTU unit<br>
+-- if this is for a PPM peripheral, auto fault clearing MUST stay enabled once access begins
 ---@nodiscard
-function rtu.init_unit()
+---@param device table|nil peripheral device, if applicable
+function rtu.init_unit(device)
     local self = {
         discrete_inputs = {},
         coils = {},
@@ -80,11 +94,17 @@ function rtu.init_unit()
 
     local insert = table.insert
 
+    local stub = function () log.warning("tried to call an RTU function stub") end
+
     ---@class rtu_device
     local public = {}
 
     ---@class rtu
     local protected = {}
+
+    -- function to check if the peripheral (if exists) is faulted
+    local function _is_faulted() return false end
+    if device then _is_faulted = device.__p_is_faulted end
 
     -- refresh IO count
     local function _count_io()
@@ -97,13 +117,26 @@ function rtu.init_unit()
         return self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3], self.io_count_cache[4]
     end
 
+    -- pass a function through or generate one to call a function by name from the device
+    ---@param f function|string function or device function name
+    local function _as_func(f)
+        if type(f) == "string" then
+            local name = f
+            if device then
+                f = function (...) return device[name](...) end
+            else f = stub end
+        end
+
+        return f
+    end
+
     -- discrete inputs: single bit read-only
 
     -- connect discrete input
-    ---@param f function
+    ---@param f function|string function or function name
     ---@return integer count count of discrete inputs
     function protected.connect_di(f)
-        insert(self.discrete_inputs, { read = f })
+        insert(self.discrete_inputs, { read = _as_func(f) })
         _count_io()
         return #self.discrete_inputs
     end
@@ -112,19 +145,18 @@ function rtu.init_unit()
     ---@param di_addr integer
     ---@return any value, boolean access_fault
     function public.read_di(di_addr)
-        ppm.clear_fault()
         local value = self.discrete_inputs[di_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- coils: single bit read-write
 
     -- connect coil
-    ---@param f_read function
-    ---@param f_write function
+    ---@param f_read function|string function or function name
+    ---@param f_write function|string function or function name
     ---@return integer count count of coils
     function protected.connect_coil(f_read, f_write)
-        insert(self.coils, { read = f_read, write = f_write })
+        insert(self.coils, { read = _as_func(f_read), write = _as_func(f_write) })
         _count_io()
         return #self.coils
     end
@@ -133,9 +165,8 @@ function rtu.init_unit()
     ---@param coil_addr integer
     ---@return any value, boolean access_fault
     function public.read_coil(coil_addr)
-        ppm.clear_fault()
         local value = self.coils[coil_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- write coil
@@ -143,18 +174,17 @@ function rtu.init_unit()
     ---@param value any
     ---@return boolean access_fault
     function public.write_coil(coil_addr, value)
-        ppm.clear_fault()
         self.coils[coil_addr].write(value)
-        return ppm.is_faulted()
+        return _is_faulted()
     end
 
     -- input registers: multi-bit read-only
 
     -- connect input register
-    ---@param f function
+    ---@param f function|string function or function name
     ---@return integer count count of input registers
     function protected.connect_input_reg(f)
-        insert(self.input_regs, { read = f })
+        insert(self.input_regs, { read = _as_func(f) })
         _count_io()
         return #self.input_regs
     end
@@ -163,19 +193,18 @@ function rtu.init_unit()
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
     function public.read_input_reg(reg_addr)
-        ppm.clear_fault()
         local value = self.input_regs[reg_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- holding registers: multi-bit read-write
 
     -- connect holding register
-    ---@param f_read function
-    ---@param f_write function
+    ---@param f_read function|string function or function name
+    ---@param f_write function|string function or function name
     ---@return integer count count of holding registers
     function protected.connect_holding_reg(f_read, f_write)
-        insert(self.holding_regs, { read = f_read, write = f_write })
+        insert(self.holding_regs, { read = _as_func(f_read), write = _as_func(f_write) })
         _count_io()
         return #self.holding_regs
     end
@@ -184,9 +213,8 @@ function rtu.init_unit()
     ---@param reg_addr integer
     ---@return any value, boolean access_fault
     function public.read_holding_reg(reg_addr)
-        ppm.clear_fault()
         local value = self.holding_regs[reg_addr].read()
-        return value, ppm.is_faulted()
+        return value, _is_faulted()
     end
 
     -- write holding register
@@ -194,9 +222,8 @@ function rtu.init_unit()
     ---@param value any
     ---@return boolean access_fault
     function public.write_holding_reg(reg_addr, value)
-        ppm.clear_fault()
         self.holding_regs[reg_addr].write(value)
-        return ppm.is_faulted()
+        return _is_faulted()
     end
 
     -- public RTU device access

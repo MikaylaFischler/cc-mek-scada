@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.6.14"
+local R_PLC_VERSION = "v1.7.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -55,6 +55,7 @@ log.info("========================================")
 println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
 
 crash.set_env("reactor-plc", R_PLC_VERSION)
+crash.dbg_log_env()
 
 ----------------------------------------
 -- main application
@@ -146,13 +147,6 @@ local function main()
 
         plc_state.degraded = true
         plc_state.reactor_formed = false
-    elseif smem_dev.reactor.getStatus() == ppm.UNDEFINED_FIELD then
-        -- reactor formed after ppm.mount_all was called
-        println("init> fission reactor was not formed")
-        log.warning("init> reactor reported formed, but multiblock functions are not available")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
     end
 
     -- modem is required if networked
@@ -183,8 +177,9 @@ local function main()
         -- front panel time!
         if not renderer.ui_ready() then
             local message
-            plc_state.fp_ok, message = renderer.try_start_ui()
+            plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
 
+            -- ...or not
             if not plc_state.fp_ok then
                 println_ts(util.c("UI error: ", message))
                 println("init> running without front panel")

@@ -51,11 +51,13 @@ local function peri_init(iface)
         self.device = peripheral.wrap(iface)
     end
 
-    -- initialization process (re-map)
-
-    for key, func in pairs(self.device) do
-        self.fault_counts[key] = 0
-        self.device[key] = function (...)
+    -- create a protected version of a peripheral function call
+    ---@nodiscard
+    ---@param key string function name
+    ---@param func function function
+    ---@return function method protected version of the function
+    local function protect_peri_function(key, func)
+        return function (...)
             local return_table = table.pack(pcall(func, ...))
 
             local status = return_table[1]
@@ -85,18 +87,22 @@ local function peri_init(iface)
                         count_str = " [" .. self.fault_counts[key] .. " total faults]"
                     end
 
-                    log.error(util.c("PPM: protected ", key, "() -> ", result, count_str))
+                    log.error(util.c("PPM: [@", iface, "] protected ", key, "() -> ", result, count_str))
                 end
 
                 self.fault_counts[key] = self.fault_counts[key] + 1
 
-                if result == "Terminated" then
-                    ppm_sys.terminate = true
-                end
+                if result == "Terminated" then ppm_sys.terminate = true end
 
-                return ACCESS_FAULT
+                return ACCESS_FAULT, result
             end
         end
+    end
+
+    -- initialization process (re-map)
+    for key, func in pairs(self.device) do
+        self.fault_counts[key] = 0
+        self.device[key] = protect_peri_function(key, func)
     end
 
     -- fault management & monitoring functions
@@ -131,31 +137,42 @@ local function peri_init(iface)
 
     local mt = {
         __index = function (_, key)
-            -- this will continuously be counting calls here as faults
-            -- unlike other functions, faults here can't be cleared as it is just not defined
-            if self.fault_counts[key] == nil then
-                self.fault_counts[key] = 0
+            -- try to find the function in case it was added (multiblock formed)
+            local funcs = peripheral.wrap(iface)
+            if (type(funcs) == "table") and (type(funcs[key]) == "function") then
+                -- add this function then return it
+                self.device[key] = protect_peri_function(key, funcs[key])
+                log.info(util.c("PPM: [@", iface, "] initialized previously undefined field ", key, "()"))
+
+                return self.device[key]
             end
 
-            -- function failed
-            self.faulted = true
-            self.last_fault = UNDEFINED_FIELD
+            -- function still missing, return an undefined function handler
+            -- note: code should avoid storing functions for multiblocks and instead try to index them again
+            return (function ()
+                -- this will continuously be counting calls here as faults
+                if self.fault_counts[key] == nil then self.fault_counts[key] = 0 end
 
-            ppm_sys.faulted = true
-            ppm_sys.last_fault = UNDEFINED_FIELD
+                -- function failed
+                self.faulted = true
+                self.last_fault = UNDEFINED_FIELD
 
-            if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
-                local count_str = ""
-                if self.fault_counts[key] > 0 then
-                    count_str = " [" .. self.fault_counts[key] .. " total calls]"
+                ppm_sys.faulted = true
+                ppm_sys.last_fault = UNDEFINED_FIELD
+
+                if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                    local count_str = ""
+                    if self.fault_counts[key] > 0 then
+                        count_str = " [" .. self.fault_counts[key] .. " total calls]"
+                    end
+
+                    log.error(util.c("PPM: [@", iface, "] caught undefined function ", key, "()", count_str))
                 end
 
-                log.error(util.c("PPM: caught undefined function ", key, "()", count_str))
-            end
+                self.fault_counts[key] = self.fault_counts[key] + 1
 
-            self.fault_counts[key] = self.fault_counts[key] + 1
-
-            return (function () return UNDEFINED_FIELD end)
+                return ACCESS_FAULT, UNDEFINED_FIELD
+            end)
         end
     }
 

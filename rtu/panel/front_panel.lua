@@ -16,13 +16,14 @@ local TextBox       = require("graphics.elements.textbox")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 local LED           = require("graphics.elements.indicators.led")
+local LEDPair       = require("graphics.elements.indicators.ledpair")
 local RGBLED        = require("graphics.elements.indicators.ledrgb")
+
+local LINK_STATE = types.PANEL_LINK_STATE
 
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
-
-local fp_label = style.fp_label
 
 local ind_grn = style.ind_grn
 
@@ -32,7 +33,9 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 ---@param panel graphics_element main displaybox
 ---@param units table unit list
 local function init(panel, units)
-    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.header}
+    local disabled_fg = style.fp.disabled_fg
+
+    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
 
     --
     -- system indicators
@@ -48,12 +51,43 @@ local function init(panel, units)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
-    local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,colors.gray}}
-    network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+
+    if not style.colorblind then
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.ind_bkg}}
+        network.update(types.PANEL_LINK_STATE.DISCONNECTED)
+        network.register(databus.ps, "link_state", network.update)
+    else
+        local nt_lnk = LEDPair{parent=system,label="NT LINKED",off=style.ind_bkg,c1=colors.red,c2=colors.green}
+        local nt_ver = LEDPair{parent=system,label="NT VERSION",off=style.ind_bkg,c1=colors.red,c2=colors.green}
+
+        nt_lnk.register(databus.ps, "link_state", function (state)
+            local value = 2
+
+            if state == LINK_STATE.DISCONNECTED then
+                value = 1
+            elseif state == LINK_STATE.LINKED then
+                value = 3
+            end
+
+            nt_lnk.update(value)
+        end)
+
+        nt_ver.register(databus.ps, "link_state", function (state)
+            local value = 3
+
+            if state == LINK_STATE.BAD_VERSION then
+                value = 2
+            elseif state == LINK_STATE.DISCONNECTED then
+                value = 1
+            end
+
+            nt_ver.update(value)
+        end)
+    end
+
     system.line_break()
 
     modem.register(databus.ps, "has_modem", modem.update)
-    network.register(databus.ps, "link_state", network.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_comm = LED{parent=system,label="RT COMMS",colors=ind_grn}
@@ -64,17 +98,17 @@ local function init(panel, units)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=fp_label}
+    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=disabled_fg}
 
-    TextBox{parent=system,x=1,y=14,text="SPEAKERS",height=1,width=8,fg_bg=style.label}
-    local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=cpair(colors.gray,colors.white)}
+    TextBox{parent=system,x=1,y=14,text="SPEAKERS",height=1,width=8,fg_bg=style.fp.text_fg}
+    local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
     speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
 
     --
     -- about label
     --
 
-    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=fp_label}
+    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
     local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
     local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
 
@@ -116,7 +150,7 @@ local function init(panel, units)
 
         -- assignment (unit # or facility)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
-        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=fp_label}
+        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=disabled_fg}
     end
 end
 

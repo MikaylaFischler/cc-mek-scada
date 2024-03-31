@@ -517,82 +517,23 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check if multiblock is still formed if this is a multiblock
             if unit.is_multiblock and (util.time_ms() - last_f_check > 250) then
-                local is_formed = unit.device.isFormed()
-
                 last_f_check = util.time_ms()
+
+                local is_formed = unit.device.isFormed()
 
                 if unit.formed == nil then
                     unit.formed = is_formed
                     if is_formed then unit.hw_state = UNIT_HW_STATE.OK end
+                elseif not unit.formed then
+                    unit.hw_state = UNIT_HW_STATE.UNFORMED
                 end
 
-                if not unit.formed then unit.hw_state = UNIT_HW_STATE.UNFORMED end
-
-                if (not unit.formed) and is_formed then
-                    -- newly re-formed
-                    local iface = ppm.get_iface(unit.device)
-                    if iface then
-                        log.info(util.c("unmounting and remounting reformed RTU unit ", detail_name))
-
-                        ppm.unmount(unit.device)
-
-                        local type, device = ppm.mount(iface)
-                        local faulted = false
-
-                        if device ~= nil then
-                            if type == "boilerValve" and unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
-                                -- boiler multiblock
-                                unit.device = device
-                                unit.rtu, faulted = boilerv_rtu.new(device)
-                                unit.formed = device.isFormed()
-                                unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "turbineValve" and unit.type == RTU_UNIT_TYPE.TURBINE_VALVE then
-                                -- turbine multiblock
-                                unit.device = device
-                                unit.rtu, faulted = turbinev_rtu.new(device)
-                                unit.formed = device.isFormed()
-                                unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "dynamicValve" and unit.type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
-                                -- dynamic tank multiblock
-                                unit.device = device
-                                unit.rtu, faulted = dynamicv_rtu.new(device)
-                                unit.formed = device.isFormed()
-                                unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "inductionPort" and unit.type == RTU_UNIT_TYPE.IMATRIX then
-                                -- induction matrix multiblock
-                                unit.device = device
-                                unit.rtu, faulted = imatrix_rtu.new(device)
-                                unit.formed = device.isFormed()
-                                unit.modbus_io = modbus.new(unit.rtu, true)
-                            elseif type == "spsPort" and unit.type == RTU_UNIT_TYPE.SPS then
-                                -- SPS multiblock
-                                unit.device = device
-                                unit.rtu, faulted = sps_rtu.new(device)
-                                unit.formed = device.isFormed()
-                                unit.modbus_io = modbus.new(unit.rtu, true)
-                            else
-                                log.error("illegal remount of non-multiblock RTU or type change attempted for " .. short_name, true)
-                            end
-
-                            if unit.formed and faulted then
-                                -- something is still wrong = can't mark as formed yet
-                                unit.formed = false
-                                unit.hw_state = UNIT_HW_STATE.UNFORMED
-                                log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
-                            else
-                                unit.hw_state = UNIT_HW_STATE.OK
-                                rtu_comms.send_remounted(unit.uid)
-                            end
-
-                            local type_name = types.rtu_type_to_string(unit.type)
-                            log.info(util.c("reconnected the ", type_name, " on interface ", unit.name))
-                        else
-                            -- fully lost the peripheral now :(
-                            log.error(util.c(unit.name, " lost (failed reconnect)"))
-                        end
-                    else
-                        log.error("failed to get interface of previously connected RTU unit " .. detail_name, true)
-                    end
+                if (is_formed == true) and not unit.formed then
+                    unit.hw_state = UNIT_HW_STATE.OK
+                    log.info(util.c(detail_name, " is now formed"))
+                    rtu_comms.send_remounted(unit.uid)
+                elseif (is_formed == false) and unit.formed then
+                    log.warning(util.c(detail_name, " is no longer formed"))
                 end
 
                 unit.formed = is_formed

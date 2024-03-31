@@ -7,52 +7,43 @@ local sps_rtu = {}
 ---@param sps table
 ---@return rtu_device interface, boolean faulted
 function sps_rtu.new(sps)
-    local unit = rtu.init_unit()
-
-    -- disable auto fault clearing
-    sps.__p_clear_fault()
-    sps.__p_disable_afc()
+    local unit = rtu.init_unit(sps)
 
     -- discrete inputs --
-    unit.connect_di(sps.isFormed)
+    unit.connect_di("isFormed")
 
     -- coils --
     -- none
 
     -- input registers --
     -- multiblock properties
-    unit.connect_input_reg(sps.getLength)
-    unit.connect_input_reg(sps.getWidth)
-    unit.connect_input_reg(sps.getHeight)
-    unit.connect_input_reg(sps.getMinPos)
-    unit.connect_input_reg(sps.getMaxPos)
+    unit.connect_input_reg("getLength")
+    unit.connect_input_reg("getWidth")
+    unit.connect_input_reg("getHeight")
+    unit.connect_input_reg("getMinPos")
+    unit.connect_input_reg("getMaxPos")
     -- build properties
-    unit.connect_input_reg(sps.getCoils)
-    unit.connect_input_reg(sps.getInputCapacity)
-    unit.connect_input_reg(sps.getOutputCapacity)
-    unit.connect_input_reg(sps.getMaxEnergy)
+    unit.connect_input_reg("getCoils")
+    unit.connect_input_reg("getInputCapacity")
+    unit.connect_input_reg("getOutputCapacity")
+    unit.connect_input_reg("getMaxEnergy")
     -- current state
-    unit.connect_input_reg(sps.getProcessRate)
+    unit.connect_input_reg("getProcessRate")
     -- tanks
-    unit.connect_input_reg(sps.getInput)
-    unit.connect_input_reg(sps.getInputNeeded)
-    unit.connect_input_reg(sps.getInputFilledPercentage)
-    unit.connect_input_reg(sps.getOutput)
-    unit.connect_input_reg(sps.getOutputNeeded)
-    unit.connect_input_reg(sps.getOutputFilledPercentage)
-    unit.connect_input_reg(sps.getEnergy)
-    unit.connect_input_reg(sps.getEnergyNeeded)
-    unit.connect_input_reg(sps.getEnergyFilledPercentage)
+    unit.connect_input_reg("getInput")
+    unit.connect_input_reg("getInputNeeded")
+    unit.connect_input_reg("getInputFilledPercentage")
+    unit.connect_input_reg("getOutput")
+    unit.connect_input_reg("getOutputNeeded")
+    unit.connect_input_reg("getOutputFilledPercentage")
+    unit.connect_input_reg("getEnergy")
+    unit.connect_input_reg("getEnergyNeeded")
+    unit.connect_input_reg("getEnergyFilledPercentage")
 
     -- holding registers --
     -- none
 
-    -- check if any calls faulted
-    local faulted = sps.__p_is_faulted()
-    sps.__p_clear_fault()
-    sps.__p_enable_afc()
-
-    return unit.interface(), faulted
+    return unit.interface(), false
 end
 
 return sps_rtu

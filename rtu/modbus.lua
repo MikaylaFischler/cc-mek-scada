@@ -37,12 +37,7 @@ function modbus.new(rtu_dev, use_parallel_read)
                     end)
                 else
                     readings[i], access_fault = rtu_dev.read_coil(addr)
-
-                    if access_fault then
-                        return_ok = false
-                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                        break
-                    end
+                    if access_fault then break end
                 end
             end
 
@@ -86,12 +81,7 @@ function modbus.new(rtu_dev, use_parallel_read)
                     end)
                 else
                     readings[i], access_fault = rtu_dev.read_di(addr)
-
-                    if access_fault then
-                        return_ok = false
-                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                        break
-                    end
+                    if access_fault then break end
                 end
             end
 
@@ -135,12 +125,7 @@ function modbus.new(rtu_dev, use_parallel_read)
                     end)
                 else
                     readings[i], access_fault = rtu_dev.read_holding_reg(addr)
-
-                    if access_fault then
-                        return_ok = false
-                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                        break
-                    end
+                    if access_fault then break end
                 end
             end
 
@@ -184,12 +169,7 @@ function modbus.new(rtu_dev, use_parallel_read)
                     end)
                 else
                     readings[i], access_fault = rtu_dev.read_input_reg(addr)
-
-                    if access_fault then
-                        return_ok = false
-                        readings = MODBUS_EXCODE.SERVER_DEVICE_FAIL
-                        break
-                    end
+                    if access_fault then break end
                 end
             end
 

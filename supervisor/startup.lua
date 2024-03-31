@@ -21,7 +21,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.2.11"
+local SUPERVISOR_VERSION = "v1.3.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -86,6 +86,7 @@ log.info("========================================")
 println(">> SCADA Supervisor " .. SUPERVISOR_VERSION .. " <<")
 
 crash.set_env("supervisor", SUPERVISOR_VERSION)
+crash.dbg_log_env()
 
 ----------------------------------------
 -- main application
@@ -118,7 +119,7 @@ local function main()
     databus.tx_hw_modem(true)
 
     -- start UI
-    local fp_ok, message = renderer.try_start_ui()
+    local fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
 
     if not fp_ok then
         println_ts(util.c("UI error: ", message))
