@@ -54,11 +54,11 @@ local charge_Kp = 0.4
 local charge_Ki = 0.115
 local charge_Kd = 3.0
 
-local rate_Kp = 0.3
-local rate_Ki = 0.2
-local rate_Kd = 0.4
+local rate_Kp = 2.45
+local rate_Ki = 0.4825
+local rate_Kd = -1.0
 
--- Multiply accumulator by this scalar per second to prevent load induced overshoot
+-- Multiply accumulator by this scalar per second to prevent load induced instability in charge control mode
 local accumulator_decay = 0.90
 
 ---@class facility_management
@@ -544,7 +544,7 @@ function facility.new(num_reactors, cooling_conf)
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
                     -- Scale accumulator by decay rate per second and add error
-                    self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
+                    self.accumulator = self.accumulator + error * delta
                 end
 
                 -- local runtime = now - self.time_start
