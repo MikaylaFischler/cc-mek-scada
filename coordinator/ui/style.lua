@@ -88,17 +88,19 @@ style.theme = smooth_stone
 ---@param fp FP_THEME front panel theme
 ---@param color_mode COLOR_MODE the color mode to use
 function style.set_themes(main, fp, color_mode)
-    local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
+    local colorblind = color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.STD_ON_BLACK
+    local gray_ind_off = color_mode == themes.COLOR_MODE.STANDARD or color_mode == themes.COLOR_MODE.BLUE_IND
 
     style.ind_bkg = colors.gray
-    style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.gray)
+    style.fp_ind_bkg = util.trinary(gray_ind_off, colors.gray, colors.black)
+    style.ind_hi_box_bg = util.trinary(gray_ind_off, colors.gray, colors.black)
 
     if main == themes.UI_THEME.SMOOTH_STONE then
         style.theme = smooth_stone
-        style.ind_bkg = util.trinary(colorblind, colors.black, colors.gray)
+        style.ind_bkg = util.trinary(gray_ind_off, colors.gray, colors.black)
     elseif main == themes.UI_THEME.DEEPSLATE then
         style.theme = deepslate
-        style.ind_hi_box_bg = util.trinary(colorblind, colors.black, colors.lightGray)
+        style.ind_hi_box_bg = util.trinary(gray_ind_off, colors.lightGray, colors.black)
     end
 
     style.colorblind = colorblind

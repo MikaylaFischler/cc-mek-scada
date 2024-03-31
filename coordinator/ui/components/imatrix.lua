@@ -34,7 +34,8 @@ local function new_view(root, x, y, data, ps, id)
 
     local matrix = Div{parent=root,fg_bg=style.root,width=33,height=24,x=x,y=y}
 
-    local cutout_fg_bg = cpair(style.theme.bg, colors.gray)
+    -- black has low contrast with dark gray, so if background is black use white instead
+    local cutout_fg_bg = cpair(util.trinary(style.theme.bg == colors.black, colors.white, style.theme.bg), colors.gray)
 
     TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=cutout_fg_bg}
     TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=cutout_fg_bg}

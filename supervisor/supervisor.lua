@@ -2,6 +2,8 @@ local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
+local themes     = require("graphics.themes")
+
 local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
@@ -87,7 +89,7 @@ function supervisor.load_config()
     cfv.assert_type_int(config.FrontPanelTheme)
     cfv.assert_range(config.FrontPanelTheme, 1, 2)
     cfv.assert_type_int(config.ColorMode)
-    cfv.assert_range(config.ColorMode, 1, 4)
+    cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
     return cfv.valid()
 end

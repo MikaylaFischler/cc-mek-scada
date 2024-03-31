@@ -24,6 +24,21 @@ function crash.set_env(application, version)
     ver = version
 end
 
+-- log environment versions
+---@param log_msg function log function to use
+local function log_versions(log_msg)
+    log_msg(util.c("RUNTIME:          ", _HOST))
+    log_msg(util.c("LUA VERSION:      ", _VERSION))
+    log_msg(util.c("APPLICATION:      ", app))
+    log_msg(util.c("FIRMWARE VERSION: ", ver))
+    log_msg(util.c("COMMS VERSION:    ", comms.version))
+    if has_graphics then log_msg(util.c("GRAPHICS VERSION: ", core.version)) end
+    if has_lockbox  then log_msg(util.c("LOCKBOX VERSION:  ", lockbox.version)) end
+end
+
+-- when running with debug logs, log the useful information that the crash handler knows
+function crash.dbg_log_env() log_versions(log.debug) end
+
 -- handle a crash error
 ---@param error string error message
 function crash.handler(error)
@@ -31,13 +46,7 @@ function crash.handler(error)
     log.info("=====> FATAL SOFTWARE FAULT <=====")
     log.fatal(error)
     log.info("----------------------------------")
-    log.info(util.c("RUNTIME:          ", _HOST))
-    log.info(util.c("LUA VERSION:      ", _VERSION))
-    log.info(util.c("APPLICATION:      ", app))
-    log.info(util.c("FIRMWARE VERSION: ", ver))
-    log.info(util.c("COMMS VERSION:    ", comms.version))
-    if has_graphics then log.info(util.c("GRAPHICS VERSION: ", core.version))    end
-    if has_lockbox  then log.info(util.c("LOCKBOX VERSION:  ", lockbox.version)) end
+    log_versions(log.info)
     log.info("----------------------------------")
     log.info(debug.traceback("--- begin debug trace ---", 1))
     log.info("--- end debug trace ---")

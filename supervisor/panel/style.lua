@@ -28,7 +28,7 @@ function style.set_theme(fp, color_mode)
 
     style.fp = themes.get_fp_style(style.theme)
 
-    style.colorblind = color_mode ~= themes.COLOR_MODE.STANDARD
+    style.colorblind = color_mode ~= themes.COLOR_MODE.STANDARD and color_mode ~= themes.COLOR_MODE.STD_ON_BLACK
 end
 
 return style

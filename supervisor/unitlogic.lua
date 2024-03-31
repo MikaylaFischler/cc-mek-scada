@@ -730,6 +730,8 @@ end
 function logic.handle_redstone(self)
     local AISTATE = self.types.AISTATE
     local annunc = self.db.annunciator
+    local cache = self.plc_cache
+    local rps = cache.rps_status
 
     -- check if an alarm is active (tripped or ack'd)
     ---@nodiscard
@@ -741,18 +743,18 @@ function logic.handle_redstone(self)
 
     -- reactor controls
     if self.plc_s ~= nil then
-        if (not self.plc_cache.rps_status.manual) and self.io_ctl.digital_read(IO.R_SCRAM) then
+        if (not rps.manual) and self.io_ctl.digital_read(IO.R_SCRAM) then
             -- reactor SCRAM requested but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.SCRAM)
         end
 
-        if self.plc_cache.rps_trip and self.io_ctl.digital_read(IO.R_RESET) then
+        if cache.rps_trip and self.io_ctl.digital_read(IO.R_RESET) then
             -- reactor RPS reset requested but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.RPS_RESET)
         end
 
-        if (not self.auto_engaged) and (not self.plc_cache.active) and
-           (not self.plc_cache.rps_trip) and self.io_ctl.digital_read(IO.R_ENABLE) then
+        if (not self.auto_engaged) and (not cache.active) and
+           (not cache.rps_trip) and self.io_ctl.digital_read(IO.R_ENABLE) then
             -- reactor enable requested and allowable, but not yet done; perform it
             self.plc_s.in_queue.push_command(PLC_S_CMDS.ENABLE)
         end
@@ -761,25 +763,23 @@ function logic.handle_redstone(self)
     -- check for request to ack all alarms
     if self.io_ctl.digital_read(IO.U_ACK) then
         for i = 1, #self.db.alarm_states do
-            if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
-                self.db.alarm_states[i] = ALARM_STATE.ACKED
-            end
+            if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then self.db.alarm_states[i] = ALARM_STATE.ACKED end
         end
     end
 
     -- write reactor status outputs
-    self.io_ctl.digital_write(IO.R_ACTIVE, self.plc_cache.active)
+    self.io_ctl.digital_write(IO.R_ACTIVE, cache.active)
     self.io_ctl.digital_write(IO.R_AUTO_CTRL, self.auto_engaged)
-    self.io_ctl.digital_write(IO.R_SCRAMMED, self.plc_cache.rps_trip)
-    self.io_ctl.digital_write(IO.R_AUTO_SCRAM, self.plc_cache.rps_status.automatic)
-    self.io_ctl.digital_write(IO.R_HIGH_DMG, self.plc_cache.rps_status.high_dmg)
-    self.io_ctl.digital_write(IO.R_HIGH_TEMP, self.plc_cache.rps_status.high_temp)
-    self.io_ctl.digital_write(IO.R_LOW_COOLANT, self.plc_cache.rps_status.low_cool)
-    self.io_ctl.digital_write(IO.R_EXCESS_HC, self.plc_cache.rps_status.ex_hcool)
-    self.io_ctl.digital_write(IO.R_EXCESS_WS, self.plc_cache.rps_status.ex_waste)
-    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, self.plc_cache.rps_status.no_fuel)
-    self.io_ctl.digital_write(IO.R_PLC_FAULT, self.plc_cache.rps_status.fault)
-    self.io_ctl.digital_write(IO.R_PLC_TIMEOUT, self.plc_cache.rps_status.timeout)
+    self.io_ctl.digital_write(IO.R_SCRAMMED, cache.rps_trip)
+    self.io_ctl.digital_write(IO.R_AUTO_SCRAM, rps.automatic)
+    self.io_ctl.digital_write(IO.R_HIGH_DMG, rps.high_dmg)
+    self.io_ctl.digital_write(IO.R_HIGH_TEMP, rps.high_temp)
+    self.io_ctl.digital_write(IO.R_LOW_COOLANT, rps.low_cool)
+    self.io_ctl.digital_write(IO.R_EXCESS_HC, rps.ex_hcool)
+    self.io_ctl.digital_write(IO.R_EXCESS_WS, rps.ex_waste)
+    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, rps.no_fuel)
+    self.io_ctl.digital_write(IO.R_PLC_FAULT, rps.fault)
+    self.io_ctl.digital_write(IO.R_PLC_TIMEOUT, rps.timeout)
 
     -- write unit outputs
 
@@ -797,13 +797,28 @@ function logic.handle_redstone(self)
     -- Emergency Coolant --
     -----------------------
 
-    local enable_emer_cool = self.plc_cache.rps_status.low_cool or
-        (self.auto_engaged and annunc.CoolantLevelLow and is_active(self.alarms.ReactorOverTemp))
+    local boiler_water_low = false
+    for i = 1, #annunc.WaterLevelLow do boiler_water_low = boiler_water_low or annunc.WaterLevelLow[i] end
+
+    local enable_emer_cool = rps.low_cool or
+        (self.auto_engaged and
+        (annunc.CoolantLevelLow or (boiler_water_low and rps.ex_hcool)) and
+        is_active(self.alarms.ReactorOverTemp))
+
+    if enable_emer_cool and not self.emcool_opened then
+        log.debug(util.c(">> Emergency Coolant Enable Detail Report (Unit ", self.r_id, ") <<"))
+        log.debug(util.c("| CoolantLevelLow[", annunc.CoolantLevelLow, "] CoolantLevelLowLow[", rps.low_cool, "] ExcessHeatedCoolant[", rps.ex_hcool, "]"))
+        log.debug(util.c("| ReactorOverTemp[", AISTATE_NAMES[self.alarms.ReactorOverTemp.state], "]"))
+
+        for i = 1, #annunc.WaterLevelLow do
+            log.debug(util.c("| WaterLevelLow(", i, ")[", annunc.WaterLevelLow[i], "]"))
+        end
+    end
 
     -- don't turn off emergency coolant on sufficient coolant level since it might drop again
     -- turn off once system is OK again
     -- if auto control is engaged, alarm check will SCRAM on reactor over temp so that's covered
-    if not self.plc_cache.rps_trip then
+    if not cache.rps_trip then
         -- set turbines to not dump steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]    ---@type unit_session
