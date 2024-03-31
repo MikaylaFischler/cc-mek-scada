@@ -468,16 +468,17 @@ function facility.new(num_reactors, cooling_conf)
             elseif self.last_update ~= charge_update then
                 -- convert to kFE to make constants not microscopic
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
+                local delta = now - self.last_time
 
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
-                    self.accumulator = self.accumulator + (error * (now - self.last_time))
-                    self.accumulator = self.accumulator * accumulator_decay ^ (now - self.last_time)
+                    -- Scale accumulator by decay rate per second and add error
+                    self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
                 end
 
                 -- local runtime = now - self.time_start
                 local integral = self.accumulator
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local derivative = (error - self.last_error) / delta
 
                 local P = (charge_Kp * error)
                 local I = (charge_Ki * integral)
@@ -538,16 +539,17 @@ function facility.new(num_reactors, cooling_conf)
             elseif self.last_update ~= rate_update then
                 -- convert to MFE (in rounded kFE) to make constants not microscopic
                 local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
+               local delta = (now - self.last_time
 
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
-                    self.accumulator = self.accumulator + (error * (now - self.last_time))
-                    self.accumulator = self.accumulator * accumulator_decay ^ (now - self.last_time)
+                    -- Scale accumulator by decay rate per second and add error
+                    self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
                 end
 
                 -- local runtime = now - self.time_start
                 local integral = self.accumulator
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local derivative = (error - self.last_error) / delta
 
                 local P = (rate_Kp * error)
                 local I = (rate_Ki * integral)
