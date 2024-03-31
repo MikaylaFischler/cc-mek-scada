@@ -22,7 +22,7 @@ local sounder     = require("coordinator.sounder")
 
 local apisessions = require("coordinator.session.apisessions")
 
-local COORDINATOR_VERSION = "v1.3.4"
+local COORDINATOR_VERSION = "v1.3.5"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
