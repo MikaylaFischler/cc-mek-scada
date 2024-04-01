@@ -493,11 +493,20 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
+                local group_size = 1
+
+                for i = 1, #self.prio_defs do
+                    if #self.prio_defs[i] > 0 then
+                        group_size = #self.prio_defs[i]
+                        break
+                    end
+                end
+
                 -- if below charge target or falling to it do not zero burn rate to avoid disruption of throttling
                 if out_c == 0 and error > 0 then
-                    out_c = 0.01
+                    out_c = 0.01 * group_size
                 elseif out_c == 0 and D < 0 then
-                    out_c = 0.01
+                    out_c = 0.01 * group_size
                 end
 
                 -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
