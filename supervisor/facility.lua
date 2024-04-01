@@ -51,15 +51,15 @@ local START_STATUS = {
 }
 
 local charge_Kp = 0.4
-local charge_Ki = 0.115
-local charge_Kd = 6.0
+local charge_Ki = 0.075
+local charge_Kd = 4.5
+
+-- Multiply accumulator by this scalar per second to prevent load induced instability in charge control mode
+local accumulator_decay = 0.90
 
 local rate_Kp = 2.45
 local rate_Ki = 0.4825
 local rate_Kd = -1.0
-
--- Multiply accumulator by this scalar per second to prevent load induced instability in charge control mode
-local accumulator_decay = 0.90
 
 ---@class facility_management
 local facility = {}
@@ -490,6 +490,13 @@ function facility.new(num_reactors, cooling_conf)
                 local out_c = math.max(0, math.min(output, self.max_burn_combined))
 
                 self.saturated = output ~= out_c
+
+                -- if below charge target or falling to it do not zero burn rate to avoid disruption of throttling
+                if out_c == 0 and error > 0 then
+                    out_c = 0.01
+                elseif out_c == 0 and D < 0 then
+                    out_c = 0.01
+                end
 
                 -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
                 --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
