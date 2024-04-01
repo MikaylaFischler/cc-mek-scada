@@ -470,10 +470,12 @@ function facility.new(num_reactors, cooling_conf)
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
                 local delta = now - self.last_time
 
-                -- stop accumulator when saturated to avoid windup
-                if not self.saturated then
-                    -- Scale accumulator by decay rate per second and add error
-                    self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
+                -- Scale accumulator by decay rate per second and add error
+                self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
+                
+                -- reset accumulator when saturated to avoid windup
+                if self.saturated then
+                    self.accumulator = 0
                 end
 
                 -- local runtime = now - self.time_start
