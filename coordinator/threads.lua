@@ -24,8 +24,8 @@ local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
 
 local MQ__RENDER_CMD = {
     START_MAIN_UI = 1,
-    MON_DISCONNECT = 2,
-    MON_CONNECT = 3,
+    MON_CONNECT = 2,
+    MON_DISCONNECT = 3,
     MON_RESIZE = 4,
     UPDATE = 5
 }
@@ -51,8 +51,8 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local crd_state     = smem.crd_state
-        local nic = smem.crd_sys.nic
-        local coord_comms = smem.crd_sys.coord_comms
+        local nic           = smem.crd_sys.nic
+        local coord_comms   = smem.crd_sys.coord_comms
         local conn_watchdog = smem.crd_sys.conn_watchdog
 
         -- event loop
@@ -88,11 +88,7 @@ function threads.thread__main(smem)
                             log_sys("non-comms modem disconnected")
                         end
                     elseif type == "monitor" then
-                        if renderer.handle_disconnect(device) then
-                            log_sys("lost a configured monitor")
-                        else
-                            log_sys("lost an unused monitor")
-                        end
+                        smem.q.mq_render.push_data(MQ__RENDER_CMD.MON_DISCONNECT, device)
                     elseif type == "speaker" then
                         log_sys("lost alarm sounder speaker")
                         iocontrol.fp_has_speaker(false)
@@ -114,11 +110,7 @@ function threads.thread__main(smem)
                             log_sys("wired modem reconnected")
                         end
                     elseif type == "monitor" then
-                        if renderer.handle_reconnect(param1, device) then
-                            log_sys(util.c("configured monitor ", param1, " reconnected"))
-                        else
-                            log_sys(util.c("unused monitor ", param1, " connected"))
-                        end
+                        smem.q.mq_render.push_data(MQ__RENDER_CMD.MON_CONNECT, { name = param1, device = device })
                     elseif type == "speaker" then
                         log_sys("alarm sounder speaker reconnected")
                         sounder.reconnect(device)
@@ -126,10 +118,7 @@ function threads.thread__main(smem)
                     end
                 end
             elseif event == "monitor_resize" then
-                local is_used, is_ok = renderer.handle_resize(param1)
-                if is_used then
-                    log_sys(util.c("configured monitor ", param1, " resized, ", util.trinary(is_ok, "display still fits", "display no longer fits")))
-                end
+                smem.q.mq_render.push_data(MQ__RENDER_CMD.MON_RESIZE, param1)
             elseif event == "timer" then
                 if loop_clock.is_clock(param1) then
                     -- main loop tick
@@ -292,15 +281,34 @@ function threads.thread__render(smem)
                             else
                                 log_graphics("main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
                             end
-                        elseif msg.message == MQ__RENDER_CMD.MON_DISCONNECT then
-                            -- monitor lost
-                        elseif msg.message == MQ__RENDER_CMD.MON_CONNECT then
-                            -- monitor connected
                         elseif msg.message == MQ__RENDER_CMD.UPDATE then
                             -- new data
                         end
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- received data
+                        local cmd = msg.message ---@type queue_data
+
+                        if cmd.key == MQ__RENDER_CMD.MON_CONNECT then
+                            -- monitor connected
+                            if renderer.handle_reconnect(cmd.val.name, cmd.val.device) then
+                                log_sys(util.c("configured monitor ", cmd.val.name, " reconnected"))
+                            else
+                                log_sys(util.c("unused monitor ", cmd.val.name, " connected"))
+                            end
+                        elseif cmd.key == MQ__RENDER_CMD.MON_DISCONNECT then
+                            -- monitor disconnected
+                            if renderer.handle_disconnect(cmd.val) then
+                                log_sys("lost a configured monitor")
+                            else
+                                log_sys("lost an unused monitor")
+                            end
+                        elseif cmd.key == MQ__RENDER_CMD.MON_RESIZE then
+                            -- monitor resized
+                            local is_used, is_ok = renderer.handle_resize(cmd.val)
+                            if is_used then
+                                log_sys(util.c("configured monitor ", cmd.val, " resized, ", util.trinary(is_ok, "display fits", "display does not fit")))
+                            end
+                        end
                     elseif msg.qtype == mqueue.TYPE.PACKET then
                         -- received a packet
                     end
