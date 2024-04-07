@@ -368,9 +368,9 @@ function threads.thread__rps(smem)
                     end
                 end
 
-                -- if we are in standalone mode, continuously reset RPS
+                -- if we are in standalone mode and the front panel isn't working, continuously reset RPS
                 -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
-                if not networked then rps.reset(true) end
+                if not (networked or smem.plc_state.fp_ok) then rps.reset(true) end
 
                 -- check safety (SCRAM occurs if tripped)
                 if not plc_state.no_reactor then
