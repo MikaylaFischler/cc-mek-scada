@@ -376,6 +376,13 @@ function iocontrol.fp_monitor_state(id, connected)
     end
 end
 
+-- report thread (routine) statuses
+---@param thread string thread name
+---@param ok boolean thread state
+function iocontrol.fp_rt_status(thread, ok)
+    io.fp.ps.publish(util.c("routine__", thread), ok)
+end
+
 -- report PKT firmware version and PKT session connection state
 ---@param session_id integer PKT session
 ---@param fw string firmware version
