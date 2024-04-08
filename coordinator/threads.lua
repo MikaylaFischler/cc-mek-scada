@@ -141,14 +141,12 @@ function threads.thread__main(smem)
                         end
                     end
 
-                    -- iterate sessions
+                    -- iterate sessions and free any closed sessions
                     apisessions.iterate_all()
-
-                    -- free any closed sessions
                     apisessions.free_all_closed()
 
-                    -- update date and time string for main display
-                    if coord_comms.is_linked() then
+                    if renderer.ui_ready() then
+                        -- update clock used on main and flow monitors
                         iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
                     end
 
@@ -253,7 +251,7 @@ function threads.thread__render(smem)
         log.debug("render thread start")
 
         -- load in from shared memory
-        local crd_state   = smem.crd_state
+        local crd_state    = smem.crd_state
         local render_queue = smem.q.mq_render
 
         local last_update = util.time()
