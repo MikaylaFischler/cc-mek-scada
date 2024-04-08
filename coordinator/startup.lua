@@ -144,7 +144,7 @@ local function main()
         ---@class crd_state
         crd_state = {
             fp_ok = false,
-            ui_ok = false,
+            ui_ok = true,       -- default true, used to abort on fail
             link_fail = false,
             shutdown = false
         },

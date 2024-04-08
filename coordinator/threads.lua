@@ -190,16 +190,21 @@ function threads.thread__main(smem)
                 sounder.continue()
             end
 
-            -- check for termination request
+            -- check for termination request or UI crash
             if event == "terminate" or ppm.should_terminate() then
                 crd_state.shutdown = true
                 log.info("terminate requested, main thread exiting")
+            elseif not crd_state.ui_ok then
+                crd_state.shutdown = true
+                log.info("terminating due to fatal UI error")
+            end
 
+            if crd_state.shutdown then
                 -- handle closing supervisor connection
                 coord_comms.try_connect(true)
 
                 if coord_comms.is_linked() then
-                    log_comms("terminate requested, closing supervisor connection...")
+                    log_comms("closing supervisor connection...")
                 else crd_state.link_fail = true end
 
                 coord_comms.close()
