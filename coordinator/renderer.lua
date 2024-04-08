@@ -2,23 +2,26 @@
 -- Graphics Rendering Control
 --
 
-local log        = require("scada-common.log")
-local util       = require("scada-common.util")
+local log         = require("scada-common.log")
+local util        = require("scada-common.util")
 
-local iocontrol  = require("coordinator.iocontrol")
+local coordinator = require("coordinator.coordinator")
+local iocontrol   = require("coordinator.iocontrol")
 
-local style      = require("coordinator.ui.style")
-local pgi        = require("coordinator.ui.pgi")
+local style       = require("coordinator.ui.style")
+local pgi         = require("coordinator.ui.pgi")
 
-local flow_view  = require("coordinator.ui.layout.flow_view")
-local panel_view = require("coordinator.ui.layout.front_panel")
-local main_view  = require("coordinator.ui.layout.main_view")
-local unit_view  = require("coordinator.ui.layout.unit_view")
+local flow_view   = require("coordinator.ui.layout.flow_view")
+local panel_view  = require("coordinator.ui.layout.front_panel")
+local main_view   = require("coordinator.ui.layout.main_view")
+local unit_view   = require("coordinator.ui.layout.unit_view")
 
-local core       = require("graphics.core")
-local flasher    = require("graphics.flasher")
+local core        = require("graphics.core")
+local flasher     = require("graphics.flasher")
 
-local DisplayBox = require("graphics.elements.displaybox")
+local DisplayBox  = require("graphics.elements.displaybox")
+
+local log_render = coordinator.log_render
 
 ---@class coord_renderer
 local renderer = {}
@@ -387,12 +390,15 @@ function renderer.handle_resize(name)
         engine.dmesg_window.setVisible(not engine.ui_ready)
 
         if engine.ui_ready then
+            local draw_start = util.time_ms()
             local ok = pcall(function ()
                 ui.main_display = DisplayBox{window=device,fg_bg=style.root}
                 main_view(ui.main_display)
             end)
 
-            if not ok then
+            if ok then
+                log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+            else
                 if ui.main_display then
                     ui.main_display.delete()
                     ui.main_display = nil
@@ -420,14 +426,15 @@ function renderer.handle_resize(name)
         iocontrol.fp_monitor_state("flow", true)
 
         if engine.ui_ready then
-            engine.dmesg_window.setVisible(false)
-
+            local draw_start = util.time_ms()
             local ok = pcall(function ()
                 ui.flow_display = DisplayBox{window=device,fg_bg=style.root}
                 flow_view(ui.flow_display)
             end)
 
-            if not ok then
+            if ok then
+                log_render("flow view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+            else
                 if ui.flow_display then
                     ui.flow_display.delete()
                     ui.flow_display = nil
@@ -457,14 +464,15 @@ function renderer.handle_resize(name)
                 iocontrol.fp_monitor_state(idx, true)
 
                 if engine.ui_ready then
-                    engine.dmesg_window.setVisible(false)
-
+                    local draw_start = util.time_ms()
                     local ok = pcall(function ()
                         ui.unit_displays[idx] = DisplayBox{window=device,fg_bg=style.root}
                         unit_view(ui.unit_displays[idx], idx)
                     end)
 
-                    if not ok then
+                    if ok then
+                        log_render("unit " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+                    else
                         if ui.unit_displays[idx] then
                             ui.unit_displays[idx].delete()
                             ui.unit_displays[idx] = nil

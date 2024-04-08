@@ -13,7 +13,7 @@ local apisessions = require("coordinator.session.apisessions")
 
 local core        = require("graphics.core")
 
-local log_graphics = coordinator.log_graphics
+local log_render = coordinator.log_render
 local log_sys = coordinator.log_sys
 local log_comms = coordinator.log_comms
 
@@ -267,17 +267,17 @@ function threads.thread__render(smem)
                         -- received a command
                         if msg.message == MQ__RENDER_CMD.START_MAIN_UI then
                             -- start up the main UI
-                            log_graphics("starting main UI...")
+                            log_render("starting main UI...")
 
                             local draw_start = util.time_ms()
 
                             local ui_message
                             crd_state.ui_ok, ui_message = renderer.try_start_ui()
                             if not crd_state.ui_ok then
-                                log_graphics(util.c("main UI error: ", ui_message))
+                                log_render(util.c("main UI error: ", ui_message))
                                 log.fatal(util.c("main GUI render failed with error ", ui_message))
                             else
-                                log_graphics("main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
+                                log_render("main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
                             end
                         elseif msg.message == MQ__RENDER_CMD.UPDATE then
                             -- new data

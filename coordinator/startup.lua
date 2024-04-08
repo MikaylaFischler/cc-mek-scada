@@ -26,7 +26,7 @@ local CHUNK_LOAD_DELAY_S = 30.0
 local println = util.println
 local println_ts = util.println_ts
 
-local log_graphics = coordinator.log_graphics
+local log_render = coordinator.log_render
 local log_sys = coordinator.log_sys
 local log_boot = coordinator.log_boot
 local log_comms = coordinator.log_comms
@@ -126,7 +126,7 @@ local function main()
     -- lets get started!
     log.info("monitors ready, dmesg output incoming...")
 
-    log_graphics("displays connected and reset")
+    log_render("displays connected and reset")
     log_sys("system start on " .. os.date("%c"))
     log_boot("starting " .. COORDINATOR_VERSION)
 
@@ -227,16 +227,16 @@ local function main()
     -- start front panel
     ----------------------------------------
 
-    log_graphics("starting front panel UI...")
+    log_render("starting front panel UI...")
 
     local fp_message
     crd_state.fp_ok, fp_message = renderer.try_start_fp()
     if not crd_state.fp_ok then
-        log_graphics(util.c("front panel UI error: ", fp_message))
+        log_render(util.c("front panel UI error: ", fp_message))
         println_ts("front panel UI creation failed")
         log.fatal(util.c("front panel GUI render failed with error ", fp_message))
         return
-    else log_graphics("front panel ready") end
+    else log_render("front panel ready") end
 
     ----------------------------------------
     -- start system
