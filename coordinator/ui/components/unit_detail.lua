@@ -352,6 +352,8 @@ local function init(parent, id)
         t3_trp.register(t_ps[3], "TurbineTrip", t3_trp.update)
     end
 
+    util.nop()
+
     ----------------------
     -- reactor controls --
     ----------------------

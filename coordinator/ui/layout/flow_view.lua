@@ -250,6 +250,7 @@ local function init(main)
         local y_offset = y_ofs(i)
         unit_flow(main, flow_x, 5 + y_offset, #water_pipes == 0, units[i])
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
+        util.nop()
     end
 
     PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
@@ -334,6 +335,8 @@ local function init(main)
             end
         end
     end
+
+    util.nop()
 
     ---------
     -- SPS --

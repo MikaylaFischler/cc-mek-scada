@@ -3,6 +3,7 @@
 --
 
 local log        = require("scada-common.log")
+local util       = require("scada-common.util")
 
 local iocontrol  = require("coordinator.iocontrol")
 
@@ -195,18 +196,21 @@ function renderer.try_start_ui()
             if engine.monitors.main ~= nil then
                 engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
                 main_view(engine.ui.main_display)
+                util.nop()
             end
 
             -- show flow view on flow monitor
             if engine.monitors.flow ~= nil then
                 engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
                 flow_view(engine.ui.flow_display)
+                util.nop()
             end
 
             -- show unit views on unit displays
             for idx, display in pairs(engine.monitors.unit_displays) do
                 engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
                 unit_view(engine.ui.unit_displays[idx], idx)
+                util.nop()
             end
         end)
 
