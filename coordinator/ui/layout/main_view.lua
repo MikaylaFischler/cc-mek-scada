@@ -2,8 +2,9 @@
 -- Main SCADA Coordinator GUI
 --
 
-local iocontrol     = require("coordinator.iocontrol")
 local util          = require("scada-common.util")
+
+local iocontrol     = require("coordinator.iocontrol")
 
 local style         = require("coordinator.ui.style")
 

@@ -23,13 +23,13 @@ local COORDINATOR_VERSION = "v1.4.0"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
-local println = util.println
+local println    = util.println
 local println_ts = util.println_ts
 
 local log_render = coordinator.log_render
-local log_sys = coordinator.log_sys
-local log_boot = coordinator.log_boot
-local log_comms = coordinator.log_comms
+local log_sys    = coordinator.log_sys
+local log_boot   = coordinator.log_boot
+local log_comms  = coordinator.log_comms
 local log_crypto = coordinator.log_crypto
 
 ----------------------------------------
