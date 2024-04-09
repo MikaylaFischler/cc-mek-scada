@@ -5,6 +5,8 @@ local log     = require("scada-common.log")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
+local themes  = require("graphics.themes")
+
 local databus = require("rtu.databus")
 local modbus  = require("rtu.modbus")
 
@@ -69,7 +71,7 @@ function rtu.load_config()
     cfv.assert_type_int(config.FrontPanelTheme)
     cfv.assert_range(config.FrontPanelTheme, 1, 2)
     cfv.assert_type_int(config.ColorMode)
-    cfv.assert_range(config.ColorMode, 1, 4)
+    cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
     cfv.assert_type_table(config.Peripherals)
     cfv.assert_type_table(config.Redstone)
@@ -92,6 +94,8 @@ function rtu.init_unit(device)
 
     local insert = table.insert
 
+    local stub = function () log.warning("tried to call an RTU function stub") end
+
     ---@class rtu_device
     local public = {}
 
@@ -113,13 +117,26 @@ function rtu.init_unit(device)
         return self.io_count_cache[1], self.io_count_cache[2], self.io_count_cache[3], self.io_count_cache[4]
     end
 
+    -- pass a function through or generate one to call a function by name from the device
+    ---@param f function|string function or device function name
+    local function _as_func(f)
+        if type(f) == "string" then
+            local name = f
+            if device then
+                f = function (...) return device[name](...) end
+            else f = stub end
+        end
+
+        return f
+    end
+
     -- discrete inputs: single bit read-only
 
     -- connect discrete input
-    ---@param f function
+    ---@param f function|string function or function name
     ---@return integer count count of discrete inputs
     function protected.connect_di(f)
-        insert(self.discrete_inputs, { read = f })
+        insert(self.discrete_inputs, { read = _as_func(f) })
         _count_io()
         return #self.discrete_inputs
     end
@@ -135,11 +152,11 @@ function rtu.init_unit(device)
     -- coils: single bit read-write
 
     -- connect coil
-    ---@param f_read function
-    ---@param f_write function
+    ---@param f_read function|string function or function name
+    ---@param f_write function|string function or function name
     ---@return integer count count of coils
     function protected.connect_coil(f_read, f_write)
-        insert(self.coils, { read = f_read, write = f_write })
+        insert(self.coils, { read = _as_func(f_read), write = _as_func(f_write) })
         _count_io()
         return #self.coils
     end
@@ -164,10 +181,10 @@ function rtu.init_unit(device)
     -- input registers: multi-bit read-only
 
     -- connect input register
-    ---@param f function
+    ---@param f function|string function or function name
     ---@return integer count count of input registers
     function protected.connect_input_reg(f)
-        insert(self.input_regs, { read = f })
+        insert(self.input_regs, { read = _as_func(f) })
         _count_io()
         return #self.input_regs
     end
@@ -183,11 +200,11 @@ function rtu.init_unit(device)
     -- holding registers: multi-bit read-write
 
     -- connect holding register
-    ---@param f_read function
-    ---@param f_write function
+    ---@param f_read function|string function or function name
+    ---@param f_write function|string function or function name
     ---@return integer count count of holding registers
     function protected.connect_holding_reg(f_read, f_write)
-        insert(self.holding_regs, { read = f_read, write = f_write })
+        insert(self.holding_regs, { read = _as_func(f_read), write = _as_func(f_write) })
         _count_io()
         return #self.holding_regs
     end
