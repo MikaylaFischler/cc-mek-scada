@@ -142,7 +142,7 @@ function threads.thread__main(smem)
                         end
                     end
 
-                    -- iterate sessions and free any closed sessions
+                    -- iterate sessions and free any closed ones
                     apisessions.iterate_all()
                     apisessions.free_all_closed()
 
@@ -183,7 +183,7 @@ function threads.thread__main(smem)
                     sounder.stop()
                 end
             elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
-                event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
+                   event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             elseif event == "speaker_audio_empty" then
@@ -233,8 +233,7 @@ function threads.thread__main(smem)
             iocontrol.fp_rt_status("main", false)
 
             -- if status is true, then we are probably exiting, so this won't matter
-            -- if not, we need to restart the clock
-            -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
+            -- this thread cannot be slept because it will miss events (namely "terminate")
             if not crd_state.shutdown then
                 log.info("main thread restarting now...")
             end
@@ -244,7 +243,7 @@ function threads.thread__main(smem)
     return public
 end
 
--- coordinator renderer thread
+-- coordinator renderer thread, tasked with long duration re-draws
 ---@nodiscard
 ---@param smem crd_shared_memory
 function threads.thread__render(smem)
