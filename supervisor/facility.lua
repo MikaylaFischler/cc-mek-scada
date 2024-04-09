@@ -50,9 +50,12 @@ local START_STATUS = {
     BLADE_MISMATCH = 2
 }
 
-local charge_Kp = 0.275
-local charge_Ki = 0.0
+local charge_Kp = 0.4
+local charge_Ki = 0.075
 local charge_Kd = 4.5
+
+-- Multiply accumulator by this scalar per second to prevent load induced instability in charge control mode
+local accumulator_decay = 0.90
 
 local rate_Kp = 2.45
 local rate_Ki = 0.4825
@@ -465,15 +468,19 @@ function facility.new(num_reactors, cooling_conf)
             elseif self.last_update ~= charge_update then
                 -- convert to kFE to make constants not microscopic
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
+                local delta = now - self.last_time
 
-                -- stop accumulator when saturated to avoid windup
-                if not self.saturated then
-                    self.accumulator = self.accumulator + (error * (now - self.last_time))
+                -- Scale accumulator by decay rate per second and add error
+                self.accumulator = self.accumulator * accumulator_decay ^ delta + error * delta
+                
+                -- reset accumulator when saturated to avoid windup
+                if self.saturated then
+                    self.accumulator = 0
                 end
 
                 -- local runtime = now - self.time_start
                 local integral = self.accumulator
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local derivative = (error - self.last_error) / delta
 
                 local P = (charge_Kp * error)
                 local I = (charge_Ki * integral)
@@ -485,6 +492,13 @@ function facility.new(num_reactors, cooling_conf)
                 local out_c = math.max(0, math.min(output, self.max_burn_combined))
 
                 self.saturated = output ~= out_c
+
+                -- if below charge target or falling to it do not zero burn rate to avoid disruption of throttling
+                if out_c == 0 and error > 0 then
+                    out_c = 0.01
+                elseif out_c == 0 and D < 0 then
+                    out_c = 0.01
+                end
 
                 -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
                 --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
@@ -534,15 +548,17 @@ function facility.new(num_reactors, cooling_conf)
             elseif self.last_update ~= rate_update then
                 -- convert to MFE (in rounded kFE) to make constants not microscopic
                 local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
+                local delta = now - self.last_time
 
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
-                    self.accumulator = self.accumulator + (error * (now - self.last_time))
+                    -- Scale accumulator by decay rate per second and add error
+                    self.accumulator = self.accumulator + error * delta
                 end
 
                 -- local runtime = now - self.time_start
                 local integral = self.accumulator
-                local derivative = (error - self.last_error) / (now - self.last_time)
+                local derivative = (error - self.last_error) / delta
 
                 local P = (rate_Kp * error)
                 local I = (rate_Ki * integral)
