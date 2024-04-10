@@ -337,7 +337,7 @@ function facility.new(num_reactors, cooling_conf)
         local avg_inflow  = self.avg_inflow.compute()
         local avg_outflow = self.avg_outflow.compute()
 
-        local now = util.time_s()
+        local now = os.clock()
 
         local state_changed = self.mode ~= self.last_mode
         local next_mode = self.mode
