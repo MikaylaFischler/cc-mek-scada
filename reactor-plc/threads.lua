@@ -662,8 +662,9 @@ function threads.thread__setpoint_control(smem)
                     if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
                         last_burn_sp = setpoints.burn_rate
 
-                        -- update without ramp if <= 2.5 mB/t change
-                        running = math.abs(setpoints.burn_rate - cur_burn_rate) > 2.5
+                        -- update without ramp if <= 2.5 mB/t increase
+                        -- no need to ramp down, as the ramp up poses the safety risks
+                        running = (setpoints.burn_rate - cur_burn_rate) > 2.5
 
                         if running then
                             log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))
