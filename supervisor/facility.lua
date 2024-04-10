@@ -50,9 +50,9 @@ local START_STATUS = {
     BLADE_MISMATCH = 2
 }
 
-local charge_Kp = 0.275
+local charge_Kp = 0.15
 local charge_Ki = 0.0
-local charge_Kd = 4.5
+local charge_Kd = 0.6
 
 local rate_Kp = 2.45
 local rate_Ki = 0.4825
@@ -225,6 +225,14 @@ function facility.new(num_reactors, cooling_conf)
         return unallocated, false
     end
 
+    -- set idle state of all assigned reactors
+    ---@param idle boolean idle state
+    local function _set_idling(idle)
+        for i = 1, #self.prio_defs do
+            for _, u in pairs(self.prio_defs[i]) do u.auto_set_idle(idle) end
+        end
+    end
+
     -- PUBLIC FUNCTIONS --
 
     ---@class facility
@@ -325,8 +333,9 @@ function facility.new(num_reactors, cooling_conf)
 
         --#region
 
-        local avg_charge = self.avg_charge.compute()
-        local avg_inflow = self.avg_inflow.compute()
+        local avg_charge  = self.avg_charge.compute()
+        local avg_inflow  = self.avg_inflow.compute()
+        local avg_outflow = self.avg_outflow.compute()
 
         local now = util.time_s()
 
@@ -390,6 +399,7 @@ function facility.new(num_reactors, cooling_conf)
                     -- disable reactors and disengage auto control
                     for _, u in pairs(self.prio_defs[i]) do
                         u.disable()
+                        u.auto_set_idle(false)
                         u.auto_disengage()
                     end
                 end
@@ -460,6 +470,9 @@ function facility.new(num_reactors, cooling_conf)
                 self.last_error = 0
                 self.accumulator = 0
 
+                -- enabling idling on all assigned units
+                _set_idling(true)
+
                 self.status_text = { "CHARGE MODE", "running control loop" }
                 log.info("FAC: CHARGE mode starting PID control")
             elseif self.last_update ~= charge_update then
@@ -475,9 +488,9 @@ function facility.new(num_reactors, cooling_conf)
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
-                local P = (charge_Kp * error)
-                local I = (charge_Ki * integral)
-                local D = (charge_Kd * derivative)
+                local P = charge_Kp * error
+                local I = charge_Ki * integral
+                local D = charge_Kd * derivative
 
                 local output = P + I + D
 
@@ -486,7 +499,10 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%d] }",
+                -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
+                _set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow < avg_inflow)))
+
+                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                 --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
 
                 _allocate_burn_rate(out_c, true)
@@ -544,9 +560,9 @@ function facility.new(num_reactors, cooling_conf)
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
-                local P = (rate_Kp * error)
-                local I = (rate_Ki * integral)
-                local D = (rate_Kd * derivative)
+                local P = rate_Kp * error
+                local I = rate_Ki * integral
+                local D = rate_Kd * derivative
 
                 -- velocity (rate) (derivative of charge level => rate) feed forward
                 local FF = self.gen_rate_setpoint / self.charge_conversion
