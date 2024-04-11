@@ -133,6 +133,7 @@ function threads.thread__main(smem)
                         local ok, start_ui = coord_comms.try_connect()
                         if not ok then
                             crd_state.link_fail = true
+                            crd_state.shutdown = true
                             log_sys("supervisor connection failed, shutting down...")
                             log.fatal("failed to connect to supervisor")
                             break
