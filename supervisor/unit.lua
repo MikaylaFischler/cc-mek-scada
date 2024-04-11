@@ -255,14 +255,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     end
 
     -- init turbine table fields
-    for t = 1, num_turbines do
+    for _ = 1, num_turbines do
         table.insert(self.db.annunciator.TurbineOnline, false)
         table.insert(self.db.annunciator.SteamDumpOpen, TRI_FAIL.OK)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
-
-        self.turbine_stability_data[t] = { time_state = 0, time_tanks = 0, rotation = 1 }
+        table.insert(self.turbine_stability_data, { time_state = 0, time_tanks = 0, rotation = 1 })
     end
 
     -- PRIVATE FUNCTIONS --
@@ -542,6 +541,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
             -- re-engage auto lock if it reconnected without it
             if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
+
+            -- stop idling when completed
+            if self.auto_idling and ((util.time_ms() - self.auto_idle_start) > IDLE_TIME) then
+                log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
+                self.auto_idling = false
+                self.plc_i.auto_set_burn(0, false)
+            end
         end
 
         -- update deltas
@@ -591,9 +597,9 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     end
 
     -- set automatic control idling mode to change behavior when given a burn rate command of zero<br>
-    -- - enabling will hold the reactor at 0.01 mB/t for a period before disabling when commanded zero
-    -- - disabling will stop the reactor when commanded zero
-    ---@param idle boolean true to enable, false to disable and stop right away
+    -- - enabling it will hold the reactor at 0.01 mB/t for a period when commanded zero before disabling
+    -- - disabling it will stop the reactor when commanded zero
+    ---@param idle boolean true to enable, false to disable (and stop)
     function public.auto_set_idle(idle)
         if not (idle and self.auto_idle) then
             self.auto_idling = false

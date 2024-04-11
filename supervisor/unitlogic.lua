@@ -44,9 +44,9 @@ local logic = {}
 local function turbine_rotation(turbine)
     local build = turbine.build
 
-    local inner_vol = build.steam_cap / 64000
-    local disp_rate = (build.dispersers * 1280) * inner_vol
-    local vent_rate = build.vents * 32000
+    local inner_vol = build.steam_cap / const.mek.TURBINE_GAS_PER_TANK
+    local disp_rate = (build.dispersers * const.mek.TURBINE_DISPERSER_FLOW) * inner_vol
+    local vent_rate = build.vents * const.mek.TURBINE_VENT_FLOW
 
     local max_rate = math.min(disp_rate, vent_rate)
     local flow = math.min(max_rate, turbine.tanks.steam.amount)

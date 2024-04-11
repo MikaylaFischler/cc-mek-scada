@@ -500,7 +500,7 @@ function facility.new(num_reactors, cooling_conf)
                 self.saturated = output ~= out_c
 
                 -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
-                _set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow < avg_inflow)))
+                _set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
 
                 -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                 --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
