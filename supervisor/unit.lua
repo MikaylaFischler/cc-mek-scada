@@ -106,6 +106,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
         had_reactor = false,
+        turbine_flow_stable = false,
+        turbine_stability_data = {},
         last_rate_change_ms = 0,
         ---@type rps_status
         last_rps_trips = {
@@ -253,12 +255,14 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     end
 
     -- init turbine table fields
-    for _ = 1, num_turbines do
+    for t = 1, num_turbines do
         table.insert(self.db.annunciator.TurbineOnline, false)
         table.insert(self.db.annunciator.SteamDumpOpen, TRI_FAIL.OK)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
+
+        self.turbine_stability_data[t] = { time_state = 0, time_tanks = 0, rotation = 1 }
     end
 
     -- PRIVATE FUNCTIONS --

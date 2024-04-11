@@ -68,8 +68,8 @@ constants.ALARM_LIMITS = alarms
 
 --#region Supervisor Constants
 
--- milliseconds until turbine flow is assumed to be stable enough to enable coolant checks
-constants.FLOW_STABILITY_DELAY_MS = 15000
+-- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks
+constants.FLOW_STABILITY_DELAY_MS = 10000
 
 -- Notes on Radiation
 -- - background radiation 0.0000001 Sv/h (99.99 nSv/h)
