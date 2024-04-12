@@ -78,7 +78,7 @@ function supervisor.load_config()
 
     if type(config.AuthKey) == "string" then
         local len = string.len(config.AuthKey)
-        cfv.assert_eq(len == 0 or len >= 8, true)
+        cfv.assert(len == 0 or len >= 8)
     end
 
     cfv.assert_type_int(config.LogMode)
