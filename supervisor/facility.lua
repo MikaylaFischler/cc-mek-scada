@@ -23,7 +23,7 @@ local RTU_UNIT_TYPE  = types.RTU_UNIT_TYPE
 local WASTE_MODE     = types.WASTE_MODE
 local WASTE          = types.WASTE_PRODUCT
 
-local IO = rsio.IO
+local IO             = rsio.IO
 
 local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
@@ -63,9 +63,9 @@ local facility = {}
 
 -- create a new facility management object
 ---@nodiscard
----@param num_reactors integer number of reactor units
+---@param config svr_config supervisor configuration
 ---@param cooling_conf sv_cooling_conf cooling configurations of reactor units
-function facility.new(num_reactors, cooling_conf)
+function facility.new(config, cooling_conf)
     local self = {
         units = {},
         status_text = { "START UP", "initializing..." },
@@ -134,8 +134,8 @@ function facility.new(num_reactors, cooling_conf)
     }
 
     -- create units
-    for i = 1, num_reactors do
-        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount))
+    for i = 1, config.UnitCount do
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
         table.insert(self.group_map, 0)
     end
 
@@ -499,8 +499,10 @@ function facility.new(num_reactors, cooling_conf)
 
                 self.saturated = output ~= out_c
 
-                -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
-                _set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
+                if not config.ExtChargeIdling then
+                    -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
+                    _set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
+                end
 
                 -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
                 --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
@@ -952,41 +954,41 @@ function facility.new(num_reactors, cooling_conf)
     function public.auto_stop() self.mode = PROCESS.INACTIVE end
 
     -- set automatic control configuration and start the process
-    ---@param config coord_auto_config configuration
+    ---@param auto_cfg coord_auto_config configuration
     ---@return table response ready state (successfully started) and current configuration (after updating)
-    function public.auto_start(config)
+    function public.auto_start(auto_cfg)
         local charge_scaler = 1000000   -- convert MFE to FE
         local gen_scaler    = 1000      -- convert kFE to FE
         local ready         = false
 
         -- load up current limits
         local limits = {}
-        for i = 1, num_reactors do
+        for i = 1, config.UnitCount do
             local u = self.units[i] ---@type reactor_unit
             limits[i] = u.get_control_inf().lim_br100 * 100
         end
 
         -- only allow changes if not running
         if self.mode == PROCESS.INACTIVE then
-            if (type(config.mode) == "number") and (config.mode > PROCESS.INACTIVE) and (config.mode <= PROCESS.GEN_RATE) then
-                self.mode_set = config.mode
+            if (type(auto_cfg.mode) == "number") and (auto_cfg.mode > PROCESS.INACTIVE) and (auto_cfg.mode <= PROCESS.GEN_RATE) then
+                self.mode_set = auto_cfg.mode
             end
 
-            if (type(config.burn_target) == "number") and config.burn_target >= 0.1 then
-                self.burn_target = config.burn_target
+            if (type(auto_cfg.burn_target) == "number") and auto_cfg.burn_target >= 0.1 then
+                self.burn_target = auto_cfg.burn_target
             end
 
-            if (type(config.charge_target) == "number") and config.charge_target >= 0 then
-                self.charge_setpoint = config.charge_target * charge_scaler
+            if (type(auto_cfg.charge_target) == "number") and auto_cfg.charge_target >= 0 then
+                self.charge_setpoint = auto_cfg.charge_target * charge_scaler
             end
 
-            if (type(config.gen_target) == "number") and config.gen_target >= 0 then
-                self.gen_rate_setpoint = config.gen_target * gen_scaler
+            if (type(auto_cfg.gen_target) == "number") and auto_cfg.gen_target >= 0 then
+                self.gen_rate_setpoint = auto_cfg.gen_target * gen_scaler
             end
 
-            if (type(config.limits) == "table") and (#config.limits == num_reactors) then
-                for i = 1, num_reactors do
-                    local limit = config.limits[i]
+            if (type(auto_cfg.limits) == "table") and (#auto_cfg.limits == config.UnitCount) then
+                for i = 1, config.UnitCount do
+                    local limit = auto_cfg.limits[i]
 
                     if (type(limit) == "number") and (limit >= 0.1) then
                         limits[i] = limit
@@ -1026,7 +1028,7 @@ function facility.new(num_reactors, cooling_conf)
     ---@param unit_id integer unit ID
     ---@param group integer group ID or 0 for independent
     function public.set_group(unit_id, group)
-        if (group >= 0 and group <= 4) and (unit_id > 0 and unit_id <= num_reactors) and self.mode == PROCESS.INACTIVE then
+        if (group >= 0 and group <= 4) and (unit_id > 0 and unit_id <= config.UnitCount) and self.mode == PROCESS.INACTIVE then
             -- remove from old group if previously assigned
             local old_group = self.group_map[unit_id]
             if old_group ~= 0 then

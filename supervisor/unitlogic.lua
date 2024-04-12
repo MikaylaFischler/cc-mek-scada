@@ -332,7 +332,7 @@ function logic.update_annunciator(self)
             -- minimal change indicates the turbine is converging on a flow rate
             if last.time_tanks < turbine.tanks.last_update then
                 if last.time_tanks > 0 then
-                    rotation_stable = math.abs(rotation - last.rotation) < 0.00000004
+                    rotation_stable = math.abs(rotation - last.rotation) < 0.00000003
                 end
 
                 last.time_tanks = turbine.tanks.last_update

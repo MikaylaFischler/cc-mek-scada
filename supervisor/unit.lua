@@ -54,8 +54,6 @@ local AISTATE = {
 
 -- burn rate to idle at
 local IDLE_RATE = 0.01
--- time (ms) to idle
-local IDLE_TIME = 15000
 
 ---@class reactor_control_unit
 local unit = {}
@@ -65,7 +63,11 @@ local unit = {}
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
-function unit.new(reactor_id, num_boilers, num_turbines)
+---@param ext_idle boolean extended idling mode
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
+    -- time (ms) to idle for auto idling
+    local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
+
     ---@class _unit_self
     local self = {
         r_id = reactor_id,
@@ -543,7 +545,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
             if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
 
             -- stop idling when completed
-            if self.auto_idling and ((util.time_ms() - self.auto_idle_start) > IDLE_TIME) then
+            if self.auto_idling and (((util.time_ms() - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
                 log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
                 self.auto_idling = false
                 self.plc_i.auto_set_burn(0, false)
@@ -601,7 +603,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
     -- - disabling it will stop the reactor when commanded zero
     ---@param idle boolean true to enable, false to disable (and stop)
     function public.auto_set_idle(idle)
-        if not (idle and self.auto_idle) then
+        if idle and not self.auto_idle then
             self.auto_idling = false
             self.auto_idle_start = 0
         end
