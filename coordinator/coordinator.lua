@@ -279,11 +279,12 @@ function coordinator.comms(version, nic, sv_watchdog)
     -- send an API establish request response
     ---@param packet scada_packet
     ---@param ack ESTABLISH_ACK
-    local function _send_api_establish_ack(packet, ack)
+    ---@param data any?
+    local function _send_api_establish_ack(packet, ack, data)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack })
+        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
@@ -493,7 +494,8 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 local id = apisessions.establish_session(src_addr, firmware_v)
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
-                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                                local conf = iocontrol.get_db().facility.conf
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW, { conf.num_units, conf.cooling })
                             else
                                 log.debug(util.c("API_ESTABLISH: illegal establish packet for device ", dev_type, " on pocket channel"))
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.DENY)

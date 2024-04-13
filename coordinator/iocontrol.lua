@@ -67,6 +67,7 @@ function iocontrol.init(conf, comms, temp_scale)
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
+        conf = conf,
         num_units = conf.num_units,
         tank_mode = conf.cooling.fac_tank_mode,
         tank_defs = conf.cooling.fac_tank_defs,

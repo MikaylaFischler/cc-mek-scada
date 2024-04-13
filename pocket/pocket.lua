@@ -126,7 +126,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
 
     -- attempt coordinator API connection establishment
     local function _send_api_establish()
-        _send_crd(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT })
+        _send_crd(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT, comms.api_version })
     end
 
     -- keep alive ack to supervisor
@@ -252,7 +252,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
     ---@param max integer?
     ---@return boolean
     local function _check_length(packet, length, max)
-        local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= max)
+        local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= (max or 0))
         if not ok then
             local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: packet length mismatch -> expect %d != actual %d"
             log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type))
@@ -322,7 +322,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                     log.warning("pocket coordinator KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
-                                log.debug("pocket coordinator TT = " .. trip_time .. "ms")
+                                -- log.debug("pocket coordinator TT = " .. trip_time .. "ms")
 
                                 _send_api_keep_alive_ack(timestamp)
 
@@ -428,7 +428,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                     log.warning("pocket supervisor KEEP_ALIVE trip time > 750ms (" .. trip_time .. "ms)")
                                 end
 
-                                log.debug("pocket supervisor TT = " .. trip_time .. "ms")
+                                -- log.debug("pocket supervisor TT = " .. trip_time .. "ms")
 
                                 _send_sv_keep_alive_ack(timestamp)
 
