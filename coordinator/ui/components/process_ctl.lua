@@ -145,7 +145,7 @@ local function new_view(root, x, y)
     local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="MFE",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
-    cur_charge.register(facility.induction_ps_tbl[1], "energy", function (j) cur_charge.update(util.joules_to_fe(j) / 1000000) end)
+    cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(fe / 1000000) end)
 
     local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}

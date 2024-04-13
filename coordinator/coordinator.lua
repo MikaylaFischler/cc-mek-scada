@@ -89,7 +89,7 @@ function coordinator.load_config()
 
     if type(config.AuthKey) == "string" then
         local len = string.len(config.AuthKey)
-        cfv.assert_eq(len == 0 or len >= 8, true)
+        cfv.assert(len == 0 or len >= 8)
     end
 
     cfv.assert_type_int(config.LogMode)
@@ -192,7 +192,7 @@ end
 ---@return function? update, function? done
 local function log_dmesg(message, dmesg_tag, working)
     local colors = {
-        GRAPHICS = colors.green,
+        RENDER = colors.green,
         SYSTEM = colors.cyan,
         BOOT = colors.blue,
         COMMS = colors.purple,
@@ -206,7 +206,7 @@ local function log_dmesg(message, dmesg_tag, working)
     end
 end
 
-function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
+function coordinator.log_render(message) log_dmesg(message, "RENDER") end
 function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
