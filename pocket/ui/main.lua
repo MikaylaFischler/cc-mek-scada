@@ -6,6 +6,7 @@ local iocontrol    = require("pocket.iocontrol")
 
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
+local sys_apps     = require("pocket.ui.apps.sys_apps")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
@@ -78,6 +79,7 @@ local function init(main)
     unit_page(page_div)
 
     diag_apps(page_div)
+    sys_apps(page_div)
     dummy_app(page_div)
 
     assert(#db.nav.get_containers() == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")

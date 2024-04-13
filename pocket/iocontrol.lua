@@ -2,9 +2,8 @@
 -- I/O Control for Pocket Integration with Supervisor & Coordinator
 --
 
-local psil = require("scada-common.psil")
-local log  = require("scada-common.log")
-
+local log   = require("scada-common.log")
+local psil  = require("scada-common.psil")
 local types = require("scada-common.types")
 
 local ALARM = types.ALARM
@@ -28,16 +27,21 @@ iocontrol.LINK_STATE = LINK_STATE
 ---@enum POCKET_APP_ID
 local APP_ID = {
     ROOT = 1,
+    -- main app page
     UNITS = 2,
-    ALARMS = 3,
-    DUMMY = 4,
-    NUM_APPS = 4
+    ABOUT = 3,
+    -- diag app page
+    ALARMS = 4,
+    -- other
+    DUMMY = 5,
+    NUM_APPS = 5
 }
 
 iocontrol.APP_ID = APP_ID
 
 ---@class pocket_ioctl
 local io = {
+    version = "unknown",
     ps = psil.create()
 }
 
@@ -77,8 +81,15 @@ function iocontrol.alloc_nav()
         local app = {
             root = { _p = nil, _c = {}, nav_to = function () end, tasks = {} }, ---@type nav_tree_page
             cur_page = nil, ---@type nav_tree_page
+            pane = pane,
             paned_pages = {}
         }
+
+        -- delayed set of the pane if it wasn't ready at the start
+        ---@param root_pane graphics_element multipane
+        function app.set_root_pane(root_pane)
+            app.pane = root_pane
+        end
 
         -- if a pane was provided, this will switch between numbered pages
         ---@param idx integer page index
@@ -106,7 +117,7 @@ function iocontrol.alloc_nav()
 
                 function page.nav_to()
                     app.cur_page = page
-                    if pane then pane.set_value(nav_to) end
+                    if app.pane then app.pane.set_value(nav_to) end
                 end
             else
                 function page.nav_to()

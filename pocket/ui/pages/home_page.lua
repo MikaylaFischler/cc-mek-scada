@@ -25,17 +25,16 @@ local function new_view(root)
 
     local main = Div{parent=root,x=1,y=1,height=19}
 
+    local app = db.nav.register_app(iocontrol.APP_ID.ROOT, main)
+
     local apps_1 = Div{parent=main,x=1,y=1,height=15}
     local apps_2 = Div{parent=main,x=1,y=1,height=15}
 
     local panes = { apps_1, apps_2 }
 
-    local f_ref = {}
-    local app_pane = AppMultiPane{parent=main,x=1,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=function(v)f_ref.callback(v)end}
+    local app_pane = AppMultiPane{parent=main,x=1,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=app.switcher}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.ROOT, main, app_pane)
-    f_ref.callback = app.switcher
-
+    app.set_root_pane(app_pane)
     app.new_page(app.new_page(nil, 1), 2)
 
     local function open(id) db.nav.open_app(id) end
@@ -48,6 +47,7 @@ local function new_view(root)
     App{parent=apps_1,x=3,y=7,text="\x08",title="DEV",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=10,y=7,text="\x7f",title="Waste",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.brown),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=17,y=7,text="\xb6",title="Guide",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=3,y=12,text="?",title="About",callback=function()open(APP_ID.ABOUT)end,app_fg_bg=cpair(colors.black,colors.white),active_fg_bg=active_fg_bg}
 
     TextBox{parent=apps_2,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}
 

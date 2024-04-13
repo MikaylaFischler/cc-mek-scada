@@ -68,6 +68,9 @@ local function main()
     -- mount connected devices
     ppm.mount_all()
 
+    -- record version for GUI
+    iocontrol.get_db().version = POCKET_VERSION
+
     ----------------------------------------
     -- setup communications & clocks
     ----------------------------------------
