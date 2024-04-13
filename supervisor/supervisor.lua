@@ -26,6 +26,7 @@ function supervisor.load_config()
     config.CoolingConfig = settings.get("CoolingConfig")
     config.FacilityTankMode = settings.get("FacilityTankMode")
     config.FacilityTankDefs = settings.get("FacilityTankDefs")
+    config.ExtChargeIdling = settings.get("ExtChargeIdling")
 
     config.SVR_Channel = settings.get("SVR_Channel")
     config.PLC_Channel = settings.get("PLC_Channel")
@@ -58,6 +59,8 @@ function supervisor.load_config()
     cfv.assert_type_int(config.FacilityTankMode)
     cfv.assert_range(config.FacilityTankMode, 0, 8)
 
+    cfv.assert_type_bool(config.ExtChargeIdling)
+
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.PLC_Channel)
     cfv.assert_channel(config.RTU_Channel)
@@ -78,7 +81,7 @@ function supervisor.load_config()
 
     if type(config.AuthKey) == "string" then
         local len = string.len(config.AuthKey)
-        cfv.assert_eq(len == 0 or len >= 8, true)
+        cfv.assert(len == 0 or len >= 8)
     end
 
     cfv.assert_type_int(config.LogMode)

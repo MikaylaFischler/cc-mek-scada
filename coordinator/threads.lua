@@ -133,6 +133,7 @@ function threads.thread__main(smem)
                         local ok, start_ui = coord_comms.try_connect()
                         if not ok then
                             crd_state.link_fail = true
+                            crd_state.shutdown = true
                             log_sys("supervisor connection failed, shutting down...")
                             log.fatal("failed to connect to supervisor")
                             break
@@ -271,6 +272,13 @@ function threads.thread__render(smem)
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
                         if msg.message == MQ__RENDER_CMD.START_MAIN_UI then
+                            -- stop the UI if it was already started
+                            -- this may occur on a quick supervisor disconnect -> connect
+                            if renderer.ui_ready() then
+                                log_render("closing main UI before executing new request to start")
+                                renderer.close_ui()
+                            end
+
                             -- start up the main UI
                             log_render("starting main UI...")
 

@@ -68,19 +68,32 @@ constants.ALARM_LIMITS = alarms
 
 --#region Supervisor Constants
 
--- milliseconds until turbine flow is assumed to be stable enough to enable coolant checks
-constants.FLOW_STABILITY_DELAY_MS = 15000
+-- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks
+constants.FLOW_STABILITY_DELAY_MS = 10000
 
 -- Notes on Radiation
 -- - background radiation 0.0000001 Sv/h (99.99 nSv/h)
 -- - "green tint" radiation 0.00001 Sv/h (10 uSv/h)
 -- - damaging radiation 0.00006 Sv/h (60 uSv/h)
-constants.LOW_RADIATION = 0.00001
-constants.HAZARD_RADIATION = 0.00006
-constants.HIGH_RADIATION = 0.001
+constants.LOW_RADIATION       = 0.00001
+constants.HAZARD_RADIATION    = 0.00006
+constants.HIGH_RADIATION      = 0.001
 constants.VERY_HIGH_RADIATION = 0.1
-constants.SEVERE_RADIATION = 8.0
-constants.EXTREME_RADIATION = 100.0
+constants.SEVERE_RADIATION    = 8.0
+constants.EXTREME_RADIATION   = 100.0
+
+--#endregion
+
+--#region Mekanism Configuration Constants
+
+---@class _mek_constants
+local mek = {}
+
+mek.TURBINE_GAS_PER_TANK   = 64000  -- mekanism: turbineGasPerTank
+mek.TURBINE_DISPERSER_FLOW = 1280   -- mekanism: turbineDisperserGasFlow
+mek.TURBINE_VENT_FLOW      = 32000  -- mekanism: turbineVentGasFlow
+
+constants.mek = mek
 
 --#endregion
 

@@ -201,7 +201,7 @@ function svsessions.init(nic, fp_ok, config, cooling_conf)
     self.nic = nic
     self.fp_ok = fp_ok
     self.config = config
-    self.facility = facility.new(config.UnitCount, cooling_conf)
+    self.facility = facility.new(config, cooling_conf)
 end
 
 -- find an RTU session by the computer ID

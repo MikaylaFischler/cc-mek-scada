@@ -8,9 +8,6 @@ local logic = require("supervisor.unitlogic")
 local plc   = require("supervisor.session.plc")
 local rsctl = require("supervisor.session.rsctl")
 
----@class reactor_control_unit
-local unit = {}
-
 local WASTE_MODE    = types.WASTE_MODE
 local WASTE         = types.WASTE_PRODUCT
 local ALARM         = types.ALARM
@@ -55,12 +52,22 @@ local AISTATE = {
 ---@field id ALARM alarm ID
 ---@field tier integer alarm urgency tier (0 = highest)
 
+-- burn rate to idle at
+local IDLE_RATE = 0.01
+
+---@class reactor_control_unit
+local unit = {}
+
 -- create a new reactor unit
 ---@nodiscard
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
-function unit.new(reactor_id, num_boilers, num_turbines)
+---@param ext_idle boolean extended idling mode
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
+    -- time (ms) to idle for auto idling
+    local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
+
     ---@class _unit_self
     local self = {
         r_id = reactor_id,
@@ -83,6 +90,9 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         emcool_opened = false,
         -- auto control
         auto_engaged = false,
+        auto_idle = false,
+        auto_idling = false,
+        auto_idle_start = 0,
         auto_was_alarmed = false,
         ramp_target_br100 = 0,
         -- state tracking
@@ -98,6 +108,8 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         status_text = { "UNKNOWN", "awaiting connection..." },
         -- logic for alarms
         had_reactor = false,
+        turbine_flow_stable = false,
+        turbine_stability_data = {},
         last_rate_change_ms = 0,
         ---@type rps_status
         last_rps_trips = {
@@ -251,6 +263,7 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
+        table.insert(self.turbine_stability_data, { time_state = 0, time_tanks = 0, rotation = 1 })
     end
 
     -- PRIVATE FUNCTIONS --
@@ -530,6 +543,13 @@ function unit.new(reactor_id, num_boilers, num_turbines)
 
             -- re-engage auto lock if it reconnected without it
             if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
+
+            -- stop idling when completed
+            if self.auto_idling and (((util.time_ms() - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
+                log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
+                self.auto_idling = false
+                self.plc_i.auto_set_burn(0, false)
+            end
         end
 
         -- update deltas
@@ -578,6 +598,23 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         end
     end
 
+    -- set automatic control idling mode to change behavior when given a burn rate command of zero<br>
+    -- - enabling it will hold the reactor at 0.01 mB/t for a period when commanded zero before disabling
+    -- - disabling it will stop the reactor when commanded zero
+    ---@param idle boolean true to enable, false to disable (and stop)
+    function public.auto_set_idle(idle)
+        if idle and not self.auto_idle then
+            self.auto_idling = false
+            self.auto_idle_start = 0
+        end
+
+        if idle ~= self.auto_idle then
+            log.debug(util.c("UNIT ", self.r_id, ": idling mode changed to ", idle))
+        end
+
+        self.auto_idle = idle
+    end
+
     -- get the actual limit of this unit<br>
     -- if it is degraded or not ready, the limit will be 0
     ---@nodiscard
@@ -597,7 +634,35 @@ function unit.new(reactor_id, num_boilers, num_turbines)
         if self.auto_engaged then
             if self.plc_i ~= nil then
                 log.debug(util.c("UNIT ", self.r_id, ": commit br100 of ", self.db.control.br100, " with ramp set to ", ramp))
-                self.plc_i.auto_set_burn(self.db.control.br100 / 100, ramp)
+
+                local rate = self.db.control.br100 / 100
+
+                if self.auto_idle then
+                    if rate <= IDLE_RATE then
+                        if self.auto_idle_start == 0 then
+                            self.auto_idling = true
+                            self.auto_idle_start = util.time_ms()
+                            log.info(util.c("UNIT ", self.r_id, ": started idling at ", IDLE_RATE, " mB/t"))
+
+                            rate = IDLE_RATE
+                        elseif (util.time_ms() - self.auto_idle_start) > IDLE_TIME then
+                            if self.auto_idling then
+                                self.auto_idling = false
+                                log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
+                            end
+                        else
+                            log.debug(util.c("UNIT ", self.r_id, ": continuing idle at ", IDLE_RATE, " mB/t"))
+
+                            rate = IDLE_RATE
+                        end
+                    else
+                        self.auto_idling = false
+                        self.auto_idle_start = 0
+                    end
+                end
+
+                self.plc_i.auto_set_burn(rate, ramp)
+
                 if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end
