@@ -29,7 +29,11 @@ local function create_pages(root)
     ------------------------
 
     local alarm_test = Div{parent=root,x=1,y=1}
-    local alarm_tasks = { db.diag.tone_test.get_tone_states }
+
+    local alarm_app = db.nav.register_app(iocontrol.APP_ID.ALARMS, alarm_test)
+
+    local page = alarm_app.new_page(nil, function () end)
+    page.tasks = { db.diag.tone_test.get_tone_states }
 
     local ttest = db.diag.tone_test
 
@@ -107,8 +111,6 @@ local function create_pages(root)
     local t_8 = IndicatorLight{parent=states,x=6,label="8",colors=c_blue_gray}
 
     ttest.tone_indicators = { t_1, t_2, t_3, t_4, t_5, t_6, t_7, t_8 }
-
-    return { Alarm = { e = alarm_test, tasks = alarm_tasks } }
 end
 
 return create_pages

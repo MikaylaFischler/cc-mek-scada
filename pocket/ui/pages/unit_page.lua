@@ -16,9 +16,10 @@ local ALIGN = core.ALIGN
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    db.nav.new_page(nil, 2)
-
     local main = Div{parent=root,x=1,y=1}
+
+    local app = db.nav.register_app(iocontrol.APP_ID.UNITS, main)
+    app.new_page(nil, function () end)
 
     TextBox{parent=main,text="UNITS",x=1,y=1,height=1,alignment=ALIGN.CENTER}
 

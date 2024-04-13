@@ -4,15 +4,15 @@
 
 local iocontrol    = require("pocket.iocontrol")
 
-local style        = require("pocket.ui.style")
+local diag_apps    = require("pocket.ui.apps.diag_apps")
+local dummy_app    = require("pocket.ui.apps.dummy_app")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
-local boiler_page  = require("pocket.ui.pages.boiler_page")
 local home_page    = require("pocket.ui.pages.home_page")
-local reactor_page = require("pocket.ui.pages.reactor_page")
-local turbine_page = require("pocket.ui.pages.turbine_page")
 local unit_page    = require("pocket.ui.pages.unit_page")
+
+local style        = require("pocket.ui.style")
 
 local core         = require("graphics.core")
 
@@ -71,18 +71,21 @@ local function init(main)
     local page_div = Div{parent=main_pane,x=4,y=1}
 
     local sidebar_tabs = {
-        { char = "#", color = cpair(colors.black,colors.green) },
-        { char = "U", color = cpair(colors.black,colors.yellow) },
-        { char = "R", color = cpair(colors.black,colors.cyan) },
-        { char = "B", color = cpair(colors.black,colors.lightGray) },
-        { char = "T", color = cpair(colors.black,colors.white) }
+        { char = "#", color = cpair(colors.black,colors.green) }
     }
 
-    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes={home_page(page_div),unit_page(page_div),reactor_page(page_div),boiler_page(page_div),turbine_page(page_div)}}
+    home_page(page_div)
+    unit_page(page_div)
 
-    local base = iocontrol.init_nav(page_pane)
+    diag_apps(page_div)
+    dummy_app(page_div)
 
-    Sidebar{parent=main_pane,x=1,y=1,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=base.switcher}
+    assert(#db.nav.get_containers() == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
+
+    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=db.nav.get_containers()}
+    db.nav.set_pane(page_pane)
+
+    Sidebar{parent=main_pane,x=1,y=1,tabs=sidebar_tabs,fg_bg=cpair(colors.white,colors.gray),callback=db.nav.open_app}
 
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 

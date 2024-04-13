@@ -3,6 +3,7 @@
 --
 
 local psil = require("scada-common.psil")
+local log  = require("scada-common.log")
 
 local types = require("scada-common.types")
 
@@ -24,97 +25,154 @@ local LINK_STATE = {
 
 iocontrol.LINK_STATE = LINK_STATE
 
+---@enum POCKET_APP_ID
+local APP_ID = {
+    ROOT = 1,
+    UNITS = 2,
+    ALARMS = 3,
+    DUMMY = 4,
+    NUM_APPS = 4
+}
+
+iocontrol.APP_ID = APP_ID
+
 ---@class pocket_ioctl
 local io = {
-    nav_root = nil, ---@type nav_tree_node
     ps = psil.create()
 }
 
----@class nav_tree_node
----@field _p nav_tree_node|nil page's parent
+---@class nav_tree_page
+---@field _p nav_tree_page|nil page's parent
 ---@field _c table page's children
----@field pane_elem graphics_element|nil multipane for this branch
----@field pane_id integer this page's ID in it's contained pane
----@field switcher function|nil function to switch this page's active multipane
 ---@field nav_to function function to navigate to this page
----@field tasks table tasks to run on this page
+---@field switcher function|nil function to switch between children
+---@field tasks table tasks to run while viewing this page
 
--- allocate the page navigation tree system<br>
--- navigation is not ready until init_nav has been called
+-- allocate the page navigation system
 function iocontrol.alloc_nav()
     local self = {
-        root = { _p = nil, _c = {}, pane_id = 0, pane_elem = nil, nav_to = function () end, tasks = {} }, ---@type nav_tree_node
-        cur_page = nil ---@type nav_tree_node
+        pane = nil, ---@type graphics_element
+        apps = {},
+        containers = {},
+        cur_app = APP_ID.ROOT
     }
-
-    function self.root.switcher(pane_id)
-        if self.root._c[pane_id] then self.root._c[pane_id].nav_to() end
-    end
-
-    -- find the pane this element belongs to
-    ---@param parent nav_tree_node
-    local function _find_pane(parent)
-        if parent == nil then
-            return nil
-        elseif parent.pane_elem then
-            return parent.pane_elem
-        else
-            return _find_pane(parent._p)
-        end
-    end
 
     self.cur_page = self.root
 
     ---@class pocket_nav
     io.nav = {}
 
-    -- create a new page entry in the page navigation tree
-    ---@param parent nav_tree_node? a parent page or nil to use the root
-    ---@param pane_id integer the pane number for this page in it's parent's multipane
-    ---@param pane graphics_element? this page's multipane, if it has children
-    ---@return nav_tree_node new_page this new page
-    function io.nav.new_page(parent, pane_id, pane)
-        local page = { _p = parent or self.root, _c = {}, pane_id = pane_id, pane_elem = pane, tasks = {} }
-        page._p._c[pane_id] = page
+    -- set the root pane element to switch between apps with
+    ---@param root_pane graphics_element
+    function io.nav.set_pane(root_pane)
+        self.pane = root_pane
+    end
 
-        function page.nav_to()
-            local p_pane = _find_pane(page._p)
-            if p_pane then p_pane.set_value(page.pane_id) end
-            self.cur_page = page
+    -- register an app
+    ---@param app_id POCKET_APP_ID app ID
+    ---@param container graphics_element element that contains this app (usually a Div)
+    ---@param pane graphics_element? multipane if this is a simple paned app, then nav_to must be a number
+    function io.nav.register_app(app_id, container, pane)
+        ---@class pocket_app
+        local app = {
+            root = { _p = nil, _c = {}, nav_to = function () end, tasks = {} }, ---@type nav_tree_page
+            cur_page = nil, ---@type nav_tree_page
+            paned_pages = {}
+        }
+
+        -- if a pane was provided, this will switch between numbered pages
+        ---@param idx integer page index
+        function app.switcher(idx)
+            if app.paned_pages[idx] then
+                app.paned_pages[idx].nav_to()
+            end
         end
 
-        if pane then
-            function page.switcher() if page._c[pane_id] then page._c[pane_id].nav_to() end end
+        -- create a new page entry in the page navigation tree
+        ---@param parent nav_tree_page? a parent page or nil to set this as the root
+        ---@param nav_to function|integer function to navigate to this page or pane index
+        ---@return nav_tree_page new_page this new page
+        function app.new_page(parent, nav_to)
+            ---@type nav_tree_page
+            local page = { _p = parent, _c = {}, nav_to = function () end, switcher = function () end, tasks = {} }
+
+            if parent == nil then
+                app.root = page
+                if app.cur_page == nil then app.cur_page = page end
+            end
+
+            if type(nav_to) == "number" then
+                app.paned_pages[nav_to] = page
+
+                function page.nav_to()
+                    app.cur_page = page
+                    if pane then pane.set_value(nav_to) end
+                end
+            else
+                function page.nav_to()
+                    app.cur_page = page
+                    nav_to()
+                end
+            end
+
+            -- switch between children
+            ---@param id integer child ID
+            function page.switcher(id) if page._c[id] then page._c[id].nav_to() end end
+
+            if parent ~= nil then
+                table.insert(page._p._c, page)
+            end
+
+            return page
         end
 
-        return page
+        -- get the currently active page
+        function app.get_current_page() return app.cur_page end
+
+        -- attempt to navigate up the tree
+        ---@return boolean success true if successfully navigated up
+        function app.nav_up()
+            local parent = app.cur_page._p
+            if parent then parent.nav_to() end
+            return parent ~= nil
+        end
+
+        self.apps[app_id] = app
+        self.containers[app_id] = container
+
+        return app
+    end
+
+    -- get a list of the app containers (usually Div elements)
+    function io.nav.get_containers() return self.containers end
+
+    -- open a given app
+    ---@param app_id POCKET_APP_ID
+    function io.nav.open_app(app_id)
+        if self.apps[app_id] then
+            self.cur_app = app_id
+            self.pane.set_value(app_id)
+        else
+            log.debug("tried to open unknown app")
+        end
     end
 
     -- get the currently active page
-    function io.nav.get_current_page() return self.cur_page end
-
-    -- attempt to navigate up the tree
-    function io.nav.nav_up()
-        local parent = self.cur_page._p
-        -- if a parent is defined and this element is not root
-        if parent then parent.nav_to() end
+    ---@return nav_tree_page
+    function io.nav.get_current_page()
+        return self.apps[self.cur_app].get_current_page()
     end
 
-    io.nav_root = self.root
-end
+    -- attempt to navigate up
+    function io.nav.nav_up()
+        local app = self.apps[self.cur_app] ---@type pocket_app
+        log.debug("attempting app nav up for app " .. self.cur_app)
 
--- complete initialization of navigation by providing the root muiltipane
----@param root_pane graphics_element navigation root multipane
----@param default_page integer? page to nagivate to if nav_up is called on a base node
-function iocontrol.init_nav(root_pane, default_page)
-    io.nav_root.pane_elem = root_pane
-
-    ---@todo keep this?
-    -- if default_page ~= nil then
-    --     io.nav_root.nav_to = function() io.nav_root.switcher(default_page) end
-    -- end
-
-    return io.nav_root
+        if not app.nav_up() then
+            log.debug("internal app nav up failed, going to home screen")
+            io.nav.open_app(APP_ID.ROOT)
+        end
+    end
 end
 
 -- initialize facility-independent components of pocket iocontrol

@@ -29,7 +29,6 @@ local element = {}
 ---|checkbox_args
 ---|hazard_button_args
 ---|multi_button_args
----|app_page_selector_args
 ---|push_button_args
 ---|radio_2d_args
 ---|radio_button_args
@@ -54,6 +53,7 @@ local element = {}
 ---|state_indicator_args
 ---|tristate_indicator_light_args
 ---|vbar_args
+---|app_multipane_args
 ---|colormap_args
 ---|displaybox_args
 ---|div_args

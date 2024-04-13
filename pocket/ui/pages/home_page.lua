@@ -2,20 +2,19 @@
 -- Main Home Page
 --
 
-local iocontrol  = require("pocket.iocontrol")
+local iocontrol    = require("pocket.iocontrol")
 
-local diag_apps  = require("pocket.ui.apps.diag_apps")
+local core         = require("graphics.core")
 
-local core       = require("graphics.core")
+local AppMultiPane = require("graphics.elements.appmultipane")
+local Div          = require("graphics.elements.div")
+local TextBox      = require("graphics.elements.textbox")
 
-local Div        = require("graphics.elements.div")
-local MultiPane  = require("graphics.elements.multipane")
-local TextBox    = require("graphics.elements.textbox")
-
-local AppPageSel = require("graphics.elements.controls.app_page_selector")
-local App        = require("graphics.elements.controls.app")
+local App          = require("graphics.elements.controls.app")
 
 local cpair = core.cpair
+
+local APP_ID = iocontrol.APP_ID
 
 local ALIGN = core.ALIGN
 
@@ -24,42 +23,37 @@ local ALIGN = core.ALIGN
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local main = Div{parent=root,x=1,y=1}
+    local main = Div{parent=root,x=1,y=1,height=19}
 
-    local apps = Div{parent=main,x=1,y=1,height=19}
-
-    local apps_1 = Div{parent=apps,x=1,y=1,height=15}
-    local apps_2 = Div{parent=apps,x=1,y=1,height=15}
+    local apps_1 = Div{parent=main,x=1,y=1,height=15}
+    local apps_2 = Div{parent=main,x=1,y=1,height=15}
 
     local panes = { apps_1, apps_2 }
 
-    local app_pane = MultiPane{parent=apps,x=1,y=1,panes=panes,height=15}
+    local f_ref = {}
+    local app_pane = AppMultiPane{parent=main,x=1,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=function(v)f_ref.callback(v)end}
 
-    AppPageSel{parent=apps,x=11,y=18,page_count=2,active_color=colors.lightGray,callback=app_pane.set_value,fg_bg=cpair(colors.gray,colors.black)}
+    local app = db.nav.register_app(iocontrol.APP_ID.ROOT, main, app_pane)
+    f_ref.callback = app.switcher
 
-    local d_apps = diag_apps(main)
+    app.new_page(app.new_page(nil, 1), 2)
 
-    local page_panes = { apps, d_apps.Alarm.e }
+    local function open(id) db.nav.open_app(id) end
 
-    local page_pane = MultiPane{parent=main,x=1,y=1,panes=page_panes}
+    local active_fg_bg = cpair(colors.white,colors.gray)
 
-    local npage_home = db.nav.new_page(nil, 1, page_pane)
-    local npage_apps = db.nav.new_page(npage_home, 1)
-
-    local npage_alarm = db.nav.new_page(npage_apps, 2)
-    npage_alarm.tasks = d_apps.Alarm.tasks
-
-    App{parent=apps_1,x=3,y=2,text="\x17",title="PRC",callback=function()end,app_fg_bg=cpair(colors.black,colors.purple)}
-    App{parent=apps_1,x=10,y=2,text="\x15",title="CTL",callback=function()end,app_fg_bg=cpair(colors.black,colors.green)}
-    App{parent=apps_1,x=17,y=2,text="\x08",title="DEV",callback=function()end,app_fg_bg=cpair(colors.black,colors.lightGray)}
-    App{parent=apps_1,x=3,y=7,text="\x7f",title="Waste",callback=function()end,app_fg_bg=cpair(colors.black,colors.brown)}
-    App{parent=apps_1,x=10,y=7,text="\xb6",title="Guide",callback=function()end,app_fg_bg=cpair(colors.black,colors.cyan)}
+    App{parent=apps_1,x=3,y=2,text="U",title="Units",callback=function()open(APP_ID.UNITS)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=10,y=2,text="\x17",title="PRC",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.purple),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=17,y=2,text="\x15",title="CTL",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.green),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=3,y=7,text="\x08",title="DEV",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=10,y=7,text="\x7f",title="Waste",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.brown),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=17,y=7,text="\xb6",title="Guide",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
 
     TextBox{parent=apps_2,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}
 
-    App{parent=apps_2,x=3,y=4,text="\x0f",title="Alarm",callback=npage_alarm.nav_to,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
-    App{parent=apps_2,x=10,y=4,text="\x1e",title="LoopT",callback=function()end,app_fg_bg=cpair(colors.black,colors.cyan)}
-    App{parent=apps_2,x=17,y=4,text="@",title="Comps",callback=function()end,app_fg_bg=cpair(colors.black,colors.orange)}
+    App{parent=apps_2,x=3,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=10,y=4,text="\x1e",title="LoopT",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=17,y=4,text="@",title="Comps",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
 
     return main
 end
