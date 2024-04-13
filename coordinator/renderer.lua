@@ -254,6 +254,11 @@ function renderer.close_ui()
     -- clear unit monitors
     for _, monitor in ipairs(engine.monitors.unit_displays) do monitor.clear() end
 
+    if not engine.disable_flow_view then
+        -- clear flow monitor
+        engine.monitors.flow.clear()
+    end
+
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)
     engine.dmesg_window.redraw()
