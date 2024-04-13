@@ -2,6 +2,8 @@
 -- Main SCADA Coordinator GUI
 --
 
+local util          = require("scada-common.util")
+
 local iocontrol     = require("coordinator.iocontrol")
 
 local style         = require("coordinator.ui.style")
@@ -53,6 +55,8 @@ local function init(main)
 
     cnc_y_start = cnc_y_start + row_1_height + 1
 
+    util.nop()
+
     if facility.num_units >= 3 then
         -- base offset 3, spacing 1, max height of units 1 and 2
         local row_2_offset = cnc_y_start
@@ -64,6 +68,8 @@ local function init(main)
             uo_4 = unit_overview(main, 84, row_2_offset, units[4])
             cnc_y_start = math.max(cnc_y_start, row_2_offset + uo_4.get_height() + 1)
         end
+
+        util.nop()
     end
 
     -- command & control
@@ -78,6 +84,8 @@ local function init(main)
     cnc_bottom_align_start = cnc_bottom_align_start + 2
 
     process_ctl(main, 2, cnc_bottom_align_start)
+
+    util.nop()
 
     imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
 end

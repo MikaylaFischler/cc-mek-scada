@@ -91,6 +91,7 @@ local tmp_cfg = {
     CoolingConfig = {},
     FacilityTankMode = 0,
     FacilityTankDefs = {},
+    ExtChargeIdling = false,
     SVR_Channel = nil,  ---@type integer
     PLC_Channel = nil,  ---@type integer
     RTU_Channel = nil,  ---@type integer
@@ -120,6 +121,7 @@ local fields = {
     { "CoolingConfig", "Cooling Configuration", {} },
     { "FacilityTankMode", "Facility Tank Mode", 0 },
     { "FacilityTankDefs", "Facility Tank Definitions", {} },
+    { "ExtChargeIdling", "Extended Charge Idling", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
     { "RTU_Channel", "RTU Channel", 16242 },
@@ -222,8 +224,9 @@ local function config_view(display)
     local svr_c_4 = Div{parent=svr_cfg,x=2,y=4,width=49}
     local svr_c_5 = Div{parent=svr_cfg,x=2,y=4,width=49}
     local svr_c_6 = Div{parent=svr_cfg,x=2,y=4,width=49}
+    local svr_c_7 = Div{parent=svr_cfg,x=2,y=4,width=49}
 
-    local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6}}
+    local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6,svr_c_7}}
 
     TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -329,7 +332,7 @@ local function config_view(display)
         else
             tmp_cfg.FacilityTankMode = 0
             tmp_cfg.FacilityTankDefs = {}
-            main_pane.set_value(3)
+            svr_pane.set_value(7)
         end
     end
 
@@ -563,7 +566,7 @@ local function config_view(display)
 
     local function submit_mode()
         tmp_cfg.FacilityTankMode = tank_mode.get_value()
-        main_pane.set_value(3)
+        svr_pane.set_value(7)
     end
 
     PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -576,6 +579,23 @@ local function config_view(display)
     TextBox{parent=svr_c_6,y=10,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same.",fg_bg=g_lg_fg_bg}
 
     PushButton{parent=svr_c_6,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=svr_c_7,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
+    TextBox{parent=svr_c_7,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
+
+    local ext_idling = CheckBox{parent=svr_c_7,x=1,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
+
+    local function back_from_idling()
+        svr_pane.set_value(util.trinary(tmp_cfg.FacilityTankMode == 0, 3, 5))
+    end
+
+    local function submit_idling()
+        tmp_cfg.ExtChargeIdling = ext_idling.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=svr_c_7,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_7,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

@@ -39,6 +39,21 @@ local ALARM_LIMS = const.ALARM_LIMITS
 ---@class unit_logic_extension
 local logic = {}
 
+-- compute Mekanism's rotation rate for a turbine
+---@param turbine turbinev_session_db
+local function turbine_rotation(turbine)
+    local build = turbine.build
+
+    local inner_vol = build.steam_cap / const.mek.TURBINE_GAS_PER_TANK
+    local disp_rate = (build.dispersers * const.mek.TURBINE_DISPERSER_FLOW) * inner_vol
+    local vent_rate = build.vents * const.mek.TURBINE_VENT_FLOW
+
+    local max_rate = math.min(disp_rate, vent_rate)
+    local flow = math.min(max_rate, turbine.tanks.steam.amount)
+
+    return (flow * (turbine.tanks.steam.amount / build.steam_cap)) / max_rate
+end
+
 -- update the annunciator
 ---@param self _unit_self
 function logic.update_annunciator(self)
@@ -81,6 +96,11 @@ function logic.update_annunciator(self)
         -- some alarms wait until the burn rate has stabilized, so keep track of that
         if math.abs(_get_dt(DT_KEYS.ReactorBurnR)) > 0 then
             self.last_rate_change_ms = util.time_ms()
+            self.turbine_flow_stable = false
+
+            for t = 1, self.num_turbines do
+                self.turbine_stability_data[t] = { time_state = 0, time_tanks = 0, rotation = 1 }
+            end
         end
 
         -- record reactor stats
@@ -274,6 +294,7 @@ function logic.update_annunciator(self)
     local total_flow_rate = 0
     local total_input_rate = 0
     local max_water_return_rate = 0
+    local turbines_stable = true
 
     -- recompute blade count on the chance that it may have changed
     self.db.control.blade_count = 0
@@ -282,12 +303,14 @@ function logic.update_annunciator(self)
     for i = 1, #self.turbines do
         local session = self.turbines[i] ---@type unit_session
         local turbine = session.get_db() ---@type turbinev_session_db
+        local idx = session.get_device_idx()
 
         annunc.RCSFault = annunc.RCSFault or (not turbine.formed) or session.is_faulted()
+        annunc.TurbineOnline[idx] = true
 
         -- update ready state
-        --  - must be formed
-        --  - must have received build, state, and tanks at least once
+        -- - must be formed
+        -- - must have received build, state, and tanks at least once
         turbines_ready = turbines_ready and turbine.formed and
                         (turbine.build.last_update > 0) and
                         (turbine.state.last_update > 0) and
@@ -296,10 +319,55 @@ function logic.update_annunciator(self)
         total_flow_rate = total_flow_rate + turbine.state.flow_rate
         total_input_rate = total_input_rate + turbine.state.steam_input_rate
         max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
+
         self.db.control.blade_count = self.db.control.blade_count + turbine.build.blades
 
-        annunc.TurbineOnline[session.get_device_idx()] = true
+        local last = self.turbine_stability_data[i]
+
+        if (not self.turbine_flow_stable) and (turbine.state.steam_input_rate > 0) then
+            local rotation = turbine_rotation(turbine)
+            local rotation_stable = false
+
+            -- see if data updated, and if so, check rotation speed change
+            -- minimal change indicates the turbine is converging on a flow rate
+            if last.time_tanks < turbine.tanks.last_update then
+                if last.time_tanks > 0 then
+                    rotation_stable = math.abs(rotation - last.rotation) < 0.00000003
+                end
+
+                last.time_tanks = turbine.tanks.last_update
+                last.rotation = rotation
+            end
+
+            -- flow is stable if the flow rate is at the input rate or at the max (±1 mB/t)
+            local flow_stable = false
+            if last.time_state < turbine.state.last_update then
+                if (last.time_state > 0) and (turbine.state.flow_rate > 0) then
+                    flow_stable = math.abs(turbine.state.flow_rate - math.min(turbine.state.steam_input_rate, turbine.build.max_flow_rate)) < 2
+                end
+
+                last.time_state = turbine.state.last_update
+            end
+
+            if rotation_stable then
+                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached rotational stability (", rotation, ")"))
+            end
+
+            if flow_stable then
+                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached flow stability (", turbine.state.flow_rate, " mB/t)"))
+            end
+
+            turbines_stable = turbines_stable and (rotation_stable or flow_stable)
+        else
+            last.time_state = 0
+            last.time_tanks = 0
+            last.rotation = 1
+
+            turbines_stable = false
+        end
     end
+
+    self.turbine_flow_stable = self.turbine_flow_stable or turbines_stable
 
     -- check for boil rate mismatch (> 4% error) either between reactor and turbine or boiler and turbine
     annunc.BoilRateMismatch = math.abs(total_boil_rate - total_input_rate) > (0.04 * total_boil_rate)
@@ -508,11 +576,25 @@ function logic.update_alarms(self)
 
     local rcs_trans = any_low or any_over or gen_trip or annunc.RCPTrip or annunc.MaxWaterReturnFeed
 
-    -- annunciator indicators for these states may not indicate a real issue when:
-    --  > flow is ramping up right after reactor start
-    --  > flow is ramping down after reactor shutdown
-    if ((util.time_ms() - self.last_rate_change_ms) > FLOW_STABILITY_DELAY_MS) and plc_cache.active then
-        rcs_trans = rcs_trans or annunc.RCSFlowLow or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
+    if plc_cache.active then
+        -- these conditions may not indicate an issue when flow is changing after a burn rate change
+        if self.num_boilers == 0 then
+            if (util.time_ms() - self.last_rate_change_ms) > FLOW_STABILITY_DELAY_MS then
+                rcs_trans = rcs_trans or annunc.BoilRateMismatch
+            end
+
+            if self.turbine_flow_stable then
+                rcs_trans = rcs_trans or annunc.RCSFlowLow or annunc.CoolantFeedMismatch or annunc.SteamFeedMismatch
+            end
+        else
+            if (util.time_ms() - self.last_rate_change_ms) > FLOW_STABILITY_DELAY_MS then
+                rcs_trans = rcs_trans or annunc.RCSFlowLow or annunc.BoilRateMismatch or annunc.CoolantFeedMismatch
+            end
+
+            if self.turbine_flow_stable then
+                rcs_trans = rcs_trans or annunc.SteamFeedMismatch
+            end
+        end
     end
 
     if _update_alarm_state(self, rcs_trans, self.alarms.RCSTransient) then
@@ -666,7 +748,9 @@ function logic.update_status_text(self)
             elseif annunc.WasteLineOcclusion then
                 self.status_text[2] = "insufficient waste output rate"
             elseif (util.time_ms() - self.last_rate_change_ms) <= FLOW_STABILITY_DELAY_MS then
-                self.status_text[2] = "awaiting flow stability"
+                self.status_text[2] = "awaiting coolant flow stability"
+            elseif not self.turbine_flow_stable then
+                self.status_text[2] = "awaiting turbine flow stability"
             else
                 self.status_text[2] = "system nominal"
             end
