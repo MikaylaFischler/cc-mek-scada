@@ -71,9 +71,9 @@ local function multipane(args)
         end
 
         if args.scroll_nav then
-            if event.type == events.MOUSE_CLICK.SCROLL_UP then
+            if event.type == events.MOUSE_CLICK.SCROLL_DOWN then
                 e.set_value(e.value + 1)
-            elseif event.type == events.MOUSE_CLICK.SCROLL_DOWN then
+            elseif event.type == events.MOUSE_CLICK.SCROLL_UP then
                 e.set_value(e.value - 1)
             end
         end
