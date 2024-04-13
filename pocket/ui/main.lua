@@ -37,9 +37,9 @@ local function init(main)
     local db = iocontrol.get_db()
 
     -- window header message
-    TextBox{parent=main,y=1,text="DEV ALPHA APP     S   C   ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
-    local svr_conn = SignalBar{parent=main,y=1,x=20,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.white,colors.gray)}
-    local crd_conn = SignalBar{parent=main,y=1,x=24,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=main,y=1,text="DEV ALPHA APP      S   C   ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
+    local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
 
     db.ps.subscribe("svr_conn_quality", svr_conn.set_value)
     db.ps.subscribe("crd_conn_quality", crd_conn.set_value)
