@@ -8,6 +8,7 @@ local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
+local CRDN_TYPE = comms.CRDN_TYPE
 
 local LINK_STATE = iocontrol.LINK_STATE
 
@@ -246,6 +247,25 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
         return pkt
     end
 
+    ---@param packet mgmt_frame|crdn_frame
+    ---@param length integer
+    ---@param max integer?
+    ---@return boolean
+    local function _check_length(packet, length, max)
+        local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= max)
+        if not ok then
+            local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: packet length mismatch -> expect %d != actual %d"
+            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type))
+        end
+        return ok
+    end
+
+    ---@param packet mgmt_frame|crdn_frame
+    local function _fail_type(packet)
+        local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: unrecognized packet type"
+        log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type))
+    end
+
     -- handle a packet
     ---@param packet mgmt_frame|crdn_frame|nil
     function public.handle_packet(packet)
@@ -268,7 +288,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                     return
                 elseif self.api.linked and (src_addr ~= self.api.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
-                                "); channel in use by another system?")
+                              "); channel in use by another system?")
                     return
                 else
                     self.api.r_seq_num = packet.scada_frame.seq_num()
@@ -277,12 +297,24 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                 -- feed watchdog on valid sequence number
                 api_watchdog.feed()
 
-                if protocol == PROTOCOL.SCADA_MGMT then
+                if protocol == PROTOCOL.SCADA_CRDN then
+                    ---@cast packet crdn_frame
+                    if self.api.linked then
+                        if packet.type == CRDN_TYPE.API_GET_FAC then
+                            if _check_length(packet, 11) then
+                                iocontrol.record_facility_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_UNITS then
+                        else _fail_type(packet) end
+                    else
+                        log.debug("discarding coordinator SCADA_CRDN packet before linked")
+                    end
+                elseif protocol == PROTOCOL.SCADA_MGMT then
                     ---@cast packet mgmt_frame
                     if self.api.linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
-                            if packet.length == 1 then
+                            if _check_length(packet, 1) then
                                 local timestamp = packet.data[1]
                                 local trip_time = util.time() - timestamp
 
@@ -295,8 +327,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 _send_api_keep_alive_ack(timestamp)
 
                                 iocontrol.report_crd_tt(trip_time)
-                            else
-                                log.debug("coordinator SCADA keep alive packet length mismatch")
                             end
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
@@ -305,24 +335,38 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                             self.api.r_seq_num = nil
                             self.api.addr = comms.BROADCAST
                             log.info("coordinator server connection closed by remote host")
-                        else
-                            log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from coordinator")
-                        end
+                        else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with coordinator established
-                        if packet.length == 1 then
+                        if _check_length(packet, 1, 2) then
                             local est_ack = packet.data[1]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
-                                log.info("coordinator connection established")
-                                self.establish_delay_counter = 0
-                                self.api.linked = true
-                                self.api.addr = src_addr
+                                if packet.length == 2 then
+                                    local fac_config = packet.data[2]
 
-                                if self.sv.linked then
-                                    iocontrol.report_link_state(LINK_STATE.LINKED)
+                                    if type(fac_config) == "table" and #fac_config == 2 then
+                                        -- get configuration
+                                        local conf = { num_units = fac_config[1], cooling = fac_config[2] }
+
+                                        ---@todo
+                                        iocontrol.init_fac(conf, public, 0)
+
+                                        log.info("coordinator connection established")
+                                        self.establish_delay_counter = 0
+                                        self.api.linked = true
+                                        self.api.addr = src_addr
+
+                                        if self.sv.linked then
+                                            iocontrol.report_link_state(LINK_STATE.LINKED)
+                                        else
+                                            iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
+                                        end
+                                    else
+                                        log.debug("invalid facility configuration table received from coordinator, establish failed")
+                                    end
                                 else
-                                    iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
+                                    log.debug("received coordinator establish allow without facility configuration")
                                 end
                             elseif est_ack == ESTABLISH_ACK.DENY then
                                 if self.api.last_est_ack ~= est_ack then
@@ -336,13 +380,15 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 if self.api.last_est_ack ~= est_ack then
                                     log.info("coordinator comms version mismatch")
                                 end
+                            elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
+                                if self.api.last_est_ack ~= est_ack then
+                                    log.info("coordinator api version mismatch")
+                                end
                             else
                                 log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
                             end
 
                             self.api.last_est_ack = est_ack
-                        else
-                            log.debug("coordinator SCADA_MGMT establish packet length mismatch")
                         end
                     else
                         log.debug("discarding coordinator non-link SCADA_MGMT packet before linked")
@@ -374,7 +420,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                     if self.sv.linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
-                            if packet.length == 1 then
+                            if _check_length(packet, 1) then
                                 local timestamp = packet.data[1]
                                 local trip_time = util.time() - timestamp
 
@@ -387,8 +433,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 _send_sv_keep_alive_ack(timestamp)
 
                                 iocontrol.report_svr_tt(trip_time)
-                            else
-                                log.debug("supervisor SCADA keep alive packet length mismatch")
                             end
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
@@ -398,12 +442,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                             self.sv.addr = comms.BROADCAST
                             log.info("supervisor server connection closed by remote host")
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_GET then
-                            if packet.length == 8 then
+                            if _check_length(packet, 8) then
                                 for i = 1, #packet.data do
                                     diag.tone_test.tone_indicators[i].update(packet.data[i] == true)
                                 end
-                            else
-                                log.debug("supervisor SCADA diag alarm states packet length mismatch")
                             end
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_SET then
                             if packet.length == 1 and packet.data[1] == false then
@@ -442,12 +484,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                             else
                                 log.debug("supervisor SCADA diag alarm set packet length/type mismatch")
                             end
-                        else
-                            log.debug("received unknown SCADA_MGMT packet type " .. packet.type .. " from supervisor")
-                        end
+                        else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
-                        if packet.length == 1 then
+                        if _check_length(packet, 1) then
                             local est_ack = packet.data[1]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
@@ -478,15 +518,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                             end
 
                             self.sv.last_est_ack = est_ack
-                        else
-                            log.debug("supervisor SCADA_MGMT establish packet length mismatch")
                         end
                     else
                         log.debug("discarding supervisor non-link SCADA_MGMT packet before linked")
                     end
-                else
-                    log.debug("illegal packet type " .. protocol .. " from supervisor", true)
-                end
+                else _fail_type(packet) end
             else
                 log.debug("received packet from unconfigured channel " .. r_chan, true)
             end

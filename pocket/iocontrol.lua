@@ -161,7 +161,60 @@ function iocontrol.init_core(comms)
 end
 
 -- initialize facility-dependent components of pocket iocontrol
-function iocontrol.init_fac() end
+---@param conf facility_conf configuration
+---@param comms pocket_comms comms reference
+---@param temp_scale 1|2|3|4 temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+function iocontrol.init_fac(conf, comms, temp_scale)
+    -- temperature unit label and conversion function (from Kelvin)
+    if temp_scale == 2 then
+        io.temp_label = "\xb0C"
+        io.temp_convert = function (t) return t - 273.15 end
+    elseif temp_scale == 3 then
+        io.temp_label = "\xb0F"
+        io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
+    elseif temp_scale == 4 then
+        io.temp_label = "\xb0R"
+        io.temp_convert = function (t) return 1.8 * t end
+    else
+        io.temp_label = "K"
+        io.temp_convert = function (t) return t end
+    end
+
+    -- facility data structure
+    ---@class pioctl_facility
+    io.facility = {
+        num_units = conf.num_units,
+        tank_mode = conf.cooling.fac_tank_mode,
+        tank_defs = conf.cooling.fac_tank_defs,
+        all_sys_ok = false,
+        rtu_count = 0,
+
+        auto_ready = false,
+        auto_active = false,
+        auto_ramping = false,
+        auto_saturated = false,
+
+        ---@type WASTE_PRODUCT
+        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+        auto_pu_fallback_active = false,
+
+        radiation = types.new_zero_radiation_reading(),
+
+        ps = psil.create(),
+
+        induction_ps_tbl = {},
+        induction_data_tbl = {},
+
+        sps_ps_tbl = {},
+        sps_data_tbl = {},
+
+        tank_ps_tbl = {},
+        tank_data_tbl = {},
+
+        env_d_ps = psil.create(),
+        env_d_data = {}
+    }
+end
 
 -- set network link state
 ---@param state POCKET_LINK_STATE
@@ -201,6 +254,39 @@ function iocontrol.report_crd_tt(trip_time)
     end
 
     io.ps.publish("crd_conn_quality", state)
+end
+
+-- populate facility data from API_GET_FAC
+---@param data table
+---@return boolean valid
+function iocontrol.record_facility_data(data)
+    local valid = true
+
+    local fac = io.facility
+
+    fac.all_sys_ok = data[1]
+    fac.rtu_count = data[2]
+    fac.radiation = data[3]
+
+    -- auto control
+    if type(data[4]) == "table" and #data[4] == 4 then
+        fac.auto_ready = data[4][1]
+        fac.auto_active = data[4][2]
+        fac.auto_ramping = data[4][3]
+        fac.auto_saturated = data[4][4]
+    end
+
+    -- waste
+    if type(data[5]) == "table" and #data[5] == 2 then
+        fac.auto_current_waste_product = data[5][1]
+        fac.auto_pu_fallback_active = data[5][2]
+    end
+
+    fac.num_tanks = data[6]
+    fac.has_imatrix = data[7]
+    fac.has_sps = data[8]
+
+    return valid
 end
 
 -- get the IO controller database

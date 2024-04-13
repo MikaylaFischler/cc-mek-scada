@@ -16,8 +16,9 @@ local max_distance = nil
 ---@class comms
 local comms = {}
 
--- protocol/data version (protocol/data independent changes tracked by util.lua version)
+-- protocol/data versions (protocol/data independent changes tracked by util.lua version)
 comms.version = "2.4.5"
+comms.api_version = "0.0.1"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -74,7 +75,8 @@ local ESTABLISH_ACK = {
     ALLOW = 0,           -- link approved
     DENY = 1,            -- link denied
     COLLISION = 2,       -- link denied due to existing active link
-    BAD_VERSION = 3      -- link denied due to comms version mismatch
+    BAD_VERSION = 3,     -- link denied due to comms version mismatch
+    BAD_API_VERSION = 4  -- link denied due to api version mismatch
 }
 
 ---@enum DEVICE_TYPE device types for establish messages

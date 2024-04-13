@@ -126,19 +126,15 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
             if pkt.type == CRDN_TYPE.API_GET_FAC then
                 local fac = db.facility
 
-                ---@class api_fac
                 local data = {
-                    num_units = fac.num_units,
-                    num_tanks = util.table_len(fac.tank_data_tbl),
-                    tank_mode = fac.tank_mode,
-                    tank_defs = fac.tank_defs,
-                    sys_ok = fac.all_sys_ok,
-                    rtu_count = fac.rtu_count,
-                    radiation = fac.radiation,
-                    auto = { fac.auto_ready, fac.auto_active, fac.auto_ramping, fac.auto_saturated },
-                    waste = { fac.auto_current_waste_product, fac.auto_pu_fallback_active },
-                    has_matrix = fac.induction_data_tbl[1] ~= nil,
-                    has_sps = fac.sps_data_tbl[1] ~= nil,
+                    fac.all_sys_ok,
+                    fac.rtu_count,
+                    fac.radiation,
+                    { fac.auto_ready, fac.auto_active, fac.auto_ramping, fac.auto_saturated },
+                    { fac.auto_current_waste_product, fac.auto_pu_fallback_active },
+                    util.table_len(fac.tank_data_tbl),
+                    fac.induction_data_tbl[1] ~= nil,
+                    fac.sps_data_tbl[1] ~= nil,
                 }
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
