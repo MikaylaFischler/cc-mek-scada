@@ -151,6 +151,8 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
                         u.has_tank
                     })
                 end
+
+                _send(CRDN_TYPE.API_GET_UNITS, data)
             else
                 log.debug(log_header .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

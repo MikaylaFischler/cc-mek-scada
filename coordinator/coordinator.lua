@@ -485,7 +485,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
                             elseif api_v ~= comms.api_version then
                                 if self.last_api_est_acks[src_addr] ~= ESTABLISH_ACK.BAD_API_VERSION then
-                                    log.info(util.c("dropping API establish packet with incorrect api version v", comms_v, " (expected v", comms.version, ")"))
+                                    log.info(util.c("dropping API establish packet with incorrect api version v", api_v, " (expected v", comms.api_version, ")"))
                                 end
 
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_API_VERSION)

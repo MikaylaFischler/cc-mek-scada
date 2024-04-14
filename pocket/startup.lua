@@ -18,7 +18,7 @@ local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
-local POCKET_VERSION = "v0.7.5-alpha"
+local POCKET_VERSION = "v0.8.0-alpha"
 
 local println = util.println
 local println_ts = util.println_ts

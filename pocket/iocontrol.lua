@@ -99,7 +99,7 @@ function iocontrol.alloc_nav()
             end
         end
 
-        -- create a new page entry in the page navigation tree
+        -- create a new page entry in the app's page navigation tree
         ---@param parent nav_tree_page? a parent page or nil to set this as the root
         ---@param nav_to function|integer function to navigate to this page or pane index
         ---@return nav_tree_page new_page this new page

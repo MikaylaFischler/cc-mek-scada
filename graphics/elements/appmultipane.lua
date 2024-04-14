@@ -13,7 +13,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field nav_colors cpair on/off colors (a/b respectively) for page navigator
 ---@field scroll_nav boolean? true to allow scrolling to change the active pane
 ---@field drag_nav boolean? true to allow mouse dragging to change the active pane (on mouse up)
----@field callback function? function to call when scrolling or dragging changes the pane
+---@field callback function? function to call when pane is changed by mouse interaction
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -44,6 +44,7 @@ local function multipane(args)
         for i = 1, #args.panes do args.panes[i].hide() end
         args.panes[e.value].show()
 
+        -- draw page indicator dots
         for i = 1, #args.panes do
             e.w_set_cur(nav_x_start + (i - 1), e.frame.h)
             e.w_set_fgd(util.trinary(i == e.value, args.nav_colors.color_a, args.nav_colors.color_b))
@@ -62,10 +63,8 @@ local function multipane(args)
 
                 if event.type == MOUSE_CLICK.TAP then
                     e.set_value(id)
-                    args.callback(e.value)
                 elseif event.type == MOUSE_CLICK.UP then
                     e.set_value(id)
-                    args.callback(e.value)
                 end
             end
         end
