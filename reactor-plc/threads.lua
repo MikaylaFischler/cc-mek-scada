@@ -71,22 +71,19 @@ function threads.thread__main(smem, init)
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
-                -- core clock tick
-                if networked then
-                    -- start next clock timer
-                    loop_clock.start()
+                -- start next clock timer
+                loop_clock.start()
 
-                    -- send updated data
-                    if nic.is_connected() then
-                        if plc_comms.is_linked() then
-                            smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
+                -- send updated data
+                if networked and nic.is_connected() then
+                    if plc_comms.is_linked() then
+                        smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
+                    else
+                        if ticks_to_update == 0 then
+                            plc_comms.send_link_req()
+                            ticks_to_update = LINK_TICKS
                         else
-                            if ticks_to_update == 0 then
-                                plc_comms.send_link_req()
-                                ticks_to_update = LINK_TICKS
-                            else
-                                ticks_to_update = ticks_to_update - 1
-                            end
+                            ticks_to_update = ticks_to_update - 1
                         end
                     end
                 end
