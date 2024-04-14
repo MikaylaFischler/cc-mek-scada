@@ -72,7 +72,7 @@ local function init(main)
     local page_div = Div{parent=main_pane,x=4,y=1}
 
     local sidebar_tabs = {
-        { char = "#", color = cpair(colors.black,colors.green) }
+        { char = "#", color = cpair(colors.black, colors.green) }
     }
 
     home_page(page_div)

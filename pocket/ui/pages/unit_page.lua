@@ -21,7 +21,9 @@ local function new_view(root)
     local app = db.nav.register_app(iocontrol.APP_ID.UNITS, main)
     app.new_page(nil, function () end)
 
-    TextBox{parent=main,text="UNITS",x=1,y=1,height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=main,y=2,text="UNITS",height=1,alignment=ALIGN.CENTER}
+
+    TextBox{parent=main,y=4,text="work in progress",height=1,alignment=ALIGN.CENTER}
 
     return main
 end
