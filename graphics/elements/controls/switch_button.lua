@@ -65,7 +65,7 @@ local function switch_button(args)
         end
     end
 
-    -- set the value
+    -- set the value (does not call the callback)
     ---@param val boolean new value
     function e.set_value(val)
         e.value = val
