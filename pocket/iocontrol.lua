@@ -231,9 +231,8 @@ end
 
 -- initialize facility-dependent components of pocket iocontrol
 ---@param conf facility_conf configuration
----@param comms pocket_comms comms reference
 ---@param temp_scale 1|2|3|4 temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
-function iocontrol.init_fac(conf, comms, temp_scale)
+function iocontrol.init_fac(conf, temp_scale)
     -- temperature unit label and conversion function (from Kelvin)
     if temp_scale == 2 then
         io.temp_label = "\xb0C"

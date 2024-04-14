@@ -350,7 +350,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                         local conf = { num_units = fac_config[1], cooling = fac_config[2] }
 
                                         ---@todo unit options
-                                        iocontrol.init_fac(conf, public, 1)
+                                        iocontrol.init_fac(conf, 1)
 
                                         log.info("coordinator connection established")
                                         self.establish_delay_counter = 0
