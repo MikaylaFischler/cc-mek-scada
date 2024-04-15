@@ -67,6 +67,7 @@ function iocontrol.init(conf, comms, temp_scale)
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
+        conf = conf,
         num_units = conf.num_units,
         tank_mode = conf.cooling.fac_tank_mode,
         tank_defs = conf.cooling.fac_tank_defs,
@@ -279,18 +280,18 @@ function iocontrol.init(conf, comms, temp_scale)
 
             ---@type alarms
             alarms = {
-                ALARM_STATE.INACTIVE,   -- containment breach
-                ALARM_STATE.INACTIVE,   -- containment radiation
-                ALARM_STATE.INACTIVE,   -- reactor lost
-                ALARM_STATE.INACTIVE,   -- damage critical
-                ALARM_STATE.INACTIVE,   -- reactor taking damage
-                ALARM_STATE.INACTIVE,   -- reactor over temperature
-                ALARM_STATE.INACTIVE,   -- reactor high temperature
-                ALARM_STATE.INACTIVE,   -- waste leak
-                ALARM_STATE.INACTIVE,   -- waste level high
-                ALARM_STATE.INACTIVE,   -- RPS transient
-                ALARM_STATE.INACTIVE,   -- RCS transient
-                ALARM_STATE.INACTIVE    -- turbine trip
+                ALARM_STATE.INACTIVE, -- containment breach
+                ALARM_STATE.INACTIVE, -- containment radiation
+                ALARM_STATE.INACTIVE, -- reactor lost
+                ALARM_STATE.INACTIVE, -- damage critical
+                ALARM_STATE.INACTIVE, -- reactor taking damage
+                ALARM_STATE.INACTIVE, -- reactor over temperature
+                ALARM_STATE.INACTIVE, -- reactor high temperature
+                ALARM_STATE.INACTIVE, -- waste leak
+                ALARM_STATE.INACTIVE, -- waste level high
+                ALARM_STATE.INACTIVE, -- RPS transient
+                ALARM_STATE.INACTIVE, -- RCS transient
+                ALARM_STATE.INACTIVE  -- turbine trip
             },
 
             annunciator = {},   ---@type annunciator
@@ -374,6 +375,13 @@ function iocontrol.fp_monitor_state(id, connected)
     if name ~= nil then
         io.fp.ps.publish(name, connected)
     end
+end
+
+-- report thread (routine) statuses
+---@param thread string thread name
+---@param ok boolean thread state
+function iocontrol.fp_rt_status(thread, ok)
+    io.fp.ps.publish(util.c("routine__", thread), ok)
 end
 
 -- report PKT firmware version and PKT session connection state

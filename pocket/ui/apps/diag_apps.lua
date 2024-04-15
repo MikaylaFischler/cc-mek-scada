@@ -1,58 +1,39 @@
+--
+-- Diagnostic Apps
+--
+
 local iocontrol      = require("pocket.iocontrol")
 
 local core           = require("graphics.core")
 
 local Div            = require("graphics.elements.div")
-local MultiPane      = require("graphics.elements.multipane")
 local TextBox        = require("graphics.elements.textbox")
 
 local IndicatorLight = require("graphics.elements.indicators.light")
 
-local App            = require("graphics.elements.controls.app")
 local Checkbox       = require("graphics.elements.controls.checkbox")
 local PushButton     = require("graphics.elements.controls.push_button")
 local SwitchButton   = require("graphics.elements.controls.switch_button")
 
 local cpair = core.cpair
 
-local NAV_PAGE = iocontrol.NAV_PAGE
-
 local ALIGN = core.ALIGN
 
--- new diagnostics page view
+-- create diagnostic app pages
 ---@param root graphics_element parent
-local function new_view(root)
+local function create_pages(root)
     local db = iocontrol.get_db()
-
-    local main = Div{parent=root,x=1,y=1}
-
-    local diag_home = Div{parent=main,x=1,y=1}
-
-    TextBox{parent=diag_home,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}
-
-    local alarm_test = Div{parent=main,x=1,y=1}
-
-    local panes = { diag_home, alarm_test }
-
-    local page_pane = MultiPane{parent=main,x=1,y=1,panes=panes}
-
-    local function navigate_diag()
-        page_pane.set_value(1)
-        db.nav.page = NAV_PAGE.DIAG
-        db.nav.sub_pages[NAV_PAGE.DIAG] = NAV_PAGE.DIAG
-    end
-
-    local function navigate_alarm()
-        page_pane.set_value(2)
-        db.nav.page = NAV_PAGE.D_ALARMS
-        db.nav.sub_pages[NAV_PAGE.DIAG] = NAV_PAGE.D_ALARMS
-    end
 
     ------------------------
     -- Alarm Testing Page --
     ------------------------
 
-    db.nav.register_task(NAV_PAGE.D_ALARMS, db.diag.tone_test.get_tone_states)
+    local alarm_test = Div{parent=root,x=1,y=1}
+
+    local alarm_app = db.nav.register_app(iocontrol.APP_ID.ALARMS, alarm_test)
+
+    local page = alarm_app.new_page(nil, function () end)
+    page.tasks = { db.diag.tone_test.get_tone_states }
 
     local ttest = db.diag.tone_test
 
@@ -66,8 +47,6 @@ local function new_view(root)
     TextBox{parent=audio,y=1,text="Alarm Sounder Tests",height=1,alignment=ALIGN.CENTER}
 
     ttest.ready_warn = TextBox{parent=audio,y=2,text="",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
-
-    PushButton{parent=audio,x=13,y=18,text="\x11 BACK",min_width=8,fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=c_wht_gray,callback=navigate_diag}
 
     local tones = Div{parent=audio,x=2,y=3,height=10,width=8,fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -132,16 +111,6 @@ local function new_view(root)
     local t_8 = IndicatorLight{parent=states,x=6,label="8",colors=c_blue_gray}
 
     ttest.tone_indicators = { t_1, t_2, t_3, t_4, t_5, t_6, t_7, t_8 }
-
-    --------------
-    -- App List --
-    --------------
-
-    App{parent=diag_home,x=3,y=4,text="\x0f",title="Alarm",callback=navigate_alarm,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
-    App{parent=diag_home,x=10,y=4,text="\x1e",title="LoopT",callback=function()end,app_fg_bg=cpair(colors.black,colors.cyan)}
-    App{parent=diag_home,x=17,y=4,text="@",title="Comps",callback=function()end,app_fg_bg=cpair(colors.black,colors.orange)}
-
-    return main
 end
 
-return new_view
+return create_pages

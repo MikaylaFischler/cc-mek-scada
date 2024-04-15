@@ -729,7 +729,7 @@ local function config_view(display)
         local alternate = false
         local inner_width = setting_list.get_width() - 1
 
-        tool_ctl.show_key_btn.enable()
+        if cfg.AuthKey then tool_ctl.show_key_btn.enable() else tool_ctl.show_key_btn.disable() end
         tool_ctl.auth_key_value = cfg.AuthKey or "" -- to show auth key
 
         for i = 1, #fields do
@@ -740,7 +740,7 @@ local function config_view(display)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
+            if f[1] == "AuthKey" and raw then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "EmerCoolColor" and raw ~= nil then val = rsio.color_name(raw)
             elseif f[1] == "FrontPanelTheme" then

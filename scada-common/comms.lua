@@ -16,8 +16,9 @@ local max_distance = nil
 ---@class comms
 local comms = {}
 
--- protocol/data version (protocol/data independent changes tracked by util.lua version)
-comms.version = "2.4.5"
+-- protocol/data versions (protocol/data independent changes tracked by util.lua version)
+comms.version = "2.5.0"
+comms.api_version = "0.0.1"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -64,7 +65,9 @@ local CRDN_TYPE = {
     FAC_CMD = 3,         -- faility command
     UNIT_BUILDS = 4,     -- build of each reactor unit (reactor + RTUs)
     UNIT_STATUSES = 5,   -- state of each of the reactor units
-    UNIT_CMD = 6         -- command a reactor unit
+    UNIT_CMD = 6,        -- command a reactor unit
+    API_GET_FAC = 7,     -- API: get all the facility data
+    API_GET_UNITS = 8    -- API: get all the reactor unit data
 }
 
 ---@enum ESTABLISH_ACK
@@ -72,7 +75,8 @@ local ESTABLISH_ACK = {
     ALLOW = 0,           -- link approved
     DENY = 1,            -- link denied
     COLLISION = 2,       -- link denied due to existing active link
-    BAD_VERSION = 3      -- link denied due to comms version mismatch
+    BAD_VERSION = 3,     -- link denied due to comms version mismatch
+    BAD_API_VERSION = 4  -- link denied due to api version mismatch
 }
 
 ---@enum DEVICE_TYPE device types for establish messages

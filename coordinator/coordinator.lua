@@ -89,7 +89,7 @@ function coordinator.load_config()
 
     if type(config.AuthKey) == "string" then
         local len = string.len(config.AuthKey)
-        cfv.assert_eq(len == 0 or len >= 8, true)
+        cfv.assert(len == 0 or len >= 8)
     end
 
     cfv.assert_type_int(config.LogMode)
@@ -192,7 +192,7 @@ end
 ---@return function? update, function? done
 local function log_dmesg(message, dmesg_tag, working)
     local colors = {
-        GRAPHICS = colors.green,
+        RENDER = colors.green,
         SYSTEM = colors.cyan,
         BOOT = colors.blue,
         COMMS = colors.purple,
@@ -206,7 +206,7 @@ local function log_dmesg(message, dmesg_tag, working)
     end
 end
 
-function coordinator.log_graphics(message) log_dmesg(message, "GRAPHICS") end
+function coordinator.log_render(message) log_dmesg(message, "RENDER") end
 function coordinator.log_sys(message) log_dmesg(message, "SYSTEM") end
 function coordinator.log_boot(message) log_dmesg(message, "BOOT") end
 function coordinator.log_comms(message) log_dmesg(message, "COMMS") end
@@ -279,11 +279,12 @@ function coordinator.comms(version, nic, sv_watchdog)
     -- send an API establish request response
     ---@param packet scada_packet
     ---@param ack ESTABLISH_ACK
-    local function _send_api_establish_ack(packet, ack)
+    ---@param data any?
+    local function _send_api_establish_ack(packet, ack, data)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack })
+        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
         nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
@@ -470,10 +471,11 @@ function coordinator.comms(version, nic, sv_watchdog)
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         -- validate packet and continue
-                        if packet.length == 3 and type(packet.data[1]) == "string" and type(packet.data[2]) == "string" then
-                            local comms_v = packet.data[1]
-                            local firmware_v = packet.data[2]
+                        if packet.length == 4 then
+                            local comms_v = util.strval(packet.data[1])
+                            local firmware_v = util.strval(packet.data[2])
                             local dev_type = packet.data[3]
+                            local api_v = util.strval(packet.data[4])
 
                             if comms_v ~= comms.version then
                                 if self.last_api_est_acks[src_addr] ~= ESTABLISH_ACK.BAD_VERSION then
@@ -481,12 +483,19 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 end
 
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
+                            elseif api_v ~= comms.api_version then
+                                if self.last_api_est_acks[src_addr] ~= ESTABLISH_ACK.BAD_API_VERSION then
+                                    log.info(util.c("dropping API establish packet with incorrect api version v", api_v, " (expected v", comms.api_version, ")"))
+                                end
+
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_API_VERSION)
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- pocket linking request
                                 local id = apisessions.establish_session(src_addr, firmware_v)
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
-                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                                local conf = iocontrol.get_db().facility.conf
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW, { conf.num_units, conf.cooling })
                             else
                                 log.debug(util.c("API_ESTABLISH: illegal establish packet for device ", dev_type, " on pocket channel"))
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.DENY)

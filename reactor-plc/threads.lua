@@ -71,22 +71,19 @@ function threads.thread__main(smem, init)
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
-                -- core clock tick
-                if networked then
-                    -- start next clock timer
-                    loop_clock.start()
+                -- start next clock timer
+                loop_clock.start()
 
-                    -- send updated data
-                    if nic.is_connected() then
-                        if plc_comms.is_linked() then
-                            smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
+                -- send updated data
+                if networked and nic.is_connected() then
+                    if plc_comms.is_linked() then
+                        smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
+                    else
+                        if ticks_to_update == 0 then
+                            plc_comms.send_link_req()
+                            ticks_to_update = LINK_TICKS
                         else
-                            if ticks_to_update == 0 then
-                                plc_comms.send_link_req()
-                                ticks_to_update = LINK_TICKS
-                            else
-                                ticks_to_update = ticks_to_update - 1
-                            end
+                            ticks_to_update = ticks_to_update - 1
                         end
                     end
                 end
@@ -368,9 +365,9 @@ function threads.thread__rps(smem)
                     end
                 end
 
-                -- if we are in standalone mode, continuously reset RPS
+                -- if we are in standalone mode and the front panel isn't working, continuously reset RPS
                 -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
-                if not networked then rps.reset(true) end
+                if not (networked or smem.plc_state.fp_ok) then rps.reset(true) end
 
                 -- check safety (SCRAM occurs if tripped)
                 if not plc_state.no_reactor then
@@ -662,8 +659,9 @@ function threads.thread__setpoint_control(smem)
                     if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
                         last_burn_sp = setpoints.burn_rate
 
-                        -- update without ramp if <= 2.5 mB/t change
-                        running = math.abs(setpoints.burn_rate - cur_burn_rate) > 2.5
+                        -- update without ramp if <= 2.5 mB/t increase
+                        -- no need to ramp down, as the ramp up poses the safety risks
+                        running = (setpoints.burn_rate - cur_burn_rate) > 2.5
 
                         if running then
                             log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))

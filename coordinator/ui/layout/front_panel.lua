@@ -100,6 +100,14 @@ local function init(panel, num_units)
     local speaker = LED{parent=system,label="SPEAKER",colors=led_grn}
     speaker.register(ps, "has_speaker", speaker.update)
 
+    system.line_break()
+
+    local rt_main = LED{parent=system,label="RT MAIN",colors=led_grn}
+    local rt_render = LED{parent=system,label="RT RENDER",colors=led_grn}
+
+    rt_main.register(ps, "routine__main", rt_main.update)
+    rt_render.register(ps, "routine__render", rt_render.update)
+
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
     TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=style.fp.disabled_fg}
