@@ -141,7 +141,9 @@ local function peri_init(iface)
             local funcs = peripheral.wrap(iface)
             if (type(funcs) == "table") and (type(funcs[key]) == "function") then
                 -- add this function then return it
+                self.fault_counts[key] = 0
                 self.device[key] = protect_peri_function(key, funcs[key])
+
                 log.info(util.c("PPM: [@", iface, "] initialized previously undefined field ", key, "()"))
 
                 return self.device[key]
