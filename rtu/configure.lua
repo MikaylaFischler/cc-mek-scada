@@ -2,6 +2,7 @@
 -- Configuration GUI
 --
 
+local constants   = require("scada-common.constants")
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
@@ -39,39 +40,42 @@ local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
 -- rsio port descriptions
-local PORT_DESC = {
-    "Facility SCRAM",
-    "Facility Acknowledge",
-    "Reactor SCRAM",
-    "Reactor RPS Reset",
-    "Reactor Enable",
-    "Unit Acknowledge",
-    "Facility Alarm (high prio)",
-    "Facility Alarm (any)",
-    "Waste Plutonium Valve",
-    "Waste Polonium Valve",
-    "Waste Po Pellets Valve",
-    "Waste Antimatter Valve",
-    "Reactor Active",
-    "Reactor in Auto Control",
-    "RPS Tripped",
-    "RPS Auto SCRAM",
-    "RPS High Damage",
-    "RPS High Temperature",
-    "RPS Low Coolant",
-    "RPS Excess Heated Coolant",
-    "RPS Excess Waste",
-    "RPS Insufficient Fuel",
-    "RPS PLC Fault",
-    "RPS Supervisor Timeout",
-    "Unit Alarm",
-    "Unit Emergency Cool. Valve"
+local PORT_DESC_MAP = {
+    { IO.F_SCRAM, "Facility SCRAM" },
+    { IO.F_ACK, "Facility Acknowledge" },
+    { IO.R_SCRAM, "Reactor SCRAM" },
+    { IO.R_RESET, "Reactor RPS Reset" },
+    { IO.R_ENABLE, "Reactor Enable" },
+    { IO.U_ACK, "Unit Acknowledge" },
+    { IO.F_ALARM, "Facility Alarm (high prio)" },
+    { IO.F_ALARM_ANY, "Facility Alarm (any)" },
+    { IO.F_MATRIX_LOW, "Induction Matrix < " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_LOW) .. "%" },
+    { IO.F_MATRIX_HIGH, "Induction Matrix > " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH) .. "%" },
+    { IO.F_MATRIX_CHG, "Induction Matrix Charge %" },
+    { IO.WASTE_PU, "Waste Plutonium Valve" },
+    { IO.WASTE_PO, "Waste Polonium Valve" },
+    { IO.WASTE_POPL, "Waste Po Pellets Valve" },
+    { IO.WASTE_AM, "Waste Antimatter Valve" },
+    { IO.R_ACTIVE, "Reactor Active" },
+    { IO.R_AUTO_CTRL, "Reactor in Auto Control" },
+    { IO.R_SCRAMMED, "RPS Tripped" },
+    { IO.R_AUTO_SCRAM, "RPS Auto SCRAM" },
+    { IO.R_HIGH_DMG, "RPS High Damage" },
+    { IO.R_HIGH_TEMP, "RPS High Temperature" },
+    { IO.R_LOW_COOLANT, "RPS Low Coolant" },
+    { IO.R_EXCESS_HC, "RPS Excess Heated Coolant" },
+    { IO.R_EXCESS_WS, "RPS Excess Waste" },
+    { IO.R_INSUFF_FUEL, "RPS Insufficient Fuel" },
+    { IO.R_PLC_FAULT, "RPS PLC Fault" },
+    { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" },
+    { IO.U_ALARM, "Unit Alarm" },
+    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" }
 }
 
 -- designation (0 = facility, 1 = unit)
-local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 }
 
-assert(#PORT_DESC == rsio.NUM_PORTS)
+assert(#PORT_DESC_MAP == rsio.NUM_PORTS)
 assert(#PORT_DSGN == rsio.NUM_PORTS)
 
 -- changes to the config data/format to let the user know
@@ -1167,14 +1171,17 @@ local function config_view(display)
     PushButton{parent=all_w_macro,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
     TextBox{parent=all_w_macro,x=16,y=1,width=5,height=1,text="[n/a]",fg_bg=cpair(colors.lightGray,colors.white)}
     TextBox{parent=all_w_macro,x=22,y=1,height=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
+
     for i = 1, rsio.NUM_PORTS do
-        local name = rsio.to_string(i)
-        local io_dir = util.trinary(rsio.get_io_dir(i) == rsio.IO_DIR.IN, "[in]", "[out]")
-        local btn_color = util.trinary(rsio.get_io_dir(i) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
+        local p = PORT_DESC_MAP[i][1]
+        local name = rsio.to_string(p)
+        local io_dir = util.trinary(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local btn_color = util.trinary(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
+
         local entry = Div{parent=rs_ports,height=1}
-        PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(i)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
+        PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
         TextBox{parent=entry,x=16,y=1,width=5,height=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
-        TextBox{parent=entry,x=22,y=1,height=1,text=PORT_DESC[i],fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=entry,x=22,y=1,height=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
     end
 
     PushButton{parent=rs_c_2,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}

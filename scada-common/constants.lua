@@ -66,6 +66,18 @@ constants.ALARM_LIMITS = alarms
 
 --#endregion
 
+--#region Supervisor Redstone Activation Thresholds
+
+---@class _rs_threshold_constants
+local rs = {}
+
+rs.IMATRIX_CHARGE_LOW  = 0.05   -- activation threshold (less than) for F_MATRIX_LOW
+rs.IMATRIX_CHARGE_HIGH = 0.95   -- activation threshold (greater than) for F_MATRIX_HIGH
+
+constants.RS_THRESHOLDS = rs
+
+--#endregion
+
 --#region Supervisor Constants
 
 -- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks

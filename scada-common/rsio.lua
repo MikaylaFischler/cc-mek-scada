@@ -52,6 +52,8 @@ local IO_PORT = {
     -- facility
     F_ALARM       = 7,  -- active high, facility-wide alarm (any high priority unit alarm)
     F_ALARM_ANY   = 8,  -- active high, any alarm regardless of priority
+    F_MATRIX_LOW  = 27, -- active high, induction matrix charge less than 
+    F_MATRIX_HIGH = 28, -- active high, induction matrix charge high
 
     -- waste
     WASTE_PU      = 9,  -- active low, waste -> plutonium -> pellets route
@@ -75,16 +77,26 @@ local IO_PORT = {
 
     -- unit outputs
     U_ALARM       = 25, -- active high, unit alarm
-    U_EMER_COOL   = 26  -- active low, emergency coolant control
+    U_EMER_COOL   = 26, -- active low, emergency coolant control
+
+    -- analog outputs --
+
+    -- facility
+    F_MATRIX_CHG  = 29  -- analog charge level of the induction matrix
 }
 
 rsio.IO_LVL = IO_LVL
 rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
-rsio.NUM_PORTS = IO_PORT.U_EMER_COOL
+
+rsio.NUM_PORTS = 29
+rsio.NUM_DIG_PORTS = 28
+rsio.NUM_ANA_PORTS = 1
 
 -- self checks
+
+assert(rsio.NUM_PORTS == (rsio.NUM_DIG_PORTS + rsio.NUM_ANA_PORTS), "port counts inconsistent")
 
 local dup_chk = {}
 for _, v in pairs(IO_PORT) do
@@ -96,64 +108,45 @@ assert(#dup_chk == rsio.NUM_PORTS, "port list malformed")
 
 --#endregion
 
---#region Utility Functions
+--#region Utility Functions and Attribute Tables
 
-local PORT_NAMES = {
-    "F_SCRAM",
-    "F_ACK",
-    "R_SCRAM",
-    "R_RESET",
-    "R_ENABLE",
-    "U_ACK",
-    "F_ALARM",
-    "F_ALARM_ANY",
-    "WASTE_PU",
-    "WASTE_PO",
-    "WASTE_POPL",
-    "WASTE_AM",
-    "R_ACTIVE",
-    "R_AUTO_CTRL",
-    "R_SCRAMMED",
-    "R_AUTO_SCRAM",
-    "R_HIGH_DMG",
-    "R_HIGH_TEMP",
-    "R_LOW_COOLANT",
-    "R_EXCESS_HC",
-    "R_EXCESS_WS",
-    "R_INSUFF_FUEL",
-    "R_PLC_FAULT",
-    "R_PLC_TIMEOUT",
-    "U_ALARM",
-    "U_EMER_COOL"
-}
+local IO = IO_PORT
 
+-- list of all port names
+local PORT_NAMES = {}
+for k, v in pairs(IO) do PORT_NAMES[v] = k end
+
+-- list of all port I/O modes
 local MODES = {
-    IO_MODE.DIGITAL_IN,  -- F_SCRAM
-    IO_MODE.DIGITAL_IN,  -- F_ACK
-    IO_MODE.DIGITAL_IN,  -- R_SCRAM
-    IO_MODE.DIGITAL_IN,  -- R_RESET
-    IO_MODE.DIGITAL_IN,  -- R_ENABLE
-    IO_MODE.DIGITAL_IN,  -- U_ACK
-    IO_MODE.DIGITAL_OUT, -- F_ALARM
-    IO_MODE.DIGITAL_OUT, -- F_ALARM_ANY
-    IO_MODE.DIGITAL_OUT, -- WASTE_PU
-    IO_MODE.DIGITAL_OUT, -- WASTE_PO
-    IO_MODE.DIGITAL_OUT, -- WASTE_POPL
-    IO_MODE.DIGITAL_OUT, -- WASTE_AM
-    IO_MODE.DIGITAL_OUT, -- R_ACTIVE
-    IO_MODE.DIGITAL_OUT, -- R_AUTO_CTRL
-    IO_MODE.DIGITAL_OUT, -- R_SCRAMMED
-    IO_MODE.DIGITAL_OUT, -- R_AUTO_SCRAM
-    IO_MODE.DIGITAL_OUT, -- R_HIGH_DMG
-    IO_MODE.DIGITAL_OUT, -- R_HIGH_TEMP
-    IO_MODE.DIGITAL_OUT, -- R_LOW_COOLANT
-    IO_MODE.DIGITAL_OUT, -- R_EXCESS_HC
-    IO_MODE.DIGITAL_OUT, -- R_EXCESS_WS
-    IO_MODE.DIGITAL_OUT, -- R_INSUFF_FUEL
-    IO_MODE.DIGITAL_OUT, -- R_PLC_FAULT
-    IO_MODE.DIGITAL_OUT, -- R_PLC_TIMEOUT
-    IO_MODE.DIGITAL_OUT, -- U_ALARM
-    IO_MODE.DIGITAL_OUT  -- U_EMER_COOL
+    [IO.F_SCRAM]       = IO_MODE.DIGITAL_IN,
+    [IO.F_ACK]         = IO_MODE.DIGITAL_IN,
+    [IO.R_SCRAM]       = IO_MODE.DIGITAL_IN,
+    [IO.R_RESET]       = IO_MODE.DIGITAL_IN,
+    [IO.R_ENABLE]      = IO_MODE.DIGITAL_IN,
+    [IO.U_ACK]         = IO_MODE.DIGITAL_IN,
+    [IO.F_ALARM]       = IO_MODE.DIGITAL_OUT,
+    [IO.F_ALARM_ANY]   = IO_MODE.DIGITAL_OUT,
+    [IO.F_MATRIX_LOW]  = IO_MODE.DIGITAL_OUT,
+    [IO.F_MATRIX_HIGH] = IO_MODE.DIGITAL_OUT,
+    [IO.WASTE_PU]      = IO_MODE.DIGITAL_OUT,
+    [IO.WASTE_PO]      = IO_MODE.DIGITAL_OUT,
+    [IO.WASTE_POPL]    = IO_MODE.DIGITAL_OUT,
+    [IO.WASTE_AM]      = IO_MODE.DIGITAL_OUT,
+    [IO.R_ACTIVE]      = IO_MODE.DIGITAL_OUT,
+    [IO.R_AUTO_CTRL]   = IO_MODE.DIGITAL_OUT,
+    [IO.R_SCRAMMED]    = IO_MODE.DIGITAL_OUT,
+    [IO.R_AUTO_SCRAM]  = IO_MODE.DIGITAL_OUT,
+    [IO.R_HIGH_DMG]    = IO_MODE.DIGITAL_OUT,
+    [IO.R_HIGH_TEMP]   = IO_MODE.DIGITAL_OUT,
+    [IO.R_LOW_COOLANT] = IO_MODE.DIGITAL_OUT,
+    [IO.R_EXCESS_HC]   = IO_MODE.DIGITAL_OUT,
+    [IO.R_EXCESS_WS]   = IO_MODE.DIGITAL_OUT,
+    [IO.R_INSUFF_FUEL] = IO_MODE.DIGITAL_OUT,
+    [IO.R_PLC_FAULT]   = IO_MODE.DIGITAL_OUT,
+    [IO.R_PLC_TIMEOUT] = IO_MODE.DIGITAL_OUT,
+    [IO.U_ALARM]       = IO_MODE.DIGITAL_OUT,
+    [IO.U_EMER_COOL]   = IO_MODE.DIGITAL_OUT,
+    [IO.F_MATRIX_CHG]  = IO_MODE.ANALOG_OUT
 }
 
 assert(rsio.NUM_PORTS == #PORT_NAMES, "port names length incorrect")
@@ -179,74 +172,51 @@ local function _O_ACTIVE_LOW(active) if active then return IO_LVL.LOW else retur
 
 -- I/O mappings to I/O function and I/O mode
 local RS_DIO_MAP = {
-    -- F_SCRAM
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
-    -- F_ACK
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
+    [IO.F_SCRAM]       = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
+    [IO.F_ACK]         = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
 
-    -- R_SCRAM
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
-    -- R_RESET
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
-    -- R_ENABLE
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
+    [IO.R_SCRAM]       = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.IN  },
+    [IO.R_RESET]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
+    [IO.R_ENABLE]      = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
 
-    -- U_ACK
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
+    [IO.U_ACK]         = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.IN  },
 
-    -- F_ALARM
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- F_ALARM_ANY
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_ALARM_ANY]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_MATRIX_LOW]  = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_MATRIX_HIGH] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
-    -- WASTE_PU
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    -- WASTE_PO
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    -- WASTE_POPL
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    -- WASTE_AM
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.WASTE_PU]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.WASTE_PO]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.WASTE_POPL]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.WASTE_AM]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
 
-    -- R_ACTIVE
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_AUTO_CTRL
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_SCRAMMED
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_AUTO_SCRAM
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_HIGH_DMG
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_HIGH_TEMP
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_LOW_COOLANT
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_EXCESS_HC
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_EXCESS_WS
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_INSUFF_FUEL
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_PLC_FAULT
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- R_PLC_TIMEOUT
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_ACTIVE]      = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_AUTO_CTRL]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_SCRAMMED]    = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_AUTO_SCRAM]  = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_HIGH_DMG]    = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_HIGH_TEMP]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_LOW_COOLANT] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_EXCESS_HC]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_EXCESS_WS]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_INSUFF_FUEL] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_PLC_FAULT]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.R_PLC_TIMEOUT] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
-    -- U_ALARM
-    { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    -- U_EMER_COOL
-    { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
+    [IO.U_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.U_EMER_COOL]   = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
 }
 
-assert(rsio.NUM_PORTS == #RS_DIO_MAP, "RS_DIO_MAP length incorrect")
+assert(rsio.NUM_DIG_PORTS == #RS_DIO_MAP, "RS_DIO_MAP length incorrect")
 
 -- get the I/O direction of a port
 ---@nodiscard
 ---@param port IO_PORT
 ---@return IO_DIR
 function rsio.get_io_dir(port)
-    if rsio.is_valid_port(port) then return RS_DIO_MAP[port].mode
+    if rsio.is_valid_port(port) then
+        return util.trinary(MODES[port] == IO_MODE.DIGITAL_OUT or MODES[port] == IO_MODE.ANALOG_OUT, IO_DIR.OUT, IO_DIR.IN)
     else return IO_DIR.IN end
 end
 
@@ -310,6 +280,13 @@ end
 
 --#region Digital I/O
 
+-- check if a port is digital
+---@nodiscard
+---@param port IO_PORT
+function rsio.is_digital(port)
+    return rsio.is_valid_port(port) and (MODES[port] == IO_MODE.DIGITAL_IN or MODES[port] == IO_MODE.DIGITAL_OUT)
+end
+
 -- get digital I/O level reading from a redstone boolean input value
 ---@nodiscard
 ---@param rs_value boolean raw value from redstone
@@ -330,7 +307,7 @@ function rsio.digital_write(level) return level == IO_LVL.HIGH end
 ---@param active boolean state to convert to logic level
 ---@return IO_LVL|false
 function rsio.digital_write_active(port, active)
-    if (not util.is_int(port)) or (port < IO_PORT.F_ALARM) or (port > IO_PORT.U_EMER_COOL) then
+    if not rsio.is_digital(port) then
         return false
     else
         return RS_DIO_MAP[port]._out(active)
@@ -343,9 +320,7 @@ end
 ---@param level IO_LVL logic level
 ---@return boolean|nil state true for active, false for inactive, or nil if invalid port or level provided
 function rsio.digital_is_active(port, level)
-    if not util.is_int(port) then
-        return nil
-    elseif level == IO_LVL.FLOATING or level == IO_LVL.DISCONNECT then
+    if (not rsio.is_digital(port)) or level == IO_LVL.FLOATING or level == IO_LVL.DISCONNECT then
         return nil
     else
         return RS_DIO_MAP[port]._in(level)
@@ -355,6 +330,13 @@ end
 --#endregion
 
 --#region Analog I/O
+
+-- check if a port is analog
+---@nodiscard
+---@param port IO_PORT
+function rsio.is_analog(port)
+    return rsio.is_valid_port(port) and (MODES[port] == IO_MODE.ANALOG_IN or MODES[port] == IO_MODE.ANALOG_OUT)
+end
 
 -- read an analog value scaled from min to max
 ---@nodiscard
@@ -372,7 +354,7 @@ end
 ---@param value number value to write (from min to max range)
 ---@param min number minimum of range
 ---@param max number maximum of range
----@return number rs_value scaled redstone reading (0 to 15)
+---@return integer rs_value scaled redstone reading (0 to 15)
 function rsio.analog_write(value, min, max)
     local scaled_value = (value - min) / (max - min)
     return math.floor(scaled_value * 15)

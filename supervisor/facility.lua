@@ -300,8 +300,8 @@ function facility.new(config, cooling_conf)
 
         -- calculate moving averages for induction matrix
         if self.induction[1] ~= nil then
-            local matrix = self.induction[1]    ---@type unit_session
-            local db = matrix.get_db()          ---@type imatrix_session_db
+            local matrix = self.induction[1] ---@type unit_session
+            local db = matrix.get_db()       ---@type imatrix_session_db
 
             charge_update = db.tanks.last_update
             rate_update = db.state.last_update
@@ -774,6 +774,16 @@ function facility.new(config, cooling_conf)
 
             self.io_ctl.digital_write(IO.F_ALARM, has_prio_alarm)
             self.io_ctl.digital_write(IO.F_ALARM_ANY, has_any_alarm)
+
+            -- update induction matrix related outputs
+            if self.induction[1] ~= nil then
+                local matrix = self.induction[1] ---@type unit_session
+                local db = matrix.get_db()       ---@type imatrix_session_db
+
+                self.io_ctl.digital_write(IO.F_MATRIX_LOW, db.tanks.energy_fill < const.RS_THRESHOLDS.IMATRIX_CHARGE_LOW)
+                self.io_ctl.digital_write(IO.F_MATRIX_HIGH, db.tanks.energy_fill > const.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH)
+                self.io_ctl.analog_write(IO.F_MATRIX_CHG, db.tanks.energy_fill, 0, 1)
+            end
         end
 
         --#endregion
