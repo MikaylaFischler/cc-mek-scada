@@ -348,6 +348,7 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                 ok = false
             elseif self.sv_config_err then
+                self.est_task_done(false)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
