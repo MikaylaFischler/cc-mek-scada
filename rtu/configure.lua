@@ -34,6 +34,8 @@ local tri = util.trinary
 local cpair = core.cpair
 
 local IO = rsio.IO
+local IO_LVL = rsio.IO_LVL
+local IO_MODE = rsio.IO_MODE
 
 local LEFT = core.ALIGN.LEFT
 local CENTER = core.ALIGN.CENTER
@@ -446,7 +448,7 @@ local function config_view(display)
     TextBox{parent=net_c_3,x=1,y=11,height=1,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) censor(tri(enable, "*", nil)) end
 
     local hide_key = CheckBox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
@@ -559,7 +561,7 @@ local function config_view(display)
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local function back_from_colors()
-        main_pane.set_value(util.trinary(tool_ctl.jumped_to_color, 1, 4))
+        main_pane.set_value(tri(tool_ctl.jumped_to_color, 1, 4))
         tool_ctl.jumped_to_color = false
         recolor(1)
     end
@@ -901,7 +903,7 @@ local function config_view(display)
             tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility. In that case, the maximum radiation reading from those assigned to that particular unit or the facility will be used for alarms and display.")
         elseif type == "inductionPort" or type == "spsPort" then
-            local dev = util.trinary(type == "inductionPort", "induction matrix", "SPS")
+            local dev = tri(type == "inductionPort", "induction matrix", "SPS")
             tool_ctl.p_idx.hide(true)
             tool_ctl.p_unit.hide(true)
             tool_ctl.p_prompt.set_value("This is the " .. dev .. " for the facility.")
@@ -927,7 +929,7 @@ local function config_view(display)
         tool_ctl.ppm_devs.remove_all()
         for name, entry in pairs(mounts) do
             if util.table_contains(RTU_DEV_TYPES, entry.type) then
-                local bkg = util.trinary(alternate, colors.white, colors.lightGray)
+                local bkg = tri(alternate, colors.white, colors.lightGray)
 
                 ---@cast entry ppm_entry
                 local line = Div{parent=tool_ctl.ppm_devs,height=2,fg_bg=cpair(colors.black,bkg)}
@@ -1089,8 +1091,9 @@ local function config_view(display)
     local rs_c_4 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_5 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_6 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_7 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6}}
+    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7}}
 
     TextBox{parent=rs_cfg,x=1,y=2,height=1,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
@@ -1147,9 +1150,23 @@ local function config_view(display)
             text = "You selected the ALL_WASTE shortcut."
         else
             tool_ctl.rs_cfg_shortcut.hide(true)
-            tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
+            tool_ctl.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
             tool_ctl.rs_cfg_color.show()
-            text = "You selected " .. rsio.to_string(port) .. " (for "
+
+            local io_type = "analog input "
+            local io_mode = rsio.get_io_mode(port)
+            local inv = tri(rsio.digital_is_active(port, IO_LVL.LOW) == true, "inverted ", "")
+
+            if io_mode == IO_MODE.DIGITAL_IN then
+                io_type = inv .. "digital input "
+            elseif io_mode == IO_MODE.DIGITAL_OUT then
+                io_type = inv .. "digital output "
+            elseif io_mode == IO_MODE.ANALOG_OUT then
+                io_type = "analog output "
+            end
+
+            text = "You selected the " .. io_type .. rsio.to_string(port) .. " (for "
+
             if PORT_DSGN[port] == 1 then
                 text = text .. "a unit)."
                 tool_ctl.rs_cfg_unit_l.show()
@@ -1175,8 +1192,8 @@ local function config_view(display)
     for i = 1, rsio.NUM_PORTS do
         local p = PORT_DESC_MAP[i][1]
         local name = rsio.to_string(p)
-        local io_dir = util.trinary(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "[in]", "[out]")
-        local btn_color = util.trinary(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
+        local io_dir = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local btn_color = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
 
         local entry = Div{parent=rs_ports,height=1}
         PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
@@ -1186,13 +1203,20 @@ local function config_view(display)
 
     PushButton{parent=rs_c_2,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=1,text=""}
+    tool_ctl.rs_cfg_selection = TextBox{parent=rs_c_3,x=1,y=1,height=2,text=""}
 
-    tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=27,y=3,width=7,height=1,text="Unit ID"}
-    tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=27,y=4,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
+    PushButton{parent=rs_c_3,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    tool_ctl.rs_cfg_side_l = TextBox{parent=rs_c_3,x=1,y=3,width=11,height=1,text="Output Side"}
-    local side = Radio2D{parent=rs_c_3,x=1,y=4,rows=2,columns=3,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
+    TextBox{parent=rs_c_7,x=1,y=1,height=4,text="(Normal) Digital Input: On if there is a redstone signal, off otherwise\nInverted Digital Input: On without a redstone signal, off otherwise"}
+    TextBox{parent=rs_c_7,x=1,y=6,height=4,text="(Normal) Digital Output: Redstone signal to 'turn it on', none to 'turn it off'\nInverted Digital Output: No redstone signal to 'turn it on', redstone signal to 'turn it off'"}
+    TextBox{parent=rs_c_7,x=1,y=11,height=2,text="Analog Input: 0-15 redstone power level input\nAnalog Output: 0-15 scaled redstone power level output"}
+    PushButton{parent=rs_c_7,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    tool_ctl.rs_cfg_side_l = TextBox{parent=rs_c_3,x=1,y=4,width=11,height=1,text="Output Side"}
+    local side = Radio2D{parent=rs_c_3,x=1,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
+
+    tool_ctl.rs_cfg_unit_l = TextBox{parent=rs_c_3,x=25,y=7,width=7,height=1,text="Unit ID"}
+    tool_ctl.rs_cfg_unit = NumberField{parent=rs_c_3,x=33,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
     local function set_bundled(bundled)
         if bundled then tool_ctl.rs_cfg_color.enable() else tool_ctl.rs_cfg_color.disable() end
@@ -1223,10 +1247,10 @@ local function config_view(display)
             if port >= 0 then
                 ---@type rtu_rs_definition
                 local def = {
-                    unit = util.trinary(PORT_DSGN[port] == 1, u, nil),
+                    unit = tri(PORT_DSGN[port] == 1, u, nil),
                     port = port,
                     side = side_options_map[side.get_value()],
-                    color = util.trinary(bundled.get_value(), color_options_map[tool_ctl.rs_cfg_color.get_value()], nil)
+                    color = tri(bundled.get_value(), color_options_map[tool_ctl.rs_cfg_color.get_value()], nil)
                 }
 
                 if tool_ctl.rs_cfg_editing == false then
@@ -1240,10 +1264,10 @@ local function config_view(display)
                 local default_colors = { colors.red, colors.orange, colors.yellow, colors.lime }
                 for i = 0, 3 do
                     table.insert(tmp_cfg.Redstone, {
-                        unit = util.trinary(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
+                        unit = tri(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
                         port = IO.WASTE_PU + i,
-                        side = util.trinary(bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
-                        color = util.trinary(bundled.get_value(), default_colors[i + 1], nil)
+                        side = tri(bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
+                        color = tri(bundled.get_value(), default_colors[i + 1], nil)
                     })
                 end
             end
@@ -1296,7 +1320,7 @@ local function config_view(display)
         peri_import_list.remove_all()
         for _, entry in ipairs(config.RTU_DEVICES) do
             local for_facility = entry.for_reactor == 0
-            local ini_unit = util.trinary(for_facility, nil, entry.for_reactor)
+            local ini_unit = tri(for_facility, nil, entry.for_reactor)
 
             local def = { name = entry.name, unit = ini_unit, index = entry.index }
             local mount = mounts[def.name] ---@type ppm_entry|nil
@@ -1375,7 +1399,7 @@ local function config_view(display)
                 table.insert(tmp_cfg.Redstone, def)
 
                 local name = rsio.to_string(def.port)
-                local io_dir = util.trinary(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+                local io_dir = tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
                 local conn = def.side
                 local unit = "facility"
 
@@ -1438,7 +1462,7 @@ local function config_view(display)
             local val = util.strval(raw)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
-            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "LogMode" then val = tri(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "FrontPanelTheme" then
                 val = util.strval(themes.fp_theme_name(raw))
             elseif f[1] == "ColorMode" then
@@ -1447,7 +1471,7 @@ local function config_view(display)
 
             if val == "nil" then val = "<not set>" end
 
-            local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
+            local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
 
             if string.len(val) > val_max_w then
@@ -1561,7 +1585,7 @@ local function config_view(display)
         end
 
         tool_ctl.rs_cfg_selection.set_value(text)
-        tool_ctl.rs_cfg_side_l.set_value(util.trinary(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
+        tool_ctl.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
         bundled.set_value(def.color ~= nil)
         tool_ctl.rs_cfg_color.set_value(value)
@@ -1582,7 +1606,7 @@ local function config_view(display)
             local def = cfg.Redstone[i]   ---@type rtu_rs_definition
 
             local name = rsio.to_string(def.port)
-            local io_dir = util.trinary(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+            local io_dir = tri(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
             local conn = def.side
             local unit = util.strval(def.unit or "F")
 
