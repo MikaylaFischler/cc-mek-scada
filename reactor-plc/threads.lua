@@ -88,56 +88,32 @@ function threads.thread__main(smem, init)
                     end
                 end
 
-                -- are we now formed after waiting to be formed?
+                -- check for formed state change
                 if (not plc_state.reactor_formed) and rps.is_formed() then
-                    -- push a connect event and unmount it from the PPM
-                    local iface = ppm.get_iface(plc_dev.reactor)
-                    if iface then
-                        log.info("unmounting and remounting unformed reactor")
-                        ppm.unmount(plc_dev.reactor)
+                    -- reactor now formed
+                    plc_state.reactor_formed = true
 
-                        local type, device = ppm.mount(iface)
+                    println_ts("reactor is now formed.")
+                    log.info("reactor is now formed")
 
-                        if type == "fissionReactorLogicAdapter" and device ~= nil then
-                            -- reconnect reactor
-                            plc_dev.reactor = device
+                    -- SCRAM newly formed reactor
+                    smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
-                            -- we need to assume formed here as we cannot check in this main loop
-                            -- RPS will identify if it isn't and this will get set false later
-                            plc_state.reactor_formed = true
-
-                            println_ts("reactor reconnected.")
-                            log.info("reactor reconnected")
-
-                            -- SCRAM newly connected reactor
-                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
-                            -- determine if we are still in a degraded state
-                            if (not networked) or nic.is_connected() then
-                                plc_state.degraded = false
-                            end
-
-                            rps.reconnect_reactor(plc_dev.reactor)
-                            if networked then
-                                plc_comms.reconnect_reactor(plc_dev.reactor)
-                            end
-
-                            -- partial reset of RPS, specific to becoming formed
-                            rps.reset_formed()
-                        else
-                            -- fully lost the reactor now :(
-                            println_ts("reactor lost (failed reconnect)!")
-                            log.error("reactor lost (failed reconnect)")
-
-                            plc_state.no_reactor = true
-                            plc_state.degraded = true
-                        end
-                    else
-                        log.error("failed to get interface of previously connected reactor", true)
+                    -- determine if we are still in a degraded state
+                    if (not networked) or nic.is_connected() then
+                        plc_state.degraded = false
                     end
-                elseif not rps.is_formed() then
+
+                    -- partial reset of RPS, specific to becoming formed
+                    -- without this, auto control can't resume on chunk load
+                    rps.reset_formed()
+                elseif plc_state.reactor_formed and not rps.is_formed() then
                     -- reactor no longer formed
+                    println_ts("reactor is no longer formed.")
+                    log.info("reactor is no longer formed")
+
                     plc_state.reactor_formed = false
+                    plc_state.degraded = true
                 end
 
                 -- update indicators
@@ -227,7 +203,8 @@ function threads.thread__main(smem, init)
                                 plc_comms.reconnect_reactor(plc_dev.reactor)
                             end
 
-                            -- partial reset of RPS, specific to becoming formed
+                            -- partial reset of RPS, specific to becoming formed/reconnected
+                            -- without this, auto control can't resume on chunk load
                             rps.reset_formed()
                         end
                     elseif networked and type == "modem" then
