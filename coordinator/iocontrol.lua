@@ -663,10 +663,26 @@ function iocontrol.update_facility_status(status)
             fac.rtu_count = rtu_statuses.count
 
             -- power statistics
-            if type(rtu_statuses.power) == "table" then
-                fac.induction_ps_tbl[1].publish("avg_charge", rtu_statuses.power[1])
-                fac.induction_ps_tbl[1].publish("avg_inflow", rtu_statuses.power[2])
-                fac.induction_ps_tbl[1].publish("avg_outflow", rtu_statuses.power[3])
+            if type(rtu_statuses.power) == "table" and #rtu_statuses.power == 4 then
+                local data = fac.induction_data_tbl[1] ---@type imatrix_session_db
+                local ps   = fac.induction_ps_tbl[1]   ---@type psil
+
+                local chg   = tonumber(rtu_statuses.power[1])
+                local in_f  = tonumber(rtu_statuses.power[2])
+                local out_f = tonumber(rtu_statuses.power[3])
+                local eta   = tonumber(rtu_statuses.power[4])
+
+                ps.publish("avg_charge", chg)
+                ps.publish("avg_inflow", in_f)
+                ps.publish("avg_outflow", out_f)
+                ps.publish("eta_ms", eta)
+
+                ps.publish("is_charging", in_f > out_f)
+                ps.publish("is_discharging", out_f > in_f)
+
+                if data and data.build then
+                    ps.publish("at_max_io", in_f >= data.build.transfer_cap or out_f >= data.build.transfer_cap)
+                end
             else
                 log.debug(log_header .. "power statistics list not a table")
                 valid = false

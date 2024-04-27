@@ -128,9 +128,13 @@ function facility.new(config, cooling_conf)
         test_alarm_states = {},
         -- statistics
         im_stat_init = false,
-        avg_charge = util.mov_avg(3, 0.0),
-        avg_inflow = util.mov_avg(6, 0.0),
-        avg_outflow = util.mov_avg(6, 0.0)
+        avg_charge = util.mov_avg(3),  -- 3 seconds
+        avg_inflow = util.mov_avg(6),  -- 3 seconds
+        avg_outflow = util.mov_avg(6), -- 3 seconds
+        -- induction matrix charge delta stats
+        avg_net = util.mov_avg(60),    -- 60 seconds
+        charge_last = 0,
+        charge_last_t = 0
     }
 
     -- create units
@@ -307,15 +311,32 @@ function facility.new(config, cooling_conf)
             rate_update = db.state.last_update
 
             if (charge_update > 0) and (rate_update > 0) then
+                local energy = util.joules_to_fe(db.tanks.energy)
+                local input  = util.joules_to_fe(db.state.last_input)
+                local output = util.joules_to_fe(db.state.last_output)
+
                 if self.im_stat_init then
-                    self.avg_charge.record(util.joules_to_fe(db.tanks.energy), charge_update)
-                    self.avg_inflow.record(util.joules_to_fe(db.state.last_input), rate_update)
-                    self.avg_outflow.record(util.joules_to_fe(db.state.last_output), rate_update)
+                    self.avg_charge.record(energy, charge_update)
+                    self.avg_inflow.record(input, rate_update)
+                    self.avg_outflow.record(output, rate_update)
+
+                    if charge_update ~= self.charge_last_t then
+                        local delta = (energy - self.charge_last) / (charge_update - self.charge_last_t)
+
+                        self.charge_last = energy
+                        self.charge_last_t = charge_update
+
+                        self.avg_net.record(delta, charge_update)
+                    end
                 else
                     self.im_stat_init = true
-                    self.avg_charge.reset(util.joules_to_fe(db.tanks.energy))
-                    self.avg_inflow.reset(util.joules_to_fe(db.state.last_input))
-                    self.avg_outflow.reset(util.joules_to_fe(db.state.last_output))
+
+                    self.avg_charge.reset(energy)
+                    self.avg_inflow.reset(input)
+                    self.avg_outflow.reset(output)
+
+                    self.charge_last = energy
+                    self.charge_last_t = charge_update
                 end
             end
         else
@@ -1193,15 +1214,21 @@ function facility.new(config, cooling_conf)
         status.power = {
             self.avg_charge.compute(),
             self.avg_inflow.compute(),
-            self.avg_outflow.compute()
+            self.avg_outflow.compute(),
+            0
         }
 
         -- status of induction matricies (including tanks)
         status.induction = {}
         for i = 1, #self.induction do
-            local matrix = self.induction[i]    ---@type unit_session
-            local db     = matrix.get_db()      ---@type imatrix_session_db
+            local matrix = self.induction[i] ---@type unit_session
+            local db     = matrix.get_db()   ---@type imatrix_session_db
+
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
+
+            local fe_per_ms = self.avg_net.compute()
+            local remaining = util.joules_to_fe(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
+            status.power[4] = remaining / fe_per_ms
         end
 
         -- status of sps

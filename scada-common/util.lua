@@ -22,7 +22,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.3.0"
+util.version = "1.3.1"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -181,8 +181,7 @@ function util.round(x) return math.floor(x + 0.5) end
 -- get a new moving average object
 ---@nodiscard
 ---@param length integer history length
----@param default number value to fill history with for first call to compute()
-function util.mov_avg(length, default)
+function util.mov_avg(length)
     local data = {}
     local index = 1
     local last_t = 0 ---@type number|nil
@@ -215,11 +214,9 @@ function util.mov_avg(length, default)
     ---@return number average
     function public.compute()
         local sum = 0
-        for i = 1, length do sum = sum + data[i] end
-        return sum / length
+        for i = 1, #data do sum = sum + data[i] end
+        return sum / #data
     end
-
-    public.reset(default)
 
     return public
 end
