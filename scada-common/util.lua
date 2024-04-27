@@ -213,8 +213,13 @@ function util.mov_avg(length)
     ---@nodiscard
     ---@return number average
     function public.compute()
+        if #data == 0 then return 0 end
+
         local sum = 0
-        for i = 1, #data do sum = sum + data[i] end
+        for i = 1, #data do
+            sum = sum + data[i]
+        end
+
         return sum / #data
     end
 
