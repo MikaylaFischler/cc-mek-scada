@@ -133,6 +133,7 @@ function facility.new(config, cooling_conf)
         avg_outflow = util.mov_avg(6), -- 3 seconds
         -- induction matrix charge delta stats
         avg_net = util.mov_avg(60),    -- 60 seconds
+        last_capacity = 0,
         charge_last = 0,
         charge_last_t = 0
     }
@@ -326,7 +327,13 @@ function facility.new(config, cooling_conf)
                         self.charge_last = energy
                         self.charge_last_t = charge_update
 
-                        self.avg_net.record(delta, charge_update)
+                        -- if the capacity changed, toss out existing data
+                        if db.build.max_energy ~= self.last_capacity then
+                            self.last_capacity = db.build.max_energy
+                            self.avg_net.reset()
+                        else
+                            self.avg_net.record(delta, charge_update)
+                        end
                     end
                 else
                     self.im_stat_init = true
@@ -641,8 +648,7 @@ function facility.new(config, cooling_conf)
         local astatus = self.ascram_status
 
         if self.induction[1] ~= nil then
-            local matrix = self.induction[1]    ---@type unit_session
-            local db = matrix.get_db()          ---@type imatrix_session_db
+            local db = self.induction[1].get_db() ---@type imatrix_session_db
 
             -- clear matrix disconnected
             if astatus.matrix_dc then
@@ -798,8 +804,7 @@ function facility.new(config, cooling_conf)
 
             -- update induction matrix related outputs
             if self.induction[1] ~= nil then
-                local matrix = self.induction[1] ---@type unit_session
-                local db = matrix.get_db()       ---@type imatrix_session_db
+                local db = self.induction[1].get_db() ---@type imatrix_session_db
 
                 self.io_ctl.digital_write(IO.F_MATRIX_LOW, db.tanks.energy_fill < const.RS_THRESHOLDS.IMATRIX_CHARGE_LOW)
                 self.io_ctl.digital_write(IO.F_MATRIX_HIGH, db.tanks.energy_fill > const.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH)

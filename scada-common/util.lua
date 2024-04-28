@@ -189,11 +189,15 @@ function util.mov_avg(length)
     ---@class moving_average
     local public = {}
 
-    -- reset all to a given value
-    ---@param x number value
+    -- reset all to a given value, or clear all data if no value is given
+    ---@param x number? value
     function public.reset(x)
+        index = 1
         data = {}
-        for _ = 1, length do t_insert(data, x) end
+
+        if x then
+            for _ = 1, length do t_insert(data, x) end
+        end
     end
 
     -- record a new value
