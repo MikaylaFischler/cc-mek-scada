@@ -342,8 +342,13 @@ local function new_view(root, x, y)
 
     local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
 
+    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
+
     local fb_active = IndicatorLight{parent=rect,x=2,y=7,label="Fallback Active",colors=ind_wht}
     local sps_disabled  = IndicatorLight{parent=rect,x=2,y=8,label="SPS Disabled LC",colors=ind_yel}
+
+    fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
+    sps_disabled.register(facility.ps, "sps_disabled_low_power", sps_disabled.update)
 
     local pu_fallback = Checkbox{parent=rect,x=2,y=10,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.brown,style.theme.checkbox_bg)}
 
@@ -353,9 +358,6 @@ local function new_view(root, x, y)
 
     TextBox{parent=rect,x=2,y=18,height=3,text="Use SPS at low charge, otherwise switches to Po.",fg_bg=style.label}
 
-    fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
-    sps_disabled.register(facility.ps, "sps_disabled_low_power", sps_disabled.update)
-    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
     pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
     lc_sps.register(facility.ps, "process_sps_low_power", lc_sps.set_value)
 end

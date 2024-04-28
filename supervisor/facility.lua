@@ -135,9 +135,9 @@ function facility.new(config, cooling_conf)
         avg_outflow = util.mov_avg(6), -- 3 seconds
         -- induction matrix charge delta stats
         avg_net = util.mov_avg(60),    -- 60 seconds
-        last_capacity = 0,
-        charge_last = 0,
-        charge_last_t = 0
+        imtx_last_capacity = 0,
+        imtx_last_charge = 0,
+        imtx_last_charge_t = 0
     }
 
     -- create units
@@ -323,15 +323,15 @@ function facility.new(config, cooling_conf)
                     self.avg_inflow.record(input, rate_update)
                     self.avg_outflow.record(output, rate_update)
 
-                    if charge_update ~= self.charge_last_t then
-                        local delta = (energy - self.charge_last) / (charge_update - self.charge_last_t)
+                    if charge_update ~= self.imtx_last_charge_t then
+                        local delta = (energy - self.imtx_last_charge) / (charge_update - self.imtx_last_charge_t)
 
-                        self.charge_last = energy
-                        self.charge_last_t = charge_update
+                        self.imtx_last_charge = energy
+                        self.imtx_last_charge_t = charge_update
 
                         -- if the capacity changed, toss out existing data
-                        if db.build.max_energy ~= self.last_capacity then
-                            self.last_capacity = db.build.max_energy
+                        if db.build.max_energy ~= self.imtx_last_capacity then
+                            self.imtx_last_capacity = db.build.max_energy
                             self.avg_net.reset()
                         else
                             self.avg_net.record(delta, charge_update)
@@ -344,8 +344,8 @@ function facility.new(config, cooling_conf)
                     self.avg_inflow.reset(input)
                     self.avg_outflow.reset(output)
 
-                    self.charge_last = energy
-                    self.charge_last_t = charge_update
+                    self.imtx_last_charge = energy
+                    self.imtx_last_charge_t = charge_update
                 end
             end
         else

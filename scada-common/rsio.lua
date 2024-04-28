@@ -52,7 +52,7 @@ local IO_PORT = {
     -- facility
     F_ALARM       = 7,  -- active high, facility-wide alarm (any high priority unit alarm)
     F_ALARM_ANY   = 8,  -- active high, any alarm regardless of priority
-    F_MATRIX_LOW  = 27, -- active high, induction matrix charge less than 
+    F_MATRIX_LOW  = 27, -- active high, induction matrix charge low
     F_MATRIX_HIGH = 28, -- active high, induction matrix charge high
 
     -- waste

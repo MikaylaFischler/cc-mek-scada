@@ -13,7 +13,7 @@ local print = util.print
 local println = util.println
 
 -- list of inverted digital signals<br>
--- just using the key for a quick lookup, value need to be not nil
+-- only using the key for a quick lookup, value just can't be nil
 local DIG_INV = {
     [IO.F_SCRAM] = 0,
     [IO.R_SCRAM] = 0,
