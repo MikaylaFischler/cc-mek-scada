@@ -1,16 +1,28 @@
 require("/initenv").init_env()
 
-local rsio = require("scada-common.rsio")
-local util = require("scada-common.util")
+local rsio      = require("scada-common.rsio")
+local util      = require("scada-common.util")
 
 local testutils = require("test.testutils")
+
+local IO      = rsio.IO
+local IO_LVL  = rsio.IO_LVL
+local IO_MODE = rsio.IO_MODE
 
 local print = util.print
 local println = util.println
 
-local IO = rsio.IO
-local IO_LVL = rsio.IO_LVL
-local IO_MODE = rsio.IO_MODE
+-- list of inverted digital signals<br>
+-- only using the key for a quick lookup, value just can't be nil
+local DIG_INV = {
+    [IO.F_SCRAM] = 0,
+    [IO.R_SCRAM] = 0,
+    [IO.WASTE_PU] = 0,
+    [IO.WASTE_PO] = 0,
+    [IO.WASTE_POPL] = 0,
+    [IO.WASTE_AM] = 0,
+    [IO.U_EMER_COOL] = 0
+}
 
 println("starting RSIO tester")
 println("")
@@ -50,8 +62,8 @@ testutils.pause()
 
 println(">>> checking invalid ports:")
 
-testutils.test_func("rsio.to_string", rsio.to_string, { -1, 100, false }, "")
-testutils.test_func_nil("rsio.to_string", rsio.to_string, "")
+testutils.test_func("rsio.to_string", rsio.to_string, { -1, 100, false }, "UNKNOWN")
+testutils.test_func_nil("rsio.to_string", rsio.to_string, "UNKNOWN")
 testutils.test_func("rsio.get_io_mode", rsio.get_io_mode, { -1, 100, false }, IO_MODE.ANALOG_IN)
 testutils.test_func_nil("rsio.get_io_mode", rsio.get_io_mode, IO_MODE.ANALOG_IN)
 
@@ -100,46 +112,35 @@ println(">>> checking port I/O:")
 
 print("rsio.digital_is_active(...): ")
 
--- check input ports
-assert(rsio.digital_is_active(IO.F_SCRAM, IO_LVL.LOW) == true, "IO_F_SCRAM_HIGH")
-assert(rsio.digital_is_active(IO.F_SCRAM, IO_LVL.HIGH) == false, "IO_F_SCRAM_LOW")
-assert(rsio.digital_is_active(IO.R_SCRAM, IO_LVL.LOW) == true, "IO_R_SCRAM_HIGH")
-assert(rsio.digital_is_active(IO.R_SCRAM, IO_LVL.HIGH) == false, "IO_R_SCRAM_LOW")
-assert(rsio.digital_is_active(IO.R_ENABLE, IO_LVL.LOW) == false, "IO_R_ENABLE_HIGH")
-assert(rsio.digital_is_active(IO.R_ENABLE, IO_LVL.HIGH) == true, "IO_R_ENABLE_LOW")
+-- check all digital ports
+for i = 1, rsio.NUM_PORTS do
+    if rsio.get_io_mode(i) == IO_MODE.DIGITAL_IN or rsio.get_io_mode(i) == IO_MODE.DIGITAL_OUT then
+        local high = DIG_INV[i] == nil
+        assert(rsio.digital_is_active(i, IO_LVL.LOW) == not high, "IO_" .. rsio.to_string(i) .. "_LOW")
+        assert(rsio.digital_is_active(i, IO_LVL.HIGH) == high, "IO_" .. rsio.to_string(i) .. "_HIGH")
+    end
+end
 
--- non-inputs should always return LOW
-assert(rsio.digital_is_active(IO.F_ALARM, IO_LVL.LOW) == false, "IO_OUT_READ_LOW")
-assert(rsio.digital_is_active(IO.F_ALARM, IO_LVL.HIGH) == false, "IO_OUT_READ_HIGH")
+assert(rsio.digital_is_active(IO.F_MATRIX_CHG, IO_LVL.LOW) == nil, "ANA_DIG_READ_LOW")
+assert(rsio.digital_is_active(IO.F_MATRIX_CHG, IO_LVL.HIGH) == nil, "ANA_DIG_READ_HIGH")
 
 println("PASS")
 
--- check output ports
+-- check digital write
 
-print("rsio.digital_write(...): ")
+print("rsio.digital_write_active(...): ")
 
--- check output ports
-assert(rsio.digital_write_active(IO.F_ALARM, true) == IO_LVL.LOW, "IO_F_ALARM_LOW")
-assert(rsio.digital_write_active(IO.F_ALARM, true) == IO_LVL.HIGH, "IO_F_ALARM_HIGH")
-assert(rsio.digital_write_active(IO.WASTE_PU, true) == IO_LVL.HIGH, "IO_WASTE_PU_HIGH")
-assert(rsio.digital_write_active(IO.WASTE_PU, true) == IO_LVL.LOW, "IO_WASTE_PU_LOW")
-assert(rsio.digital_write_active(IO.WASTE_PO, true) == IO_LVL.HIGH, "IO_WASTE_PO_HIGH")
-assert(rsio.digital_write_active(IO.WASTE_PO, true) == IO_LVL.LOW, "IO_WASTE_PO_LOW")
-assert(rsio.digital_write_active(IO.WASTE_POPL, true) == IO_LVL.HIGH, "IO_WASTE_POPL_HIGH")
-assert(rsio.digital_write_active(IO.WASTE_POPL, true) == IO_LVL.LOW, "IO_WASTE_POPL_LOW")
-assert(rsio.digital_write_active(IO.WASTE_AM, true) == IO_LVL.HIGH, "IO_WASTE_AM_HIGH")
-assert(rsio.digital_write_active(IO.WASTE_AM, true) == IO_LVL.LOW, "IO_WASTE_AM_LOW")
-
--- check all reactor output ports (all are active high)
-for i = IO.R_ALARM, (IO.R_PLC_TIMEOUT - IO.R_ALARM + 1) do
-    assert(rsio.to_string(i) ~= "", "REACTOR_IO_BAD_PORT")
-    assert(rsio.digital_write_active(i, false) == IO_LVL.LOW, "IO_" .. rsio.to_string(i) .. "_LOW")
-    assert(rsio.digital_write_active(i, true) == IO_LVL.HIGH, "IO_" .. rsio.to_string(i) .. "_HIGH")
+-- check all digital ports
+for i = 1, rsio.NUM_PORTS do
+    if rsio.get_io_mode(i) == IO_MODE.DIGITAL_IN or rsio.get_io_mode(i) == IO_MODE.DIGITAL_OUT then
+        local high = DIG_INV[i] == nil
+        assert(rsio.digital_write_active(i, not high) == IO_LVL.LOW, "IO_" .. rsio.to_string(i) .. "_LOW")
+        assert(rsio.digital_write_active(i, high) == IO_LVL.HIGH, "IO_" .. rsio.to_string(i) .. "_HIGH")
+    end
 end
 
--- non-outputs should always return false
-assert(rsio.digital_write_active(IO.F_SCRAM, false) == IO_LVL.LOW, "IO_IN_WRITE_FALSE")
-assert(rsio.digital_write_active(IO.F_SCRAM, true) == IO_LVL.LOW, "IO_IN_WRITE_TRUE")
+assert(rsio.digital_write_active(IO.F_MATRIX_CHG, true) == false, "ANA_DIG_WRITE_TRUE")
+assert(rsio.digital_write_active(IO.F_MATRIX_CHG, false) == false, "ANA_DIG_WRITE_FALSE")
 
 println("PASS")
 

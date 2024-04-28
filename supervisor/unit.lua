@@ -71,8 +71,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@class _unit_self
     local self = {
         r_id = reactor_id,
-        plc_s = nil,    ---@class plc_session_struct
-        plc_i = nil,    ---@class plc_session
+        plc_s = nil,    ---@type plc_session_struct
+        plc_i = nil,    ---@type plc_session
         num_boilers = num_boilers,
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },

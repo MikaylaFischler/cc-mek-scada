@@ -270,6 +270,12 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
                         else
                             log.debug(log_header .. "CRDN set pu fallback packet length mismatch")
                         end
+                    elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                        if pkt.length == 2 then
+                            _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_sps_low_power(pkt.data[2]) })
+                        else
+                            log.debug(log_header .. "CRDN set sps low power packet length mismatch")
+                        end
                     else
                         log.debug(log_header .. "CRDN facility command unknown")
                     end

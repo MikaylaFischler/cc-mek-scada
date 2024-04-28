@@ -92,6 +92,7 @@ function iocontrol.init(conf, comms, temp_scale)
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
+        auto_sps_disabled = false,
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -593,7 +594,7 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 16 then
+        if type(ctl_status) == "table" and #ctl_status == 17 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -644,9 +645,11 @@ function iocontrol.update_facility_status(status)
 
             fac.auto_current_waste_product = ctl_status[15]
             fac.auto_pu_fallback_active = ctl_status[16]
+            fac.auto_sps_disabled = ctl_status[17]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+            fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false
@@ -663,10 +666,26 @@ function iocontrol.update_facility_status(status)
             fac.rtu_count = rtu_statuses.count
 
             -- power statistics
-            if type(rtu_statuses.power) == "table" then
-                fac.induction_ps_tbl[1].publish("avg_charge", rtu_statuses.power[1])
-                fac.induction_ps_tbl[1].publish("avg_inflow", rtu_statuses.power[2])
-                fac.induction_ps_tbl[1].publish("avg_outflow", rtu_statuses.power[3])
+            if type(rtu_statuses.power) == "table" and #rtu_statuses.power == 4 then
+                local data = fac.induction_data_tbl[1] ---@type imatrix_session_db
+                local ps   = fac.induction_ps_tbl[1]   ---@type psil
+
+                local chg   = tonumber(rtu_statuses.power[1])
+                local in_f  = tonumber(rtu_statuses.power[2])
+                local out_f = tonumber(rtu_statuses.power[3])
+                local eta   = tonumber(rtu_statuses.power[4])
+
+                ps.publish("avg_charge", chg)
+                ps.publish("avg_inflow", in_f)
+                ps.publish("avg_outflow", out_f)
+                ps.publish("eta_ms", eta)
+
+                ps.publish("is_charging", in_f > out_f)
+                ps.publish("is_discharging", out_f > in_f)
+
+                if data and data.build then
+                    ps.publish("at_max_io", in_f >= data.build.transfer_cap or out_f >= data.build.transfer_cap)
+                end
             else
                 log.debug(log_header .. "power statistics list not a table")
                 valid = false
