@@ -29,7 +29,8 @@ local self = {
             gen_target = 0.0,
             limits = {},
             waste_product = PRODUCT.PLUTONIUM,
-            pu_fallback = false
+            pu_fallback = false,
+            sps_low_power = false
         },
         waste_modes = {},
         priority_groups = {}
@@ -65,6 +66,7 @@ function process.init(iocontrol, coord_comms)
         ctl_proc.limits = config.limits
         ctl_proc.waste_product = config.waste_product
         ctl_proc.pu_fallback = config.pu_fallback
+        ctl_proc.sps_low_power = config.sps_low_power
 
         self.io.facility.ps.publish("process_mode", ctl_proc.mode)
         self.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
@@ -72,6 +74,7 @@ function process.init(iocontrol, coord_comms)
         self.io.facility.ps.publish("process_gen_target", ctl_proc.gen_target)
         self.io.facility.ps.publish("process_waste_product", ctl_proc.waste_product)
         self.io.facility.ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
+        self.io.facility.ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
 
         for id = 1, math.min(#ctl_proc.limits, self.io.facility.num_units) do
             local unit = self.io.units[id]   ---@type ioctl_unit
@@ -83,6 +86,7 @@ function process.init(iocontrol, coord_comms)
         -- notify supervisor of auto waste config
         self.comms.send_fac_command(FAC_COMMAND.SET_WASTE_MODE, ctl_proc.waste_product)
         self.comms.send_fac_command(FAC_COMMAND.SET_PU_FB, ctl_proc.pu_fallback)
+        self.comms.send_fac_command(FAC_COMMAND.SET_SPS_LP, ctl_proc.sps_low_power)
     end
 
     -- unit waste states
@@ -256,6 +260,18 @@ function process.set_pu_fallback(enabled)
 
     -- update config table and save
     self.control_states.process.pu_fallback = enabled
+    _write_auto_config()
+end
+
+-- set automatic process control SPS usage at low power
+---@param enabled boolean whether to enable SPS usage at low power
+function process.set_sps_low_power(enabled)
+    self.comms.send_fac_command(FAC_COMMAND.SET_SPS_LP, enabled)
+
+    log.debug(util.c("PROCESS: SET SPS LOW POWER ", enabled))
+
+    -- update config table and save
+    self.control_states.process.sps_low_power = enabled
     _write_auto_config()
 end
 

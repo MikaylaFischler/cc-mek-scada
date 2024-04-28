@@ -92,6 +92,7 @@ function iocontrol.init(conf, comms, temp_scale)
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
+        auto_sps_disabled = false,
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -593,7 +594,7 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 16 then
+        if type(ctl_status) == "table" and #ctl_status == 17 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -644,9 +645,11 @@ function iocontrol.update_facility_status(status)
 
             fac.auto_current_waste_product = ctl_status[15]
             fac.auto_pu_fallback_active = ctl_status[16]
+            fac.auto_sps_disabled = ctl_status[17]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+            fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false

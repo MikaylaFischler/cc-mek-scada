@@ -341,31 +341,23 @@ local function new_view(root, x, y)
     status.register(facility.ps, "current_waste_product", status.update)
 
     local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
-    local pu_fallback = Checkbox{parent=rect,x=2,y=7,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.green,style.theme.checkbox_bg)}
 
-    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
-    pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
+    local fb_active = IndicatorLight{parent=rect,x=2,y=7,label="Fallback Active",colors=ind_wht}
+    local sps_disabled  = IndicatorLight{parent=rect,x=2,y=8,label="SPS Disabled LC",colors=ind_yel}
 
-    local fb_active  = IndicatorLight{parent=rect,x=2,y=9,label="Fallback Active",colors=ind_wht}
+    local pu_fallback = Checkbox{parent=rect,x=2,y=10,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.brown,style.theme.checkbox_bg)}
+
+    TextBox{parent=rect,x=2,y=12,height=3,text="Switch to Pu when SNAs cannot keep up with waste.",fg_bg=style.label}
+
+    local lc_sps = Checkbox{parent=rect,x=2,y=16,label="Low Charge SPS",callback=process.set_sps_low_power,box_fg_bg=cpair(colors.brown,style.theme.checkbox_bg)}
+
+    TextBox{parent=rect,x=2,y=18,height=3,text="Use SPS at low charge, otherwise switches to Po.",fg_bg=style.label}
 
     fb_active.register(facility.ps, "pu_fallback_active", fb_active.update)
-
-    TextBox{parent=rect,x=2,y=11,text="Plutonium Rate",height=1,width=17,fg_bg=style.label}
-    local pu_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
-
-    TextBox{parent=rect,x=2,y=14,text="Polonium Rate",height=1,width=17,fg_bg=style.label}
-    local po_rate = DataIndicator{parent=rect,x=2,label="",unit="mB/t",format="%12.2f",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
-
-    TextBox{parent=rect,x=2,y=17,text="Antimatter Rate",height=1,width=17,fg_bg=style.label}
-    local am_rate = DataIndicator{parent=rect,x=2,label="",unit="\xb5B/t",format="%12d",value=0,lu_colors=lu_cpair,fg_bg=s_field,width=17}
-
-    pu_rate.register(facility.ps, "pu_rate", pu_rate.update)
-    po_rate.register(facility.ps, "po_rate", po_rate.update)
-    am_rate.register(facility.ps, "am_rate", am_rate.update)
-
-    local sna_count = DataIndicator{parent=rect,x=2,y=20,label="Linked SNAs:",format="%4d",value=0,lu_colors=lu_cpair,width=17}
-
-    sna_count.register(facility.ps, "sna_count", sna_count.update)
+    sps_disabled.register(facility.ps, "sps_disabled_low_power", sps_disabled.update)
+    waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
+    pu_fallback.register(facility.ps, "process_pu_fallback", pu_fallback.set_value)
+    lc_sps.register(facility.ps, "process_sps_low_power", lc_sps.set_value)
 end
 
 return new_view

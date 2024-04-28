@@ -120,6 +120,8 @@ function facility.new(config, cooling_conf)
         waste_product = WASTE.PLUTONIUM,
         current_waste_product = WASTE.PLUTONIUM,
         pu_fallback = false,
+        sps_low_power = false,
+        disabled_sps = false,
         -- alarm tones
         tone_states = {},
         test_tone_set = false,
@@ -840,9 +842,25 @@ function facility.new(config, cooling_conf)
         end
 
         -- update waste product
-        if self.waste_product == WASTE.PLUTONIUM or (self.pu_fallback and insufficent_po_rate) then
+
+        self.current_waste_product = self.waste_product
+
+        if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
+            local db = self.induction[1].get_db() ---@type imatrix_session_db
+
+            if db.tanks.energy_fill >= 0.15 then
+                self.disabled_sps = false
+            elseif self.disabled_sps or ((db.tanks.last_update > 0) and (db.tanks.energy_fill < 0.1)) then
+                self.disabled_sps = true
+                self.current_waste_product = WASTE.POLONIUM
+            end
+        else
+            self.disabled_sps = false
+        end
+
+        if self.pu_fallback and insufficent_po_rate then
             self.current_waste_product = WASTE.PLUTONIUM
-        else self.current_waste_product = self.waste_product end
+        end
 
         -- make sure dynamic tanks are allowing outflow if required
         -- set all, rather than trying to determine which is for which (simpler & safer)
@@ -1099,6 +1117,14 @@ function facility.new(config, cooling_conf)
         return self.pu_fallback
     end
 
+    -- enable/disable SPS at low power
+    ---@param enabled boolean requested state
+    ---@return boolean enabled newly set value
+    function public.set_sps_low_power(enabled)
+        self.sps_low_power = enabled == true
+        return self.sps_low_power
+    end
+
     --#endregion
 
     --#region Diagnostic Testing
@@ -1203,7 +1229,8 @@ function facility.new(config, cooling_conf)
             self.status_text[2],
             self.group_map,
             self.current_waste_product,
-            (self.current_waste_product == WASTE.PLUTONIUM) and (self.waste_product ~= WASTE.PLUTONIUM)
+            self.pu_fallback and (self.current_waste_product == WASTE.PLUTONIUM) and (self.waste_product ~= WASTE.PLUTONIUM),
+            self.disabled_sps
         }
     end
 

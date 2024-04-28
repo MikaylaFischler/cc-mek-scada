@@ -97,7 +97,8 @@ local FAC_COMMAND = {
     START = 2,           -- start automatic process control
     ACK_ALL_ALARMS = 3,  -- acknowledge all alarms on all units
     SET_WASTE_MODE = 4,  -- set automatic waste processing mode
-    SET_PU_FB = 5        -- set plutonium fallback mode
+    SET_PU_FB = 5,       -- set plutonium fallback mode
+    SET_SPS_LP = 6       -- set SPS at low power mode
 }
 
 ---@enum UNIT_COMMAND
