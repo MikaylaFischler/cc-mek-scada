@@ -101,7 +101,7 @@ local function new_view(root, x, y, data, ps, id)
 
     local eta = TextBox{parent=rect,x=11,y=20,width=20,height=1,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=style.theme.field_box}
 
-    eta.register(ps, "eta_mss", function (eta_ms)
+    eta.register(ps, "eta_ms", function (eta_ms)
         local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")
 
         local seconds = math.abs(eta_ms) / 1000
