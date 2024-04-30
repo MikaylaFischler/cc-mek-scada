@@ -343,7 +343,9 @@ function facility.new(config, cooling_conf)
                     self.avg_charge.reset(energy)
                     self.avg_inflow.reset(input)
                     self.avg_outflow.reset(output)
+                    self.avg_net.reset()
 
+                    self.imtx_last_capacity = db.build.max_energy
                     self.imtx_last_charge = energy
                     self.imtx_last_charge_t = charge_update
                 end

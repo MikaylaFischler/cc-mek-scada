@@ -183,7 +183,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         self.sDB.max_op_temp_H2O = max_burn * 2 * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
         self.sDB.max_op_temp_Na = max_burn * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
 
-        log.info(util.sprintf(log_header .. "computed maximum operational temperatures %.3f (H2O) and %.3f (Na)",
+        log.info(util.sprintf(log_header .. "computed maximum operational temperatures %.3fK (H2O) and %.3fK (Na)",
                                self.sDB.max_op_temp_H2O, self.sDB.max_op_temp_Na))
     end
 
