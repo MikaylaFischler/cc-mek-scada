@@ -147,7 +147,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             },
             damage = 0,
             temp = 0,
-            waste = 0
+            waste = 0,
+            high_temp_lim = 1150
         },
         ---@class alarm_monitors
         alarms = {

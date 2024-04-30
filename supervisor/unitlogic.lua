@@ -133,7 +133,15 @@ function logic.update_annunciator(self)
             self.last_heartbeat = plc_db.last_status_update
         end
 
-        local flow_low = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, ANNUNC_LIMS.RCSFlowLow_NA, ANNUNC_LIMS.RCSFlowLow_H2O)
+        local flow_low = ANNUNC_LIMS.RCSFlowLow_H2O
+        local high_temp = plc_db.max_op_temp_H2O
+
+        if plc_db.mek_status.ccool_type == types.FLUID.SODIUM then
+            flow_low = ANNUNC_LIMS.RCSFlowLow_NA
+            high_temp = plc_db.max_op_temp_Na
+        end
+
+        self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
@@ -142,7 +150,7 @@ function logic.update_annunciator(self)
         annunc.RCPTrip = plc_db.rps_tripped and (plc_db.rps_status.ex_hcool or plc_db.rps_status.low_cool)
         annunc.RCSFlowLow = _get_dt(DT_KEYS.ReactorCCool) < flow_low
         annunc.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
-        annunc.ReactorTempHigh = plc_db.mek_status.temp > ANNUNC_LIMS.ReactorTempHigh
+        annunc.ReactorTempHigh = plc_db.mek_status.temp >= self.plc_cache.high_temp_lim
         annunc.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
         annunc.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
         annunc.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
@@ -542,7 +550,8 @@ function logic.update_alarms(self)
     end
 
     -- High Temperature
-    _update_alarm_state(self, plc_cache.temp >= ALARM_LIMS.HIGH_TEMP, self.alarms.ReactorHighTemp)
+    local high_temp = math.min(math.max(self.plc_cache.high_temp_lim, 1100), 1199.995)
+    _update_alarm_state(self, plc_cache.temp >= high_temp, self.alarms.ReactorHighTemp)
 
     -- Waste Leak
     _update_alarm_state(self, plc_cache.waste >= 1.0, self.alarms.ReactorWasteLeak)
@@ -718,11 +727,11 @@ function logic.update_status_text(self)
             self.status_text[2] = "elevated level of radiation"
         end
     elseif is_active(self.alarms.ReactorOverTemp) then
-        self.status_text = { "CORE OVER TEMP", "reactor core temperature >=1200K" }
+        self.status_text = { "CORE OVER TEMP", "reactor core temp damaging" }
     elseif is_active(self.alarms.ReactorWasteLeak) then
         self.status_text = { "WASTE LEAK", "radioactive waste leak detected" }
     elseif is_active(self.alarms.ReactorHighTemp) then
-        self.status_text = { "CORE TEMP HIGH", "reactor core temperature >1150K" }
+        self.status_text = { "CORE TEMP HIGH", "reactor core temperature high" }
     elseif is_active(self.alarms.ReactorHighWaste) then
         self.status_text = { "WASTE LEVEL HIGH", "waste accumulating in reactor" }
     elseif is_active(self.alarms.TurbineTrip) then
