@@ -137,7 +137,9 @@ function facility.new(config, cooling_conf)
         avg_net = util.mov_avg(60),    -- 60 seconds
         imtx_last_capacity = 0,
         imtx_last_charge = 0,
-        imtx_last_charge_t = 0
+        imtx_last_charge_t = 0,
+        -- track faulted induction matrix update times to reject
+        imtx_faulted_times = { 0, 0, 0 }
     }
 
     -- create units
@@ -310,10 +312,26 @@ function facility.new(config, cooling_conf)
             local matrix = self.induction[1] ---@type unit_session
             local db = matrix.get_db()       ---@type imatrix_session_db
 
-            charge_update = db.tanks.last_update
+            local build_update = db.build.last_update
             rate_update = db.state.last_update
+            charge_update = db.tanks.last_update
 
-            if (charge_update > 0) and (rate_update > 0) then
+            local has_data = build_update > 0 and rate_update > 0 and charge_update > 0
+
+            if matrix.is_faulted() then
+                -- a fault occured, cannot reliably update stats
+                has_data = false
+                self.im_stat_init = false
+                self.imtx_faulted_times = { build_update, rate_update, charge_update }
+            elseif not self.im_stat_init then
+                -- prevent operation with partially invalid data
+                -- all fields must have updated since the last fault
+                has_data = self.imtx_faulted_times[1] < build_update and
+                           self.imtx_faulted_times[2] < rate_update and
+                           self.imtx_faulted_times[3] < charge_update
+            end
+
+            if has_data then
                 local energy = util.joules_to_fe(db.tanks.energy)
                 local input  = util.joules_to_fe(db.state.last_input)
                 local output = util.joules_to_fe(db.state.last_output)
@@ -349,6 +367,10 @@ function facility.new(config, cooling_conf)
                     self.imtx_last_charge = energy
                     self.imtx_last_charge_t = charge_update
                 end
+            else
+                -- prevent use by control systems
+                rate_update = 0
+                charge_update = 0
             end
         else
             self.im_stat_init = false
@@ -507,7 +529,7 @@ function facility.new(config, cooling_conf)
 
                 self.status_text = { "CHARGE MODE", "running control loop" }
                 log.info("FAC: CHARGE mode starting PID control")
-            elseif self.last_update ~= charge_update then
+            elseif self.last_update < charge_update then
                 -- convert to kFE to make constants not microscopic
                 local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
 
@@ -581,7 +603,7 @@ function facility.new(config, cooling_conf)
                     self.status_text = { "GENERATION MODE", "running control loop" }
                     log.info("FAC: GEN_RATE process mode initial hold completed, starting PID control")
                 end
-            elseif self.last_update ~= rate_update then
+            elseif self.last_update < rate_update then
                 -- convert to MFE (in rounded kFE) to make constants not microscopic
                 local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
 
