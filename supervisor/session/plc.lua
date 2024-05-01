@@ -1,4 +1,5 @@
 local comms    = require("scada-common.comms")
+local const    = require("scada-common.constants")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
@@ -105,6 +106,8 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             formed = false,
             rps_tripped = false,
             rps_trip_cause = "ok",  ---@type rps_trip_cause
+            max_op_temp_H2O = 1200,
+            max_op_temp_Na = 1200,
             ---@class rps_status
             rps_status = {
                 high_dmg = false,
@@ -138,11 +141,11 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                 waste = 0,
                 waste_need = 0,
                 waste_fill = 0.0,
-                ccool_type = "?",
+                ccool_type = types.FLUID.EMPTY_GAS, ---@type fluid
                 ccool_amnt = 0,
                 ccool_need = 0,
                 ccool_fill = 0.0,
-                hcool_type = "?",
+                hcool_type = types.FLUID.EMPTY_GAS, ---@type fluid
                 hcool_amnt = 0,
                 hcool_need = 0,
                 hcool_fill = 0.0
@@ -168,6 +171,21 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
 
     ---@class plc_session
     local public = {}
+
+    -- compute maximum expected operational temperatures for high temp warnings
+    local function _compute_op_temps()
+        local JOULES_PER_MB = const.mek.JOULES_PER_MB
+        local BASE_BOIL_TEMP = const.mek.BASE_BOIL_TEMP
+
+        local heat_cap = self.sDB.mek_struct.heat_cap
+        local max_burn = self.sDB.mek_struct.max_burn
+
+        self.sDB.max_op_temp_H2O = max_burn * 2 * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
+        self.sDB.max_op_temp_Na = max_burn * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
+
+        log.info(util.sprintf(log_header .. "computed maximum operational temperatures %.3fK (H2O) and %.3fK (Na)",
+                               self.sDB.max_op_temp_H2O, self.sDB.max_op_temp_Na))
+    end
 
     -- copy in the RPS status
     ---@param rps_status table
@@ -351,6 +369,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                     local status = pcall(_copy_struct, pkt.data)
                     if status then
                         -- copied in structure data OK
+                        _compute_op_temps()
                         self.received_struct = true
                         out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
                     else
