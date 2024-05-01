@@ -684,7 +684,8 @@ function iocontrol.update_facility_status(status)
                 ps.publish("is_discharging", out_f > in_f)
 
                 if data and data.build then
-                    ps.publish("at_max_io", in_f >= data.build.transfer_cap or out_f >= data.build.transfer_cap)
+                    local cap = util.joules_to_fe(data.build.transfer_cap)
+                    ps.publish("at_max_io", in_f >= cap or out_f >= cap)
                 end
             else
                 log.debug(log_header .. "power statistics list not a table")
