@@ -96,21 +96,23 @@ local function sidebar(args)
         if e.enabled then
             local cur_idx = find_tab(event.current.y)
             local ini_idx = find_tab(event.initial.y)
+            local tab = tabs[cur_idx]
 
-            if tabs[cur_idx] ~= nil then
+            -- handle press if a callback was provided
+            if tab ~= nil and type(tab.callback) == "function" then
                 if event.type == MOUSE_CLICK.TAP then
                     e.value = cur_idx
                     draw(true)
                     -- show as unpressed in 0.25 seconds
                     tcd.dispatch(0.25, function () draw(false) end)
-                    tabs[cur_idx].callback()
+                    tab.callback()
                 elseif event.type == MOUSE_CLICK.DOWN then
                     draw(true, cur_idx)
                 elseif event.type == MOUSE_CLICK.UP then
                     if cur_idx == ini_idx and e.in_frame_bounds(event.current.x, event.current.y) then
                         e.value = cur_idx
                         draw(false)
-                        tabs[cur_idx].callback()
+                        tab.callback()
                     else draw(false) end
                 end
             elseif event.type == MOUSE_CLICK.UP then
@@ -126,7 +128,7 @@ local function sidebar(args)
         draw(false)
     end
 
-    -- update the sidebar nav options
+    -- update the sidebar navigation options
     ---@param items table sidebar entries
     function e.on_update(items)
         local next_y = 1
@@ -139,12 +141,12 @@ local function sidebar(args)
 
             ---@class sidebar_tab
             local entry = {
-                y_start = next_y,
-                y_end = next_y + height - 1,
-                tall = item.tall,
-                label = item.label,
-                color = item.color,
-                callback = item.callback
+                y_start = next_y,            ---@type integer
+                y_end = next_y + height - 1, ---@type integer
+                tall = item.tall,            ---@type boolean
+                label = item.label,          ---@type string
+                color = item.color,          ---@type cpair
+                callback = item.callback     ---@type function|nil
             }
 
             next_y = next_y + height
