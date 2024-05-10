@@ -5,8 +5,10 @@
 local log   = require("scada-common.log")
 local psil  = require("scada-common.psil")
 local types = require("scada-common.types")
+local util  = require("scada-common.util")
 
 local ALARM = types.ALARM
+local ALARM_STATE = types.ALARM_STATE
 
 ---@todo nominal trip time is ping (0ms to 10ms usually)
 local WARN_TT = 40
@@ -72,6 +74,10 @@ function iocontrol.alloc_nav()
         self.pane = root_pane
     end
 
+    function io.nav.set_sidebar(sidebar)
+        self.sidebar = sidebar
+    end
+
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
     ---@param container graphics_element element that contains this app (usually a Div)
@@ -79,16 +85,35 @@ function iocontrol.alloc_nav()
     function io.nav.register_app(app_id, container, pane)
         ---@class pocket_app
         local app = {
+            loaded = false,
+            load = nil,
             root = { _p = nil, _c = {}, nav_to = function () end, tasks = {} }, ---@type nav_tree_page
             cur_page = nil, ---@type nav_tree_page
             pane = pane,
-            paned_pages = {}
+            paned_pages = {},
+            sidebar_items = {}
         }
+
+        app.load = function () app.loaded = true end
 
         -- delayed set of the pane if it wasn't ready at the start
         ---@param root_pane graphics_element multipane
         function app.set_root_pane(root_pane)
             app.pane = root_pane
+        end
+
+        function app.set_sidebar(items)
+            app.sidebar_items = items
+            if self.sidebar then self.sidebar.update(items) end
+        end
+
+        -- function to run on initial load into memory
+        ---@param on_load function callback
+        function app.set_on_load(on_load)
+            app.load = function ()
+                on_load()
+                app.loaded = true
+            end
         end
 
         -- if a pane was provided, this will switch between numbered pages
@@ -160,9 +185,16 @@ function iocontrol.alloc_nav()
     -- open a given app
     ---@param app_id POCKET_APP_ID
     function io.nav.open_app(app_id)
-        if self.apps[app_id] then
+        local app = self.apps[app_id]   ---@type pocket_app
+        if app then
+            if not app.loaded then app.load() end
+
             self.cur_app = app_id
             self.pane.set_value(app_id)
+
+            if #app.sidebar_items > 0 then
+                self.sidebar.update(app.sidebar_items)
+            end
         else
             log.debug("tried to open unknown app")
         end
@@ -262,6 +294,16 @@ function iocontrol.init_fac(conf, temp_scale)
         auto_ramping = false,
         auto_saturated = false,
 
+        auto_scram = false,
+        ---@type ascram_status
+        ascram_status = {
+            matrix_dc = false,
+            matrix_fill = false,
+            crit_alarm = false,
+            radiation = false,
+            gen_fault = false
+        },
+
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
@@ -282,6 +324,179 @@ function iocontrol.init_fac(conf, temp_scale)
         env_d_ps = psil.create(),
         env_d_data = {}
     }
+
+    -- create induction and SPS tables (currently only 1 of each is supported)
+    table.insert(io.facility.induction_ps_tbl, psil.create())
+    table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.sps_ps_tbl, psil.create())
+    table.insert(io.facility.sps_data_tbl, {})
+
+    -- determine tank information
+    if io.facility.tank_mode == 0 then
+        io.facility.tank_defs = {}
+        -- on facility tank mode 0, setup tank defs to match unit tank option
+        for i = 1, conf.num_units do
+            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TankConnection, 1, 0)
+        end
+
+        io.facility.tank_list = { table.unpack(io.facility.tank_defs) }
+    else
+        -- decode the layout of tanks from the connections definitions
+        local tank_mode = io.facility.tank_mode
+        local tank_defs = io.facility.tank_defs
+        local tank_list = { table.unpack(tank_defs) }
+
+        local function calc_fdef(start_idx, end_idx)
+            local first = 4
+            for i = start_idx, end_idx do
+                if io.facility.tank_defs[i] == 2 then
+                    if i < first then first = i end
+                end
+            end
+            return first
+        end
+
+        if tank_mode == 1 then
+            -- (1) 1 total facility tank (A A A A)
+            local first_fdef = calc_fdef(1, #tank_defs)
+            for i = 1, #tank_defs do
+                if i > first_fdef and tank_defs[i] == 2 then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 2 then
+            -- (2) 2 total facility tanks (A A A B)
+            local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
+            for i = 1, #tank_defs do
+                if (i ~= 4) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 3 then
+            -- (3) 2 total facility tanks (A A B B)
+            for _, a in pairs({ 1, 3 }) do
+                local b = a + 1
+                if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
+                    tank_list[b] = 0
+                end
+            end
+        elseif tank_mode == 4 then
+            -- (4) 2 total facility tanks (A B B B)
+            local first_fdef = calc_fdef(2, #tank_defs)
+            for i = 1, #tank_defs do
+                if (i ~= 1) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 5 then
+            -- (5) 3 total facility tanks (A A B C)
+            local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
+            for i = 1, #tank_defs do
+                if (not (i == 3 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 6 then
+            -- (6) 3 total facility tanks (A B B C)
+            local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
+            for i = 1, #tank_defs do
+                if (not (i == 1 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        elseif tank_mode == 7 then
+            -- (7) 3 total facility tanks (A B C C)
+            local first_fdef = calc_fdef(3, #tank_defs)
+            for i = 1, #tank_defs do
+                if (not (i == 1 or i == 2)) and (i > first_fdef) and (tank_defs[i] == 2) then
+                    tank_list[i] = 0
+                end
+            end
+        end
+
+        io.facility.tank_list = tank_list
+    end
+
+    -- create facility tank tables
+    for i = 1, #io.facility.tank_list do
+        if io.facility.tank_list[i] == 2 then
+            table.insert(io.facility.tank_ps_tbl, psil.create())
+            table.insert(io.facility.tank_data_tbl, {})
+        end
+    end
+
+    -- create unit data structures
+    io.units = {}
+    for i = 1, conf.num_units do
+        ---@class pioctl_unit
+        local entry = {
+            unit_id = i,
+
+            num_boilers = 0,
+            num_turbines = 0,
+            num_snas = 0,
+            has_tank = conf.cooling.r_cool[i].TankConnection,
+
+            control_state = false,
+            burn_rate_cmd = 0.0,
+            radiation = types.new_zero_radiation_reading(),
+
+            sna_peak_rate = 0.0,
+            sna_max_rate = 0.0,
+            sna_out_rate = 0.0,
+
+            waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
+            waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+
+            -- auto control group
+            a_group = 0,
+
+            ---@type alarms
+            alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
+
+            annunciator = {},   ---@type annunciator
+
+            unit_ps = psil.create(),
+            reactor_data = {},  ---@type reactor_db
+
+            boiler_ps_tbl = {},
+            boiler_data_tbl = {},
+
+            turbine_ps_tbl = {},
+            turbine_data_tbl = {},
+
+            tank_ps_tbl = {},
+            tank_data_tbl = {}
+        }
+
+        -- on other facility modes, overwrite unit TANK option with facility tank defs
+        if io.facility.tank_mode ~= 0 then
+            entry.has_tank = conf.cooling.fac_tank_defs[i] > 0
+        end
+
+        -- create boiler tables
+        for _ = 1, conf.cooling.r_cool[i].BoilerCount do
+            table.insert(entry.boiler_ps_tbl, psil.create())
+            table.insert(entry.boiler_data_tbl, {})
+        end
+
+        -- create turbine tables
+        for _ = 1, conf.cooling.r_cool[i].TurbineCount do
+            table.insert(entry.turbine_ps_tbl, psil.create())
+            table.insert(entry.turbine_data_tbl, {})
+        end
+
+        -- create tank tables
+        if io.facility.tank_defs[i] == 1 then
+            table.insert(entry.tank_ps_tbl, psil.create())
+            table.insert(entry.tank_data_tbl, {})
+        end
+
+        entry.num_boilers = #entry.boiler_data_tbl
+        entry.num_turbines = #entry.turbine_data_tbl
+
+        table.insert(io.units, entry)
+    end
 end
 
 -- set network link state

@@ -8,13 +8,7 @@ local element = require("graphics.element")
 
 local MOUSE_CLICK = core.events.MOUSE_CLICK
 
----@class sidebar_tab
----@field char string character identifier
----@field color cpair tab colors (fg/bg)
-
 ---@class sidebar_args
----@field tabs table sidebar tab options
----@field callback function function to call on tab change
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -27,21 +21,16 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@param args sidebar_args
 ---@return graphics_element element, element_id id
 local function sidebar(args)
-    element.assert(type(args.tabs) == "table", "tabs is a required field")
-    element.assert(#args.tabs > 0, "at least one tab is required")
-    element.assert(type(args.callback) == "function", "callback is a required field")
-
     args.width = 3
 
     -- create new graphics element base object
     local e = element.new(args)
 
-    element.assert(e.frame.h >= (#args.tabs * 3), "height insufficent to display all tabs")
-
     -- default to 1st tab
     e.value = 1
 
     local was_pressed = false
+    local tabs = {}
 
     -- show the button state
     ---@param pressed? boolean if the currently selected tab should appear as actively pressed
@@ -51,10 +40,18 @@ local function sidebar(args)
         was_pressed = pressed
         pressed_idx = pressed_idx or e.value
 
-        for i = 1, #args.tabs do
-            local tab = args.tabs[i] ---@type sidebar_tab
+        -- clear
+        e.w_set_fgd(e.fg_bg.fgd)
+        e.w_set_bkg(e.fg_bg.bkg)
+        for y = 1, e.frame.h do
+            e.w_set_cur(1, y)
+            e.w_write("   ")
+        end
 
-            local y = ((i - 1) * 3) + 1
+        -- draw tabs
+        for i = 1, #tabs do
+            local tab = tabs[i] ---@type sidebar_tab
+            local y = tab.y_start
 
             e.w_set_cur(1, y)
 
@@ -66,13 +63,29 @@ local function sidebar(args)
                 e.w_set_bkg(tab.color.bkg)
             end
 
-            e.w_write("   ")
-            e.w_set_cur(1, y + 1)
-            if e.value == i then
-                e.w_write(" " .. tab.char .. "\x10")
-            else e.w_write(" " .. tab.char .. " ") end
-            e.w_set_cur(1, y + 2)
-            e.w_write("   ")
+            if tab.tall then
+                e.w_write("   ")
+                e.w_set_cur(1, y + 1)
+            end
+
+            e.w_write(tab.label)
+
+            if tab.tall then
+                e.w_set_cur(1, y + 2)
+                e.w_write("   ")
+            end
+        end
+    end
+
+    -- determine which tab was pressed
+    ---@param y integer y coordinate
+    local function find_tab(y)
+        for i = 1, #tabs do
+            local tab = tabs[i] ---@type sidebar_tab
+
+            if y >= tab.y_start and y <= tab.y_end then
+                return i
+            end
         end
     end
 
@@ -81,23 +94,23 @@ local function sidebar(args)
     function e.handle_mouse(event)
         -- determine what was pressed
         if e.enabled then
-            local cur_idx = math.ceil(event.current.y / 3)
-            local ini_idx = math.ceil(event.initial.y / 3)
+            local cur_idx = find_tab(event.current.y)
+            local ini_idx = find_tab(event.initial.y)
 
-            if args.tabs[cur_idx] ~= nil then
+            if tabs[cur_idx] ~= nil then
                 if event.type == MOUSE_CLICK.TAP then
                     e.value = cur_idx
                     draw(true)
                     -- show as unpressed in 0.25 seconds
                     tcd.dispatch(0.25, function () draw(false) end)
-                    args.callback(e.value)
+                    tabs[cur_idx].callback()
                 elseif event.type == MOUSE_CLICK.DOWN then
                     draw(true, cur_idx)
                 elseif event.type == MOUSE_CLICK.UP then
                     if cur_idx == ini_idx and e.in_frame_bounds(event.current.x, event.current.y) then
                         e.value = cur_idx
                         draw(false)
-                        args.callback(e.value)
+                        tabs[cur_idx].callback()
                     else draw(false) end
                 end
             elseif event.type == MOUSE_CLICK.UP then
@@ -111,6 +124,35 @@ local function sidebar(args)
     function e.set_value(val)
         e.value = val
         draw(false)
+    end
+
+    -- update the sidebar nav options
+    ---@param items table sidebar entries
+    function e.on_update(items)
+        local next_y = 1
+
+        tabs = {}
+
+        for i = 1, #items do
+            local item = items[i]
+            local height = util.trinary(item.tall, 3, 1)
+
+            ---@class sidebar_tab
+            local entry = {
+                y_start = next_y,
+                y_end = next_y + height - 1,
+                tall = item.tall,
+                label = item.label,
+                color = item.color,
+                callback = item.callback
+            }
+
+            next_y = next_y + height
+
+            tabs[i] = entry
+        end
+
+        draw()
     end
 
     -- element redraw
