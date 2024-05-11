@@ -501,7 +501,9 @@ end
 
 -- set network link state
 ---@param state POCKET_LINK_STATE
-function iocontrol.report_link_state(state)
+---@param sv_addr integer? supervisor address if linked
+---@param api_addr integer? coordinator address if linked
+function iocontrol.report_link_state(state, sv_addr, api_addr)
     io.ps.publish("link_state", state)
 
     if state == LINK_STATE.API_LINK_ONLY or state == LINK_STATE.UNLINKED then
@@ -510,6 +512,11 @@ function iocontrol.report_link_state(state)
 
     if state == LINK_STATE.SV_LINK_ONLY or state == LINK_STATE.UNLINKED then
         io.ps.publish("crd_conn_quality", 0)
+    end
+
+    if state == LINK_STATE.LINKED then
+        io.ps.publish("sv_addr", sv_addr)
+        io.ps.publish("api_addr", api_addr)
     end
 end
 

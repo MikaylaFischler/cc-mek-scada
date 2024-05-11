@@ -192,7 +192,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
             end
         else
             -- linked, all good!
-            iocontrol.report_link_state(LINK_STATE.LINKED)
+            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
         end
     end
 
@@ -358,7 +358,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                         self.api.addr = src_addr
 
                                         if self.sv.linked then
-                                            iocontrol.report_link_state(LINK_STATE.LINKED)
+                                            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
                                         else
                                             iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
                                         end
@@ -497,7 +497,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 self.sv.addr = src_addr
 
                                 if self.api.linked then
-                                    iocontrol.report_link_state(LINK_STATE.LINKED)
+                                    iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
                                 else
                                     iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
                                 end
