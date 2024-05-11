@@ -87,7 +87,6 @@ function iocontrol.alloc_nav()
         local app = {
             loaded = false,
             load = nil,
-            root = { _p = nil, _c = {}, nav_to = function () end, tasks = {} }, ---@type nav_tree_page
             cur_page = nil, ---@type nav_tree_page
             pane = pane,
             paned_pages = {},
@@ -132,9 +131,8 @@ function iocontrol.alloc_nav()
             ---@type nav_tree_page
             local page = { _p = parent, _c = {}, nav_to = function () end, switcher = function () end, tasks = {} }
 
-            if parent == nil then
-                app.root = page
-                if app.cur_page == nil then app.cur_page = page end
+            if parent == nil and app.cur_page == nil then
+                app.cur_page = page
             end
 
             if type(nav_to) == "number" then
@@ -258,6 +256,12 @@ function iocontrol.init_core(comms)
         tone_buttons = {},
         alarm_buttons = {},
         tone_indicators = {}    -- indicators to update from supervisor tone states
+    }
+
+    -- API access
+    ---@class pocket_ioctl_api
+    io.api = {
+        get_unit = function (unit) comms.api__get_unit(unit) end
     }
 end
 
@@ -431,6 +435,8 @@ function iocontrol.init_fac(conf, temp_scale)
         ---@class pioctl_unit
         local entry = {
             unit_id = i,
+            connected = false,
+            rtu_hw = {},
 
             num_boilers = 0,
             num_turbines = 0,
@@ -577,6 +583,116 @@ function iocontrol.record_facility_data(data)
     fac.has_sps = data[8]
 
     return valid
+end
+
+-- update unit status data from API_GET_UNIT
+---@param data table
+function iocontrol.record_unit_data(data)
+    if type(data[1]) == "number" and io.units[data[1]] then
+        local unit = io.units[data[1]]  ---@type pioctl_unit
+
+        unit.connected = data[2]
+        unit.rtu_hw = data[3]
+        unit.alarms = data[4]
+        unit.annunciator = data[5]
+
+        unit.reactor_data = data[6]
+
+        local control_status = 1
+        local reactor_status = 1
+        local rps_status = 1
+
+        if not unit.connected then
+            -- disconnected
+            reactor_status = 1
+        else
+            -- update RPS status
+            if unit.reactor_data.rps_tripped then
+                control_status = 2
+                rps_status = util.trinary(unit.reactor_data.rps_trip_cause ~= "manual", 3, 2)
+            else rps_status = 4 end
+
+            -- update reactor/control status
+            if unit.reactor_data.mek_status.status then
+                reactor_status = 4
+                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+            else
+                if unit.reactor_data.no_reactor then
+                    reactor_status = 2
+                elseif not unit.reactor_data.formed or unit.reactor_data.rps_status.force_dis then
+                    reactor_status = 3
+                else
+                    reactor_status = 4
+                end
+            end
+
+            for key, val in pairs(unit.reactor_data) do
+                if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
+                    unit.unit_ps.publish(key, val)
+                end
+            end
+
+            if type(unit.reactor_data.rps_status) == "table" then
+                for key, val in pairs(unit.reactor_data.rps_status) do
+                    unit.unit_ps.publish(key, val)
+                end
+            end
+
+            if type(unit.reactor_data.mek_status) == "table" then
+                for key, val in pairs(unit.reactor_data.mek_status) do
+                    unit.unit_ps.publish(key, val)
+                end
+            end
+        end
+
+        unit.unit_ps.publish("U_ControlStatus", control_status)
+        unit.unit_ps.publish("U_ReactorStatus", reactor_status)
+        unit.unit_ps.publish("U_RPS", rps_status)
+
+        unit.boiler_data_tbl = data[7]
+
+        for id = 1, #unit.boiler_data_tbl do
+            local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
+            local ps     = unit.boiler_ps_tbl[id]   ---@type psil
+
+            local boiler_status = 1
+
+            if unit.rtu_hw.boilers[id].connected then
+                if unit.rtu_hw.boilers[id].faulted then
+                    boiler_status = 3
+                elseif boiler.formed then
+                    boiler_status = 4
+                else
+                    boiler_status = 2
+                end
+            end
+
+            ps.publish("BoilerStatus", boiler_status)
+        end
+
+        unit.turbine_data_tbl = data[8]
+
+        for id = 1, #unit.turbine_data_tbl do
+            local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
+            local ps      = unit.turbine_ps_tbl[id]   ---@type psil
+
+            local turbine_status = 1
+
+            if unit.rtu_hw.turbines[id].connected then
+                if unit.rtu_hw.turbines[id].faulted then
+                    turbine_status = 3
+                elseif turbine.formed then
+                    turbine_status = 4
+                else
+                    turbine_status = 2
+                end
+            end
+
+            ps.publish("TurbineStatus", turbine_status)
+        end
+
+        unit.tank_data_tbl = data[9]
+    end
 end
 
 -- get the IO controller database
