@@ -79,7 +79,7 @@ local function new_view(root)
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
             { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
-            { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = function () end },
+            { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
             -- { label = " R ", color = core.cpair(colors.black, colors.lightGray), callback = function () end },
             { label = "RCS", tall = true, color = core.cpair(colors.black, colors.blue), callback = function () end },
@@ -184,10 +184,29 @@ local function new_view(root)
                 tbn.register(unit.turbine_ps_tbl[t], "TurbineStatus", tbn.update)
             end
 
+            -- Alarms Tab
+
+            local alm_div = Div{parent=page_div}
+            table.insert(panes, alm_div)
+
+            local alm_page = app.new_page(u_page, #panes)
+            alm_page.tasks = { update }
+
+            nav_links[i].alarm = alm_page.nav_to
+
+            TextBox{parent=alm_div,y=1,text="Unit Alarms",height=1,alignment=ALIGN.CENTER}
+
+            TextBox{parent=alm_div,y=3,text="work in progress",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
+
             -- RPS Tab
 
             local rps_div = Div{parent=page_div}
             table.insert(panes, rps_div)
+
+            local rps_page = app.new_page(u_page, #panes)
+            rps_page.tasks = { update }
+
+            nav_links[i].rps = rps_page.nav_to
 
             TextBox{parent=rps_div,y=1,text="Protection System",height=1,alignment=ALIGN.CENTER}
 
@@ -221,10 +240,18 @@ local function new_view(root)
             rps_loc.register(u_ps, "low_cool", rps_loc.update)
             rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
 
-            local rps_page = app.new_page(u_page, #panes)
-            rps_page.tasks = { update }
+            -- RCS Tab
 
-            nav_links[i].rps = rps_page.nav_to
+            local rcs_div = Div{parent=page_div}
+            table.insert(panes, rcs_div)
+
+            local rcs_page = app.new_page(u_page, #panes)
+            rcs_page.tasks = { update }
+
+            nav_links[i].rcs = rcs_page.nav_to
+
+            TextBox{parent=rcs_div,y=1,text="Coolant System",height=1,alignment=ALIGN.CENTER}
+
         end
 
         -- setup multipane
