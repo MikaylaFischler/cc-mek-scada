@@ -650,7 +650,8 @@ function iocontrol.record_unit_data(data)
         end
 
         local anc = unit.annunciator
-        rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCPTrip or anc.RCSFault or anc.MaxWaterReturnFeed or
+        rcs_hazard = rcs_hazard or anc.RCPTrip
+        rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCSFault or anc.MaxWaterReturnFeed or
                    anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch or anc.MaxWaterReturnFeed
 
         local rcs_status = 4
