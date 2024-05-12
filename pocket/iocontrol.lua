@@ -594,7 +594,79 @@ function iocontrol.record_unit_data(data)
         unit.connected = data[2]
         unit.rtu_hw = data[3]
         unit.alarms = data[4]
+
+        --#region Annunciator
+
         unit.annunciator = data[5]
+
+        local rcs_disconn, rcs_warn, rcs_hazard = false, false, false
+
+        for key, val in pairs(unit.annunciator) do
+            if key == "BoilerOnline" or key == "TurbineOnline" then
+                -- split up online arrays
+                local every = true
+                for id = 1, #val do
+                    every = every and val[id]
+                    unit.boiler_ps_tbl[id].publish(key, val[id])
+                end
+
+                if not every then rcs_disconn = true end
+
+                unit.unit_ps.publish("U_" .. key, every)
+            elseif key == "HeatingRateLow" or key == "WaterLevelLow" then
+                -- split up array for all boilers
+                local any = false
+                for id = 1, #val do
+                    any = any or val[id]
+                    unit.boiler_ps_tbl[id].publish(key, val[id])
+                end
+
+                if key == "HeatingRateLow" and any then
+                    rcs_warn = true
+                elseif key == "WaterLevelLow" and any then
+                    rcs_hazard = true
+                end
+
+                unit.unit_ps.publish("U_" .. key, any)
+            elseif key == "SteamDumpOpen" or key == "TurbineOverSpeed" or key == "GeneratorTrip" or key == "TurbineTrip" then
+                -- split up array for all turbines
+                local any = false
+                for id = 1, #val do
+                    any = any or val[id]
+                    unit.turbine_ps_tbl[id].publish(key, val[id])
+                end
+
+                if key == "GeneratorTrip" and any then
+                    rcs_warn = true
+                elseif (key == "TurbineOverSpeed" or key == "TurbineTrip") and any then
+                    rcs_hazard = true
+                end
+
+                unit.unit_ps.publish("U_" .. key, any)
+            else
+                -- non-table fields
+                unit.unit_ps.publish(key, val)
+            end
+        end
+
+        local anc = unit.annunciator
+        rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCPTrip or anc.RCSFault or anc.MaxWaterReturnFeed or
+                   anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch or anc.MaxWaterReturnFeed
+
+        local rcs_status = 4
+        if rcs_hazard then
+            rcs_status = 2
+        elseif rcs_warn then
+            rcs_status = 3
+        elseif rcs_disconn then
+            rcs_status = 1
+        end
+
+        unit.unit_ps.publish("U_RCS", rcs_status)
+
+        --#endregion
+
+        --#region Reactor Data
 
         unit.reactor_data = data[6]
 
@@ -648,6 +720,8 @@ function iocontrol.record_unit_data(data)
         unit.unit_ps.publish("U_ControlStatus", control_status)
         unit.unit_ps.publish("U_ReactorStatus", reactor_status)
         unit.unit_ps.publish("U_RPS", rps_status)
+
+        --#endregion
 
         unit.boiler_data_tbl = data[7]
 

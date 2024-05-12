@@ -3,7 +3,7 @@
 --
 
 local util      = require("scada-common.util")
-local log       = require("scada-common.log")
+-- local log       = require("scada-common.log")
 
 local iocontrol = require("pocket.iocontrol")
 
@@ -13,20 +13,12 @@ local Div       = require("graphics.elements.div")
 local MultiPane = require("graphics.elements.multipane")
 local TextBox   = require("graphics.elements.textbox")
 
-local AlarmLight        = require("graphics.elements.indicators.alight")
-local CoreMap           = require("graphics.elements.indicators.coremap")
 local DataIndicator     = require("graphics.elements.indicators.data")
 local IconIndicator     = require("graphics.elements.indicators.icon")
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local RadIndicator      = require("graphics.elements.indicators.rad")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
+-- local RadIndicator      = require("graphics.elements.indicators.rad")
+-- local VerticalBar       = require("graphics.elements.indicators.vbar")
 
-local HazardButton      = require("graphics.elements.controls.hazard_button")
-local MultiButton       = require("graphics.elements.controls.multi_button")
 local PushButton        = require("graphics.elements.controls.push_button")
-local RadioButton       = require("graphics.elements.controls.radio_button")
-local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -43,6 +35,12 @@ local mode_states = {
     { color = cpair(colors.black, colors.red), symbol = "-" },
     { color = cpair(colors.black, colors.green), symbol = "+" },
     { color = cpair(colors.black, colors.purple), symbol = "A" }
+}
+
+local emc_ind_s = {
+    { color = cpair(colors.black, colors.gray), symbol = "-" },
+    { color = cpair(colors.black, colors.white), symbol = "\x07" },
+    { color = cpair(colors.black, colors.green), symbol = "+" }
 }
 
 local red_ind_s = {
@@ -70,6 +68,7 @@ local function new_view(root)
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
+    -- local label = cpair(colors.lightGray, colors.black)
 
     local nav_links = {}
 
@@ -82,7 +81,7 @@ local function new_view(root)
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
             -- { label = " R ", color = core.cpair(colors.black, colors.lightGray), callback = function () end },
-            { label = "RCS", tall = true, color = core.cpair(colors.black, colors.blue), callback = function () end },
+            { label = "RCS", tall = true, color = core.cpair(colors.black, colors.blue), callback = nav_links[id].rcs },
         }
 
         -- for i = 1, unit.num_boilers do
@@ -138,7 +137,7 @@ local function new_view(root)
                 end
             end
 
-            -- Main Unit Overview
+            --#region Main Unit Overview
 
             local u_page = app.new_page(nil, i)
             u_page.tasks = { update }
@@ -173,6 +172,7 @@ local function new_view(root)
             u_div.line_break()
 
             local rcs = IconIndicator{parent=u_div,x=1,label="Coolant System",states=basic_states}
+            rcs.register(u_ps, "U_RCS", rcs.update)
 
             for b = 1, unit.num_boilers do
                 local blr = IconIndicator{parent=u_div,x=1,label="Boiler "..b,states=basic_states}
@@ -184,7 +184,9 @@ local function new_view(root)
                 tbn.register(unit.turbine_ps_tbl[t], "TurbineStatus", tbn.update)
             end
 
-            -- Alarms Tab
+            --#endregion
+
+            --#region Alarms Tab
 
             local alm_div = Div{parent=page_div}
             table.insert(panes, alm_div)
@@ -198,7 +200,9 @@ local function new_view(root)
 
             TextBox{parent=alm_div,y=3,text="work in progress",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
 
-            -- RPS Tab
+            --#endregion
+
+            --#region RPS Tab
 
             local rps_div = Div{parent=page_div}
             table.insert(panes, rps_div)
@@ -210,14 +214,14 @@ local function new_view(root)
 
             TextBox{parent=rps_div,y=1,text="Protection System",height=1,alignment=ALIGN.CENTER}
 
-            local r_trip = IconIndicator{parent=rps_div,x=1,y=3,label="RPS Trip",states=basic_states}
+            local r_trip = IconIndicator{parent=rps_div,y=3,label="RPS Trip",states=basic_states}
             r_trip.register(u_ps, "U_RPS", r_trip.update)
 
-            local r_mscrm = IconIndicator{parent=rps_div,x=1,y=5,label="Manual SCRAM",states=red_ind_s}
-            local r_ascrm = IconIndicator{parent=rps_div,x=1,label="Automatic SCRAM",states=red_ind_s}
-            local rps_tmo = IconIndicator{parent=rps_div,x=1,label="Timeout",states=yel_ind_s}
-            local rps_flt = IconIndicator{parent=rps_div,x=1,label="PPM Fault",states=yel_ind_s}
-            local rps_sfl = IconIndicator{parent=rps_div,x=1,label="Not Formed",states=red_ind_s}
+            local r_mscrm = IconIndicator{parent=rps_div,y=5,label="Manual SCRAM",states=red_ind_s}
+            local r_ascrm = IconIndicator{parent=rps_div,label="Automatic SCRAM",states=red_ind_s}
+            local rps_tmo = IconIndicator{parent=rps_div,label="Timeout",states=yel_ind_s}
+            local rps_flt = IconIndicator{parent=rps_div,label="PPM Fault",states=yel_ind_s}
+            local rps_sfl = IconIndicator{parent=rps_div,label="Not Formed",states=red_ind_s}
 
             r_mscrm.register(u_ps, "manual", r_mscrm.update)
             r_ascrm.register(u_ps, "automatic", r_ascrm.update)
@@ -226,12 +230,12 @@ local function new_view(root)
             rps_sfl.register(u_ps, "sys_fail", rps_sfl.update)
 
             rps_div.line_break()
-            local rps_dmg = IconIndicator{parent=rps_div,x=1,label="Reactor Damage Hi",states=red_ind_s}
-            local rps_tmp = IconIndicator{parent=rps_div,x=1,label="Temp. Critical",states=red_ind_s}
-            local rps_nof = IconIndicator{parent=rps_div,x=1,label="Fuel Level Lo",states=yel_ind_s}
-            local rps_exw = IconIndicator{parent=rps_div,x=1,label="Waste Level Hi",states=yel_ind_s}
-            local rps_loc = IconIndicator{parent=rps_div,x=1,label="Coolant Lo Lo",states=yel_ind_s}
-            local rps_exh = IconIndicator{parent=rps_div,x=1,label="Heated Coolant Hi",states=yel_ind_s}
+            local rps_dmg = IconIndicator{parent=rps_div,label="Reactor Damage Hi",states=red_ind_s}
+            local rps_tmp = IconIndicator{parent=rps_div,label="Temp. Critical",states=red_ind_s}
+            local rps_nof = IconIndicator{parent=rps_div,label="Fuel Level Lo",states=yel_ind_s}
+            local rps_exw = IconIndicator{parent=rps_div,label="Waste Level Hi",states=yel_ind_s}
+            local rps_loc = IconIndicator{parent=rps_div,label="Coolant Lo Lo",states=yel_ind_s}
+            local rps_exh = IconIndicator{parent=rps_div,label="Heated Coolant Hi",states=yel_ind_s}
 
             rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
             rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
@@ -240,7 +244,9 @@ local function new_view(root)
             rps_loc.register(u_ps, "low_cool", rps_loc.update)
             rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
 
-            -- RCS Tab
+            --#endregion
+
+            --#region RCS Tab
 
             local rcs_div = Div{parent=page_div}
             table.insert(panes, rcs_div)
@@ -252,6 +258,52 @@ local function new_view(root)
 
             TextBox{parent=rcs_div,y=1,text="Coolant System",height=1,alignment=ALIGN.CENTER}
 
+            local r_rtrip = IconIndicator{parent=rcs_div,y=3,label="RCP Trip",states=red_ind_s}
+            local r_cflow = IconIndicator{parent=rcs_div,label="RCS Flow Lo",states=yel_ind_s}
+            local r_clow  = IconIndicator{parent=rcs_div,label="Coolant Level Lo",states=yel_ind_s}
+
+            r_rtrip.register(u_ps, "RCPTrip", r_rtrip.update)
+            r_cflow.register(u_ps, "RCSFlowLow", r_cflow.update)
+            r_clow.register(u_ps, "CoolantLevelLow", r_clow.update)
+
+            local c_flt  = IconIndicator{parent=rcs_div,label="RCS HW Fault",states=yel_ind_s}
+            local c_emg  = IconIndicator{parent=rcs_div,label="Emergency Coolant",states=emc_ind_s}
+            local c_mwrf = IconIndicator{parent=rcs_div,label="Max Water Return",states=yel_ind_s}
+
+            c_flt.register(u_ps, "RCSFault", c_flt.update)
+            c_emg.register(u_ps, "EmergencyCoolant", c_emg.update)
+            c_mwrf.register(u_ps, "MaxWaterReturnFeed", c_mwrf.update)
+
+            -- rcs_div.line_break()
+            -- TextBox{parent=rcs_div,text="Mismatches",height=1,alignment=ALIGN.CENTER,fg_bg=label}
+            local c_cfm = IconIndicator{parent=rcs_div,label="Coolant Feed",states=yel_ind_s}
+            local c_brm = IconIndicator{parent=rcs_div,label="Boil Rate",states=yel_ind_s}
+            local c_sfm = IconIndicator{parent=rcs_div,label="Steam Feed",states=yel_ind_s}
+
+            c_cfm.register(u_ps, "CoolantFeedMismatch", c_cfm.update)
+            c_brm.register(u_ps, "BoilRateMismatch", c_brm.update)
+            c_sfm.register(u_ps, "SteamFeedMismatch", c_sfm.update)
+
+            rcs_div.line_break()
+            -- TextBox{parent=rcs_div,text="Aggregate Checks",height=1,alignment=ALIGN.CENTER,fg_bg=label}
+
+            if unit.num_boilers > 0 then
+                local wll = IconIndicator{parent=rcs_div,label="Boiler Water Lo",states=red_ind_s}
+                local hrl = IconIndicator{parent=rcs_div,label="Heating Rate Lo",states=yel_ind_s}
+
+                wll.register(u_ps, "U_WaterLevelLow", wll.update)
+                hrl.register(u_ps, "U_HeatingRateLow", hrl.update)
+            end
+
+            local tospd = IconIndicator{parent=rcs_div,label="TRB Over Speed",states=red_ind_s}
+            local gtrip = IconIndicator{parent=rcs_div,label="Generator Trip",states=yel_ind_s}
+            local ttrip = IconIndicator{parent=rcs_div,label="Turbine Trip",states=red_ind_s}
+
+            tospd.register(u_ps, "U_TurbineOverSpeed", tospd.update)
+            gtrip.register(u_ps, "U_GeneratorTrip", gtrip.update)
+            ttrip.register(u_ps, "U_TurbineTrip", ttrip.update)
+
+            --#endregion
         end
 
         -- setup multipane
