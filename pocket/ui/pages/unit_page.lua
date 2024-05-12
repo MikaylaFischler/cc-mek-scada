@@ -45,6 +45,16 @@ local mode_states = {
     { color = cpair(colors.black, colors.purple), symbol = "A" }
 }
 
+local red_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
+    { color = cpair(colors.black, colors.red), symbol = "-" }
+}
+
+local yel_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
+    { color = cpair(colors.black, colors.yellow), symbol = "-" }
+}
+
 -- new unit page view
 ---@param root graphics_element parent
 local function new_view(root)
@@ -60,27 +70,28 @@ local function new_view(root)
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
-    local label = cpair(colors.lightGray, colors.black)
+
+    local nav_links = {}
 
     local function set_sidebar(id)
-        local unit = db.units[id] ---@type pioctl_unit
+        -- local unit = db.units[id] ---@type pioctl_unit
 
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
-            { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow) },
+            { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = function () end },
-            { label = " R ", tall = true, color = core.cpair(colors.black, colors.lightGray), callback = function () end },
-            { label = "RPS", color = core.cpair(colors.black, colors.cyan), callback = function () end },
+            { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
+            -- { label = " R ", color = core.cpair(colors.black, colors.lightGray), callback = function () end },
             { label = "RCS", tall = true, color = core.cpair(colors.black, colors.blue), callback = function () end },
         }
 
-        for i = 1, unit.num_boilers do
-            table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightBlue), callback = function () end })
-        end
+        -- for i = 1, unit.num_boilers do
+        --     table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightBlue), callback = function () end })
+        -- end
 
-        for i = 1, unit.num_turbines do
-            table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.white), callback = function () end })
-        end
+        -- for i = 1, unit.num_turbines do
+        --     table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.white), callback = function () end })
+        -- end
 
         app.set_sidebar(list)
     end
@@ -88,25 +99,25 @@ local function new_view(root)
     local function load()
         local page_div = Div{parent=main,x=2,y=2,width=main.get_width()-2}
 
-        local u_pages = {}
+        local panes = {}
 
         local active_unit = 1
-        set_sidebar(active_unit)
 
+        -- create all page divs
         for _ = 1, db.facility.num_units do
             local div = Div{parent=page_div}
-            table.insert(u_pages, div)
+            table.insert(panes, div)
+            table.insert(nav_links, {})
         end
 
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=u_pages}
-        app.set_root_pane(u_pane)
-
+        -- previous unit
         local function prev(x)
             active_unit = util.trinary(x == 1, db.facility.num_units, x - 1)
             app.switcher(active_unit)
             set_sidebar(active_unit)
         end
 
+        -- next unit
         local function next(x)
             active_unit = util.trinary(x == db.facility.num_units, 1, x + 1)
             app.switcher(active_unit)
@@ -114,9 +125,11 @@ local function new_view(root)
         end
 
         for i = 1, db.facility.num_units do
-            local u_div = u_pages[i] ---@type graphics_element
+            local u_div = panes[i] ---@type graphics_element
             local unit = db.units[i] ---@type pioctl_unit
+            local u_ps = unit.unit_ps
 
+            -- refresh data callback, every 500ms it will re-send the query
             local last_update = 0
             local function update()
                 if util.time_ms() - last_update >= 500 then
@@ -125,7 +138,10 @@ local function new_view(root)
                 end
             end
 
-            app.new_page(nil, i).tasks = { update }
+            -- Main Unit Overview
+
+            local u_page = app.new_page(nil, i)
+            u_page.tasks = { update }
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,height=1,alignment=ALIGN.CENTER}
             PushButton{parent=u_div,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()prev(i)end}
@@ -142,17 +158,17 @@ local function new_view(root)
 
             local ctrl = IconIndicator{parent=u_div,x=1,y=8,label="Control State",states=mode_states}
 
-            rate.register(unit.unit_ps, "act_burn_rate", rate.update)
-            temp.register(unit.unit_ps, "temp", temp.update)
-            ctrl.register(unit.unit_ps, "U_ControlStatus", ctrl.update)
+            rate.register(u_ps, "act_burn_rate", rate.update)
+            temp.register(u_ps, "temp", temp.update)
+            ctrl.register(u_ps, "U_ControlStatus", ctrl.update)
 
             u_div.line_break()
 
             local rct = IconIndicator{parent=u_div,x=1,label="Fission Reactor",states=basic_states}
             local rps = IconIndicator{parent=u_div,x=1,label="Protection System",states=basic_states}
 
-            rct.register(unit.unit_ps, "U_ReactorStatus", rct.update)
-            rps.register(unit.unit_ps, "U_RPS", rps.update)
+            rct.register(u_ps, "U_ReactorStatus", rct.update)
+            rps.register(u_ps, "U_RPS", rps.update)
 
             u_div.line_break()
 
@@ -167,7 +183,55 @@ local function new_view(root)
                 local tbn = IconIndicator{parent=u_div,x=1,label="Turbine "..t,states=basic_states}
                 tbn.register(unit.turbine_ps_tbl[t], "TurbineStatus", tbn.update)
             end
+
+            -- RPS Tab
+
+            local rps_div = Div{parent=page_div}
+            table.insert(panes, rps_div)
+
+            TextBox{parent=rps_div,y=1,text="Protection System",height=1,alignment=ALIGN.CENTER}
+
+            local r_trip = IconIndicator{parent=rps_div,x=1,y=3,label="RPS Trip",states=basic_states}
+            r_trip.register(u_ps, "U_RPS", r_trip.update)
+
+            local r_mscrm = IconIndicator{parent=rps_div,x=1,y=5,label="Manual SCRAM",states=red_ind_s}
+            local r_ascrm = IconIndicator{parent=rps_div,x=1,label="Automatic SCRAM",states=red_ind_s}
+            local rps_tmo = IconIndicator{parent=rps_div,x=1,label="Timeout",states=yel_ind_s}
+            local rps_flt = IconIndicator{parent=rps_div,x=1,label="PLC Fault",states=yel_ind_s}
+            local rps_sfl = IconIndicator{parent=rps_div,x=1,label="RCT Fault",states=red_ind_s}
+
+            r_mscrm.register(u_ps, "manual", r_mscrm.update)
+            r_ascrm.register(u_ps, "automatic", r_ascrm.update)
+            rps_tmo.register(u_ps, "timeout", rps_tmo.update)
+            rps_flt.register(u_ps, "fault", rps_flt.update)
+            rps_sfl.register(u_ps, "sys_fail", rps_sfl.update)
+
+            rps_div.line_break()
+            local rps_dmg = IconIndicator{parent=rps_div,x=1,label="High Damage",states=red_ind_s}
+            local rps_tmp = IconIndicator{parent=rps_div,x=1,label="High Temperature",states=red_ind_s}
+            local rps_nof = IconIndicator{parent=rps_div,x=1,label="Low Fuel",states=yel_ind_s}
+            local rps_exw = IconIndicator{parent=rps_div,x=1,label="High Waste",states=yel_ind_s}
+            local rps_loc = IconIndicator{parent=rps_div,x=1,label="Low Coolant",states=yel_ind_s}
+            local rps_exh = IconIndicator{parent=rps_div,x=1,label="High Hot Coolant",states=yel_ind_s}
+
+            rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
+            rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
+            rps_nof.register(u_ps, "no_fuel", rps_nof.update)
+            rps_exw.register(u_ps, "ex_waste", rps_exw.update)
+            rps_loc.register(u_ps, "low_cool", rps_loc.update)
+            rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
+
+            local rps_page = app.new_page(u_page, #panes)
+            rps_page.tasks = { update }
+
+            nav_links[i].rps = rps_page.nav_to
         end
+
+        -- setup multipane
+        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        app.set_root_pane(u_pane)
+
+        set_sidebar(active_unit)
     end
 
     app.set_on_load(load)

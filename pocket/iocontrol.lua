@@ -609,7 +609,7 @@ function iocontrol.record_unit_data(data)
             -- update RPS status
             if unit.reactor_data.rps_tripped then
                 control_status = 2
-                rps_status = util.trinary(unit.reactor_data.rps_trip_cause ~= "manual", 3, 2)
+                rps_status = util.trinary(unit.reactor_data.rps_trip_cause == "manual", 3, 2)
             else rps_status = 4 end
 
             -- update reactor/control status
