@@ -1,7 +1,6 @@
 -- Icon Indicator Graphics Element
 
 local element = require("graphics.element")
-local util    = require("scada-common.util")
 
 ---@class icon_sym_color
 ---@field color cpair

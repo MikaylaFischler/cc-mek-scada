@@ -674,10 +674,7 @@ function iocontrol.record_unit_data(data)
         local reactor_status = 1
         local rps_status = 1
 
-        if not unit.connected then
-            -- disconnected
-            reactor_status = 1
-        else
+        if unit.connected then
             -- update RPS status
             if unit.reactor_data.rps_tripped then
                 control_status = 2
