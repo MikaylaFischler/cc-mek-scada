@@ -216,8 +216,8 @@ local function new_view(root)
             local r_mscrm = IconIndicator{parent=rps_div,x=1,y=5,label="Manual SCRAM",states=red_ind_s}
             local r_ascrm = IconIndicator{parent=rps_div,x=1,label="Automatic SCRAM",states=red_ind_s}
             local rps_tmo = IconIndicator{parent=rps_div,x=1,label="Timeout",states=yel_ind_s}
-            local rps_flt = IconIndicator{parent=rps_div,x=1,label="PLC Fault",states=yel_ind_s}
-            local rps_sfl = IconIndicator{parent=rps_div,x=1,label="RCT Fault",states=red_ind_s}
+            local rps_flt = IconIndicator{parent=rps_div,x=1,label="PPM Fault",states=yel_ind_s}
+            local rps_sfl = IconIndicator{parent=rps_div,x=1,label="Not Formed",states=red_ind_s}
 
             r_mscrm.register(u_ps, "manual", r_mscrm.update)
             r_ascrm.register(u_ps, "automatic", r_ascrm.update)
@@ -226,12 +226,12 @@ local function new_view(root)
             rps_sfl.register(u_ps, "sys_fail", rps_sfl.update)
 
             rps_div.line_break()
-            local rps_dmg = IconIndicator{parent=rps_div,x=1,label="High Damage",states=red_ind_s}
-            local rps_tmp = IconIndicator{parent=rps_div,x=1,label="High Temperature",states=red_ind_s}
-            local rps_nof = IconIndicator{parent=rps_div,x=1,label="Low Fuel",states=yel_ind_s}
-            local rps_exw = IconIndicator{parent=rps_div,x=1,label="High Waste",states=yel_ind_s}
-            local rps_loc = IconIndicator{parent=rps_div,x=1,label="Low Coolant",states=yel_ind_s}
-            local rps_exh = IconIndicator{parent=rps_div,x=1,label="High Hot Coolant",states=yel_ind_s}
+            local rps_dmg = IconIndicator{parent=rps_div,x=1,label="Reactor Damage Hi",states=red_ind_s}
+            local rps_tmp = IconIndicator{parent=rps_div,x=1,label="Temp. Critical",states=red_ind_s}
+            local rps_nof = IconIndicator{parent=rps_div,x=1,label="Fuel Level Lo",states=yel_ind_s}
+            local rps_exw = IconIndicator{parent=rps_div,x=1,label="Waste Level Hi",states=yel_ind_s}
+            local rps_loc = IconIndicator{parent=rps_div,x=1,label="Coolant Lo Lo",states=yel_ind_s}
+            local rps_exh = IconIndicator{parent=rps_div,x=1,label="Heated Coolant Hi",states=yel_ind_s}
 
             rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
             rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
