@@ -119,6 +119,20 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
         self.api.seq_num = self.api.seq_num + 1
     end
 
+    -- send an API packet to the coordinator
+    ---@param msg_type CRDN_TYPE
+    ---@param msg table
+    local function _send_api(msg_type, msg)
+        local s_pkt = comms.scada_packet()
+        local pkt = comms.crdn_packet()
+
+        pkt.make(msg_type, msg)
+        s_pkt.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, pkt.raw_sendable())
+
+        nic.transmit(config.CRD_Channel, config.PKT_Channel, s_pkt)
+        self.api.seq_num = self.api.seq_num + 1
+    end
+
     -- attempt supervisor connection establishment
     local function _send_sv_establish()
         _send_sv(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT })
@@ -192,7 +206,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
             end
         else
             -- linked, all good!
-            iocontrol.report_link_state(LINK_STATE.LINKED)
+            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
         end
     end
 
@@ -213,6 +227,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
     ---@param state boolean alarm state
     function public.diag__set_alarm(id, state)
         if self.sv.linked then _send_sv(MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
+    end
+
+    -- coordinator get unit data
+    function public.api__get_unit(unit)
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
     end
 
     -- parse a packet
@@ -304,7 +323,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                             if _check_length(packet, 11) then
                                 iocontrol.record_facility_data(packet.data)
                             end
-                        elseif packet.type == CRDN_TYPE.API_GET_UNITS then
+                        elseif packet.type == CRDN_TYPE.API_GET_UNIT then
+                            if _check_length(packet, 9) then
+                                iocontrol.record_unit_data(packet.data)
+                            end
                         else _fail_type(packet) end
                     else
                         log.debug("discarding coordinator SCADA_CRDN packet before linked")
@@ -358,7 +380,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                         self.api.addr = src_addr
 
                                         if self.sv.linked then
-                                            iocontrol.report_link_state(LINK_STATE.LINKED)
+                                            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
                                         else
                                             iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
                                         end
@@ -497,7 +519,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 self.sv.addr = src_addr
 
                                 if self.api.linked then
-                                    iocontrol.report_link_state(LINK_STATE.LINKED)
+                                    iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
                                 else
                                     iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
                                 end

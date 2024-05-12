@@ -18,7 +18,7 @@ local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
 comms.version = "2.5.1"
-comms.api_version = "0.0.1"
+comms.api_version = "0.0.2"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -67,7 +67,7 @@ local CRDN_TYPE = {
     UNIT_STATUSES = 5,   -- state of each of the reactor units
     UNIT_CMD = 6,        -- command a reactor unit
     API_GET_FAC = 7,     -- API: get all the facility data
-    API_GET_UNITS = 8    -- API: get all the reactor unit data
+    API_GET_UNIT = 8     -- API: get reactor unit data
 }
 
 ---@enum ESTABLISH_ACK

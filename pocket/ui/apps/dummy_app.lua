@@ -19,6 +19,8 @@ local function create_pages(root)
     db.nav.register_app(iocontrol.APP_ID.DUMMY, main).new_page(nil, function () end)
 
     TextBox{parent=main,text="This app is not implemented yet.",x=1,y=2,alignment=core.ALIGN.CENTER}
+
+    TextBox{parent=main,text=" pretend something  cool is here \x03",x=1,y=10,alignment=core.ALIGN.CENTER,fg_bg=core.cpair(colors.gray,colors.black)}
 end
 
 return create_pages
