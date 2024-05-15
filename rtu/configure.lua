@@ -1669,9 +1669,11 @@ function configurator.configure(ask_config)
             elseif event == "paste" then
                 display.handle_paste(param1)
             elseif event == "peripheral_detach" then
+---@diagnostic disable-next-line: discard-returns
                 ppm.handle_unmount(param1)
                 tool_ctl.update_peri_list()
             elseif event == "peripheral" then
+---@diagnostic disable-next-line: discard-returns
                 ppm.mount(param1)
                 tool_ctl.update_peri_list()
             end

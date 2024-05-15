@@ -39,21 +39,26 @@ local function new_view(root)
 
     local function open(id) db.nav.open_app(id) end
 
+    app.set_sidebar({
+        { label = " #\x10", tall = true, color = core.cpair(colors.black, colors.green), callback = function () open(APP_ID.ROOT) end }
+    })
+
     local active_fg_bg = cpair(colors.white,colors.gray)
 
-    App{parent=apps_1,x=3,y=2,text="U",title="Units",callback=function()open(APP_ID.UNITS)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=10,y=2,text="\x17",title="PRC",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.purple),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=17,y=2,text="\x15",title="CTL",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.green),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=3,y=7,text="\x08",title="DEV",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=10,y=7,text="\x7f",title="Waste",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.brown),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=17,y=7,text="\xb6",title="Guide",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=3,y=12,text="?",title="About",callback=function()open(APP_ID.ABOUT)end,app_fg_bg=cpair(colors.black,colors.white),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=2,y=2,text="U",title="Units",callback=function()open(APP_ID.UNITS)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=9,y=2,text="F",title="Facil",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=16,y=2,text="\x15",title="Control",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.green),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=2,y=7,text="\x17",title="Process",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.purple),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=9,y=7,text="\x7f",title="Waste",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.brown),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=16,y=7,text="\x08",title="Devices",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=2,y=12,text="\xb6",title="Guide",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=9,y=12,text="?",title="About",callback=function()open(APP_ID.ABOUT)end,app_fg_bg=cpair(colors.black,colors.white),active_fg_bg=active_fg_bg}
 
     TextBox{parent=apps_2,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}
 
-    App{parent=apps_2,x=3,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
-    App{parent=apps_2,x=10,y=4,text="\x1e",title="LoopT",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
-    App{parent=apps_2,x=17,y=4,text="@",title="Comps",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=2,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=9,y=4,text="\x1e",title="LoopT",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=16,y=4,text="@",title="Comps",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
 
     return main
 end

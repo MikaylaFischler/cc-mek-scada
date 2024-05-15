@@ -138,21 +138,26 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
                 }
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
-            elseif pkt.type == CRDN_TYPE.API_GET_UNITS then
-                local data = {}
+            elseif pkt.type == CRDN_TYPE.API_GET_UNIT then
+                if pkt.length == 1 and type(pkt.data[1]) == "number" then
+                    local u = db.units[pkt.data[1]]   ---@type ioctl_unit
 
-                for i = 1, #db.units do
-                    local u = db.units[i]   ---@type ioctl_unit
-                    table.insert(data, {
-                        u.unit_id,
-                        u.num_boilers,
-                        u.num_turbines,
-                        u.num_snas,
-                        u.has_tank
-                    })
+                    if u then
+                        local data = {
+                            u.unit_id,
+                            u.connected,
+                            u.rtu_hw,
+                            u.alarms,
+                            u.annunciator,
+                            u.reactor_data,
+                            u.boiler_data_tbl,
+                            u.turbine_data_tbl,
+                            u.tank_data_tbl
+                        }
+
+                        _send(CRDN_TYPE.API_GET_UNIT, data)
+                    end
                 end
-
-                _send(CRDN_TYPE.API_GET_UNITS, data)
             else
                 log.debug(log_header .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

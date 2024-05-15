@@ -228,6 +228,8 @@ function iocontrol.init(conf, comms, temp_scale)
         ---@class ioctl_unit
         local entry = {
             unit_id = i,
+            connected = false,
+            rtu_hw = { boilers = {}, turbines = {} },
 
             num_boilers = 0,
             num_turbines = 0,
@@ -319,12 +321,14 @@ function iocontrol.init(conf, comms, temp_scale)
         for _ = 1, conf.cooling.r_cool[i].BoilerCount do
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, {})
+            table.insert(entry.rtu_hw.boilers, { connected = false, faulted = false })
         end
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
+            table.insert(entry.rtu_hw.turbines, { connected = false, faulted = false })
         end
 
         -- create tank tables
@@ -897,6 +901,7 @@ function iocontrol.update_unit_statuses(statuses)
                 end
 
                 if #reactor_status == 0 then
+                    unit.connected = false
                     unit.unit_ps.publish("computed_status", 1)   -- disconnected
                 elseif #reactor_status == 3 then
                     local mek_status = reactor_status[1]
@@ -956,6 +961,8 @@ function iocontrol.update_unit_statuses(statuses)
                             unit.unit_ps.publish(key, val)
                         end
                     end
+
+                    unit.connected = true
                 else
                     log.debug(log_header .. "reactor status length mismatch")
                     valid = false
@@ -970,7 +977,10 @@ function iocontrol.update_unit_statuses(statuses)
                         local boil_sum = 0
 
                         for id = 1, #unit.boiler_ps_tbl do
-                            if rtu_statuses.boilers[id] == nil then
+                            local connected = rtu_statuses.boilers[id] ~= nil
+                            unit.rtu_hw.boilers[id].connected = connected
+
+                            if not connected then
                                 -- disconnected
                                 unit.boiler_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -982,6 +992,7 @@ function iocontrol.update_unit_statuses(statuses)
                                 local ps   = unit.boiler_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(boiler, data, ps)
+                                unit.rtu_hw.boilers[id].faulted = rtu_faulted
 
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
@@ -1013,7 +1024,10 @@ function iocontrol.update_unit_statuses(statuses)
                         local flow_sum = 0
 
                         for id = 1, #unit.turbine_ps_tbl do
-                            if rtu_statuses.turbines[id] == nil then
+                            local connected = rtu_statuses.turbines[id] ~= nil
+                            unit.rtu_hw.turbines[id].connected = connected
+
+                            if not connected then
                                 -- disconnected
                                 unit.turbine_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -1025,6 +1039,7 @@ function iocontrol.update_unit_statuses(statuses)
                                 local ps   = unit.turbine_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(turbine, data, ps)
+                                unit.rtu_hw.turbines[id].faulted = rtu_faulted
 
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
