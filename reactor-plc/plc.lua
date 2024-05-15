@@ -25,8 +25,8 @@ local RPS_LIMITS = const.RPS_LIMITS
 
 -- I sure hope the devs don't change this error message, not that it would have safety implications
 -- I wish they didn't change it to be like this
-local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
-local PCALL_START_MSG = "pcall: Reactor is already active."
+local PCALL_SCRAM_MSG = "Scram requires the reactor to be active."
+local PCALL_START_MSG = "Reactor is already active."
 
 ---@type plc_config
 local config = {}
@@ -307,7 +307,7 @@ function plc.rps_init(reactor, is_formed)
         log.info("RPS: reactor SCRAM")
 
         reactor.scram()
-        if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_SCRAM_MSG) then
+        if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
             return false
         else
@@ -325,7 +325,7 @@ function plc.rps_init(reactor, is_formed)
             log.info("RPS: reactor start")
 
             reactor.activate()
-            if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_START_MSG) then
+            if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
             else
                 self.reactor_enabled = true
