@@ -658,6 +658,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                         local cmd = message.message
                         if cmd == PLC_S_CMDS.ENABLE then
                             -- enable reactor
+                            self.acks.disable = true
                             if not self.auto_lock then
                                 _send(RPLC_TYPE.RPS_ENABLE, {})
                             end
@@ -714,6 +715,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                                     self.auto_cmd_token = 0
                                     self.ramping_rate = true
                                     self.acks.burn_rate = false
+                                    self.acks.disable = true
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
                                     _send(RPLC_TYPE.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                                 end
@@ -721,13 +723,14 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                         elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
                             -- set automatic burn rate
                             if self.auto_lock then
-                                cmd.val = math.floor(cmd.val * 100) / 100   -- round to 100ths place
+                                cmd.val = math.floor(cmd.val * 100) / 100 -- round to 100ths place
                                 if cmd.val >= 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                     self.auto_cmd_token = util.time_ms()
                                     self.commanded_burn_rate = cmd.val
 
                                     -- this is only for manual control, only retry auto ramps
                                     self.acks.burn_rate = not self.ramping_rate
+                                    self.acks.disable = true
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_AUTO_WAIT
 
                                     _send(RPLC_TYPE.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })
