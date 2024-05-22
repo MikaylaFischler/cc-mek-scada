@@ -164,7 +164,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             ReactorDamage        = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorDamage, tier = PRIO.EMERGENCY },
             -- reactor >1200K
             ReactorOverTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorOverTemp, tier = PRIO.URGENT },
-            -- reactor >=1150K
+            -- reactor >= computed high temp limit
             ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
             -- waste = 100%
             ReactorWasteLeak     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorWasteLeak, tier = PRIO.EMERGENCY },
@@ -976,7 +976,9 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             self.db.control.ready,
             self.db.control.degraded,
             self.db.control.waste_mode,
-            self.waste_product
+            self.waste_product,
+            self.last_rate_change_ms,
+            self.turbine_flow_stable
         }
     end
 

@@ -10,6 +10,7 @@ local iocontrol = require("pocket.iocontrol")
 local core      = require("graphics.core")
 
 local Div       = require("graphics.elements.div")
+local ListBox   = require("graphics.elements.listbox")
 local MultiPane = require("graphics.elements.multipane")
 local TextBox   = require("graphics.elements.textbox")
 
@@ -196,9 +197,34 @@ local function new_view(root)
 
             nav_links[i].alarm = alm_page.nav_to
 
-            TextBox{parent=alm_div,y=1,text="Unit Alarms",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=alm_div,y=1,text="ECAM :)",height=1,alignment=ALIGN.CENTER}
 
-            TextBox{parent=alm_div,y=3,text="work in progress",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
+            local ecam_disp = ListBox{parent=alm_div,x=2,y=3,scroll_height=500,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+            ecam_disp.register(u_ps, "U_ECAM", function (data)
+                local ecam = textutils.unserialize(data)
+
+                ecam_disp.remove_all()
+                for _, entry in ipairs(ecam) do
+                    local div = Div{parent=ecam_disp,fg_bg=cpair(entry.color,colors.black)}
+                    local text = TextBox{parent=div,text=entry.text}
+
+                    if entry.help then
+                        PushButton{parent=div,x=20,y=text.get_y(),text="?",callback=function()db.nav.open_help(entry.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                    end
+
+                    for _, item in ipairs(entry.items) do
+                        local fg_bg = nil
+                        if item.color then fg_bg = cpair(item.color, colors.black) end
+
+                        text = TextBox{parent=div,x=3,text=item.text,fg_bg=fg_bg}
+
+                        if item.help then
+                            PushButton{parent=div,x=20,y=text.get_y(),text="?",callback=function()db.nav.open_help(item.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                        end
+                    end
+                end
+            end)
 
             --#endregion
 

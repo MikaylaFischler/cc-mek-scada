@@ -2,6 +2,7 @@
 -- I/O Control for Pocket Integration with Supervisor & Coordinator
 --
 
+local const = require("scada-common.constants")
 local log   = require("scada-common.log")
 local psil  = require("scada-common.psil")
 local types = require("scada-common.types")
@@ -454,6 +455,9 @@ function iocontrol.init_fac(conf, temp_scale)
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
 
+            last_rate_change_ms = 0,
+            turbine_flow_stable = false,
+
             -- auto control group
             a_group = 0,
 
@@ -585,186 +589,384 @@ function iocontrol.record_facility_data(data)
     return valid
 end
 
+local function tripped(state) return state == ALARM_STATE.TRIPPED or state == ALARM_STATE.ACKED end
+
 -- update unit status data from API_GET_UNIT
 ---@param data table
 function iocontrol.record_unit_data(data)
-    if type(data[1]) == "number" and io.units[data[1]] then
-        local unit = io.units[data[1]]  ---@type pioctl_unit
+    local unit = io.units[data[1]]  ---@type pioctl_unit
 
-        unit.connected = data[2]
-        unit.rtu_hw = data[3]
-        unit.alarms = data[4]
+    unit.connected = data[2]
+    unit.rtu_hw = data[3]
+    unit.alarms = data[4]
 
-        --#region Annunciator
+    --#region Annunciator
 
-        unit.annunciator = data[5]
+    unit.annunciator = data[5]
 
-        local rcs_disconn, rcs_warn, rcs_hazard = false, false, false
+    local rcs_disconn, rcs_warn, rcs_hazard = false, false, false
 
-        for key, val in pairs(unit.annunciator) do
-            if key == "BoilerOnline" or key == "TurbineOnline" then
-                -- split up online arrays
-                local every = true
-                for id = 1, #val do
-                    every = every and val[id]
-                    unit.boiler_ps_tbl[id].publish(key, val[id])
-                end
+    for key, val in pairs(unit.annunciator) do
+        if key == "BoilerOnline" or key == "TurbineOnline" then
+            -- split up online arrays
+            local every = true
+            for id = 1, #val do
+                every = every and val[id]
+                unit.boiler_ps_tbl[id].publish(key, val[id])
+            end
 
-                if not every then rcs_disconn = true end
+            if not every then rcs_disconn = true end
 
-                unit.unit_ps.publish("U_" .. key, every)
-            elseif key == "HeatingRateLow" or key == "WaterLevelLow" then
-                -- split up array for all boilers
-                local any = false
-                for id = 1, #val do
-                    any = any or val[id]
-                    unit.boiler_ps_tbl[id].publish(key, val[id])
-                end
+            unit.unit_ps.publish("U_" .. key, every)
+        elseif key == "HeatingRateLow" or key == "WaterLevelLow" then
+            -- split up array for all boilers
+            local any = false
+            for id = 1, #val do
+                any = any or val[id]
+                unit.boiler_ps_tbl[id].publish(key, val[id])
+            end
 
-                if key == "HeatingRateLow" and any then
-                    rcs_warn = true
-                elseif key == "WaterLevelLow" and any then
-                    rcs_hazard = true
-                end
+            if key == "HeatingRateLow" and any then
+                rcs_warn = true
+            elseif key == "WaterLevelLow" and any then
+                rcs_hazard = true
+            end
 
-                unit.unit_ps.publish("U_" .. key, any)
-            elseif key == "SteamDumpOpen" or key == "TurbineOverSpeed" or key == "GeneratorTrip" or key == "TurbineTrip" then
-                -- split up array for all turbines
-                local any = false
-                for id = 1, #val do
-                    any = any or val[id]
-                    unit.turbine_ps_tbl[id].publish(key, val[id])
-                end
+            unit.unit_ps.publish("U_" .. key, any)
+        elseif key == "SteamDumpOpen" or key == "TurbineOverSpeed" or key == "GeneratorTrip" or key == "TurbineTrip" then
+            -- split up array for all turbines
+            local any = false
+            for id = 1, #val do
+                any = any or val[id]
+                unit.turbine_ps_tbl[id].publish(key, val[id])
+            end
 
-                if key == "GeneratorTrip" and any then
-                    rcs_warn = true
-                elseif (key == "TurbineOverSpeed" or key == "TurbineTrip") and any then
-                    rcs_hazard = true
-                end
+            if key == "GeneratorTrip" and any then
+                rcs_warn = true
+            elseif (key == "TurbineOverSpeed" or key == "TurbineTrip") and any then
+                rcs_hazard = true
+            end
 
-                unit.unit_ps.publish("U_" .. key, any)
+            unit.unit_ps.publish("U_" .. key, any)
+        else
+            -- non-table fields
+            unit.unit_ps.publish(key, val)
+        end
+    end
+
+    local anc = unit.annunciator
+    rcs_hazard = rcs_hazard or anc.RCPTrip
+    rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCSFault or anc.MaxWaterReturnFeed or
+                anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch or anc.MaxWaterReturnFeed
+
+    local rcs_status = 4
+    if rcs_hazard then
+        rcs_status = 2
+    elseif rcs_warn then
+        rcs_status = 3
+    elseif rcs_disconn then
+        rcs_status = 1
+    end
+
+    unit.unit_ps.publish("U_RCS", rcs_status)
+
+    --#endregion
+
+    --#region Reactor Data
+
+    unit.reactor_data = data[6]
+
+    local control_status = 1
+    local reactor_status = 1
+    local rps_status = 1
+
+    if unit.connected then
+        -- update RPS status
+        if unit.reactor_data.rps_tripped then
+            control_status = 2
+            rps_status = util.trinary(unit.reactor_data.rps_trip_cause == "manual", 3, 2)
+        else rps_status = 4 end
+
+        -- update reactor/control status
+        if unit.reactor_data.mek_status.status then
+            reactor_status = 4
+            control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+        else
+            if unit.reactor_data.no_reactor then
+                reactor_status = 2
+            elseif not unit.reactor_data.formed or unit.reactor_data.rps_status.force_dis then
+                reactor_status = 3
             else
-                -- non-table fields
+                reactor_status = 4
+            end
+        end
+
+        for key, val in pairs(unit.reactor_data) do
+            if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
                 unit.unit_ps.publish(key, val)
             end
         end
 
-        local anc = unit.annunciator
-        rcs_hazard = rcs_hazard or anc.RCPTrip
-        rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCSFault or anc.MaxWaterReturnFeed or
-                   anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch or anc.MaxWaterReturnFeed
-
-        local rcs_status = 4
-        if rcs_hazard then
-            rcs_status = 2
-        elseif rcs_warn then
-            rcs_status = 3
-        elseif rcs_disconn then
-            rcs_status = 1
-        end
-
-        unit.unit_ps.publish("U_RCS", rcs_status)
-
-        --#endregion
-
-        --#region Reactor Data
-
-        unit.reactor_data = data[6]
-
-        local control_status = 1
-        local reactor_status = 1
-        local rps_status = 1
-
-        if unit.connected then
-            -- update RPS status
-            if unit.reactor_data.rps_tripped then
-                control_status = 2
-                rps_status = util.trinary(unit.reactor_data.rps_trip_cause == "manual", 3, 2)
-            else rps_status = 4 end
-
-            -- update reactor/control status
-            if unit.reactor_data.mek_status.status then
-                reactor_status = 4
-                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
-            else
-                if unit.reactor_data.no_reactor then
-                    reactor_status = 2
-                elseif not unit.reactor_data.formed or unit.reactor_data.rps_status.force_dis then
-                    reactor_status = 3
-                else
-                    reactor_status = 4
-                end
-            end
-
-            for key, val in pairs(unit.reactor_data) do
-                if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                    unit.unit_ps.publish(key, val)
-                end
-            end
-
-            if type(unit.reactor_data.rps_status) == "table" then
-                for key, val in pairs(unit.reactor_data.rps_status) do
-                    unit.unit_ps.publish(key, val)
-                end
-            end
-
-            if type(unit.reactor_data.mek_status) == "table" then
-                for key, val in pairs(unit.reactor_data.mek_status) do
-                    unit.unit_ps.publish(key, val)
-                end
+        if type(unit.reactor_data.rps_status) == "table" then
+            for key, val in pairs(unit.reactor_data.rps_status) do
+                unit.unit_ps.publish(key, val)
             end
         end
 
-        unit.unit_ps.publish("U_ControlStatus", control_status)
-        unit.unit_ps.publish("U_ReactorStatus", reactor_status)
-        unit.unit_ps.publish("U_RPS", rps_status)
-
-        --#endregion
-
-        unit.boiler_data_tbl = data[7]
-
-        for id = 1, #unit.boiler_data_tbl do
-            local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
-            local ps     = unit.boiler_ps_tbl[id]   ---@type psil
-
-            local boiler_status = 1
-
-            if unit.rtu_hw.boilers[id].connected then
-                if unit.rtu_hw.boilers[id].faulted then
-                    boiler_status = 3
-                elseif boiler.formed then
-                    boiler_status = 4
-                else
-                    boiler_status = 2
-                end
+        if type(unit.reactor_data.mek_status) == "table" then
+            for key, val in pairs(unit.reactor_data.mek_status) do
+                unit.unit_ps.publish(key, val)
             end
-
-            ps.publish("BoilerStatus", boiler_status)
         end
-
-        unit.turbine_data_tbl = data[8]
-
-        for id = 1, #unit.turbine_data_tbl do
-            local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
-            local ps      = unit.turbine_ps_tbl[id]   ---@type psil
-
-            local turbine_status = 1
-
-            if unit.rtu_hw.turbines[id].connected then
-                if unit.rtu_hw.turbines[id].faulted then
-                    turbine_status = 3
-                elseif turbine.formed then
-                    turbine_status = 4
-                else
-                    turbine_status = 2
-                end
-            end
-
-            ps.publish("TurbineStatus", turbine_status)
-        end
-
-        unit.tank_data_tbl = data[9]
     end
+
+    unit.unit_ps.publish("U_ControlStatus", control_status)
+    unit.unit_ps.publish("U_ReactorStatus", reactor_status)
+    unit.unit_ps.publish("U_RPS", rps_status)
+
+    --#endregion
+
+    --#region RTU Devices
+
+    unit.boiler_data_tbl = data[7]
+
+    for id = 1, #unit.boiler_data_tbl do
+        local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
+        local ps     = unit.boiler_ps_tbl[id]   ---@type psil
+
+        local boiler_status = 1
+
+        if unit.rtu_hw.boilers[id].connected then
+            if unit.rtu_hw.boilers[id].faulted then
+                boiler_status = 3
+            elseif boiler.formed then
+                boiler_status = 4
+            else
+                boiler_status = 2
+            end
+        end
+
+        ps.publish("BoilerStatus", boiler_status)
+    end
+
+    unit.turbine_data_tbl = data[8]
+
+    for id = 1, #unit.turbine_data_tbl do
+        local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
+        local ps      = unit.turbine_ps_tbl[id]   ---@type psil
+
+        local turbine_status = 1
+
+        if unit.rtu_hw.turbines[id].connected then
+            if unit.rtu_hw.turbines[id].faulted then
+                turbine_status = 3
+            elseif turbine.formed then
+                turbine_status = 4
+            else
+                turbine_status = 2
+            end
+        end
+
+        ps.publish("TurbineStatus", turbine_status)
+    end
+
+    unit.tank_data_tbl = data[9]
+
+    --#endregion
+
+    --#region Advanced Alarm Information Display
+
+    local ecam = {} -- aviation reference :) back to VATSIM I go...
+
+    if tripped(unit.alarms[ALARM.ContainmentBreach]) then
+        local items = {
+            { text = "REACTOR EXPLOSION", color = colors.white },
+            { text = "WEAR HAZMAT SUIT", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "CONTAINMENT BREACH", help = "ContainmentBreach", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.ContainmentRadiation]) then
+        local items = {
+            { text = "RADIATION DETECTED", color = colors.white },
+            { text = "WEAR HAZMAT SUIT", color = colors.blue },
+            { text = "RESOLVE LEAK", color = colors.blue },
+            { text = "AWAIT SAFE LEVELS", color = colors.white }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "RADIATION LEAK", help = "ContainmentRadiation", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.CriticalDamage]) then
+        local items = {
+            { text = "MELTDOWN IMMINENT", color = colors.white },
+            { text = "CHECK PLC", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "RCT DAMAGE CRITICAL", help = "CriticalDamage", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorLost]) then
+        local items = {
+            { text = "REACTOR OFF-LINE", color = colors.white },
+            { text = "CHECK PLC", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "REACTOR CONN LOST", help = "ReactorLost", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorDamage]) then
+        local items = {
+            { text = "REACTOR DAMAGED", color = colors.white },
+            { text = "CHECK RCS", color = colors.blue },
+            { text = "AWAIT DMG REDUCED", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "REACTOR DAMAGE", help = "ReactorDamage", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorOverTemp]) then
+        local items = {
+            { text = "AOA DAMAGE TEMP", color = colors.white },
+            { text = "CHECK RCS", color = colors.blue },
+            { text = "AWAIT COOLDOWN", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "REACTOR OVER TEMP", help = "ReactorOverTemp", items = items })
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorHighTemp]) then
+        local items = {
+            { text = "OVER EXPECTED TEMP", color = colors.white },
+            { text = "CHECK RCS", color = colors.blue }
+        }
+
+        table.insert(ecam, { color = colors.yellow, text = "REACTOR HIGH TEMP", help = "ReactorHighTemp", items = items})
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorWasteLeak]) then
+        local items = {
+            { text = "CHECK WASTE OUTPUT", color = colors.blue },
+            { text = "DO NOT ENABLE RCT" }
+        }
+
+        table.insert(ecam, { color = colors.red, text = "REACTOR WASTE LEAK", help = "ReactorWasteLeak", items = items})
+    end
+
+    if tripped(unit.alarms[ALARM.ReactorHighWaste]) then
+        local items = {{ text = "CHECK WASTE OUTPUT", color = colors.white }}
+        table.insert(ecam, { color = colors.yellow, text = "REACTOR WASTE HIGH", help = "ReactorHighWaste", items = items})
+    end
+
+    if tripped(unit.alarms[ALARM.RPSTransient]) then
+        local items = {}
+        local stat = unit.reactor_data.rps_status
+
+        local function insert(cond, key, text, color) if cond[key] then table.insert(items, { text = text, help = key, color = color }) end end
+
+        table.insert(items, { text = "REACTOR SCRAMMED", color = colors.white })
+        insert(stat, "high_dmg", "HIGH DAMAGE", colors.red)
+        insert(stat, "high_temp", "HIGH TEMPERATURE", colors.red)
+        insert(stat, "low_cool", "CRIT LOW COOLANT")
+        insert(stat, "ex_waste", "EXCESS WASTE")
+        insert(stat, "ex_hcool", "EXCESS HEATED COOL")
+        insert(stat, "no_fuel", "NO FUEL")
+        insert(stat, "fault", "HARDWARE FAULT")
+        insert(stat, "timeout", "SUPERVISOR DISCONN")
+        insert(stat, "manual", "MANUAL SCRAM", colors.white)
+        insert(stat, "automatic", "AUTOMATIC SCRAM")
+        insert(stat, "sys_fail", "NOT FORMED", colors.red)
+        insert(stat, "force_dis", "FORCE DISABLED", colors.red)
+
+        table.insert(ecam, { color = colors.yellow, text = "RPS TRANSIENT", help = "RPSTransient", items = items})
+    end
+
+    if tripped(unit.alarms[ALARM.RCSTransient]) then
+        local items = {}
+        local annunc = unit.annunciator
+
+        local function insert(cond, key, text, color)
+            if cond == true or (type(cond) == "table" and cond[key]) then table.insert(items, { text = text, help = key, color = color }) end
+        end
+
+        insert(annunc, "RCPTrip", "RCP TRIP", colors.red)
+        insert(annunc, "CoolantLevelLow", "LOW COOLANT")
+
+        if unit.num_boilers == 0 then
+            if (util.time_ms() - unit.last_rate_change_ms) > const.FLOW_STABILITY_DELAY_MS then
+                insert(annunc, "BoilRateMismatch", "BOIL RATE MISMATCH")
+            end
+
+            if unit.turbine_flow_stable then
+                insert(annunc, "RCSFlowLow", "RCS FLOW LOW")
+                insert(annunc, "CoolantFeedMismatch", "COOL FEED MISMATCH")
+                insert(annunc, "SteamFeedMismatch", "STM FEED MISMATCH")
+            end
+        else
+            if (util.time_ms() - unit.last_rate_change_ms) > const.FLOW_STABILITY_DELAY_MS then
+                insert(annunc, "RCSFlowLow", "RCS FLOW LOW")
+                insert(annunc, "BoilRateMismatch", "BOIL RATE MISMATCH")
+                insert(annunc, "CoolantFeedMismatch", "COOL FEED MISMATCH")
+            end
+
+            if unit.turbine_flow_stable then
+                insert(annunc, "SteamFeedMismatch", "STM FEED MISMATCH")
+            end
+        end
+
+        insert(annunc, "MaxWaterReturnFeed", "MAX WTR RTRN FEED")
+
+        for k, v in ipairs(annunc.WaterLevelLow) do insert(v, "WaterLevelLow", "BOILER " .. k .. " WTR LOW", colors.red) end
+        for k, v in ipairs(annunc.HeatingRateLow) do insert(v, "HeatingRateLow", "BOILER " .. k .. " HEAT RATE") end
+        for k, v in ipairs(annunc.TurbineOverSpeed) do insert(v, "TurbineOverSpeed", "TURBINE " .. k .. " OVERSPD", colors.red) end
+        for k, v in ipairs(annunc.GeneratorTrip) do insert(v, "GeneratorTrip", "TURBINE " .. k .. " GEN TRIP") end
+
+        table.insert(ecam, { color = colors.yellow, text = "RCS TRANSIENT", help = "RCSTransient", items = items})
+    end
+
+    if tripped(unit.alarms[ALARM.TurbineTrip]) then
+        local items = {}
+
+        for k, v in ipairs(unit.annunciator.TurbineTrip) do
+            if v then table.insert(items, { text = "TURBINE " .. k .. " TRIP", help = "TurbineTrip" }) end
+        end
+
+        table.insert(items, { text = "CHECK ENERGY OUT", color = colors.blue })
+
+        table.insert(ecam, { color = colors.red, text = "TURBINE TRIP", help = "TurbineTripAlarm", items = items})
+    end
+
+    if not (tripped(unit.alarms[ALARM.ReactorLost]) or unit.connected) then
+        local items = {{ text = "CHECK PLC", color = colors.blue }}
+        table.insert(ecam, { color = colors.yellow, text = "REACTOR OFF-LINE", items = items })
+    end
+
+    for k, v in ipairs(unit.annunciator.BoilerOnline) do
+        if not v then
+            local items = {{ text = "CHECK RTU", color = colors.blue }}
+            table.insert(ecam, { color = colors.yellow, text = "BOILER " .. k .. " OFF-LINE", items = items})
+        end
+    end
+
+    for k, v in ipairs(unit.annunciator.TurbineOnline) do
+        if not v then
+            local items = {{ text = "CHECK RTU", color = colors.blue }}
+            table.insert(ecam, { color = colors.yellow, text = "TURBINE " .. k .. " OFF-LINE", items = items})
+        end
+    end
+
+    -- if no alarms, put some basic status messages in
+    if #ecam == 0 then
+        table.insert(ecam, { color = colors.green, text = "REACTOR " .. util.trinary(unit.reactor_data.mek_status.status, "NOMINAL", "IDLE"), items = {}})
+
+        local plural = util.trinary(unit.num_turbines > 1, "S", "")
+        table.insert(ecam, { color = colors.green, text = "TURBINE" .. plural .. util.trinary(unit.turbine_flow_stable, " STABLE", " STABILIZING"), items = {}})
+    end
+
+    unit.unit_ps.publish("U_ECAM", textutils.serialize(ecam))
+
+    --#endregion
 end
 
 -- get the IO controller database

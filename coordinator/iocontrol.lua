@@ -247,6 +247,9 @@ function iocontrol.init(conf, comms, temp_scale)
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
 
+            last_rate_change_ms = 0,
+            turbine_flow_stable = false,
+
             -- auto control group
             a_group = 0,
 
@@ -1214,9 +1217,11 @@ function iocontrol.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 6 then
+                    if #unit_state == 8 then
                         unit.waste_mode = unit_state[5]
                         unit.waste_product = unit_state[6]
+                        unit.last_rate_change_ms = unit_state[7]
+                        unit.turbine_flow_stable = unit_state[8]
 
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])
