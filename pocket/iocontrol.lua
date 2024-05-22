@@ -608,11 +608,17 @@ function iocontrol.record_unit_data(data)
 
     for key, val in pairs(unit.annunciator) do
         if key == "BoilerOnline" or key == "TurbineOnline" then
-            -- split up online arrays
             local every = true
+
+            -- split up online arrays
             for id = 1, #val do
                 every = every and val[id]
-                unit.boiler_ps_tbl[id].publish(key, val[id])
+
+                if key == "BoilerOnline" then
+                    unit.boiler_ps_tbl[id].publish(key, val[id])
+                else
+                    unit.turbine_ps_tbl[id].publish(key, val[id])
+                end
             end
 
             if not every then rcs_disconn = true end
