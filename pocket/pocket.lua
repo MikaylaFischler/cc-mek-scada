@@ -324,7 +324,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                 iocontrol.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
-                            if _check_length(packet, 9) then
+                            if _check_length(packet, 11) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
                                 iocontrol.record_unit_data(packet.data)
                             end
                         else _fail_type(packet) end
