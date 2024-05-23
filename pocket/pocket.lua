@@ -274,7 +274,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
         local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= (max or 0))
         if not ok then
             local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: packet length mismatch -> expect %d != actual %d"
-            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type))
+            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type, length, packet.scada_frame.length()))
         end
         return ok
     end

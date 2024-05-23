@@ -97,7 +97,7 @@ local function new_view(root)
     end
 
     local function load()
-        local page_div = Div{parent=main,x=2,y=2,width=main.get_width()-2}
+        local page_div = Div{parent=main,y=2,width=main.get_width()}
 
         local panes = {}
 
@@ -125,7 +125,8 @@ local function new_view(root)
         end
 
         for i = 1, db.facility.num_units do
-            local u_div = panes[i] ---@type graphics_element
+            local u_pane = panes[i]
+            local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
             local unit = db.units[i] ---@type pioctl_unit
             local u_ps = unit.unit_ps
 
@@ -197,7 +198,7 @@ local function new_view(root)
 
             nav_links[i].alarm = alm_page.nav_to
 
-            TextBox{parent=alm_div,y=1,text="ECAM :)",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=alm_div,y=1,text="Status Info Display",height=1,alignment=ALIGN.CENTER}
 
             local ecam_disp = ListBox{parent=alm_div,x=2,y=3,scroll_height=500,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
@@ -206,23 +207,25 @@ local function new_view(root)
 
                 ecam_disp.remove_all()
                 for _, entry in ipairs(ecam) do
-                    local div = Div{parent=ecam_disp,fg_bg=cpair(entry.color,colors.black)}
-                    local text = TextBox{parent=div,text=entry.text}
+                    local div = Div{parent=ecam_disp,height=1+#entry.items,fg_bg=cpair(entry.color,colors.black)}
+                    local text = TextBox{parent=div,height=1,text=entry.text}
 
                     if entry.help then
-                        PushButton{parent=div,x=20,y=text.get_y(),text="?",callback=function()db.nav.open_help(entry.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                        PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(entry.help)end,fg_bg=cpair(colors.gray,colors.black)}
                     end
 
                     for _, item in ipairs(entry.items) do
                         local fg_bg = nil
                         if item.color then fg_bg = cpair(item.color, colors.black) end
 
-                        text = TextBox{parent=div,x=3,text=item.text,fg_bg=fg_bg}
+                        text = TextBox{parent=div,x=3,height=1,text=item.text,fg_bg=fg_bg}
 
                         if item.help then
-                            PushButton{parent=div,x=20,y=text.get_y(),text="?",callback=function()db.nav.open_help(item.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                            PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(item.help)end,fg_bg=cpair(colors.gray,colors.black)}
                         end
                     end
+
+                    ecam_disp.line_break()
                 end
             end)
 
@@ -230,7 +233,8 @@ local function new_view(root)
 
             --#region RPS Tab
 
-            local rps_div = Div{parent=page_div}
+            local rps_pane = Div{parent=page_div}
+            local rps_div = Div{parent=rps_pane,x=2,width=main.get_width()-2}
             table.insert(panes, rps_div)
 
             local rps_page = app.new_page(u_page, #panes)
@@ -274,8 +278,9 @@ local function new_view(root)
 
             --#region RCS Tab
 
-            local rcs_div = Div{parent=page_div}
-            table.insert(panes, rcs_div)
+            local rcs_pane = Div{parent=page_div}
+            local rcs_div = Div{parent=rcs_pane,x=2,width=main.get_width()-2}
+            table.insert(panes, rcs_pane)
 
             local rcs_page = app.new_page(u_page, #panes)
             rcs_page.tasks = { update }

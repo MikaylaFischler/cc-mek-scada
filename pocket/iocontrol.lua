@@ -786,7 +786,7 @@ function iocontrol.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.ContainmentBreach]) then
         local items = {
-            { text = "REACTOR EXPLOSION", color = colors.white },
+            { text = "REACTOR MELTDOWN", color = colors.white },
             { text = "WEAR HAZMAT SUIT", color = colors.blue }
         }
 
