@@ -23,6 +23,8 @@ pocket.config = config
 function pocket.load_config()
     if not settings.load("/pocket.settings") then return false end
 
+    config.TempScale = settings.get("TempScale")
+
     config.SVR_Channel = settings.get("SVR_Channel")
     config.CRD_Channel = settings.get("CRD_Channel")
     config.PKT_Channel = settings.get("PKT_Channel")
@@ -35,6 +37,9 @@ function pocket.load_config()
     config.LogDebug = settings.get("LogDebug")
 
     local cfv = util.new_validator()
+
+    cfv.assert_type_int(config.TempScale)
+    cfv.assert_range(config.TempScale, 1, 4)
 
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.CRD_Channel)
@@ -371,8 +376,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                                         -- get configuration
                                         local conf = { num_units = fac_config[1], cooling = fac_config[2] }
 
-                                        ---@todo unit options
-                                        iocontrol.init_fac(conf, 1)
+                                        iocontrol.init_fac(conf, config.TempScale)
 
                                         log.info("coordinator connection established")
                                         self.establish_delay_counter = 0

@@ -155,12 +155,12 @@ local function new_view(root)
             local text_fg = cpair(colors.white, colors._INHERIT)
 
             local rate = DataIndicator{parent=u_div,y=5,lu_colors=lu_col,label="Rate",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
-            local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit="K",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
+            local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
 
             local ctrl = IconIndicator{parent=u_div,x=1,y=8,label="Control State",states=mode_states}
 
             rate.register(u_ps, "act_burn_rate", rate.update)
-            temp.register(u_ps, "temp", temp.update)
+            temp.register(u_ps, "temp", function (t) temp.update(db.temp_convert(t)) end)
             ctrl.register(u_ps, "U_ControlStatus", ctrl.update)
 
             u_div.line_break()

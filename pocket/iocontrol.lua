@@ -10,6 +10,8 @@ local util  = require("scada-common.util")
 
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
+local TEMP_SCALE = types.TEMP_SCALE
+local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
 ---@todo nominal trip time is ping (0ms to 10ms usually)
 local WARN_TT = 40
@@ -268,17 +270,16 @@ end
 
 -- initialize facility-dependent components of pocket iocontrol
 ---@param conf facility_conf configuration
----@param temp_scale 1|2|3|4 temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+---@param temp_scale TEMP_SCALE temperature unit
 function iocontrol.init_fac(conf, temp_scale)
+    io.temp_label = TEMP_UNITS[temp_scale]
+
     -- temperature unit label and conversion function (from Kelvin)
-    if temp_scale == 2 then
-        io.temp_label = "\xb0C"
+    if temp_scale == TEMP_SCALE.CELSIUS then
         io.temp_convert = function (t) return t - 273.15 end
-    elseif temp_scale == 3 then
-        io.temp_label = "\xb0F"
+    elseif temp_scale == TEMP_SCALE.FAHRENHEIT then
         io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
-    elseif temp_scale == 4 then
-        io.temp_label = "\xb0R"
+    elseif temp_scale == TEMP_SCALE.RANKINE then
         io.temp_convert = function (t) return 1.8 * t end
     else
         io.temp_label = "K"

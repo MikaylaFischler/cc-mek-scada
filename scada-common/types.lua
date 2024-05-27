@@ -74,6 +74,28 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 -- ENUMERATION TYPES --
 --#region
 
+---@enum TEMP_SCALE
+types.TEMP_SCALE = {
+    KELVIN = 1,
+    CELSIUS = 2,
+    FAHRENHEIT = 3,
+    RANKINE = 4
+}
+
+types.TEMP_SCALE_NAMES = {
+    "Kelvin",
+    "Celsius",
+    "Fahrenheit",
+    "Rankine"
+}
+
+types.TEMP_SCALE_UNITS = {
+    "K",
+    "\xb0C",
+    "\xb0F",
+    "\xb0R"
+}
+
 ---@enum PANEL_LINK_STATE
 types.PANEL_LINK_STATE = {
     LINKED = 1,
