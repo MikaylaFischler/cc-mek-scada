@@ -779,6 +779,9 @@ function iocontrol.record_unit_data(data)
 
     unit.tank_data_tbl = data[9]
 
+    unit.last_rate_change_ms = data[10]
+    unit.turbine_flow_stable = data[11]
+
     --#endregion
 
     --#region Advanced Alarm Information Display
