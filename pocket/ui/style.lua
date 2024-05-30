@@ -12,7 +12,9 @@ local cpair = core.cpair
 
 style.root = cpair(colors.white, colors.black)
 style.header = cpair(colors.white, colors.gray)
-style.label = cpair(colors.gray, colors.lightGray)
+style.text_fg = cpair(colors.white, colors._INHERIT)
+style.label = cpair(colors.lightGray, colors.black)
+style.label_unit_pair = cpair(colors.lightGray, colors.lightGray)
 
 style.colors = {
     { c = colors.red,       hex = 0xdf4949 },
@@ -32,6 +34,40 @@ style.colors = {
     -- { c = colors.black,     hex = 0x191919 },
     -- { c = colors.brown,     hex = 0x7f664c }
 }
+
+local states = {}
+
+states.basic_states = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.red), symbol = "-" },
+    { color = cpair(colors.black, colors.yellow), symbol = "\x1e" },
+    { color = cpair(colors.black, colors.green), symbol = "+" }
+}
+
+states.mode_states = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.red), symbol = "-" },
+    { color = cpair(colors.black, colors.green), symbol = "+" },
+    { color = cpair(colors.black, colors.purple), symbol = "A" }
+}
+
+states.emc_ind_s = {
+    { color = cpair(colors.black, colors.gray), symbol = "-" },
+    { color = cpair(colors.black, colors.white), symbol = "\x07" },
+    { color = cpair(colors.black, colors.green), symbol = "+" }
+}
+
+states.red_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
+    { color = cpair(colors.black, colors.red), symbol = "-" }
+}
+
+states.yel_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
+    { color = cpair(colors.black, colors.yellow), symbol = "-" }
+}
+
+style.icon_states = states
 
 -- MAIN LAYOUT --
 

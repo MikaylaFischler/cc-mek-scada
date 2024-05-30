@@ -7,11 +7,11 @@ local iocontrol    = require("pocket.iocontrol")
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
 local sys_apps     = require("pocket.ui.apps.sys_apps")
+local unit_app     = require("pocket.ui.apps.unit")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local home_page    = require("pocket.ui.pages.home_page")
-local unit_page    = require("pocket.ui.pages.unit_page")
 
 local style        = require("pocket.ui.style")
 
@@ -72,8 +72,8 @@ local function init(main)
     local page_div = Div{parent=main_pane,x=4,y=1}
 
     home_page(page_div)
-    unit_page(page_div)
 
+    unit_app(page_div)
     diag_apps(page_div)
     sys_apps(page_div)
     dummy_app(page_div)

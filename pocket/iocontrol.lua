@@ -592,6 +592,14 @@ end
 
 local function tripped(state) return state == ALARM_STATE.TRIPPED or state == ALARM_STATE.ACKED end
 
+local function _record_multiblock_status(faulted, data, ps)
+    ps.publish("formed", data.formed)
+    ps.publish("faulted", faulted)
+
+    for key, val in pairs(data.state) do ps.publish(key, val) end
+    for key, val in pairs(data.tanks) do ps.publish(key, val) end
+end
+
 -- update unit status data from API_GET_UNIT
 ---@param data table
 function iocontrol.record_unit_data(data)
@@ -751,6 +759,8 @@ function iocontrol.record_unit_data(data)
             else
                 boiler_status = 2
             end
+
+            _record_multiblock_status(unit.rtu_hw.boilers[id].faulted, boiler, ps)
         end
 
         ps.publish("BoilerStatus", boiler_status)
