@@ -750,20 +750,30 @@ function iocontrol.record_unit_data(data)
         local ps     = unit.boiler_ps_tbl[id]   ---@type psil
 
         local boiler_status = 1
+        local computed_status = 1
 
         if unit.rtu_hw.boilers[id].connected then
             if unit.rtu_hw.boilers[id].faulted then
                 boiler_status = 3
+                computed_status = 3
             elseif boiler.formed then
                 boiler_status = 4
+
+                if boiler.state.boil_rate > 0 then
+                    computed_status = 5
+                else
+                    computed_status = 4
+                end
             else
                 boiler_status = 2
+                computed_status = 2
             end
 
             _record_multiblock_status(unit.rtu_hw.boilers[id].faulted, boiler, ps)
         end
 
         ps.publish("BoilerStatus", boiler_status)
+        ps.publish("BoilerStateStatus", computed_status)
     end
 
     unit.turbine_data_tbl = data[8]
