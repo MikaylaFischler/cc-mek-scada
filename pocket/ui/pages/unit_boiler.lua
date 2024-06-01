@@ -20,11 +20,11 @@ local PushButton    = require("graphics.elements.controls.push_button")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local label        = style.label
-local lu_col       = style.label_unit_pair
-local text_fg      = style.text_fg
-local red_ind_s    = style.icon_states.red_ind_s
-local yel_ind_s    = style.icon_states.yel_ind_s
+local label     = style.label
+local lu_col    = style.label_unit_pair
+local text_fg   = style.text_fg
+local red_ind_s = style.icon_states.red_ind_s
+local yel_ind_s = style.icon_states.yel_ind_s
 
 -- create a boiler view in the unit app
 ---@param app pocket_app
@@ -43,7 +43,7 @@ return function (app, u_page, panes, blr_pane, b_id, ps, update)
     local blr_page = app.new_page(u_page, #panes)
     blr_page.tasks = { update }
 
-    TextBox{parent=blr_div,y=1,text="Boiler "..b_id,width=8,height=1}
+    TextBox{parent=blr_div,y=1,text="BLR #"..b_id,width=8,height=1}
     local status = StateIndicator{parent=blr_div,x=10,y=1,states=style.boiler.states,value=1,min_width=12}
     status.register(ps, "BoilerStateStatus", status.update)
 

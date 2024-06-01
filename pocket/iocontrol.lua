@@ -783,18 +783,32 @@ function iocontrol.record_unit_data(data)
         local ps      = unit.turbine_ps_tbl[id]   ---@type psil
 
         local turbine_status = 1
+        local computed_status = 1
 
         if unit.rtu_hw.turbines[id].connected then
             if unit.rtu_hw.turbines[id].faulted then
                 turbine_status = 3
+                computed_status = 3
             elseif turbine.formed then
                 turbine_status = 4
+
+                if turbine.tanks.energy_fill >= 0.99 then
+                    computed_status = 6
+                elseif turbine.state.flow_rate < 100 then
+                    computed_status = 4
+                else
+                    computed_status = 5
+                end
             else
                 turbine_status = 2
+                computed_status = 2
             end
+
+            _record_multiblock_status(unit.rtu_hw.turbines[id].faulted, turbine, ps)
         end
 
         ps.publish("TurbineStatus", turbine_status)
+        ps.publish("TurbineStateStatus", computed_status)
     end
 
     unit.tank_data_tbl = data[9]
