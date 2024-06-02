@@ -82,7 +82,7 @@ style.reactor = {
     states = {
         {
             color = cpair(colors.black, colors.yellow),
-            text = "PLC OFF-LINE"
+            text = "OFF-LINE"
         },
         {
             color = cpair(colors.black, colors.orange),
@@ -106,7 +106,7 @@ style.reactor = {
         },
         {
             color = cpair(colors.black, colors.red),
-            text = "FORCE DISABLED"
+            text = "FORCE DSBL"
         }
     }
 }

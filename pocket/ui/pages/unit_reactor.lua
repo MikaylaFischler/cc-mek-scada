@@ -1,20 +1,21 @@
-local types         = require("scada-common.types")
-local util          = require("scada-common.util")
+local types          = require("scada-common.types")
+local util           = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local iocontrol      = require("pocket.iocontrol")
 
-local style         = require("pocket.ui.style")
+local style          = require("pocket.ui.style")
 
-local core          = require("graphics.core")
+local core           = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local TextBox       = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.div")
+local TextBox        = require("graphics.elements.textbox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local IconIndicator = require("graphics.elements.indicators.icon")
-local VerticalBar   = require("graphics.elements.indicators.vbar")
+local DataIndicator  = require("graphics.elements.indicators.data")
+local StateIndicator = require("graphics.elements.indicators.state")
+local IconIndicator  = require("graphics.elements.indicators.icon")
+local VerticalBar    = require("graphics.elements.indicators.vbar")
 
-local PushButton    = require("graphics.elements.controls.push_button")
+local PushButton     = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -43,7 +44,9 @@ return function (app, u_page, panes, page_div, u_ps, update)
     local rct_page = app.new_page(u_page, #panes)
     rct_page.tasks = { update }
 
-    TextBox{parent=rct_div,y=1,text="Fission Reactor",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=rct_div,y=1,text="Reactor",width=8,height=1}
+    local status = StateIndicator{parent=rct_div,x=10,y=1,states=style.reactor.states,value=1,min_width=12}
+    status.register(u_ps, "U_ReactorStateStatus", status.update)
 
     local fuel  = VerticalBar{parent=rct_div,x=1,y=4,fg_bg=cpair(colors.lightGray,colors.gray),height=5,width=1}
     local ccool = VerticalBar{parent=rct_div,x=3,y=4,fg_bg=cpair(colors.blue,colors.gray),height=5,width=1}
@@ -76,17 +79,14 @@ return function (app, u_page, panes, page_div, u_ps, update)
         end
     end)
 
-    TextBox{parent=rct_div,text="Burn Rate",x=5,y=5,width=13,height=1,fg_bg=label}
-    local burn_rate = DataIndicator{parent=rct_div,x=5,y=6,lu_colors=lu_col,label="",unit="mB/t",format="%8.2f",value=0,commas=true,width=13,fg_bg=text_fg}
-    TextBox{parent=rct_div,text="Temperature",x=5,y=7,width=13,height=1,fg_bg=label}
+    TextBox{parent=rct_div,text="Burn Rate",x=5,y=4,width=13,height=1,fg_bg=label}
+    local burn_rate = DataIndicator{parent=rct_div,x=5,y=5,lu_colors=lu_col,label="",unit="mB/t",format="%8.2f",value=0,commas=true,width=13,fg_bg=text_fg}
+    TextBox{parent=rct_div,text="Temperature",x=5,y=6,width=13,height=1,fg_bg=label}
     local t_prec = util.trinary(db.temp_label == types.TEMP_SCALE_UNITS[types.TEMP_SCALE.KELVIN], 11, 10)
-    local core_temp = DataIndicator{parent=rct_div,x=5,y=8,lu_colors=lu_col,label="",unit=db.temp_label,format="%"..t_prec..".2f",value=0,commas=true,width=13,fg_bg=text_fg}
-
-    local state = IconIndicator{parent=rct_div,x=7,y=3,label="State",states=mode_states}
+    local core_temp = DataIndicator{parent=rct_div,x=5,y=7,lu_colors=lu_col,label="",unit=db.temp_label,format="%"..t_prec..".2f",value=0,commas=true,width=13,fg_bg=text_fg}
 
     burn_rate.register(u_ps, "act_burn_rate", burn_rate.update)
     core_temp.register(u_ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
-    state.register(u_ps, "U_ControlStatus", state.update)
 
     local r_temp = IconIndicator{parent=rct_div,y=10,label="Reactor Temp. Hi",states=red_ind_s}
     local r_rhdt = IconIndicator{parent=rct_div,label="Hi Delta Temp.",states=yel_ind_s}
