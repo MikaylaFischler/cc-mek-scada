@@ -837,49 +837,41 @@ function iocontrol.record_unit_data(data)
 
     local ecam = {} -- aviation reference :) back to VATSIM I go...
 
-    if tripped(unit.alarms[ALARM.ContainmentBreach]) then
-        local items = {
-            { text = "REACTOR MELTDOWN", color = colors.white },
-            { text = "WEAR HAZMAT SUIT", color = colors.blue }
-        }
+    local function red(text) return { text = text, color = colors.red } end
+    local function white(text) return { text = text, color = colors.white } end
+    local function blue(text) return { text = text, color = colors.blue } end
 
+    if tripped(unit.alarms[ALARM.ContainmentBreach]) then
+        local items = { white("REACTOR MELTDOWN"), blue("DON HAZMAT SUIT") }
         table.insert(ecam, { color = colors.red, text = "CONTAINMENT BREACH", help = "ContainmentBreach", items = items })
     end
 
     if tripped(unit.alarms[ALARM.ContainmentRadiation]) then
         local items = {
-            { text = "RADIATION DETECTED", color = colors.white },
-            { text = "WEAR HAZMAT SUIT", color = colors.blue },
-            { text = "RESOLVE LEAK", color = colors.blue },
-            { text = "AWAIT SAFE LEVELS", color = colors.white }
+            white("RADIATION DETECTED"),
+            blue("DON HAZMAT SUIT"),
+            blue("RESOLVE LEAK"),
+            blue("AWAIT SAFE LEVELS")
         }
 
         table.insert(ecam, { color = colors.red, text = "RADIATION LEAK", help = "ContainmentRadiation", items = items })
     end
 
     if tripped(unit.alarms[ALARM.CriticalDamage]) then
-        local items = {
-            { text = "MELTDOWN IMMINENT", color = colors.white },
-            { text = "CHECK PLC", color = colors.blue }
-        }
-
+        local items = { white("MELTDOWN IMMINENT"), blue("EVACUATE") }
         table.insert(ecam, { color = colors.red, text = "RCT DAMAGE CRITICAL", help = "CriticalDamage", items = items })
     end
 
     if tripped(unit.alarms[ALARM.ReactorLost]) then
-        local items = {
-            { text = "REACTOR OFF-LINE", color = colors.white },
-            { text = "CHECK PLC", color = colors.blue }
-        }
-
+        local items = { white("REACTOR OFF-LINE"), blue("CHECK PLC") }
         table.insert(ecam, { color = colors.red, text = "REACTOR CONN LOST", help = "ReactorLost", items = items })
     end
 
     if tripped(unit.alarms[ALARM.ReactorDamage]) then
         local items = {
-            { text = "REACTOR DAMAGED", color = colors.white },
-            { text = "CHECK RCS", color = colors.blue },
-            { text = "AWAIT DMG REDUCED", color = colors.blue }
+            white("REACTOR DAMAGED"),
+            blue("CHECK RCS"),
+            blue("AWAIT DMG REDUCED")
         }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR DAMAGE", help = "ReactorDamage", items = items })
@@ -887,34 +879,27 @@ function iocontrol.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.ReactorOverTemp]) then
         local items = {
-            { text = "AOA DAMAGE TEMP", color = colors.white },
-            { text = "CHECK RCS", color = colors.blue },
-            { text = "AWAIT COOLDOWN", color = colors.blue }
+            white("HIT DAMAGING TEMP"),
+            blue("CHECK RCS"),
+            blue("AWAIT COOLDOWN")
         }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR OVER TEMP", help = "ReactorOverTemp", items = items })
     end
 
     if tripped(unit.alarms[ALARM.ReactorHighTemp]) then
-        local items = {
-            { text = "OVER EXPECTED TEMP", color = colors.white },
-            { text = "CHECK RCS", color = colors.blue }
-        }
-
+        local items = { white("OVER EXPECTED TEMP"), blue("CHECK RCS") }
         table.insert(ecam, { color = colors.yellow, text = "REACTOR HIGH TEMP", help = "ReactorHighTemp", items = items})
     end
 
     if tripped(unit.alarms[ALARM.ReactorWasteLeak]) then
-        local items = {
-            { text = "CHECK WASTE OUTPUT", color = colors.blue },
-            { text = "DO NOT ENABLE RCT" }
-        }
+        local items = { white("AT WASTE CAPACITY"), blue("CHECK WASTE OUTPUT"), red("DO NOT ENABLE RCT") }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR WASTE LEAK", help = "ReactorWasteLeak", items = items})
     end
 
     if tripped(unit.alarms[ALARM.ReactorHighWaste]) then
-        local items = {{ text = "CHECK WASTE OUTPUT", color = colors.white }}
+        local items = { blue("CHECK WASTE OUTPUT") }
         table.insert(ecam, { color = colors.yellow, text = "REACTOR WASTE HIGH", help = "ReactorHighWaste", items = items})
     end
 
@@ -991,26 +976,25 @@ function iocontrol.record_unit_data(data)
             if v then table.insert(items, { text = "TURBINE " .. k .. " TRIP", help = "TurbineTrip" }) end
         end
 
-        table.insert(items, { text = "CHECK ENERGY OUT", color = colors.blue })
-
+        table.insert(items, blue("CHECK ENERGY OUT"))
         table.insert(ecam, { color = colors.red, text = "TURBINE TRIP", help = "TurbineTripAlarm", items = items})
     end
 
     if not (tripped(unit.alarms[ALARM.ReactorLost]) or unit.connected) then
-        local items = {{ text = "CHECK PLC", color = colors.blue }}
+        local items = { blue("CHECK PLC") }
         table.insert(ecam, { color = colors.yellow, text = "REACTOR OFF-LINE", items = items })
     end
 
     for k, v in ipairs(unit.annunciator.BoilerOnline) do
         if not v then
-            local items = {{ text = "CHECK RTU", color = colors.blue }}
+            local items = { blue("CHECK RTU") }
             table.insert(ecam, { color = colors.yellow, text = "BOILER " .. k .. " OFF-LINE", items = items})
         end
     end
 
     for k, v in ipairs(unit.annunciator.TurbineOnline) do
         if not v then
-            local items = {{ text = "CHECK RTU", color = colors.blue }}
+            local items = { blue("CHECK RTU") }
             table.insert(ecam, { color = colors.yellow, text = "TURBINE " .. k .. " OFF-LINE", items = items})
         end
     end
