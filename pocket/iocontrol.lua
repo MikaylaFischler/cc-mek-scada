@@ -694,24 +694,38 @@ function iocontrol.record_unit_data(data)
 
     local control_status = 1
     local reactor_status = 1
+    local reactor_state = 1
     local rps_status = 1
 
     if unit.connected then
         -- update RPS status
         if unit.reactor_data.rps_tripped then
             control_status = 2
-            rps_status = util.trinary(unit.reactor_data.rps_trip_cause == "manual", 3, 2)
+
+            if unit.reactor_data.rps_trip_cause == "manual" then
+                reactor_state = 4   -- disabled
+                rps_status = 3
+            else
+                reactor_state = 6   -- SCRAM
+                rps_status = 2
+            end
         else rps_status = 4 end
 
         -- update reactor/control status
         if unit.reactor_data.mek_status.status then
             reactor_status = 4
+            reactor_state  = 5  -- running
             control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
         else
             if unit.reactor_data.no_reactor then
                 reactor_status = 2
-            elseif not unit.reactor_data.formed or unit.reactor_data.rps_status.force_dis then
+                reactor_state = 3   -- faulted
+            elseif not unit.reactor_data.formed then
                 reactor_status = 3
+                reactor_state = 2   -- not formed
+            elseif unit.reactor_data.rps_status.force_dis then
+                reactor_status = 3
+                reactor_state = 7   -- force disabled
             else
                 reactor_status = 4
             end
@@ -738,6 +752,7 @@ function iocontrol.record_unit_data(data)
 
     unit.unit_ps.publish("U_ControlStatus", control_status)
     unit.unit_ps.publish("U_ReactorStatus", reactor_status)
+    unit.unit_ps.publish("U_ReactorStateStatus", reactor_state)
     unit.unit_ps.publish("U_RPS", rps_status)
 
     --#endregion
@@ -751,20 +766,30 @@ function iocontrol.record_unit_data(data)
         local ps     = unit.boiler_ps_tbl[id]   ---@type psil
 
         local boiler_status = 1
+        local computed_status = 1
 
         if unit.rtu_hw.boilers[id].connected then
             if unit.rtu_hw.boilers[id].faulted then
                 boiler_status = 3
+                computed_status = 3
             elseif boiler.formed then
                 boiler_status = 4
+
+                if boiler.state.boil_rate > 0 then
+                    computed_status = 5
+                else
+                    computed_status = 4
+                end
             else
                 boiler_status = 2
+                computed_status = 2
             end
 
             _record_multiblock_status(unit.rtu_hw.boilers[id].faulted, boiler, ps)
         end
 
         ps.publish("BoilerStatus", boiler_status)
+        ps.publish("BoilerStateStatus", computed_status)
     end
 
     unit.turbine_data_tbl = data[8]
@@ -774,18 +799,32 @@ function iocontrol.record_unit_data(data)
         local ps      = unit.turbine_ps_tbl[id]   ---@type psil
 
         local turbine_status = 1
+        local computed_status = 1
 
         if unit.rtu_hw.turbines[id].connected then
             if unit.rtu_hw.turbines[id].faulted then
                 turbine_status = 3
+                computed_status = 3
             elseif turbine.formed then
                 turbine_status = 4
+
+                if turbine.tanks.energy_fill >= 0.99 then
+                    computed_status = 6
+                elseif turbine.state.flow_rate < 100 then
+                    computed_status = 4
+                else
+                    computed_status = 5
+                end
             else
                 turbine_status = 2
+                computed_status = 2
             end
+
+            _record_multiblock_status(unit.rtu_hw.turbines[id].faulted, turbine, ps)
         end
 
         ps.publish("TurbineStatus", turbine_status)
+        ps.publish("TurbineStateStatus", computed_status)
     end
 
     unit.tank_data_tbl = data[9]

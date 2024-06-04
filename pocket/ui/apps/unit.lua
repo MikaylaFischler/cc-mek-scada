@@ -11,6 +11,7 @@ local style     = require("pocket.ui.style")
 
 local boiler    = require("pocket.ui.pages.unit_boiler")
 local reactor   = require("pocket.ui.pages.unit_reactor")
+local turbine   = require("pocket.ui.pages.unit_turbine")
 
 local core      = require("graphics.core")
 
@@ -74,11 +75,11 @@ local function new_view(root)
         }
 
         for i = 1, unit.num_boilers do
-            table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightBlue), callback = nav_links[id].boiler[i] })
+            table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].boiler[i] })
         end
 
         for i = 1, unit.num_turbines do
-            table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.white), callback = function () end })
+            table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].turbine[i] })
         end
 
         app.set_sidebar(list)
@@ -333,6 +334,18 @@ local function new_view(root)
             for b_id = 1, unit.num_boilers do
                 local ps = unit.boiler_ps_tbl[b_id]
                 nav_links[i].boiler[b_id] = boiler(app, u_page, panes, blr_pane, b_id, ps, update)
+            end
+
+            --#endregion
+
+            --#region Turbine Tabs
+
+            local tbn_pane = Div{parent=page_div}
+            nav_links[i].turbine = {}
+
+            for t_id = 1, unit.num_turbines do
+                local ps = unit.turbine_ps_tbl[t_id]
+                nav_links[i].turbine[t_id] = turbine(app, u_page, panes, tbn_pane, i, t_id, ps, update)
             end
 
             --#endregion

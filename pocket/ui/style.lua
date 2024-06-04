@@ -57,6 +57,12 @@ states.emc_ind_s = {
     { color = cpair(colors.black, colors.green), symbol = "+" }
 }
 
+states.tri_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
+    { color = cpair(colors.black, colors.yellow), symbol = "\x1e" },
+    { color = cpair(colors.black, colors.red), symbol = "-" }
+}
+
 states.red_ind_s = {
     { color = cpair(colors.black, colors.lightGray), symbol = "+" },
     { color = cpair(colors.black, colors.red), symbol = "-" }
@@ -76,7 +82,7 @@ style.reactor = {
     states = {
         {
             color = cpair(colors.black, colors.yellow),
-            text = "PLC OFF-LINE"
+            text = "OFF-LINE"
         },
         {
             color = cpair(colors.black, colors.orange),
@@ -100,7 +106,7 @@ style.reactor = {
         },
         {
             color = cpair(colors.black, colors.red),
-            text = "FORCE DISABLED"
+            text = "FORCE DSBL"
         }
     }
 }

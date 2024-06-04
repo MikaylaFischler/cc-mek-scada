@@ -39,21 +39,6 @@ local ALARM_LIMS = const.ALARM_LIMITS
 ---@class unit_logic_extension
 local logic = {}
 
--- compute Mekanism's rotation rate for a turbine
----@param turbine turbinev_session_db
-local function turbine_rotation(turbine)
-    local build = turbine.build
-
-    local inner_vol = build.steam_cap / const.mek.TURBINE_GAS_PER_TANK
-    local disp_rate = (build.dispersers * const.mek.TURBINE_DISPERSER_FLOW) * inner_vol
-    local vent_rate = build.vents * const.mek.TURBINE_VENT_FLOW
-
-    local max_rate = math.min(disp_rate, vent_rate)
-    local flow = math.min(max_rate, turbine.tanks.steam.amount)
-
-    return (flow * (turbine.tanks.steam.amount / build.steam_cap)) / max_rate
-end
-
 -- update the annunciator
 ---@param self _unit_self
 function logic.update_annunciator(self)
@@ -333,7 +318,7 @@ function logic.update_annunciator(self)
         local last = self.turbine_stability_data[i]
 
         if (not self.turbine_flow_stable) and (turbine.state.steam_input_rate > 0) then
-            local rotation = turbine_rotation(turbine)
+            local rotation = util.turbine_rotation(turbine)
             local rotation_stable = false
 
             -- see if data updated, and if so, check rotation speed change
