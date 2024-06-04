@@ -34,12 +34,13 @@ local APP_ID = {
     ROOT = 1,
     -- main app page
     UNITS = 2,
-    ABOUT = 3,
+    GUIDE = 3,
+    ABOUT = 4,
     -- diag app page
-    ALARMS = 4,
+    ALARMS = 5,
     -- other
-    DUMMY = 5,
-    NUM_APPS = 5
+    DUMMY = 6,
+    NUM_APPS = 6
 }
 
 iocontrol.APP_ID = APP_ID
