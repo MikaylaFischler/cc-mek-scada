@@ -36,9 +36,9 @@ local function new_view(root)
 
     local list = {
         { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
-        { label = "Use", tall = true, color = core.cpair(colors.black, colors.purple), callback = function () app.switcher(1) end },
-        { label = "UIs", tall = true, color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(2) end },
-        { label = "FPs", tall = true, color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(3) end }
+        { label = "Use", color = core.cpair(colors.black, colors.purple), callback = function () app.switcher(2) end },
+        { label = "UIs", color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(3) end },
+        { label = "FPs", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(4) end }
     }
 
     app.set_sidebar(list)
@@ -46,7 +46,6 @@ local function new_view(root)
     local function load()
         local page_div = Div{parent=main,y=2}
         local p_width = page_div.get_width() - 2
-        local sub_panes = {}
 
         local main_page = app.new_page(nil, 1)
         local use_page = app.new_page(main_page, 2)
@@ -54,14 +53,16 @@ local function new_view(root)
         local fps_page = app.new_page(main_page, 4)
 
         local home = Div{parent=page_div,x=2,width=p_width}
+        local use = Div{parent=page_div,x=2,width=p_width}
+        local uis = Div{parent=page_div,x=2,width=p_width}
+        local fps = Div{parent=page_div,x=2,width=p_width}
+        local panes = { home, use, uis, fps }
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",height=1,alignment=ALIGN.CENTER}
 
         PushButton{parent=home,y=3,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
-
-        local use = Div{parent=page_div,x=2,width=p_width}
 
         TextBox{parent=use,y=1,text="System Usage",height=1,alignment=ALIGN.CENTER}
 
@@ -73,8 +74,6 @@ local function new_view(root)
         PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
         PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
 
-        local uis = Div{parent=page_div,x=2,width=p_width}
-
         TextBox{parent=uis,y=1,text="Operator UIs",height=1,alignment=ALIGN.CENTER}
 
         PushButton{parent=uis,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
@@ -82,8 +81,6 @@ local function new_view(root)
         PushButton{parent=uis,y=3,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
         PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
         PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-
-        local fps = Div{parent=page_div,x=2,width=p_width}
 
         TextBox{parent=fps,y=1,text="Front Panels",height=1,alignment=ALIGN.CENTER}
 
@@ -96,7 +93,7 @@ local function new_view(root)
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes={home,use,uis,fps,table.unpack(sub_panes)}}
+        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
         app.set_root_pane(u_pane)
     end
 

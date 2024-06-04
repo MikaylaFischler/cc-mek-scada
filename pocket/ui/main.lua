@@ -2,10 +2,13 @@
 -- Pocket GUI Root
 --
 
+local util         = require("scada-common.util")
+
 local iocontrol    = require("pocket.iocontrol")
 
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
+local guide_app    = require("pocket.ui.apps.guide")
 local sys_apps     = require("pocket.ui.apps.sys_apps")
 local unit_app     = require("pocket.ui.apps.unit")
 
@@ -74,11 +77,12 @@ local function init(main)
     home_page(page_div)
 
     unit_app(page_div)
-    diag_apps(page_div)
+    guide_app(page_div)
     sys_apps(page_div)
+    diag_apps(page_div)
     dummy_app(page_div)
 
-    assert(#db.nav.get_containers() == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
+    assert(util.table_len(db.nav.get_containers()) == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
 
     db.nav.set_pane(MultiPane{parent=page_div,x=1,y=1,panes=db.nav.get_containers()})
     db.nav.set_sidebar(Sidebar{parent=main_pane,x=1,y=1,height=18,fg_bg=cpair(colors.white,colors.gray)})
