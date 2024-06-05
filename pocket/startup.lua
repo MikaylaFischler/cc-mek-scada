@@ -175,8 +175,14 @@ local function main()
                 pocket_comms.handle_packet(packet)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
                    event == "double_click" then
-                -- handle a monitor touch event
+                -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+            elseif event == "char" or event == "key" or event == "key_up" then
+                -- handle a keyboard event
+                renderer.handle_key(core.events.new_key_event(event, param1, param2))
+            elseif event == "paste" then
+                -- handle a paste event
+                renderer.handle_paste(param1)
             end
 
             -- check for termination request
