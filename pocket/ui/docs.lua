@@ -3,7 +3,9 @@ local docs = {}
 local target
 
 local function doc(key, name, desc)
-    table.insert(target, { key = key, name = name, desc = desc })
+    ---@class pocket_doc_item
+    local item = { key = key, name = name, desc = desc }
+    table.insert(target, item)
 end
 
 docs.alarms = {}
@@ -51,5 +53,16 @@ doc("HighStartupRate", "Startup Rate High", "This is a rough calculation of if y
 target = docs.annunc.unit.rps_section
 doc("rps_tripped", "RPS Trip", "Indicates if the reactor protection system has caused a SCRAM.")
 doc("high_dmg", "Damage Level High", "Indicates if the RPS tripped due to significant reactor damage.")
+
+docs.glossary = {}
+
+target = docs.glossary
+doc("G_Nominal", "Nominal", "")
+doc("G_RCS", "RCS", "Reactor Cooling System: the combination of all machines used to cool the reactor.")
+doc("G_RPS", "RPS", "Reactor Protection System: a component of the reactor PLC responsible for keeping the reactor safe.")
+doc("G_Transient", "Transient", "")
+doc("G_Trip", "Trip", "A checked condition has occurred, also known as 'tripped'.")
+
+target = docs.annunc.unit.main_section
 
 return docs
