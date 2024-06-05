@@ -143,40 +143,46 @@ local function new_view(root)
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abb_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
 
-        local abb_name_list = ListBox{parent=gls_abb_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-        local abb_def_list = ListBox{parent=gls_abb_view_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local abb_name_list = ListBox{parent=gls_abb_div,x=1,y=3,scroll_height=20,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local abb_def_list = ListBox{parent=gls_abb_view_div,x=1,y=3,scroll_height=101,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        local _end = nil
 
         for i = 1, #docs.glossary.abbvs do
             local item = docs.glossary.abbvs[i] ---@type pocket_doc_item
 
-            doc_map[item.key] = TextBox{parent=abb_def_list,text=item.name,anchor=true,cpair(colors.blue,colors.black)}
+            doc_map[item.key] = TextBox{parent=abb_def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
             TextBox{parent=abb_def_list,text=item.desc,fg_bg=label}
-            TextBox{parent=abb_def_list,text="",fg_bg=label}
+            _end = Div{parent=abb_def_list,height=1,can_focus=true}
 
             local function view()
+                _end.focus()
                 gls_abb_view_page.nav_to()
                 doc_map[item.key].focus()
             end
 
-            PushButton{parent=abb_name_list,text=item.name,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=view}
+            PushButton{parent=abb_name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
         end
 
-        local term_name_list = ListBox{parent=gls_term_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-        local term_def_list = ListBox{parent=gls_term_view_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local term_name_list = ListBox{parent=gls_term_div,x=1,y=3,scroll_height=20,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local term_def_list = ListBox{parent=gls_term_view_div,x=1,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        local _end_b = nil
 
         for i = 1, #docs.glossary.terms do
             local item = docs.glossary.terms[i] ---@type pocket_doc_item
 
-            doc_map[item.key] = TextBox{parent=term_def_list,text=item.name,anchor=true,cpair(colors.blue,colors.black)}
+            doc_map[item.key] = TextBox{parent=term_def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
             TextBox{parent=term_def_list,text=item.desc,fg_bg=label}
-            TextBox{parent=term_def_list,text="",fg_bg=label}
+            _end_b = Div{parent=term_def_list,height=1,can_focus=true}
 
             local function view()
+                _end_b.focus()
                 gls_term_view_page.nav_to()
                 doc_map[item.key].focus()
             end
 
-            PushButton{parent=term_name_list,text=item.name,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=view}
+            PushButton{parent=term_name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
         end
 
         -- setup multipane

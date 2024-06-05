@@ -72,16 +72,16 @@ doc("G_RTU", "RTU", "Remote Terminal Unit. Provides monitoring to and basic outp
 doc("G_SCADA", "SCADA", "Supervisory Control and Data Acquisition. A control systems architecture used in many different process control applications.")
 doc("G_SVR", "SVR", "Supervisor. Abbreviation for the supervisory computer.")
 
-target = docs.glossary.term
+target = docs.glossary.terms
 doc("G_Fault", "Fault", "Something has gone wrong and/or failed to function.")
 doc("G_FrontPanel", "Front Panel", "A basic interface on the front of a device for viewing and sometimes modifying its state. This is what you see when looking at a computer running one of the SCADA applications.")
 doc("G_Nominal", "Nominal", "Normal operation. Everything operating as intended.")
 doc("G_Ringback", "Ringback", "An indication that an alarm had gone off so that you are aware, even if the alarm condition is no longer met.")
-doc("G_SCRAM", "SCRAM", "Emergency shut-down of a reactor by stopping the fission reactor.")
+doc("G_SCRAM", "SCRAM", "[Emergency] shut-down of a reactor by stopping the fission reactor. In Mekanism and here, it isn't always for an emergency.")
 doc("G_Transient", "Transient", "A temporary change in state from normal operation. Coolant levels dropping or core temperature rising above nominal values would be examples of transients.")
 doc("G_Trip", "Trip", "A checked condition has occurred, also known as 'tripped'.")
 doc("G_Tripped", "Tripped", "An alarm condition has been met and is still met.")
 doc("G_Tripping", "Tripping", "An alarm condition is met but has not met the minimum time before a condition is deemed a problem.")
-doc("G_TurbineTrip", "Turbine Trip", "The turbine stops, which prevents heated coolant from being properly cooled. In Mekanism, this would occur when a turbine cannot generate any more energy due to filling its buffer and having no output with any storage for energy left.")
+doc("G_TurbineTrip", "Turbine Trip", "The turbine stopped, which prevents heated coolant from being properly cooled. In Mekanism, this would occur when a turbine cannot generate any more energy due to filling its buffer and having no output with any storage for energy left.")
 
 return docs
