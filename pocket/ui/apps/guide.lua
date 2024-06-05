@@ -114,16 +114,69 @@ local function new_view(root)
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
 
         TextBox{parent=gls,y=1,text="Glossary",height=1,alignment=ALIGN.CENTER}
-
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        local gls_list_box = ListBox{parent=gls,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local gls_abb_page = app.new_page(gls_page, #panes + 1)
+        local gls_abb_div = Div{parent=page_div,x=2}
+        table.insert(panes, gls_abb_div)
+        TextBox{parent=gls_abb_div,y=1,text="Abbreviations",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=gls_abb_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
 
-        for i = 1, #docs.glossary do
-            local item = docs.glossary[i]   ---@type pocket_doc_item
-            doc_map[item.key] = TextBox{parent=gls_list_box,text=item.name,anchor=true}
-            TextBox{parent=gls_list_box,text=item.desc,fg_bg=label}
-            gls_list_box.line_break()
+        local gls_abb_view_page = app.new_page(gls_abb_page, #panes + 1)
+        local gls_abb_view_div = Div{parent=page_div,x=2}
+        table.insert(panes, gls_abb_view_div)
+        TextBox{parent=gls_abb_view_div,y=1,text="Abbreviations",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=gls_abb_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abb_page.nav_to}
+
+        local gls_term_page = app.new_page(gls_page, #panes + 1)
+        local gls_term_div = Div{parent=page_div,x=2}
+        table.insert(panes, gls_term_div)
+        TextBox{parent=gls_term_div,y=1,text="Terminology",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=gls_term_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
+
+        local gls_term_view_page = app.new_page(gls_term_page, #panes + 1)
+        local gls_term_view_div = Div{parent=page_div,x=2}
+        table.insert(panes, gls_term_view_div)
+        TextBox{parent=gls_term_view_div,y=1,text="Terminology",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=gls_term_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
+
+        PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abb_page.nav_to}
+        PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
+
+        local abb_name_list = ListBox{parent=gls_abb_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local abb_def_list = ListBox{parent=gls_abb_view_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        for i = 1, #docs.glossary.abbvs do
+            local item = docs.glossary.abbvs[i] ---@type pocket_doc_item
+
+            doc_map[item.key] = TextBox{parent=abb_def_list,text=item.name,anchor=true,cpair(colors.blue,colors.black)}
+            TextBox{parent=abb_def_list,text=item.desc,fg_bg=label}
+            TextBox{parent=abb_def_list,text="",fg_bg=label}
+
+            local function view()
+                gls_abb_view_page.nav_to()
+                doc_map[item.key].focus()
+            end
+
+            PushButton{parent=abb_name_list,text=item.name,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=view}
+        end
+
+        local term_name_list = ListBox{parent=gls_term_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local term_def_list = ListBox{parent=gls_term_view_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        for i = 1, #docs.glossary.terms do
+            local item = docs.glossary.terms[i] ---@type pocket_doc_item
+
+            doc_map[item.key] = TextBox{parent=term_def_list,text=item.name,anchor=true,cpair(colors.blue,colors.black)}
+            TextBox{parent=term_def_list,text=item.desc,fg_bg=label}
+            TextBox{parent=term_def_list,text="",fg_bg=label}
+
+            local function view()
+                gls_term_view_page.nav_to()
+                doc_map[item.key].focus()
+            end
+
+            PushButton{parent=term_name_list,text=item.name,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=view}
         end
 
         -- setup multipane

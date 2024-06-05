@@ -26,9 +26,7 @@ doc("TurbineTripAlarm", "Turbine Trip", "A turbine stopped rotating, likely due 
 
 docs.annunc = {
     unit = {
-        main_section = {},
-        rps_section = {},
-        rcs_section = {}
+        main_section = {}, rps_section = {}, rcs_section = {}
     }
 }
 
@@ -54,15 +52,36 @@ target = docs.annunc.unit.rps_section
 doc("rps_tripped", "RPS Trip", "Indicates if the reactor protection system has caused a SCRAM.")
 doc("high_dmg", "Damage Level High", "Indicates if the RPS tripped due to significant reactor damage.")
 
-docs.glossary = {}
-
-target = docs.glossary
-doc("G_Nominal", "Nominal", "")
-doc("G_RCS", "RCS", "Reactor Cooling System: the combination of all machines used to cool the reactor.")
-doc("G_RPS", "RPS", "Reactor Protection System: a component of the reactor PLC responsible for keeping the reactor safe.")
-doc("G_Transient", "Transient", "")
-doc("G_Trip", "Trip", "A checked condition has occurred, also known as 'tripped'.")
-
 target = docs.annunc.unit.main_section
+
+docs.glossary = {
+    abbvs = {}, terms = {}
+}
+
+target = docs.glossary.abbvs
+doc("G_ACK", "ACK", "Alarm ACKnowledge. This indicates you understand an alarm occured and would like to stop the audio tone(s).")
+doc("G_CRD", "CRD", "Coordinator. Abbreviation for the coordinator computer.")
+doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket computers found on the supervisor's front panel.")
+doc("G_PKT", "PKT", "Pocket. Abbreviation for the pocket computer.")
+doc("G_PLC", "PLC", "Programmable Logic Controller. A device that not only reports data and controls outputs, but also can make decisions on its own.")
+doc("G_PPM", "PPM", "Protected Peripheral Manager. This is an abstraction layer created for this project that prevents peripheral calls from crashing applications.")
+doc("G_RCP", "RCP", "Reactor Coolant Pump. This is from real-world terminology with water-cooled reactors, but in this system it just relates to the functioning of reactor coolant flow.")
+doc("G_RCS", "RCS", "Reactor Cooling System. The combination of all machines used to cool the reactor.")
+doc("G_RPS", "RPS", "Reactor Protection System. A component of the reactor PLC responsible for keeping the reactor safe.")
+doc("G_RTU", "RTU", "Remote Terminal Unit. Provides monitoring to and basic output from a SCADA system, interfacing with various types of devices/controls.")
+doc("G_SCADA", "SCADA", "Supervisory Control and Data Acquisition. A control systems architecture used in many different process control applications.")
+doc("G_SVR", "SVR", "Supervisor. Abbreviation for the supervisory computer.")
+
+target = docs.glossary.term
+doc("G_Fault", "Fault", "Something has gone wrong and/or failed to function.")
+doc("G_FrontPanel", "Front Panel", "A basic interface on the front of a device for viewing and sometimes modifying its state. This is what you see when looking at a computer running one of the SCADA applications.")
+doc("G_Nominal", "Nominal", "Normal operation. Everything operating as intended.")
+doc("G_Ringback", "Ringback", "An indication that an alarm had gone off so that you are aware, even if the alarm condition is no longer met.")
+doc("G_SCRAM", "SCRAM", "Emergency shut-down of a reactor by stopping the fission reactor.")
+doc("G_Transient", "Transient", "A temporary change in state from normal operation. Coolant levels dropping or core temperature rising above nominal values would be examples of transients.")
+doc("G_Trip", "Trip", "A checked condition has occurred, also known as 'tripped'.")
+doc("G_Tripped", "Tripped", "An alarm condition has been met and is still met.")
+doc("G_Tripping", "Tripping", "An alarm condition is met but has not met the minimum time before a condition is deemed a problem.")
+doc("G_TurbineTrip", "Turbine Trip", "The turbine stops, which prevents heated coolant from being properly cooled. In Mekanism, this would occur when a turbine cannot generate any more energy due to filling its buffer and having no output with any storage for energy left.")
 
 return docs
