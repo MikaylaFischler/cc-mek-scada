@@ -230,7 +230,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
             if type(constraint) == "function" then
                 -- constrain per provided constraint function (can only get smaller than available space)
-                w, h = constraint(w, h)
+                w, h = constraint(f)
                 f.w = math.min(f.w, w)
                 f.h = math.min(f.h, h)
             end

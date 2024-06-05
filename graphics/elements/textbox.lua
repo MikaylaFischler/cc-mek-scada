@@ -33,7 +33,13 @@ local function textbox(args)
     -- provide a constraint condition to element creation to prevent an pointlessly tall text box
     ---@param frame graphics_frame
     local function constrain(frame)
-        return frame.w, math.max(args.height, math.max(1, #util.strwrap(args.text, frame.w)))
+        local new_height = math.max(1, #util.strwrap(args.text, frame.w))
+
+        if args.height then
+            new_height = math.max(frame.h, new_height)
+        end
+
+        return frame.w, new_height
     end
 
     -- create new graphics element base object
