@@ -47,10 +47,8 @@ local function new_view(root)
 
     local list = {
         { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
-        { label = "\x14_?", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(2) end },
-        -- { label = "Use", color = core.cpair(colors.black, colors.purple), callback = function () app.switcher(2) end },
-        -- { label = "UIs", color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(3) end },
-        -- { label = "FPs", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(4) end }
+        { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
+        { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
     }
 
     app.set_sidebar(list)
@@ -66,7 +64,7 @@ local function new_view(root)
         local fps_page = app.new_page(main_page, 5)
         local gls_page = app.new_page(main_page, 6)
 
-        local home = Div{parent=page_div,x=2,width=p_width}
+        local home = Div{parent=page_div,x=2}
         local search = Div{parent=page_div,x=2}
         local use = Div{parent=page_div,x=2,width=p_width}
         local uis = Div{parent=page_div,x=2,width=p_width}
@@ -82,13 +80,13 @@ local function new_view(root)
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",height=1,alignment=ALIGN.CENTER}
 
-        PushButton{parent=home,y=3,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
+        PushButton{parent=home,y=3,text="Search              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=search_page.nav_to}
+        PushButton{parent=home,y=5,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
 
         TextBox{parent=search,y=1,text="Search",height=1,alignment=ALIGN.CENTER}
-        PushButton{parent=search,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
         PushButton{parent=search,x=20,y=3,text="GO",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
