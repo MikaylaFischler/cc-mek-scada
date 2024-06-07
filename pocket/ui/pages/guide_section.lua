@@ -14,8 +14,9 @@ local cpair = core.cpair
 ---@param base_page nav_tree_page
 ---@param title string
 ---@param items table
+---@param scroll_height integer
 ---@return nav_tree_page
-return function (data, base_page, title, items)
+return function (data, base_page, title, items, scroll_height)
     local app, page_div, panes, doc_map, search_map, btn_fg_bg, btn_active = table.unpack(data)
 
     local section_page = app.new_page(base_page, #panes + 1)
@@ -31,7 +32,7 @@ return function (data, base_page, title, items)
     PushButton{parent=gls_term_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=section_page.nav_to}
 
     local name_list = ListBox{parent=gls_term_div,x=1,y=3,scroll_height=30,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-    local def_list = ListBox{parent=gls_term_view_div,x=1,y=3,scroll_height=120,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+    local def_list = ListBox{parent=gls_term_view_div,x=1,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
     local _end = nil
 

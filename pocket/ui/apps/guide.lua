@@ -5,21 +5,21 @@
 -- local util       = require("scada-common.util")
 -- local log        = require("scada-common.log")
 
-local iocontrol  = require("pocket.iocontrol")
+local iocontrol     = require("pocket.iocontrol")
 
-local docs       = require("pocket.ui.docs")
-local style      = require("pocket.ui.style")
+local docs          = require("pocket.ui.docs")
+local style         = require("pocket.ui.style")
 
 local guide_section = require("pocket.ui.pages.guide_section")
 
-local core       = require("graphics.core")
+local core          = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local MultiPane  = require("graphics.elements.multipane")
-local TextBox    = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.div")
+local ListBox       = require("graphics.elements.listbox")
+local MultiPane     = require("graphics.elements.multipane")
+local TextBox       = require("graphics.elements.textbox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton    = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -99,7 +99,7 @@ local function new_view(root)
         local annunc_div = Div{parent=page_div,x=2}
         table.insert(panes, annunc_div)
 
-        local alarms_page = guide_section(sect_construct_data, uis_page, "Alarms", docs.alarms)
+        local alarms_page = guide_section(sect_construct_data, uis_page, "Alarms", docs.alarms, 100)
 
         PushButton{parent=uis,y=3,text="Alarms              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=alarms_page.nav_to}
         PushButton{parent=uis,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=annunc_page.nav_to}
@@ -109,9 +109,9 @@ local function new_view(root)
         TextBox{parent=annunc_div,y=1,text="Annunciators",height=1,alignment=ALIGN.CENTER}
         PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
-        local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section)
-        local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section)
-        local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section)
+        local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section, 200)
+        local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section, 100)
+        local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section, 100)
 
         PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
@@ -131,8 +131,8 @@ local function new_view(root)
         TextBox{parent=gls,y=1,text="Glossary",height=1,alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs)
-        local gls_term_page = guide_section(sect_construct_data, gls_page, "Terminology", docs.glossary.terms)
+        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs, 120)
+        local gls_term_page = guide_section(sect_construct_data, gls_page, "Terminology", docs.glossary.terms, 100)
 
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
