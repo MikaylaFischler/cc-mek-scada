@@ -6,6 +6,7 @@
 -- local log        = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
+local TextField    = require("graphics.elements.form.text_field")
 
 local docs          = require("pocket.ui.docs")
 local style         = require("pocket.ui.style")
@@ -46,9 +47,10 @@ local function new_view(root)
 
     local list = {
         { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
-        { label = "Use", color = core.cpair(colors.black, colors.purple), callback = function () app.switcher(2) end },
-        { label = "UIs", color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(3) end },
-        { label = "FPs", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(4) end }
+        { label = "\x14_?", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(2) end },
+        -- { label = "Use", color = core.cpair(colors.black, colors.purple), callback = function () app.switcher(2) end },
+        -- { label = "UIs", color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(3) end },
+        -- { label = "FPs", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(4) end }
     }
 
     app.set_sidebar(list)
@@ -58,17 +60,19 @@ local function new_view(root)
         local p_width = page_div.get_width() - 2
 
         local main_page = app.new_page(nil, 1)
-        local use_page = app.new_page(main_page, 2)
-        local uis_page = app.new_page(main_page, 3)
-        local fps_page = app.new_page(main_page, 4)
-        local gls_page = app.new_page(main_page, 5)
+        local search_page = app.new_page(main_page, 2)
+        local use_page = app.new_page(main_page, 3)
+        local uis_page = app.new_page(main_page, 4)
+        local fps_page = app.new_page(main_page, 5)
+        local gls_page = app.new_page(main_page, 6)
 
         local home = Div{parent=page_div,x=2,width=p_width}
+        local search = Div{parent=page_div,x=2}
         local use = Div{parent=page_div,x=2,width=p_width}
         local uis = Div{parent=page_div,x=2,width=p_width}
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2}
-        local panes = { home, use, uis, fps, gls }
+        local panes = { home, search, use, uis, fps, gls }
 
         local doc_map = {}
         local search_map = {}
@@ -82,6 +86,16 @@ local function new_view(root)
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
+
+        TextBox{parent=search,y=1,text="Search",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=search,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
+
+        TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
+        PushButton{parent=search,x=20,y=3,text="GO",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
+
+        local search_results = ListBox{parent=search,x=1,y=5,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        TextBox{parent=search_results,text="Click 'GO' to search..."}
 
         TextBox{parent=use,y=1,text="System Usage",height=1,alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
