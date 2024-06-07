@@ -64,6 +64,7 @@ function iocontrol.alloc_nav()
         pane = nil, ---@type graphics_element
         apps = {},
         containers = {},
+        help_map = {},
         cur_app = APP_ID.ROOT
     }
 
@@ -181,9 +182,6 @@ function iocontrol.alloc_nav()
         return app
     end
 
-    -- get a list of the app containers (usually Div elements)
-    function io.nav.get_containers() return self.containers end
-
     -- open a given app
     ---@param app_id POCKET_APP_ID
     function io.nav.open_app(app_id)
@@ -202,6 +200,9 @@ function iocontrol.alloc_nav()
         end
     end
 
+    -- get a list of the app containers (usually Div elements)
+    function io.nav.get_containers() return self.containers end
+
     -- get the currently active page
     ---@return nav_tree_page
     function io.nav.get_current_page()
@@ -218,6 +219,15 @@ function iocontrol.alloc_nav()
             io.nav.open_app(APP_ID.ROOT)
         end
     end
+
+    function io.nav.open_help(key)
+        io.nav.open_app(APP_ID.GUIDE)
+
+        local load = self.help_map[key]
+        if load then load() end
+    end
+
+    function io.nav.link_help(map) self.help_map = map end
 end
 
 -- initialize facility-independent components of pocket iocontrol

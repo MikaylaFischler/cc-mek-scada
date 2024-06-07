@@ -10,6 +10,8 @@ local iocontrol  = require("pocket.iocontrol")
 local docs       = require("pocket.ui.docs")
 local style      = require("pocket.ui.style")
 
+local guide_section = require("pocket.ui.pages.guide_section")
+
 local core       = require("graphics.core")
 
 local Div        = require("graphics.elements.div")
@@ -40,6 +42,7 @@ local function new_view(root)
 
     local btn_fg_bg = cpair(colors.cyan, colors.black)
     local btn_active = cpair(colors.white, colors.black)
+    local btn_disable = cpair(colors.gray, colors.black)
 
     local list = {
         { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
@@ -68,6 +71,10 @@ local function new_view(root)
         local panes = { home, use, uis, fps, gls }
 
         local doc_map = {}
+        local search_map = {}
+
+        ---@class _guide_section_constructor_data
+        local sect_construct_data = { app, page_div, panes, doc_map, search_map, btn_fg_bg, btn_active }
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",height=1,alignment=ALIGN.CENTER}
 
@@ -77,117 +84,65 @@ local function new_view(root)
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
 
         TextBox{parent=use,y=1,text="System Usage",height=1,alignment=ALIGN.CENTER}
-
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=use,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
+        PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=uis,y=1,text="Operator UIs",height=1,alignment=ALIGN.CENTER}
-
         PushButton{parent=uis,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
-
-        local alarms_page = app.new_page(uis_page, #panes + 1)
-        local alarms_div = Div{parent=page_div,x=2}
-        table.insert(panes, alarms_div)
 
         local annunc_page = app.new_page(uis_page, #panes + 1)
         local annunc_div = Div{parent=page_div,x=2}
         table.insert(panes, annunc_div)
 
+        local alarms_page = guide_section(sect_construct_data, uis_page, "Alarms", docs.alarms)
+
         PushButton{parent=uis,y=3,text="Alarms              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=alarms_page.nav_to}
         PushButton{parent=uis,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=annunc_page.nav_to}
-        PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
+        PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+
+        TextBox{parent=annunc_div,y=1,text="Annunciators",height=1,alignment=ALIGN.CENTER}
+        PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
+
+        local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section)
+        local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section)
+        local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section)
+
+        PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
+        PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
+        PushButton{parent=annunc_div,text="Unit RCS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rcs_page.nav_to}
+        PushButton{parent=annunc_div,text="Facility General    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=annunc_div,text="Waste & Valves      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=fps,y=1,text="Front Panels",height=1,alignment=ALIGN.CENTER}
-
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
-        PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
+        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=gls,y=1,text="Glossary",height=1,alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        local gls_abb_page = app.new_page(gls_page, #panes + 1)
-        local gls_abb_div = Div{parent=page_div,x=2}
-        table.insert(panes, gls_abb_div)
-        TextBox{parent=gls_abb_div,y=1,text="Abbreviations",height=1,alignment=ALIGN.CENTER}
-        PushButton{parent=gls_abb_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
+        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs)
+        local gls_term_page = guide_section(sect_construct_data, gls_page, "Terminology", docs.glossary.terms)
 
-        local gls_abb_view_page = app.new_page(gls_abb_page, #panes + 1)
-        local gls_abb_view_div = Div{parent=page_div,x=2}
-        table.insert(panes, gls_abb_view_div)
-        TextBox{parent=gls_abb_view_div,y=1,text="Abbreviations",height=1,alignment=ALIGN.CENTER}
-        PushButton{parent=gls_abb_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abb_page.nav_to}
-
-        local gls_term_page = app.new_page(gls_page, #panes + 1)
-        local gls_term_div = Div{parent=page_div,x=2}
-        table.insert(panes, gls_term_div)
-        TextBox{parent=gls_term_div,y=1,text="Terminology",height=1,alignment=ALIGN.CENTER}
-        PushButton{parent=gls_term_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
-
-        local gls_term_view_page = app.new_page(gls_term_page, #panes + 1)
-        local gls_term_view_div = Div{parent=page_div,x=2}
-        table.insert(panes, gls_term_view_div)
-        TextBox{parent=gls_term_view_div,y=1,text="Terminology",height=1,alignment=ALIGN.CENTER}
-        PushButton{parent=gls_term_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
-
-        PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abb_page.nav_to}
+        PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
-
-        local abb_name_list = ListBox{parent=gls_abb_div,x=1,y=3,scroll_height=20,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-        local abb_def_list = ListBox{parent=gls_abb_view_div,x=1,y=3,scroll_height=101,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-
-        local _end = nil
-
-        for i = 1, #docs.glossary.abbvs do
-            local item = docs.glossary.abbvs[i] ---@type pocket_doc_item
-
-            doc_map[item.key] = TextBox{parent=abb_def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
-            TextBox{parent=abb_def_list,text=item.desc,fg_bg=label}
-            _end = Div{parent=abb_def_list,height=1,can_focus=true}
-
-            local function view()
-                _end.focus()
-                gls_abb_view_page.nav_to()
-                doc_map[item.key].focus()
-            end
-
-            PushButton{parent=abb_name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
-        end
-
-        local term_name_list = ListBox{parent=gls_term_div,x=1,y=3,scroll_height=20,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-        local term_def_list = ListBox{parent=gls_term_view_div,x=1,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-
-        local _end_b = nil
-
-        for i = 1, #docs.glossary.terms do
-            local item = docs.glossary.terms[i] ---@type pocket_doc_item
-
-            doc_map[item.key] = TextBox{parent=term_def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
-            TextBox{parent=term_def_list,text=item.desc,fg_bg=label}
-            _end_b = Div{parent=term_def_list,height=1,can_focus=true}
-
-            local function view()
-                _end_b.focus()
-                gls_term_view_page.nav_to()
-                doc_map[item.key].focus()
-            end
-
-            PushButton{parent=term_name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
-        end
 
         -- setup multipane
         local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
         app.set_root_pane(u_pane)
+
+        -- link help resources
+        db.nav.link_help(doc_map)
     end
 
     app.set_on_load(load)
