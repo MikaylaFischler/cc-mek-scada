@@ -200,7 +200,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     ---@param next_y integer next line if no y was provided
     function protected.prepare_template(offset_x, offset_y, next_y)
         -- don't auto incrememnt y if inheriting height, that would cause an assertion
-        next_y = util.trinary(args.height == nil, 1, next_y)
+        next_y = util.trinary(args.height == nil and constraint == nil, 1, next_y)
 
         -- record offsets in case there is a reposition
         self.offset_x = offset_x
