@@ -894,9 +894,7 @@ function iocontrol.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.ReactorDamage]) then
         local items = {
-            white("REACTOR DAMAGED"),
-            blue("CHECK RCS"),
-            blue("AWAIT DMG REDUCED")
+            white("REACTOR DAMAGED"), blue("CHECK RCS"), blue("AWAIT DMG REDUCED")
         }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR DAMAGE", help = "ReactorDamage", items = items })
@@ -904,9 +902,7 @@ function iocontrol.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.ReactorOverTemp]) then
         local items = {
-            white("HIT DAMAGING TEMP"),
-            blue("CHECK RCS"),
-            blue("AWAIT COOLDOWN")
+            white("DAMAGING TEMP"), blue("CHECK RCS"), blue("AWAIT COOLDOWN")
         }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR OVER TEMP", help = "ReactorOverTemp", items = items })
@@ -918,7 +914,7 @@ function iocontrol.record_unit_data(data)
     end
 
     if tripped(unit.alarms[ALARM.ReactorWasteLeak]) then
-        local items = { white("AT WASTE CAPACITY"), blue("CHECK WASTE OUTPUT"), red("DO NOT ENABLE RCT") }
+        local items = { white("AT WASTE CAPACITY"), blue("CHECK WASTE OUTPUT"), blue("KEEP RCT DISABLED") }
 
         table.insert(ecam, { color = colors.red, text = "REACTOR WASTE LEAK", help = "ReactorWasteLeak", items = items})
     end
@@ -934,7 +930,7 @@ function iocontrol.record_unit_data(data)
 
         local function insert(cond, key, text, color) if cond[key] then table.insert(items, { text = text, help = key, color = color }) end end
 
-        table.insert(items, { text = "REACTOR SCRAMMED", color = colors.white })
+        table.insert(items, white("REACTOR SCRAMMED"))
         insert(stat, "high_dmg", "HIGH DAMAGE", colors.red)
         insert(stat, "high_temp", "HIGH TEMPERATURE", colors.red)
         insert(stat, "low_cool", "CRIT LOW COOLANT")
@@ -947,6 +943,8 @@ function iocontrol.record_unit_data(data)
         insert(stat, "automatic", "AUTOMATIC SCRAM")
         insert(stat, "sys_fail", "NOT FORMED", colors.red)
         insert(stat, "force_dis", "FORCE DISABLED", colors.red)
+        table.insert(items, blue("RESOLVE PROBLEM"))
+        table.insert(items, blue("RESET RPS"))
 
         table.insert(ecam, { color = colors.yellow, text = "RPS TRANSIENT", help = "RPSTransient", items = items})
     end
@@ -958,6 +956,8 @@ function iocontrol.record_unit_data(data)
         local function insert(cond, key, text, color)
             if cond == true or (type(cond) == "table" and cond[key]) then table.insert(items, { text = text, help = key, color = color }) end
         end
+
+        table.insert(items, white("COOLANT PROBLEM"))
 
         insert(annunc, "RCPTrip", "RCP TRIP", colors.red)
         insert(annunc, "CoolantLevelLow", "LOW COOLANT")
@@ -986,10 +986,8 @@ function iocontrol.record_unit_data(data)
 
         insert(annunc, "MaxWaterReturnFeed", "MAX WTR RTRN FEED")
 
-        for k, v in ipairs(annunc.WaterLevelLow) do insert(v, "WaterLevelLow", "BOILER " .. k .. " WTR LOW", colors.red) end
-        for k, v in ipairs(annunc.HeatingRateLow) do insert(v, "HeatingRateLow", "BOILER " .. k .. " HEAT RATE") end
-        for k, v in ipairs(annunc.TurbineOverSpeed) do insert(v, "TurbineOverSpeed", "TURBINE " .. k .. " OVERSPD", colors.red) end
-        for k, v in ipairs(annunc.GeneratorTrip) do insert(v, "GeneratorTrip", "TURBINE " .. k .. " GEN TRIP") end
+
+        table.insert(items, blue("CHECK COOLING SYS"))
 
         table.insert(ecam, { color = colors.yellow, text = "RCS TRANSIENT", help = "RCSTransient", items = items})
     end
