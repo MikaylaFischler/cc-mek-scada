@@ -862,9 +862,30 @@ function iocontrol.record_unit_data(data)
 
     local ecam = {} -- aviation reference :) back to VATSIM I go...
 
-    local function red(text) return { text = text, color = colors.red } end
+    -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end
     local function blue(text) return { text = text, color = colors.blue } end
+
+    -- unit.reactor_data.rps_status = {
+    --     high_dmg = false,
+    --     high_temp = false,
+    --     low_cool = false,
+    --     ex_waste = false,
+    --     ex_hcool = false,
+    --     no_fuel = false,
+    --     fault = false,
+    --     timeout = false,
+    --     manual = false,
+    --     automatic = false,
+    --     sys_fail = false,
+    --     force_dis = false
+    -- }
+
+    -- if unit.reactor_data.rps_status then
+    --     for k, v in pairs(unit.alarms) do
+    --         unit.alarms[k] = ALARM_STATE.TRIPPED
+    --     end
+    -- end
 
     if tripped(unit.alarms[ALARM.ContainmentBreach]) then
         local items = { white("REACTOR MELTDOWN"), blue("DON HAZMAT SUIT") }
@@ -928,6 +949,10 @@ function iocontrol.record_unit_data(data)
         local items = {}
         local stat = unit.reactor_data.rps_status
 
+        -- for k, _ in pairs(stat) do
+        --     stat[k] = true
+        -- end
+
         local function insert(cond, key, text, color) if cond[key] then table.insert(items, { text = text, help = key, color = color }) end end
 
         table.insert(items, white("REACTOR SCRAMMED"))
@@ -952,6 +977,15 @@ function iocontrol.record_unit_data(data)
     if tripped(unit.alarms[ALARM.RCSTransient]) then
         local items = {}
         local annunc = unit.annunciator
+
+        -- for k, v in pairs(annunc) do
+        --     if type(v) == "boolean" then annunc[k] = true end
+        --     if type(v) == "table" then
+        --         for a, _ in pairs(v) do
+        --             v[a] = true
+        --         end
+        --     end
+        -- end
 
         local function insert(cond, key, text, color)
             if cond == true or (type(cond) == "table" and cond[key]) then table.insert(items, { text = text, help = key, color = color }) end
