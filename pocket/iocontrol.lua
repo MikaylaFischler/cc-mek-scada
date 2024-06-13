@@ -986,6 +986,10 @@ function iocontrol.record_unit_data(data)
 
         insert(annunc, "MaxWaterReturnFeed", "MAX WTR RTRN FEED")
 
+        for k, v in ipairs(annunc.WaterLevelLow) do insert(v, "WaterLevelLow", "BOILER " .. k .. " WTR LOW", colors.red) end
+        for k, v in ipairs(annunc.HeatingRateLow) do insert(v, "HeatingRateLow", "BOILER " .. k .. " HEAT RATE") end
+        for k, v in ipairs(annunc.TurbineOverSpeed) do insert(v, "TurbineOverSpeed", "TURBINE " .. k .. " OVERSPD", colors.red) end
+        for k, v in ipairs(annunc.GeneratorTrip) do insert(v, "GeneratorTrip", "TURBINE " .. k .. " GEN TRIP") end
 
         table.insert(items, blue("CHECK COOLING SYS"))
 
