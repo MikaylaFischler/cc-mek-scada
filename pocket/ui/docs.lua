@@ -55,7 +55,7 @@ doc("automatic", "Auto Reactor SCRAM", "Indicates if the automatic control syste
 doc("sys_fail", "System Failure", "Indicates if the RPS tripped due to the reactor not being formed.")
 doc("high_dmg", "Damage Level High", "Indicates if the RPS tripped due to significant reactor damage.")
 doc("ex_waste", "Excess Waste", "Indicates if the RPS tripped due to very high waste levels.")
-doc("ex_hcool", "Excess Heated Coolant", "Indicates if the RPS tripped due to very high waste levels.")
+doc("ex_hcool", "Excess Heated Coolant", "Indicates if the RPS tripped due to very high heated coolant levels.")
 doc("high_temp", "Temperature High", "Indicates if the RPS tripped due to reaching damaging temperatures.")
 doc("low_cool", "Coolant Level Low Low", "Indicates if the RPS tripped due to very low coolant levels that result in the temperature uncontrollably rising.")
 doc("no_fuel", "No Fuel", "Indicates if the RPS tripped due to no fuel being available.")

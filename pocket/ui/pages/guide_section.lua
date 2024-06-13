@@ -17,7 +17,7 @@ local cpair = core.cpair
 ---@param scroll_height integer
 ---@return nav_tree_page
 return function (data, base_page, title, items, scroll_height)
-    local app, page_div, panes, doc_map, search_map, btn_fg_bg, btn_active = table.unpack(data)
+    local app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active = table.unpack(data)
 
     local section_page = app.new_page(base_page, #panes + 1)
     local section_div = Div{parent=page_div,x=2}
@@ -50,9 +50,9 @@ return function (data, base_page, title, items, scroll_height)
         end
 
         doc_map[item.key] = view
-        search_map[item.name] = view
+        table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
-        PushButton{parent=name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
+        PushButton{parent=name_list,text=item.name,alignment=ALIGN.LEFT,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
     end
 
     return section_page

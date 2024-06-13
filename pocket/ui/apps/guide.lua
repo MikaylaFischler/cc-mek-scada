@@ -2,11 +2,11 @@
 -- System Guide
 --
 
--- local util       = require("scada-common.util")
+local util          = require("scada-common.util")
 -- local log        = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
-local TextField    = require("graphics.elements.form.text_field")
+local TextField     = require("graphics.elements.form.text_field")
 
 local docs          = require("pocket.ui.docs")
 local style         = require("pocket.ui.style")
@@ -73,10 +73,10 @@ local function new_view(root)
         local panes = { home, search, use, uis, fps, gls }
 
         local doc_map = {}
-        local search_map = {}
+        local search_db = {}
 
         ---@class _guide_section_constructor_data
-        local sect_construct_data = { app, page_div, panes, doc_map, search_map, btn_fg_bg, btn_active }
+        local sect_construct_data = { app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active }
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",height=1,alignment=ALIGN.CENTER}
 
@@ -88,10 +88,57 @@ local function new_view(root)
 
         TextBox{parent=search,y=1,text="Search",height=1,alignment=ALIGN.CENTER}
 
-        TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
-        PushButton{parent=search,x=20,y=3,text="GO",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()end}
+        local query_field = TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
 
-        local search_results = ListBox{parent=search,x=1,y=5,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local func_ref = {}
+
+        PushButton{parent=search,x=20,y=3,text="GO",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()func_ref.run_search()end}
+
+        local search_results = ListBox{parent=search,x=1,y=5,scroll_height=200,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+        function func_ref.run_search()
+            local query = string.lower(query_field.get_value())
+            local s_results = { {}, {}, {} }
+
+            search_results.remove_all()
+
+            if string.len(query) < 3 then
+                TextBox{parent=search_results,text=util.trinary(string.len(query)==0,"Click 'GO' to search...","Search requires at least 3 characters.")}
+                return
+            end
+
+            for _, entry in ipairs(search_db) do
+                local s_start, _ = string.find(entry[1], query, 1, true)
+
+                if s_start == nil then
+                elseif s_start == 1 then
+                    -- best match, start of key
+                    table.insert(s_results[1], entry)
+                elseif string.sub(query, s_start - 1, s_start) == " " then
+                    -- start of word, good match
+                    table.insert(s_results[2], entry)
+                else
+                    -- basic match in content
+                    table.insert(s_results[3], entry)
+                end
+            end
+
+            local empty = true
+
+            for tier = 1, 3 do
+                for idx = 1, #s_results[tier] do
+                    local entry = s_results[tier][idx]
+                    TextBox{parent=search_results,text=entry[3].." >",fg_bg=cpair(colors.gray,colors.black)}
+                    PushButton{parent=search_results,text=entry[2],alignment=ALIGN.LEFT,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=entry[4]}
+
+                    empty = false
+                end
+            end
+
+            if empty then
+                TextBox{parent=search_results,text="No results found."}
+            end
+        end
 
         TextBox{parent=search_results,text="Click 'GO' to search..."}
 
