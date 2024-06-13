@@ -65,6 +65,7 @@ function iocontrol.alloc_nav()
         apps = {},
         containers = {},
         help_map = {},
+        help_return = nil,
         cur_app = APP_ID.ROOT
     }
 
@@ -185,6 +186,9 @@ function iocontrol.alloc_nav()
     -- open a given app
     ---@param app_id POCKET_APP_ID
     function io.nav.open_app(app_id)
+        -- reset help return on navigating out of an app
+        if app_id == APP_ID.ROOT then self.help_return = nil end
+
         local app = self.apps[app_id]   ---@type pocket_app
         if app then
             if not app.loaded then app.load() end
@@ -211,6 +215,13 @@ function iocontrol.alloc_nav()
 
     -- attempt to navigate up
     function io.nav.nav_up()
+        -- return out of help if opened with open_help
+        if self.help_return then
+            io.nav.open_app(self.help_return)
+            self.help_return = nil
+            return
+        end
+
         local app = self.apps[self.cur_app] ---@type pocket_app
         log.debug("attempting app nav up for app " .. self.cur_app)
 
@@ -220,7 +231,10 @@ function iocontrol.alloc_nav()
         end
     end
 
+    -- open the help app, to show the reference for a key
     function io.nav.open_help(key)
+        self.help_return = self.cur_app
+
         io.nav.open_app(APP_ID.GUIDE)
 
         local load = self.help_map[key]
