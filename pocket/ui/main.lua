@@ -43,7 +43,7 @@ local function init(main)
     local db = iocontrol.get_db()
 
     -- window header message
-    TextBox{parent=main,y=1,text="WIP ALPHA APP      S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
     local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
 
