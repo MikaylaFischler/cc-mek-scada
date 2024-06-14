@@ -127,9 +127,9 @@ function pocket.init_nav(render_queue)
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
     ---@param container graphics_element element that contains this app (usually a Div)
-    ---@param pane graphics_element? multipane if this is a simple paned app, then nav_to must be a number
-    ---@param require_sv boolean? true or false/nil otherwise to specifiy if this app should be unloaded when the supervisor connection is lost
-    ---@param require_api boolean? true or false/nil otherwise to specifiy if this app should be unloaded when the api connection is lost
+    ---@param pane? graphics_element multipane if this is a simple paned app, then nav_to must be a number
+    ---@param require_sv? boolean true to specifiy if this app should be unloaded when the supervisor connection is lost
+    ---@param require_api? boolean true to specifiy if this app should be unloaded when the api connection is lost
     function nav.register_app(app_id, container, pane, require_sv, require_api)
         ---@class pocket_app
         local app = {
@@ -153,6 +153,8 @@ function pocket.init_nav(render_queue)
             app.pane = root_pane
         end
 
+        -- configure the sidebar
+        ---@param items table
         function app.set_sidebar(items)
             app.sidebar_items = items
             if self.sidebar then self.sidebar.update(items) end
@@ -185,7 +187,7 @@ function pocket.init_nav(render_queue)
         end
 
         -- create a new page entry in the app's page navigation tree
-        ---@param parent nav_tree_page? a parent page or nil to set this as the root
+        ---@param parent nav_tree_page|nil a parent page or nil to set this as the root
         ---@param nav_to function|integer function to navigate to this page or pane index
         ---@return nav_tree_page new_page this new page
         function app.new_page(parent, nav_to)
@@ -244,7 +246,7 @@ function pocket.init_nav(render_queue)
         return app
     end
 
-    -- open a given app
+    -- open an app
     ---@param app_id POCKET_APP_ID
     function nav.open_app(app_id)
         -- reset help return on navigating out of an app
@@ -296,7 +298,8 @@ function pocket.init_nav(render_queue)
         return self.apps[self.cur_app].get_current_page()
     end
 
-    -- attempt to navigate up
+    -- attempt to navigate up within the active app, otherwise open home page<br>
+    -- except, this will go back to a prior app if leaving the help app after open_help was used
     function nav.nav_up()
         -- return out of help if opened with open_help
         if self.help_return then
