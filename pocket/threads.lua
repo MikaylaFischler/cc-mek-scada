@@ -1,13 +1,13 @@
-local log       = require("scada-common.log")
-local mqueue    = require("scada-common.mqueue")
-local ppm       = require("scada-common.ppm")
-local tcd       = require("scada-common.tcd")
-local util      = require("scada-common.util")
+local log      = require("scada-common.log")
+local mqueue   = require("scada-common.mqueue")
+local ppm      = require("scada-common.ppm")
+local tcd      = require("scada-common.tcd")
+local util     = require("scada-common.util")
 
-local pocket    = require("pocket.pocket")
-local renderer  = require("pocket.renderer")
+local pocket   = require("pocket.pocket")
+local renderer = require("pocket.renderer")
 
-local core      = require("graphics.core")
+local core     = require("graphics.core")
 
 local threads = {}
 

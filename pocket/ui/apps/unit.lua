@@ -56,7 +56,7 @@ local function new_view(root)
 
     local frame = Div{parent=root,x=1,y=1}
 
-    local app = db.nav.register_app(APP_ID.UNITS, frame)
+    local app = db.nav.register_app(APP_ID.UNITS, frame, nil, false, true)
 
     local load_div = Div{parent=frame,x=1,y=1}
     local main = Div{parent=frame,x=1,y=1}
@@ -66,13 +66,15 @@ local function new_view(root)
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
-    TextBox{parent=main,y=4,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
 
     local nav_links = {}
+    local page_div = nil ---@type nil|graphics_element
 
+    -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar(id)
         local unit = db.units[id] ---@type pioctl_unit
 
@@ -96,8 +98,9 @@ local function new_view(root)
         app.set_sidebar(list)
     end
 
+    -- load the app (create the elements)
     local function load()
-        local page_div = Div{parent=main,y=2,width=main.get_width()}
+        page_div = Div{parent=main,y=2,width=main.get_width()}
 
         local panes = {}
 
@@ -376,7 +379,22 @@ local function new_view(root)
         load_pane.set_value(2)
     end
 
-    app.set_on_load(load)
+    -- delete the elements and switch back to the loading screen
+    local function unload()
+        if page_div then
+            page_div.delete()
+            page_div = nil
+        end
+
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.delete_pages()
+
+        -- show loading screen
+        load_pane.set_value(1)
+    end
+
+    app.set_load(load)
+    app.set_unload(unload)
 
     return main
 end

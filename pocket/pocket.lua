@@ -102,7 +102,8 @@ pocket.APP_ID = APP_ID
 ---@param render_queue mqueue
 function pocket.init_nav(render_queue)
     local self = {
-        pane = nil, ---@type graphics_element
+        pane = nil,    ---@type graphics_element
+        sidebar = nil, ---@type graphics_element
         apps = {},
         containers = {},
         help_map = {},
@@ -117,23 +118,22 @@ function pocket.init_nav(render_queue)
 
     -- set the root pane element to switch between apps with
     ---@param root_pane graphics_element
-    function nav.set_pane(root_pane)
-        self.pane = root_pane
-    end
+    function nav.set_pane(root_pane) self.pane = root_pane end
 
-    function nav.set_sidebar(sidebar)
-        self.sidebar = sidebar
-    end
+    -- link sidebar element
+    ---@param sidebar graphics_element
+    function nav.set_sidebar(sidebar) self.sidebar = sidebar end
 
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
     ---@param container graphics_element element that contains this app (usually a Div)
     ---@param pane graphics_element? multipane if this is a simple paned app, then nav_to must be a number
-    function nav.register_app(app_id, container, pane)
+    ---@param require_sv boolean? true or false/nil otherwise to specifiy if this app should be unloaded when the supervisor connection is lost
+    ---@param require_api boolean? true or false/nil otherwise to specifiy if this app should be unloaded when the api connection is lost
+    function nav.register_app(app_id, container, pane, require_sv, require_api)
         ---@class pocket_app
         local app = {
             loaded = false,
-            load = nil,
             cur_page = nil, ---@type nav_tree_page
             pane = pane,
             paned_pages = {},
@@ -141,6 +141,11 @@ function pocket.init_nav(render_queue)
         }
 
         app.load = function () app.loaded = true end
+        app.unload = function () app.loaded = false end
+
+        -- check which connections this requires
+        ---@return boolean requires_sv, boolean requires_api
+        function app.check_requires() return require_sv or false, require_api or false end
 
         -- delayed set of the pane if it wasn't ready at the start
         ---@param root_pane graphics_element multipane
@@ -155,10 +160,19 @@ function pocket.init_nav(render_queue)
 
         -- function to run on initial load into memory
         ---@param on_load function callback
-        function app.set_on_load(on_load)
+        function app.set_load(on_load)
             app.load = function ()
                 on_load()
                 app.loaded = true
+            end
+        end
+
+        -- function to run to close out the app
+        ---@param on_unload function callback
+        function app.set_unload(on_unload)
+            app.unload = function ()
+                on_unload()
+                app.loaded = false
             end
         end
 
@@ -207,6 +221,12 @@ function pocket.init_nav(render_queue)
             return page
         end
 
+        -- delete paned pages and clear the current page
+        function app.delete_pages()
+            app.paned_pages = {}
+            app.cur_page = nil
+        end
+
         -- get the currently active page
         function app.get_current_page() return app.cur_page end
 
@@ -249,6 +269,22 @@ function pocket.init_nav(render_queue)
     ---@param app_id POCKET_APP_ID
     function nav.load_app(app_id)
         self.apps[app_id].load()
+    end
+
+    -- unload api-dependent apps
+    function nav.unload_api()
+        for _, app in pairs(self.apps) do
+            local _, api = app.check_requires()
+            if app.loaded and api then app.unload() end
+        end
+    end
+
+    -- unload supervisor-dependent apps
+    function nav.unload_sv()
+        for _, app in pairs(self.apps) do
+            local sv, _ = app.check_requires()
+            if app.loaded and sv then app.unload() end
+        end
     end
 
     -- get a list of the app containers (usually Div elements)
@@ -300,7 +336,8 @@ end
 ---@param nic nic network interface device
 ---@param sv_watchdog watchdog
 ---@param api_watchdog watchdog
-function pocket.comms(version, nic, sv_watchdog, api_watchdog)
+---@param nav pocket_nav
+function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     local self = {
         sv = {
             linked = false,
@@ -399,6 +436,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
     -- close connection to the supervisor
     function public.close_sv()
         sv_watchdog.cancel()
+        nav.unload_sv()
         self.sv.linked = false
         self.sv.r_seq_num = nil
         self.sv.addr = comms.BROADCAST
@@ -408,6 +446,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
     -- close connection to coordinator API server
     function public.close_api()
         api_watchdog.cancel()
+        nav.unload_api()
         self.api.linked = false
         self.api.r_seq_num = nil
         self.api.addr = comms.BROADCAST
@@ -589,6 +628,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
                             api_watchdog.cancel()
+                            nav.unload_api()
                             self.api.linked = false
                             self.api.r_seq_num = nil
                             self.api.addr = comms.BROADCAST
@@ -694,6 +734,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog)
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
                             sv_watchdog.cancel()
+                            nav.unload_sv()
                             self.sv.linked = false
                             self.sv.r_seq_num = nil
                             self.sv.addr = comms.BROADCAST

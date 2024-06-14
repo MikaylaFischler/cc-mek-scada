@@ -55,16 +55,21 @@ local function new_view(root)
     local btn_active = cpair(colors.white, colors.black)
     local btn_disable = cpair(colors.gray, colors.black)
 
-    local list = {
-        { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
-        { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
-        { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
-    }
+    app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end }})
 
-    app.set_sidebar(list)
+    local page_div = nil ---@type nil|graphics_element
 
+    -- load the app (create the elements)
     local function load()
-        local page_div = Div{parent=main,y=2}
+        local list = {
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
+            { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
+        }
+
+        app.set_sidebar(list)
+
+        page_div = Div{parent=main,y=2}
         local p_width = page_div.get_width() - 2
 
         local main_page = app.new_page(nil, 1)
@@ -219,7 +224,22 @@ local function new_view(root)
         load_pane.set_value(2)
     end
 
-    app.set_on_load(load)
+    -- delete the elements and switch back to the loading screen
+    local function unload()
+        if page_div then
+            page_div.delete()
+            page_div = nil
+        end
+
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.delete_pages()
+
+        -- show loading screen
+        load_pane.set_value(1)
+    end
+
+    app.set_load(load)
+    app.set_unload(unload)
 
     return main
 end

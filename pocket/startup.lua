@@ -122,6 +122,8 @@ local function main()
     -- setup system
     ----------------------------------------
 
+    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
+
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
         network.init_mac(config.AuthKey)
@@ -145,11 +147,10 @@ local function main()
 
     -- create network interface then setup comms
     smem_sys.nic = network.nic(smem_dev.modem)
-    smem_sys.pocket_comms = pocket.comms(POCKET_VERSION, smem_sys.nic, smem_sys.sv_wd, smem_sys.api_wd)
+    smem_sys.pocket_comms = pocket.comms(POCKET_VERSION, smem_sys.nic, smem_sys.sv_wd, smem_sys.api_wd, smem_sys.nav)
     log.debug("startup> comms init")
 
-    -- init nav and I/O handler
-    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
+    -- init I/O control
     iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav)
 
     ----------------------------------------
