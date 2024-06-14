@@ -3,7 +3,7 @@
 --
 
 ---@diagnostic disable-next-line: undefined-global
-local _is_pocket_env = pocket or periphemu
+local _is_pocket_env = pocket ~= nil or periphemu ~= nil
 
 require("/initenv").init_env()
 

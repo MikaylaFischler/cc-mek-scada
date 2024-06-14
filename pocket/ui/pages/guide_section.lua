@@ -36,7 +36,7 @@ return function (data, base_page, title, items, scroll_height)
     local name_list = ListBox{parent=section_div,x=1,y=3,scroll_height=30,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
     local def_list = ListBox{parent=section_view_div,x=1,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
-    local _end = nil
+    local _end
 
     for i = 1, #items do
         local item = items[i] ---@type pocket_doc_item

@@ -20,12 +20,11 @@ local PushButton     = require("graphics.elements.controls.push_button")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local label       = style.label
-local lu_col      = style.label_unit_pair
-local text_fg     = style.text_fg
-local mode_states = style.icon_states.mode_states
-local red_ind_s   = style.icon_states.red_ind_s
-local yel_ind_s   = style.icon_states.yel_ind_s
+local label     = style.label
+local lu_col    = style.label_unit_pair
+local text_fg   = style.text_fg
+local red_ind_s = style.icon_states.red_ind_s
+local yel_ind_s = style.icon_states.yel_ind_s
 
 -- create a reactor view in the unit app
 ---@param app pocket_app

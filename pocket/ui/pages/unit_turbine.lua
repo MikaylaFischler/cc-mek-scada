@@ -109,8 +109,8 @@ return function (app, u_page, panes, tbn_pane, u_id, t_id, ps, update)
     local rotation = DataIndicator{parent=tbn_ext_div,x=1,y=10,lu_colors=lu_col,label="",unit="",format="%21.12f",value=0,width=21,fg_bg=text_fg}
 
     rotation.register(ps, "steam", function ()
-        local status, result = pcall(function () return util.turbine_rotation(db.units[u_id].turbine_data_tbl[t_id]) end)
-        if status then rotation.update(result) end
+        local ok, result = pcall(function () return util.turbine_rotation(db.units[u_id].turbine_data_tbl[t_id]) end)
+        if ok then rotation.update(result) end
     end)
 
     return tbn_page.nav_to

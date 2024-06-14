@@ -3,7 +3,7 @@
 --
 
 local const = require("scada-common.constants")
-local log   = require("scada-common.log")
+-- local log   = require("scada-common.log")
 local psil  = require("scada-common.psil")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
