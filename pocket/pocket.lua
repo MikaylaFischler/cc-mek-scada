@@ -275,17 +275,23 @@ function pocket.init_nav(render_queue)
 
     -- unload api-dependent apps
     function nav.unload_api()
-        for _, app in pairs(self.apps) do
+        for id, app in pairs(self.apps) do
             local _, api = app.check_requires()
-            if app.loaded and api then app.unload() end
+            if app.loaded and api then
+                if id == self.cur_app then nav.open_app(APP_ID.ROOT) end
+                app.unload()
+            end
         end
     end
 
     -- unload supervisor-dependent apps
     function nav.unload_sv()
-        for _, app in pairs(self.apps) do
+        for id, app in pairs(self.apps) do
             local sv, _ = app.check_requires()
-            if app.loaded and sv then app.unload() end
+            if app.loaded and sv then
+                if id == self.cur_app then nav.open_app(APP_ID.ROOT) end
+                app.unload()
+            end
         end
     end
 
