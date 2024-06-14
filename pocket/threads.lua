@@ -148,8 +148,6 @@ function threads.thread__render(smem)
 
         local last_update = util.time()
 
-        local ui_message
-
         -- thread loop
         while true do
             -- check for messages in the message queue
@@ -171,9 +169,9 @@ function threads.thread__render(smem)
 
                             local draw_start = util.time_ms()
 
-                            pkt_state.ui_ok, ui_message = pcall(function () nav.load_app(cmd.val) end)
+                            pkt_state.ui_ok, pkt_state.ui_error = pcall(function () nav.load_app(cmd.val) end)
                             if not pkt_state.ui_ok then
-                                log.fatal(util.c("RENDER: app load failed with error ", ui_message))
+                                log.fatal(util.c("RENDER: app load failed with error ", pkt_state.ui_error))
                             else
                                 log.debug("RENDER: app loaded in " .. (util.time_ms() - draw_start) .. "ms")
                             end

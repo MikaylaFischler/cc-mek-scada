@@ -90,6 +90,7 @@ local function main()
         ---@class pkt_state
         pkt_state = {
             ui_ok = false,
+            ui_error = nil,
             shutdown = false
         },
 
@@ -179,6 +180,10 @@ local function main()
         parallel.waitForAll(main_thread.p_exec, render_thread.p_exec)
 
         renderer.close_ui()
+
+        if not pkt_state.ui_ok then
+            println(util.c("App crashed with error: ", pkt_state.ui_error))
+        end
     else
         println_ts("UI creation failed")
     end
