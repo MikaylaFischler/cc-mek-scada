@@ -1,21 +1,21 @@
-local types         = require("scada-common.types")
-local util          = require("scada-common.util")
+local types          = require("scada-common.types")
+local util           = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local iocontrol      = require("pocket.iocontrol")
 
-local style         = require("pocket.ui.style")
+local style          = require("pocket.ui.style")
 
-local core          = require("graphics.core")
+local core           = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local TextBox       = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.div")
+local TextBox        = require("graphics.elements.textbox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
+local PushButton     = require("graphics.elements.controls.push_button")
+
+local DataIndicator  = require("graphics.elements.indicators.data")
 local StateIndicator = require("graphics.elements.indicators.state")
-local IconIndicator = require("graphics.elements.indicators.icon")
-local VerticalBar   = require("graphics.elements.indicators.vbar")
-
-local PushButton    = require("graphics.elements.controls.push_button")
+local IconIndicator  = require("graphics.elements.indicators.icon")
+local VerticalBar    = require("graphics.elements.indicators.vbar")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -69,7 +69,7 @@ return function (app, u_page, panes, blr_pane, b_id, ps, update)
     temp.register(ps, "temperature", function (t) temp.update(db.temp_convert(t)) end)
 
     local b_wll = IconIndicator{parent=blr_div,y=10,label="Water Level Lo",states=red_ind_s}
-    local b_hr  = IconIndicator{parent=blr_div,label="Heating Rate Lo",states=yel_ind_s}
+    local b_hr = IconIndicator{parent=blr_div,label="Heating Rate Lo",states=yel_ind_s}
 
     b_wll.register(ps, "WaterLevelLow", b_wll.update)
     b_hr.register(ps, "HeatingRateLow", b_hr.update)

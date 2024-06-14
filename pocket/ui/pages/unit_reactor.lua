@@ -10,12 +10,12 @@ local core           = require("graphics.core")
 local Div            = require("graphics.elements.div")
 local TextBox        = require("graphics.elements.textbox")
 
+local PushButton     = require("graphics.elements.controls.push_button")
+
 local DataIndicator  = require("graphics.elements.indicators.data")
 local StateIndicator = require("graphics.elements.indicators.state")
 local IconIndicator  = require("graphics.elements.indicators.icon")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
-
-local PushButton     = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

@@ -84,7 +84,7 @@ local function new_view(root)
         local use = Div{parent=page_div,x=2,width=p_width}
         local uis = Div{parent=page_div,x=2,width=p_width}
         local fps = Div{parent=page_div,x=2,width=p_width}
-        local gls = Div{parent=page_div,x=2}
+        local gls = Div{parent=page_div,x=2,width=p_width}
         local panes = { home, search, use, uis, fps, gls }
 
         local doc_map = {}
@@ -118,7 +118,7 @@ local function new_view(root)
             search_results.remove_all()
 
             if string.len(query) < 3 then
-                TextBox{parent=search_results,text=util.trinary(string.len(query)==0,"Click 'GO' to search...","Search requires at least 3 characters.")}
+                TextBox{parent=search_results,text="Search requires at least 3 characters."}
                 return
             end
 

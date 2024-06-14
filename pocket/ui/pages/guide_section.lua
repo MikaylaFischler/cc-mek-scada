@@ -27,7 +27,7 @@ return function (data, base_page, title, items, scroll_height)
     TextBox{parent=section_div,y=1,text=title,height=1,alignment=ALIGN.CENTER}
     PushButton{parent=section_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=base_page.nav_to}
 
-    local gls_term_view_page = app.new_page(section_page, #panes + 1)
+    local view_page = app.new_page(section_page, #panes + 1)
     local section_view_div = Div{parent=page_div,x=2}
     table.insert(panes, section_view_div)
     TextBox{parent=section_view_div,y=1,text=title,height=1,alignment=ALIGN.CENTER}
@@ -47,7 +47,7 @@ return function (data, base_page, title, items, scroll_height)
 
         local function view()
             _end.focus()
-            gls_term_view_page.nav_to()
+            view_page.nav_to()
             anchor.focus()
         end
 

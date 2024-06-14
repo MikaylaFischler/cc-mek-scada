@@ -489,7 +489,7 @@ function iocontrol.record_unit_data(data)
     local anc = unit.annunciator
     rcs_hazard = rcs_hazard or anc.RCPTrip
     rcs_warn = rcs_warn or anc.RCSFlowLow or anc.CoolantLevelLow or anc.RCSFault or anc.MaxWaterReturnFeed or
-                anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch or anc.MaxWaterReturnFeed
+                anc.CoolantFeedMismatch or anc.BoilRateMismatch or anc.SteamFeedMismatch
 
     local rcs_status = 4
     if rcs_hazard then
@@ -530,7 +530,7 @@ function iocontrol.record_unit_data(data)
         -- update reactor/control status
         if unit.reactor_data.mek_status.status then
             reactor_status = 4
-            reactor_state  = 5  -- running
+            reactor_state = 5  -- running
             control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
         else
             if unit.reactor_data.no_reactor then
@@ -706,18 +706,12 @@ function iocontrol.record_unit_data(data)
     end
 
     if tripped(unit.alarms[ALARM.ReactorDamage]) then
-        local items = {
-            white("REACTOR DAMAGED"), blue("CHECK RCS"), blue("AWAIT DMG REDUCED")
-        }
-
+        local items = { white("REACTOR DAMAGED"), blue("CHECK RCS"), blue("AWAIT DMG REDUCED") }
         table.insert(ecam, { color = colors.red, text = "REACTOR DAMAGE", help = "ReactorDamage", items = items })
     end
 
     if tripped(unit.alarms[ALARM.ReactorOverTemp]) then
-        local items = {
-            white("DAMAGING TEMP"), blue("CHECK RCS"), blue("AWAIT COOLDOWN")
-        }
-
+        local items = { white("DAMAGING TEMP"), blue("CHECK RCS"), blue("AWAIT COOLDOWN") }
         table.insert(ecam, { color = colors.red, text = "REACTOR OVER TEMP", help = "ReactorOverTemp", items = items })
     end
 
@@ -728,7 +722,6 @@ function iocontrol.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.ReactorWasteLeak]) then
         local items = { white("AT WASTE CAPACITY"), blue("CHECK WASTE OUTPUT"), blue("KEEP RCT DISABLED") }
-
         table.insert(ecam, { color = colors.red, text = "REACTOR WASTE LEAK", help = "ReactorWasteLeak", items = items})
     end
 
@@ -741,9 +734,7 @@ function iocontrol.record_unit_data(data)
         local items = {}
         local stat = unit.reactor_data.rps_status
 
-        -- for k, _ in pairs(stat) do
-        --     stat[k] = true
-        -- end
+        -- for k, _ in pairs(stat) do stat[k] = true end
 
         local function insert(cond, key, text, color) if cond[key] then table.insert(items, { text = text, help = key, color = color }) end end
 

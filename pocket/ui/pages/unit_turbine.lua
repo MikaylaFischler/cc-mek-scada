@@ -9,13 +9,13 @@ local core           = require("graphics.core")
 local Div            = require("graphics.elements.div")
 local TextBox        = require("graphics.elements.textbox")
 
+local PushButton     = require("graphics.elements.controls.push_button")
+
 local DataIndicator  = require("graphics.elements.indicators.data")
 local IconIndicator  = require("graphics.elements.indicators.icon")
 local PowerIndicator = require("graphics.elements.indicators.power")
 local StateIndicator = require("graphics.elements.indicators.state")
 local VerticalBar    = require("graphics.elements.indicators.vbar")
-
-local PushButton     = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -70,15 +70,14 @@ return function (app, u_page, panes, tbn_pane, u_id, t_id, ps, update)
     input_rate.register(ps, "steam_input_rate", input_rate.update)
 
     local t_sdo = IconIndicator{parent=tbn_div,y=10,label="Steam Dumping",states=tri_ind_s}
-    local t_tos  = IconIndicator{parent=tbn_div,label="Over Speed",states=red_ind_s}
-    local t_gtrp  = IconIndicator{parent=tbn_div,label="Generator Trip",states=yel_ind_s}
-    local t_trp  = IconIndicator{parent=tbn_div,label="Turbine Trip",states=red_ind_s}
+    local t_tos = IconIndicator{parent=tbn_div,label="Over Speed",states=red_ind_s}
+    local t_gtrp = IconIndicator{parent=tbn_div,label="Generator Trip",states=yel_ind_s}
+    local t_trp = IconIndicator{parent=tbn_div,label="Turbine Trip",states=red_ind_s}
 
     t_sdo.register(ps, "SteamDumpOpen", t_sdo.update)
     t_tos.register(ps, "TurbineOverSpeed", t_tos.update)
     t_gtrp.register(ps, "GeneratorTrip", t_gtrp.update)
     t_trp.register(ps, "TurbineTrip", t_trp.update)
-
 
     local tbn_ext_div = Div{parent=tbn_pane,x=2,width=tbn_pane.get_width()-2}
     table.insert(panes, tbn_ext_div)

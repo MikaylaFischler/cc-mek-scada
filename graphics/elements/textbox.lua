@@ -29,7 +29,6 @@ local function textbox(args)
 
     if args.anchor == true then args.can_focus = true end
 
-    -- regex to identify entries without a height currently: ^.*TextBox\{((?!height=).)*$
     -- provide a constraint condition to element creation to prevent an pointlessly tall text box
     ---@param frame graphics_frame
     local function constrain(frame)

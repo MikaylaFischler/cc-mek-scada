@@ -3,7 +3,6 @@
 --
 
 local util          = require("scada-common.util")
--- local log           = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
 local pocket        = require("pocket.pocket")
@@ -23,12 +22,10 @@ local TextBox       = require("graphics.elements.textbox")
 
 local WaitingAnim   = require("graphics.elements.animations.waiting")
 
+local PushButton    = require("graphics.elements.controls.push_button")
+
 local DataIndicator = require("graphics.elements.indicators.data")
 local IconIndicator = require("graphics.elements.indicators.icon")
--- local RadIndicator  = require("graphics.elements.indicators.rad")
--- local VerticalBar   = require("graphics.elements.indicators.vbar")
-
-local PushButton    = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

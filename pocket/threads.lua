@@ -80,7 +80,7 @@ function threads.thread__main(smem)
                 local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
                 pocket_comms.handle_packet(packet)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
-                event == "double_click" then
+                   event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             elseif event == "char" or event == "key" or event == "key_up" then
@@ -143,8 +143,8 @@ function threads.thread__render(smem)
 
         -- load in from shared memory
         local pkt_state    = smem.pkt_state
-        local render_queue = smem.q.mq_render
         local nav          = smem.pkt_sys.nav
+        local render_queue = smem.q.mq_render
 
         local last_update = util.time()
 
