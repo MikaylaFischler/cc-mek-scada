@@ -244,7 +244,7 @@ function threads.thread__main(smem)
     return public
 end
 
--- coordinator renderer thread, tasked with long duration re-draws
+-- coordinator renderer thread, tasked with long duration draws
 ---@nodiscard
 ---@param smem crd_shared_memory
 function threads.thread__render(smem)

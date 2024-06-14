@@ -152,7 +152,9 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
                             u.reactor_data,
                             u.boiler_data_tbl,
                             u.turbine_data_tbl,
-                            u.tank_data_tbl
+                            u.tank_data_tbl,
+                            u.last_rate_change_ms,
+                            u.turbine_flow_stable
                         }
 
                         _send(CRDN_TYPE.API_GET_UNIT, data)

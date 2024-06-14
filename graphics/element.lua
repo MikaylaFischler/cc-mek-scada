@@ -82,9 +82,10 @@ end
 -- a base graphics element, should not be created on its own
 ---@nodiscard
 ---@param args graphics_args arguments
+---@param constraint? function apply a dimensional constraint based on proposed dimensions function(frame) -> width, height
 ---@param child_offset_x? integer mouse event offset x
 ---@param child_offset_y? integer mouse event offset y
-function element.new(args, child_offset_x, child_offset_y)
+function element.new(args, constraint, child_offset_x, child_offset_y)
     local self = {
         id = nil,                                       ---@type element_id|nil
         is_root = args.parent == nil,
@@ -199,7 +200,7 @@ function element.new(args, child_offset_x, child_offset_y)
     ---@param next_y integer next line if no y was provided
     function protected.prepare_template(offset_x, offset_y, next_y)
         -- don't auto incrememnt y if inheriting height, that would cause an assertion
-        next_y = util.trinary(args.height == nil, 1, next_y)
+        next_y = util.trinary(args.height == nil and constraint == nil, 1, next_y)
 
         -- record offsets in case there is a reposition
         self.offset_x = offset_x
@@ -226,6 +227,13 @@ function element.new(args, child_offset_x, child_offset_y)
             local w, h = self.p_window.getSize()
             f.w = math.min(f.w, w - (f.x - 1))
             f.h = math.min(f.h, h - (f.y - 1))
+
+            if type(constraint) == "function" then
+                -- constrain per provided constraint function (can only get smaller than available space)
+                w, h = constraint(f)
+                f.w = math.min(f.w, w)
+                f.h = math.min(f.h, h)
+            end
         end
 
         -- check frame

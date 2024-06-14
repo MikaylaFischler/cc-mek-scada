@@ -14,6 +14,8 @@ local pgi     = require("coordinator.ui.pgi")
 
 local ALARM_STATE = types.ALARM_STATE
 local PROCESS = types.PROCESS
+local TEMP_SCALE = types.TEMP_SCALE
+local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
 -- nominal RTT is ping (0ms to 10ms usually) + 500ms for CRD main loop tick
 local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
@@ -47,17 +49,16 @@ end
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
----@param temp_scale integer temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+---@param temp_scale TEMP_SCALE temperature unit
 function iocontrol.init(conf, comms, temp_scale)
+    io.temp_label = TEMP_UNITS[temp_scale]
+
     -- temperature unit label and conversion function (from Kelvin)
-    if temp_scale == 2 then
-        io.temp_label = "\xb0C"
+    if temp_scale == TEMP_SCALE.CELSIUS then
         io.temp_convert = function (t) return t - 273.15 end
-    elseif temp_scale == 3 then
-        io.temp_label = "\xb0F"
+    elseif temp_scale == TEMP_SCALE.FAHRENHEIT then
         io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
-    elseif temp_scale == 4 then
-        io.temp_label = "\xb0R"
+    elseif temp_scale == TEMP_SCALE.RANKINE then
         io.temp_convert = function (t) return 1.8 * t end
     else
         io.temp_label = "K"
@@ -246,6 +247,9 @@ function iocontrol.init(conf, comms, temp_scale)
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+
+            last_rate_change_ms = 0,
+            turbine_flow_stable = false,
 
             -- auto control group
             a_group = 0,
@@ -1214,9 +1218,11 @@ function iocontrol.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 6 then
+                    if #unit_state == 8 then
                         unit.waste_mode = unit_state[5]
                         unit.waste_product = unit_state[6]
+                        unit.last_rate_change_ms = unit_state[7]
+                        unit.turbine_flow_stable = unit_state[8]
 
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])

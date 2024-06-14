@@ -2,26 +2,34 @@
 -- SCADA System Access on a Pocket Computer
 --
 
+---@diagnostic disable-next-line: undefined-global
+local _is_pocket_env = pocket or periphemu  -- luacheck: ignore pocket
+
 require("/initenv").init_env()
 
 local crash     = require("scada-common.crash")
 local log       = require("scada-common.log")
+local mqueue    = require("scada-common.mqueue")
 local network   = require("scada-common.network")
 local ppm       = require("scada-common.ppm")
-local tcd       = require("scada-common.tcd")
 local util      = require("scada-common.util")
-
-local core      = require("graphics.core")
 
 local configure = require("pocket.configure")
 local iocontrol = require("pocket.iocontrol")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
+local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v0.9.1-alpha"
+local POCKET_VERSION = "v0.10.0-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
+
+-- check environment (allows Pocket or CraftOS-PC)
+if not _is_pocket_env then
+    println("You can only use this application on a pocket computer.")
+    return
+end
 
 ----------------------------------------
 -- get configuration
@@ -72,8 +80,50 @@ local function main()
     iocontrol.get_db().version = POCKET_VERSION
 
     ----------------------------------------
-    -- setup communications & clocks
+    -- memory allocation
     ----------------------------------------
+
+    -- shared memory across threads
+    ---@class pkt_shared_memory
+    local __shared_memory = {
+        -- pocket system state flags
+        ---@class pkt_state
+        pkt_state = {
+            ui_ok = false,
+            ui_error = nil,
+            shutdown = false
+        },
+
+        -- core pocket devices
+        pkt_dev = {
+            modem = ppm.get_wireless_modem()
+        },
+
+        -- system objects
+        pkt_sys = {
+            nic = nil,          ---@type nic
+            pocket_comms = nil, ---@type pocket_comms
+            sv_wd = nil,        ---@type watchdog
+            api_wd = nil,       ---@type watchdog
+            nav = nil           ---@type pocket_nav
+        },
+
+        -- message queues
+        q = {
+            mq_render = mqueue.new()
+        }
+    }
+
+    local smem_dev = __shared_memory.pkt_dev
+    local smem_sys = __shared_memory.pkt_sys
+
+    local pkt_state = __shared_memory.pkt_state
+
+    ----------------------------------------
+    -- setup system
+    ----------------------------------------
+
+    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
 
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
@@ -83,112 +133,59 @@ local function main()
     iocontrol.report_link_state(iocontrol.LINK_STATE.UNLINKED)
 
     -- get the communications modem
-    local modem = ppm.get_wireless_modem()
-    if modem == nil then
+    if smem_dev.modem == nil then
         println("startup> wireless modem not found: please craft the pocket computer with a wireless modem")
         log.fatal("startup> no wireless modem on startup")
         return
     end
 
     -- create connection watchdogs
-    local conn_wd = {
-        sv = util.new_watchdog(config.ConnTimeout),
-        api = util.new_watchdog(config.ConnTimeout)
-    }
-
-    conn_wd.sv.cancel()
-    conn_wd.api.cancel()
-
+    smem_sys.sv_wd = util.new_watchdog(config.ConnTimeout)
+    smem_sys.sv_wd.cancel()
+    smem_sys.api_wd = util.new_watchdog(config.ConnTimeout)
+    smem_sys.api_wd.cancel()
     log.debug("startup> conn watchdogs created")
 
     -- create network interface then setup comms
-    local nic = network.nic(modem)
-    local pocket_comms = pocket.comms(POCKET_VERSION, nic, conn_wd.sv, conn_wd.api)
+    smem_sys.nic = network.nic(smem_dev.modem)
+    smem_sys.pocket_comms = pocket.comms(POCKET_VERSION, smem_sys.nic, smem_sys.sv_wd, smem_sys.api_wd, smem_sys.nav)
     log.debug("startup> comms init")
 
-    -- base loop clock (2Hz, 10 ticks)
-    local MAIN_CLOCK = 0.5
-    local loop_clock = util.new_clock(MAIN_CLOCK)
-
     -- init I/O control
-    iocontrol.init_core(pocket_comms)
+    iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav)
 
     ----------------------------------------
     -- start the UI
     ----------------------------------------
 
-    local ui_ok, message = renderer.try_start_ui()
-    if not ui_ok then
-        println(util.c("UI error: ", message))
-        log.error(util.c("startup> GUI render failed with error ", message))
-    else
-        -- start clock
-        loop_clock.start()
+    local ui_message
+    pkt_state.ui_ok, ui_message = renderer.try_start_ui()
+    if not pkt_state.ui_ok then
+        println(util.c("UI error: ", ui_message))
+        log.error(util.c("startup> GUI render failed with error ", ui_message))
     end
 
     ----------------------------------------
-    -- main event loop
+    -- start system
     ----------------------------------------
 
-    if ui_ok then
-        -- start connection watchdogs
-        conn_wd.sv.feed()
-        conn_wd.api.feed()
-        log.debug("startup> conn watchdogs started")
+    if pkt_state.ui_ok then
+        -- init threads
+        local main_thread   = threads.thread__main(__shared_memory)
+        local render_thread = threads.thread__render(__shared_memory)
 
-        local io_db = iocontrol.get_db()
-        local nav   = io_db.nav
+        log.info("startup> completed")
 
-        -- main event loop
-        while true do
-            local event, param1, param2, param3, param4, param5 = util.pull_event()
-
-            -- handle event
-            if event == "timer" then
-                if loop_clock.is_clock(param1) then
-                    -- main loop tick
-
-                    -- relink if necessary
-                    pocket_comms.link_update()
-
-                    -- update any tasks for the active page
-                    local page_tasks = nav.get_current_page().tasks
-                    for i = 1, #page_tasks do page_tasks[i]() end
-
-                    loop_clock.start()
-                elseif conn_wd.sv.is_timer(param1) then
-                    -- supervisor watchdog timeout
-                    log.info("supervisor server timeout")
-                    pocket_comms.close_sv()
-                elseif conn_wd.api.is_timer(param1) then
-                    -- coordinator watchdog timeout
-                    log.info("coordinator api server timeout")
-                    pocket_comms.close_api()
-                else
-                    -- a non-clock/main watchdog timer event
-                    -- notify timer callback dispatcher
-                    tcd.handle(param1)
-                end
-            elseif event == "modem_message" then
-                -- got a packet
-                local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
-                pocket_comms.handle_packet(packet)
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
-                   event == "double_click" then
-                -- handle a monitor touch event
-                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-            end
-
-            -- check for termination request
-            if event == "terminate" or ppm.should_terminate() then
-                log.info("terminate requested, closing server connections...")
-                pocket_comms.close()
-                log.info("connections closed")
-                break
-            end
-        end
+        -- run threads
+        parallel.waitForAll(main_thread.p_exec, render_thread.p_exec)
 
         renderer.close_ui()
+
+        if not pkt_state.ui_ok then
+            println(util.c("UI crashed with error: ", pkt_state.ui_error))
+        end
+    else
+        println_ts("UI creation failed")
     end
 
     println_ts("exited")

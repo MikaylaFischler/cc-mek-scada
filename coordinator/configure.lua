@@ -7,6 +7,7 @@ local log         = require("scada-common.log")
 local network     = require("scada-common.network")
 local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 local themes      = require("graphics.themes")
 
@@ -756,7 +757,7 @@ local function config_view(display)
     local clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=crd_c_1,x=1,y=8,height=1,text="Temperature Scale"}
-    local temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options={"Kelvin","Celsius","Fahrenheit","Rankine"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_opts()
         tmp_cfg.Time24Hour = clock_fmt.get_value() == 1
@@ -1356,7 +1357,7 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "TempScale" then
-                if raw == 1 then val = "Kelvin" elseif raw == 2 then val = "Celsius" elseif raw == 3 then val = "Fahrenheit" elseif raw == 4 then val = "Rankine" end
+                val = types.TEMP_SCALE_NAMES[raw]
             elseif f[1] == "MainTheme" then
                 val = util.strval(themes.ui_theme_name(raw))
             elseif f[1] == "FrontPanelTheme" then

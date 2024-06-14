@@ -92,4 +92,20 @@ function renderer.handle_mouse(event)
     end
 end
 
+-- handle a keyboard event
+---@param event key_interaction|nil
+function renderer.handle_key(event)
+    if ui.display ~= nil and event ~= nil then
+        ui.display.handle_key(event)
+    end
+end
+
+-- handle a paste event
+---@param text string
+function renderer.handle_paste(text)
+    if ui.display ~= nil then
+        ui.display.handle_paste(text)
+    end
+end
+
 return renderer
