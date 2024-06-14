@@ -182,7 +182,7 @@ local function main()
         renderer.close_ui()
 
         if not pkt_state.ui_ok then
-            println(util.c("App crashed with error: ", pkt_state.ui_error))
+            println(util.c("UI crashed with error: ", pkt_state.ui_error))
         end
     else
         println_ts("UI creation failed")

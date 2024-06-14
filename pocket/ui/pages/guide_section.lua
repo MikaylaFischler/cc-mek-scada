@@ -1,3 +1,4 @@
+local log        = require("scada-common.log")
 local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
@@ -57,7 +58,10 @@ return function (data, base_page, title, items, scroll_height)
         PushButton{parent=name_list,text=item.name,alignment=ALIGN.LEFT,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
 
         if i % 12 == 0 then util.nop() end
+
     end
+
+    log.debug("guide section " .. title .. " generated with final height ".. _end.get_y())
 
     util.nop()
 
