@@ -2,6 +2,9 @@
 -- SCADA System Access on a Pocket Computer
 --
 
+---@diagnostic disable-next-line: undefined-global
+local _is_pocket_env = pocket or periphemu
+
 require("/initenv").init_env()
 
 local crash     = require("scada-common.crash")
@@ -21,6 +24,12 @@ local POCKET_VERSION = "v0.10.0-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
+
+-- check environment (allows Pocket or CraftOS-PC)
+if not _is_pocket_env then
+    println("You can only use this application on a pocket computer.")
+    return
+end
 
 ----------------------------------------
 -- get configuration
