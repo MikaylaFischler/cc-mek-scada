@@ -5,6 +5,7 @@
 local util         = require("scada-common.util")
 
 local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
 
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
@@ -29,11 +30,12 @@ local Sidebar      = require("graphics.elements.controls.sidebar")
 
 local SignalBar    = require("graphics.elements.indicators.signal")
 
+local ALIGN = core.ALIGN
+local cpair = core.cpair
+
 local LINK_STATE = iocontrol.LINK_STATE
 
-local ALIGN = core.ALIGN
-
-local cpair = core.cpair
+local APP_ID = pocket.APP_ID
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -82,14 +84,14 @@ local function init(main)
     diag_apps(page_div)
     dummy_app(page_div)
 
-    assert(util.table_len(db.nav.get_containers()) == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
+    assert(util.table_len(db.nav.get_containers()) == APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
 
     db.nav.set_pane(MultiPane{parent=page_div,x=1,y=1,panes=db.nav.get_containers()})
     db.nav.set_sidebar(Sidebar{parent=main_pane,x=1,y=1,height=18,fg_bg=cpair(colors.white,colors.gray)})
 
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
-    db.nav.open_app(iocontrol.APP_ID.ROOT)
+    db.nav.open_app(APP_ID.ROOT)
 
     --#endregion
 end

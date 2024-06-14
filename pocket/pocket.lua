@@ -14,6 +14,18 @@ local LINK_STATE = iocontrol.LINK_STATE
 
 local pocket = {}
 
+local MQ__RENDER_CMD = {
+    UNLOAD_SV_APPS = 1,
+    UNLOAD_API_APPS = 2
+}
+
+local MQ__RENDER_DATA = {
+    LOAD_APP = 1
+}
+
+pocket.MQ__RENDER_CMD = MQ__RENDER_CMD
+pocket.MQ__RENDER_DATA = MQ__RENDER_DATA
+
 ---@type pkt_config
 local config = {}
 
@@ -61,6 +73,225 @@ function pocket.load_config()
     cfv.assert_type_bool(config.LogDebug)
 
     return cfv.valid()
+end
+
+---@enum POCKET_APP_ID
+local APP_ID = {
+    ROOT = 1,
+    -- main app pages
+    UNITS = 2,
+    GUIDE = 3,
+    ABOUT = 4,
+    -- diag app page
+    ALARMS = 5,
+    -- other
+    DUMMY = 6,
+    NUM_APPS = 6
+}
+
+pocket.APP_ID = APP_ID
+
+---@class nav_tree_page
+---@field _p nav_tree_page|nil page's parent
+---@field _c table page's children
+---@field nav_to function function to navigate to this page
+---@field switcher function|nil function to switch between children
+---@field tasks table tasks to run while viewing this page
+
+-- allocate the page navigation system
+---@param render_queue mqueue
+function pocket.init_nav(render_queue)
+    local self = {
+        pane = nil, ---@type graphics_element
+        apps = {},
+        containers = {},
+        help_map = {},
+        help_return = nil,
+        cur_app = APP_ID.ROOT
+    }
+
+    self.cur_page = self.root
+
+    ---@class pocket_nav
+    local nav = {}
+
+    -- set the root pane element to switch between apps with
+    ---@param root_pane graphics_element
+    function nav.set_pane(root_pane)
+        self.pane = root_pane
+    end
+
+    function nav.set_sidebar(sidebar)
+        self.sidebar = sidebar
+    end
+
+    -- register an app
+    ---@param app_id POCKET_APP_ID app ID
+    ---@param container graphics_element element that contains this app (usually a Div)
+    ---@param pane graphics_element? multipane if this is a simple paned app, then nav_to must be a number
+    function nav.register_app(app_id, container, pane)
+        ---@class pocket_app
+        local app = {
+            loaded = false,
+            load = nil,
+            cur_page = nil, ---@type nav_tree_page
+            pane = pane,
+            paned_pages = {},
+            sidebar_items = {}
+        }
+
+        app.load = function () app.loaded = true end
+
+        -- delayed set of the pane if it wasn't ready at the start
+        ---@param root_pane graphics_element multipane
+        function app.set_root_pane(root_pane)
+            app.pane = root_pane
+        end
+
+        function app.set_sidebar(items)
+            app.sidebar_items = items
+            if self.sidebar then self.sidebar.update(items) end
+        end
+
+        -- function to run on initial load into memory
+        ---@param on_load function callback
+        function app.set_on_load(on_load)
+            app.load = function ()
+                on_load()
+                app.loaded = true
+            end
+        end
+
+        -- if a pane was provided, this will switch between numbered pages
+        ---@param idx integer page index
+        function app.switcher(idx)
+            if app.paned_pages[idx] then
+                app.paned_pages[idx].nav_to()
+            end
+        end
+
+        -- create a new page entry in the app's page navigation tree
+        ---@param parent nav_tree_page? a parent page or nil to set this as the root
+        ---@param nav_to function|integer function to navigate to this page or pane index
+        ---@return nav_tree_page new_page this new page
+        function app.new_page(parent, nav_to)
+            ---@type nav_tree_page
+            local page = { _p = parent, _c = {}, nav_to = function () end, switcher = function () end, tasks = {} }
+
+            if parent == nil and app.cur_page == nil then
+                app.cur_page = page
+            end
+
+            if type(nav_to) == "number" then
+                app.paned_pages[nav_to] = page
+
+                function page.nav_to()
+                    app.cur_page = page
+                    if app.pane then app.pane.set_value(nav_to) end
+                end
+            else
+                function page.nav_to()
+                    app.cur_page = page
+                    nav_to()
+                end
+            end
+
+            -- switch between children
+            ---@param id integer child ID
+            function page.switcher(id) if page._c[id] then page._c[id].nav_to() end end
+
+            if parent ~= nil then
+                table.insert(page._p._c, page)
+            end
+
+            return page
+        end
+
+        -- get the currently active page
+        function app.get_current_page() return app.cur_page end
+
+        -- attempt to navigate up the tree
+        ---@return boolean success true if successfully navigated up
+        function app.nav_up()
+            local parent = app.cur_page._p
+            if parent then parent.nav_to() end
+            return parent ~= nil
+        end
+
+        self.apps[app_id] = app
+        self.containers[app_id] = container
+
+        return app
+    end
+
+    -- open a given app
+    ---@param app_id POCKET_APP_ID
+    function nav.open_app(app_id)
+        -- reset help return on navigating out of an app
+        if app_id == APP_ID.ROOT then self.help_return = nil end
+
+        local app = self.apps[app_id] ---@type pocket_app
+        if app then
+            if not app.loaded then render_queue.push_data(MQ__RENDER_DATA.LOAD_APP, app_id) end
+
+            self.cur_app = app_id
+            self.pane.set_value(app_id)
+
+            if #app.sidebar_items > 0 then
+                self.sidebar.update(app.sidebar_items)
+            end
+        else
+            log.debug("tried to open unknown app")
+        end
+    end
+
+    -- load a given app
+    ---@param app_id POCKET_APP_ID
+    function nav.load_app(app_id)
+        self.apps[app_id].load()
+    end
+
+    -- get a list of the app containers (usually Div elements)
+    function nav.get_containers() return self.containers end
+
+    -- get the currently active page
+    ---@return nav_tree_page
+    function nav.get_current_page()
+        return self.apps[self.cur_app].get_current_page()
+    end
+
+    -- attempt to navigate up
+    function nav.nav_up()
+        -- return out of help if opened with open_help
+        if self.help_return then
+            nav.open_app(self.help_return)
+            self.help_return = nil
+            return
+        end
+
+        local app = self.apps[self.cur_app] ---@type pocket_app
+        log.debug("attempting app nav up for app " .. self.cur_app)
+
+        if not app.nav_up() then
+            log.debug("internal app nav up failed, going to home screen")
+            nav.open_app(APP_ID.ROOT)
+        end
+    end
+
+    -- open the help app, to show the reference for a key
+    function nav.open_help(key)
+        self.help_return = self.cur_app
+
+        nav.open_app(APP_ID.GUIDE)
+
+        local load = self.help_map[key]
+        if load then load() end
+    end
+
+    -- link the help map from the guide app
+    function nav.link_help(map) self.help_map = map end
+
+    return nav
 end
 
 -- pocket coordinator + supervisor communications

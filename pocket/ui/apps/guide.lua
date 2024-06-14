@@ -3,13 +3,12 @@
 --
 
 local util          = require("scada-common.util")
--- local log        = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
-local TextField     = require("graphics.elements.form.text_field")
+local pocket        = require("pocket.pocket")
 
 local docs          = require("pocket.ui.docs")
-local style         = require("pocket.ui.style")
+-- local style         = require("pocket.ui.style")
 
 local guide_section = require("pocket.ui.pages.guide_section")
 
@@ -20,33 +19,44 @@ local ListBox       = require("graphics.elements.listbox")
 local MultiPane     = require("graphics.elements.multipane")
 local TextBox       = require("graphics.elements.textbox")
 
+local WaitingAnim   = require("graphics.elements.animations.waiting")
+
 local PushButton    = require("graphics.elements.controls.push_button")
+
+local TextField     = require("graphics.elements.form.text_field")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local label        = style.label
--- local lu_col       = style.label_unit_pair
-local text_fg      = style.text_fg
+local APP_ID = pocket.APP_ID
+
+-- local label   = style.label
+-- local lu_col  = style.label_unit_pair
+-- local text_fg = style.text_fg
 
 -- new system guide view
 ---@param root graphics_element parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local main = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,x=1,y=1}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.GUIDE, main)
+    local app = db.nav.register_app(APP_ID.GUIDE, frame)
 
-    TextBox{parent=main,y=2,text="Guide",height=1,alignment=ALIGN.CENTER}
-    TextBox{parent=main,y=4,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    local load_div = Div{parent=frame,x=1,y=1}
+    local main = Div{parent=frame,x=1,y=1}
+
+    TextBox{parent=load_div,y=12,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.cyan,colors._INHERIT)}
+
+    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
     local btn_fg_bg = cpair(colors.cyan, colors.black)
     local btn_active = cpair(colors.white, colors.black)
     local btn_disable = cpair(colors.gray, colors.black)
 
     local list = {
-        { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
+        { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
         { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
         { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
     }
@@ -142,6 +152,8 @@ local function new_view(root)
 
         TextBox{parent=search_results,text="Click 'GO' to search..."}
 
+        util.nop()
+
         TextBox{parent=use,y=1,text="System Usage",height=1,alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
@@ -202,6 +214,9 @@ local function new_view(root)
 
         -- link help resources
         db.nav.link_help(doc_map)
+
+        -- done, show the app
+        load_pane.set_value(2)
     end
 
     app.set_on_load(load)

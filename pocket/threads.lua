@@ -4,7 +4,7 @@ local ppm       = require("scada-common.ppm")
 local tcd       = require("scada-common.tcd")
 local util      = require("scada-common.util")
 
-local iocontrol = require("pocket.iocontrol")
+local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 
 local core      = require("graphics.core")
@@ -14,14 +14,8 @@ local threads = {}
 local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
 local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
 
-local MQ__RENDER_CMD = {
-    UNLOAD_SV_APPS = 1,
-    UNLOAD_API_APPS = 2
-}
-
-local MQ__RENDER_DATA = {
-    LOAD_APP = 1
-}
+local MQ__RENDER_CMD = pocket.MQ__RENDER_CMD
+local MQ__RENDER_DATA = pocket.MQ__RENDER_DATA
 
 -- main thread
 ---@nodiscard
@@ -44,14 +38,12 @@ function threads.thread__main(smem)
         local pocket_comms = smem.pkt_sys.pocket_comms
         local sv_wd        = smem.pkt_sys.sv_wd
         local api_wd       = smem.pkt_sys.api_wd
+        local nav          = smem.pkt_sys.nav
 
         -- start connection watchdogs
         sv_wd.feed()
         api_wd.feed()
         log.debug("startup> conn watchdogs started")
-
-        local io_db = iocontrol.get_db()
-        local nav   = io_db.nav
 
         -- event loop
         while true do
@@ -152,8 +144,11 @@ function threads.thread__render(smem)
         -- load in from shared memory
         local pkt_state    = smem.pkt_state
         local render_queue = smem.q.mq_render
+        local nav          = smem.pkt_sys.nav
 
         local last_update = util.time()
+
+        local ui_message
 
         -- thread loop
         while true do
@@ -172,6 +167,16 @@ function threads.thread__render(smem)
                         local cmd = msg.message ---@type queue_data
 
                         if cmd.key == MQ__RENDER_DATA.LOAD_APP then
+                            log.debug("RENDER: load app " .. cmd.val)
+
+                            local draw_start = util.time_ms()
+
+                            pkt_state.ui_ok, ui_message = pcall(function () nav.load_app(cmd.val) end)
+                            if not pkt_state.ui_ok then
+                                log.fatal(util.c("RENDER: app load failed with error ", ui_message))
+                            else
+                                log.debug("RENDER: app loaded in " .. (util.time_ms() - draw_start) .. "ms")
+                            end
                         end
                     elseif msg.qtype == mqueue.TYPE.PACKET then
                         -- received a packet

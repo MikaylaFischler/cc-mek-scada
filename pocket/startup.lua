@@ -103,7 +103,8 @@ local function main()
             nic = nil,          ---@type nic
             pocket_comms = nil, ---@type pocket_comms
             sv_wd = nil,        ---@type watchdog
-            api_wd = nil        ---@type watchdog
+            api_wd = nil,       ---@type watchdog
+            nav = nil           ---@type pocket_nav
         },
 
         -- message queues
@@ -118,7 +119,7 @@ local function main()
     local pkt_state = __shared_memory.pkt_state
 
     ----------------------------------------
-    -- setup communications & clocks
+    -- setup system
     ----------------------------------------
 
     -- message authentication init
@@ -147,8 +148,9 @@ local function main()
     smem_sys.pocket_comms = pocket.comms(POCKET_VERSION, smem_sys.nic, smem_sys.sv_wd, smem_sys.api_wd)
     log.debug("startup> comms init")
 
-    -- init I/O control
-    iocontrol.init_core(smem_sys.pocket_comms)
+    -- init nav and I/O handler
+    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
+    iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav)
 
     ----------------------------------------
     -- start the UI

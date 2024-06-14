@@ -3,6 +3,7 @@
 --
 
 local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
 
 local core         = require("graphics.core")
 
@@ -12,11 +13,10 @@ local TextBox      = require("graphics.elements.textbox")
 
 local App          = require("graphics.elements.controls.app")
 
+local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local APP_ID = iocontrol.APP_ID
-
-local ALIGN = core.ALIGN
+local APP_ID = pocket.APP_ID
 
 -- new home page view
 ---@param root graphics_element parent
@@ -25,7 +25,7 @@ local function new_view(root)
 
     local main = Div{parent=root,x=1,y=1,height=19}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.ROOT, main)
+    local app = db.nav.register_app(APP_ID.ROOT, main)
 
     local apps_1 = Div{parent=main,x=1,y=1,height=15}
     local apps_2 = Div{parent=main,x=1,y=1,height=15}

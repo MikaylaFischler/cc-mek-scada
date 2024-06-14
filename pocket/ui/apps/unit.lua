@@ -2,33 +2,38 @@
 -- Unit Overview Page
 --
 
-local util      = require("scada-common.util")
--- local log       = require("scada-common.log")
+local util          = require("scada-common.util")
+-- local log           = require("scada-common.log")
 
-local iocontrol = require("pocket.iocontrol")
+local iocontrol     = require("pocket.iocontrol")
+local pocket        = require("pocket.pocket")
 
-local style     = require("pocket.ui.style")
+local style         = require("pocket.ui.style")
 
-local boiler    = require("pocket.ui.pages.unit_boiler")
-local reactor   = require("pocket.ui.pages.unit_reactor")
-local turbine   = require("pocket.ui.pages.unit_turbine")
+local boiler        = require("pocket.ui.pages.unit_boiler")
+local reactor       = require("pocket.ui.pages.unit_reactor")
+local turbine       = require("pocket.ui.pages.unit_turbine")
 
-local core      = require("graphics.core")
+local core          = require("graphics.core")
 
-local Div       = require("graphics.elements.div")
-local ListBox   = require("graphics.elements.listbox")
-local MultiPane = require("graphics.elements.multipane")
-local TextBox   = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.div")
+local ListBox       = require("graphics.elements.listbox")
+local MultiPane     = require("graphics.elements.multipane")
+local TextBox       = require("graphics.elements.textbox")
 
-local DataIndicator     = require("graphics.elements.indicators.data")
-local IconIndicator     = require("graphics.elements.indicators.icon")
--- local RadIndicator      = require("graphics.elements.indicators.rad")
--- local VerticalBar       = require("graphics.elements.indicators.vbar")
+local WaitingAnim   = require("graphics.elements.animations.waiting")
 
-local PushButton        = require("graphics.elements.controls.push_button")
+local DataIndicator = require("graphics.elements.indicators.data")
+local IconIndicator = require("graphics.elements.indicators.icon")
+-- local RadIndicator  = require("graphics.elements.indicators.rad")
+-- local VerticalBar   = require("graphics.elements.indicators.vbar")
+
+local PushButton    = require("graphics.elements.controls.push_button")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
+
+local APP_ID = pocket.APP_ID
 
 -- local label        = style.label
 local lu_col       = style.label_unit_pair
@@ -49,11 +54,17 @@ local emc_ind_s = {
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local main = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,x=1,y=1}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.UNITS, main)
+    local app = db.nav.register_app(APP_ID.UNITS, frame)
 
-    TextBox{parent=main,y=2,text="Units App",height=1,alignment=ALIGN.CENTER}
+    local load_div = Div{parent=frame,x=1,y=1}
+    local main = Div{parent=frame,x=1,y=1}
+
+    TextBox{parent=load_div,y=12,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.yellow,colors._INHERIT)}
+
+    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
     TextBox{parent=main,y=4,text="Loading...",height=1,alignment=ALIGN.CENTER}
 
@@ -66,7 +77,7 @@ local function new_view(root)
         local unit = db.units[id] ---@type pioctl_unit
 
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
             { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
@@ -173,6 +184,8 @@ local function new_view(root)
             end
 
             --#endregion
+
+            util.nop()
 
             --#region Alarms Tab
 
@@ -349,6 +362,8 @@ local function new_view(root)
             end
 
             --#endregion
+
+            util.nop()
         end
 
         -- setup multipane
@@ -356,6 +371,9 @@ local function new_view(root)
         app.set_root_pane(u_pane)
 
         set_sidebar(active_unit)
+
+        -- done, show the app
+        load_pane.set_value(2)
     end
 
     app.set_on_load(load)
