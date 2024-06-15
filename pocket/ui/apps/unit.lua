@@ -2,40 +2,43 @@
 -- Unit Overview Page
 --
 
-local util      = require("scada-common.util")
--- local log       = require("scada-common.log")
+local util          = require("scada-common.util")
 
-local iocontrol = require("pocket.iocontrol")
+local iocontrol     = require("pocket.iocontrol")
+local pocket        = require("pocket.pocket")
 
-local core      = require("graphics.core")
+local style         = require("pocket.ui.style")
 
-local Div       = require("graphics.elements.div")
-local MultiPane = require("graphics.elements.multipane")
-local TextBox   = require("graphics.elements.textbox")
+local boiler        = require("pocket.ui.pages.unit_boiler")
+local reactor       = require("pocket.ui.pages.unit_reactor")
+local turbine       = require("pocket.ui.pages.unit_turbine")
 
-local DataIndicator     = require("graphics.elements.indicators.data")
-local IconIndicator     = require("graphics.elements.indicators.icon")
--- local RadIndicator      = require("graphics.elements.indicators.rad")
--- local VerticalBar       = require("graphics.elements.indicators.vbar")
+local core          = require("graphics.core")
 
-local PushButton        = require("graphics.elements.controls.push_button")
+local Div           = require("graphics.elements.div")
+local ListBox       = require("graphics.elements.listbox")
+local MultiPane     = require("graphics.elements.multipane")
+local TextBox       = require("graphics.elements.textbox")
+
+local WaitingAnim   = require("graphics.elements.animations.waiting")
+
+local PushButton    = require("graphics.elements.controls.push_button")
+
+local DataIndicator = require("graphics.elements.indicators.data")
+local IconIndicator = require("graphics.elements.indicators.icon")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local basic_states = {
-    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
-    { color = cpair(colors.black, colors.red), symbol = "-" },
-    { color = cpair(colors.black, colors.yellow), symbol = "\x1e" },
-    { color = cpair(colors.black, colors.green), symbol = "+" }
-}
+local APP_ID = pocket.APP_ID
 
-local mode_states = {
-    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
-    { color = cpair(colors.black, colors.red), symbol = "-" },
-    { color = cpair(colors.black, colors.green), symbol = "+" },
-    { color = cpair(colors.black, colors.purple), symbol = "A" }
-}
+-- local label        = style.label
+local lu_col       = style.label_unit_pair
+local text_fg      = style.text_fg
+local basic_states = style.icon_states.basic_states
+local mode_states  = style.icon_states.mode_states
+local red_ind_s    = style.icon_states.red_ind_s
+local yel_ind_s    = style.icon_states.yel_ind_s
 
 local emc_ind_s = {
     { color = cpair(colors.black, colors.gray), symbol = "-" },
@@ -43,60 +46,58 @@ local emc_ind_s = {
     { color = cpair(colors.black, colors.green), symbol = "+" }
 }
 
-local red_ind_s = {
-    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
-    { color = cpair(colors.black, colors.red), symbol = "-" }
-}
-
-local yel_ind_s = {
-    { color = cpair(colors.black, colors.lightGray), symbol = "+" },
-    { color = cpair(colors.black, colors.yellow), symbol = "-" }
-}
-
 -- new unit page view
 ---@param root graphics_element parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local main = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,x=1,y=1}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.UNITS, main)
+    local app = db.nav.register_app(APP_ID.UNITS, frame, nil, false, true)
 
-    TextBox{parent=main,y=2,text="Units App",height=1,alignment=ALIGN.CENTER}
+    local load_div = Div{parent=frame,x=1,y=1}
+    local main = Div{parent=frame,x=1,y=1}
 
-    TextBox{parent=main,y=4,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=load_div,y=12,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.yellow,colors._INHERIT)}
+
+    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
-    -- local label = cpair(colors.lightGray, colors.black)
 
     local nav_links = {}
+    local page_div = nil ---@type nil|graphics_element
 
+    -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar(id)
-        -- local unit = db.units[id] ---@type pioctl_unit
+        local unit = db.units[id] ---@type pioctl_unit
 
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(iocontrol.APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
             { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
-            -- { label = " R ", color = core.cpair(colors.black, colors.lightGray), callback = function () end },
+            { label = " R ", color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].reactor  },
             { label = "RCS", tall = true, color = core.cpair(colors.black, colors.blue), callback = nav_links[id].rcs },
         }
 
-        -- for i = 1, unit.num_boilers do
-        --     table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightBlue), callback = function () end })
-        -- end
+        for i = 1, unit.num_boilers do
+            table.insert(list, { label = "B-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].boiler[i] })
+        end
 
-        -- for i = 1, unit.num_turbines do
-        --     table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.white), callback = function () end })
-        -- end
+        for i = 1, unit.num_turbines do
+            table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].turbine[i] })
+        end
 
         app.set_sidebar(list)
     end
 
+    -- load the app (create the elements)
     local function load()
-        local page_div = Div{parent=main,x=2,y=2,width=main.get_width()-2}
+        page_div = Div{parent=main,y=2,width=main.get_width()}
 
         local panes = {}
 
@@ -124,7 +125,8 @@ local function new_view(root)
         end
 
         for i = 1, db.facility.num_units do
-            local u_div = panes[i] ---@type graphics_element
+            local u_pane = panes[i]
+            local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
             local unit = db.units[i] ---@type pioctl_unit
             local u_ps = unit.unit_ps
 
@@ -149,16 +151,13 @@ local function new_view(root)
             local type = util.trinary(unit.num_boilers > 0, "Sodium Cooled Reactor", "Boiling Water Reactor")
             TextBox{parent=u_div,y=3,text=type,height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
 
-            local lu_col = cpair(colors.lightGray, colors.lightGray)
-            local text_fg = cpair(colors.white, colors._INHERIT)
-
-            local rate = DataIndicator{parent=u_div,y=5,lu_colors=lu_col,label="Rate",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
-            local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit="K",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
+            local rate = DataIndicator{parent=u_div,y=5,lu_colors=lu_col,label="Burn",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
+            local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
 
             local ctrl = IconIndicator{parent=u_div,x=1,y=8,label="Control State",states=mode_states}
 
             rate.register(u_ps, "act_burn_rate", rate.update)
-            temp.register(u_ps, "temp", temp.update)
+            temp.register(u_ps, "temp", function (t) temp.update(db.temp_convert(t)) end)
             ctrl.register(u_ps, "U_ControlStatus", ctrl.update)
 
             u_div.line_break()
@@ -186,6 +185,8 @@ local function new_view(root)
 
             --#endregion
 
+            util.nop()
+
             --#region Alarms Tab
 
             local alm_div = Div{parent=page_div}
@@ -193,23 +194,49 @@ local function new_view(root)
 
             local alm_page = app.new_page(u_page, #panes)
             alm_page.tasks = { update }
-
             nav_links[i].alarm = alm_page.nav_to
 
-            TextBox{parent=alm_div,y=1,text="Unit Alarms",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=alm_div,y=1,text="Status Info Display",height=1,alignment=ALIGN.CENTER}
 
-            TextBox{parent=alm_div,y=3,text="work in progress",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
+            local ecam_disp = ListBox{parent=alm_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+            ecam_disp.register(u_ps, "U_ECAM", function (data)
+                local ecam = textutils.unserialize(data)
+
+                ecam_disp.remove_all()
+                for _, entry in ipairs(ecam) do
+                    local div = Div{parent=ecam_disp,height=1+#entry.items,fg_bg=cpair(entry.color,colors.black)}
+                    local text = TextBox{parent=div,height=1,text=entry.text}
+
+                    if entry.help then
+                        PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(entry.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                    end
+
+                    for _, item in ipairs(entry.items) do
+                        local fg_bg = nil
+                        if item.color then fg_bg = cpair(item.color, colors.black) end
+
+                        text = TextBox{parent=div,x=3,height=1,text=item.text,fg_bg=fg_bg}
+
+                        if item.help then
+                            PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(item.help)end,fg_bg=cpair(colors.gray,colors.black)}
+                        end
+                    end
+
+                    ecam_disp.line_break()
+                end
+            end)
 
             --#endregion
 
             --#region RPS Tab
 
-            local rps_div = Div{parent=page_div}
+            local rps_pane = Div{parent=page_div}
+            local rps_div = Div{parent=rps_pane,x=2,width=main.get_width()-2}
             table.insert(panes, rps_div)
 
             local rps_page = app.new_page(u_page, #panes)
             rps_page.tasks = { update }
-
             nav_links[i].rps = rps_page.nav_to
 
             TextBox{parent=rps_div,y=1,text="Protection System",height=1,alignment=ALIGN.CENTER}
@@ -246,10 +273,17 @@ local function new_view(root)
 
             --#endregion
 
+            --#region Reactor Tab
+
+            nav_links[i].reactor = reactor(app, u_page, panes, page_div, u_ps, update)
+
+            --#endregion
+
             --#region RCS Tab
 
-            local rcs_div = Div{parent=page_div}
-            table.insert(panes, rcs_div)
+            local rcs_pane = Div{parent=page_div}
+            local rcs_div = Div{parent=rcs_pane,x=2,width=main.get_width()-2}
+            table.insert(panes, rcs_pane)
 
             local rcs_page = app.new_page(u_page, #panes)
             rcs_page.tasks = { update }
@@ -304,6 +338,32 @@ local function new_view(root)
             ttrip.register(u_ps, "U_TurbineTrip", ttrip.update)
 
             --#endregion
+
+            --#region Boiler Tabs
+
+            local blr_pane = Div{parent=page_div}
+            nav_links[i].boiler = {}
+
+            for b_id = 1, unit.num_boilers do
+                local ps = unit.boiler_ps_tbl[b_id]
+                nav_links[i].boiler[b_id] = boiler(app, u_page, panes, blr_pane, b_id, ps, update)
+            end
+
+            --#endregion
+
+            --#region Turbine Tabs
+
+            local tbn_pane = Div{parent=page_div}
+            nav_links[i].turbine = {}
+
+            for t_id = 1, unit.num_turbines do
+                local ps = unit.turbine_ps_tbl[t_id]
+                nav_links[i].turbine[t_id] = turbine(app, u_page, panes, tbn_pane, i, t_id, ps, update)
+            end
+
+            --#endregion
+
+            util.nop()
         end
 
         -- setup multipane
@@ -311,9 +371,27 @@ local function new_view(root)
         app.set_root_pane(u_pane)
 
         set_sidebar(active_unit)
+
+        -- done, show the app
+        load_pane.set_value(2)
     end
 
-    app.set_on_load(load)
+    -- delete the elements and switch back to the loading screen
+    local function unload()
+        if page_div then
+            page_div.delete()
+            page_div = nil
+        end
+
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.delete_pages()
+
+        -- show loading screen
+        load_pane.set_value(1)
+    end
+
+    app.set_load(load)
+    app.set_unload(unload)
 
     return main
 end

@@ -3,6 +3,7 @@
 --
 
 local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
 
 local core         = require("graphics.core")
 
@@ -12,11 +13,10 @@ local TextBox      = require("graphics.elements.textbox")
 
 local App          = require("graphics.elements.controls.app")
 
+local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local APP_ID = iocontrol.APP_ID
-
-local ALIGN = core.ALIGN
+local APP_ID = pocket.APP_ID
 
 -- new home page view
 ---@param root graphics_element parent
@@ -25,7 +25,7 @@ local function new_view(root)
 
     local main = Div{parent=root,x=1,y=1,height=19}
 
-    local app = db.nav.register_app(iocontrol.APP_ID.ROOT, main)
+    local app = db.nav.register_app(APP_ID.ROOT, main)
 
     local apps_1 = Div{parent=main,x=1,y=1,height=15}
     local apps_2 = Div{parent=main,x=1,y=1,height=15}
@@ -51,7 +51,7 @@ local function new_view(root)
     App{parent=apps_1,x=2,y=7,text="\x17",title="Process",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.purple),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=9,y=7,text="\x7f",title="Waste",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.brown),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=16,y=7,text="\x08",title="Devices",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
-    App{parent=apps_1,x=2,y=12,text="\xb6",title="Guide",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
+    App{parent=apps_1,x=2,y=12,text="\xb6",title="Guide",callback=function()open(APP_ID.GUIDE)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=9,y=12,text="?",title="About",callback=function()open(APP_ID.ABOUT)end,app_fg_bg=cpair(colors.black,colors.white),active_fg_bg=active_fg_bg}
 
     TextBox{parent=apps_2,text="Diagnostic Apps",x=1,y=2,height=1,alignment=ALIGN.CENTER}

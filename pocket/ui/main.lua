@@ -2,16 +2,20 @@
 -- Pocket GUI Root
 --
 
+local util         = require("scada-common.util")
+
 local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
 
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
+local guide_app    = require("pocket.ui.apps.guide")
 local sys_apps     = require("pocket.ui.apps.sys_apps")
+local unit_app     = require("pocket.ui.apps.unit")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local home_page    = require("pocket.ui.pages.home_page")
-local unit_page    = require("pocket.ui.pages.unit_page")
 
 local style        = require("pocket.ui.style")
 
@@ -26,11 +30,12 @@ local Sidebar      = require("graphics.elements.controls.sidebar")
 
 local SignalBar    = require("graphics.elements.indicators.signal")
 
+local ALIGN = core.ALIGN
+local cpair = core.cpair
+
 local LINK_STATE = iocontrol.LINK_STATE
 
-local ALIGN = core.ALIGN
-
-local cpair = core.cpair
+local APP_ID = pocket.APP_ID
 
 -- create new main view
 ---@param main graphics_element main displaybox
@@ -38,7 +43,7 @@ local function init(main)
     local db = iocontrol.get_db()
 
     -- window header message
-    TextBox{parent=main,y=1,text="WIP ALPHA APP      S   C   ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
     local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
 
@@ -72,20 +77,21 @@ local function init(main)
     local page_div = Div{parent=main_pane,x=4,y=1}
 
     home_page(page_div)
-    unit_page(page_div)
 
-    diag_apps(page_div)
+    unit_app(page_div)
+    guide_app(page_div)
     sys_apps(page_div)
+    diag_apps(page_div)
     dummy_app(page_div)
 
-    assert(#db.nav.get_containers() == iocontrol.APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
+    assert(util.table_len(db.nav.get_containers()) == APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
 
     db.nav.set_pane(MultiPane{parent=page_div,x=1,y=1,panes=db.nav.get_containers()})
     db.nav.set_sidebar(Sidebar{parent=main_pane,x=1,y=1,height=18,fg_bg=cpair(colors.white,colors.gray)})
 
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
-    db.nav.open_app(iocontrol.APP_ID.ROOT)
+    db.nav.open_app(APP_ID.ROOT)
 
     --#endregion
 end

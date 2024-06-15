@@ -3,7 +3,7 @@
 --
 
 local log         = require("scada-common.log")
-local tcd         = require("scada-common.tcd")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local core        = require("graphics.core")
@@ -32,7 +32,9 @@ local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
-local changes = {}
+local changes = {
+    { "v0.9.2", { "Added temperature scale options" } }
+}
 
 ---@class pkt_configurator
 local configurator = {}
@@ -73,6 +75,7 @@ local tool_ctl = {
 
 ---@class pkt_config
 local tmp_cfg = {
+    TempScale = 1,
     SVR_Channel = nil,  ---@type integer
     CRD_Channel = nil,  ---@type integer
     PKT_Channel = nil,  ---@type integer
@@ -91,6 +94,7 @@ local settings_cfg = {}
 
 -- all settings fields, their nice names, and their default values
 local fields = {
+    { "TempScale", "Temperature Scale", 1 },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
     { "PKT_Channel", "PKT Channel", 16244 },
@@ -126,12 +130,13 @@ local function config_view(display)
     local root_pane_div = Div{parent=display,x=1,y=2}
 
     local main_page = Div{parent=root_pane_div,x=1,y=1}
+    local ui_cfg = Div{parent=root_pane_div,x=1,y=1}
     local net_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,net_cfg,log_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,ui_cfg,net_cfg,log_cfg,summary,changelog}}
 
     -- Main Page
 
@@ -148,7 +153,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
-        main_pane.set_value(4)
+        main_pane.set_value(5)
     end
 
     if fs.exists("/pocket/config.lua") then
@@ -162,7 +167,28 @@ local function config_view(display)
     if not tool_ctl.has_config then tool_ctl.view_cfg.disable() end
 
     PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=main_page,x=14,y=18,min_width=12,text="Change Log",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=14,y=18,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#region Pocket UI
+
+    local ui_c_1 = Div{parent=ui_cfg,x=2,y=4,width=24}
+
+    TextBox{parent=ui_cfg,x=1,y=2,height=1,text=" Pocket UI",fg_bg=cpair(colors.black,colors.lime)}
+
+    TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may use the options below to customize formats."}
+
+    TextBox{parent=ui_c_1,x=1,y=5,height=1,text="Temperature Scale"}
+    local temp_scale = RadioButton{parent=ui_c_1,x=1,y=6,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    local function submit_ui_opts()
+        tmp_cfg.TempScale = temp_scale.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=ui_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=ui_c_1,x=19,y=15,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
 
     --#region Network
 
@@ -201,7 +227,7 @@ local function config_view(display)
         else chan_err.show() end
     end
 
-    PushButton{parent=net_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=19,y=15,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,height=1,text="Set connection timeout."}
@@ -268,7 +294,7 @@ local function config_view(display)
         local v = key.get_value()
         if string.len(v) == 0 or string.len(v) >= 8 then
             tmp_cfg.AuthKey = key.get_value()
-            main_pane.set_value(3)
+            main_pane.set_value(4)
             key_err.hide(true)
         else key_err.show() end
     end
@@ -306,11 +332,11 @@ local function config_view(display)
             tool_ctl.viewing_config = false
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
-            main_pane.set_value(4)
+            main_pane.set_value(5)
         else path_err.show() end
     end
 
-    PushButton{parent=log_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=19,y=15,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -335,7 +361,7 @@ local function config_view(display)
             tool_ctl.importing_legacy = false
             tool_ctl.settings_apply.show()
         else
-            main_pane.set_value(3)
+            main_pane.set_value(4)
         end
     end
 
@@ -444,7 +470,7 @@ local function config_view(display)
 
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
-        main_pane.set_value(4)
+        main_pane.set_value(5)
         tool_ctl.importing_legacy = true
     end
 
@@ -473,8 +499,13 @@ local function config_view(display)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
-            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace") end
+            if f[1] == "AuthKey" then
+                val = string.rep("*", string.len(val))
+            elseif f[1] == "LogMode" then
+                val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "TempScale" then
+                val = types.TEMP_SCALE_NAMES[raw]
+            end
 
             if val == "nil" then val = "<not set>" end
 
@@ -532,9 +563,7 @@ function configurator.configure(ask_config)
             local event, param1, param2, param3 = util.pull_event()
 
             -- handle event
-            if event == "timer" then
-                tcd.handle(param1)
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
+            if event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
                 local m_e = core.events.new_mouse_event(event, param1, param2, param3)
                 if m_e then display.handle_mouse(m_e) end
             elseif event == "char" or event == "key" or event == "key_up" then

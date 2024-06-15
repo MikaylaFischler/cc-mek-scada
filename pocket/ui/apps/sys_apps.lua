@@ -19,9 +19,10 @@ local TextBox    = require("graphics.elements.textbox")
 
 local PushButton = require("graphics.elements.controls.push_button")
 
+local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local ALIGN = core.ALIGN
+local APP_ID = pocket.APP_ID
 
 -- create system app pages
 ---@param root graphics_element parent
@@ -34,7 +35,7 @@ local function create_pages(root)
 
     local about_root = Div{parent=root,x=1,y=1}
 
-    local about_app = db.nav.register_app(iocontrol.APP_ID.ABOUT, about_root)
+    local about_app = db.nav.register_app(APP_ID.ABOUT, about_root)
 
     local about_page = about_app.new_page(nil, 1)
     local nt_page = about_app.new_page(about_page, 2)

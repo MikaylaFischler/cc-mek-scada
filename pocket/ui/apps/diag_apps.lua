@@ -3,6 +3,7 @@
 --
 
 local iocontrol      = require("pocket.iocontrol")
+local pocket         = require("pocket.pocket")
 
 local core           = require("graphics.core")
 
@@ -15,9 +16,10 @@ local Checkbox       = require("graphics.elements.controls.checkbox")
 local PushButton     = require("graphics.elements.controls.push_button")
 local SwitchButton   = require("graphics.elements.controls.switch_button")
 
+local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local ALIGN = core.ALIGN
+local APP_ID = pocket.APP_ID
 
 -- create diagnostic app pages
 ---@param root graphics_element parent
@@ -30,7 +32,7 @@ local function create_pages(root)
 
     local alarm_test = Div{parent=root,x=1,y=1}
 
-    local alarm_app = db.nav.register_app(iocontrol.APP_ID.ALARMS, alarm_test)
+    local alarm_app = db.nav.register_app(APP_ID.ALARMS, alarm_test)
 
     local page = alarm_app.new_page(nil, function () end)
     page.tasks = { db.diag.tone_test.get_tone_states }
