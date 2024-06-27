@@ -123,7 +123,7 @@ local function main()
     -- setup system
     ----------------------------------------
 
-    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
+    smem_sys.nav = pocket.init_nav(__shared_memory)
 
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then

@@ -1,0 +1,49 @@
+--
+-- Loading Screen App
+--
+
+local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
+
+local conn_waiting = require("pocket.ui.components.conn_waiting")
+
+local core         = require("graphics.core")
+
+local Div          = require("graphics.elements.div")
+local MultiPane    = require("graphics.elements.multipane")
+local TextBox      = require("graphics.elements.textbox")
+
+local APP_ID = pocket.APP_ID
+
+local LINK_STATE = iocontrol.LINK_STATE
+
+-- create the connecting to SV & API page
+---@param root graphics_element parent
+local function create_pages(root)
+    local db = iocontrol.get_db()
+
+    local main = Div{parent=root,x=1,y=1}
+
+    db.nav.register_app(APP_ID.LOADER, main).new_page(nil, function () end)
+
+    local conn_sv_wait = conn_waiting(main, 6, false)
+    local conn_api_wait = conn_waiting(main, 6, true)
+    local main_pane = Div{parent=main,x=1,y=2}
+
+    local root_pane = MultiPane{parent=main,x=1,y=1,panes={conn_sv_wait,conn_api_wait,main_pane}}
+
+    root_pane.register(db.ps, "link_state", function (state)
+        if state == LINK_STATE.UNLINKED or state == LINK_STATE.API_LINK_ONLY then
+            root_pane.set_value(1)
+        elseif state == LINK_STATE.SV_LINK_ONLY then
+            root_pane.set_value(2)
+        else
+            root_pane.set_value(3)
+            db.nav.on_loader_connected()
+        end
+    end)
+
+    TextBox{parent=main_pane,text="Connected!",x=1,y=6,alignment=core.ALIGN.CENTER}
+end
+
+return create_pages

@@ -78,15 +78,16 @@ end
 ---@enum POCKET_APP_ID
 local APP_ID = {
     ROOT = 1,
+    LOADER = 2,
     -- main app pages
-    UNITS = 2,
-    GUIDE = 3,
-    ABOUT = 4,
+    UNITS = 3,
+    GUIDE = 4,
+    ABOUT = 5,
     -- diag app page
-    ALARMS = 5,
+    ALARMS = 6,
     -- other
-    DUMMY = 6,
-    NUM_APPS = 6
+    DUMMY = 7,
+    NUM_APPS = 7
 }
 
 pocket.APP_ID = APP_ID
@@ -98,9 +99,9 @@ pocket.APP_ID = APP_ID
 ---@field switcher function|nil function to switch between children
 ---@field tasks table tasks to run while viewing this page
 
--- allocate the page navigation system
----@param render_queue mqueue
-function pocket.init_nav(render_queue)
+-- initialize the page navigation system
+---@param smem pkt_shared_memory
+function pocket.init_nav(smem)
     local self = {
         pane = nil,    ---@type graphics_element
         sidebar = nil, ---@type graphics_element
@@ -108,6 +109,7 @@ function pocket.init_nav(render_queue)
         containers = {},
         help_map = {},
         help_return = nil,
+        loader_return = nil,
         cur_app = APP_ID.ROOT
     }
 
@@ -143,9 +145,12 @@ function pocket.init_nav(render_queue)
         app.load = function () app.loaded = true end
         app.unload = function () app.loaded = false end
 
-        -- check which connections this requires
+        -- check which connections this requires (for unload)
         ---@return boolean requires_sv, boolean requires_api
         function app.check_requires() return require_sv or false, require_api or false end
+
+        -- check if any connection is required (for load)
+        function app.requires_conn() return require_sv or require_api or false end
 
         -- delayed set of the pane if it wasn't ready at the start
         ---@param root_pane graphics_element multipane
@@ -254,7 +259,14 @@ function pocket.init_nav(render_queue)
 
         local app = self.apps[app_id] ---@type pocket_app
         if app then
-            if not app.loaded then render_queue.push_data(MQ__RENDER_DATA.LOAD_APP, app_id) end
+            if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
+                -- bring up the app loader
+                self.loader_return = app_id
+                app_id = APP_ID.LOADER
+                app = self.apps[app_id]
+            else self.loader_return = nil end
+
+            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, app_id) end
 
             self.cur_app = app_id
             self.pane.set_value(app_id)
@@ -266,6 +278,14 @@ function pocket.init_nav(render_queue)
             log.debug("tried to open unknown app")
         end
     end
+
+    -- open the app that was blocked on connecting
+    function nav.on_loader_connected()
+        if self.loader_return then
+            nav.open_app(self.loader_return)
+        end
+    end
+
 
     -- load a given app
     ---@param app_id POCKET_APP_ID
@@ -843,6 +863,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     -- check if we are still linked with the coordinator
     ---@nodiscard
     function public.is_api_linked() return self.api.linked end
+
+    -- check if we are still linked with the supervisor and coordinator
+    ---@nodiscard
+    function public.is_linked() return self.sv.linked and self.api.linked end
 
     return public
 end
