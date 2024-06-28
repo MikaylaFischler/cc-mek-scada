@@ -286,7 +286,6 @@ function pocket.init_nav(smem)
         end
     end
 
-
     -- load a given app
     ---@param app_id POCKET_APP_ID
     function nav.load_app(app_id)
