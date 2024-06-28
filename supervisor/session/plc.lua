@@ -190,20 +190,23 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     -- copy in the RPS status
     ---@param rps_status table
     local function _copy_rps_status(rps_status)
-        self.sDB.rps_tripped          = rps_status[1]
-        self.sDB.rps_trip_cause       = rps_status[2]
-        self.sDB.rps_status.high_dmg  = rps_status[3]
-        self.sDB.rps_status.high_temp = rps_status[4]
-        self.sDB.rps_status.low_cool  = rps_status[5]
-        self.sDB.rps_status.ex_waste  = rps_status[6]
-        self.sDB.rps_status.ex_hcool  = rps_status[7]
-        self.sDB.rps_status.no_fuel   = rps_status[8]
-        self.sDB.rps_status.fault     = rps_status[9]
-        self.sDB.rps_status.timeout   = rps_status[10]
-        self.sDB.rps_status.manual    = rps_status[11]
-        self.sDB.rps_status.automatic = rps_status[12]
-        self.sDB.rps_status.sys_fail  = rps_status[13]
-        self.sDB.rps_status.force_dis = rps_status[14]
+        local rps = self.sDB.rps_status
+
+        self.sDB.rps_tripped    = rps_status[1]
+        self.sDB.rps_trip_cause = rps_status[2]
+
+        rps.high_dmg  = rps_status[3]
+        rps.high_temp = rps_status[4]
+        rps.low_cool  = rps_status[5]
+        rps.ex_waste  = rps_status[6]
+        rps.ex_hcool  = rps_status[7]
+        rps.no_fuel   = rps_status[8]
+        rps.fault     = rps_status[9]
+        rps.timeout   = rps_status[10]
+        rps.manual    = rps_status[11]
+        rps.automatic = rps_status[12]
+        rps.sys_fail  = rps_status[13]
+        rps.force_dis = rps_status[14]
     end
 
     -- copy in the reactor status
