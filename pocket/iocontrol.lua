@@ -523,7 +523,10 @@ function iocontrol.record_unit_data(data)
                 reactor_state = 6   -- SCRAM
                 rps_status = 2
             end
-        else rps_status = 4 end
+        else
+            rps_status = 4
+            reactor_state = 4
+        end
 
         -- update reactor/control status
         if unit.reactor_data.mek_status.status then
