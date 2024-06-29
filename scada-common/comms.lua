@@ -294,7 +294,7 @@ function comms.authd_packet()
         self.src_addr = s_packet.src_addr()
         self.dest_addr = s_packet.dest_addr()
         self.mac = mac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
-        self.raw = { self.src_addr, self.dest_addr, self.mac, s_packet.data() }
+        self.raw = { self.src_addr, self.dest_addr, self.mac, s_packet.raw_sendable() }
     end
 
     -- parse in a modem message as an authenticated SCADA packet

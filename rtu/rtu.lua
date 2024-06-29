@@ -285,6 +285,7 @@ function rtu.comms(version, nic, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
+        r_seq_num = nil,               ---@type nil|integer
         txn_id = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
@@ -362,6 +363,7 @@ function rtu.comms(version, nic, conn_watchdog)
     function public.unlink(rtu_state)
         rtu_state.linked = false
         self.sv_addr = comms.BROADCAST
+        self.r_seq_num = nil
         databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
@@ -439,15 +441,17 @@ function rtu.comms(version, nic, conn_watchdog)
 
         if l_chan == config.RTU_Channel then
             -- check sequence number
-            if self.seq_num ~= packet.scada_frame.seq_num() then
-                log.warning("sequence out-of-order: last = " .. self.seq_num .. ", new = " .. packet.scada_frame.seq_num())
+            if self.r_seq_num == nil then
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
+            elseif self.r_seq_num ~= packet.scada_frame.seq_num() then
+                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif rtu_state.linked and (src_addr ~= self.sv_addr) then
                 log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
                             "); channel in use by another system?")
                 return
             else
-                self.seq_num = packet.scada_frame.seq_num() + 1
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
             end
 
             -- feed watchdog on valid sequence number

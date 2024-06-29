@@ -80,7 +80,7 @@ end
 ---@param modem table modem to use
 function network.nic(modem)
     local self = {
-        connected = true,   -- used to avoid costly MAC calculations if modem isn't even present
+        connected = true, -- used to avoid costly MAC calculations if modem isn't even present
         channels = {}
     }
 
@@ -175,7 +175,7 @@ function network.nic(modem)
     ---@param packet scada_packet packet
     function public.transmit(dest_channel, local_channel, packet)
         if self.connected then
-            local tx_packet = packet    ---@type authd_packet|scada_packet
+            local tx_packet = packet ---@type authd_packet|scada_packet
 
             if c_eng.hmac ~= nil then
                 -- local start = util.time_ms()
@@ -214,13 +214,13 @@ function network.nic(modem)
                     s_packet.receive(side, sender, reply_to, a_packet.data(), distance)
 
                     if s_packet.is_valid() then
-                    -- local start         = util.time_ms()
+                        -- local start         = util.time_ms()
                         local computed_hmac = compute_hmac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
 
                         if a_packet.mac() == computed_hmac then
                             -- log.debug("network.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
-                        s_packet.stamp_authenticated()
-                    else
+                            s_packet.stamp_authenticated()
+                        else
                             -- log.debug("network.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                         end
                     end

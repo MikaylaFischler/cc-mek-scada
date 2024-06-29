@@ -197,7 +197,7 @@ function supervisor.comms(_version, nic, fp_ok)
         local r_chan    = packet.scada_frame.remote_channel()
         local src_addr  = packet.scada_frame.src_addr()
         local protocol  = packet.scada_frame.protocol()
-        local i_seq_num = packet.scada_frame.seq_num() + 1
+        local i_seq_num = packet.scada_frame.seq_num()
 
         if l_chan ~= config.SVR_Channel then
             log.debug("received packet on unconfigured channel " .. l_chan, true)

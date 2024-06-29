@@ -67,7 +67,8 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         ramping_rate = false,
         auto_lock = false,
         -- connection properties
-        seq_num = i_seq_num,
+        seq_num = i_seq_num + 2, -- next after the establish approval was sent
+        r_seq_num = i_seq_num + 1,
         connected = true,
         received_struct = false,
         received_status_cache = false,
@@ -349,11 +350,11 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
-        if self.seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: last = " .. self.seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+        if self.r_seq_num ~= pkt.scada_frame.seq_num() then
+            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
-            self.seq_num = pkt.scada_frame.seq_num() + 1
+            self.r_seq_num = pkt.scada_frame.seq_num() + 1
         end
 
         -- process packet

@@ -274,7 +274,7 @@ end
 -- establish a new PLC session
 ---@nodiscard
 ---@param source_addr integer PLC computer ID
----@param i_seq_num integer initial sequence number to use next
+---@param i_seq_num integer initial (most recent) sequence number
 ---@param for_reactor integer unit ID
 ---@param version string PLC version
 ---@return integer|false session_id
@@ -324,7 +324,7 @@ end
 -- establish a new RTU gateway session
 ---@nodiscard
 ---@param source_addr integer RTU gateway computer ID
----@param i_seq_num integer initial sequence number to use next
+---@param i_seq_num integer initial (most recent) sequence number
 ---@param advertisement table RTU capability advertisement
 ---@param version string RTU gateway version
 ---@return integer session_id
@@ -365,7 +365,7 @@ end
 -- establish a new coordinator session
 ---@nodiscard
 ---@param source_addr integer coordinator computer ID
----@param i_seq_num integer initial sequence number to use next
+---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string coordinator version
 ---@return integer|false session_id
 function svsessions.establish_crd_session(source_addr, i_seq_num, version)
@@ -410,7 +410,7 @@ end
 -- establish a new pocket diagnostics session
 ---@nodiscard
 ---@param source_addr integer pocket computer ID
----@param i_seq_num integer initial sequence number to use next
+---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string pocket version
 ---@return integer|false session_id
 function svsessions.establish_pdg_session(source_addr, i_seq_num, version)
