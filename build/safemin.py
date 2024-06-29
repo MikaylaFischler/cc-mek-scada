@@ -71,3 +71,10 @@ for _, d in enumerate(dirs):
 minify("startup.lua")
 minify("initenv.lua")
 minify("configure.lua")
+
+# copy in license for build usage
+lic1 = open("LICENSE", "r")
+lic2 = open("_minified/LICENSE", "w")
+lic2.write(lic1.read())
+lic1.close()
+lic2.close()
