@@ -2,32 +2,34 @@
 -- Pocket GUI Root
 --
 
-local util         = require("scada-common.util")
+local util        = require("scada-common.util")
 
-local iocontrol    = require("pocket.iocontrol")
-local pocket       = require("pocket.pocket")
+local iocontrol   = require("pocket.iocontrol")
+local pocket      = require("pocket.pocket")
 
-local diag_apps    = require("pocket.ui.apps.diag_apps")
-local dummy_app    = require("pocket.ui.apps.dummy_app")
-local guide_app    = require("pocket.ui.apps.guide")
-local loader_app   = require("pocket.ui.apps.loader")
-local sys_apps     = require("pocket.ui.apps.sys_apps")
-local unit_app     = require("pocket.ui.apps.unit")
+local diag_apps   = require("pocket.ui.apps.diag_apps")
+local dummy_app   = require("pocket.ui.apps.dummy_app")
+local guide_app   = require("pocket.ui.apps.guide")
+local loader_app  = require("pocket.ui.apps.loader")
+local sys_apps    = require("pocket.ui.apps.sys_apps")
+local unit_app    = require("pocket.ui.apps.unit")
 
-local home_page    = require("pocket.ui.pages.home_page")
+local home_page   = require("pocket.ui.pages.home_page")
 
-local style        = require("pocket.ui.style")
+local style       = require("pocket.ui.style")
 
-local core         = require("graphics.core")
+local core        = require("graphics.core")
 
-local Div          = require("graphics.elements.div")
-local MultiPane    = require("graphics.elements.multipane")
-local TextBox      = require("graphics.elements.textbox")
+local Div         = require("graphics.elements.div")
+local MultiPane   = require("graphics.elements.multipane")
+local TextBox     = require("graphics.elements.textbox")
 
-local PushButton   = require("graphics.elements.controls.push_button")
-local Sidebar      = require("graphics.elements.controls.sidebar")
+local WaitingAnim = require("graphics.elements.animations.waiting")
 
-local SignalBar    = require("graphics.elements.indicators.signal")
+local PushButton  = require("graphics.elements.controls.push_button")
+local Sidebar     = require("graphics.elements.controls.sidebar")
+
+local SignalBar   = require("graphics.elements.indicators.signal")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -39,8 +41,6 @@ local APP_ID = pocket.APP_ID
 local function init(main)
     local db = iocontrol.get_db()
 
-    local main_pane = Div{parent=main,x=1,y=2}
-
     -- window header message and connection status
     TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
@@ -48,6 +48,14 @@ local function init(main)
 
     db.ps.subscribe("svr_conn_quality", svr_conn.set_value)
     db.ps.subscribe("crd_conn_quality", crd_conn.set_value)
+
+    local start_pane = Div{parent=main,x=1,y=2}
+    local main_pane = Div{parent=main,x=1,y=2}
+
+    WaitingAnim{parent=start_pane,x=12,y=7,fg_bg=cpair(colors.lightBlue,style.root.bkg)}
+    TextBox{parent=start_pane,y=11,text="starting up...",alignment=ALIGN.CENTER,fg_bg=cpair(colors.lightGray,style.root.bkg)}
+
+    local root_pane = MultiPane{parent=main,x=1,y=2,panes={start_pane,main_pane}}
 
     local page_div = Div{parent=main_pane,x=4,y=1}
 
@@ -69,6 +77,9 @@ local function init(main)
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
     db.nav.open_app(APP_ID.ROOT)
+
+    -- done with initial render, lets go!
+    root_pane.set_value(2)
 end
 
 return init
