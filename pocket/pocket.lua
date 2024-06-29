@@ -466,8 +466,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         sv_watchdog.cancel()
         nav.unload_sv()
         self.sv.linked = false
-        self.sv.addr = comms.BROADCAST
         self.sv.r_seq_num = nil
+        self.sv.addr = comms.BROADCAST
         _send_sv(MGMT_TYPE.CLOSE, {})
     end
 
@@ -476,8 +476,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         api_watchdog.cancel()
         nav.unload_api()
         self.api.linked = false
-        self.api.addr = comms.BROADCAST
         self.api.r_seq_num = nil
+        self.api.addr = comms.BROADCAST
         _send_crd(MGMT_TYPE.CLOSE, {})
     end
 
@@ -658,8 +658,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             api_watchdog.cancel()
                             nav.unload_api()
                             self.api.linked = false
-                            self.api.addr = comms.BROADCAST
                             self.api.r_seq_num = nil
+                            self.api.addr = comms.BROADCAST
                             log.info("coordinator server connection closed by remote host")
                         else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
@@ -764,8 +764,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             sv_watchdog.cancel()
                             nav.unload_sv()
                             self.sv.linked = false
-                            self.sv.addr = comms.BROADCAST
                             self.sv.r_seq_num = nil
+                            self.sv.addr = comms.BROADCAST
                             log.info("supervisor server connection closed by remote host")
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_GET then
                             if _check_length(packet, 8) then
