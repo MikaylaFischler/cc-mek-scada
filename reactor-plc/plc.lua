@@ -715,8 +715,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     function public.unlink()
         self.sv_addr = comms.BROADCAST
         self.linked = false
-        self.status_cache = nil
         self.r_seq_num = nil
+        self.status_cache = nil
         databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 

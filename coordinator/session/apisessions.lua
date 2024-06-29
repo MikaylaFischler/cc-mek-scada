@@ -90,7 +90,7 @@ end
 -- establish a new API session
 ---@nodiscard
 ---@param source_addr integer pocket computer ID
----@param i_seq_num integer initial sequence number to use next
+---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string pocket version
 ---@return integer session_id
 function apisessions.establish_session(source_addr, i_seq_num, version)

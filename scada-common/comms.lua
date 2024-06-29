@@ -280,7 +280,7 @@ function comms.authd_packet()
         src_addr = comms.BROADCAST,
         dest_addr = comms.BROADCAST,
         mac = "",
-        payload = nil
+        payload = {}
     }
 
     ---@class authd_packet
