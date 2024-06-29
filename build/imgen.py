@@ -44,9 +44,11 @@ def get_version(path, is_lib = False):
 
 # generate installation manifest object
 def make_manifest(size):
+    os.chdir('./_minified')
+
     manifest = {
         "versions" : {
-            "installer" : get_version("./ccmsi.lua"),
+            "installer" : get_version("../ccmsi.lua"),
             "bootloader" : get_version("./startup.lua"),
             "common" : get_version("./scada-common/util.lua", True),
             "comms" : get_version("./scada-common/comms.lua", True),
@@ -94,6 +96,8 @@ def make_manifest(size):
             "pocket" : dir_size("./pocket"),
         }
     }
+
+    os.chdir('../')
 
     return manifest
 
