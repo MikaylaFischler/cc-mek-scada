@@ -32,7 +32,7 @@ local function create_pages(root)
 
     local alarm_test = Div{parent=root,x=1,y=1}
 
-    local alarm_app = db.nav.register_app(APP_ID.ALARMS, alarm_test)
+    local alarm_app = db.nav.register_app(APP_ID.ALARMS, alarm_test, nil, true)
 
     local page = alarm_app.new_page(nil, function () end)
     page.tasks = { db.diag.tone_test.get_tone_states }

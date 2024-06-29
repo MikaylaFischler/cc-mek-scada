@@ -52,7 +52,6 @@ local alarms = {}
 
 -- unit alarms
 
-alarms.HIGH_TEMP      = 1150        -- temp >= 1150K
 alarms.HIGH_WASTE     = 0.85        -- fill > 85%
 alarms.HIGH_RADIATION = 0.00005     -- 50 uSv/h, not yet damaging but this isn't good
 

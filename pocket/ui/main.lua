@@ -10,10 +10,9 @@ local pocket       = require("pocket.pocket")
 local diag_apps    = require("pocket.ui.apps.diag_apps")
 local dummy_app    = require("pocket.ui.apps.dummy_app")
 local guide_app    = require("pocket.ui.apps.guide")
+local loader_app   = require("pocket.ui.apps.loader")
 local sys_apps     = require("pocket.ui.apps.sys_apps")
 local unit_app     = require("pocket.ui.apps.unit")
-
-local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local home_page    = require("pocket.ui.pages.home_page")
 
@@ -33,8 +32,6 @@ local SignalBar    = require("graphics.elements.indicators.signal")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local LINK_STATE = iocontrol.LINK_STATE
-
 local APP_ID = pocket.APP_ID
 
 -- create new main view
@@ -42,7 +39,9 @@ local APP_ID = pocket.APP_ID
 local function init(main)
     local db = iocontrol.get_db()
 
-    -- window header message
+    local main_pane = Div{parent=main,x=1,y=2}
+
+    -- window header message and connection status
     TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
     local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
@@ -50,40 +49,18 @@ local function init(main)
     db.ps.subscribe("svr_conn_quality", svr_conn.set_value)
     db.ps.subscribe("crd_conn_quality", crd_conn.set_value)
 
-    --#region root panel panes (connection screens + main screen)
-
-    local root_pane_div = Div{parent=main,x=1,y=2}
-
-    local conn_sv_wait = conn_waiting(root_pane_div, 6, false)
-    local conn_api_wait = conn_waiting(root_pane_div, 6, true)
-    local main_pane = Div{parent=main,x=1,y=2}
-
-    local root_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={conn_sv_wait,conn_api_wait,main_pane}}
-
-    root_pane.register(db.ps, "link_state", function (state)
-        if state == LINK_STATE.UNLINKED or state == LINK_STATE.API_LINK_ONLY then
-            root_pane.set_value(1)
-        elseif state == LINK_STATE.SV_LINK_ONLY then
-            root_pane.set_value(2)
-        else
-            root_pane.set_value(3)
-        end
-    end)
-
-    --#endregion
-
-    --#region main page panel panes & sidebar
-
     local page_div = Div{parent=main_pane,x=4,y=1}
 
+    -- create all the apps & pages
     home_page(page_div)
-
     unit_app(page_div)
     guide_app(page_div)
+    loader_app(page_div)
     sys_apps(page_div)
     diag_apps(page_div)
     dummy_app(page_div)
 
+    -- verify all apps were created
     assert(util.table_len(db.nav.get_containers()) == APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")
 
     db.nav.set_pane(MultiPane{parent=page_div,x=1,y=1,panes=db.nav.get_containers()})
@@ -92,8 +69,6 @@ local function init(main)
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
     db.nav.open_app(APP_ID.ROOT)
-
-    --#endregion
 end
 
 return init
