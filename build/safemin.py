@@ -34,12 +34,13 @@ def minify(path: str):
         # - this minification is intended to be 100% safe, so working with multiline comments is asking for trouble
         # - the project doesn't use them as of writing this (except in test/), and it might as well stay that way
         raise Exception(f"no multiline comments allowed! (offending file: {path})")
-    
+
     if re.search(r'\\$', contents, flags=re.MULTILINE) != None:
         # '\' allows for multiline strings, which would require reverting to processing syntax line by line to support them
         raise Exception(f"no escaping newlines! (offending file: {path})")
 
-    # drop the comments
+    # drop the comments, unless the line has quotes, because quotes are scary
+    # (quotes are scary since we could actually be inside a string: "-- ..." shouldn't get deleted)
     # -> whitespace before '--' and anything after that, which includes '---' comments
     minified = re.sub(r'\s*--+(?!.*[\'"]).*', '', contents)
 
