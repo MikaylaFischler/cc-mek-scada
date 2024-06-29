@@ -48,12 +48,13 @@ local PERIODICS = {
 ---@nodiscard
 ---@param id integer session ID
 ---@param s_addr integer device source address
+---@param i_seq_num integer initial sequence number
 ---@param reactor_id integer reactor ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param fp_ok boolean if the front panel UI is running
-function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, fp_ok)
+function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue, timeout, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -66,8 +67,8 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         ramping_rate = false,
         auto_lock = false,
         -- connection properties
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = i_seq_num + 2, -- next after the establish approval was sent
+        r_seq_num = i_seq_num + 1,
         connected = true,
         received_struct = false,
         received_status_cache = false,
@@ -349,13 +350,11 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
-        if self.r_seq_num == nil then
-            self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
+        if self.r_seq_num ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
-            self.r_seq_num = pkt.scada_frame.seq_num()
+            self.r_seq_num = pkt.scada_frame.seq_num() + 1
         end
 
         -- process packet

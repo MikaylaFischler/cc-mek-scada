@@ -524,8 +524,8 @@ end
 function plc.comms(version, nic, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
+        r_seq_num = nil,               ---@type nil|integer
         scrammed = false,
         linked = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
@@ -825,8 +825,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         if l_chan == config.PLC_Channel then
             -- check sequence number
             if self.r_seq_num == nil then
-                self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
+            elseif self.r_seq_num ~= packet.scada_frame.seq_num() then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif self.linked and (src_addr ~= self.sv_addr) then
@@ -834,7 +834,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                             "); channel in use by another system?")
                 return
             else
-                self.r_seq_num = packet.scada_frame.seq_num()
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
             end
 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
@@ -1020,10 +1020,9 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                             println_ts("linked!")
                             log.info("supervisor establish request approved, linked to SV (CID#" .. src_addr .. ")")
 
-                            -- link + reset remote sequence number and cache
+                            -- link + reset cache
                             self.sv_addr = src_addr
                             self.linked = true
-                            self.r_seq_num = nil
                             self.status_cache = nil
 
                             if plc_state.reactor_formed then _send_struct() end
