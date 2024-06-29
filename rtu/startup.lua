@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.10.0"
+local RTU_VERSION = "v1.10.1"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
@@ -93,14 +93,6 @@ local function main()
         network.init_mac(config.AuthKey)
     end
 
-    -- get modem
-    local modem = ppm.get_wireless_modem()
-    if modem == nil then
-        println("boot> wireless modem not found")
-        log.fatal("no wireless modem on startup")
-        return
-    end
-
     -- generate alarm tones
     audio.generate_tones()
 
@@ -116,14 +108,15 @@ local function main()
 
         -- RTU gateway devices (not RTU units)
         rtu_dev = {
+            modem = ppm.get_wireless_modem(),
             sounders = {}
         },
 
         -- system objects
         rtu_sys = {
-            nic = network.nic(modem),
-            rtu_comms = nil,        ---@type rtu_comms
-            conn_watchdog = nil,    ---@type watchdog
+            nic = nil,           ---@type nic
+            rtu_comms = nil,     ---@type rtu_comms
+            conn_watchdog = nil, ---@type watchdog
             units = {}
         },
 
@@ -134,8 +127,9 @@ local function main()
     }
 
     local smem_sys = __shared_memory.rtu_sys
+    local smem_dev = __shared_memory.rtu_dev
 
-    databus.tx_hw_modem(true)
+    local rtu_state = __shared_memory.rtu_state
 
     ----------------------------------------
     -- interpret config and init units
@@ -501,8 +495,6 @@ local function main()
     -- start system
     ----------------------------------------
 
-    local rtu_state = __shared_memory.rtu_state
-
     log.debug("boot> running sys_config()")
 
     if sys_config() then
@@ -517,23 +509,33 @@ local function main()
             log.info("startup> running in headless mode without front panel")
         end
 
+        -- check modem
+        if smem_dev.modem == nil then
+            println("startup> wireless modem not found")
+            log.fatal("no wireless modem on startup")
+            return
+        end
+
+        databus.tx_hw_modem(true)
+
         -- find and setup all speakers
         local speakers = ppm.get_all_devices("speaker")
         for _, s in pairs(speakers) do
             local sounder = rtu.init_sounder(s)
 
-            table.insert(__shared_memory.rtu_dev.sounders, sounder)
+            table.insert(smem_dev.sounders, sounder)
 
             log.debug(util.c("startup> added speaker, attached as ", sounder.name))
         end
 
-        databus.tx_hw_spkr_count(#__shared_memory.rtu_dev.sounders)
+        databus.tx_hw_spkr_count(#smem_dev.sounders)
 
         -- start connection watchdog
         smem_sys.conn_watchdog = util.new_watchdog(config.ConnTimeout)
         log.debug("startup> conn watchdog started")
 
         -- setup comms
+        smem_sys.nic = network.nic(smem_dev.modem)
         smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_sys.nic, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 

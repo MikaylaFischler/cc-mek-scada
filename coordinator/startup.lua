@@ -19,7 +19,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "v1.5.0"
+local COORDINATOR_VERSION = "v1.5.1"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -151,8 +151,8 @@ local function main()
 
         -- core coordinator devices
         crd_dev = {
-            speaker = ppm.get_device("speaker"),
-            modem = ppm.get_wireless_modem()
+            modem = ppm.get_wireless_modem(),
+            speaker = ppm.get_device("speaker")
         },
 
         -- system objects
