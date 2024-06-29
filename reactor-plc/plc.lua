@@ -571,33 +571,17 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         self.seq_num = self.seq_num + 1
     end
 
-    -- variable reactor status information, excluding heating rate
+    -- dynamic reactor status information, excluding heating rate
     ---@return table data_table, boolean faulted
-    local function _reactor_status()
+    local function _get_reactor_status()
         local fuel = nil
         local waste = nil
         local coolant = nil
         local hcoolant = nil
 
-        local data_table = {
-            false, -- getStatus
-            0,     -- getBurnRate
-            0,     -- getActualBurnRate
-            0,     -- getTemperature
-            0,     -- getDamagePercent
-            0,     -- getBoilEfficiency
-            0,     -- getEnvironmentalLoss
-            0,     -- fuel_amnt
-            0,     -- getFuelFilledPercentage
-            0,     -- waste_amnt
-            0,     -- getWasteFilledPercentage
-            "",    -- coolant_name
-            0,     -- coolant_amnt
-            0,     -- getCoolantFilledPercentage
-            "",    -- hcoolant_name
-            0,     -- hcoolant_amnt
-            0      -- getHeatedCoolantFilledPercentage
-        }
+        local data_table = {}
+
+        reactor.__p_disable_afc()
 
         local tasks = {
             function () data_table[1]  = reactor.getStatus() end,
@@ -637,30 +621,32 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             data_table[16] = hcoolant.amount
         end
 
+        reactor.__p_enable_afc()
+
         return data_table, reactor.__p_is_faulted()
     end
 
     -- update the status cache if changed
     ---@return boolean changed
     local function _update_status_cache()
-        local status, faulted = _reactor_status()
+        local status, faulted = _get_reactor_status()
         local changed = false
 
-        if self.status_cache ~= nil then
-            if not faulted then
+        if not faulted then
+            if self.status_cache ~= nil then
                 for i = 1, #status do
                     if status[i] ~= self.status_cache[i] then
                         changed = true
                         break
                     end
                 end
+            else
+                changed = true
             end
-        else
-            changed = true
-        end
 
-        if changed and not faulted then
-            self.status_cache = status
+            if changed then
+                self.status_cache = status
+            end
         end
 
         return changed
@@ -679,9 +665,11 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         _send(msg_type, { status })
     end
 
-    -- send structure properties (these should not change, server will cache these)
+    -- send static structure properties, cached by server
     local function _send_struct()
-        local mek_data = { false, 0, 0, 0, types.new_zero_coordinate(), types.new_zero_coordinate(), 0, 0, 0, 0, 0, 0, 0, 0 }
+        local mek_data = {}
+
+        reactor.__p_disable_afc()
 
         local tasks = {
             function () mek_data[1]  = reactor.getLength() end,
@@ -705,6 +693,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
         end
+
+        reactor.__p_enable_afc()
     end
 
     -- PUBLIC FUNCTIONS --
