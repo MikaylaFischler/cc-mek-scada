@@ -524,8 +524,7 @@ end
 function plc.comms(version, nic, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         scrammed = false,
         linked = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
@@ -725,7 +724,6 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     function public.unlink()
         self.sv_addr = comms.BROADCAST
         self.linked = false
-        self.r_seq_num = nil
         self.status_cache = nil
         databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
@@ -834,17 +832,15 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         -- handle packets now that we have prints setup
         if l_chan == config.PLC_Channel then
             -- check sequence number
-            if self.r_seq_num == nil then
-                self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+            if self.seq_num ~= packet.scada_frame.seq_num() then
+                log.warning("sequence out-of-order: last = " .. self.seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif self.linked and (src_addr ~= self.sv_addr) then
                 log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
                             "); channel in use by another system?")
                 return
             else
-                self.r_seq_num = packet.scada_frame.seq_num()
+                self.seq_num = packet.scada_frame.seq_num() + 1
             end
 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
@@ -1030,10 +1026,9 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                             println_ts("linked!")
                             log.info("supervisor establish request approved, linked to SV (CID#" .. src_addr .. ")")
 
-                            -- link + reset remote sequence number and cache
+                            -- link + reset cache
                             self.sv_addr = src_addr
                             self.linked = true
-                            self.r_seq_num = nil
                             self.status_cache = nil
 
                             if plc_state.reactor_formed then _send_struct() end

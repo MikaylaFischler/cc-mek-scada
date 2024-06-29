@@ -43,12 +43,13 @@ local PERIODICS = {
 ---@nodiscard
 ---@param id integer session ID
 ---@param s_addr integer device source address
+---@param i_seq_num integer initial sequence number
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
-function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facility, fp_ok)
+function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, facility, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -57,8 +58,7 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
     local self = {
         units = facility.get_units(),
         -- connection properties
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = i_seq_num,
         connected = true,
         conn_watchdog = util.new_watchdog(timeout),
         establish_time = util.time_s(),
@@ -182,13 +182,11 @@ function coordinator.new_session(id, s_addr, in_queue, out_queue, timeout, facil
     ---@param pkt mgmt_frame|crdn_frame
     local function _handle_packet(pkt)
         -- check sequence number
-        if self.r_seq_num == nil then
-            self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+        if self.seq_num ~= pkt.scada_frame.seq_num() then
+            log.warning(log_header .. "sequence out-of-order: last = " .. self.seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
-            self.r_seq_num = pkt.scada_frame.seq_num()
+            self.seq_num = pkt.scada_frame.seq_num() + 1
         end
 
         -- feed watchdog

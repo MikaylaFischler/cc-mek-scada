@@ -370,15 +370,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         sv = {
             linked = false,
             addr = comms.BROADCAST,
-            seq_num = 0,
-            r_seq_num = nil,    ---@type nil|integer
+            seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
             last_est_ack = ESTABLISH_ACK.ALLOW
         },
         api = {
             linked = false,
             addr = comms.BROADCAST,
-            seq_num = 0,
-            r_seq_num = nil,    ---@type nil|integer
+            seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
             last_est_ack = ESTABLISH_ACK.ALLOW
         },
         establish_delay_counter = 0
@@ -466,7 +464,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         sv_watchdog.cancel()
         nav.unload_sv()
         self.sv.linked = false
-        self.sv.r_seq_num = nil
         self.sv.addr = comms.BROADCAST
         _send_sv(MGMT_TYPE.CLOSE, {})
     end
@@ -476,7 +473,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         api_watchdog.cancel()
         nav.unload_api()
         self.api.linked = false
-        self.api.r_seq_num = nil
         self.api.addr = comms.BROADCAST
         _send_crd(MGMT_TYPE.CLOSE, {})
     end
@@ -603,17 +599,15 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
             elseif r_chan == config.CRD_Channel then
                 -- check sequence number
-                if self.api.r_seq_num == nil then
-                    self.api.r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and ((self.api.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                    log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                if self.api.seq_num ~= packet.scada_frame.seq_num() then
+                    log.warning("sequence out-of-order (API): last = " .. self.api.seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.api.linked and (src_addr ~= self.api.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
                               "); channel in use by another system?")
                     return
                 else
-                    self.api.r_seq_num = packet.scada_frame.seq_num()
+                    self.api.seq_num = packet.scada_frame.seq_num() + 1
                 end
 
                 -- feed watchdog on valid sequence number
@@ -658,7 +652,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             api_watchdog.cancel()
                             nav.unload_api()
                             self.api.linked = false
-                            self.api.r_seq_num = nil
                             self.api.addr = comms.BROADCAST
                             log.info("coordinator server connection closed by remote host")
                         else _fail_type(packet) end
@@ -723,17 +716,15 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 end
             elseif r_chan == config.SVR_Channel then
                 -- check sequence number
-                if self.sv.r_seq_num == nil then
-                    self.sv.r_seq_num = packet.scada_frame.seq_num()
-                elseif self.connected and ((self.sv.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                    log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                if self.sv.seq_num ~= packet.scada_frame.seq_num() then
+                    log.warning("sequence out-of-order (SVR): last = " .. self.sv.seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.sv.linked and (src_addr ~= self.sv.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
                                 "); channel in use by another system?")
                     return
                 else
-                    self.sv.r_seq_num = packet.scada_frame.seq_num()
+                    self.sv.seq_num = packet.scada_frame.seq_num() + 1
                 end
 
                 -- feed watchdog on valid sequence number
@@ -764,7 +755,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             sv_watchdog.cancel()
                             nav.unload_sv()
                             self.sv.linked = false
-                            self.sv.r_seq_num = nil
                             self.sv.addr = comms.BROADCAST
                             log.info("supervisor server connection closed by remote host")
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_GET then

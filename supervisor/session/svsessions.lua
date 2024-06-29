@@ -273,11 +273,12 @@ end
 
 -- establish a new PLC session
 ---@nodiscard
----@param source_addr integer
----@param for_reactor integer
----@param version string
+---@param source_addr integer PLC computer ID
+---@param i_seq_num integer initial sequence number to use next
+---@param for_reactor integer unit ID
+---@param version string PLC version
 ---@return integer|false session_id
-function svsessions.establish_plc_session(source_addr, for_reactor, version)
+function svsessions.establish_plc_session(source_addr, i_seq_num, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
         ---@class plc_session_struct
         local plc_s = {
@@ -294,7 +295,7 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
 
         local id = self.next_ids.plc
 
-        plc_s.instance = plc.new_session(id, source_addr, for_reactor, plc_s.in_queue, plc_s.out_queue, self.config.PLC_Timeout, self.fp_ok)
+        plc_s.instance = plc.new_session(id, source_addr, i_seq_num, for_reactor, plc_s.in_queue, plc_s.out_queue, self.config.PLC_Timeout, self.fp_ok)
         table.insert(self.sessions.plc, plc_s)
 
         local units = self.facility.get_units()
@@ -320,13 +321,14 @@ function svsessions.establish_plc_session(source_addr, for_reactor, version)
     end
 end
 
--- establish a new RTU session
+-- establish a new RTU gateway session
 ---@nodiscard
----@param source_addr integer
----@param advertisement table
----@param version string
+---@param source_addr integer RTU gateway computer ID
+---@param i_seq_num integer initial sequence number to use next
+---@param advertisement table RTU capability advertisement
+---@param version string RTU gateway version
 ---@return integer session_id
-function svsessions.establish_rtu_session(source_addr, advertisement, version)
+function svsessions.establish_rtu_session(source_addr, i_seq_num, advertisement, version)
     ---@class rtu_session_struct
     local rtu_s = {
         s_type = "rtu",
@@ -341,7 +343,7 @@ function svsessions.establish_rtu_session(source_addr, advertisement, version)
 
     local id = self.next_ids.rtu
 
-    rtu_s.instance = rtu.new_session(id, source_addr, rtu_s.in_queue, rtu_s.out_queue, self.config.RTU_Timeout, advertisement, self.facility, self.fp_ok)
+    rtu_s.instance = rtu.new_session(id, source_addr, i_seq_num, rtu_s.in_queue, rtu_s.out_queue, self.config.RTU_Timeout, advertisement, self.facility, self.fp_ok)
     table.insert(self.sessions.rtu, rtu_s)
 
     local mt = {
@@ -362,10 +364,11 @@ end
 
 -- establish a new coordinator session
 ---@nodiscard
----@param source_addr integer
----@param version string
+---@param source_addr integer coordinator computer ID
+---@param i_seq_num integer initial sequence number to use next
+---@param version string coordinator version
 ---@return integer|false session_id
-function svsessions.establish_crd_session(source_addr, version)
+function svsessions.establish_crd_session(source_addr, i_seq_num, version)
     if svsessions.get_crd_session() == nil then
         ---@class crd_session_struct
         local crd_s = {
@@ -381,7 +384,7 @@ function svsessions.establish_crd_session(source_addr, version)
 
         local id = self.next_ids.crd
 
-        crd_s.instance = coordinator.new_session(id, source_addr, crd_s.in_queue, crd_s.out_queue, self.config.CRD_Timeout, self.facility, self.fp_ok)
+        crd_s.instance = coordinator.new_session(id, source_addr, i_seq_num, crd_s.in_queue, crd_s.out_queue, self.config.CRD_Timeout, self.facility, self.fp_ok)
         table.insert(self.sessions.crd, crd_s)
 
         local mt = {
@@ -406,10 +409,11 @@ end
 
 -- establish a new pocket diagnostics session
 ---@nodiscard
----@param source_addr integer
----@param version string
+---@param source_addr integer pocket computer ID
+---@param i_seq_num integer initial sequence number to use next
+---@param version string pocket version
 ---@return integer|false session_id
-function svsessions.establish_pdg_session(source_addr, version)
+function svsessions.establish_pdg_session(source_addr, i_seq_num, version)
     ---@class pdg_session_struct
     local pdg_s = {
         s_type = "pkt",
@@ -424,7 +428,7 @@ function svsessions.establish_pdg_session(source_addr, version)
 
     local id = self.next_ids.pdg
 
-    pdg_s.instance = pocket.new_session(id, source_addr, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.facility, self.fp_ok)
+    pdg_s.instance = pocket.new_session(id, source_addr, i_seq_num, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.facility, self.fp_ok)
     table.insert(self.sessions.pdg, pdg_s)
 
     local mt = {

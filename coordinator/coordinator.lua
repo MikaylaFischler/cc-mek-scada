@@ -232,8 +232,7 @@ function coordinator.comms(version, nic, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
-        sv_seq_num = 0,
-        sv_r_seq_num = nil,
+        sv_seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         sv_config_err = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
         last_api_est_acks = {},
@@ -370,7 +369,6 @@ function coordinator.comms(version, nic, sv_watchdog)
         sv_watchdog.cancel()
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
-        self.sv_r_seq_num = nil
         iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
     end
@@ -492,7 +490,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.BAD_API_VERSION)
                             elseif dev_type == DEVICE_TYPE.PKT then
                                 -- pocket linking request
-                                local id = apisessions.establish_session(src_addr, firmware_v)
+                                local id = apisessions.establish_session(src_addr, packet.scada_frame.seq_num() + 1, firmware_v)
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
                                 local conf = iocontrol.get_db().facility.conf
@@ -514,16 +512,14 @@ function coordinator.comms(version, nic, sv_watchdog)
                 end
             elseif r_chan == config.SVR_Channel then
                 -- check sequence number
-                if self.sv_r_seq_num == nil then
-                    self.sv_r_seq_num = packet.scada_frame.seq_num()
-                elseif self.sv_linked and ((self.sv_r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                    log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                if self.sv_seq_num ~= packet.scada_frame.seq_num() then
+                    log.warning("sequence out-of-order: last = " .. self.sv_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return false
                 elseif self.sv_linked and src_addr ~= self.sv_addr then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")
                     return false
                 else
-                    self.sv_r_seq_num = packet.scada_frame.seq_num()
+                    self.sv_seq_num = packet.scada_frame.seq_num() + 1
                 end
 
                 -- feed watchdog on valid sequence number
@@ -675,7 +671,6 @@ function coordinator.comms(version, nic, sv_watchdog)
                             sv_watchdog.cancel()
                             self.sv_addr = comms.BROADCAST
                             self.sv_linked = false
-                            self.sv_r_seq_num = nil
                             iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
                             log.info("server connection closed by remote host")
                         else
@@ -706,7 +701,6 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                                         self.sv_addr = src_addr
                                         self.sv_linked = true
-                                        self.sv_r_seq_num = nil
                                         self.sv_config_err = false
 
                                         iocontrol.fp_link_state(types.PANEL_LINK_STATE.LINKED)

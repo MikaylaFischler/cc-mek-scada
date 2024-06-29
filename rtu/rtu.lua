@@ -284,8 +284,7 @@ end
 function rtu.comms(version, nic, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         txn_id = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
@@ -363,7 +362,6 @@ function rtu.comms(version, nic, conn_watchdog)
     function public.unlink(rtu_state)
         rtu_state.linked = false
         self.sv_addr = comms.BROADCAST
-        self.r_seq_num = nil
         databus.tx_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
@@ -441,17 +439,15 @@ function rtu.comms(version, nic, conn_watchdog)
 
         if l_chan == config.RTU_Channel then
             -- check sequence number
-            if self.r_seq_num == nil then
-                self.r_seq_num = packet.scada_frame.seq_num()
-            elseif rtu_state.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
-                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+            if self.seq_num ~= packet.scada_frame.seq_num() then
+                log.warning("sequence out-of-order: last = " .. self.seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif rtu_state.linked and (src_addr ~= self.sv_addr) then
                 log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..
                             "); channel in use by another system?")
                 return
             else
-                self.r_seq_num = packet.scada_frame.seq_num()
+                self.seq_num = packet.scada_frame.seq_num() + 1
             end
 
             -- feed watchdog on valid sequence number
@@ -556,7 +552,6 @@ function rtu.comms(version, nic, conn_watchdog)
                             -- establish allowed
                             rtu_state.linked = true
                             self.sv_addr = packet.scada_frame.src_addr()
-                            self.r_seq_num = nil
                             println_ts("supervisor connection established")
                             log.info("supervisor connection established")
                         else

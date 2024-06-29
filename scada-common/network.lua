@@ -114,7 +114,7 @@ function network.nic(modem)
             modem.open(channel)
         end
 
-        -- link all public functions except for transmit
+        -- link all public functions except for transmit, open, and close
         for key, func in pairs(modem) do
             if key ~= "transmit" and key ~= "open" and key ~= "close" and key ~= "closeAll" then public[key] = func end
         end
@@ -184,7 +184,7 @@ function network.nic(modem)
                 ---@cast tx_packet authd_packet
                 tx_packet.make(packet, compute_hmac)
 
-                -- log.debug("crypto.modem.transmit: data processing took " .. (util.time_ms() - start) .. "ms")
+                -- log.debug("network.modem.transmit: data processing took " .. (util.time_ms() - start) .. "ms")
             end
 
             modem.transmit(dest_channel, local_channel, tx_packet.raw_sendable())
@@ -211,17 +211,18 @@ function network.nic(modem)
                 a_packet.receive(side, sender, reply_to, message, distance)
 
                 if a_packet.is_valid() then
-                    -- local start         = util.time_ms()
-                    local packet_hmac   = a_packet.mac()
-                    local msg           = a_packet.data()
-                    local computed_hmac = compute_hmac(msg)
+                    s_packet.receive(side, sender, reply_to, a_packet.data(), distance)
 
-                    if packet_hmac == computed_hmac then
-                        -- log.debug("crypto.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
-                        s_packet.receive(side, sender, reply_to, textutils.unserialize(msg), distance)
+                    if s_packet.is_valid() then
+                    -- local start         = util.time_ms()
+                        local computed_hmac = compute_hmac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
+
+                        if a_packet.mac() == computed_hmac then
+                            -- log.debug("network.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
                         s_packet.stamp_authenticated()
                     else
-                        -- log.debug("crypto.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("network.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                        end
                     end
                 end
             else
