@@ -29,7 +29,7 @@ local annunc = {}
 annunc.RCSFlowLow_H2O     = -3.2    -- flow < -3.2 mB/s
 annunc.RCSFlowLow_NA      = -2.0    -- flow < -2.0 mB/s
 annunc.CoolantLevelLow    = 0.4     -- fill < 40%
-annunc.ReactorTempHigh    = 1000    -- temp > 1000K
+annunc.OpTempTolerance    = 5       -- high temp if >= operational temp + X
 annunc.ReactorHighDeltaT  = 50      -- rate > 50K/s
 annunc.FuelLevelLow       = 0.05    -- fill <= 5%
 annunc.WasteLevelHigh     = 0.80    -- fill >= 80%
@@ -52,7 +52,6 @@ local alarms = {}
 
 -- unit alarms
 
-alarms.HIGH_TEMP      = 1150        -- temp >= 1150K
 alarms.HIGH_WASTE     = 0.85        -- fill > 85%
 alarms.HIGH_RADIATION = 0.00005     -- 50 uSv/h, not yet damaging but this isn't good
 
@@ -63,6 +62,18 @@ alarms.CHARGE_RE_ENABLE = 0.95      -- once below 95% charge
 alarms.FAC_HIGH_RAD     = 0.00001   -- 10 uSv/h
 
 constants.ALARM_LIMITS = alarms
+
+--#endregion
+
+--#region Supervisor Redstone Activation Thresholds
+
+---@class _rs_threshold_constants
+local rs = {}
+
+rs.IMATRIX_CHARGE_LOW  = 0.05   -- activation threshold (less than) for F_MATRIX_LOW
+rs.IMATRIX_CHARGE_HIGH = 0.95   -- activation threshold (greater than) for F_MATRIX_HIGH
+
+constants.RS_THRESHOLDS = rs
 
 --#endregion
 
@@ -89,9 +100,11 @@ constants.EXTREME_RADIATION   = 100.0
 ---@class _mek_constants
 local mek = {}
 
-mek.TURBINE_GAS_PER_TANK   = 64000  -- mekanism: turbineGasPerTank
-mek.TURBINE_DISPERSER_FLOW = 1280   -- mekanism: turbineDisperserGasFlow
-mek.TURBINE_VENT_FLOW      = 32000  -- mekanism: turbineVentGasFlow
+mek.BASE_BOIL_TEMP         = 373.15  -- mekanism: HeatUtils.BASE_BOIL_TEMP
+mek.JOULES_PER_MB          = 1000000 -- mekanism: energyPerFissionFuel
+mek.TURBINE_GAS_PER_TANK   = 64000   -- mekanism: turbineGasPerTank
+mek.TURBINE_DISPERSER_FLOW = 1280    -- mekanism: turbineDisperserGasFlow
+mek.TURBINE_VENT_FLOW      = 32000   -- mekanism: turbineVentGasFlow
 
 constants.mek = mek
 

@@ -4,6 +4,8 @@
 
 local cc_strings = require("cc.strings")
 
+local const      = require("scada-common.constants")
+
 local math = math
 local string = string
 local table = table
@@ -22,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.2.2"
+util.version = "1.3.1"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -181,8 +183,7 @@ function util.round(x) return math.floor(x + 0.5) end
 -- get a new moving average object
 ---@nodiscard
 ---@param length integer history length
----@param default number value to fill history with for first call to compute()
-function util.mov_avg(length, default)
+function util.mov_avg(length)
     local data = {}
     local index = 1
     local last_t = 0 ---@type number|nil
@@ -190,11 +191,15 @@ function util.mov_avg(length, default)
     ---@class moving_average
     local public = {}
 
-    -- reset all to a given value
-    ---@param x number value
+    -- reset all to a given value, or clear all data if no value is given
+    ---@param x number? value
     function public.reset(x)
+        index = 1
         data = {}
-        for _ = 1, length do t_insert(data, x) end
+
+        if x then
+            for _ = 1, length do t_insert(data, x) end
+        end
     end
 
     -- record a new value
@@ -214,12 +219,15 @@ function util.mov_avg(length, default)
     ---@nodiscard
     ---@return number average
     function public.compute()
-        local sum = 0
-        for i = 1, length do sum = sum + data[i] end
-        return sum / length
-    end
+        if #data == 0 then return 0 end
 
-    public.reset(default)
+        local sum = 0
+        for i = 1, #data do
+            sum = sum + data[i]
+        end
+
+        return sum / #data
+    end
 
     return public
 end
@@ -362,7 +370,7 @@ end
 
 --#endregion
 
---#region MEKANISM POWER
+--#region MEKANISM MATH
 
 -- convert Joules to FE
 ---@nodiscard
@@ -426,6 +434,22 @@ function util.power_format(fe, combine_label, format)
     else
         return util.sprintf(format, value), unit
     end
+end
+
+-- compute Mekanism's rotation rate for a turbine
+---@nodiscard
+---@param turbine turbinev_session_db turbine data
+function util.turbine_rotation(turbine)
+    local build = turbine.build
+
+    local inner_vol = build.steam_cap / const.mek.TURBINE_GAS_PER_TANK
+    local disp_rate = (build.dispersers * const.mek.TURBINE_DISPERSER_FLOW) * inner_vol
+    local vent_rate = build.vents * const.mek.TURBINE_VENT_FLOW
+
+    local max_rate = math.min(disp_rate, vent_rate)
+    local flow = math.min(max_rate, turbine.tanks.steam.amount)
+
+    return (flow * (turbine.tanks.steam.amount / build.steam_cap)) / max_rate
 end
 
 --#endregion

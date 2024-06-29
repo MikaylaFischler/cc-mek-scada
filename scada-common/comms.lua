@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "2.5.0"
-comms.api_version = "0.0.1"
+comms.version = "3.0.0"
+comms.api_version = "0.0.3"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -67,7 +67,7 @@ local CRDN_TYPE = {
     UNIT_STATUSES = 5,   -- state of each of the reactor units
     UNIT_CMD = 6,        -- command a reactor unit
     API_GET_FAC = 7,     -- API: get all the facility data
-    API_GET_UNITS = 8    -- API: get all the reactor unit data
+    API_GET_UNIT = 8     -- API: get reactor unit data
 }
 
 ---@enum ESTABLISH_ACK
@@ -97,7 +97,8 @@ local FAC_COMMAND = {
     START = 2,           -- start automatic process control
     ACK_ALL_ALARMS = 3,  -- acknowledge all alarms on all units
     SET_WASTE_MODE = 4,  -- set automatic waste processing mode
-    SET_PU_FB = 5        -- set plutonium fallback mode
+    SET_PU_FB = 5,       -- set plutonium fallback mode
+    SET_SPS_LP = 6       -- set SPS at low power mode
 }
 
 ---@enum UNIT_COMMAND
@@ -239,6 +240,8 @@ function comms.scada_packet()
     ---@nodiscard
     function public.modem_event() return self.modem_msg_in end
     ---@nodiscard
+    function public.raw_header() return { self.src_addr, self.dest_addr, self.seq_num, self.protocol } end
+    ---@nodiscard
     function public.raw_sendable() return self.raw end
 
     ---@nodiscard
@@ -277,7 +280,7 @@ function comms.authd_packet()
         src_addr = comms.BROADCAST,
         dest_addr = comms.BROADCAST,
         mac = "",
-        payload = ""
+        payload = {}
     }
 
     ---@class authd_packet
@@ -285,14 +288,13 @@ function comms.authd_packet()
 
     -- make an authenticated SCADA packet
     ---@param s_packet scada_packet scada packet to authenticate
-    ---@param mac function message authentication function
+    ---@param mac function message authentication hash function
     function public.make(s_packet, mac)
         self.valid = true
         self.src_addr = s_packet.src_addr()
         self.dest_addr = s_packet.dest_addr()
-        self.payload = textutils.serialize(s_packet.raw_sendable(), { allow_repetitions = true, compact = true })
-        self.mac = mac(self.payload)
-        self.raw = { self.src_addr, self.dest_addr, self.mac, self.payload }
+        self.mac = mac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
+        self.raw = { self.src_addr, self.dest_addr, self.mac, s_packet.raw_sendable() }
     end
 
     -- parse in a modem message as an authenticated SCADA packet
@@ -329,14 +331,14 @@ function comms.authd_packet()
                     self.src_addr = nil
                     self.dest_addr = nil
                     self.mac = ""
-                    self.payload = ""
+                    self.payload = {}
                 end
 
                 -- check if this packet is destined for this device
                 local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
 
                 self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
-                                type(self.mac) == "string" and type(self.payload) == "string"
+                                type(self.mac) == "string" and type(self.payload) == "table"
             end
         end
 

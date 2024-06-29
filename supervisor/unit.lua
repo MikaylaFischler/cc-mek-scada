@@ -71,8 +71,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@class _unit_self
     local self = {
         r_id = reactor_id,
-        plc_s = nil,    ---@class plc_session_struct
-        plc_i = nil,    ---@class plc_session
+        plc_s = nil,    ---@type plc_session_struct
+        plc_i = nil,    ---@type plc_session
         num_boilers = num_boilers,
         num_turbines = num_turbines,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
@@ -147,7 +147,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             },
             damage = 0,
             temp = 0,
-            waste = 0
+            waste = 0,
+            high_temp_lim = 1150
         },
         ---@class alarm_monitors
         alarms = {
@@ -163,7 +164,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             ReactorDamage        = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorDamage, tier = PRIO.EMERGENCY },
             -- reactor >1200K
             ReactorOverTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorOverTemp, tier = PRIO.URGENT },
-            -- reactor >=1150K
+            -- reactor >= computed high temp limit
             ReactorHighTemp      = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 1, id = ALARM.ReactorHighTemp, tier = PRIO.TIMELY },
             -- waste = 100%
             ReactorWasteLeak     = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ReactorWasteLeak, tier = PRIO.EMERGENCY },
@@ -975,7 +976,9 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             self.db.control.ready,
             self.db.control.degraded,
             self.db.control.waste_mode,
-            self.waste_product
+            self.waste_product,
+            self.last_rate_change_ms,
+            self.turbine_flow_stable
         }
     end
 

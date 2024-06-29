@@ -138,6 +138,7 @@ local function gen_tree(manifest)
 
     for i = 1, #list do
         local split = {}
+---@diagnostic disable-next-line: discard-returns
         string.gsub(list[i], "([^/]+)", function(c) split[#split + 1] = c end)
         if #split == 1 then table.insert(tree, list[i])
         else table.insert(tree, _tree_add(tree, split)) end

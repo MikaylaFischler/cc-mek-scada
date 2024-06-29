@@ -1,6 +1,7 @@
 -- Button Graphics Element
 
 local tcd     = require("scada-common.tcd")
+local util    = require("scada-common.util")
 
 local core    = require("graphics.core")
 local element = require("graphics.element")
@@ -21,7 +22,6 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer auto incremented if omitted
----@field height? integer parent height if omitted
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
@@ -38,29 +38,40 @@ local function push_button(args)
 
     -- set automatic settings
     args.can_focus = true
-    args.height = 1
     args.min_width = args.min_width or 0
     args.width = math.max(text_width, args.min_width)
 
-    -- create new graphics element base object
-    local e = element.new(args)
-
-    local h_pad = 1
-    local v_pad = math.floor(e.frame.h / 2) + 1
-
-    if alignment == ALIGN.CENTER then
-        h_pad = math.floor((e.frame.w - text_width) / 2) + 1
-    elseif alignment == ALIGN.RIGHT then
-        h_pad = (e.frame.w - text_width) + 1
+    -- provide a constraint condition to element creation to prefer a single line button
+    ---@param frame graphics_frame
+    local function constrain(frame)
+        return frame.w, math.max(1, #util.strwrap(args.text, frame.w))
     end
+
+    -- create new graphics element base object
+    local e = element.new(args, constrain)
+
+    local text_lines = util.strwrap(args.text, e.frame.w)
 
     -- draw the button
     function e.redraw()
         e.window.clear()
 
-        -- write the button text
-        e.w_set_cur(h_pad, v_pad)
-        e.w_write(args.text)
+        for i = 1, #text_lines do
+            if i > e.frame.h then break end
+
+            local len = string.len(text_lines[i])
+
+            -- use cursor position to align this line
+            if alignment == ALIGN.CENTER then
+                e.w_set_cur(math.floor((e.frame.w - len) / 2) + 1, i)
+            elseif alignment == ALIGN.RIGHT then
+                e.w_set_cur((e.frame.w - len) + 1, i)
+            else
+                e.w_set_cur(1, i)
+            end
+
+            e.w_write(text_lines[i])
+        end
     end
 
     -- draw the button as pressed (if active_fg_bg set)
@@ -109,7 +120,9 @@ local function push_button(args)
         if event.type == KEY_CLICK.DOWN then
             if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
                 args.callback()
-                e.defocus()
+                -- visualize click without unfocusing
+                show_unpressed()
+                if args.active_fg_bg ~= nil then tcd.dispatch(0.25, show_pressed) end
             end
         end
     end

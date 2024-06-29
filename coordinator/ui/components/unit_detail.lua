@@ -183,7 +183,7 @@ local function init(parent, id)
     local rad_wrn = IndicatorLight{parent=annunciator,label="Radiation Warning",colors=ind_yel}
     local r_rtrip = IndicatorLight{parent=annunciator,label="RCP Trip",colors=ind_red}
     local r_cflow = IndicatorLight{parent=annunciator,label="RCS Flow Low",colors=ind_yel}
-    local r_clow  = IndicatorLight{parent=annunciator,label="Coolant  Level Low",colors=ind_yel}
+    local r_clow  = IndicatorLight{parent=annunciator,label="Coolant Level Low",colors=ind_yel}
     local r_temp  = IndicatorLight{parent=annunciator,label="Reactor Temp. High",colors=ind_red}
     local r_rhdt  = IndicatorLight{parent=annunciator,label="Reactor High Delta T",colors=ind_yel}
     local r_firl  = IndicatorLight{parent=annunciator,label="Fuel Input Rate Low",colors=ind_yel}

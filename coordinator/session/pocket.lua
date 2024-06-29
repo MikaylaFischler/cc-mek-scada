@@ -32,16 +32,17 @@ local PERIODICS = {
 ---@nodiscard
 ---@param id integer session ID
 ---@param s_addr integer device source address
+---@param i_seq_num integer initial sequence number
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
-function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
+function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     local log_header = "pkt_session(" .. id .. "): "
 
     local self = {
         -- connection properties
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = i_seq_num + 2, -- next after the establish approval was sent
+        r_seq_num = i_seq_num + 1,
         connected = true,
         conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
@@ -104,13 +105,11 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
     ---@param pkt mgmt_frame|crdn_frame
     local function _handle_packet(pkt)
         -- check sequence number
-        if self.r_seq_num == nil then
-            self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
+        if self.r_seq_num ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
-            self.r_seq_num = pkt.scada_frame.seq_num()
+            self.r_seq_num = pkt.scada_frame.seq_num() + 1
         end
 
         -- feed watchdog
@@ -138,21 +137,28 @@ function pocket.new_session(id, s_addr, in_queue, out_queue, timeout)
                 }
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
-            elseif pkt.type == CRDN_TYPE.API_GET_UNITS then
-                local data = {}
+            elseif pkt.type == CRDN_TYPE.API_GET_UNIT then
+                if pkt.length == 1 and type(pkt.data[1]) == "number" then
+                    local u = db.units[pkt.data[1]]   ---@type ioctl_unit
 
-                for i = 1, #db.units do
-                    local u = db.units[i]   ---@type ioctl_unit
-                    table.insert(data, {
-                        u.unit_id,
-                        u.num_boilers,
-                        u.num_turbines,
-                        u.num_snas,
-                        u.has_tank
-                    })
+                    if u then
+                        local data = {
+                            u.unit_id,
+                            u.connected,
+                            u.rtu_hw,
+                            u.alarms,
+                            u.annunciator,
+                            u.reactor_data,
+                            u.boiler_data_tbl,
+                            u.turbine_data_tbl,
+                            u.tank_data_tbl,
+                            u.last_rate_change_ms,
+                            u.turbine_flow_stable
+                        }
+
+                        _send(CRDN_TYPE.API_GET_UNIT, data)
+                    end
                 end
-
-                _send(CRDN_TYPE.API_GET_UNITS, data)
             else
                 log.debug(log_header .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

@@ -14,6 +14,8 @@ local pgi     = require("coordinator.ui.pgi")
 
 local ALARM_STATE = types.ALARM_STATE
 local PROCESS = types.PROCESS
+local TEMP_SCALE = types.TEMP_SCALE
+local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
 -- nominal RTT is ping (0ms to 10ms usually) + 500ms for CRD main loop tick
 local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
@@ -47,17 +49,16 @@ end
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
 ---@param comms coord_comms comms reference
----@param temp_scale integer temperature unit (1 = K, 2 = C, 3 = F, 4 = R)
+---@param temp_scale TEMP_SCALE temperature unit
 function iocontrol.init(conf, comms, temp_scale)
+    io.temp_label = TEMP_UNITS[temp_scale]
+
     -- temperature unit label and conversion function (from Kelvin)
-    if temp_scale == 2 then
-        io.temp_label = "\xb0C"
+    if temp_scale == TEMP_SCALE.CELSIUS then
         io.temp_convert = function (t) return t - 273.15 end
-    elseif temp_scale == 3 then
-        io.temp_label = "\xb0F"
+    elseif temp_scale == TEMP_SCALE.FAHRENHEIT then
         io.temp_convert = function (t) return (1.8 * (t - 273.15)) + 32 end
-    elseif temp_scale == 4 then
-        io.temp_label = "\xb0R"
+    elseif temp_scale == TEMP_SCALE.RANKINE then
         io.temp_convert = function (t) return 1.8 * t end
     else
         io.temp_label = "K"
@@ -92,6 +93,7 @@ function iocontrol.init(conf, comms, temp_scale)
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
+        auto_sps_disabled = false,
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -227,6 +229,8 @@ function iocontrol.init(conf, comms, temp_scale)
         ---@class ioctl_unit
         local entry = {
             unit_id = i,
+            connected = false,
+            rtu_hw = { boilers = {}, turbines = {} },
 
             num_boilers = 0,
             num_turbines = 0,
@@ -243,6 +247,9 @@ function iocontrol.init(conf, comms, temp_scale)
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+
+            last_rate_change_ms = 0,
+            turbine_flow_stable = false,
 
             -- auto control group
             a_group = 0,
@@ -318,12 +325,14 @@ function iocontrol.init(conf, comms, temp_scale)
         for _ = 1, conf.cooling.r_cool[i].BoilerCount do
             table.insert(entry.boiler_ps_tbl, psil.create())
             table.insert(entry.boiler_data_tbl, {})
+            table.insert(entry.rtu_hw.boilers, { connected = false, faulted = false })
         end
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
+            table.insert(entry.rtu_hw.turbines, { connected = false, faulted = false })
         end
 
         -- create tank tables
@@ -593,7 +602,7 @@ function iocontrol.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 16 then
+        if type(ctl_status) == "table" and #ctl_status == 17 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -644,9 +653,11 @@ function iocontrol.update_facility_status(status)
 
             fac.auto_current_waste_product = ctl_status[15]
             fac.auto_pu_fallback_active = ctl_status[16]
+            fac.auto_sps_disabled = ctl_status[17]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+            fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false
@@ -663,10 +674,27 @@ function iocontrol.update_facility_status(status)
             fac.rtu_count = rtu_statuses.count
 
             -- power statistics
-            if type(rtu_statuses.power) == "table" then
-                fac.induction_ps_tbl[1].publish("avg_charge", rtu_statuses.power[1])
-                fac.induction_ps_tbl[1].publish("avg_inflow", rtu_statuses.power[2])
-                fac.induction_ps_tbl[1].publish("avg_outflow", rtu_statuses.power[3])
+            if type(rtu_statuses.power) == "table" and #rtu_statuses.power == 4 then
+                local data = fac.induction_data_tbl[1] ---@type imatrix_session_db
+                local ps   = fac.induction_ps_tbl[1]   ---@type psil
+
+                local chg   = tonumber(rtu_statuses.power[1])
+                local in_f  = tonumber(rtu_statuses.power[2])
+                local out_f = tonumber(rtu_statuses.power[3])
+                local eta   = tonumber(rtu_statuses.power[4])
+
+                ps.publish("avg_charge", chg)
+                ps.publish("avg_inflow", in_f)
+                ps.publish("avg_outflow", out_f)
+                ps.publish("eta_ms", eta)
+
+                ps.publish("is_charging", in_f > out_f)
+                ps.publish("is_discharging", out_f > in_f)
+
+                if data and data.build then
+                    local cap = util.joules_to_fe(data.build.transfer_cap)
+                    ps.publish("at_max_io", in_f >= cap or out_f >= cap)
+                end
             else
                 log.debug(log_header .. "power statistics list not a table")
                 valid = false
@@ -877,6 +905,7 @@ function iocontrol.update_unit_statuses(statuses)
                 end
 
                 if #reactor_status == 0 then
+                    unit.connected = false
                     unit.unit_ps.publish("computed_status", 1)   -- disconnected
                 elseif #reactor_status == 3 then
                     local mek_status = reactor_status[1]
@@ -936,6 +965,8 @@ function iocontrol.update_unit_statuses(statuses)
                             unit.unit_ps.publish(key, val)
                         end
                     end
+
+                    unit.connected = true
                 else
                     log.debug(log_header .. "reactor status length mismatch")
                     valid = false
@@ -950,7 +981,10 @@ function iocontrol.update_unit_statuses(statuses)
                         local boil_sum = 0
 
                         for id = 1, #unit.boiler_ps_tbl do
-                            if rtu_statuses.boilers[id] == nil then
+                            local connected = rtu_statuses.boilers[id] ~= nil
+                            unit.rtu_hw.boilers[id].connected = connected
+
+                            if not connected then
                                 -- disconnected
                                 unit.boiler_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -962,6 +996,7 @@ function iocontrol.update_unit_statuses(statuses)
                                 local ps   = unit.boiler_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(boiler, data, ps)
+                                unit.rtu_hw.boilers[id].faulted = rtu_faulted
 
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
@@ -993,7 +1028,10 @@ function iocontrol.update_unit_statuses(statuses)
                         local flow_sum = 0
 
                         for id = 1, #unit.turbine_ps_tbl do
-                            if rtu_statuses.turbines[id] == nil then
+                            local connected = rtu_statuses.turbines[id] ~= nil
+                            unit.rtu_hw.turbines[id].connected = connected
+
+                            if not connected then
                                 -- disconnected
                                 unit.turbine_ps_tbl[id].publish("computed_status", 1)
                             end
@@ -1005,6 +1043,7 @@ function iocontrol.update_unit_statuses(statuses)
                                 local ps   = unit.turbine_ps_tbl[id]   ---@type psil
 
                                 local rtu_faulted = _record_multiblock_status(turbine, data, ps)
+                                unit.rtu_hw.turbines[id].faulted = rtu_faulted
 
                                 if rtu_faulted then
                                     ps.publish("computed_status", 3)        -- faulted
@@ -1179,9 +1218,11 @@ function iocontrol.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 6 then
+                    if #unit_state == 8 then
                         unit.waste_mode = unit_state[5]
                         unit.waste_product = unit_state[6]
+                        unit.last_rate_change_ms = unit_state[7]
+                        unit.turbine_flow_stable = unit_state[8]
 
                         unit.unit_ps.publish("U_StatusLine1", unit_state[1])
                         unit.unit_ps.publish("U_StatusLine2", unit_state[2])

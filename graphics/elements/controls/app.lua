@@ -30,7 +30,7 @@ local function app_button(args)
     element.assert(type(args.app_fg_bg) == "table", "app_fg_bg is a required field")
 
     args.height = 4
-    args.width = 5
+    args.width = 7
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -46,7 +46,7 @@ local function app_button(args)
         end
 
         -- draw icon
-        e.w_set_cur(1, 1)
+        e.w_set_cur(2, 1)
         e.w_set_fgd(fgd)
         e.w_set_bkg(bkg)
         e.w_write("\x9f\x83\x83\x83")
@@ -55,16 +55,16 @@ local function app_button(args)
         e.w_write("\x90")
         e.w_set_fgd(fgd)
         e.w_set_bkg(bkg)
-        e.w_set_cur(1, 2)
+        e.w_set_cur(2, 2)
         e.w_write("\x95   ")
         e.w_set_fgd(bkg)
         e.w_set_bkg(fgd)
         e.w_write("\x95")
-        e.w_set_cur(1, 3)
+        e.w_set_cur(2, 3)
         e.w_write("\x82\x8f\x8f\x8f\x81")
 
         -- write the icon text
-        e.w_set_cur(3, 2)
+        e.w_set_cur(4, 2)
         e.w_set_fgd(fgd)
         e.w_set_bkg(bkg)
         e.w_write(args.text)

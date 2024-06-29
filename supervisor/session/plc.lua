@@ -1,4 +1,5 @@
 local comms    = require("scada-common.comms")
+local const    = require("scada-common.constants")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
 local types    = require("scada-common.types")
@@ -47,12 +48,13 @@ local PERIODICS = {
 ---@nodiscard
 ---@param id integer session ID
 ---@param s_addr integer device source address
+---@param i_seq_num integer initial sequence number
 ---@param reactor_id integer reactor ID
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 ---@param fp_ok boolean if the front panel UI is running
-function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, fp_ok)
+function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue, timeout, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -65,8 +67,8 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
         ramping_rate = false,
         auto_lock = false,
         -- connection properties
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = i_seq_num + 2, -- next after the establish approval was sent
+        r_seq_num = i_seq_num + 1,
         connected = true,
         received_struct = false,
         received_status_cache = false,
@@ -105,6 +107,8 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             formed = false,
             rps_tripped = false,
             rps_trip_cause = "ok",  ---@type rps_trip_cause
+            max_op_temp_H2O = 1200,
+            max_op_temp_Na = 1200,
             ---@class rps_status
             rps_status = {
                 high_dmg = false,
@@ -138,11 +142,11 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                 waste = 0,
                 waste_need = 0,
                 waste_fill = 0.0,
-                ccool_type = "?",
+                ccool_type = types.FLUID.EMPTY_GAS, ---@type fluid
                 ccool_amnt = 0,
                 ccool_need = 0,
                 ccool_fill = 0.0,
-                hcool_type = "?",
+                hcool_type = types.FLUID.EMPTY_GAS, ---@type fluid
                 hcool_amnt = 0,
                 hcool_need = 0,
                 hcool_fill = 0.0
@@ -169,74 +173,129 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     ---@class plc_session
     local public = {}
 
+    -- compute maximum expected operational temperatures for high temp warnings
+    local function _compute_op_temps()
+        local JOULES_PER_MB = const.mek.JOULES_PER_MB
+        local BASE_BOIL_TEMP = const.mek.BASE_BOIL_TEMP
+
+        local heat_cap = self.sDB.mek_struct.heat_cap
+        local max_burn = self.sDB.mek_struct.max_burn
+
+        self.sDB.max_op_temp_H2O = max_burn * 2 * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
+        self.sDB.max_op_temp_Na = max_burn * (JOULES_PER_MB * heat_cap ^ -1) + BASE_BOIL_TEMP
+
+        log.info(util.sprintf(log_header .. "computed maximum operational temperatures %.3fK (H2O) and %.3fK (Na)",
+                               self.sDB.max_op_temp_H2O, self.sDB.max_op_temp_Na))
+    end
+
     -- copy in the RPS status
     ---@param rps_status table
     local function _copy_rps_status(rps_status)
-        self.sDB.rps_tripped          = rps_status[1]
-        self.sDB.rps_trip_cause       = rps_status[2]
-        self.sDB.rps_status.high_dmg  = rps_status[3]
-        self.sDB.rps_status.high_temp = rps_status[4]
-        self.sDB.rps_status.low_cool  = rps_status[5]
-        self.sDB.rps_status.ex_waste  = rps_status[6]
-        self.sDB.rps_status.ex_hcool  = rps_status[7]
-        self.sDB.rps_status.no_fuel   = rps_status[8]
-        self.sDB.rps_status.fault     = rps_status[9]
-        self.sDB.rps_status.timeout   = rps_status[10]
-        self.sDB.rps_status.manual    = rps_status[11]
-        self.sDB.rps_status.automatic = rps_status[12]
-        self.sDB.rps_status.sys_fail  = rps_status[13]
-        self.sDB.rps_status.force_dis = rps_status[14]
+        local rps = self.sDB.rps_status
+
+        self.sDB.rps_tripped    = rps_status[1]
+        self.sDB.rps_trip_cause = rps_status[2]
+
+        rps.high_dmg  = rps_status[3]
+        rps.high_temp = rps_status[4]
+        rps.low_cool  = rps_status[5]
+        rps.ex_waste  = rps_status[6]
+        rps.ex_hcool  = rps_status[7]
+        rps.no_fuel   = rps_status[8]
+        rps.fault     = rps_status[9]
+        rps.timeout   = rps_status[10]
+        rps.manual    = rps_status[11]
+        rps.automatic = rps_status[12]
+        rps.sys_fail  = rps_status[13]
+        rps.force_dis = rps_status[14]
     end
 
     -- copy in the reactor status
     ---@param mek_data table
     local function _copy_status(mek_data)
+        local stat   = self.sDB.mek_status
+        local struct = self.sDB.mek_struct
+
         -- copy status information
-        self.sDB.mek_status.status        = mek_data[1]
-        self.sDB.mek_status.burn_rate     = mek_data[2]
-        self.sDB.mek_status.act_burn_rate = mek_data[3]
-        self.sDB.mek_status.temp          = mek_data[4]
-        self.sDB.mek_status.damage        = mek_data[5]
-        self.sDB.mek_status.boil_eff      = mek_data[6]
-        self.sDB.mek_status.env_loss      = mek_data[7]
+        stat.status        = mek_data[1]
+        stat.burn_rate     = mek_data[2]
+        stat.act_burn_rate = mek_data[3]
+        stat.temp          = mek_data[4]
+        stat.damage        = mek_data[5]
+        stat.boil_eff      = mek_data[6]
+        stat.env_loss      = mek_data[7]
 
         -- copy container information
-        self.sDB.mek_status.fuel          = mek_data[8]
-        self.sDB.mek_status.fuel_fill     = mek_data[9]
-        self.sDB.mek_status.waste         = mek_data[10]
-        self.sDB.mek_status.waste_fill    = mek_data[11]
-        self.sDB.mek_status.ccool_type    = mek_data[12]
-        self.sDB.mek_status.ccool_amnt    = mek_data[13]
-        self.sDB.mek_status.ccool_fill    = mek_data[14]
-        self.sDB.mek_status.hcool_type    = mek_data[15]
-        self.sDB.mek_status.hcool_amnt    = mek_data[16]
-        self.sDB.mek_status.hcool_fill    = mek_data[17]
+        stat.fuel          = mek_data[8]
+        stat.fuel_fill     = mek_data[9]
+        stat.waste         = mek_data[10]
+        stat.waste_fill    = mek_data[11]
+        stat.ccool_type    = mek_data[12]
+        stat.ccool_amnt    = mek_data[13]
+        stat.ccool_fill    = mek_data[14]
+        stat.hcool_type    = mek_data[15]
+        stat.hcool_amnt    = mek_data[16]
+        stat.hcool_fill    = mek_data[17]
 
         -- update computable fields if we have our structure
         if self.received_struct then
-            self.sDB.mek_status.fuel_need  = self.sDB.mek_struct.fuel_cap  - self.sDB.mek_status.fuel_fill
-            self.sDB.mek_status.waste_need = self.sDB.mek_struct.waste_cap - self.sDB.mek_status.waste_fill
-            self.sDB.mek_status.cool_need  = self.sDB.mek_struct.ccool_cap - self.sDB.mek_status.ccool_fill
-            self.sDB.mek_status.hcool_need = self.sDB.mek_struct.hcool_cap - self.sDB.mek_status.hcool_fill
+            stat.fuel_need  = struct.fuel_cap  - stat.fuel_fill
+            stat.waste_need = struct.waste_cap - stat.waste_fill
+            stat.cool_need  = struct.ccool_cap - stat.ccool_fill
+            stat.hcool_need = struct.hcool_cap - stat.hcool_fill
         end
     end
 
     -- copy in the reactor structure
     ---@param mek_data table
     local function _copy_struct(mek_data)
-        self.sDB.mek_struct.length    = mek_data[1]
-        self.sDB.mek_struct.width     = mek_data[2]
-        self.sDB.mek_struct.height    = mek_data[3]
-        self.sDB.mek_struct.min_pos   = mek_data[4]
-        self.sDB.mek_struct.max_pos   = mek_data[5]
-        self.sDB.mek_struct.heat_cap  = mek_data[6]
-        self.sDB.mek_struct.fuel_asm  = mek_data[7]
-        self.sDB.mek_struct.fuel_sa   = mek_data[8]
-        self.sDB.mek_struct.fuel_cap  = mek_data[9]
-        self.sDB.mek_struct.waste_cap = mek_data[10]
-        self.sDB.mek_struct.ccool_cap = mek_data[11]
-        self.sDB.mek_struct.hcool_cap = mek_data[12]
-        self.sDB.mek_struct.max_burn  = mek_data[13]
+        local struct = self.sDB.mek_struct
+
+        struct.length    = mek_data[1]
+        struct.width     = mek_data[2]
+        struct.height    = mek_data[3]
+        struct.min_pos   = mek_data[4]
+        struct.max_pos   = mek_data[5]
+        struct.heat_cap  = mek_data[6]
+        struct.fuel_asm  = mek_data[7]
+        struct.fuel_sa   = mek_data[8]
+        struct.fuel_cap  = mek_data[9]
+        struct.waste_cap = mek_data[10]
+        struct.ccool_cap = mek_data[11]
+        struct.hcool_cap = mek_data[12]
+        struct.max_burn  = mek_data[13]
+    end
+
+    -- handle a reactor status packet
+    ---@param pkt rplc_frame
+    local function _handle_status(pkt)
+        local valid = (type(pkt.data[1]) == "number") and (type(pkt.data[2]) == "boolean") and
+                      (type(pkt.data[3]) == "boolean") and (type(pkt.data[4]) == "boolean") and
+                      (type(pkt.data[5]) == "number")
+
+        if valid then
+            self.sDB.last_status_update = pkt.data[1]
+            self.sDB.control_state = pkt.data[2]
+            self.sDB.no_reactor = pkt.data[3]
+            self.sDB.formed = pkt.data[4]
+            self.sDB.auto_ack_token = pkt.data[5]
+
+            if (not self.sDB.no_reactor) and self.sDB.formed and (type(pkt.data[6]) == "number") then
+                self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
+
+                -- attempt to read mek_data table
+                if type(pkt.data[7]) == "table" then
+                    if #pkt.data[7] == 17 then
+                        _copy_status(pkt.data[7])
+                        self.received_status_cache = true
+                    else
+                        log.error(log_header .. "RPLC status packet reactor data length mismatch")
+                    end
+                end
+            end
+        else
+            log.debug(log_header .. "RPLC status packet invalid")
+        end
     end
 
     -- mark this PLC session as closed, stop watchdog
@@ -291,13 +350,11 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
     ---@param pkt mgmt_frame|rplc_frame
     local function _handle_packet(pkt)
         -- check sequence number
-        if self.r_seq_num == nil then
-            self.r_seq_num = pkt.scada_frame.seq_num()
-        elseif (self.r_seq_num + 1) ~= pkt.scada_frame.seq_num() then
+        if self.r_seq_num ~= pkt.scada_frame.seq_num() then
             log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
-            self.r_seq_num = pkt.scada_frame.seq_num()
+            self.r_seq_num = pkt.scada_frame.seq_num() + 1
         end
 
         -- process packet
@@ -316,47 +373,17 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
             if pkt.type == RPLC_TYPE.STATUS then
                 -- status packet received, update data
                 if pkt.length >= 5 then
-                    if (type(pkt.data[1]) == "number") and (type(pkt.data[2]) == "boolean") and (type(pkt.data[3]) == "boolean") and
-                       (type(pkt.data[4]) == "boolean") and (type(pkt.data[5]) == "number") then
-                        self.sDB.last_status_update = pkt.data[1]
-                        self.sDB.control_state = pkt.data[2]
-                        self.sDB.no_reactor = pkt.data[3]
-                        self.sDB.formed = pkt.data[4]
-                        self.sDB.auto_ack_token = pkt.data[5]
-
-                        if (not self.sDB.no_reactor) and self.sDB.formed and (type(pkt.data[6]) == "number") then
-                            self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
-
-                            -- attempt to read mek_data table
-                            if type(pkt.data[7]) == "table" then
-                                local status = pcall(_copy_status, pkt.data[7])
-                                if status then
-                                    -- copied in status data OK
-                                    self.received_status_cache = true
-                                else
-                                    -- error copying status data
-                                    log.error(log_header .. "failed to parse status packet data")
-                                end
-                            end
-                        end
-                    else
-                        log.debug(log_header .. "RPLC status packet invalid")
-                    end
+                    _handle_status(pkt)
                 else
                     log.debug(log_header .. "RPLC status packet length mismatch")
                 end
             elseif pkt.type == RPLC_TYPE.MEK_STRUCT then
                 -- received reactor structure, record it
-                if pkt.length == 14 then
-                    local status = pcall(_copy_struct, pkt.data)
-                    if status then
-                        -- copied in structure data OK
-                        self.received_struct = true
-                        out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
-                    else
-                        -- error copying structure data
-                        log.error(log_header .. "failed to parse struct packet data")
-                    end
+                if pkt.length == 13 then
+                    _copy_struct(pkt.data)
+                    _compute_op_temps()
+                    self.received_struct = true
+                    out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
                 else
                     log.debug(log_header .. "RPLC struct packet length mismatch")
                 end
@@ -639,6 +666,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                         local cmd = message.message
                         if cmd == PLC_S_CMDS.ENABLE then
                             -- enable reactor
+                            self.acks.disable = true
                             if not self.auto_lock then
                                 _send(RPLC_TYPE.RPS_ENABLE, {})
                             end
@@ -695,6 +723,7 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                                     self.auto_cmd_token = 0
                                     self.ramping_rate = true
                                     self.acks.burn_rate = false
+                                    self.acks.disable = true
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_WAIT
                                     _send(RPLC_TYPE.MEK_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate })
                                 end
@@ -702,13 +731,14 @@ function plc.new_session(id, s_addr, reactor_id, in_queue, out_queue, timeout, f
                         elseif cmd.key == PLC_S_DATA.AUTO_BURN_RATE then
                             -- set automatic burn rate
                             if self.auto_lock then
-                                cmd.val = math.floor(cmd.val * 100) / 100   -- round to 100ths place
+                                cmd.val = math.floor(cmd.val * 100) / 100 -- round to 100ths place
                                 if cmd.val >= 0 and cmd.val <= self.sDB.mek_struct.max_burn then
                                     self.auto_cmd_token = util.time_ms()
                                     self.commanded_burn_rate = cmd.val
 
                                     -- this is only for manual control, only retry auto ramps
                                     self.acks.burn_rate = not self.ramping_rate
+                                    self.acks.disable = true
                                     self.retry_times.burn_rate_req = util.time() + INITIAL_AUTO_WAIT
 
                                     _send(RPLC_TYPE.AUTO_BURN_RATE, { self.commanded_burn_rate, self.ramping_rate, self.auto_cmd_token })

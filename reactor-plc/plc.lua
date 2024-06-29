@@ -25,8 +25,8 @@ local RPS_LIMITS = const.RPS_LIMITS
 
 -- I sure hope the devs don't change this error message, not that it would have safety implications
 -- I wish they didn't change it to be like this
-local PCALL_SCRAM_MSG = "pcall: Scram requires the reactor to be active."
-local PCALL_START_MSG = "pcall: Reactor is already active."
+local PCALL_SCRAM_MSG = "Scram requires the reactor to be active."
+local PCALL_START_MSG = "Reactor is already active."
 
 ---@type plc_config
 local config = {}
@@ -307,7 +307,7 @@ function plc.rps_init(reactor, is_formed)
         log.info("RPS: reactor SCRAM")
 
         reactor.scram()
-        if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_SCRAM_MSG) then
+        if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
             return false
         else
@@ -325,7 +325,7 @@ function plc.rps_init(reactor, is_formed)
             log.info("RPS: reactor start")
 
             reactor.activate()
-            if reactor.__p_is_faulted() and (reactor.__p_last_fault() ~= PCALL_START_MSG) then
+            if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
             else
                 self.reactor_enabled = true
@@ -524,8 +524,8 @@ end
 function plc.comms(version, nic, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
-        seq_num = 0,
-        r_seq_num = nil,
+        seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
+        r_seq_num = nil,               ---@type nil|integer
         scrammed = false,
         linked = false,
         last_est_ack = ESTABLISH_ACK.ALLOW,
@@ -571,33 +571,17 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         self.seq_num = self.seq_num + 1
     end
 
-    -- variable reactor status information, excluding heating rate
+    -- dynamic reactor status information, excluding heating rate
     ---@return table data_table, boolean faulted
-    local function _reactor_status()
+    local function _get_reactor_status()
         local fuel = nil
         local waste = nil
         local coolant = nil
         local hcoolant = nil
 
-        local data_table = {
-            false, -- getStatus
-            0,     -- getBurnRate
-            0,     -- getActualBurnRate
-            0,     -- getTemperature
-            0,     -- getDamagePercent
-            0,     -- getBoilEfficiency
-            0,     -- getEnvironmentalLoss
-            0,     -- fuel_amnt
-            0,     -- getFuelFilledPercentage
-            0,     -- waste_amnt
-            0,     -- getWasteFilledPercentage
-            "",    -- coolant_name
-            0,     -- coolant_amnt
-            0,     -- getCoolantFilledPercentage
-            "",    -- hcoolant_name
-            0,     -- hcoolant_amnt
-            0      -- getHeatedCoolantFilledPercentage
-        }
+        local data_table = {}
+
+        reactor.__p_disable_afc()
 
         local tasks = {
             function () data_table[1]  = reactor.getStatus() end,
@@ -637,30 +621,32 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             data_table[16] = hcoolant.amount
         end
 
+        reactor.__p_enable_afc()
+
         return data_table, reactor.__p_is_faulted()
     end
 
     -- update the status cache if changed
     ---@return boolean changed
     local function _update_status_cache()
-        local status, faulted = _reactor_status()
+        local status, faulted = _get_reactor_status()
         local changed = false
 
-        if self.status_cache ~= nil then
-            if not faulted then
+        if not faulted then
+            if self.status_cache ~= nil then
                 for i = 1, #status do
                     if status[i] ~= self.status_cache[i] then
                         changed = true
                         break
                     end
                 end
+            else
+                changed = true
             end
-        else
-            changed = true
-        end
 
-        if changed and not faulted then
-            self.status_cache = status
+            if changed then
+                self.status_cache = status
+            end
         end
 
         return changed
@@ -679,9 +665,11 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         _send(msg_type, { status })
     end
 
-    -- send structure properties (these should not change, server will cache these)
+    -- send static structure properties, cached by server
     local function _send_struct()
-        local mek_data = { false, 0, 0, 0, types.new_zero_coordinate(), types.new_zero_coordinate(), 0, 0, 0, 0, 0, 0, 0, 0 }
+        local mek_data = {}
+
+        reactor.__p_disable_afc()
 
         local tasks = {
             function () mek_data[1]  = reactor.getLength() end,
@@ -705,6 +693,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             _send(RPLC_TYPE.MEK_STRUCT, mek_data)
             self.resend_build = false
         end
+
+        reactor.__p_enable_afc()
     end
 
     -- PUBLIC FUNCTIONS --
@@ -835,8 +825,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         if l_chan == config.PLC_Channel then
             -- check sequence number
             if self.r_seq_num == nil then
-                self.r_seq_num = packet.scada_frame.seq_num()
-            elseif self.linked and ((self.r_seq_num + 1) ~= packet.scada_frame.seq_num()) then
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
+            elseif self.r_seq_num ~= packet.scada_frame.seq_num() then
                 log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif self.linked and (src_addr ~= self.sv_addr) then
@@ -844,7 +834,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                             "); channel in use by another system?")
                 return
             else
-                self.r_seq_num = packet.scada_frame.seq_num()
+                self.r_seq_num = packet.scada_frame.seq_num() + 1
             end
 
             -- feed the watchdog first so it doesn't uhh...eat our packets :)
@@ -1030,10 +1020,9 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                             println_ts("linked!")
                             log.info("supervisor establish request approved, linked to SV (CID#" .. src_addr .. ")")
 
-                            -- link + reset remote sequence number and cache
+                            -- link + reset cache
                             self.sv_addr = src_addr
                             self.linked = true
-                            self.r_seq_num = nil
                             self.status_cache = nil
 
                             if plc_state.reactor_formed then _send_struct() end
