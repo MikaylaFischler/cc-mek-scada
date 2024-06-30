@@ -113,3 +113,5 @@ print("All files have been installed. The app can be started with 'startup' and 
 lgray()
 print("Hint: You can use 'ccmsim' to manage your off-line installation.")
 white()
+
+--luacheck: pop
