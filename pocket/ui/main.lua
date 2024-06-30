@@ -42,7 +42,7 @@ local function init(main)
     local main_pane = Div{parent=main,x=1,y=2}
 
     -- window header message and connection status
-    TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,height=1,fg_bg=style.header}
+    TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",alignment=ALIGN.LEFT,fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
     local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
 

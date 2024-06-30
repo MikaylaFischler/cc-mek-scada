@@ -40,7 +40,7 @@ local function init(panel)
 
     local disabled_fg = style.fp.disabled_fg
 
-    local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 
     --
@@ -115,7 +115,7 @@ local function init(panel)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=5,width=6,height=1,text=comp_id,fg_bg=disabled_fg}
+    TextBox{parent=system,x=9,y=5,width=6,text=comp_id,fg_bg=disabled_fg}
 
     --
     -- status & controls
@@ -148,8 +148,8 @@ local function init(panel)
     --
 
     local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)

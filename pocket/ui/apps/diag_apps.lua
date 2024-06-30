@@ -46,13 +46,13 @@ local function create_pages(root)
 
     local audio = Div{parent=alarm_test,x=1,y=1}
 
-    TextBox{parent=audio,y=1,text="Alarm Sounder Tests",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=audio,y=1,text="Alarm Sounder Tests",alignment=ALIGN.CENTER}
 
-    ttest.ready_warn = TextBox{parent=audio,y=2,text="",height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
+    ttest.ready_warn = TextBox{parent=audio,y=2,text="",alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.black)}
 
     local tones = Div{parent=audio,x=2,y=3,height=10,width=8,fg_bg=cpair(colors.black,colors.yellow)}
 
-    TextBox{parent=tones,text="Tones",height=1,alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
+    TextBox{parent=tones,text="Tones",alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
 
     local test_btns = {}
     test_btns[1] = SwitchButton{parent=tones,text="TEST 1",min_width=8,active_fg_bg=c_wht_gray,callback=ttest.test_1}
@@ -75,7 +75,7 @@ local function create_pages(root)
 
     local alarms = Div{parent=audio,x=11,y=3,height=15,fg_bg=cpair(colors.lightGray,colors.black)}
 
-    TextBox{parent=alarms,text="Alarms (\x13)",height=1,alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
+    TextBox{parent=alarms,text="Alarms (\x13)",alignment=ALIGN.CENTER,fg_bg=audio.get_fg_bg()}
 
     local alarm_btns = {}
     alarm_btns[1] = Checkbox{parent=alarms,label="BREACH",min_width=15,box_fg_bg=c_red_gray,callback=ttest.test_breach}
@@ -102,7 +102,7 @@ local function create_pages(root)
 
     local states = Div{parent=audio,x=2,y=14,height=5,width=8}
 
-    TextBox{parent=states,text="States",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=states,text="States",alignment=ALIGN.CENTER}
     local t_1 = IndicatorLight{parent=states,label="1",colors=c_blue_gray}
     local t_2 = IndicatorLight{parent=states,label="2",colors=c_blue_gray}
     local t_3 = IndicatorLight{parent=states,label="3",colors=c_blue_gray}

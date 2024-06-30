@@ -40,7 +40,7 @@ local function init(panel)
     local label_fg = style.fp.label_fg
     local label_d_fg = style.fp.label_d_fg
 
-    TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
 
@@ -66,15 +66,15 @@ local function init(panel)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=style.fp.disabled_fg}
+    TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
 
     --
     -- about footer
     --
 
     local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -92,23 +92,23 @@ local function init(panel)
         local ps_prefix = "plc_" .. i .. "_"
         local plc_entry = Div{parent=plc_list,height=3,fg_bg=s_hi_bright}
 
-        TextBox{parent=plc_entry,x=1,y=1,text="",width=8,height=1,fg_bg=s_hi_box}
-        TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,height=1,fg_bg=s_hi_box}
-        TextBox{parent=plc_entry,x=1,y=3,text="",width=8,height=1,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,x=1,y=1,text="",width=8,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,x=1,y=3,text="",width=8,fg_bg=s_hi_box}
 
         local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=cpair(colors.green_hc,colors.green_off)}
         conn.register(databus.ps, ps_prefix .. "conn", conn.update)
 
-        local plc_addr = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,height=1,fg_bg=label_d_fg}
+        local plc_addr = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,fg_bg=label_d_fg}
         plc_addr.register(databus.ps, ps_prefix .. "addr", plc_addr.set_value)
 
-        TextBox{parent=plc_entry,x=23,y=2,text="FW:",width=3,height=1}
-        local plc_fw_v = TextBox{parent=plc_entry,x=27,y=2,text=" ------- ",width=9,height=1,fg_bg=label_fg}
+        TextBox{parent=plc_entry,x=23,y=2,text="FW:",width=3}
+        local plc_fw_v = TextBox{parent=plc_entry,x=27,y=2,text=" ------- ",width=9,fg_bg=label_fg}
         plc_fw_v.register(databus.ps, ps_prefix .. "fw", plc_fw_v.set_value)
 
-        TextBox{parent=plc_entry,x=37,y=2,text="RTT:",width=4,height=1}
+        TextBox{parent=plc_entry,x=37,y=2,text="RTT:",width=4}
         local plc_rtt = DataIndicator{parent=plc_entry,x=42,y=2,label="",unit="",format="%4d",value=0,width=4,fg_bg=label_fg}
-        TextBox{parent=plc_entry,x=47,y=2,text="ms",width=4,height=1,fg_bg=label_fg}
+        TextBox{parent=plc_entry,x=47,y=2,text="ms",width=4,fg_bg=label_fg}
         plc_rtt.register(databus.ps, ps_prefix .. "rtt", plc_rtt.update)
         plc_rtt.register(databus.ps, ps_prefix .. "rtt_color", plc_rtt.recolor)
 
@@ -129,17 +129,17 @@ local function init(panel)
     local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green_hc,colors.green_off)}
     crd_conn.register(databus.ps, "crd_conn", crd_conn.update)
 
-    TextBox{parent=crd_box,x=4,y=3,text="COMPUTER",width=8,height=1,fg_bg=label_d_fg}
-    local crd_addr = TextBox{parent=crd_box,x=13,y=3,text="---",width=5,height=1,fg_bg=label_d_fg}
+    TextBox{parent=crd_box,x=4,y=3,text="COMPUTER",width=8,fg_bg=label_d_fg}
+    local crd_addr = TextBox{parent=crd_box,x=13,y=3,text="---",width=5,fg_bg=label_d_fg}
     crd_addr.register(databus.ps, "crd_addr", crd_addr.set_value)
 
-    TextBox{parent=crd_box,x=22,y=2,text="FW:",width=3,height=1}
-    local crd_fw_v = TextBox{parent=crd_box,x=26,y=2,text=" ------- ",width=9,height=1,fg_bg=label_fg}
+    TextBox{parent=crd_box,x=22,y=2,text="FW:",width=3}
+    local crd_fw_v = TextBox{parent=crd_box,x=26,y=2,text=" ------- ",width=9,fg_bg=label_fg}
     crd_fw_v.register(databus.ps, "crd_fw", crd_fw_v.set_value)
 
-    TextBox{parent=crd_box,x=36,y=2,text="RTT:",width=4,height=1}
+    TextBox{parent=crd_box,x=36,y=2,text="RTT:",width=4}
     local crd_rtt = DataIndicator{parent=crd_box,x=41,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
-    TextBox{parent=crd_box,x=47,y=2,text="ms",width=4,height=1,fg_bg=label_fg}
+    TextBox{parent=crd_box,x=47,y=2,text="ms",width=4,fg_bg=label_fg}
     crd_rtt.register(databus.ps, "crd_rtt", crd_rtt.update)
     crd_rtt.register(databus.ps, "crd_rtt_color", crd_rtt.recolor)
 
