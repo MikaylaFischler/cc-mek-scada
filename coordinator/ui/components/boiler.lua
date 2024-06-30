@@ -35,10 +35,10 @@ local function new_view(root, x, y, ps)
     temp.register(ps, "temperature", function (t) temp.update(db.temp_convert(t)) end)
     boil_r.register(ps, "boil_rate", boil_r.update)
 
-    TextBox{parent=boiler,text="H",x=2,y=5,height=1,width=1,fg_bg=text_fg}
-    TextBox{parent=boiler,text="W",x=3,y=5,height=1,width=1,fg_bg=text_fg}
-    TextBox{parent=boiler,text="S",x=27,y=5,height=1,width=1,fg_bg=text_fg}
-    TextBox{parent=boiler,text="C",x=28,y=5,height=1,width=1,fg_bg=text_fg}
+    TextBox{parent=boiler,text="H",x=2,y=5,width=1,fg_bg=text_fg}
+    TextBox{parent=boiler,text="W",x=3,y=5,width=1,fg_bg=text_fg}
+    TextBox{parent=boiler,text="S",x=27,y=5,width=1,fg_bg=text_fg}
+    TextBox{parent=boiler,text="C",x=28,y=5,width=1,fg_bg=text_fg}
 
     local hcool = VerticalBar{parent=boiler,x=2,y=1,fg_bg=cpair(colors.orange,colors.gray),height=4,width=1}
     local water = VerticalBar{parent=boiler,x=3,y=1,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}

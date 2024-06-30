@@ -105,11 +105,11 @@ local function new_view(root, x, y)
     fac_rad_h.register(facility.ps, "as_radiation", fac_rad_h.update)
     gen_fault.register(facility.ps, "as_gen_fault", gen_fault.update)
 
-    TextBox{parent=main,y=23,text="Radiation",height=1,width=13,fg_bg=style.label}
+    TextBox{parent=main,y=23,text="Radiation",width=13,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     radiation.register(facility.ps, "radiation", radiation.update)
 
-    TextBox{parent=main,x=15,y=23,text="Linked RTUs",height=1,width=11,fg_bg=style.label}
+    TextBox{parent=main,x=15,y=23,text="Linked RTUs",width=11,fg_bg=style.label}
     local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=s_field}
     rtu_count.register(facility.ps, "rtu_count", rtu_count.update)
 
@@ -190,7 +190,7 @@ local function new_view(root, x, y)
 
         local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=s_hi_box}
         local lim = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled,fg_bg=lim_fg_bg}
-        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,height=1,fg_bg=label_fg}
+        TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,fg_bg=label_fg}
 
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}
 
@@ -249,8 +249,8 @@ local function new_view(root, x, y)
     mode.register(facility.ps, "process_mode", mode.set_value)
 
     local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,x=1,y=16,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.white)}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.white)}
 
     stat_line_1.register(facility.ps, "status_line_1", stat_line_1.set_value)
     stat_line_2.register(facility.ps, "status_line_2", stat_line_2.set_value)
@@ -320,7 +320,7 @@ local function new_view(root, x, y)
     for i = 1, facility.num_units do
         local unit = units[i]   ---@type ioctl_unit
 
-        TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8,height=1}
+        TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8}
         local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
         local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.waste.states_abbrv,value=1,min_width=6}
 
@@ -332,8 +332,8 @@ local function new_view(root, x, y)
 
     local cutout_fg_bg = cpair(style.theme.bg, colors.brown)
 
-    TextBox{parent=waste_sel,text=" ",width=21,height=1,x=1,y=1,fg_bg=cutout_fg_bg}
-    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,height=1,x=1,y=2,fg_bg=cutout_fg_bg}
+    TextBox{parent=waste_sel,text=" ",width=21,x=1,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,x=1,y=2,fg_bg=cutout_fg_bg}
 
     local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
     local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}

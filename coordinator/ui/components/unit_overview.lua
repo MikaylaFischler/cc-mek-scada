@@ -44,7 +44,7 @@ local function make(parent, x, y, unit)
     local root = Div{parent=parent,x=x,y=y,width=80,height=height}
 
     -- unit header message
-    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    TextBox{parent=root,text="Unit #"..unit.unit_id,alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     -------------
     -- REACTOR --

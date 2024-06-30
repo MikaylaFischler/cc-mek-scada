@@ -305,7 +305,7 @@ local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
 
-    TextBox{parent=display,y=1,text="Coordinator Configurator",alignment=CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=display,y=1,text="Coordinator Configurator",alignment=CENTER,fg_bg=style.header}
 
     local root_pane_div = Div{parent=display,x=1,y=2}
 
@@ -377,24 +377,24 @@ local function config_view(display)
 
     local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
 
-    TextBox{parent=net_cfg,x=1,y=2,height=1,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
+    TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,height=1,text="Please set the network channels below."}
+    TextBox{parent=net_c_1,x=1,y=1,text="Please set the network channels below."}
     TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels, including the 3 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=8,height=1,width=18,text="Supervisor Channel"}
+    TextBox{parent=net_c_1,x=1,y=8,width=18,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=21,y=8,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=8,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=10,height=1,width=19,text="Coordinator Channel"}
+    TextBox{parent=net_c_1,x=1,y=10,width=19,text="Coordinator Channel"}
     local crd_chan = NumberField{parent=net_c_1,x=21,y=10,width=7,default=ini_cfg.CRD_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=10,height=4,text="[CRD_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=12,height=1,width=14,text="Pocket Channel"}
+    TextBox{parent=net_c_1,x=1,y=12,width=14,text="Pocket Channel"}
     local pkt_chan = NumberField{parent=net_c_1,x=21,y=12,width=7,default=ini_cfg.PKT_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=12,height=4,text="[PKT_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local chan_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c, crd_c, pkt_c = tonumber(svr_chan.get_value()), tonumber(crd_chan.get_value()), tonumber(pkt_chan.get_value())
@@ -408,18 +408,18 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Please set the connection timeouts below."}
+    TextBox{parent=net_c_2,x=1,y=1,text="Please set the connection timeouts below."}
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=8,height=1,width=19,text="Supervisor Timeout"}
+    TextBox{parent=net_c_2,x=1,y=8,width=19,text="Supervisor Timeout"}
     local svr_timeout = NumberField{parent=net_c_2,x=20,y=8,width=7,default=ini_cfg.SVR_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=10,height=1,width=14,text="Pocket Timeout"}
+    TextBox{parent=net_c_2,x=1,y=10,width=14,text="Pocket Timeout"}
     local api_timeout = NumberField{parent=net_c_2,x=20,y=10,width=7,default=ini_cfg.API_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=28,y=8,height=4,width=7,text="seconds\n\nseconds",fg_bg=g_lg_fg_bg}
 
-    local ct_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local ct_err = TextBox{parent=net_c_2,x=8,y=14,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_timeouts()
         local svr_cto, api_cto = tonumber(svr_timeout.get_value()), tonumber(api_timeout.get_value())
@@ -433,13 +433,13 @@ local function config_view(display)
     PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=1,text="Please set the trusted range below."}
+    TextBox{parent=net_c_3,x=1,y=1,text="Please set the trusted range below."}
     TextBox{parent=net_c_3,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
     local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    local tr_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local tr_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_tr()
         local range_val = tonumber(range.get_value())
@@ -457,7 +457,7 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
     TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=11,height=1,text="Facility Auth Key"}
+    TextBox{parent=net_c_4,x=1,y=11,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
@@ -467,7 +467,7 @@ local function config_view(display)
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_4,x=8,y=14,height=1,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_4,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -505,12 +505,12 @@ local function config_view(display)
 
     local fac_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3}}
 
-    TextBox{parent=fac_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
+    TextBox{parent=fac_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
     TextBox{parent=fac_c_1,x=1,y=1,height=4,text="This tool can attempt to connect to your supervisor computer. This would load facility information in order to get the unit count and aid monitor setup."}
     TextBox{parent=fac_c_1,x=1,y=6,height=2,text="The supervisor startup app must be running and fully configured on your supervisor computer."}
 
-    tool_ctl.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,height=1,text=""}
+    tool_ctl.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,text=""}
     tool_ctl.sv_conn_detail = TextBox{parent=fac_c_1,x=1,y=11,height=2,text=""}
 
     tool_ctl.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()tool_ctl.sv_connect()end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
@@ -534,11 +534,11 @@ local function config_view(display)
 
     TextBox{parent=fac_c_2,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     local num_units = NumberField{parent=fac_c_2,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
-    TextBox{parent=fac_c_2,x=7,y=5,height=1,text="reactors"}
+    TextBox{parent=fac_c_2,x=7,y=5,text="reactors"}
     TextBox{parent=fac_c_2,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=g_lg_fg_bg}
     TextBox{parent=fac_c_2,x=1,y=10,height=3,text="Since you skipped supervisor sync, the main monitor minimum height can't be determined precisely. It is marked with * on the next page.",fg_bg=g_lg_fg_bg}
 
-    local nu_error = TextBox{parent=fac_c_2,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local nu_error = TextBox{parent=fac_c_2,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_num_units()
         local count = tonumber(num_units.get_value())
@@ -571,7 +571,7 @@ local function config_view(display)
 
     local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
 
-    TextBox{parent=mon_cfg,x=1,y=2,height=1,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
+    TextBox{parent=mon_cfg,x=1,y=2,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
     TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
     local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
@@ -592,7 +592,7 @@ local function config_view(display)
 
     local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local assign_err = TextBox{parent=mon_c_2,x=8,y=14,height=1,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local assign_err = TextBox{parent=mon_c_2,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_monitors()
         if tmp_cfg.MainDisplay == nil then
@@ -652,13 +652,13 @@ local function config_view(display)
         if value == "0" or value == nil then mon_unit.set_value(0) end
     end
 
-    TextBox{parent=mon_c_3,x=1,y=6,width=10,height=1,text="Assignment"}
+    TextBox{parent=mon_c_3,x=1,y=6,width=10,text="Assignment"}
     local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
 
-    mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,height=1,text="Unit ID"}
+    mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,text="Unit ID"}
     mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
-    local mon_u_err = TextBox{parent=mon_c_3,x=8,y=14,height=1,width=35,text="Please provide a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local mon_u_err = TextBox{parent=mon_c_3,x=8,y=14,width=35,text="Please provide a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     -- purge all assignments for a given monitor
     ---@param iface string
@@ -720,7 +720,7 @@ local function config_view(display)
 
     local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=spkr_cfg,x=1,y=2,height=1,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
+    TextBox{parent=spkr_cfg,x=1,y=2,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
 
     TextBox{parent=spkr_c,x=1,y=1,height=2,text="The coordinator uses a speaker to play alarm sounds."}
     TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
@@ -729,7 +729,7 @@ local function config_view(display)
 
     TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
 
-    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,height=1,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_vol()
         local vol = tonumber(s_vol.get_value())
@@ -749,14 +749,14 @@ local function config_view(display)
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=crd_cfg,x=1,y=2,height=1,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
+    TextBox{parent=crd_cfg,x=1,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
     TextBox{parent=crd_c_1,x=1,y=1,height=3,text="Configure the UI interface options below if you wish to customize formats."}
 
-    TextBox{parent=crd_c_1,x=1,y=4,height=1,text="Clock Time Format"}
+    TextBox{parent=crd_c_1,x=1,y=4,text="Clock Time Format"}
     local clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
-    TextBox{parent=crd_c_1,x=1,y=8,height=1,text="Temperature Scale"}
+    TextBox{parent=crd_c_1,x=1,y=8,text="Temperature Scale"}
     local temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_opts()
@@ -774,20 +774,20 @@ local function config_view(display)
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=log_cfg,x=1,y=2,height=1,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
+    TextBox{parent=log_cfg,x=1,y=2,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
 
-    TextBox{parent=log_c_1,x=1,y=1,height=1,text="Please configure logging below."}
+    TextBox{parent=log_c_1,x=1,y=1,text="Please configure logging below."}
 
-    TextBox{parent=log_c_1,x=1,y=3,height=1,text="Log File Mode"}
+    TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
     local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
-    TextBox{parent=log_c_1,x=1,y=7,height=1,text="Log File Path"}
+    TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
     local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
-    local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local path_err = TextBox{parent=log_c_1,x=8,y=14,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_log()
         if path.get_value() ~= "" then
@@ -815,20 +815,20 @@ local function config_view(display)
 
     local clr_pane = MultiPane{parent=clr_cfg,x=1,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
 
-    TextBox{parent=clr_cfg,x=1,y=2,height=1,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+    TextBox{parent=clr_cfg,x=1,y=2,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
 
     TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color themes for the different UI displays."}
     TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Main UI Theme"}
+    TextBox{parent=clr_c_1,x=1,y=7,text="Main UI Theme"}
     local main_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.MainTheme,options=themes.UI_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
-    TextBox{parent=clr_c_1,x=18,y=7,height=1,text="Front Panel Theme"}
+    TextBox{parent=clr_c_1,x=18,y=7,text="Front Panel Theme"}
     local fp_theme = RadioButton{parent=clr_c_1,x=18,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
 
-    TextBox{parent=clr_c_2,x=21,y=7,height=1,text="Preview"}
+    TextBox{parent=clr_c_2,x=21,y=7,text="Preview"}
     local _ = IndLight{parent=clr_c_2,x=21,y=8,label="Good",colors=cpair(colors.black,colors.green)}
     _ = IndLight{parent=clr_c_2,x=21,y=9,label="Warning",colors=cpair(colors.black,colors.yellow)}
     _ = IndLight{parent=clr_c_2,x=21,y=10,label="Bad",colors=cpair(colors.black,colors.red)}
@@ -855,7 +855,7 @@ local function config_view(display)
         end
     end
 
-    TextBox{parent=clr_c_2,x=1,y=7,height=1,width=10,text="Color Mode"}
+    TextBox{parent=clr_c_2,x=1,y=7,width=10,text="Color Mode"}
     local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=21,y=13,height=2,width=18,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
@@ -911,7 +911,7 @@ local function config_view(display)
         clr_pane.set_value(1)
     end
 
-    TextBox{parent=clr_c_3,x=1,y=1,height=1,text="Settings saved!"}
+    TextBox{parent=clr_c_3,x=1,y=1,text="Settings saved!"}
     PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
     PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -930,7 +930,7 @@ local function config_view(display)
 
     local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
 
-    TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=summary,x=1,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
     local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
@@ -998,7 +998,7 @@ local function config_view(display)
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_2,x=1,y=1,height=1,text="Settings saved!"}
+    TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
 
     local function go_home()
         main_pane.set_value(1)
@@ -1033,15 +1033,15 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
-    TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,x=1,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
 
     local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
-        TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=c_log,text=change[1],fg_bg=bw_fg_bg}
         for _, v in ipairs(change[2]) do
             local e = Div{parent=c_log,height=#util.strwrap(v,46)}
-            TextBox{parent=e,y=1,x=1,text="- ",height=1,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,x=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
         end
     end
@@ -1137,12 +1137,12 @@ local function config_view(display)
         fac_config_list.remove_all()
 
         local str = util.sprintf("Facility has %d reactor unit%s:", #conf, util.trinary(#conf==1,"","s"))
-        TextBox{parent=fac_config_list,height=1,text=str,fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=fac_config_list,text=str,fg_bg=cpair(colors.gray,colors.white)}
 
         for i = 1, #conf do
             local num_b, num_t = conf[i][1], conf[i][2]
             str = util.sprintf("\x07 Unit %d has %d boiler%s and %d turbine%s", i, num_b, util.trinary(num_b == 1, "", "s"), num_t, util.trinary(num_t == 1, "", "s"))
-            TextBox{parent=fac_config_list,height=1,text=str,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=fac_config_list,text=str,fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
@@ -1178,13 +1178,13 @@ local function config_view(display)
 
         mon_reqs.remove_all()
 
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Main View Monitor"}
-        TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,x=1,y=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,x=1,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,x=1,y=1,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,x=1,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
         if not tmp_cfg.DisableFlowView then
-            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="\x1a 1 Flow View Monitor"}
-            TextBox{parent=mon_reqs,x=1,y=1,height=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=mon_reqs,x=1,y=1,text="\x1a 1 Flow View Monitor"}
+            TextBox{parent=mon_reqs,x=1,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
@@ -1286,8 +1286,8 @@ local function config_view(display)
 
             local line = Div{parent=mon_list,x=1,y=1,height=1}
 
-            TextBox{parent=line,x=1,y=1,width=6,height=1,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
-            TextBox{parent=line,x=8,y=1,height=1,text=iface}
+            TextBox{parent=line,x=1,y=1,width=6,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
+            TextBox{parent=line,x=8,y=1,text=iface}
 
             local w, h = ppm.monitor_block_size(dev.getSize())
 
@@ -1296,7 +1296,7 @@ local function config_view(display)
                 tool_ctl.gen_mon_list()
             end
 
-            TextBox{parent=line,x=33,y=1,width=4,height=1,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=line,x=33,y=1,width=4,text=w.."x"..h,fg_bg=cpair(colors.black,colors.white)}
             PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()tool_ctl.edit_monitor(iface,device)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
             local unset = PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
 
@@ -1315,15 +1315,15 @@ local function config_view(display)
         for i = 1, #dc_list do
             local line = Div{parent=mon_list,x=1,y=1,height=1}
 
-            TextBox{parent=line,x=1,y=1,width=6,height=1,text=dc_list[i][1],fg_bg=cpair(colors.blue,colors.white)}
-            TextBox{parent=line,x=8,y=1,height=1,text="disconnected",fg_bg=cpair(colors.red,colors.white)}
+            TextBox{parent=line,x=1,y=1,width=6,text=dc_list[i][1],fg_bg=cpair(colors.blue,colors.white)}
+            TextBox{parent=line,x=8,y=1,text="disconnected",fg_bg=cpair(colors.red,colors.white)}
 
             local function unset_mon()
                 purge_assignments(dc_list[i][2])
                 tool_ctl.gen_mon_list()
             end
 
-            TextBox{parent=line,x=33,y=1,width=4,height=1,text="?x?",fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=line,x=33,y=1,width=4,text="?x?",fg_bg=cpair(colors.black,colors.white)}
             PushButton{parent=line,x=37,y=1,min_width=5,height=1,text="SET",callback=function()end,dis_fg_bg=cpair(colors.black,colors.gray)}.disable()
             PushButton{parent=line,x=42,y=1,min_width=7,height=1,text="UNSET",callback=unset_mon,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.black,colors.gray)}
         end

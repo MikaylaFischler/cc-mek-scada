@@ -159,7 +159,7 @@ local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
 
-    TextBox{parent=display,y=1,text="Supervisor Configurator",alignment=CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=display,y=1,text="Supervisor Configurator",alignment=CENTER,fg_bg=style.header}
 
     local root_pane_div = Div{parent=display,x=1,y=2}
 
@@ -228,13 +228,13 @@ local function config_view(display)
 
     local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6,svr_c_7}}
 
-    TextBox{parent=svr_cfg,x=1,y=2,height=1,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
+    TextBox{parent=svr_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
     TextBox{parent=svr_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     local num_units = NumberField{parent=svr_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
-    TextBox{parent=svr_c_1,x=7,y=5,height=1,text="reactors"}
+    TextBox{parent=svr_c_1,x=7,y=5,text="reactors"}
 
-    local nu_error = TextBox{parent=svr_c_1,x=8,y=14,height=1,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local nu_error = TextBox{parent=svr_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_num_units()
         local count = tonumber(num_units.get_value())
@@ -255,7 +255,7 @@ local function config_view(display)
     PushButton{parent=svr_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=svr_c_2,x=1,y=1,height=4,text="Please provide the reactor cooling configuration below. This includes the number of turbines, boilers, and if that reactor has a connection to a dynamic tank for emergency coolant."}
-    TextBox{parent=svr_c_2,x=1,y=6,height=1,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
+    TextBox{parent=svr_c_2,x=1,y=6,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
 
     for i = 1, 4 do
         local num_t, num_b, has_t = 1, 0, false
@@ -277,7 +277,7 @@ local function config_view(display)
         tool_ctl.cooling_elems[i] = { line = line, turbines = turbines, boilers = boilers, tank = tank }
     end
 
-    local cool_err = TextBox{parent=svr_c_2,x=8,y=14,height=1,width=33,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local cool_err = TextBox{parent=svr_c_2,x=8,y=14,width=33,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_cooling()
         local any_missing = false
@@ -345,15 +345,15 @@ local function config_view(display)
         local val = math.max(1, ini_cfg.FacilityTankDefs[i] or 2)
         local div = Div{parent=svr_c_4,x=1,y=3+(2*i),height=2}
 
-        TextBox{parent=div,x=1,y=1,width=33,height=1,text="Unit "..i.." will be connected to..."}
-        TextBox{parent=div,x=6,y=2,width=3,height=1,text="..."}
+        TextBox{parent=div,x=1,y=1,width=33,text="Unit "..i.." will be connected to..."}
+        TextBox{parent=div,x=6,y=2,width=3,text="..."}
         local tank_opt = Radio2D{parent=div,x=9,y=2,rows=1,columns=2,default=val,options={"its own Unit Tank","a Facility Tank"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-        local no_tank = TextBox{parent=div,x=9,y=2,width=34,height=1,text="no tank (as you set two steps ago)",fg_bg=cpair(colors.gray,colors.lightGray),hidden=true}
+        local no_tank = TextBox{parent=div,x=9,y=2,width=34,text="no tank (as you set two steps ago)",fg_bg=cpair(colors.gray,colors.lightGray),hidden=true}
 
         tool_ctl.tank_elems[i] = { div = div, tank_opt = tank_opt, no_tank = no_tank }
     end
 
-    local tank_err = TextBox{parent=svr_c_4,x=8,y=14,height=1,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local tank_err = TextBox{parent=svr_c_4,x=8,y=14,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function hide_fconn(i)
         if i > 1 then tool_ctl.vis_ftanks[i].pipe_conn.hide(true)
@@ -402,8 +402,8 @@ local function config_view(display)
     PushButton{parent=svr_c_4,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=svr_c_4,x=44,y=14,text="Next \x1a",callback=submit_tank_defs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_5,x=1,y=1,height=1,text="Please select your dynamic tank layout."}
-    TextBox{parent=svr_c_5,x=12,y=3,height=1,text="Facility Tanks             Unit Tanks",fg_bg=g_lg_fg_bg}
+    TextBox{parent=svr_c_5,x=1,y=1,text="Please select your dynamic tank layout."}
+    TextBox{parent=svr_c_5,x=12,y=3,text="Facility Tanks             Unit Tanks",fg_bg=g_lg_fg_bg}
 
     --#region Tank Layout Visualizer
 
@@ -416,25 +416,25 @@ local function config_view(display)
     -- draw unit tanks and their pipes
     for i = 1, 4 do
         local line = Div{parent=vis,x=22,y=(i*2)-1,width=13,height=1}
-        TextBox{parent=line,width=5,height=1,text=string.rep("\x8c",5),fg_bg=pipe_cpair}
-        local label = TextBox{parent=line,x=7,y=1,width=7,height=1,text="Tank ?"}
+        TextBox{parent=line,width=5,text=string.rep("\x8c",5),fg_bg=pipe_cpair}
+        local label = TextBox{parent=line,x=7,y=1,width=7,text="Tank ?"}
         tool_ctl.vis_utanks[i] = { line = line, label = label }
     end
 
     -- draw facility tank connections
 
     local ftank_1 = Div{parent=vis,x=1,y=1,width=13,height=1}
-    TextBox{parent=ftank_1,width=7,height=1,text="Tank F1"}
+    TextBox{parent=ftank_1,width=7,text="Tank F1"}
     tool_ctl.vis_ftanks[1] = {
         line = ftank_1, pipe_direct = TextBox{parent=ftank_1,x=9,y=1,width=5,text=string.rep("\x8c",5),fg_bg=pipe_cpair}
     }
 
     for i = 2, 4 do
         local line = Div{parent=vis,x=1,y=(i-1)*2,width=13,height=2}
-        local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,height=1,text="\x8c",fg_bg=pipe_cpair}
+        local pipe_conn = TextBox{parent=line,x=13,y=2,width=1,text="\x8c",fg_bg=pipe_cpair}
         local pipe_chain = TextBox{parent=line,x=12,y=1,width=1,height=2,text="\x95\n\x8d",fg_bg=pipe_cpair}
-        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,height=1,text="\x8c\x8c\x8c\x8c",fg_bg=pipe_cpair}
-        local label = TextBox{parent=line,x=1,y=2,width=7,height=1,text=""}
+        local pipe_direct = TextBox{parent=line,x=9,y=2,width=4,text="\x8c\x8c\x8c\x8c",fg_bg=pipe_cpair}
+        local label = TextBox{parent=line,x=1,y=2,width=7,text=""}
         tool_ctl.vis_ftanks[i] = { line = line, pipe_conn = pipe_conn, pipe_chain = pipe_chain, pipe_direct = pipe_direct, label = label }
     end
 
@@ -608,32 +608,32 @@ local function config_view(display)
 
     local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
 
-    TextBox{parent=net_cfg,x=1,y=2,height=1,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
+    TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,height=1,text="Please set the network channels below."}
+    TextBox{parent=net_c_1,x=1,y=1,text="Please set the network channels below."}
     TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=8,height=1,width=18,text="Supervisor Channel"}
+    TextBox{parent=net_c_1,x=1,y=8,width=18,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=21,y=8,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=8,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=9,height=1,width=11,text="PLC Channel"}
+    TextBox{parent=net_c_1,x=1,y=9,width=11,text="PLC Channel"}
     local plc_chan = NumberField{parent=net_c_1,x=21,y=9,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=9,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=10,height=1,width=19,text="RTU Gateway Channel"}
+    TextBox{parent=net_c_1,x=1,y=10,width=19,text="RTU Gateway Channel"}
     local rtu_chan = NumberField{parent=net_c_1,x=21,y=10,width=7,default=ini_cfg.RTU_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=10,height=4,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=11,height=1,width=19,text="Coordinator Channel"}
+    TextBox{parent=net_c_1,x=1,y=11,width=19,text="Coordinator Channel"}
     local crd_chan = NumberField{parent=net_c_1,x=21,y=11,width=7,default=ini_cfg.CRD_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=11,height=4,text="[CRD_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=12,height=1,width=14,text="Pocket Channel"}
+    TextBox{parent=net_c_1,x=1,y=12,width=14,text="Pocket Channel"}
     local pkt_chan = NumberField{parent=net_c_1,x=21,y=12,width=7,default=ini_cfg.PKT_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=29,y=12,height=4,text="[PKT_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    local chan_err = TextBox{parent=net_c_1,x=8,y=14,height=1,width=35,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local chan_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c, plc_c, rtu_c = tonumber(svr_chan.get_value()), tonumber(plc_chan.get_value()), tonumber(rtu_chan.get_value())
@@ -649,24 +649,24 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Please set the connection timeouts below."}
+    TextBox{parent=net_c_2,x=1,y=1,text="Please set the connection timeouts below."}
     TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=8,height=1,width=11,text="PLC Timeout"}
+    TextBox{parent=net_c_2,x=1,y=8,width=11,text="PLC Timeout"}
     local plc_timeout = NumberField{parent=net_c_2,x=21,y=8,width=7,default=ini_cfg.PLC_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=9,height=1,width=19,text="RTU Gateway Timeout"}
+    TextBox{parent=net_c_2,x=1,y=9,width=19,text="RTU Gateway Timeout"}
     local rtu_timeout = NumberField{parent=net_c_2,x=21,y=9,width=7,default=ini_cfg.RTU_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=10,height=1,width=19,text="Coordinator Timeout"}
+    TextBox{parent=net_c_2,x=1,y=10,width=19,text="Coordinator Timeout"}
     local crd_timeout = NumberField{parent=net_c_2,x=21,y=10,width=7,default=ini_cfg.CRD_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=11,height=1,width=14,text="Pocket Timeout"}
+    TextBox{parent=net_c_2,x=1,y=11,width=14,text="Pocket Timeout"}
     local pkt_timeout = NumberField{parent=net_c_2,x=21,y=11,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=29,y=8,height=4,width=7,text="seconds\nseconds\nseconds\nseconds",fg_bg=g_lg_fg_bg}
 
-    local ct_err = TextBox{parent=net_c_2,x=8,y=14,height=1,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local ct_err = TextBox{parent=net_c_2,x=8,y=14,width=35,text="Please set all connection timeouts.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_timeouts()
         local plc_cto, rtu_cto, crd_cto, pkt_cto = tonumber(plc_timeout.get_value()), tonumber(rtu_timeout.get_value()), tonumber(crd_timeout.get_value()), tonumber(pkt_timeout.get_value())
@@ -680,13 +680,13 @@ local function config_view(display)
     PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=1,text="Please set the trusted range below."}
+    TextBox{parent=net_c_3,x=1,y=1,text="Please set the trusted range below."}
     TextBox{parent=net_c_3,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
     local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    local tr_err = TextBox{parent=net_c_3,x=8,y=14,height=1,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local tr_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_tr()
         local range_val = tonumber(range.get_value())
@@ -703,7 +703,7 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
     TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=11,height=1,text="Facility Auth Key"}
+    TextBox{parent=net_c_4,x=1,y=11,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
@@ -713,7 +713,7 @@ local function config_view(display)
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_4,x=8,y=14,height=1,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_4,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -733,20 +733,20 @@ local function config_view(display)
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=log_cfg,x=1,y=2,height=1,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
+    TextBox{parent=log_cfg,x=1,y=2,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
 
-    TextBox{parent=log_c_1,x=1,y=1,height=1,text="Please configure logging below."}
+    TextBox{parent=log_c_1,x=1,y=1,text="Please configure logging below."}
 
-    TextBox{parent=log_c_1,x=1,y=3,height=1,text="Log File Mode"}
+    TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
     local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
-    TextBox{parent=log_c_1,x=1,y=7,height=1,text="Log File Path"}
+    TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
     local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
-    local path_err = TextBox{parent=log_c_1,x=8,y=14,height=1,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local path_err = TextBox{parent=log_c_1,x=8,y=14,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_log()
         if path.get_value() ~= "" then
@@ -774,17 +774,17 @@ local function config_view(display)
 
     local clr_pane = MultiPane{parent=clr_cfg,x=1,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
 
-    TextBox{parent=clr_cfg,x=1,y=2,height=1,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+    TextBox{parent=clr_cfg,x=1,y=2,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
 
     TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color theme for the front panel."}
     TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=clr_c_1,x=1,y=7,height=1,text="Front Panel Theme"}
+    TextBox{parent=clr_c_1,x=1,y=7,text="Front Panel Theme"}
     local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
 
-    TextBox{parent=clr_c_2,x=21,y=7,height=1,text="Preview"}
+    TextBox{parent=clr_c_2,x=21,y=7,text="Preview"}
     local _ = IndLight{parent=clr_c_2,x=21,y=8,label="Good",colors=cpair(colors.black,colors.green)}
     _ = IndLight{parent=clr_c_2,x=21,y=9,label="Warning",colors=cpair(colors.black,colors.yellow)}
     _ = IndLight{parent=clr_c_2,x=21,y=10,label="Bad",colors=cpair(colors.black,colors.red)}
@@ -811,7 +811,7 @@ local function config_view(display)
         end
     end
 
-    TextBox{parent=clr_c_2,x=1,y=7,height=1,width=10,text="Color Mode"}
+    TextBox{parent=clr_c_2,x=1,y=7,width=10,text="Color Mode"}
     local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=21,y=13,height=2,width=18,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
@@ -865,7 +865,7 @@ local function config_view(display)
         clr_pane.set_value(1)
     end
 
-    TextBox{parent=clr_c_3,x=1,y=1,height=1,text="Settings saved!"}
+    TextBox{parent=clr_c_3,x=1,y=1,text="Settings saved!"}
     PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
     PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
@@ -884,7 +884,7 @@ local function config_view(display)
 
     local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
 
-    TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=summary,x=1,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
     local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
@@ -961,7 +961,7 @@ local function config_view(display)
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_2,x=1,y=1,height=1,text="Settings saved!"}
+    TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
 
     local function go_home()
         main_pane.set_value(1)
@@ -994,15 +994,15 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
-    TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,x=1,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
 
     local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
-        TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=c_log,text=change[1],fg_bg=bw_fg_bg}
         for _, v in ipairs(change[2]) do
             local e = Div{parent=c_log,height=#util.strwrap(v,46)}
-            TextBox{parent=e,y=1,x=1,text="- ",height=1,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,x=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
         end
     end
@@ -1013,8 +1013,8 @@ local function config_view(display)
 
     local i_err = Div{parent=import_err,x=2,y=4,width=49}
 
-    TextBox{parent=import_err,x=1,y=2,height=1,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
-    TextBox{parent=i_err,x=1,y=1,height=1,text="There is a problem with your config.lua file:"}
+    TextBox{parent=import_err,x=1,y=2,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
+    TextBox{parent=i_err,x=1,y=1,text="There is a problem with your config.lua file:"}
 
     local import_err_msg = TextBox{parent=i_err,x=1,y=3,height=6,text=""}
 
