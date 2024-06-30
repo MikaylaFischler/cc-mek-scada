@@ -540,6 +540,7 @@ elseif mode == "uninstall" then
     table.insert(dependencies, app)
 
     -- delete all installed files
+    lgray()
     for _, dependency in pairs(dependencies) do
         local files = file_list[dependency]
         for _, file in pairs(files) do
@@ -562,7 +563,6 @@ elseif mode == "uninstall" then
     local log_deleted = false
     local settings_file = app..".settings"
 
-    lgray()
     if fs.exists(settings_file) and settings.load(settings_file) then
         local log = settings.get("LogPath")
         if log ~= nil then
@@ -575,9 +575,7 @@ elseif mode == "uninstall" then
     end
 
     if not log_deleted then
-        red();println("Failed to delete log file.")
-        white();println("press any key to continue...")
-        any_key();lgray()
+        red();println("Failed to delete log file (it may not exist).");lgray()
     end
 
     if fs.exists(settings_file) then
