@@ -160,7 +160,7 @@ local function _clean_dir(dir, tree)
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
             if #fs.list(path) == 0 then fs.delete(path);println("deleted "..path) end
-        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@todo delete on full release
+        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@todo remove config.lua on full release
             fs.delete(path)
             println("deleted "..path)
         end
@@ -249,7 +249,6 @@ else
 end
 
 -- run selected mode
-
 if mode == "check" then
     local ok, manifest = get_remote_manifest()
     if not ok then return end

@@ -87,6 +87,7 @@ local function write_files(files, path)
     end
 end
 
+-- write installation manifiest and offline install manager
 local function write_install()
     local handle = fs.open("install_manifest.json", "w")
     handle.write(b64_decode(install_manifest))
@@ -103,7 +104,7 @@ lgray()
 write_files(app_files, "/")
 write_files(dep_files, "/")
 
--- write a install manifest and offline installer
+-- write an install manifest and the offline installer
 write_install()
 
 green()

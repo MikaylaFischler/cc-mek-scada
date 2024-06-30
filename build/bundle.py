@@ -7,7 +7,7 @@ import sys
 path_prefix = "./_minified/"
 
 # get git build info
-build = subprocess.check_output(["git", "describe", "--tags"]).strip().decode("utf-8")
+build = subprocess.check_output(["git", "describe", "--tags"]).strip().decode('UTF-8')
 
 # list files in a directory
 def list_files(path):
@@ -110,7 +110,7 @@ manifest = {
         "coordinator" : list_files("./coordinator"),
         "pocket" : list_files("./pocket"),
     },
-    "depends" : [ "system", "scada-common", "graphics", "lockbox" ],
+    "depends" : [ "system", "scada-common", "graphics", "lockbox" ]
 }
 
 # write the application installation items as Lua tables

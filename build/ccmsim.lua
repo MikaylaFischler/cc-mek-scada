@@ -132,7 +132,7 @@ if #opts == 0 or opts[1] == "help" then
     println(" check     - check your installed versions")
     println(" update-rm - delete everything except the config,")
     println("             so that you can upload files for a")
-    println("             new two-file/off-line update")
+    println("             new two-file off-line update")
     println(" uninstall - delete all app files and config")
     return
 else
@@ -144,7 +144,6 @@ else
 end
 
 -- run selected mode
-
 if mode == "check" then
     local local_ok, manifest = read_local_manifest()
     if not local_ok then
