@@ -89,10 +89,11 @@ end
 
 -- establish a new API session
 ---@nodiscard
----@param source_addr integer
----@param version string
+---@param source_addr integer pocket computer ID
+---@param i_seq_num integer initial (most recent) sequence number
+---@param version string pocket version
 ---@return integer session_id
-function apisessions.establish_session(source_addr, version)
+function apisessions.establish_session(source_addr, i_seq_num, version)
     ---@class pkt_session_struct
     local pkt_s = {
         open = true,
@@ -105,7 +106,7 @@ function apisessions.establish_session(source_addr, version)
 
     local id = self.next_id
 
-    pkt_s.instance = pocket.new_session(id, source_addr, pkt_s.in_queue, pkt_s.out_queue, self.config.API_Timeout)
+    pkt_s.instance = pocket.new_session(id, source_addr, i_seq_num, pkt_s.in_queue, pkt_s.out_queue, self.config.API_Timeout)
     table.insert(self.sessions, pkt_s)
 
     local mt = {

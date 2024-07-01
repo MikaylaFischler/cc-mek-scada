@@ -35,7 +35,7 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 local function init(panel, units)
     local disabled_fg = style.fp.disabled_fg
 
-    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     --
     -- system indicators
@@ -98,9 +98,9 @@ local function init(panel, units)
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,height=1,text=comp_id,fg_bg=disabled_fg}
+    TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=disabled_fg}
 
-    TextBox{parent=system,x=1,y=14,text="SPEAKERS",height=1,width=8,fg_bg=style.fp.text_fg}
+    TextBox{parent=system,x=1,y=14,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
     local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
     speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
 
@@ -109,8 +109,8 @@ local function init(panel, units)
     --
 
     local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT,height=1}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT,height=1}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -126,7 +126,7 @@ local function init(panel, units)
 
     -- show routine statuses
     for i = 1, list_length do
-        TextBox{parent=threads,x=1,y=i,text=util.sprintf("%02d",i),height=1}
+        TextBox{parent=threads,x=1,y=i,text=util.sprintf("%02d",i)}
         local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=ind_grn}
         rt_unit.register(databus.ps, "routine__unit_" .. i, rt_unit.update)
     end
@@ -144,13 +144,13 @@ local function init(panel, units)
 
         -- unit name identifier (type + index)
         local function get_name(t) return util.c(UNIT_TYPE_LABELS[t + 1], " ", util.trinary(util.is_int(unit.index), unit.index, "")) end
-        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),width=15,height=1}
+        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),width=15}
 
         name_box.register(databus.ps, "unit_type_" .. i, function (t) name_box.set_value(get_name(t)) end)
 
         -- assignment (unit # or facility)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
-        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,height=1,fg_bg=disabled_fg}
+        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,fg_bg=disabled_fg}
     end
 end
 

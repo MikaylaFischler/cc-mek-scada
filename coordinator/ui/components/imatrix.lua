@@ -42,8 +42,8 @@ local function new_view(root, x, y, data, ps, id)
     -- black has low contrast with dark gray, so if background is black use white instead
     local cutout_fg_bg = cpair(util.trinary(style.theme.bg == colors.black, colors.white, style.theme.bg), colors.gray)
 
-    TextBox{parent=matrix,text=" ",width=33,height=1,x=1,y=1,fg_bg=cutout_fg_bg}
-    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,height=1,x=1,y=2,fg_bg=cutout_fg_bg}
+    TextBox{parent=matrix,text=" ",width=33,x=1,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,x=1,y=2,fg_bg=cutout_fg_bg}
 
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
 
@@ -87,7 +87,7 @@ local function new_view(root, x, y, data, ps, id)
     local in_cap  = VerticalBar{parent=rect,x=7,y=12,fg_bg=cpair(colors.red,colors.gray),height=7,width=1}
     local out_cap = VerticalBar{parent=rect,x=9,y=12,fg_bg=cpair(colors.blue,colors.gray),height=7,width=1}
 
-    TextBox{parent=rect,text="FILL I/O",x=2,y=20,height=1,width=8,fg_bg=label_fg}
+    TextBox{parent=rect,text="FILL I/O",x=2,y=20,width=8,fg_bg=label_fg}
 
     local function calc_saturation(val)
         if (type(data.build) == "table") and (type(data.build.transfer_cap) == "number") and (data.build.transfer_cap > 0) then
@@ -99,7 +99,7 @@ local function new_view(root, x, y, data, ps, id)
     in_cap.register(ps, "last_input", function (val) in_cap.update(calc_saturation(val)) end)
     out_cap.register(ps, "last_output", function (val) out_cap.update(calc_saturation(val)) end)
 
-    local eta = TextBox{parent=rect,x=11,y=20,width=20,height=1,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=style.theme.field_box}
+    local eta = TextBox{parent=rect,x=11,y=20,width=20,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=style.theme.field_box}
 
     eta.register(ps, "eta_ms", function (eta_ms)
         local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")

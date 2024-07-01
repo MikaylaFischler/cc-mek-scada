@@ -37,8 +37,8 @@ local function new_view(root, x, y, ps)
     local steam  = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
     local energy = VerticalBar{parent=turbine,x=3,y=1,fg_bg=cpair(colors.green,colors.gray),height=4,width=1}
 
-    TextBox{parent=turbine,text="S",x=2,y=5,height=1,width=1,fg_bg=text_fg}
-    TextBox{parent=turbine,text="E",x=3,y=5,height=1,width=1,fg_bg=text_fg}
+    TextBox{parent=turbine,text="S",x=2,y=5,width=1,fg_bg=text_fg}
+    TextBox{parent=turbine,text="E",x=3,y=5,width=1,fg_bg=text_fg}
 
     steam.register(ps, "steam_fill", steam.update)
     energy.register(ps, "energy_fill", energy.update)

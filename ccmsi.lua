@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.14"
+local CCMSI_VERSION = "v1.15"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -121,7 +121,7 @@ local function write_install_manifest(manifest, dependencies)
 end
 
 -- recursively build a tree out of the file manifest
-local function gen_tree(manifest)
+local function gen_tree(manifest, log)
     local function _tree_add(tree, split)
         if #split > 1 then
             local name = table.remove(split, 1)
@@ -131,13 +131,14 @@ local function gen_tree(manifest)
         return nil
     end
 
-    local list, tree = {}, {}
+    local list, tree = { log }, {}
 
     -- make a list of each and every file
     for _, files in pairs(manifest.files) do for i = 1, #files do table.insert(list, files[i]) end end
 
     for i = 1, #list do
         local split = {}
+---@diagnostic disable-next-line: discard-returns
         string.gsub(list[i], "([^/]+)", function(c) split[#split + 1] = c end)
         if #split == 1 then table.insert(tree, list[i])
         else table.insert(tree, _tree_add(tree, split)) end
@@ -159,7 +160,7 @@ local function _clean_dir(dir, tree)
         if fs.isDir(path) then
             _clean_dir(path, tree[val])
             if #fs.list(path) == 0 then fs.delete(path);println("deleted "..path) end
-        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then
+        elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@todo remove config.lua on full release
             fs.delete(path)
             println("deleted "..path)
         end
@@ -168,11 +169,15 @@ end
 
 -- go through app/common directories to delete unused files
 local function clean(manifest)
-    local tree = gen_tree(manifest)
+    local log = nil
+    if fs.exists(app..".settings") and settings.load(app..".settings") then
+        log = settings.get("LogPath")
+    end
+
+    local tree = gen_tree(manifest, log)
 
     table.insert(tree, "install_manifest.json")
     table.insert(tree, "ccmsi.lua")
-    table.insert(tree, "log.txt") ---@fixme fix after migration to settings files?
 
     local ls = fs.list("/")
     for _, val in pairs(ls) do
@@ -244,7 +249,6 @@ else
 end
 
 -- run selected mode
-
 if mode == "check" then
     local ok, manifest = get_remote_manifest()
     if not ok then return end
@@ -534,36 +538,8 @@ elseif mode == "uninstall" then
 
     table.insert(dependencies, app)
 
-    -- delete log file
-    local log_deleted = false
-    local settings_file = app..".settings"
-    local legacy_config_file = app.."/config.lua"
-
-    lgray()
-    if fs.exists(legacy_config_file) then
-        log_deleted = pcall(function ()
-            local config = require(app..".config")
-            if fs.exists(config.LOG_PATH) then
-                fs.delete(config.LOG_PATH)
-                println("deleted log file "..config.LOG_PATH)
-            end
-        end)
-    elseif fs.exists(settings_file) and settings.load(settings_file) then
-        local log = settings.get("LogPath")
-        if log ~= nil and fs.exists(log) then
-            log_deleted = true
-            fs.delete(log)
-            println("deleted log file "..log)
-        end
-    end
-
-    if not log_deleted then
-        red();println("Failed to delete log file.")
-        white();println("press any key to continue...")
-        any_key();lgray()
-    end
-
     -- delete all installed files
+    lgray()
     for _, dependency in pairs(dependencies) do
         local files = file_list[dependency]
         for _, file in pairs(files) do
@@ -582,8 +558,23 @@ elseif mode == "uninstall" then
         end
     end
 
-    if fs.exists(legacy_config_file) then
-        fs.delete(legacy_config_file);println("deleted "..legacy_config_file)
+    -- delete log file
+    local log_deleted = false
+    local settings_file = app..".settings"
+
+    if fs.exists(settings_file) and settings.load(settings_file) then
+        local log = settings.get("LogPath")
+        if log ~= nil then
+            log_deleted = true
+            if fs.exists(log) then
+                fs.delete(log)
+                println("deleted log file "..log)
+            end
+        end
+    end
+
+    if not log_deleted then
+        red();println("Failed to delete log file (it may not exist).");lgray()
     end
 
     if fs.exists(settings_file) then

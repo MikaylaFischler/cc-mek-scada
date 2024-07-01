@@ -71,7 +71,7 @@ local function init(parent, id)
     local b_ps = unit.boiler_ps_tbl
     local t_ps = unit.turbine_ps_tbl
 
-    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,height=1,fg_bg=style.theme.header}
+    TextBox{parent=main,text="Reactor Unit #" .. id,alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     -----------------------------
     -- main stats and core map --
@@ -81,20 +81,20 @@ local function init(parent, id)
     core_map.register(u_ps, "temp", core_map.update)
     core_map.register(u_ps, "size", function (s) core_map.resize(s[1], s[2]) end)
 
-    TextBox{parent=main,x=12,y=22,text="Heating Rate",height=1,width=12,fg_bg=style.label}
+    TextBox{parent=main,x=12,y=22,text="Heating Rate",width=12,fg_bg=style.label}
     local heating_r = DataIndicator{parent=main,x=12,label="",format="%14.0f",value=0,unit="mB/t",commas=true,lu_colors=lu_cpair,width=19,fg_bg=s_field}
     heating_r.register(u_ps, "heating_rate", heating_r.update)
 
-    TextBox{parent=main,x=12,y=25,text="Commanded Burn Rate",height=1,width=19,fg_bg=style.label}
+    TextBox{parent=main,x=12,y=25,text="Commanded Burn Rate",width=19,fg_bg=style.label}
     local burn_r = DataIndicator{parent=main,x=12,label="",format="%14.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=19,fg_bg=s_field}
     burn_r.register(u_ps, "burn_rate", burn_r.update)
 
-    TextBox{parent=main,text="F",x=2,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="C",x=4,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="\x1a",x=6,y=24,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="\x1a",x=6,y=25,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="H",x=8,y=22,width=1,height=1,fg_bg=style.label}
-    TextBox{parent=main,text="W",x=10,y=22,width=1,height=1,fg_bg=style.label}
+    TextBox{parent=main,text="F",x=2,y=22,width=1,fg_bg=style.label}
+    TextBox{parent=main,text="C",x=4,y=22,width=1,fg_bg=style.label}
+    TextBox{parent=main,text="\x1a",x=6,y=24,width=1,fg_bg=style.label}
+    TextBox{parent=main,text="\x1a",x=6,y=25,width=1,fg_bg=style.label}
+    TextBox{parent=main,text="H",x=8,y=22,width=1,fg_bg=style.label}
+    TextBox{parent=main,text="W",x=10,y=22,width=1,fg_bg=style.label}
 
     local fuel  = VerticalBar{parent=main,x=2,y=23,fg_bg=cpair(style.theme.fuel_color,colors.gray),height=4,width=1}
     local ccool = VerticalBar{parent=main,x=4,y=23,fg_bg=cpair(colors.blue,colors.gray),height=4,width=1}
@@ -122,20 +122,20 @@ local function init(parent, id)
         end
     end)
 
-    TextBox{parent=main,x=32,y=22,text="Core Temp",height=1,width=9,fg_bg=style.label}
+    TextBox{parent=main,x=32,y=22,text="Core Temp",width=9,fg_bg=style.label}
     local fmt = util.trinary(string.len(db.temp_label) == 2, "%10.2f", "%11.2f")
     local core_temp = DataIndicator{parent=main,x=32,label="",format=fmt,value=0,commas=true,unit=db.temp_label,lu_colors=lu_cpair,width=13,fg_bg=s_field}
     core_temp.register(u_ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
 
-    TextBox{parent=main,x=32,y=25,text="Burn Rate",height=1,width=9,fg_bg=style.label}
+    TextBox{parent=main,x=32,y=25,text="Burn Rate",width=9,fg_bg=style.label}
     local act_burn_r = DataIndicator{parent=main,x=32,label="",format="%8.2f",value=0,unit="mB/t",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     act_burn_r.register(u_ps, "act_burn_rate", act_burn_r.update)
 
-    TextBox{parent=main,x=32,y=28,text="Damage",height=1,width=6,fg_bg=style.label}
+    TextBox{parent=main,x=32,y=28,text="Damage",width=6,fg_bg=style.label}
     local damage_p = DataIndicator{parent=main,x=32,label="",format="%11.0f",value=0,unit="%",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     damage_p.register(u_ps, "damage", damage_p.update)
 
-    TextBox{parent=main,x=32,y=31,text="Radiation",height=1,width=21,fg_bg=style.label}
+    TextBox{parent=main,x=32,y=31,text="Radiation",width=21,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,x=32,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     radiation.register(u_ps, "radiation", radiation.update)
 
@@ -144,8 +144,8 @@ local function init(parent, id)
     -------------------
 
     local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,height=1,alignment=ALIGN.CENTER,fg_bg=gry_wht}
+    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,alignment=ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(u_ps, "U_StatusLine1", stat_line_1.set_value)
     stat_line_2.register(u_ps, "U_StatusLine2", stat_line_2.set_value)
@@ -205,7 +205,7 @@ local function init(parent, id)
 
     -- RPS annunciator panel
 
-    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=8}
+    TextBox{parent=main,text="REACTOR PROTECTION SYSTEM",fg_bg=cpair(colors.black,colors.cyan),alignment=ALIGN.CENTER,width=33,x=46,y=8}
     local rps = Rectangle{parent=main,border=border(1,colors.cyan,true),thin=true,width=33,height=12,x=46,y=9}
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
@@ -233,7 +233,7 @@ local function init(parent, id)
 
     -- cooling annunciator panel
 
-    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=22}
+    TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
     local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
@@ -265,11 +265,11 @@ local function init(parent, id)
     if unit.num_boilers > 0 then
         if available_space > 0 then _add_space() end
 
-        TextBox{parent=rcs_tags,x=1,text="B1",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,x=1,text="B1",width=2,fg_bg=hc_text}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b1_wll.register(b_ps[1], "WaterLevelLow", b1_wll.update)
 
-        TextBox{parent=rcs_tags,text="B1",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="B1",width=2,fg_bg=hc_text}
         local b1_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b1_hr.register(b_ps[1], "HeatingRateLow", b1_hr.update)
     end
@@ -281,11 +281,11 @@ local function init(parent, id)
             _add_space()
         end
 
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="B2",width=2,fg_bg=hc_text}
         local b2_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b2_wll.register(b_ps[2], "WaterLevelLow", b2_wll.update)
 
-        TextBox{parent=rcs_tags,text="B2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="B2",width=2,fg_bg=hc_text}
         local b2_hr = IndicatorLight{parent=rcs_annunc,label="Heating Rate Low",colors=ind_yel}
         b2_hr.register(b_ps[2], "HeatingRateLow", b2_hr.update)
     end
@@ -294,19 +294,19 @@ local function init(parent, id)
 
     if available_space > 1 then _add_space() end
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
+    TextBox{parent=rcs_tags,text="T1",width=2,fg_bg=hc_text}
     local t1_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
     t1_sdo.register(t_ps[1], "SteamDumpOpen", t1_sdo.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
+    TextBox{parent=rcs_tags,text="T1",width=2,fg_bg=hc_text}
     local t1_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
     t1_tos.register(t_ps[1], "TurbineOverSpeed", t1_tos.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
+    TextBox{parent=rcs_tags,text="T1",width=2,fg_bg=hc_text}
     local t1_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
     t1_gtrp.register(t_ps[1], "GeneratorTrip", t1_gtrp.update)
 
-    TextBox{parent=rcs_tags,text="T1",width=2,height=1,fg_bg=hc_text}
+    TextBox{parent=rcs_tags,text="T1",width=2,fg_bg=hc_text}
     local t1_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     t1_trp.register(t_ps[1], "TurbineTrip", t1_trp.update)
 
@@ -315,19 +315,19 @@ local function init(parent, id)
             _add_space()
         end
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T2",width=2,fg_bg=hc_text}
         local t2_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
         t2_sdo.register(t_ps[2], "SteamDumpOpen", t2_sdo.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T2",width=2,fg_bg=hc_text}
         local t2_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t2_tos.register(t_ps[2], "TurbineOverSpeed", t2_tos.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T2",width=2,fg_bg=hc_text}
         local t2_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t2_gtrp.register(t_ps[2], "GeneratorTrip", t2_gtrp.update)
 
-        TextBox{parent=rcs_tags,text="T2",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T2",width=2,fg_bg=hc_text}
         local t2_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t2_trp.register(t_ps[2], "TurbineTrip", t2_trp.update)
     end
@@ -335,19 +335,19 @@ local function init(parent, id)
     if unit.num_turbines > 2 then
         if available_space > 3 then _add_space() end
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T3",width=2,fg_bg=hc_text}
         local t3_sdo = TriIndicatorLight{parent=rcs_annunc,label="Steam Relief Valve Open",c1=ind_bkg,c2=ind_yel.fgd,c3=ind_red.fgd}
         t3_sdo.register(t_ps[3], "SteamDumpOpen", t3_sdo.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T3",width=2,fg_bg=hc_text}
         local t3_tos = IndicatorLight{parent=rcs_annunc,label="Turbine Over Speed",colors=ind_red}
         t3_tos.register(t_ps[3], "TurbineOverSpeed", t3_tos.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T3",width=2,fg_bg=hc_text}
         local t3_gtrp = IndicatorLight{parent=rcs_annunc,label="Generator Trip",colors=ind_yel,flash=true,period=period.BLINK_250_MS}
         t3_gtrp.register(t_ps[3], "GeneratorTrip", t3_gtrp.update)
 
-        TextBox{parent=rcs_tags,text="T3",width=2,height=1,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="T3",width=2,fg_bg=hc_text}
         local t3_trp = IndicatorLight{parent=rcs_annunc,label="Turbine Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
         t3_trp.register(t_ps[3], "TurbineTrip", t3_trp.update)
     end
@@ -394,7 +394,7 @@ local function init(parent, id)
 
     reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,height=1,x=46,y=48}
+    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,x=46,y=48}
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
@@ -474,15 +474,15 @@ local function init(parent, id)
 
     -- color tags
 
-    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.cyan)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
-    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,height=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
+    TextBox{parent=alarm_panel,x=5,y=13,text="\x95",width=1,fg_bg=cpair(s_hi_bright.bkg,colors.cyan)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
+    TextBox{parent=alarm_panel,x=5,text="\x95",width=1,fg_bg=cpair(s_hi_bright.bkg,colors.blue)}
 
     --------------------------------
     -- automatic control settings --
     --------------------------------
 
-    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=ALIGN.CENTER,width=13,height=1,x=32,y=36}
+    TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=ALIGN.CENTER,width=13,x=32,y=36}
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
     local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
@@ -499,8 +499,8 @@ local function init(parent, id)
 
     auto_div.line_break()
 
-    TextBox{parent=auto_div,text="Prio. Group",height=1,width=11,fg_bg=style.label}
-    local auto_grp = TextBox{parent=auto_div,text="Manual",height=1,width=11,fg_bg=s_field}
+    TextBox{parent=auto_div,text="Prio. Group",width=11,fg_bg=style.label}
+    local auto_grp = TextBox{parent=auto_div,text="Manual",width=11,fg_bg=s_field}
 
     auto_grp.register(u_ps, "auto_group", auto_grp.set_value)
 
