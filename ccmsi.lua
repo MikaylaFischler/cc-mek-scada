@@ -415,18 +415,22 @@ elseif mode == "install" or mode == "update" then
 
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
+                    local i = 0
                     println("GET "..file)
+                    ::download_retry::
                     local dl, err = http.get(repo_path..file)
-
-                    if dl == nil then
+                    if i < 3 and dl == nil then
+                        i += 1
+                        println("Failed to get retrying")
+                        goto download_retry
+                    elseif dl == nil then
                         red();println("HTTP Error "..err)
                         success = false
                         break
-                    else
-                        local handle = fs.open(install_dir.."/"..file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
                     end
+                    local handle = fs.open(install_dir.."/"..file, "w")
+                    handle.write(dl.readAll())
+                    handle.close()
                 end
             end
         end
