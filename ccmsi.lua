@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.15"
+local CCMSI_VERSION = "v1.16"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -118,6 +118,22 @@ local function write_install_manifest(manifest, dependencies)
     local imfile = fs.open("install_manifest.json", "w")
     imfile.write(textutils.serializeJSON(manifest))
     imfile.close()
+end
+
+-- try at most 3 times to download a file from the repository
+local function http_get_file(file)
+    local dl, err
+    for i = 1, 3 do
+        dl, err = http.get(repo_path..file)
+        if dl then break
+        else
+            red();println("HTTP Error "..err)
+            lgray();println("retrying...")
+---@diagnostic disable-next-line: undefined-field
+            os.sleep(0.25 * i)
+        end
+    end
+    return dl
 end
 
 -- recursively build a tree out of the file manifest
@@ -420,16 +436,16 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl, err = http.get(repo_path..file)
+                    local dl = http_get_file(file)
 
-                    if dl == nil then
-                        red();println("HTTP Error "..err)
-                        success = false
-                        break
-                    else
+                    if dl then
                         local handle = fs.open(install_dir.."/"..file, "w")
                         handle.write(dl.readAll())
                         handle.close()
+                    else
+                        red();println("failed to download "..file)
+                        success = false
+                        break
                     end
                 end
             end
@@ -482,16 +498,16 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl, err = http.get(repo_path..file)
+                    local dl = http_get_file(file)
 
-                    if dl == nil then
-                        red();println("HTTP Error "..err)
-                        success = false
-                        break
-                    else
+                    if dl then
                         local handle = fs.open("/"..file, "w")
                         handle.write(dl.readAll())
                         handle.close()
+                    else
+                        red();println("failed to download "..file)
+                        success = false
+                        break
                     end
                 end
             end
