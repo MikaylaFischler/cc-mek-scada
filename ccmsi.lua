@@ -120,20 +120,25 @@ local function write_install_manifest(manifest, dependencies)
     imfile.close()
 end
 
--- try at most 3 times to download a file from the repository
-local function http_get_file(file)
+-- try at most 3 times to download a file from the repository and write into w_path base directory
+local function http_get_file(file, w_path)
     local dl, err
     for i = 1, 3 do
         dl, err = http.get(repo_path..file)
-        if dl then break
+        if dl then
+            if i > 1 then green();println("success!");lgray() end
+            local f = fs.open(w_path..file, "w")
+            f.write(dl.readAll())
+            f.close()
+            break
         else
             red();println("HTTP Error "..err)
-            lgray();println("retrying...")
+            if i < 3 then lgray();print("> retrying...") end
 ---@diagnostic disable-next-line: undefined-field
-            os.sleep(0.25 * i)
+            os.sleep(i/3.0)
         end
     end
-    return dl
+    return dl ~= nil
 end
 
 -- recursively build a tree out of the file manifest
@@ -436,13 +441,7 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl = http_get_file(file)
-
-                    if dl then
-                        local handle = fs.open(install_dir.."/"..file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
-                    else
+                    if not http_get_file(file, install_dir.."/") then
                         red();println("failed to download "..file)
                         success = false
                         break
@@ -498,13 +497,7 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl = http_get_file(file)
-
-                    if dl then
-                        local handle = fs.open("/"..file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
-                    else
+                    if not http_get_file(file, "/") then
                         red();println("failed to download "..file)
                         success = false
                         break
