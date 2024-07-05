@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local function println(message) print(tostring(message)) end
 local function print(message) term.write(tostring(message)) end
 
-local CCMSI_VERSION = "v1.15"
+local CCMSI_VERSION = "v1.16"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -120,6 +120,27 @@ local function write_install_manifest(manifest, dependencies)
     imfile.close()
 end
 
+-- try at most 3 times to download a file from the repository and write into w_path base directory
+local function http_get_file(file, w_path)
+    local dl, err
+    for i = 1, 3 do
+        dl, err = http.get(repo_path..file)
+        if dl then
+            if i > 1 then green();println("success!");lgray() end
+            local f = fs.open(w_path..file, "w")
+            f.write(dl.readAll())
+            f.close()
+            break
+        else
+            red();println("HTTP Error: "..err)
+            if i < 3 then lgray();print("> retrying...") end
+---@diagnostic disable-next-line: undefined-field
+            os.sleep(i/3.0)
+        end
+    end
+    return dl ~= nil
+end
+
 -- recursively build a tree out of the file manifest
 local function gen_tree(manifest, log)
     local function _tree_add(tree, split)
@@ -172,6 +193,7 @@ local function clean(manifest)
     local log = nil
     if fs.exists(app..".settings") and settings.load(app..".settings") then
         log = settings.get("LogPath")
+        if log:sub(1, 1) == "/" then log = log:sub(2) end
     end
 
     local tree = gen_tree(manifest, log)
@@ -322,7 +344,7 @@ elseif mode == "install" or mode == "update" then
             local dl, err = http.get(repo_path.."ccmsi.lua")
 
             if dl == nil then
-                red();println("HTTP Error "..err)
+                red();println("HTTP Error: "..err)
                 println("Installer download failed.");white()
             else
                 local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
@@ -359,9 +381,6 @@ elseif mode == "install" or mode == "update" then
     ver.graphics.changed = show_pkg_change("graphics", ver.graphics)
     ver.lockbox.changed = show_pkg_change("lockbox", ver.lockbox)
 
-    -- ask for confirmation
-    if not ask_y_n("Continue", false) then return end
-
     --------------------------
     -- START INSTALL/UPDATE --
     --------------------------
@@ -376,10 +395,31 @@ elseif mode == "install" or mode == "update" then
 
     table.insert(dependencies, app)
 
+    -- helper function to check if a dependency is unchanged
+    local function unchanged(dependency)
+        if dependency == "system" then return not ver.boot.changed
+        elseif dependency == "graphics" then return not ver.graphics.changed
+        elseif dependency == "lockbox" then return not ver.lockbox.changed
+        elseif dependency == "common" then return not (ver.common.changed or ver.comms.changed)
+        elseif dependency == app then return not ver.app.changed
+        else return true end
+    end
+
+    local any_change = false
+
     for _, dependency in pairs(dependencies) do
         local size = size_list[dependency]
         space_required = space_required + size
+        any_change = any_change or not unchanged(dependency)
     end
+
+    if mode == "update" and not any_change then
+        yellow();println("Nothing to do, everything is already up-to-date!");white()
+        return
+    end
+
+    -- ask for confirmation
+    if not ask_y_n("Continue", false) then return end
 
     -- check space constraints
     if space_available < space_required then
@@ -396,16 +436,6 @@ elseif mode == "install" or mode == "update" then
 
     local success = true
 
-    -- helper function to check if a dependency is unchanged
-    local function unchanged(dependency)
-        if dependency == "system" then return not ver.boot.changed
-        elseif dependency == "graphics" then return not ver.graphics.changed
-        elseif dependency == "lockbox" then return not ver.lockbox.changed
-        elseif dependency == "common" then return not (ver.common.changed or ver.comms.changed)
-        elseif dependency == app then return not ver.app.changed
-        else return true end
-    end
-
     if not single_file_mode then
         if fs.exists(install_dir) then fs.delete(install_dir);fs.makeDir(install_dir) end
 
@@ -420,19 +450,14 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl, err = http.get(repo_path..file)
-
-                    if dl == nil then
-                        red();println("HTTP Error "..err)
+                    if not http_get_file(file, install_dir.."/") then
+                        red();println("failed to download "..file)
                         success = false
                         break
-                    else
-                        local handle = fs.open(install_dir.."/"..file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
                     end
                 end
             end
+            if not success then break end
         end
 
         -- copy in downloaded files (installation)
@@ -482,19 +507,14 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    local dl, err = http.get(repo_path..file)
-
-                    if dl == nil then
-                        red();println("HTTP Error "..err)
+                    if not http_get_file(file, "/") then
+                        red();println("failed to download "..file)
                         success = false
                         break
-                    else
-                        local handle = fs.open("/"..file, "w")
-                        handle.write(dl.readAll())
-                        handle.close()
                     end
                 end
             end
+            if not success then break end
         end
 
         if success then
