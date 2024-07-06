@@ -28,7 +28,7 @@ doc("TurbineTripAlarm", "Turbine Trip", "A turbine stopped rotating, likely due 
 
 docs.annunc = {
     unit = {
-        main_section = {}, rps_section = {}, rcs_section = {}
+        main_section = {}, rps_section = {}, rcs_section = {}, fac_section = {}
     }
 }
 
@@ -78,15 +78,35 @@ doc("TurbineOverSpeed", "Turbine Over Speed", "The turbine is at steam capacity,
 doc("GeneratorTrip", "Generator Trip", "The turbine is no longer outputting power due to it having nowhere to go. Likely due to full power storage. This will lead to a Turbine Trip if not addressed.")
 doc("TurbineTrip", "Turbine Trip", "The turbine has reached its maximum power charge and has stopped rotating, and as a result stopped cooling steam to water. Ensure the turbine has somewhere to output power, as this is the most common cause of reactor meltdowns. However, the likelihood of a meltdown with this system in place is much lower, especially with emergency coolant helping during turbine trips.")
 
+target = docs.annunc.unit.fac_section
+doc("?", "Unit Systems Online", "All unit systems (reactors, boilers, and turbines) are connected.")
+doc("?", "Radiation Monitor", "At least one facility radiation monitor is connected")
+doc("?", "Induction Matrix", "The induction matrix is connected.")
+doc("?", "SPS Connected", "Indicates if the super-critical phase shifter is connected.")
+doc("?", "Configured Units Ready", "All units assigned to automatic control are ready to run automatic control.")
+doc("?", "Process Active", "Automatic process control is active.")
+doc("?", "Process Ramping", "Automatic process control is performing an initial ramp-up of the reactors for later PID control (generation and charge mode).")
+doc("?", "Min/Max Burn Rate", "Auto control has either commanded 0 mB/t or the maximum total burn rate available (from assigned units).")
+doc("?", "Automatic SCRAM", "Automatic control system SCRAM'ed the assigned reactors due to a safety hazard, shown by the below indicators.")
+doc("?", "Matrix Disconnected", "Automatic SCRAM occurred due to loss of induction matrix connection.")
+doc("?", "Matrix Charge High", "Automatic SCRAM occurred due to induction matrix charge exceeding acceptable limit.")
+doc("?", "Unit Critical Alarm", "Automatic SCRAM occurred due to critical level unit alarm(s).")
+doc("?", "Facility Radiation High", "Automatic SCRAM occurred due to high facility radiation levels.")
+doc("?", "Gen. Control Fault", "Automatic SCRAM occurred due to assigned units being degraded/no longer ready during generation mode. The system will automatically resume (starting with initial ramp) once the problem is resolved.")
+
 docs.glossary = {
     abbvs = {}, terms = {}
 }
 
 target = docs.glossary.abbvs
 doc("G_ACK", "ACK", "Alarm ACKnowledge. Pressing this acknowledges that you understand an alarm occurred and would like to stop the audio tone(s).")
+doc("G_Auto", "Auto", "Automatic.")
 doc("G_CRD", "CRD", "Coordinator. Abbreviation for the coordinator computer.")
 doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket computers found on the supervisor's front panel.")
 doc("G_FP", "FP", "Front Panel. See Terminology.")
+doc("G_Hi", "Hi", "High.")
+doc("G_Lo", "Lo", "Low.")
+doc("G_PID", "PID", "A Proportional Integral Derivitave closed-loop controller.")
 doc("G_PKT", "PKT", "Pocket. Abbreviation for the pocket computer.")
 doc("G_PLC", "PLC", "Programmable Logic Controller. A device that not only reports data and controls outputs, but can also make decisions on its own.")
 doc("G_PPM", "PPM", "Protected Peripheral Manager. This is an abstraction layer created for this project that prevents peripheral calls from crashing applications.")
@@ -99,8 +119,11 @@ doc("G_SVR", "SVR", "Supervisor. Abbreviation for the supervisory computer.")
 doc("G_UI", "UI", "User Interface.")
 
 target = docs.glossary.terms
+doc("G_AssignedUnit", "Assigned Unit", "A unit that is assigned to an automatic control group (not assigned to Manual).")
 doc("G_Fault", "Fault", "Something has gone wrong and/or failed to function.")
 doc("G_FrontPanel", "Front Panel", "A basic interface on the front of a device for viewing and sometimes modifying its state. This is what you see when looking at a computer running one of the SCADA applications.")
+doc("G_HighHigh", "High High", "Very High.")
+doc("G_LowLow", "Low Low", "Very Low.")
 doc("G_Nominal", "Nominal", "Normal operation. Everything operating as intended.")
 doc("G_Ringback", "Ringback", "An indication that an alarm had gone off but is no longer having its trip condition(s) met. This is to make you are aware that it occurred.")
 doc("G_SCRAM", "SCRAM", "[Emergency] shut-down of a reactor by stopping the fission. In Mekanism and here, it isn't always for an emergency.")

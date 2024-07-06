@@ -20,7 +20,7 @@ local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v0.11.0-alpha"
+local POCKET_VERSION = "v0.11.1-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
