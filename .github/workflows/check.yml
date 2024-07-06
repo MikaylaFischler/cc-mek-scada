@@ -26,4 +26,4 @@ jobs:
           # --no-max-line-length = Disable warnings for long line lengths
           # --exclude-files ...  = Exclude lockbox library (external) and config files
           # --globals ...        = Override all globals overridden in .vscode/settings.json AND 'os' since CraftOS 'os' differs from Lua's 'os'
-          args: . --no-max-line-length -i 121 512 542 --exclude-files ./lockbox/* ./*/config.lua --globals os _HOST bit colors fs http keys parallel periphemu peripheral read rs settings shell term textutils window
+          args: . --no-max-line-length -i 121 512 542 --exclude-files ./lockbox/* --globals os _HOST bit colors fs http keys parallel periphemu peripheral read rs settings shell term textutils window

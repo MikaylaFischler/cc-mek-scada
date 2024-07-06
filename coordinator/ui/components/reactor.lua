@@ -41,10 +41,10 @@ local function new_view(root, x, y, ps)
 
     local reactor_fills = Rectangle{parent=root,border=border(1, colors.gray, true),width=24,height=7,x=(x + 29),y=y}
 
-    TextBox{parent=reactor_fills,text="FUEL",x=2,y=1,height=1,fg_bg=text_fg}
-    TextBox{parent=reactor_fills,text="COOL",x=2,y=2,height=1,fg_bg=text_fg}
-    TextBox{parent=reactor_fills,text="HCOOL",x=2,y=4,height=1,fg_bg=text_fg}
-    TextBox{parent=reactor_fills,text="WASTE",x=2,y=5,height=1,fg_bg=text_fg}
+    TextBox{parent=reactor_fills,text="FUEL",x=2,y=1,fg_bg=text_fg}
+    TextBox{parent=reactor_fills,text="COOL",x=2,y=2,fg_bg=text_fg}
+    TextBox{parent=reactor_fills,text="HCOOL",x=2,y=4,fg_bg=text_fg}
+    TextBox{parent=reactor_fills,text="WASTE",x=2,y=5,fg_bg=text_fg}
 
     local fuel  = HorizontalBar{parent=reactor_fills,x=8,y=1,show_percent=true,bar_fg_bg=cpair(style.theme.fuel_color,colors.gray),height=1,width=14}
     local ccool = HorizontalBar{parent=reactor_fills,x=8,y=2,show_percent=true,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=14}

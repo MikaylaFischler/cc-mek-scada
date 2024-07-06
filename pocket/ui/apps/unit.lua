@@ -58,7 +58,7 @@ local function new_view(root)
     local load_div = Div{parent=frame,x=1,y=1}
     local main = Div{parent=frame,x=1,y=1}
 
-    TextBox{parent=load_div,y=12,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
@@ -144,12 +144,12 @@ local function new_view(root)
             local u_page = app.new_page(nil, i)
             u_page.tasks = { update }
 
-            TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
             PushButton{parent=u_div,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()prev(i)end}
             PushButton{parent=u_div,x=21,y=1,text=">",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()next(i)end}
 
             local type = util.trinary(unit.num_boilers > 0, "Sodium Cooled Reactor", "Boiling Water Reactor")
-            TextBox{parent=u_div,y=3,text=type,height=1,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
+            TextBox{parent=u_div,y=3,text=type,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
 
             local rate = DataIndicator{parent=u_div,y=5,lu_colors=lu_col,label="Burn",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
             local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
@@ -196,7 +196,7 @@ local function new_view(root)
             alm_page.tasks = { update }
             nav_links[i].alarm = alm_page.nav_to
 
-            TextBox{parent=alm_div,y=1,text="Status Info Display",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=alm_div,y=1,text="Status Info Display",alignment=ALIGN.CENTER}
 
             local ecam_disp = ListBox{parent=alm_div,x=2,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
@@ -206,7 +206,7 @@ local function new_view(root)
                 ecam_disp.remove_all()
                 for _, entry in ipairs(ecam) do
                     local div = Div{parent=ecam_disp,height=1+#entry.items,fg_bg=cpair(entry.color,colors.black)}
-                    local text = TextBox{parent=div,height=1,text=entry.text}
+                    local text = TextBox{parent=div,text=entry.text}
 
                     if entry.help then
                         PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(entry.help)end,fg_bg=cpair(colors.gray,colors.black)}
@@ -216,7 +216,7 @@ local function new_view(root)
                         local fg_bg = nil
                         if item.color then fg_bg = cpair(item.color, colors.black) end
 
-                        text = TextBox{parent=div,x=3,height=1,text=item.text,fg_bg=fg_bg}
+                        text = TextBox{parent=div,x=3,text=item.text,fg_bg=fg_bg}
 
                         if item.help then
                             PushButton{parent=div,x=21,y=text.get_y(),text="?",callback=function()db.nav.open_help(item.help)end,fg_bg=cpair(colors.gray,colors.black)}
@@ -239,7 +239,7 @@ local function new_view(root)
             rps_page.tasks = { update }
             nav_links[i].rps = rps_page.nav_to
 
-            TextBox{parent=rps_div,y=1,text="Protection System",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=rps_div,y=1,text="Protection System",alignment=ALIGN.CENTER}
 
             local r_trip = IconIndicator{parent=rps_div,y=3,label="RPS Trip",states=basic_states}
             r_trip.register(u_ps, "U_RPS", r_trip.update)
@@ -290,7 +290,7 @@ local function new_view(root)
 
             nav_links[i].rcs = rcs_page.nav_to
 
-            TextBox{parent=rcs_div,y=1,text="Coolant System",height=1,alignment=ALIGN.CENTER}
+            TextBox{parent=rcs_div,y=1,text="Coolant System",alignment=ALIGN.CENTER}
 
             local r_rtrip = IconIndicator{parent=rcs_div,y=3,label="RCP Trip",states=red_ind_s}
             local r_cflow = IconIndicator{parent=rcs_div,label="RCS Flow Lo",states=yel_ind_s}
@@ -309,7 +309,7 @@ local function new_view(root)
             c_mwrf.register(u_ps, "MaxWaterReturnFeed", c_mwrf.update)
 
             -- rcs_div.line_break()
-            -- TextBox{parent=rcs_div,text="Mismatches",height=1,alignment=ALIGN.CENTER,fg_bg=label}
+            -- TextBox{parent=rcs_div,text="Mismatches",alignment=ALIGN.CENTER,fg_bg=label}
             local c_cfm = IconIndicator{parent=rcs_div,label="Coolant Feed",states=yel_ind_s}
             local c_brm = IconIndicator{parent=rcs_div,label="Boil Rate",states=yel_ind_s}
             local c_sfm = IconIndicator{parent=rcs_div,label="Steam Feed",states=yel_ind_s}
@@ -319,7 +319,7 @@ local function new_view(root)
             c_sfm.register(u_ps, "SteamFeedMismatch", c_sfm.update)
 
             rcs_div.line_break()
-            -- TextBox{parent=rcs_div,text="Aggregate Checks",height=1,alignment=ALIGN.CENTER,fg_bg=label}
+            -- TextBox{parent=rcs_div,text="Aggregate Checks",alignment=ALIGN.CENTER,fg_bg=label}
 
             if unit.num_boilers > 0 then
                 local wll = IconIndicator{parent=rcs_div,label="Boiler Water Lo",states=red_ind_s}

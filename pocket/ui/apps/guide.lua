@@ -46,7 +46,7 @@ local function new_view(root)
     local load_div = Div{parent=frame,x=1,y=1}
     local main = Div{parent=frame,x=1,y=1}
 
-    TextBox{parent=load_div,y=12,text="Loading...",height=1,alignment=ALIGN.CENTER}
+    TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.cyan,colors._INHERIT)}
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
@@ -93,7 +93,7 @@ local function new_view(root)
         ---@class _guide_section_constructor_data
         local sect_construct_data = { app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active }
 
-        TextBox{parent=home,y=1,text="cc-mek-scada Guide",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=home,y=1,text="cc-mek-scada Guide",alignment=ALIGN.CENTER}
 
         PushButton{parent=home,y=3,text="Search              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=search_page.nav_to}
         PushButton{parent=home,y=5,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
@@ -101,7 +101,7 @@ local function new_view(root)
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
 
-        TextBox{parent=search,y=1,text="Search",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=search,y=1,text="Search",alignment=ALIGN.CENTER}
 
         local query_field = TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
 
@@ -159,7 +159,7 @@ local function new_view(root)
 
         util.nop()
 
-        TextBox{parent=use,y=1,text="System Usage",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=use,y=1,text="System Usage",alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
@@ -168,7 +168,7 @@ local function new_view(root)
         PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
-        TextBox{parent=uis,y=1,text="Operator UIs",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=uis,y=1,text="Operator UIs",alignment=ALIGN.CENTER}
         PushButton{parent=uis,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         local annunc_page = app.new_page(uis_page, #panes + 1)
@@ -182,20 +182,21 @@ local function new_view(root)
         PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
-        TextBox{parent=annunc_div,y=1,text="Annunciators",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=annunc_div,y=1,text="Annunciators",alignment=ALIGN.CENTER}
         PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
         local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section, 170)
         local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section, 100)
         local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section, 170)
+        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.unit.fac_section, 100)
 
         PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RCS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rcs_page.nav_to}
-        PushButton{parent=annunc_div,text="Facility General    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=annunc_div,text="Facility General    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fac_annunc_page.nav_to}
         PushButton{parent=annunc_div,text="Waste & Valves      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
-        TextBox{parent=fps,y=1,text="Front Panels",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=fps,y=1,text="Front Panels",alignment=ALIGN.CENTER}
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
@@ -204,10 +205,10 @@ local function new_view(root)
         PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
-        TextBox{parent=gls,y=1,text="Glossary",height=1,alignment=ALIGN.CENTER}
+        TextBox{parent=gls,y=1,text="Glossary",alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs, 120)
+        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs, 130)
         local gls_term_page = guide_section(sect_construct_data, gls_page, "Terminology", docs.glossary.terms, 100)
 
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}

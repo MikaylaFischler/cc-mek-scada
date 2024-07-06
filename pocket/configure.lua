@@ -125,7 +125,7 @@ local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
 
-    TextBox{parent=display,y=1,text="Pocket Configurator",alignment=CENTER,height=1,fg_bg=style.header}
+    TextBox{parent=display,y=1,text="Pocket Configurator",alignment=CENTER,fg_bg=style.header}
 
     local root_pane_div = Div{parent=display,x=1,y=2}
 
@@ -173,11 +173,11 @@ local function config_view(display)
 
     local ui_c_1 = Div{parent=ui_cfg,x=2,y=4,width=24}
 
-    TextBox{parent=ui_cfg,x=1,y=2,height=1,text=" Pocket UI",fg_bg=cpair(colors.black,colors.lime)}
+    TextBox{parent=ui_cfg,x=1,y=2,text=" Pocket UI",fg_bg=cpair(colors.black,colors.lime)}
 
     TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may use the options below to customize formats."}
 
-    TextBox{parent=ui_c_1,x=1,y=5,height=1,text="Temperature Scale"}
+    TextBox{parent=ui_c_1,x=1,y=5,text="Temperature Scale"}
     local temp_scale = RadioButton{parent=ui_c_1,x=1,y=6,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_opts()
@@ -199,24 +199,24 @@ local function config_view(display)
 
     local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
 
-    TextBox{parent=net_cfg,x=1,y=2,height=1,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
+    TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,height=1,text="Set network channels."}
+    TextBox{parent=net_c_1,x=1,y=1,text="Set network channels."}
     TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the named channels must be the same within a particular SCADA network.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=8,height=1,width=18,text="Supervisor Channel"}
+    TextBox{parent=net_c_1,x=1,y=8,width=18,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=10,height=1,width=19,text="Coordinator Channel"}
+    TextBox{parent=net_c_1,x=1,y=10,width=19,text="Coordinator Channel"}
     local crd_chan = NumberField{parent=net_c_1,x=1,y=11,width=7,default=ini_cfg.CRD_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=9,y=11,height=4,text="[CRD_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_1,x=1,y=12,height=1,width=14,text="Pocket Channel"}
+    TextBox{parent=net_c_1,x=1,y=12,width=14,text="Pocket Channel"}
     local pkt_chan = NumberField{parent=net_c_1,x=1,y=13,width=7,default=ini_cfg.PKT_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=9,y=13,height=4,text="[PKT_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    local chan_err = TextBox{parent=net_c_1,x=1,y=14,height=1,width=24,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local chan_err = TextBox{parent=net_c_1,x=1,y=14,width=24,text="Please set all channels.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c, crd_c, pkt_c = tonumber(svr_chan.get_value()), tonumber(crd_chan.get_value()), tonumber(pkt_chan.get_value())
@@ -230,15 +230,15 @@ local function config_view(display)
     PushButton{parent=net_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=19,y=15,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,height=1,text="Set connection timeout."}
+    TextBox{parent=net_c_2,x=1,y=1,text="Set connection timeout."}
     TextBox{parent=net_c_2,x=1,y=3,height=7,text="You generally should not need to modify this. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=11,height=1,width=19,text="Connection Timeout"}
+    TextBox{parent=net_c_2,x=1,y=11,width=19,text="Connection Timeout"}
     local timeout = NumberField{parent=net_c_2,x=1,y=12,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
     TextBox{parent=net_c_2,x=9,y=12,height=2,text="seconds\n(default 5)",fg_bg=g_lg_fg_bg}
 
-    local ct_err = TextBox{parent=net_c_2,x=1,y=14,height=1,width=24,text="Please set timeout.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local ct_err = TextBox{parent=net_c_2,x=1,y=14,width=24,text="Please set timeout.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_timeouts()
         local timeout_val = tonumber(timeout.get_value())
@@ -252,13 +252,13 @@ local function config_view(display)
     PushButton{parent=net_c_2,x=1,y=15,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=19,y=15,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=1,text="Set the trusted range."}
+    TextBox{parent=net_c_3,x=1,y=1,text="Set the trusted range."}
     TextBox{parent=net_c_3,x=1,y=3,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many blocks away.",fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_3,x=1,y=8,height=4,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
     local range = NumberField{parent=net_c_3,x=1,y=13,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    local tr_err = TextBox{parent=net_c_3,x=1,y=14,height=1,width=24,text="Set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local tr_err = TextBox{parent=net_c_3,x=1,y=14,width=24,text="Set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_tr()
         local range_val = tonumber(range.get_value())
@@ -275,7 +275,7 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=1,height=4,text="Optionally, set the facility authentication key. Do NOT use one of your passwords."}
     TextBox{parent=net_c_4,x=1,y=6,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=12,height=1,text="Facility Auth Key"}
+    TextBox{parent=net_c_4,x=1,y=12,text="Facility Auth Key"}
     local key, _, censor = TextField{parent=net_c_4,x=1,y=13,max_len=64,value=ini_cfg.AuthKey,width=24,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
@@ -288,7 +288,7 @@ local function config_view(display)
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_4,x=1,y=14,height=1,width=24,text="Length must be > 7.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_4,x=1,y=14,width=24,text="Length must be > 7.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -307,20 +307,20 @@ local function config_view(display)
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=24}
 
-    TextBox{parent=log_cfg,x=1,y=2,height=1,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
+    TextBox{parent=log_cfg,x=1,y=2,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
 
-    TextBox{parent=log_c_1,x=1,y=1,height=1,text="Configure logging below."}
+    TextBox{parent=log_c_1,x=1,y=1,text="Configure logging below."}
 
-    TextBox{parent=log_c_1,x=1,y=3,height=1,text="Log File Mode"}
+    TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
     local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
-    TextBox{parent=log_c_1,x=1,y=7,height=1,text="Log File Path"}
+    TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=24,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
     local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=4,text="This results in much larger log files. Use only as needed.",fg_bg=g_lg_fg_bg}
 
-    local path_err = TextBox{parent=log_c_1,x=1,y=14,height=1,width=24,text="Provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local path_err = TextBox{parent=log_c_1,x=1,y=14,width=24,text="Provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_log()
         if path.get_value() ~= "" then
@@ -350,7 +350,7 @@ local function config_view(display)
 
     local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
 
-    TextBox{parent=summary,x=1,y=2,height=1,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=summary,x=1,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
     local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=11,width=24,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
@@ -405,7 +405,7 @@ local function config_view(display)
     tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=1,y=13,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=dis_fg_bg}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=18,y=15,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_2,x=1,y=1,height=1,text="Settings saved!"}
+    TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
 
     local function go_home()
         main_pane.set_value(1)
@@ -436,15 +436,15 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=24}
 
-    TextBox{parent=changelog,x=1,y=2,height=1,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,x=1,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
 
     local c_log = ListBox{parent=cl,x=1,y=1,height=13,width=24,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
-        TextBox{parent=c_log,text=change[1],height=1,fg_bg=bw_fg_bg}
+        TextBox{parent=c_log,text=change[1],fg_bg=bw_fg_bg}
         for _, v in ipairs(change[2]) do
             local e = Div{parent=c_log,height=#util.strwrap(v,21)}
-            TextBox{parent=e,y=1,x=1,text="- ",height=1,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,x=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
         end
     end

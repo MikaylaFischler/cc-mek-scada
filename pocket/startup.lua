@@ -20,7 +20,7 @@ local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v0.10.0-alpha"
+local POCKET_VERSION = "v0.11.2-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -123,7 +123,7 @@ local function main()
     -- setup system
     ----------------------------------------
 
-    smem_sys.nav = pocket.init_nav(__shared_memory.q.mq_render)
+    smem_sys.nav = pocket.init_nav(__shared_memory)
 
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then

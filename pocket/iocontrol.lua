@@ -342,10 +342,8 @@ function iocontrol.report_link_state(state, sv_addr, api_addr)
         io.ps.publish("crd_conn_quality", 0)
     end
 
-    if state == LINK_STATE.LINKED then
-        io.ps.publish("sv_addr", sv_addr)
-        io.ps.publish("api_addr", api_addr)
-    end
+    if sv_addr then io.ps.publish("sv_addr", sv_addr) end
+    if api_addr then io.ps.publish("api_addr", api_addr) end
 end
 
 -- determine supervisor connection quality (trip time)
@@ -525,7 +523,10 @@ function iocontrol.record_unit_data(data)
                 reactor_state = 6   -- SCRAM
                 rps_status = 2
             end
-        else rps_status = 4 end
+        else
+            rps_status = 4
+            reactor_state = 4
+        end
 
         -- update reactor/control status
         if unit.reactor_data.mek_status.status then

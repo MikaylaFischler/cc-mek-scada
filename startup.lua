@@ -1,35 +1,31 @@
-local util = require("scada-common.util")
+local BOOTLOADER_VERSION = "1.1"
 
-local println = util.println
-
-local BOOTLOADER_VERSION = "1.0"
-
-println("SCADA BOOTLOADER V" .. BOOTLOADER_VERSION)
-println("BOOT> SCANNING FOR APPLICATIONS...")
+print("SCADA BOOTLOADER V" .. BOOTLOADER_VERSION)
+print("BOOT> SCANNING FOR APPLICATIONS...")
 
 local exit_code
 
 if fs.exists("reactor-plc/startup.lua") then
-    println("BOOT> EXEC REACTOR PLC STARTUP")
+    print("BOOT> EXEC REACTOR PLC STARTUP")
     exit_code = shell.execute("reactor-plc/startup")
 elseif fs.exists("rtu/startup.lua") then
-    println("BOOT> EXEC RTU STARTUP")
+    print("BOOT> EXEC RTU STARTUP")
     exit_code = shell.execute("rtu/startup")
 elseif fs.exists("supervisor/startup.lua") then
-    println("BOOT> EXEC SUPERVISOR STARTUP")
+    print("BOOT> EXEC SUPERVISOR STARTUP")
     exit_code = shell.execute("supervisor/startup")
 elseif fs.exists("coordinator/startup.lua") then
-    println("BOOT> EXEC COORDINATOR STARTUP")
+    print("BOOT> EXEC COORDINATOR STARTUP")
     exit_code = shell.execute("coordinator/startup")
 elseif fs.exists("pocket/startup.lua") then
-    println("BOOT> EXEC POCKET STARTUP")
+    print("BOOT> EXEC POCKET STARTUP")
     exit_code = shell.execute("pocket/startup")
 else
-    println("BOOT> NO SCADA STARTUP FOUND")
-    println("BOOT> EXIT")
+    print("BOOT> NO SCADA STARTUP FOUND")
+    print("BOOT> EXIT")
     return false
 end
 
-if not exit_code then println("BOOT> APPLICATION CRASHED") end
+if not exit_code then print("BOOT> APPLICATION CRASHED") end
 
 return exit_code

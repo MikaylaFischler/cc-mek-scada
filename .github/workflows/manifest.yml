@@ -61,7 +61,7 @@ jobs:
       - name: Generate manifest for devel
         id: manifest-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
-        run: python imgen.py
+        run: python build/imgen.py
       - name: Save devel's manifest
         if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/devel
