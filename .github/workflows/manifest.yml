@@ -46,7 +46,7 @@ jobs:
       - name: Generate manifest and shields for main branch
         id: manifest-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
-        run: python imgen.py shields
+        run: python build/imgen.py shields
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
