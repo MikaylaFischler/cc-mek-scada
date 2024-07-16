@@ -158,7 +158,6 @@ local tool_ctl = {
     p_idx = nil,              ---@type graphics_element
     p_unit = nil,             ---@type graphics_element
     p_assign_btn = nil,       ---@type graphics_element
-    p_assign_end = nil,       ---@type graphics_element
     p_desc = nil,             ---@type graphics_element
     p_desc_ext = nil,         ---@type graphics_element
     p_err = nil,              ---@type graphics_element
@@ -828,53 +827,35 @@ local function config_view(display)
         tool_ctl.p_name_msg.set_value("Configuring peripheral on '" .. name .. "':")
         tool_ctl.p_desc_ext.set_value("")
 
-        if type == "boilerValve" then
-            tool_ctl.p_prompt.set_value("This is the #     boiler for reactor unit #    .")
-            tool_ctl.p_idx.show()
-            tool_ctl.p_idx.redraw()
+        local function reposition(prompt, idx_x, idx_max, unit_x, unit_y, desc_y)
+            tool_ctl.p_prompt.set_value(prompt)
+            tool_ctl.p_idx.reposition(idx_x, 4)
             tool_ctl.p_idx.enable()
-            tool_ctl.p_idx.set_max(2)
-            tool_ctl.p_unit.reposition(44, 4)
+            tool_ctl.p_idx.set_max(idx_max)
+            tool_ctl.p_idx.show()
+            tool_ctl.p_unit.reposition(unit_x, unit_y)
             tool_ctl.p_unit.enable()
             tool_ctl.p_unit.show()
+            tool_ctl.p_desc.reposition(1, desc_y)
+        end
+
+        if type == "boilerValve" then
+            reposition("This is reactor unit #    's #     boiler.", 31, 2, 23, 4, 7)
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_assign_end.hide(true)
-            tool_ctl.p_desc.reposition(1, 7)
             tool_ctl.p_desc.set_value("Each unit can have at most 2 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have boiler #1 and another can have #2, but both cannot have #1.")
         elseif type == "turbineValve" then
-            tool_ctl.p_prompt.set_value("This is the #     turbine for reactor unit #    .")
-            tool_ctl.p_idx.show()
-            tool_ctl.p_idx.redraw()
-            tool_ctl.p_idx.enable()
-            tool_ctl.p_idx.set_max(3)
-            tool_ctl.p_unit.reposition(45, 4)
-            tool_ctl.p_unit.enable()
-            tool_ctl.p_unit.show()
+            reposition("This is reactor unit #    's #     turbine.", 31, 3, 23, 4, 7)
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_assign_end.hide(true)
-            tool_ctl.p_desc.reposition(1, 7)
             tool_ctl.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have turbine #1 and another can have #2, but both cannot have #1.")
         elseif type == "solarNeutronActivator" then
+            reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
             tool_ctl.p_idx.hide()
-            tool_ctl.p_prompt.set_value("This SNA is for reactor unit #    .")
-            tool_ctl.p_unit.reposition(31, 4)
-            tool_ctl.p_unit.enable()
-            tool_ctl.p_unit.show()
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_assign_end.hide(true)
             tool_ctl.p_desc_ext.set_value("Before adding lots of SNAs: multiply the \"PEAK\" rate on the flow monitor (after connecting at least 1 SNA) by 10 to get the mB/t of waste that they can process. Enough SNAs to provide 2x to 3x of your max burn rate should be a good margin to catch up after night or cloudy weather. Too many devices (such as SNAs) on one RTU can cause lag.")
         elseif type == "dynamicValve" then
-            tool_ctl.p_prompt.set_value("This is the #     dynamic tank for...")
+            reposition("This is the below system's #     dynamic tank.", 29, 4, 17, 6, 8)
             tool_ctl.p_assign_btn.show()
             tool_ctl.p_assign_btn.redraw()
-            tool_ctl.p_assign_end.show()
-            tool_ctl.p_assign_end.redraw()
-            tool_ctl.p_idx.show()
-            tool_ctl.p_idx.redraw()
-            tool_ctl.p_idx.set_max(4)
-            tool_ctl.p_unit.reposition(18, 6)
-            tool_ctl.p_unit.enable()
-            tool_ctl.p_unit.show()
 
             if tool_ctl.p_assign_btn.get_value() == 1 then
                 tool_ctl.p_idx.enable()
@@ -885,22 +866,12 @@ local function config_view(display)
                 tool_ctl.p_unit.enable()
             end
 
-            tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
         elseif type == "environmentDetector" then
-            tool_ctl.p_prompt.set_value("This is the #     environment detector for...")
+            reposition("This is the below system's #     env. detector.", 29, 99, 17, 6, 8)
             tool_ctl.p_assign_btn.show()
             tool_ctl.p_assign_btn.redraw()
-            tool_ctl.p_assign_end.show()
-            tool_ctl.p_assign_end.redraw()
-            tool_ctl.p_idx.show()
-            tool_ctl.p_idx.redraw()
-            tool_ctl.p_idx.set_max(99)
-            tool_ctl.p_unit.reposition(18, 6)
-            tool_ctl.p_unit.enable()
-            tool_ctl.p_unit.show()
             if tool_ctl.p_assign_btn.get_value() == 1 then tool_ctl.p_unit.disable() else tool_ctl.p_unit.enable() end
-            tool_ctl.p_desc.reposition(1, 8)
             tool_ctl.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility. In that case, the maximum radiation reading from those assigned to that particular unit or the facility will be used for alarms and display.")
         elseif type == "inductionPort" or type == "spsPort" then
             local dev = tri(type == "inductionPort", "induction matrix", "SPS")
@@ -908,7 +879,6 @@ local function config_view(display)
             tool_ctl.p_unit.hide(true)
             tool_ctl.p_prompt.set_value("This is the " .. dev .. " for the facility.")
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_assign_end.hide(true)
             tool_ctl.p_desc.reposition(1, 7)
             tool_ctl.p_desc.set_value("There can only be one of these devices per SCADA network, so it will be assigned as the sole " .. dev .. " for the facility. There must only be one of these across all the RTUs you have.")
         else
@@ -965,11 +935,10 @@ local function config_view(display)
 
     tool_ctl.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text=""}
     tool_ctl.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text=""}
-    tool_ctl.p_idx = NumberField{parent=peri_c_4,x=14,y=4,width=4,max_chars=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-    tool_ctl.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility.","a unit. (unit #"},callback=function(v)tool_ctl.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
-    tool_ctl.p_assign_end = TextBox{parent=peri_c_4,x=22,y=6,height=6,width=1,text=")"}
+    tool_ctl.p_idx = NumberField{parent=peri_c_4,x=31,y=4,width=4,max_chars=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility","reactor unit #"},callback=function(v)tool_ctl.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
 
-    tool_ctl.p_unit = NumberField{parent=peri_c_4,x=44,y=4,width=4,max_chars=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.p_unit = NumberField{parent=peri_c_4,x=23,y=4,width=4,max_chars=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     tool_ctl.p_unit.disable()
 
     function tool_ctl.p_assign(opt)
