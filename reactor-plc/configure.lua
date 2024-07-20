@@ -3,6 +3,7 @@
 --
 
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
@@ -67,6 +68,7 @@ local tool_ctl = {
     jumped_to_color = false,
 
     view_cfg = nil,         ---@type graphics_element
+    self_check = nil,       ---@type graphics_element
     color_cfg = nil,        ---@type graphics_element
     color_next = nil,       ---@type graphics_element
     color_apply = nil,      ---@type graphics_element
@@ -179,10 +181,11 @@ local function config_view(display)
     local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
     local summary = Div{parent=root_pane_div,x=1,y=1}
     local changelog = Div{parent=root_pane_div,x=1,y=1}
+    local check_sys = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,check_sys}}
 
-    -- Main Page
+    --#region Main Page
 
     local y_start = 5
 
@@ -216,13 +219,17 @@ local function config_view(display)
     end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.self_check = PushButton{parent=main_page,x=10,y=17,min_width=12,text="Self-Check",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.orange,colors.white)}
     tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     if not tool_ctl.has_config then
         tool_ctl.view_cfg.disable()
+        tool_ctl.self_check.disable()
         tool_ctl.color_cfg.disable()
     end
+
+    --#endregion
 
     --#region PLC
 
@@ -656,7 +663,7 @@ local function config_view(display)
 
     --#endregion
 
-    -- Config Change Log
+    --#region Config Change Log
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
@@ -674,6 +681,50 @@ local function config_view(display)
     end
 
     PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+
+    --#region Self-Check
+
+    local sc = Div{parent=check_sys,x=2,y=4,width=49}
+
+    TextBox{parent=check_sys,x=1,y=2,text=" Reactor PLC Self-Check",fg_bg=bw_fg_bg}
+
+    local sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local function check_msg(msg, success, fail_msg)
+        local e = TextBox{parent=sc_log,text=msg,fg_bg=bw_fg_bg}
+        TextBox{parent=sc_log,x=e.get_x()+e.get_width(),y=e.get_y(),text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
+        return success
+    end
+
+    local function self_check()
+        sc_log.remove_all()
+        ppm.mount_all()
+
+        local reactor = ppm.get_fission_reactor()
+
+        if not check_msg("> check wireless/ender modem...", ppm.get_wireless_modem() ~= nil) then
+            TextBox{parent=sc_log,x=3,text="you must connect an ender or wireless modem to the reactor PLC",fg_bg=cpair(colors.gray,colors.white)}
+        end
+
+        if not check_msg("> check fission reactor present...", reactor ~= nil) then
+            TextBox{parent=sc_log,x=3,text="please connect the reactor PLC to the reactor's fission reactor logic adapter",fg_bg=cpair(colors.gray,colors.white)}
+        end
+
+        if not check_msg("> check fission reactor formed...", reactor and reactor.isFormed()) then
+            TextBox{parent=sc_log,x=3,text="ensure the fission reactor multiblock is formed",fg_bg=cpair(colors.gray,colors.white)}
+        end
+
+        TextBox{parent=sc_log,text="attempting connection to the supervisor...",fg_bg=cpair(colors.gray,colors.white)}
+
+        if not check_msg("> check supervisor connection...", reactor and reactor.isFormed()) then
+            TextBox{parent=sc_log,x=3,text="ensure the fission reactor multiblock is formed",fg_bg=cpair(colors.gray,colors.white)}
+        end
+    end
+
+    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sc,x=1,y=40,min_width=10,text="Run Test",callback=self_check,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     -- set tool functions now that we have the elements
 
