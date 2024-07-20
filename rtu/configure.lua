@@ -842,11 +842,11 @@ local function config_view(display)
         if type == "boilerValve" then
             reposition("This is reactor unit #    's #     boiler.", 31, 2, 23, 4, 7)
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_desc.set_value("Each unit can have at most 2 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have boiler #1 and another can have #2, but both cannot have #1.")
+            tool_ctl.p_desc.set_value("Each unit can have at most 2 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. The numberings are per unit (unit 1 and unit 2 would both have a boiler #1 if each had one boiler) and can be split amongst multiple RTUs (one has #1, another has #2).")
         elseif type == "turbineValve" then
             reposition("This is reactor unit #    's #     turbine.", 31, 3, 23, 4, 7)
             tool_ctl.p_assign_btn.hide(true)
-            tool_ctl.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. These numberings are independent of which RTU they are connected to. For example, one RTU can have turbine #1 and another can have #2, but both cannot have #1.")
+            tool_ctl.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. The numberings are per unit (unit 1 and unit 2 would both have a turbine #1) and can be split amongst multiple RTUs (one has #1, another has #2).")
         elseif type == "solarNeutronActivator" then
             reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
             tool_ctl.p_idx.hide()
