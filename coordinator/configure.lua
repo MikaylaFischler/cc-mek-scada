@@ -70,7 +70,7 @@ local tool_ctl = {
     nic = nil,              ---@type nic
     net_listen = false,
     sv_addr = comms.BROADCAST,
-    sv_seq_num = 0,
+    sv_seq_num = util.time_ms() * 10,
     sv_cool_conf = nil,     ---@type table list of boiler & turbine counts
     show_sv_cfg = nil,      ---@type function
 
@@ -1122,7 +1122,6 @@ local function config_view(display)
             tool_ctl.nic.open(tmp_cfg.CRD_Channel)
 
             tool_ctl.sv_addr = comms.BROADCAST
-            tool_ctl.sv_seq_num = 0
             tool_ctl.net_listen = true
 
             send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.CRD })
