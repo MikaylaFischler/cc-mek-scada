@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.4.0"
+util.version = "1.4.1"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -113,9 +113,12 @@ end
 -- wrap a string into a table of lines
 ---@nodiscard
 ---@param str string
----@param limit integer line limit
+---@param limit integer line limit, must be greater than 0
 ---@return table lines
-function util.strwrap(str, limit) return cc_strings.wrap(str, limit) end
+function util.strwrap(str, limit)
+    assert(limit > 0, "util.strwrap() limit not greater than 0")
+    return cc_strings.wrap(str, limit)
+end
 
 -- concatenation with built-in to string
 ---@nodiscard
