@@ -2,7 +2,9 @@
 -- Configuration GUI
 --
 
+local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
+local network     = require("scada-common.network")
 local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
@@ -29,6 +31,11 @@ local IndLight    = require("graphics.elements.indicators.light")
 
 local println = util.println
 local tri = util.trinary
+
+local PROTOCOL = comms.PROTOCOL
+local DEVICE_TYPE = comms.DEVICE_TYPE
+local ESTABLISH_ACK = comms.ESTABLISH_ACK
+local MGMT_TYPE = comms.MGMT_TYPE
 
 local cpair = core.cpair
 
@@ -58,14 +65,21 @@ local bw_fg_bg = cpair(colors.black, colors.white)
 local g_lg_fg_bg = cpair(colors.gray, colors.lightGray)
 local nav_fg_bg = bw_fg_bg
 local btn_act_fg_bg = cpair(colors.white, colors.gray)
+local btn_dis_fg_bg = cpair(colors.lightGray, colors.white)
 
 ---@class _plc_cfg_tool_ctl
 local tool_ctl = {
+    nic = nil,              ---@type nic
+    net_listen = false,
+    sv_addr = comms.BROADCAST,
+    sv_seq_num = util.time_ms() * 10,
+
     ask_config = false,
     has_config = false,
     viewing_config = false,
     importing_legacy = false,
     jumped_to_color = false,
+    self_check_pass = true,
 
     view_cfg = nil,         ---@type graphics_element
     self_check = nil,       ---@type graphics_element
@@ -73,12 +87,14 @@ local tool_ctl = {
     color_next = nil,       ---@type graphics_element
     color_apply = nil,      ---@type graphics_element
     settings_apply = nil,   ---@type graphics_element
+    run_test_btn = nil,     ---@type graphics_element
 
     set_networked = nil,    ---@type function
     bundled_emcool = nil,   ---@type function
     gen_summary = nil,      ---@type function
     show_current_cfg = nil, ---@type function
     load_legacy = nil,      ---@type function
+    self_check_msg = nil,   ---@type function
 
     show_auth_key = nil,    ---@type function
     show_key_btn = nil,     ---@type graphics_element
@@ -128,6 +144,68 @@ local fields = {
     { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
     { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
 }
+
+-- send a management packet to the supervisor
+---@param msg_type MGMT_TYPE
+---@param msg table
+local function send_sv(msg_type, msg)
+    local s_pkt = comms.scada_packet()
+    local pkt = comms.mgmt_packet()
+
+    pkt.make(msg_type, msg)
+    s_pkt.make(tool_ctl.sv_addr, tool_ctl.sv_seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+
+    tool_ctl.nic.transmit(settings_cfg.SVR_Channel, settings_cfg.PLC_Channel, s_pkt)
+    tool_ctl.sv_seq_num = tool_ctl.sv_seq_num + 1
+end
+
+-- handle an establish message from the supervisor
+---@param packet mgmt_frame
+local function handle_packet(packet)
+    local error_msg = nil
+
+    if packet.scada_frame.local_channel() ~= settings_cfg.PLC_Channel then
+        error_msg = "error: unknown receive channel"
+    elseif packet.scada_frame.remote_channel() == settings_cfg.SVR_Channel and packet.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
+        if packet.type == MGMT_TYPE.ESTABLISH then
+            if packet.length == 1 then
+                local est_ack = packet.data[1]
+
+                if est_ack== ESTABLISH_ACK.ALLOW then
+                    tool_ctl.self_check_msg(nil, true, "")
+                    tool_ctl.sv_addr = packet.scada_frame.src_addr()
+                    send_sv(MGMT_TYPE.CLOSE, {})
+                elseif est_ack == ESTABLISH_ACK.DENY then
+                    error_msg = "error: supervisor connection denied"
+                elseif est_ack == ESTABLISH_ACK.COLLISION then
+                    error_msg = "another reactor PLC is connected with this reactor unit ID"
+                elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                    error_msg = "reactor PLC comms version does not match supervisor comms version, make sure both devices are up-to-date (ccmsi update ...)"
+                else
+                    error_msg = "error: invalid reply from supervisor"
+                end
+            else
+                error_msg = "error: invalid reply length from supervisor"
+            end
+        else
+            error_msg = "error: didn't get an establish reply from supervisor"
+        end
+    end
+
+    tool_ctl.net_listen = false
+    tool_ctl.run_test_btn.enable()
+
+    if error_msg then
+        tool_ctl.self_check_msg(nil, false, error_msg)
+    end
+end
+
+-- handle supervisor connection failure
+local function handle_timeout()
+    tool_ctl.net_listen = false
+    tool_ctl.run_test_btn.enable()
+    tool_ctl.self_check_msg(nil, false, "make sure your supervisor is running, your channels are correct, trusted ranges are set properly (if enabled), facility keys match (if set), and if you are using wireless modems rather than ender modems, that your devices are close together in the same dimension")
+end
 
 local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
 local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
@@ -209,7 +287,7 @@ local function config_view(display)
     end
 
     PushButton{parent=main_page,x=2,y=y_start,min_width=18,text="Configure System",callback=function()main_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.view_cfg = PushButton{parent=main_page,x=2,y=y_start+2,min_width=20,text="View Configuration",callback=view_config,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
     local function jump_color()
         tool_ctl.jumped_to_color = true
@@ -220,7 +298,7 @@ local function config_view(display)
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     tool_ctl.self_check = PushButton{parent=main_page,x=10,y=17,min_width=12,text="Self-Check",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.orange,colors.white)}
-    tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     if not tool_ctl.has_config then
@@ -618,6 +696,8 @@ local function config_view(display)
             try_set(c_mode, ini_cfg.ColorMode)
 
             tool_ctl.view_cfg.enable()
+            tool_ctl.self_check.enable()
+            tool_ctl.color_cfg.enable()
 
             if tool_ctl.importing_legacy then
                 tool_ctl.importing_legacy = false
@@ -631,7 +711,7 @@ local function config_view(display)
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    tool_ctl.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()tool_ctl.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
@@ -692,39 +772,82 @@ local function config_view(display)
 
     local sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local function check_msg(msg, success, fail_msg)
-        local e = TextBox{parent=sc_log,text=msg,fg_bg=bw_fg_bg}
-        TextBox{parent=sc_log,x=e.get_x()+e.get_width(),y=e.get_y(),text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
-        return success
+    local last_check = { nil, nil }
+
+    function tool_ctl.self_check_msg(msg, success, fail_msg)
+        if type(msg) == "string" then
+            last_check[1] = Div{parent=sc_log,height=1}
+            local e = TextBox{parent=last_check[1],text=msg,fg_bg=bw_fg_bg}
+            last_check[2] = e.get_x()+string.len(msg)
+        end
+
+        if type(fail_msg) == "string" then
+            TextBox{parent=last_check[1],x=last_check[2],y=1,text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
+
+            if not success then
+                local fail = Div{parent=sc_log,height=#util.strwrap(fail_msg, 46)}
+                TextBox{parent=fail,x=3,text=fail_msg,fg_bg=cpair(colors.gray,colors.white)}
+            end
+
+            tool_ctl.self_check_pass = tool_ctl.self_check_pass and success
+        end
     end
 
     local function self_check()
+        tool_ctl.run_test_btn.disable()
+
         sc_log.remove_all()
         ppm.mount_all()
 
+        tool_ctl.self_check_pass = true
+
+        local modem = ppm.get_wireless_modem()
         local reactor = ppm.get_fission_reactor()
 
-        if not check_msg("> check wireless/ender modem...", ppm.get_wireless_modem() ~= nil) then
-            TextBox{parent=sc_log,x=3,text="you must connect an ender or wireless modem to the reactor PLC",fg_bg=cpair(colors.gray,colors.white)}
+        tool_ctl.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
+        tool_ctl.self_check_msg("> check fission reactor connected...", reactor ~= nil, "please connect the reactor PLC to the reactor's fission reactor logic adapter")
+        tool_ctl.self_check_msg("> check fission reactor formed...")
+        -- this consumes events, but that is fine here
+        tool_ctl.self_check_msg(nil, reactor and reactor.isFormed(), "ensure the fission reactor multiblock is formed")
+
+        if modem then
+            tool_ctl.self_check_msg("> check supervisor connection...")
+
+            tool_ctl.nic = network.nic(modem)
+
+            tool_ctl.nic.closeAll()
+            tool_ctl.nic.open(settings_cfg.PLC_Channel)
+
+            tool_ctl.sv_addr = comms.BROADCAST
+            tool_ctl.net_listen = true
+
+            send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.PLC, settings_cfg.UnitID })
+
+            tcd.dispatch_unique(8, handle_timeout)
+        else
+            tool_ctl.run_test_btn.enable()
         end
 
-        if not check_msg("> check fission reactor present...", reactor ~= nil) then
-            TextBox{parent=sc_log,x=3,text="please connect the reactor PLC to the reactor's fission reactor logic adapter",fg_bg=cpair(colors.gray,colors.white)}
-        end
-
-        if not check_msg("> check fission reactor formed...", reactor and reactor.isFormed()) then
-            TextBox{parent=sc_log,x=3,text="ensure the fission reactor multiblock is formed",fg_bg=cpair(colors.gray,colors.white)}
-        end
-
-        TextBox{parent=sc_log,text="attempting connection to the supervisor...",fg_bg=cpair(colors.gray,colors.white)}
-
-        if not check_msg("> check supervisor connection...", reactor and reactor.isFormed()) then
-            TextBox{parent=sc_log,x=3,text="ensure the fission reactor multiblock is formed",fg_bg=cpair(colors.gray,colors.white)}
+        if tool_ctl.self_check_pass then
+            TextBox{parent=sc_log,text="> all tests passed!",fg_bg=cpair(colors.blue,colors._INHERIT)}
+            TextBox{parent=sc_log,text=""}
+            local more = Div{parent=sc_log,height=3,fg_bg=cpair(colors.gray,colors._INHERIT)}
+            TextBox{parent=more,text="if you still have a problem:"}
+            TextBox{parent=more,text="- check the wiki on GitHub"}
+            TextBox{parent=more,text="- ask for help on GitHub discussions or Discord"}
         end
     end
 
-    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sc,x=1,y=40,min_width=10,text="Run Test",callback=self_check,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    local function exit_self_check()
+        tcd.abort(handle_timeout)
+        tool_ctl.net_listen = false
+        tool_ctl.run_test_btn.enable()
+        sc_log.remove_all()
+        main_pane.set_value(1)
+    end
+
+    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=exit_self_check,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    tool_ctl.run_test_btn = PushButton{parent=sc,x=40,y=14,min_width=10,text="Run Test",callback=self_check,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
     -- set tool functions now that we have the elements
 
@@ -853,7 +976,7 @@ function configurator.configure(ask_config)
         config_view(display)
 
         while true do
-            local event, param1, param2, param3 = util.pull_event()
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
             if event == "timer" then
@@ -866,6 +989,16 @@ function configurator.configure(ask_config)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
                 display.handle_paste(param1)
+            elseif event == "modem_message" and tool_ctl.nic ~= nil and tool_ctl.net_listen then
+                local s_pkt = tool_ctl.nic.receive(param1, param2, param3, param4, param5)
+
+                if s_pkt and s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
+                    local mgmt_pkt = comms.mgmt_packet()
+                    if mgmt_pkt.decode(s_pkt) then
+                        tcd.abort(handle_timeout)
+                        handle_packet(mgmt_pkt.get())
+                    end
+                end
             end
 
             if event == "terminate" then return end
