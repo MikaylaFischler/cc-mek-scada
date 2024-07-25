@@ -10,6 +10,8 @@ local rsio        = require("scada-common.rsio")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
+local plc         = require("reactor-plc.plc")
+
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
 
@@ -270,7 +272,7 @@ local function config_view(display)
     TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Reactor PLC configurator! Please select one of the following options."}
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device had no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 
@@ -803,6 +805,7 @@ local function config_view(display)
 
         local modem = ppm.get_wireless_modem()
         local reactor = ppm.get_fission_reactor()
+        local valid_cfg = plc.validate_config(settings_cfg)
 
         tool_ctl.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
         tool_ctl.self_check_msg("> check fission reactor connected...", reactor ~= nil, "please connect the reactor PLC to the reactor's fission reactor logic adapter")
@@ -810,7 +813,9 @@ local function config_view(display)
         -- this consumes events, but that is fine here
         tool_ctl.self_check_msg(nil, reactor and reactor.isFormed(), "ensure the fission reactor multiblock is formed")
 
-        if modem then
+        tool_ctl.self_check_msg("> check configuration...", valid_cfg, "go through Configure System again and apply settings to repair any corrupted or missing settings")
+
+        if valid_cfg and modem then
             tool_ctl.self_check_msg("> check supervisor connection...")
 
             tool_ctl.nic = network.nic(modem)
