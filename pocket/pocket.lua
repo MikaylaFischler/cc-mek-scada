@@ -514,9 +514,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
             else
                 self.establish_delay_counter = self.establish_delay_counter - 1
             end
-        else
-            -- linked, all good!
-            iocontrol.report_link_state(LINK_STATE.LINKED)
         end
     end
 
