@@ -56,8 +56,10 @@ local function new_view(root, x, y)
     local blk_brn = cpair(colors.black, colors.brown)
     local blk_pur = cpair(colors.black, colors.purple)
 
-    local facility = iocontrol.get_db().facility
-    local units = iocontrol.get_db().units
+    local db = iocontrol.get_db()
+
+    local facility = db.facility
+    local units = db.units
 
     local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
@@ -141,22 +143,22 @@ local function new_view(root, x, y)
 
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
     local c_target = SpinboxNumeric{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
-    TextBox{parent=chg_target,x=18,y=2,text="MFE",fg_bg=style.theme.label_fg}
-    local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="MFE",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    TextBox{parent=chg_target,x=18,y=2,text="M"..db.energy_label,fg_bg=style.theme.label_fg}
+    local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
-    cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(fe / 1000000) end)
+    cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
 
     local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
 
     local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=s_hi_box}
     local g_target = SpinboxNumeric{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
-    TextBox{parent=gen_target,x=18,y=2,text="kFE/t",fg_bg=style.theme.label_fg}
-    local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="kFE/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    TextBox{parent=gen_target,x=18,y=2,text="k"..db.energy_label.."/t",fg_bg=style.theme.label_fg}
+    local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     g_target.register(facility.ps, "process_gen_target", g_target.set_value)
-    cur_gen.register(facility.induction_ps_tbl[1], "last_input", function (j) cur_gen.update(util.round(util.joules_to_fe(j) / 1000)) end)
+    cur_gen.register(facility.induction_ps_tbl[1], "last_input", function (j) cur_gen.update(util.round(db.energy_convert(j) / 1000)) end)
 
     -----------------
     -- unit limits --
@@ -262,7 +264,10 @@ local function new_view(root, x, y)
         local limits = {}
         for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
 
-        process.save(mode.get_value(), b_target.get_value(), c_target.get_value(), g_target.get_value(), limits)
+        process.save(mode.get_value(), b_target.get_value(),
+                     db.energy_convert_to_fe(c_target.get_value()),
+                     db.energy_convert_to_fe(g_target.get_value()),
+                     limits)
     end
 
     -- start automatic control after saving process control settings

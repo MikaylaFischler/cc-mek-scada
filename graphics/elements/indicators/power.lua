@@ -6,6 +6,7 @@ local element = require("graphics.element")
 
 ---@class power_indicator_args
 ---@field label string indicator label
+---@field unit string energy unit
 ---@field format string power format override (lua string format)
 ---@field rate boolean? whether to append /t to the end (power per tick)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
@@ -24,6 +25,7 @@ local element = require("graphics.element")
 ---@return graphics_element element, element_id id
 local function power(args)
     element.assert(type(args.value) == "number", "value is a required field")
+    element.assert(type(args.unit) == "string", "unit is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
 
     args.height = 1
@@ -40,7 +42,7 @@ local function power(args)
     function e.on_update(value)
         e.value = value
 
-        local data_str, unit = util.power_format(value, false, args.format)
+        local data_str, unit = util.power_format(value, args.unit, false, args.format)
 
         -- write data
         e.w_set_cur(data_start, 1)
@@ -53,13 +55,12 @@ local function power(args)
         end
 
         -- append per tick if rate is set
-        -- add space to FE so we don't end up with FEE (after having kFE for example)
         if args.rate == true then
             unit = unit .. "/t"
-            if unit == "FE/t" then unit = "FE/t " end
-        else
-            if unit == "FE" then unit = "FE " end
         end
+
+        -- add space to unit so we don't end up with something like FEE after having kFE
+        unit = util.strminw(unit, 5)
 
         e.w_write(" " .. unit)
     end

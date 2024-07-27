@@ -70,8 +70,8 @@ function process.init(iocontrol, coord_comms)
 
         self.io.facility.ps.publish("process_mode", ctl_proc.mode)
         self.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
-        self.io.facility.ps.publish("process_charge_target", ctl_proc.charge_target)
-        self.io.facility.ps.publish("process_gen_target", ctl_proc.gen_target)
+        self.io.facility.ps.publish("process_charge_target", self.io.energy_convert_from_fe(ctl_proc.charge_target))
+        self.io.facility.ps.publish("process_gen_target", self.io.energy_convert_from_fe(ctl_proc.gen_target))
         self.io.facility.ps.publish("process_waste_product", ctl_proc.waste_product)
         self.io.facility.ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
         self.io.facility.ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
@@ -316,8 +316,8 @@ function process.start_ack_handle(response)
 
     self.io.facility.ps.publish("process_mode", ctl_proc.mode)
     self.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
-    self.io.facility.ps.publish("process_charge_target", ctl_proc.charge_target)
-    self.io.facility.ps.publish("process_gen_target", ctl_proc.gen_target)
+    self.io.facility.ps.publish("process_charge_target", self.io.energy_convert_from_fe(ctl_proc.charge_target))
+    self.io.facility.ps.publish("process_gen_target", self.io.energy_convert_from_fe(ctl_proc.gen_target))
 
     self.io.facility.start_ack(ack)
 end

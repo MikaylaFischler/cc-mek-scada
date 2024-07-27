@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.4.1"
+util.version = "1.4.2"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -119,6 +119,13 @@ function util.strwrap(str, limit)
     assert(limit > 0, "util.strwrap() limit not greater than 0")
     return cc_strings.wrap(str, limit)
 end
+
+-- make sure a string is at least 'width' long
+---@nodiscard
+---@param str string
+---@param width integer minimum width
+---@return string string
+function util.strminw(str, width) return cc_strings.ensure_width(str, width) end
 
 -- concatenation with built-in to string
 ---@nodiscard
@@ -375,65 +382,63 @@ end
 
 --#region MEKANISM MATH
 
--- convert Joules to FE
+-- convert Joules to FE (or RF)
 ---@nodiscard
 ---@param J number Joules
----@return number FE Forge Energy
-function util.joules_to_fe(J) return (J * 0.4) end
+---@return number FE Forge Energy or Redstone Flux
+function util.joules_to_fe_rf(J) return (J * 0.4) end
 
--- convert FE to Joules
+-- convert FE (or RF) to Joules
 ---@nodiscard
----@param FE number Forge Energy
+---@param FE number Forge Energy or Redstone Flux
 ---@return number J Joules
-function util.fe_to_joules(FE) return (FE * 2.5) end
+function util.fe_rf_to_joules(FE) return (FE * 2.5) end
 
-local function kFE(fe) return fe / 1000.0 end
-local function MFE(fe) return fe / 1000000.0 end
-local function GFE(fe) return fe / 1000000000.0 end
-local function TFE(fe) return fe / 1000000000000.0 end
-local function PFE(fe) return fe / 1000000000000000.0 end
-local function EFE(fe) return fe / 1000000000000000000.0 end    -- if you accomplish this please touch grass
-local function ZFE(fe) return fe / 1000000000000000000000.0 end -- how & why did you do this?
-
--- format a power value into XXX.XX UNIT format (FE, kFE, MFE, GFE, TFE, PFE, EFE, ZFE)
+-- format a power value into XXX.XX UNIT format<br>
+-- example for FE: FE, kFE, MFE, GFE, TFE, PFE, EFE, ZFE
 ---@nodiscard
----@param fe number forge energy value
+---@param e number energy value
+---@param label string energy scale label
 ---@param combine_label? boolean if a label should be included in the string itself
 ---@param format? string format override
----@return string str, string? unit
-function util.power_format(fe, combine_label, format)
+---@return string str, string unit
+function util.power_format(e, label, combine_label, format)
     local unit, value
 
     if type(format) ~= "string" then format = "%.2f" end
 
-    if fe < 1000.0 then
-        unit = "FE"
-        value = fe
-    elseif fe < 1000000.0 then
-        unit = "kFE"
-        value = kFE(fe)
-    elseif fe < 1000000000.0 then
-        unit = "MFE"
-        value = MFE(fe)
-    elseif fe < 1000000000000.0 then
-        unit = "GFE"
-        value = GFE(fe)
-    elseif fe < 1000000000000000.0 then
-        unit = "TFE"
-        value = TFE(fe)
-    elseif fe < 1000000000000000000.0 then
-        unit = "PFE"
-        value = PFE(fe)
-    elseif fe < 1000000000000000000000.0 then
-        unit = "EFE"
-        value = EFE(fe)
+    if e < 1000.0 then
+        unit = ""
+        value = e
+    elseif e < 1000000.0 then
+        unit = "k"
+        value = e / 1000.0
+    elseif e < 1000000000.0 then
+        unit = "M"
+        value = e / 1000000.0
+    elseif e < 1000000000000.0 then
+        unit = "G"
+        value = e / 1000000000.0
+    elseif e < 1000000000000000.0 then
+        unit = "T"
+        value = e / 1000000000000.0
+    elseif e < 1000000000000000000.0 then
+        unit = "P"
+        value = e / 1000000000000000.0
+    elseif e < 1000000000000000000000.0 then
+        -- if you accomplish this please touch grass
+        unit = "E"
+        value = e / 1000000000000000000.0
     else
-        unit = "ZFE"
-        value = ZFE(fe)
+        -- how & why did you do this?
+        unit = "Z"
+        value = e / 1000000000000000000000.0
     end
 
+    unit = unit .. label
+
     if combine_label then
-        return util.sprintf(util.c(format, " %s"), value, unit)
+        return util.sprintf(util.c(format, " %s"), value, unit), unit
     else
         return util.sprintf(format, value), unit
     end

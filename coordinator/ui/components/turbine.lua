@@ -1,4 +1,4 @@
-local util           = require("scada-common.util")
+local iocontrol      = require("coordinator.iocontrol")
 
 local style          = require("coordinator.ui.style")
 
@@ -24,14 +24,16 @@ local function new_view(root, x, y, ps)
     local text_fg = style.theme.text_fg
     local lu_col = style.lu_colors
 
+    local db = iocontrol.get_db()
+
     local turbine = Rectangle{parent=root,border=border(1,colors.gray,true),width=23,height=7,x=x,y=y}
 
     local status    = StateIndicator{parent=turbine,x=7,y=1,states=style.turbine.states,value=1,min_width=12}
-    local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",format="%10.2f",value=0,rate=true,width=16,fg_bg=text_fg}
+    local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",unit=db.energy_label,format="%10.2f",value=0,rate=true,width=16,fg_bg=text_fg}
     local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg}
 
     status.register(ps, "computed_status", status.update)
-    prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(util.joules_to_fe(val)) end)
+    prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(db.energy_convert(val)) end)
     flow_rate.register(ps, "steam_input_rate", flow_rate.update)
 
     local steam  = VerticalBar{parent=turbine,x=2,y=1,fg_bg=cpair(colors.white,colors.gray),height=4,width=1}
