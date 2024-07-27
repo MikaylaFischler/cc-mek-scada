@@ -493,6 +493,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
+    TextBox{parent=sum_c_2,x=1,y=3,text="Tip: you can run a Self-Check from the configurator home screen to make sure everything is going to work right!"}
 
     local function go_home()
         main_pane.set_value(1)
