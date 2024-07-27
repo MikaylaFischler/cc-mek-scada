@@ -9,9 +9,9 @@ local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local types       = require("scada-common.types")
 local util        = require("scada-common.util")
-local themes      = require("graphics.themes")
 
 local core        = require("graphics.core")
+local themes      = require("graphics.themes")
 
 local DisplayBox  = require("graphics.elements.displaybox")
 local Div         = require("graphics.elements.div")
@@ -46,7 +46,8 @@ local RIGHT = core.ALIGN.RIGHT
 local changes = {
     { "v1.2.4", { "Added temperature scale options" } },
     { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
+    { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
+    { "v1.5.1", { "Added energy scale options" } }
 }
 
 ---@class crd_configurator
@@ -119,6 +120,7 @@ local tmp_cfg = {
     SpeakerVolume = 1.0,
     Time24Hour = true,
     TempScale = 1,
+    EnergyScale = 1,
     DisableFlowView = false,
     MainDisplay = nil,  ---@type string
     FlowDisplay = nil,  ---@type string
@@ -151,7 +153,8 @@ local fields = {
     { "UnitDisplays", "Unit Monitors", {} },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
     { "Time24Hour", "Use 24-hour Time Format", true },
-    { "TempScale", "Temperature Scale", 1 },
+    { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
+    { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
@@ -333,7 +336,7 @@ local function config_view(display)
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text=msg,fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     elseif tool_ctl.start_fail > 0 then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device had no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 
@@ -759,9 +762,13 @@ local function config_view(display)
     TextBox{parent=crd_c_1,x=1,y=8,text="Temperature Scale"}
     local temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
+    TextBox{parent=crd_c_1,x=24,y=8,text="Energy Scale"}
+    local energy_scale = RadioButton{parent=crd_c_1,x=24,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
     local function submit_ui_opts()
         tmp_cfg.Time24Hour = clock_fmt.get_value() == 1
         tmp_cfg.TempScale = temp_scale.get_value()
+        tmp_cfg.EnergyScale = energy_scale.get_value()
         main_pane.set_value(7)
     end
 
@@ -969,6 +976,8 @@ local function config_view(display)
             try_set(dis_flow_view, ini_cfg.DisableFlowView)
             try_set(s_vol, ini_cfg.SpeakerVolume)
             try_set(clock_fmt, util.trinary(ini_cfg.Time24Hour, 1, 2))
+            try_set(temp_scale, ini_cfg.TempScale)
+            try_set(energy_scale, ini_cfg.EnergyScale)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
@@ -1356,7 +1365,9 @@ local function config_view(display)
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "TempScale" then
-                val = types.TEMP_SCALE_NAMES[raw]
+                val = util.strval(types.TEMP_SCALE_NAMES[raw])
+            elseif f[1] == "EnergyScale" then
+                val = util.strval(types.ENERGY_SCALE_NAMES[raw])
             elseif f[1] == "MainTheme" then
                 val = util.strval(themes.ui_theme_name(raw))
             elseif f[1] == "FrontPanelTheme" then
