@@ -63,13 +63,13 @@ local system = {}
 -- create the system configuration view
 ---@param tool_ctl _plc_cfg_tool_ctl
 ---@param main_pane graphics_element
----@param settings table
+---@param cfg_sys table
 ---@param divs table
 ---@param style table
 ---@param exit function
-function system.create(tool_ctl, main_pane, settings, divs, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     ---@type plc_config, plc_config, plc_config, table, function
-    local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = table.unpack(settings)
+    local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = table.unpack(cfg_sys)
 
     ---@type graphics_element, graphics_element, graphics_element, graphics_element, graphics_element
     local plc_cfg, net_cfg, log_cfg, clr_cfg, summary = table.unpack(divs)

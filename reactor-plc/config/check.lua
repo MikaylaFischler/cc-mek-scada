@@ -124,6 +124,13 @@ local function self_check(sc_log)
     if valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
 
+        -- init mac as needed
+        if self.settings.AuthKey and string.len(self.settings.AuthKey) >= 8 then
+            network.init_mac(self.settings.AuthKey)
+        else
+            network.deinit_mac()
+        end
+
         self.nic = network.nic(modem)
 
         self.nic.closeAll()

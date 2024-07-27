@@ -277,7 +277,7 @@ function configurator.configure(ask_config)
             elseif event == "paste" then
                 display.handle_paste(param1)
             elseif event == "modem_message" then
-                check.handle_msg(param1, param2, param3, param4, param5)
+                check.receive_sv(param1, param2, param3, param4, param5)
             end
 
             if event == "terminate" then return end
