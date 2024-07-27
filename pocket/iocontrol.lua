@@ -10,6 +10,9 @@ local util  = require("scada-common.util")
 
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
+
+local ENERGY_SCALE = types.ENERGY_SCALE
+local ENERGY_UNITS = types.ENERGY_SCALE_UNITS
 local TEMP_SCALE = types.TEMP_SCALE
 local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
@@ -88,8 +91,10 @@ end
 -- initialize facility-dependent components of pocket iocontrol
 ---@param conf facility_conf configuration
 ---@param temp_scale TEMP_SCALE temperature unit
-function iocontrol.init_fac(conf, temp_scale)
+---@param energy_scale ENERGY_SCALE energy unit
+function iocontrol.init_fac(conf, temp_scale, energy_scale)
     io.temp_label = TEMP_UNITS[temp_scale]
+    io.energy_label = ENERGY_UNITS[energy_scale]
 
     -- temperature unit label and conversion function (from Kelvin)
     if temp_scale == TEMP_SCALE.CELSIUS then
@@ -101,6 +106,18 @@ function iocontrol.init_fac(conf, temp_scale)
     else
         io.temp_label = "K"
         io.temp_convert = function (t) return t end
+    end
+
+    -- energy unit label and conversion function (from Joules unless otherwise specified)
+    if energy_scale == ENERGY_SCALE.FE or energy_scale == ENERGY_SCALE.RF then
+        io.energy_convert = util.joules_to_fe_rf
+        io.energy_convert_from_fe = function (t) return t end
+        io.energy_convert_to_fe = function (t) return t end
+    else
+        io.energy_label = "J"
+        io.energy_convert = function (t) return t end
+        io.energy_convert_from_fe = util.fe_rf_to_joules
+        io.energy_convert_to_fe = util.joules_to_fe_rf
     end
 
     -- facility data structure
