@@ -38,10 +38,15 @@ local io = {
     ps = psil.create()
 }
 
+local config = nil  ---@type pkt_config
+
 -- initialize facility-independent components of pocket iocontrol
 ---@param comms pocket_comms
 ---@param nav pocket_nav
-function iocontrol.init_core(comms, nav)
+---@param cfg pkt_config
+function iocontrol.init_core(comms, nav, cfg)
+    config = cfg
+
     io.nav = nav
 
     ---@class pocket_ioctl_diag
@@ -89,10 +94,9 @@ function iocontrol.init_core(comms, nav)
 end
 
 -- initialize facility-dependent components of pocket iocontrol
----@param conf facility_conf configuration
----@param temp_scale TEMP_SCALE temperature unit
----@param energy_scale ENERGY_SCALE energy unit
-function iocontrol.init_fac(conf, temp_scale, energy_scale)
+---@param conf facility_conf facility configuration
+function iocontrol.init_fac(conf)
+    local temp_scale, energy_scale = config.TempScale, config.EnergyScale
     io.temp_label = TEMP_UNITS[temp_scale]
     io.energy_label = ENERGY_UNITS[energy_scale]
 
@@ -346,8 +350,8 @@ end
 
 -- set network link state
 ---@param state POCKET_LINK_STATE
----@param sv_addr integer? supervisor address if linked
----@param api_addr integer? coordinator address if linked
+---@param sv_addr integer|false|nil supervisor address if linked, nil if unchanged, false if unlinked
+---@param api_addr integer|false|nil coordinator address if linked, nil if unchanged, false if unlinked
 function iocontrol.report_link_state(state, sv_addr, api_addr)
     io.ps.publish("link_state", state)
 
@@ -359,8 +363,17 @@ function iocontrol.report_link_state(state, sv_addr, api_addr)
         io.ps.publish("crd_conn_quality", 0)
     end
 
-    if sv_addr then io.ps.publish("sv_addr", sv_addr) end
-    if api_addr then io.ps.publish("api_addr", api_addr) end
+    if sv_addr then
+        io.ps.publish("sv_addr", util.c(sv_addr, ":", config.SVR_Channel))
+    elseif sv_addr == false then
+        io.ps.publish("sv_addr", "unknown (not linked)")
+    end
+
+    if api_addr then
+        io.ps.publish("api_addr", util.c(api_addr, ":", config.CRD_Channel))
+    elseif api_addr == false then
+        io.ps.publish("api_addr", "unknown (not linked)")
+    end
 end
 
 -- determine supervisor connection quality (trip time)

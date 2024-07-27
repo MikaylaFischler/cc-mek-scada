@@ -493,7 +493,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     -- attempt to re-link if any of the dependent links aren't active
     function public.link_update()
         if not self.sv.linked then
-            iocontrol.report_link_state(util.trinary(self.api.linked, LINK_STATE.API_LINK_ONLY, LINK_STATE.UNLINKED))
+            if self.api.linked then
+                iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY, false, nil)
+            else
+                iocontrol.report_link_state(LINK_STATE.UNLINKED, false, false)
+            end
 
             if self.establish_delay_counter <= 0 then
                 _send_sv_establish()
@@ -502,7 +506,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 self.establish_delay_counter = self.establish_delay_counter - 1
             end
         elseif not self.api.linked then
-            iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
+            iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, nil, false)
 
             if self.establish_delay_counter <= 0 then
                 _send_api_establish()
@@ -512,7 +516,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
             end
         else
             -- linked, all good!
-            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
+            iocontrol.report_link_state(LINK_STATE.LINKED)
         end
     end
 
@@ -678,7 +682,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         -- get configuration
                                         local conf = { num_units = fac_config[1], cooling = fac_config[2] }
 
-                                        iocontrol.init_fac(conf, config.TempScale, config.EnergyScale)
+                                        iocontrol.init_fac(conf)
 
                                         log.info("coordinator connection established")
                                         self.establish_delay_counter = 0
@@ -686,9 +690,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         self.api.addr = src_addr
 
                                         if self.sv.linked then
-                                            iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
+                                            iocontrol.report_link_state(LINK_STATE.LINKED, nil, self.api.addr)
                                         else
-                                            iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY)
+                                            iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY, nil, self.api.addr)
                                         end
                                     else
                                         log.debug("invalid facility configuration table received from coordinator, establish failed")
@@ -826,9 +830,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 self.sv.addr = src_addr
 
                                 if self.api.linked then
-                                    iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, self.api.addr)
+                                    iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, nil)
                                 else
-                                    iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY)
+                                    iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, self.sv.addr, nil)
                                 end
                             elseif est_ack == ESTABLISH_ACK.DENY then
                                 if self.sv.last_est_ack ~= est_ack then
