@@ -181,7 +181,7 @@ local function config_view(display)
     TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Supervisor configurator! Please select one of the following options."}
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device has no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device had no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 
@@ -453,15 +453,16 @@ local function config_view(display)
 
         vis_unit_list.set_value(u_text)
 
+        local vis_ftanks = tool_ctl.vis_ftanks
         local next_idx = 1
 
         if is_ft(1) then
             next_idx = 2
 
             if (mode == 1 and (is_ft(2) or is_ft(3) or is_ft(4))) or (mode == 2 and (is_ft(2) or is_ft(3))) or ((mode == 3 or mode == 5) and is_ft(2)) then
-                tool_ctl.vis_ftanks[1].pipe_direct.set_value("\x8c\x8c\x8c\x9c\x8c")
+                vis_ftanks[1].pipe_direct.set_value("\x8c\x8c\x8c\x9c\x8c")
             else
-                tool_ctl.vis_ftanks[1].pipe_direct.set_value(string.rep("\x8c",5))
+                vis_ftanks[1].pipe_direct.set_value(string.rep("\x8c",5))
             end
         end
 
@@ -469,108 +470,108 @@ local function config_view(display)
         local _2_46_need_chain = (mode == 4 and (is_ft(3) or is_ft(4))) or (mode == 6 and is_ft(3))
 
         if is_ft(2) then
-            tool_ctl.vis_ftanks[2].label.set_value("Tank F" .. next_idx)
+            vis_ftanks[2].label.set_value("Tank F" .. next_idx)
 
             if (mode < 4 or mode == 5) and is_ft(1) then
-                tool_ctl.vis_ftanks[2].label.hide(true)
-                tool_ctl.vis_ftanks[2].pipe_direct.hide(true)
+                vis_ftanks[2].label.hide(true)
+                vis_ftanks[2].pipe_direct.hide(true)
                 if _2_12_need_passt then
-                    tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x9d")
+                    vis_ftanks[2].pipe_chain.set_value("\x95\n\x9d")
                 else
-                    tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x8d")
+                    vis_ftanks[2].pipe_chain.set_value("\x95\n\x8d")
                 end
-                tool_ctl.vis_ftanks[2].pipe_chain.show()
+                vis_ftanks[2].pipe_chain.show()
             else
-                tool_ctl.vis_ftanks[2].label.show()
+                vis_ftanks[2].label.show()
                 next_idx = next_idx + 1
 
-                tool_ctl.vis_ftanks[2].pipe_chain.hide(true)
+                vis_ftanks[2].pipe_chain.hide(true)
                 if _2_12_need_passt or _2_46_need_chain then
-                    tool_ctl.vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
+                    vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
                 else
-                    tool_ctl.vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
+                    vis_ftanks[2].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
                 end
-                tool_ctl.vis_ftanks[2].pipe_direct.show()
+                vis_ftanks[2].pipe_direct.show()
             end
 
-            tool_ctl.vis_ftanks[2].line.show()
+            vis_ftanks[2].line.show()
         elseif is_ft(1) and _2_12_need_passt then
-            tool_ctl.vis_ftanks[2].label.hide(true)
-            tool_ctl.vis_ftanks[2].pipe_direct.hide(true)
-            tool_ctl.vis_ftanks[2].pipe_chain.set_value("\x95\n\x95")
-            tool_ctl.vis_ftanks[2].pipe_chain.show()
-            tool_ctl.vis_ftanks[2].line.show()
+            vis_ftanks[2].label.hide(true)
+            vis_ftanks[2].pipe_direct.hide(true)
+            vis_ftanks[2].pipe_chain.set_value("\x95\n\x95")
+            vis_ftanks[2].pipe_chain.show()
+            vis_ftanks[2].line.show()
         else
-            tool_ctl.vis_ftanks[2].line.hide(true)
+            vis_ftanks[2].line.hide(true)
         end
 
         if is_ft(3) then
-            tool_ctl.vis_ftanks[3].label.set_value("Tank F" .. next_idx)
+            vis_ftanks[3].label.set_value("Tank F" .. next_idx)
 
             if (mode < 3 and (is_ft(1) or is_ft(2))) or ((mode == 4 or mode == 6) and is_ft(2)) then
-                tool_ctl.vis_ftanks[3].label.hide(true)
-                tool_ctl.vis_ftanks[3].pipe_direct.hide(true)
+                vis_ftanks[3].label.hide(true)
+                vis_ftanks[3].pipe_direct.hide(true)
                 if (mode == 1 or mode == 4) and is_ft(4) then
-                    tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x9d")
+                    vis_ftanks[3].pipe_chain.set_value("\x95\n\x9d")
                 else
-                    tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x8d")
+                    vis_ftanks[3].pipe_chain.set_value("\x95\n\x8d")
                 end
-                tool_ctl.vis_ftanks[3].pipe_chain.show()
+                vis_ftanks[3].pipe_chain.show()
             else
-                tool_ctl.vis_ftanks[3].label.show()
+                vis_ftanks[3].label.show()
                 next_idx = next_idx + 1
 
-                tool_ctl.vis_ftanks[3].pipe_chain.hide(true)
+                vis_ftanks[3].pipe_chain.hide(true)
                 if (mode == 1 or mode == 3 or mode == 4 or mode == 7) and is_ft(4) then
-                    tool_ctl.vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
+                    vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x9c")
                 else
-                    tool_ctl.vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
+                    vis_ftanks[3].pipe_direct.set_value("\x8c\x8c\x8c\x8c")
                 end
-                tool_ctl.vis_ftanks[3].pipe_direct.show()
+                vis_ftanks[3].pipe_direct.show()
             end
 
-            tool_ctl.vis_ftanks[3].line.show()
+            vis_ftanks[3].line.show()
         elseif (mode == 1 and is_ft(4) and (is_ft(1) or is_ft(2))) or (mode == 4 and is_ft(2) and is_ft(4)) then
-            tool_ctl.vis_ftanks[3].label.hide(true)
-            tool_ctl.vis_ftanks[3].pipe_direct.hide(true)
-            tool_ctl.vis_ftanks[3].pipe_chain.set_value("\x95\n\x95")
-            tool_ctl.vis_ftanks[3].pipe_chain.show()
-            tool_ctl.vis_ftanks[3].line.show()
+            vis_ftanks[3].label.hide(true)
+            vis_ftanks[3].pipe_direct.hide(true)
+            vis_ftanks[3].pipe_chain.set_value("\x95\n\x95")
+            vis_ftanks[3].pipe_chain.show()
+            vis_ftanks[3].line.show()
         else
-            tool_ctl.vis_ftanks[3].line.hide(true)
+            vis_ftanks[3].line.hide(true)
         end
 
         if is_ft(4) then
-            tool_ctl.vis_ftanks[4].label.set_value("Tank F" .. next_idx)
+            vis_ftanks[4].label.set_value("Tank F" .. next_idx)
 
             if (mode == 1 and (is_ft(1) or is_ft(2) or is_ft(3))) or ((mode == 3 or mode == 7) and is_ft(3)) or (mode == 4 and (is_ft(2) or is_ft(3))) then
-                tool_ctl.vis_ftanks[4].label.hide(true)
-                tool_ctl.vis_ftanks[4].pipe_direct.hide(true)
-                tool_ctl.vis_ftanks[4].pipe_chain.show()
+                vis_ftanks[4].label.hide(true)
+                vis_ftanks[4].pipe_direct.hide(true)
+                vis_ftanks[4].pipe_chain.show()
             else
-                tool_ctl.vis_ftanks[4].label.show()
-                tool_ctl.vis_ftanks[4].pipe_chain.hide(true)
-                tool_ctl.vis_ftanks[4].pipe_direct.show()
+                vis_ftanks[4].label.show()
+                vis_ftanks[4].pipe_chain.hide(true)
+                vis_ftanks[4].pipe_direct.show()
             end
 
-            tool_ctl.vis_ftanks[4].line.show()
+            vis_ftanks[4].line.show()
         else
-            tool_ctl.vis_ftanks[4].line.hide(true)
+            vis_ftanks[4].line.hide(true)
         end
     end
 
+    local function change_mode(mode)
+        tmp_cfg.FacilityTankMode = mode
+        tool_ctl.vis_draw(mode)
+    end
+
     local tank_modes = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
-    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=tool_ctl.vis_draw,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
+    local tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=change_mode,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
 
     --#endregion
 
-    local function submit_mode()
-        tmp_cfg.FacilityTankMode = tank_mode.get_value()
-        svr_pane.set_value(7)
-    end
-
     PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=submit_mode,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=function()svr_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     PushButton{parent=svr_c_5,x=8,y=14,min_width=7,text="About",callback=function()svr_pane.set_value(6)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
 

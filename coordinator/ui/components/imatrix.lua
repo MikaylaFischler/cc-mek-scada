@@ -1,5 +1,7 @@
 local util           = require("scada-common.util")
 
+local iocontrol      = require("coordinator.iocontrol")
+
 local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
@@ -34,6 +36,8 @@ local function new_view(root, x, y, data, ps, id)
     local ind_yel = style.ind_yel
     local ind_wht = style.ind_wht
 
+    local db = iocontrol.get_db()
+
     local title = "INDUCTION MATRIX"
     if type(id) == "number" then title = title .. id end
 
@@ -48,24 +52,24 @@ local function new_view(root, x, y, data, ps, id)
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
 
     local status    = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
-    local capacity  = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity:",format="%8.2f",value=0,width=26,fg_bg=text_fg}
-    local energy    = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Energy:  ",format="%8.2f",value=0,width=26,fg_bg=text_fg}
-    local avg_chg   = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="\xb7Average:",format="%8.2f",value=0,width=26,fg_bg=text_fg}
-    local input     = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="Input:   ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local avg_in    = PowerIndicator{parent=rect,x=7,y=7,lu_colors=lu_col,label="\xb7Average:",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local output    = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Output:  ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local avg_out   = PowerIndicator{parent=rect,x=7,y=9,lu_colors=lu_col,label="\xb7Average:",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local trans_cap = PowerIndicator{parent=rect,x=7,y=10,lu_colors=lu_col,label="Max I/O: ",format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local capacity  = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local energy    = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Energy:  ",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local avg_chg   = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local input     = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="Input:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local avg_in    = PowerIndicator{parent=rect,x=7,y=7,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local output    = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Output:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local avg_out   = PowerIndicator{parent=rect,x=7,y=9,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local trans_cap = PowerIndicator{parent=rect,x=7,y=10,lu_colors=lu_col,label="Max I/O: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
 
     status.register(ps, "computed_status", status.update)
-    capacity.register(ps, "max_energy", function (val) capacity.update(util.joules_to_fe(val)) end)
-    energy.register(ps, "energy", function (val) energy.update(util.joules_to_fe(val)) end)
+    capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert(val)) end)
+    energy.register(ps, "energy", function (val) energy.update(db.energy_convert(val)) end)
     avg_chg.register(ps, "avg_charge", avg_chg.update)
-    input.register(ps, "last_input", function (val) input.update(util.joules_to_fe(val)) end)
+    input.register(ps, "last_input", function (val) input.update(db.energy_convert(val)) end)
     avg_in.register(ps, "avg_inflow", avg_in.update)
-    output.register(ps, "last_output", function (val) output.update(util.joules_to_fe(val)) end)
+    output.register(ps, "last_output", function (val) output.update(db.energy_convert(val)) end)
     avg_out.register(ps, "avg_outflow", avg_out.update)
-    trans_cap.register(ps, "transfer_cap", function (val) trans_cap.update(util.joules_to_fe(val)) end)
+    trans_cap.register(ps, "transfer_cap", function (val) trans_cap.update(db.energy_convert(val)) end)
 
     local fill      = DataIndicator{parent=rect,x=11,y=12,lu_colors=lu_col,label="Fill:     ",format="%7.2f",unit="%",value=0,width=20,fg_bg=text_fg}
     local cells     = DataIndicator{parent=rect,x=11,y=13,lu_colors=lu_col,label="Cells:    ",format="%7d",value=0,width=18,fg_bg=text_fg}

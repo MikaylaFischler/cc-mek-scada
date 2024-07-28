@@ -33,7 +33,8 @@ local RIGHT = core.ALIGN.RIGHT
 
 -- changes to the config data/format to let the user know
 local changes = {
-    { "v0.9.2", { "Added temperature scale options" } }
+    { "v0.9.2", { "Added temperature scale options" } },
+    { "v0.11.3", { "Added energy scale options" } }
 }
 
 ---@class pkt_configurator
@@ -76,6 +77,7 @@ local tool_ctl = {
 ---@class pkt_config
 local tmp_cfg = {
     TempScale = 1,
+    EnergyScale = 1,
     SVR_Channel = nil,  ---@type integer
     CRD_Channel = nil,  ---@type integer
     PKT_Channel = nil,  ---@type integer
@@ -94,7 +96,8 @@ local settings_cfg = {}
 
 -- all settings fields, their nice names, and their default values
 local fields = {
-    { "TempScale", "Temperature Scale", 1 },
+    { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
+    { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
     { "PKT_Channel", "PKT Channel", 16244 },
@@ -175,13 +178,17 @@ local function config_view(display)
 
     TextBox{parent=ui_cfg,x=1,y=2,text=" Pocket UI",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may use the options below to customize formats."}
+    TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may customize units below."}
 
-    TextBox{parent=ui_c_1,x=1,y=5,text="Temperature Scale"}
-    local temp_scale = RadioButton{parent=ui_c_1,x=1,y=6,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=ui_c_1,x=1,y=4,text="Temperature Scale"}
+    local temp_scale = RadioButton{parent=ui_c_1,x=1,y=5,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=ui_c_1,x=1,y=10,text="Energy Scale"}
+    local energy_scale = RadioButton{parent=ui_c_1,x=1,y=11,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_opts()
         tmp_cfg.TempScale = temp_scale.get_value()
+        tmp_cfg.EnergyScale = energy_scale.get_value()
         main_pane.set_value(3)
     end
 
@@ -378,6 +385,8 @@ local function config_view(display)
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
+            try_set(temp_scale, ini_cfg.TempScale)
+            try_set(energy_scale, ini_cfg.EnergyScale)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(crd_chan, ini_cfg.CRD_Channel)
             try_set(pkt_chan, ini_cfg.PKT_Channel)
@@ -504,7 +513,9 @@ local function config_view(display)
             elseif f[1] == "LogMode" then
                 val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "TempScale" then
-                val = types.TEMP_SCALE_NAMES[raw]
+                val = util.strval(types.TEMP_SCALE_NAMES[raw])
+            elseif f[1] == "EnergyScale" then
+                val = util.strval(types.ENERGY_SCALE_NAMES[raw])
             end
 
             if val == "nil" then val = "<not set>" end

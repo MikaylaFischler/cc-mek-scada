@@ -57,41 +57,47 @@ function plc.load_config()
     config.FrontPanelTheme = settings.get("FrontPanelTheme")
     config.ColorMode = settings.get("ColorMode")
 
+    return plc.validate_config(config)
+end
+
+-- validate a PLC configuration
+---@param cfg plc_config
+function plc.validate_config(cfg)
     local cfv = util.new_validator()
 
-    cfv.assert_type_bool(config.Networked)
-    cfv.assert_type_int(config.UnitID)
-    cfv.assert_type_bool(config.EmerCoolEnable)
+    cfv.assert_type_bool(cfg.Networked)
+    cfv.assert_type_int(cfg.UnitID)
+    cfv.assert_type_bool(cfg.EmerCoolEnable)
 
-    if config.Networked == true then
-        cfv.assert_channel(config.SVR_Channel)
-        cfv.assert_channel(config.PLC_Channel)
-        cfv.assert_type_num(config.ConnTimeout)
-        cfv.assert_min(config.ConnTimeout, 2)
-        cfv.assert_type_num(config.TrustedRange)
-        cfv.assert_min(config.TrustedRange, 0)
-        cfv.assert_type_str(config.AuthKey)
+    if cfg.Networked == true then
+        cfv.assert_channel(cfg.SVR_Channel)
+        cfv.assert_channel(cfg.PLC_Channel)
+        cfv.assert_type_num(cfg.ConnTimeout)
+        cfv.assert_min(cfg.ConnTimeout, 2)
+        cfv.assert_type_num(cfg.TrustedRange)
+        cfv.assert_min(cfg.TrustedRange, 0)
+        cfv.assert_type_str(cfg.AuthKey)
 
-        if type(config.AuthKey) == "string" then
-            local len = string.len(config.AuthKey)
+        if type(cfg.AuthKey) == "string" then
+            local len = string.len(cfg.AuthKey)
             cfv.assert(len == 0 or len >= 8)
         end
     end
 
-    cfv.assert_type_int(config.LogMode)
-    cfv.assert_range(config.LogMode, 0, 1)
-    cfv.assert_type_str(config.LogPath)
-    cfv.assert_type_bool(config.LogDebug)
+    cfv.assert_type_int(cfg.LogMode)
+    cfv.assert_range(cfg.LogMode, 0, 1)
+    cfv.assert_type_str(cfg.LogPath)
+    cfv.assert_type_bool(cfg.LogDebug)
 
-    cfv.assert_type_int(config.FrontPanelTheme)
-    cfv.assert_range(config.FrontPanelTheme, 1, 2)
-    cfv.assert_type_int(config.ColorMode)
-    cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
+    cfv.assert_type_int(cfg.FrontPanelTheme)
+    cfv.assert_range(cfg.FrontPanelTheme, 1, 2)
+    cfv.assert_type_int(cfg.ColorMode)
+    cfv.assert_range(cfg.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
     -- check emergency coolant configuration if enabled
-    if config.EmerCoolEnable then
-        cfv.assert_eq(rsio.is_valid_side(config.EmerCoolSide), true)
-        cfv.assert_eq(config.EmerCoolColor == nil or rsio.is_color(config.EmerCoolColor), true)
+    if cfg.EmerCoolEnable then
+        cfv.assert_eq(rsio.is_valid_side(cfg.EmerCoolSide), true)
+        cfv.assert_eq(cfg.EmerCoolColor == nil or rsio.is_color(cfg.EmerCoolColor), true)
     end
 
     return cfv.valid()

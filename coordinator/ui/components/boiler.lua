@@ -1,6 +1,6 @@
-local style          = require("coordinator.ui.style")
-
 local iocontrol      = require("coordinator.iocontrol")
+
+local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
 

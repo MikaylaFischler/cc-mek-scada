@@ -571,7 +571,9 @@ function rtu.comms(version, nic, conn_watchdog)
                                 end
                             end
 
-                            public.unlink(rtu_state)
+                            -- unlink
+                            self.sv_addr = comms.BROADCAST
+                            rtu_state.linked = false
                         end
 
                         self.last_est_ack = est_ack

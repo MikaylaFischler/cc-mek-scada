@@ -75,8 +75,8 @@ local function create_pages(root)
     TextBox{parent=nt_div,x=2,text="Coordinator Address",alignment=ALIGN.LEFT,fg_bg=label}
     local coord = TextBox{parent=nt_div,x=2,text="",alignment=ALIGN.LEFT}
 
-    sv.register(db.ps, "sv_addr", function (addr) sv.set_value(util.c(addr, ":", config.SVR_Channel)) end)
-    coord.register(db.ps, "api_addr", function (addr) coord.set_value(util.c(addr, ":", config.CRD_Channel)) end)
+    sv.register(db.ps, "sv_addr", sv.set_value)
+    coord.register(db.ps, "api_addr", coord.set_value)
 
     nt_div.line_break()
     TextBox{parent=nt_div,x=2,text="Message Authentication",alignment=ALIGN.LEFT,fg_bg=label}
