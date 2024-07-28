@@ -474,7 +474,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(c_mode, ini_cfg.ColorMode)
 
             tool_ctl.view_cfg.enable()
-            tool_ctl.self_check.enable()
             tool_ctl.color_cfg.enable()
 
             if self.importing_legacy then

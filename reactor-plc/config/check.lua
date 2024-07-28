@@ -119,7 +119,7 @@ local function self_check(sc_log)
     -- this consumes events, but that is fine here
     self.self_check_msg(nil, reactor and reactor.isFormed(), "ensure the fission reactor multiblock is formed")
 
-    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System again and apply settings to repair any corrupted or missing settings")
+    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
 
     if valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
