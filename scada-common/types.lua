@@ -96,6 +96,25 @@ types.TEMP_SCALE_UNITS = {
     "\xb0R"
 }
 
+---@enum ENERGY_SCALE
+types.ENERGY_SCALE = {
+    JOULES = 1,
+    FE = 2,
+    RF = 3
+}
+
+types.ENERGY_SCALE_NAMES = {
+    "Joules (J)",
+    "Forge Energy (FE)",
+    "Redstone Flux (RF)"
+}
+
+types.ENERGY_SCALE_UNITS = {
+    "J",
+    "FE",
+    "RF"
+}
+
 ---@enum PANEL_LINK_STATE
 types.PANEL_LINK_STATE = {
     LINKED = 1,

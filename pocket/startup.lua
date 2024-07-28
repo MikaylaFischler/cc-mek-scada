@@ -20,7 +20,7 @@ local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v0.11.2-alpha"
+local POCKET_VERSION = "v0.11.4-alpha"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -152,7 +152,7 @@ local function main()
     log.debug("startup> comms init")
 
     -- init I/O control
-    iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav)
+    iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav, config)
 
     ----------------------------------------
     -- start the UI

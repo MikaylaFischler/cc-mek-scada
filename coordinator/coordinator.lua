@@ -38,6 +38,7 @@ function coordinator.load_config()
     config.SpeakerVolume = settings.get("SpeakerVolume")
     config.Time24Hour = settings.get("Time24Hour")
     config.TempScale = settings.get("TempScale")
+    config.EnergyScale = settings.get("EnergyScale")
 
     config.DisableFlowView = settings.get("DisableFlowView")
     config.MainDisplay = settings.get("MainDisplay")
@@ -67,6 +68,8 @@ function coordinator.load_config()
     cfv.assert_type_bool(config.Time24Hour)
     cfv.assert_type_int(config.TempScale)
     cfv.assert_range(config.TempScale, 1, 4)
+    cfv.assert_type_int(config.EnergyScale)
+    cfv.assert_range(config.EnergyScale, 1, 3)
 
     cfv.assert_type_bool(config.DisableFlowView)
     cfv.assert_type_table(config.UnitDisplays)
@@ -702,7 +705,7 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                                     if conf.num_units == config.UnitCount then
                                         -- init io controller
-                                        iocontrol.init(conf, public, config.TempScale)
+                                        iocontrol.init(conf, public, config.TempScale, config.EnergyScale)
 
                                         self.sv_addr = src_addr
                                         self.sv_linked = true

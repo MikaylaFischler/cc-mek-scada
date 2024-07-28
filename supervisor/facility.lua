@@ -29,7 +29,7 @@ local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
 -- 7.14 kJ per blade for 1 mB of fissile fuel<br>
 -- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
-local POWER_PER_BLADE = util.joules_to_fe(7140)
+local POWER_PER_BLADE = util.joules_to_fe_rf(7140)
 
 local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
@@ -332,9 +332,9 @@ function facility.new(config, cooling_conf)
             end
 
             if has_data then
-                local energy = util.joules_to_fe(db.tanks.energy)
-                local input  = util.joules_to_fe(db.state.last_input)
-                local output = util.joules_to_fe(db.state.last_output)
+                local energy = util.joules_to_fe_rf(db.tanks.energy)
+                local input  = util.joules_to_fe_rf(db.state.last_input)
+                local output = util.joules_to_fe_rf(db.state.last_output)
 
                 if self.im_stat_init then
                     self.avg_charge.record(energy, charge_update)
@@ -1283,7 +1283,7 @@ function facility.new(config, cooling_conf)
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
             local fe_per_ms = self.avg_net.compute()
-            local remaining = util.joules_to_fe(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
+            local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
             status.power[4] = remaining / fe_per_ms
         end
 
