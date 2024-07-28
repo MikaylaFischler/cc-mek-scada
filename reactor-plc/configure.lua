@@ -186,7 +186,7 @@ local function config_view(display)
     end
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.self_check = PushButton{parent=main_page,x=10,y=17,min_width=12,text="Self-Check",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.orange,colors.white)}
+    tool_ctl.self_check = PushButton{parent=main_page,x=10,y=17,min_width=12,text="Self-Check",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
