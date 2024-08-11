@@ -84,7 +84,7 @@ function logic.update_annunciator(self)
             self.turbine_flow_stable = false
 
             for t = 1, self.num_turbines do
-                self.turbine_stability_data[t] = { time_state = 0, time_tanks = 0, rotation = 1 }
+                self.turbine_stability_data[t] = { time_state = 0, time_tanks = 0, rotation = 1, input_rate = 0 }
             end
         end
 
@@ -317,7 +317,7 @@ function logic.update_annunciator(self)
 
         local last = self.turbine_stability_data[i]
 
-        if (not self.turbine_flow_stable) and (turbine.state.steam_input_rate > 0) then
+        if not self.turbine_flow_stable then
             local rotation = util.turbine_rotation(turbine)
             local rotation_stable = false
 
@@ -351,13 +351,18 @@ function logic.update_annunciator(self)
             end
 
             turbines_stable = turbines_stable and (rotation_stable or flow_stable)
-        else
+        elseif math.abs(turbine.state.steam_input_rate - last.input_rate) > 1 then
+            -- reset to unstable to re-check
             last.time_state = 0
             last.time_tanks = 0
             last.rotation = 1
 
             turbines_stable = false
+
+            log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reset stability (new rate ", turbine.state.steam_input_rate, " != ", last.input_rate," mB/t)"))
         end
+
+        last.input_rate = turbine.state.steam_input_rate
     end
 
     self.turbine_flow_stable = self.turbine_flow_stable or turbines_stable

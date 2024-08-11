@@ -264,7 +264,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
-        table.insert(self.turbine_stability_data, { time_state = 0, time_tanks = 0, rotation = 1 })
+        table.insert(self.turbine_stability_data, { time_state = 0, time_tanks = 0, rotation = 1, input_rate = 0 })
     end
 
     -- PRIVATE FUNCTIONS --
