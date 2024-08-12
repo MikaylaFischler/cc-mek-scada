@@ -15,14 +15,62 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local function println(message) print(tostring(message)) end
-local function print(message) term.write(tostring(message)) end
-
-local CCMSI_VERSION = "v1.16"
+local CCMSI_VERSION = "v1.17"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
 local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
+
+---@diagnostic disable-next-line: undefined-global
+local _is_pkt_env = pocket -- luacheck: ignore pocket
+
+local function println(msg) print(tostring(msg)) end
+
+-- stripped down & modified copy of log.dmesg
+local function print(msg)
+    msg = tostring(msg)
+
+    local cur_x, cur_y = term.getCursorPos()
+    local out_w, out_h = term.getSize()
+
+    -- jump to next line if needed
+    if cur_x == out_w then
+        cur_x = 1
+        if cur_y == out_h then
+            term.scroll(1)
+            term.setCursorPos(1, cur_y)
+        else
+            term.setCursorPos(1, cur_y + 1)
+        end
+    end
+
+    -- wrap
+    local lines, remaining, s_start, s_end, ln = {}, true, 1, out_w + 1 - cur_x, 1
+    while remaining do
+        local line = string.sub(msg, s_start, s_end)
+
+        if line == "" then
+            remaining = false
+        else
+            lines[ln] = line
+            s_start = s_end + 1
+            s_end = s_end + out_w
+            ln = ln + 1
+        end
+    end
+
+    -- print
+    for i = 1, #lines do
+        cur_x, cur_y = term.getCursorPos()
+        if i > 1 and cur_x > 1 then
+            if cur_y == out_h then
+                term.scroll(1)
+                term.setCursorPos(1, cur_y)
+            else term.setCursorPos(1, cur_y + 1) end
+        end
+        term.write(lines[i])
+    end
+end
 
 local opts = { ... }
 local mode, app, target
@@ -219,10 +267,27 @@ end
 
 -- get and validate command line options
 
-println("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --")
+if _is_pkt_env then println("- SCADA Installer "..CCMSI_VERSION.." -")
+else println("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
 
 if #opts == 0 or opts[1] == "help" then
     println("usage: ccmsi <mode> <app> <branch>")
+    if _is_pkt_env then
+    yellow();println("<mode>");lgray()
+    println(" check - check latest")
+    println(" install - fresh install")
+    println(" update - update app")
+    println(" uninstall - remove app")
+    yellow();println("<app>");lgray()
+    println(" reactor-plc")
+    println(" rtu")
+    println(" supervisor")
+    println(" coordinator")
+    println(" pocket")
+    println(" installer (update only)")
+    yellow();println("<branch>");lgray();
+    println(" main (default) | devel");white()
+    else
     println("<mode>")
     lgray()
     println(" check       - check latest versions available")
@@ -241,6 +306,7 @@ if #opts == 0 or opts[1] == "help" then
     println(" installer   - ccmsi installer (update only)")
     white();println("<branch>")
     lgray();println(" main (default) | devel");white()
+    end
     return
 else
     mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
@@ -286,20 +352,22 @@ if mode == "check" then
     -- list all versions
     for key, value in pairs(manifest.versions) do
         term.setTextColor(colors.purple)
-        print(string.format("%-14s", "["..key.."]"))
+        local tag = string.format("%-14s", "["..key.."]")
+        if not _is_pkt_env then print(tag) end
         if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
+            if _is_pkt_env then println(tag) end
             blue();print(local_manifest.versions[key])
             if value ~= local_manifest.versions[key] then
                 white();print(" (")
                 cyan();print(value);white();println(" available)")
             else green();println(" (up to date)") end
-        else
+        elseif not _is_pkt_env then
             lgray();print("not installed");white();print(" (latest ")
             cyan();print(value);white();println(")")
         end
     end
 
-    if manifest.versions.installer ~= local_manifest.versions.installer then
+    if manifest.versions.installer ~= local_manifest.versions.installer and not _is_pkt_env then
         yellow();println("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
     end
 elseif mode == "install" or mode == "update" then
