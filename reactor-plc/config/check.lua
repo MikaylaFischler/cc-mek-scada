@@ -34,8 +34,19 @@ local self = {
     settings = nil,      ---@type plc_config
 
     run_test_btn = nil,  ---@type graphics_element
+    sc_log = nil,        ---@type graphics_element
     self_check_msg = nil ---@type function
 }
+
+-- report successful completion of the check
+local function check_complete()
+    TextBox{parent=self.sc_log,text="> all tests passed!",fg_bg=cpair(colors.blue,colors._INHERIT)}
+    TextBox{parent=self.sc_log,text=""}
+    local more = Div{parent=self.sc_log,height=3,fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=more,text="if you still have a problem:"}
+    TextBox{parent=more,text="- check the wiki on GitHub"}
+    TextBox{parent=more,text="- ask for help on GitHub discussions or Discord"}
+end
 
 -- send a management packet to the supervisor
 ---@param msg_type MGMT_TYPE
@@ -67,6 +78,7 @@ local function handle_packet(packet)
                     self.self_check_msg(nil, true, "")
                     self.sv_addr = packet.scada_frame.src_addr()
                     send_sv(MGMT_TYPE.CLOSE, {})
+                    if self.self_check_pass then check_complete() end
                 elseif est_ack == ESTABLISH_ACK.DENY then
                     error_msg = "error: supervisor connection denied"
                 elseif est_ack == ESTABLISH_ACK.COLLISION then
@@ -100,11 +112,10 @@ local function handle_timeout()
 end
 
 -- execute the self-check
----@param sc_log graphics_element
-local function self_check(sc_log)
+local function self_check()
     self.run_test_btn.disable()
 
-    sc_log.remove_all()
+    self.sc_log.remove_all()
     ppm.mount_all()
 
     self.self_check_pass = true
@@ -143,27 +154,18 @@ local function self_check(sc_log)
 
         tcd.dispatch_unique(8, handle_timeout)
     else
+        if self.self_check_pass then check_complete() end
         self.run_test_btn.enable()
-    end
-
-    if self.self_check_pass then
-        TextBox{parent=sc_log,text="> all tests passed!",fg_bg=cpair(colors.blue,colors._INHERIT)}
-        TextBox{parent=sc_log,text=""}
-        local more = Div{parent=sc_log,height=3,fg_bg=cpair(colors.gray,colors._INHERIT)}
-        TextBox{parent=more,text="if you still have a problem:"}
-        TextBox{parent=more,text="- check the wiki on GitHub"}
-        TextBox{parent=more,text="- ask for help on GitHub discussions or Discord"}
     end
 end
 
 -- exit self check back home
----@param sc_log graphics_element
 ---@param main_pane graphics_element
-local function exit_self_check(sc_log, main_pane)
+local function exit_self_check(main_pane)
     tcd.abort(handle_timeout)
     self.net_listen = false
     self.run_test_btn.enable()
-    sc_log.remove_all()
+    self.sc_log.remove_all()
     main_pane.set_value(1)
 end
 
@@ -187,13 +189,13 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     TextBox{parent=check_sys,x=1,y=2,text=" Reactor PLC Self-Check",fg_bg=bw_fg_bg}
 
-    local sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local last_check = { nil, nil }
 
     function self.self_check_msg(msg, success, fail_msg)
         if type(msg) == "string" then
-            last_check[1] = Div{parent=sc_log,height=1}
+            last_check[1] = Div{parent=self.sc_log,height=1}
             local e = TextBox{parent=last_check[1],text=msg,fg_bg=bw_fg_bg}
             last_check[2] = e.get_x()+string.len(msg)
         end
@@ -202,7 +204,7 @@ function check.create(main_pane, settings_cfg, check_sys, style)
             TextBox{parent=last_check[1],x=last_check[2],y=1,text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
 
             if not success then
-                local fail = Div{parent=sc_log,height=#util.strwrap(fail_msg, 46)}
+                local fail = Div{parent=self.sc_log,height=#util.strwrap(fail_msg, 46)}
                 TextBox{parent=fail,x=3,text=fail_msg,fg_bg=cpair(colors.gray,colors.white)}
             end
 
@@ -210,8 +212,8 @@ function check.create(main_pane, settings_cfg, check_sys, style)
         end
     end
 
-    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=function()exit_self_check(sc_log,main_pane)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    self.run_test_btn = PushButton{parent=sc,x=40,y=14,min_width=10,text="Run Test",callback=function()self_check(sc_log)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=function()exit_self_check(main_pane)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    self.run_test_btn = PushButton{parent=sc,x=40,y=14,min_width=10,text="Run Test",callback=function()self_check()end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 end
 
 -- handle incoming modem messages
