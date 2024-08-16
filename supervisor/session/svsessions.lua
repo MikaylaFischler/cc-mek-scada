@@ -4,6 +4,7 @@ local util        = require("scada-common.util")
 
 local databus     = require("supervisor.databus")
 local facility    = require("supervisor.facility")
+local pgi         = require("supervisor.pgi")
 
 local coordinator = require("supervisor.session.coordinator")
 local plc         = require("supervisor.session.plc")
@@ -194,12 +195,8 @@ end
 local function _update_dev_dbg()
     local f = function (unit) return unit.is_connected() end
 
-    ---@param unit unit_session
-    local on_delete = function (unit)
-    end
-
-    util.filter_table(self.dev_dbg.duplicate, f, on_delete)
-    util.filter_table(self.dev_dbg.out_of_range, f, on_delete)
+    util.filter_table(self.dev_dbg.duplicate, f, pgi.delete_chk_entry)
+    util.filter_table(self.dev_dbg.out_of_range, f, pgi.delete_chk_entry)
 end
 
 -- SHARED FUNCTIONS --
@@ -229,6 +226,20 @@ local function check_rtu_id(unit, list, max)
     -- make sure this won't exceed the maximum allowable devices
     if fail_code == 0 and #list >= max then
         fail_code, fail_str = 3, "too many of this type"
+    end
+
+    -- add to the list for the user
+    if fail_code > 0 then
+        local cmp_id
+
+        for i = 1, #self.sessions.rtu do
+            if self.sessions.rtu[i].instance.get_id() == unit.get_session_id() then
+                cmp_id = self.sessions.rtu[i].s_addr
+                break
+            end
+        end
+
+        pgi.create_chk_entry(unit, fail_code, cmp_id)
     end
 
     return fail_code, fail_str
