@@ -37,7 +37,8 @@ local self = {
     config = nil,       ---@type svr_config
     facility = nil,     ---@type facility|nil
     sessions = { rtu = {}, plc = {}, crd = {}, pdg = {} },
-    next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 }
+    next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
+    dev_dbg = { duplicate = {}, out_of_range = {} }
 }
 
 ---@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
@@ -190,6 +191,49 @@ local function _find_session(list, s_addr)
     return nil
 end
 
+local function _update_dev_dbg()
+    local f = function (unit) return unit.is_connected() end
+
+    ---@param unit unit_session
+    local on_delete = function (unit)
+    end
+
+    util.filter_table(self.dev_dbg.duplicate, f, on_delete)
+    util.filter_table(self.dev_dbg.out_of_range, f, on_delete)
+end
+
+-- SHARED FUNCTIONS --
+
+---@param unit unit_session RTU session
+---@param list table table of RTU sessions
+---@param max integer max of this type of RTU
+---@return 0|1|2|3 fail_code, string fail_str 0 = success, 1 = out-of-range, 2 = duplicate, 3 = exceeded table max
+local function check_rtu_id(unit, list, max)
+    local fail_code, fail_str = 0, "OK"
+
+    if (unit.get_device_idx() < 1 and max ~= 1) or unit.get_device_idx() > max then
+        -- out-of-range
+        fail_code, fail_str = 1, "index out of range"
+        table.insert(self.dev_dbg.out_of_range, unit)
+    else
+        for _, u in ipairs(list) do
+            if u.get_device_idx() == unit.get_device_idx() then
+                -- duplicate
+                fail_code, fail_str = 2, "duplicate index"
+                table.insert(self.dev_dbg.duplicate, unit)
+                break
+            end
+        end
+    end
+
+    -- make sure this won't exceed the maximum allowable devices
+    if fail_code == 0 and #list >= max then
+        fail_code, fail_str = 3, "too many of this type"
+    end
+
+    return fail_code, fail_str
+end
+
 -- PUBLIC FUNCTIONS --
 
 -- initialize svsessions
@@ -201,7 +245,7 @@ function svsessions.init(nic, fp_ok, config, cooling_conf)
     self.nic = nic
     self.fp_ok = fp_ok
     self.config = config
-    self.facility = facility.new(config, cooling_conf)
+    self.facility = facility.new(config, cooling_conf, check_rtu_id)
 end
 
 -- find an RTU session by the computer ID
@@ -466,6 +510,8 @@ function svsessions.iterate_all()
 
     -- iterate units
     self.facility.update_units()
+
+    _update_dev_dbg()
 end
 
 -- delete all closed sessions

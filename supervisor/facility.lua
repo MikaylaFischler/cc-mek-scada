@@ -65,7 +65,8 @@ local facility = {}
 ---@nodiscard
 ---@param config svr_config supervisor configuration
 ---@param cooling_conf sv_cooling_conf cooling configurations of reactor units
-function facility.new(config, cooling_conf)
+---@param check_rtu_id function ID checking function for RTUs attempting to be linked
+function facility.new(config, cooling_conf, check_rtu_id)
     local self = {
         units = {},
         status_text = { "START UP", "initializing..." },
@@ -144,7 +145,7 @@ function facility.new(config, cooling_conf)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
+        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount, check_rtu_id, config.ExtChargeIdling))
         table.insert(self.group_map, 0)
     end
 
@@ -257,20 +258,30 @@ function facility.new(config, cooling_conf)
     ---@param imatrix unit_session
     ---@return boolean linked induction matrix accepted (max 1)
     function public.add_imatrix(imatrix)
-        if #self.induction == 0 then
+        local fail_code, fail_str = check_rtu_id(imatrix, self.induction, 1)
+
+        if fail_code == 0 then
             table.insert(self.induction, imatrix)
-            return true
-        else return false end
+        else
+            log.warning(util.c("FAC: rejected induction matrix linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return fail_code == 0
     end
 
     -- link an SPS RTU session
     ---@param sps unit_session
     ---@return boolean linked SPS accepted (max 1)
     function public.add_sps(sps)
-        if #self.sps == 0 then
+        local fail_code, fail_str = check_rtu_id(sps, self.sps, 1)
+
+        if fail_code == 0 then
             table.insert(self.sps, sps)
-            return true
-        else return false end
+        else
+            log.warning(util.c("FAC: rejected SPS linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return fail_code == 0
     end
 
     -- link a dynamic tank RTU session
@@ -293,7 +304,7 @@ function facility.new(config, cooling_conf)
 
     -- update (iterate) the facility management
     function public.update()
-        -- unlink RTU unit sessions if they are closed
+        -- unlink RTU sessions if they are closed
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
 
         -- check if test routines are allowed right now

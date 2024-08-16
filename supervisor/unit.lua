@@ -63,10 +63,13 @@ local unit = {}
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
+---@param check_rtu_id function ID checking function for RTUs attempting to be linked
 ---@param ext_idle boolean extended idling mode
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
+function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
+
+    local log_tag = "UNIT " .. reactor_id .. ": "
 
     ---@class _unit_self
     local self = {
@@ -441,22 +444,28 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@param turbine unit_session
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
-        if #self.turbines < num_turbines and turbine.get_device_idx() <= num_turbines then
+        local fail_code, fail_str = check_rtu_id(turbine, self.turbines, num_turbines)
+
+        if fail_code == 0 then
             table.insert(self.turbines, turbine)
 
             -- reset deltas
             _reset_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx())
             _reset_dt(DT_KEYS.TurbinePower .. turbine.get_device_idx())
+        else
+            log.warning(util.c(log_tag, "rejected turbine linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
 
-            return true
-        else return false end
+        return fail_code == 0
     end
 
     -- link a boiler RTU session
     ---@param boiler unit_session
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
-        if #self.boilers < num_boilers and boiler.get_device_idx() <= num_boilers then
+        local fail_code, fail_str = check_rtu_id(boiler, self.boilers, num_boilers)
+
+        if fail_code == 0 then
             table.insert(self.boilers, boiler)
 
             -- reset deltas
@@ -464,19 +473,26 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             _reset_dt(DT_KEYS.BoilerSteam .. boiler.get_device_idx())
             _reset_dt(DT_KEYS.BoilerCCool .. boiler.get_device_idx())
             _reset_dt(DT_KEYS.BoilerHCool .. boiler.get_device_idx())
+        else
+            log.warning(util.c(log_tag, "rejected boiler linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
 
-            return true
-        else return false end
+        return fail_code == 0
     end
 
     -- link a dynamic tank RTU session
     ---@param dynamic_tank unit_session
     ---@return boolean linked dynamic tank accepted (max 1)
     function public.add_tank(dynamic_tank)
-        if #self.tanks == 0 then
+        local fail_code, fail_str = check_rtu_id(dynamic_tank, self.tanks, 1)
+
+        if fail_code == 0 then
             table.insert(self.tanks, dynamic_tank)
-            return true
-        else return false end
+        else
+            log.warning(util.c(log_tag, "rejected dynamic tank linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return fail_code == 0
     end
 
     -- link a solar neutron activator RTU session
@@ -487,10 +503,15 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@param envd unit_session
     ---@return boolean linked environment detector accepted (max 1)
     function public.add_envd(envd)
-        if #self.envd == 0 then
+        local fail_code, fail_str = check_rtu_id(envd, self.envd, 99)
+
+        if fail_code == 0 then
             table.insert(self.envd, envd)
-            return true
-        else return false end
+        else
+            log.warning(util.c(log_tag, "rejected environment detector linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return fail_code == 0
     end
 
     -- purge devices associated with the given RTU session ID
@@ -512,7 +533,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             self.db.control.br100 = 0
         end
 
-        -- unlink RTU unit sessions if they are closed
+        -- unlink RTU sessions if they are closed
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
 
         -- update degraded state for auto control
@@ -547,7 +568,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
             -- stop idling when completed
             if self.auto_idling and (((util.time_ms() - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
-                log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
+                log.info(util.c(log_tag, "completed idling period"))
                 self.auto_idling = false
                 self.plc_i.auto_set_burn(0, false)
             end
@@ -584,7 +605,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     function public.auto_engage()
         self.auto_engaged = true
         if self.plc_i ~= nil then
-            log.debug(util.c("UNIT ", self.r_id, ": engaged auto control"))
+            log.debug(util.c(log_tag, "engaged auto control"))
             self.plc_i.auto_lock(true)
         end
     end
@@ -593,7 +614,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     function public.auto_disengage()
         self.auto_engaged = false
         if self.plc_i ~= nil then
-            log.debug(util.c("UNIT ", self.r_id, ": disengaged auto control"))
+            log.debug(util.c(log_tag, "disengaged auto control"))
             self.plc_i.auto_lock(false)
             self.db.control.br100 = 0
         end
@@ -610,7 +631,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         end
 
         if idle ~= self.auto_idle then
-            log.debug(util.c("UNIT ", self.r_id, ": idling mode changed to ", idle))
+            log.debug(util.c(log_tag, "idling mode changed to ", idle))
         end
 
         self.auto_idle = idle
@@ -623,7 +644,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     function public.auto_get_effective_limit()
         local ctrl = self.db.control
         if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
-            -- log.debug(util.c("UNIT ", self.r_id, ": effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
+            -- log.debug(util.c(log_tag, "effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
             ctrl.br100 = 0
             return 0
         else return ctrl.lim_br100 end
@@ -634,7 +655,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     function public.auto_commit_br100(ramp)
         if self.auto_engaged then
             if self.plc_i ~= nil then
-                log.debug(util.c("UNIT ", self.r_id, ": commit br100 of ", self.db.control.br100, " with ramp set to ", ramp))
+                log.debug(util.c(log_tag, "commit br100 of ", self.db.control.br100, " with ramp set to ", ramp))
 
                 local rate = self.db.control.br100 / 100
 
@@ -643,16 +664,16 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
                         if self.auto_idle_start == 0 then
                             self.auto_idling = true
                             self.auto_idle_start = util.time_ms()
-                            log.info(util.c("UNIT ", self.r_id, ": started idling at ", IDLE_RATE, " mB/t"))
+                            log.info(util.c(log_tag, "started idling at ", IDLE_RATE, " mB/t"))
 
                             rate = IDLE_RATE
                         elseif (util.time_ms() - self.auto_idle_start) > IDLE_TIME then
                             if self.auto_idling then
                                 self.auto_idling = false
-                                log.info(util.c("UNIT ", self.r_id, ": completed idling period"))
+                                log.info(util.c(log_tag, "completed idling period"))
                             end
                         else
-                            log.debug(util.c("UNIT ", self.r_id, ": continuing idle at ", IDLE_RATE, " mB/t"))
+                            log.debug(util.c(log_tag, "continuing idle at ", IDLE_RATE, " mB/t"))
 
                             rate = IDLE_RATE
                         end
