@@ -29,10 +29,10 @@ local PERIODICS = {
 
 -- create a new sna rtu session runner
 ---@nodiscard
----@param session_id integer RTU session ID
----@param unit_id integer RTU unit ID
+---@param session_id integer RTU gateway session ID
+---@param unit_id integer RTU ID
 ---@param advert rtu_advertisement RTU advertisement table
----@param out_queue mqueue RTU unit message out queue
+---@param out_queue mqueue RTU message out queue
 function sna.new(session_id, unit_id, advert, out_queue)
     -- type check
     if advert.type ~= RTU_UNIT_TYPE.SNA then
