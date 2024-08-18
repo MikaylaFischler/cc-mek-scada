@@ -212,7 +212,7 @@ function facility.new(config, cooling_conf, check_rtu_id)
         f_update.unit_mgmt(cooling_conf)
 
         -- update alarm tones
-        f_update.update_alarms()
+        f_update.alarm_audio()
     end
 
     -- call the update function of all units in the facility<br>

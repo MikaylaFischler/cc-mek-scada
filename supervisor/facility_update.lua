@@ -43,6 +43,7 @@ local next_mode     = 0
 local charge_update = 0
 local rate_update   = 0
 
+---@class facility_update_extension
 local update = {}
 
 --#region PRIVATE FUNCTIONS
