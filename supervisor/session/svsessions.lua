@@ -4,7 +4,8 @@ local util        = require("scada-common.util")
 
 local databus     = require("supervisor.databus")
 local facility    = require("supervisor.facility")
-local pgi         = require("supervisor.pgi")
+
+local pgi         = require("supervisor.panel.pgi")
 
 local coordinator = require("supervisor.session.coordinator")
 local plc         = require("supervisor.session.plc")
@@ -39,7 +40,7 @@ local self = {
     facility = nil,     ---@type facility|nil
     sessions = { rtu = {}, plc = {}, crd = {}, pdg = {} },
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
-    dev_dbg = { duplicate = {}, out_of_range = {} }
+    dev_dbg = { duplicate = {}, out_of_range = {}, connected = {} }
 }
 
 ---@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
@@ -197,6 +198,14 @@ local function _update_dev_dbg()
 
     util.filter_table(self.dev_dbg.duplicate, f, pgi.delete_chk_entry)
     util.filter_table(self.dev_dbg.out_of_range, f, pgi.delete_chk_entry)
+
+    local conns = self.dev_dbg.connected
+    local units = self.facility.get_units()
+    for i = 1, #units do
+        local unit = units[i] ---@type reactor_unit
+        local rtus = unit.check_rtu_conns()
+
+    end
 end
 
 -- SHARED FUNCTIONS --
@@ -229,7 +238,7 @@ local function check_rtu_id(unit, list, max)
     end
 
     -- add to the list for the user
-    if fail_code > 0 then
+    if fail_code > 0 and fail_code ~= 3 then
         local cmp_id
 
         for i = 1, #self.sessions.rtu do
@@ -257,6 +266,12 @@ function svsessions.init(nic, fp_ok, config, cooling_conf)
     self.fp_ok = fp_ok
     self.config = config
     self.facility = facility.new(config, cooling_conf, check_rtu_id)
+
+    -- initialize connection tracking table
+    self.dev_dbg.connected = { imatrix = nil, sps = nil, tanks = {}, units = {} }
+    for i = 1, config.UnitCount do
+        self.dev_dbg.connected.units[i] = { boilers = {}, turbines = {}, tanks = {} }
+    end
 end
 
 -- find an RTU session by the computer ID

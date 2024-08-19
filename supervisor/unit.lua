@@ -912,6 +912,29 @@ function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
         return rate or 0
     end
 
+    -- check which RTUs are connected
+    ---@nodiscard
+    function public.check_rtu_conns()
+        local conns = {}
+
+        conns.boilers = {}
+        for i = 1, #self.boilers do
+            conns.boilers[self.boilers[i].get_device_idx()] = true
+        end
+
+        conns.turbines = {}
+        for i = 1, #self.turbines do
+            conns.turbines[self.turbines[i].get_device_idx()] = true
+        end
+
+        conns.tanks = {}
+        for i = 1, #self.tanks do
+            conns.tanks[self.tanks[i].get_device_idx()] = true
+        end
+
+        return conns
+    end
+
     -- get RTU statuses
     ---@nodiscard
     function public.get_rtu_statuses()
