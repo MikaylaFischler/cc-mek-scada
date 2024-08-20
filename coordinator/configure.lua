@@ -959,7 +959,9 @@ local function config_view(display)
     end
 
     local function save_and_continue()
-        for k, v in pairs(tmp_cfg) do settings.set(k, v) end
+        for k, v in pairs(tmp_cfg) do
+            if v == nil then settings.unset(k) else settings.set(k, v) end
+        end
 
         if settings.save("/coordinator.settings") then
             load_settings(settings_cfg, true)

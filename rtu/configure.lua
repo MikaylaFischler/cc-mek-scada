@@ -651,7 +651,9 @@ local function config_view(display)
     ---@param exclude_conns boolean? true to exclude saving peripheral/redstone connections
     local function save_and_continue(exclude_conns)
         for k, v in pairs(tmp_cfg) do
-            if not (exclude_conns and (k == "Peripherals" or k == "Redstone")) then settings.set(k, v) end
+            if not (exclude_conns and (k == "Peripherals" or k == "Redstone")) then
+                if v == nil then settings.unset(k) else settings.set(k, v) end
+            end
         end
 
         -- always set these if missing
