@@ -22,19 +22,20 @@ local function init(parent, msg, fail_code)
     local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}
     local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
 
+    local fg_bg = cpair(colors.black,colors.yellow)
+    local tag = "MISSING"
+
     if fail_code == 1 then
-        TextBox{parent=entry,y=1,text="",width=11,fg_bg=cpair(colors.black,colors.orange)}
-        TextBox{parent=entry,text="BAD INDEX",alignment=ALIGN.CENTER,width=11,fg_bg=cpair(colors.black,colors.orange)}
-        TextBox{parent=entry,text="",width=11,fg_bg=cpair(colors.black,colors.orange)}
+        fg_bg = cpair(colors.black,colors.orange)
+        tag = "BAD INDEX"
     elseif fail_code == 2 then
-        TextBox{parent=entry,y=1,text="",width=11,fg_bg=cpair(colors.black,colors.red)}
-        TextBox{parent=entry,text="DUPLICATE",alignment=ALIGN.CENTER,width=11,fg_bg=cpair(colors.black,colors.red)}
-        TextBox{parent=entry,text="",width=11,fg_bg=cpair(colors.black,colors.red)}
-    elseif fail_code == 4 then
-        TextBox{parent=entry,y=1,text="",width=11,fg_bg=cpair(colors.black,colors.yellow)}
-        TextBox{parent=entry,text="MISSING",alignment=ALIGN.CENTER,width=11,fg_bg=cpair(colors.black,colors.yellow)}
-        TextBox{parent=entry,text="",width=11,fg_bg=cpair(colors.black,colors.yellow)}
+        fg_bg = cpair(colors.black,colors.red)
+        tag = "DUPLICATE"
     end
+
+    TextBox{parent=entry,y=1,text="",width=11,fg_bg=fg_bg}
+    TextBox{parent=entry,text=tag,alignment=ALIGN.CENTER,width=11,fg_bg=fg_bg}
+    TextBox{parent=entry,text="",width=11,fg_bg=fg_bg}
 
     TextBox{parent=entry,x=13,y=2,text=msg}
 
