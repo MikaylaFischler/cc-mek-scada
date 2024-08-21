@@ -766,8 +766,7 @@ function update.redstone(ack_all)
 end
 
 -- update unit tasks
----@param cooling_conf sv_cooling_conf cooling configuration
-function update.unit_mgmt(cooling_conf)
+function update.unit_mgmt()
     local insufficent_po_rate = false
     local need_emcool = false
 
@@ -782,7 +781,7 @@ function update.unit_mgmt(cooling_conf)
         end
 
         -- check if unit activated emergency coolant & uses facility tanks
-        if (cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (cooling_conf.fac_tank_defs[i] == 2) then
+        if (self.cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (self.cooling_conf.fac_tank_defs[i] == 2) then
             need_emcool = true
         end
     end

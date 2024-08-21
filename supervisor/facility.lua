@@ -2,11 +2,11 @@ local log        = require("scada-common.log")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
+local unit       = require("supervisor.unit")
 local fac_update = require("supervisor.facility_update")
 
-local unit       = require("supervisor.unit")
-
 local rsctl      = require("supervisor.session.rsctl")
+local svsessions = require("supervisor.session.svsessions")
 
 local PROCESS       = types.PROCESS
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
@@ -35,9 +35,7 @@ local facility = {}
 -- create a new facility management object
 ---@nodiscard
 ---@param config svr_config supervisor configuration
----@param cooling_conf sv_cooling_conf cooling configurations of reactor units
----@param check_rtu_id function ID checking function for RTUs attempting to be linked
-function facility.new(config, cooling_conf, check_rtu_id)
+function facility.new(config)
     ---@class _facility_self
     local self = {
         units = {},
@@ -46,8 +44,13 @@ function facility.new(config, cooling_conf, check_rtu_id)
         all_sys_ok = false,
         allow_testing = false,
         -- facility tanks
-        tank_defs = cooling_conf.fac_tank_defs,
-        tank_list = {},
+        ---@class sv_cooling_conf
+        cooling_conf = {
+            r_cool = config.CoolingConfig,
+            fac_tank_mode = config.FacilityTankMode,
+            fac_tank_defs = config.FacilityTankDefs,
+            fac_tank_list = {}
+        },
         -- rtus
         rtu_conn_count = 0,
         rtu_list = {},
@@ -124,7 +127,8 @@ function facility.new(config, cooling_conf, check_rtu_id)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units, unit.new(i, cooling_conf.r_cool[i].BoilerCount, cooling_conf.r_cool[i].TurbineCount, check_rtu_id, config.ExtChargeIdling))
+        table.insert(self.units,
+            unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
         table.insert(self.group_map, 0)
     end
 
@@ -143,26 +147,28 @@ function facility.new(config, cooling_conf, check_rtu_id)
 
     --#region decode tank configuration
 
+    local cool_conf = self.cooling_conf
+
     -- determine tank information
-    if cooling_conf.fac_tank_mode == 0 then
-        self.tank_defs = {}
+    if cool_conf.fac_tank_mode == 0 then
+        cool_conf.tank_defs = {}
 
         -- on facility tank mode 0, setup tank defs to match unit tank option
         for i = 1, config.UnitCount do
-            self.tank_defs[i] = util.trinary(cooling_conf.r_cool[i].TankConnection, 1, 0)
+            cool_conf.tank_defs[i] = util.trinary(cool_conf.r_cool[i].TankConnection, 1, 0)
         end
 
-        self.tank_list = { table.unpack(self.tank_defs) }
+        cool_conf.tank_list = { table.unpack(cool_conf.tank_defs) }
     else
         -- decode the layout of tanks from the connections definitions
-        local tank_mode = cooling_conf.fac_tank_mode
-        local tank_defs = self.tank_defs
+        local tank_mode = cool_conf.fac_tank_mode
+        local tank_defs = cool_conf.fac_tank_defs
         local tank_list = { table.unpack(tank_defs) }
 
         local function calc_fdef(start_idx, end_idx)
             local first = 4
             for i = start_idx, end_idx do
-                if self.tank_defs[i] == 2 then
+                if tank_defs[i] == 2 then
                     if i < first then first = i end
                 end
             end
@@ -227,7 +233,7 @@ function facility.new(config, cooling_conf, check_rtu_id)
             end
         end
 
-        self.tank_list = tank_list
+        cool_conf.fac_tank_list = tank_list
     end
 
     --#endregion
@@ -247,7 +253,7 @@ function facility.new(config, cooling_conf, check_rtu_id)
     ---@param imatrix unit_session
     ---@return boolean linked induction matrix accepted (max 1)
     function public.add_imatrix(imatrix)
-        local fail_code, fail_str = check_rtu_id(imatrix, self.induction, 1)
+        local fail_code, fail_str = svsessions.check_rtu_id(imatrix, self.induction, 1)
 
         if fail_code == 0 then
             table.insert(self.induction, imatrix)
@@ -262,7 +268,7 @@ function facility.new(config, cooling_conf, check_rtu_id)
     ---@param sps unit_session
     ---@return boolean linked SPS accepted (max 1)
     function public.add_sps(sps)
-        local fail_code, fail_str = check_rtu_id(sps, self.sps, 1)
+        local fail_code, fail_str = svsessions.check_rtu_id(sps, self.sps, 1)
 
         if fail_code == 0 then
             table.insert(self.sps, sps)
@@ -303,7 +309,7 @@ function facility.new(config, cooling_conf, check_rtu_id)
         f_update.redstone(public.ack_all)
 
         -- unit tasks
-        f_update.unit_mgmt(cooling_conf)
+        f_update.unit_mgmt()
 
         -- update alarm tones
         f_update.alarm_audio()
@@ -630,6 +636,9 @@ function facility.new(config, cooling_conf, check_rtu_id)
     -- supervisor sessions reporting the list of active RTU sessions
     ---@param rtu_sessions table session list of all connected RTUs
     function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
+
+    -- get the facility cooling configuration
+    function public.get_cooling_conf() return self.cooling_conf end
 
     -- get the units in this facility
     ---@nodiscard

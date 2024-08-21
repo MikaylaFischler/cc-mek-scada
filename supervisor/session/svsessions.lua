@@ -3,7 +3,6 @@ local mqueue      = require("scada-common.mqueue")
 local util        = require("scada-common.util")
 
 local databus     = require("supervisor.databus")
-local facility    = require("supervisor.facility")
 
 local pgi         = require("supervisor.panel.pgi")
 
@@ -45,7 +44,7 @@ local self = {
 
 ---@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
 
--- PRIVATE FUNCTIONS --
+--#region PRIVATE FUNCTIONS
 
 -- handle a session output queue
 ---@param session sv_session_structs
@@ -208,13 +207,15 @@ local function _update_dev_dbg()
     end
 end
 
--- SHARED FUNCTIONS --
+--#endregion
+
+--#region PUBLIC FUNCTIONS
 
 ---@param unit unit_session RTU session
 ---@param list table table of RTU sessions
 ---@param max integer max of this type of RTU
 ---@return 0|1|2|3 fail_code, string fail_str 0 = success, 1 = out-of-range, 2 = duplicate, 3 = exceeded table max
-local function check_rtu_id(unit, list, max)
+function svsessions.check_rtu_id(unit, list, max)
     local fail_code, fail_str = 0, "OK"
 
     if (unit.get_device_idx() < 1 and max ~= 1) or unit.get_device_idx() > max then
@@ -254,18 +255,16 @@ local function check_rtu_id(unit, list, max)
     return fail_code, fail_str
 end
 
--- PUBLIC FUNCTIONS --
-
 -- initialize svsessions
 ---@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param config svr_config supervisor configuration
----@param cooling_conf sv_cooling_conf cooling configuration definition
-function svsessions.init(nic, fp_ok, config, cooling_conf)
+---@param facility facility
+function svsessions.init(nic, fp_ok, config, facility)
     self.nic = nic
     self.fp_ok = fp_ok
     self.config = config
-    self.facility = facility.new(config, cooling_conf, check_rtu_id)
+    self.facility = facility
 
     -- initialize connection tracking table
     self.dev_dbg.connected = { imatrix = nil, sps = nil, tanks = {}, units = {} }
@@ -553,5 +552,7 @@ function svsessions.close_all()
     -- free sessions
     svsessions.free_all_closed()
 end
+
+--#endregion
 
 return svsessions

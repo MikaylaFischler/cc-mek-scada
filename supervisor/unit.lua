@@ -1,12 +1,13 @@
-local log   = require("scada-common.log")
-local rsio  = require("scada-common.rsio")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local log        = require("scada-common.log")
+local rsio       = require("scada-common.rsio")
+local types      = require("scada-common.types")
+local util       = require("scada-common.util")
 
-local logic = require("supervisor.unitlogic")
+local logic      = require("supervisor.unitlogic")
 
-local plc   = require("supervisor.session.plc")
-local rsctl = require("supervisor.session.rsctl")
+local plc        = require("supervisor.session.plc")
+local rsctl      = require("supervisor.session.rsctl")
+local svsessions = require("supervisor.session.svsessions")
 
 local WASTE_MODE    = types.WASTE_MODE
 local WASTE         = types.WASTE_PRODUCT
@@ -63,9 +64,8 @@ local unit = {}
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
----@param check_rtu_id function ID checking function for RTUs attempting to be linked
 ---@param ext_idle boolean extended idling mode
-function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
 
@@ -444,7 +444,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
     ---@param turbine unit_session
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
-        local fail_code, fail_str = check_rtu_id(turbine, self.turbines, num_turbines)
+        local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, num_turbines)
 
         if fail_code == 0 then
             table.insert(self.turbines, turbine)
@@ -463,7 +463,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
     ---@param boiler unit_session
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
-        local fail_code, fail_str = check_rtu_id(boiler, self.boilers, num_boilers)
+        local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, num_boilers)
 
         if fail_code == 0 then
             table.insert(self.boilers, boiler)
@@ -484,7 +484,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
     ---@param dynamic_tank unit_session
     ---@return boolean linked dynamic tank accepted (max 1)
     function public.add_tank(dynamic_tank)
-        local fail_code, fail_str = check_rtu_id(dynamic_tank, self.tanks, 1)
+        local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, 1)
 
         if fail_code == 0 then
             table.insert(self.tanks, dynamic_tank)
@@ -503,7 +503,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, check_rtu_id, ext_idle)
     ---@param envd unit_session
     ---@return boolean linked environment detector accepted (max 1)
     function public.add_envd(envd)
-        local fail_code, fail_str = check_rtu_id(envd, self.envd, 99)
+        local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
 
         if fail_code == 0 then
             table.insert(self.envd, envd)
