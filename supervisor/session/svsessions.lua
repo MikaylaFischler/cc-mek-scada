@@ -300,15 +300,6 @@ function svsessions.check_rtu_id(unit, list, max)
 
     -- add to the list for the user
     if fail_code > 0 and fail_code ~= 3 then
-        local cmp_id = -1
-
-        for i = 1, #self.sessions.rtu do
-            if self.sessions.rtu[i].instance.get_id() == unit.get_session_id() then
-                cmp_id = self.sessions.rtu[i].s_addr
-                break
-            end
-        end
-
         local r_id = unit.get_reactor()
         local idx  = unit.get_device_idx()
         local type = unit.get_unit_type()
@@ -324,7 +315,7 @@ function svsessions.check_rtu_id(unit, list, max)
             elseif type == RTU_TYPES.DYNAMIC_VALVE then
                 msg = util.c(msg, "#", idx, " dynamic tank")
             elseif type == RTU_TYPES.ENV_DETECTOR then
-                msg = util.c(msg, "#", idx, " environment detector")
+                msg = util.c(msg, "#", idx, " env. detector")
             else
                 msg = msg .. " ? (error)"
             end
@@ -338,13 +329,13 @@ function svsessions.check_rtu_id(unit, list, max)
             elseif type == RTU_TYPES.DYNAMIC_VALVE then
                 msg = msg .. "dynamic tank"
             elseif type == RTU_TYPES.ENV_DETECTOR then
-                msg = util.c(msg, "#", idx, " environment detector")
+                msg = util.c(msg, "#", idx, " env. detector")
             else
                 msg = msg .. " ? (error)"
             end
         end
 
-        pgi.create_chk_entry(unit, fail_code, cmp_id, msg)
+        pgi.create_chk_entry(unit, fail_code, msg)
     end
 
     return fail_code, fail_str
@@ -369,7 +360,9 @@ function svsessions.init(nic, fp_ok, config, facility)
     local cool_conf = facility.get_cooling_conf()
 
     for i = 1, #cool_conf.fac_tank_list do
-        self.dev_dbg.connected.tanks[i] = true
+        if cool_conf.fac_tank_list[i] == 2 then
+            table.insert(self.dev_dbg.connected.tanks, true)
+        end
     end
 
     for i = 1, config.UnitCount do
@@ -377,7 +370,7 @@ function svsessions.init(nic, fp_ok, config, facility)
         local conns = { boilers = {}, turbines = {}, tanks = {} }
 
         for b = 1, r_cool.BoilerCount do conns.boilers[b] = true end
-        for t = 1, r_cool.TurbineCount do conns.boilers[t] = true end
+        for t = 1, r_cool.TurbineCount do conns.turbines[t] = true end
 
         if r_cool.TankConnection and cool_conf.fac_tank_defs[i] == 1 then
             conns.tanks[1] = true

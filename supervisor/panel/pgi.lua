@@ -111,15 +111,14 @@ end
 -- add a device ID check failure entry to the CHK list
 ---@param unit unit_session RTU session
 ---@param fail_code integer failure code
----@param cmp_id integer computer ID
 ---@param msg string description to show the user
-function pgi.create_chk_entry(unit, fail_code, cmp_id, msg)
+function pgi.create_chk_entry(unit, fail_code, msg)
     local gw_session = unit.get_session_id()
 
     if data.chk_list ~= nil and data.chk_entry ~= nil then
         if not data.entries.chk[gw_session] then data.entries.chk[gw_session] = {} end
 
-        local success, result = pcall(data.chk_entry, data.chk_list, msg, fail_code, cmp_id)
+        local success, result = pcall(data.chk_entry, data.chk_list, msg, fail_code)
 
         if success then
             data.entries.chk[gw_session][unit.get_unit_id()] = result
@@ -154,7 +153,7 @@ end
 ---@param message string missing device message
 function pgi.create_missing_entry(message)
     if data.chk_list ~= nil and data.chk_entry ~= nil then
-        local success, result = pcall(data.chk_entry, data.chk_list, message, 4, -1)
+        local success, result = pcall(data.chk_entry, data.chk_list, message, 4)
 
         if success then
             data.entries.missing[message] = result
