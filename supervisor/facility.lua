@@ -151,14 +151,14 @@ function facility.new(config)
 
     -- determine tank information
     if cool_conf.fac_tank_mode == 0 then
-        cool_conf.tank_defs = {}
+        cool_conf.fac_tank_defs = {}
 
         -- on facility tank mode 0, setup tank defs to match unit tank option
         for i = 1, config.UnitCount do
-            cool_conf.tank_defs[i] = util.trinary(cool_conf.r_cool[i].TankConnection, 1, 0)
+            cool_conf.fac_tank_defs[i] = util.trinary(cool_conf.r_cool[i].TankConnection, 1, 0)
         end
 
-        cool_conf.tank_list = { table.unpack(cool_conf.tank_defs) }
+        cool_conf.fac_tank_list = { table.unpack(cool_conf.fac_tank_defs) }
     else
         -- decode the layout of tanks from the connections definitions
         local tank_mode = cool_conf.fac_tank_mode
