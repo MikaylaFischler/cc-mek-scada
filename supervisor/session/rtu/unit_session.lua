@@ -150,6 +150,9 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     -- get the unit ID
     ---@nodiscard
     function public.get_unit_id() return unit_id end
+    -- get the RTU type
+    ---@nodiscard
+    function public.get_unit_type() return advert.type end
     -- get the device index
     ---@nodiscard
     function public.get_device_idx() return self.device_index or 0 end

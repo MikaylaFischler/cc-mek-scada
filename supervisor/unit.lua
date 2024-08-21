@@ -501,7 +501,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
     -- link an environment detector RTU session
     ---@param envd unit_session
-    ---@return boolean linked environment detector accepted (max 1)
+    ---@return boolean linked environment detector accepted
     function public.add_envd(envd)
         local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
 

@@ -15,7 +15,7 @@ local data = {
     pdg_entry = nil,    ---@type function
     chk_entry = nil,    ---@type function
     -- list entries
-    entries = { rtu = {}, pdg = {}, chk = {} }
+    entries = { rtu = {}, pdg = {}, chk = {}, missing = {} }
 }
 
 -- link list boxes
@@ -111,14 +111,15 @@ end
 -- add a device ID check failure entry to the CHK list
 ---@param unit unit_session RTU session
 ---@param fail_code integer failure code
----@param cmp_id integer|nil computer ID if this isn't a 'missing' entry
-function pgi.create_chk_entry(unit, fail_code, cmp_id)
+---@param cmp_id integer computer ID
+---@param msg string description to show the user
+function pgi.create_chk_entry(unit, fail_code, cmp_id, msg)
     local gw_session = unit.get_session_id()
 
     if data.chk_list ~= nil and data.chk_entry ~= nil then
         if not data.entries.chk[gw_session] then data.entries.chk[gw_session] = {} end
 
-        local success, result = pcall(data.chk_entry, data.chk_list, unit, fail_code, cmd_id)
+        local success, result = pcall(data.chk_entry, data.chk_list, msg, fail_code, cmp_id)
 
         if success then
             data.entries.chk[gw_session][unit.get_unit_id()] = result
@@ -146,6 +147,38 @@ function pgi.delete_chk_entry(unit)
         end
     else
         log.warning(util.c("PGI: tried to delete unknown CHK entry with session of ", gw_session, " and unit ID of ", unit.get_unit_id()))
+    end
+end
+
+-- add a device ID missing entry to the CHK list
+---@param message string missing device message
+function pgi.create_missing_entry(message)
+    if data.chk_list ~= nil and data.chk_entry ~= nil then
+        local success, result = pcall(data.chk_entry, data.chk_list, message, 4, -1)
+
+        if success then
+            data.entries.missing[message] = result
+            log.debug(util.c("PGI: created missing CHK entry (", message, ")"))
+        else
+            log.error(util.c("PGI: failed to create missing CHK entry (", result, ")"), true)
+        end
+    end
+end
+
+-- delete a device ID missing entry from the CHK list
+---@param message string missing device message
+function pgi.delete_missing_entry(message)
+    if data.entries.missing[message] ~= nil then
+        local success, result = pcall(data.entries.missing[message].delete)
+        data.entries.missing[message] = nil
+
+        if success then
+            log.debug(util.c("PGI: deleted missing CHK entry \"", message, "\""))
+        else
+            log.error(util.c("PGI: failed to delete missing CHK entry (", result, ")"), true)
+        end
+    else
+        log.warning(util.c("PGI: tried to delete unknown missing CHK entry \"", message, "\""))
     end
 end
 

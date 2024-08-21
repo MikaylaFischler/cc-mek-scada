@@ -1,5 +1,10 @@
+--
+-- Supervisor Sessions Handler
+--
+
 local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local databus     = require("supervisor.databus")
@@ -12,12 +17,13 @@ local pocket      = require("supervisor.session.pocket")
 local rtu         = require("supervisor.session.rtu")
 local svqtypes    = require("supervisor.session.svqtypes")
 
--- Supervisor Sessions Handler
+local RTU_TYPES  = types.RTU_UNIT_TYPE
 
-local SV_Q_DATA = svqtypes.SV_Q_DATA
+local SV_Q_DATA  = svqtypes.SV_Q_DATA
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 local PLC_S_DATA = plc.PLC_S_DATA
+
 local CRD_S_DATA = coordinator.CRD_S_DATA
 
 local svsessions = {}
@@ -192,18 +198,71 @@ local function _find_session(list, s_addr)
     return nil
 end
 
+-- periodically remove disconnected RTU gateway's RTU ID warnings and update the missing device list
 local function _update_dev_dbg()
+    -- remove disconnected units from check failures lists
+
     local f = function (unit) return unit.is_connected() end
 
     util.filter_table(self.dev_dbg.duplicate, f, pgi.delete_chk_entry)
     util.filter_table(self.dev_dbg.out_of_range, f, pgi.delete_chk_entry)
 
-    local conns = self.dev_dbg.connected
-    local units = self.facility.get_units()
-    for i = 1, #units do
-        local unit = units[i] ---@type reactor_unit
-        local rtus = unit.check_rtu_conns()
+    -- update missing list
 
+    local conns     = self.dev_dbg.connected
+    local units     = self.facility.get_units()
+    local rtu_conns = self.facility.check_rtu_conns()
+
+    local function report(disconnected, msg)
+        if disconnected then pgi.create_missing_entry(msg) else pgi.delete_missing_entry(msg) end
+    end
+
+    -- look for disconnected facility RTUs
+
+    if rtu_conns.induction ~= conns.induction then
+        report(conns.induction, util.c("the facility's induction matrix"))
+        conns.induction = rtu_conns.induction
+    end
+
+    if rtu_conns.sps ~= conns.sps then
+        report(conns.sps, util.c("the facility's SPS"))
+        conns.sps = rtu_conns.sps
+    end
+
+    for i = 1, #conns.tanks do
+        if (rtu_conns.tanks[i] or false) ~= conns.tanks[i] then
+            report(conns.tanks[i], util.c("the facility's #", i, " dynamic tank"))
+            conns.tanks[i] = rtu_conns.tanks[i] or false
+        end
+    end
+
+    -- look for disconnected unit RTUs
+
+    for u = 1, #units do
+        local u_conns = conns.units[u]
+
+        rtu_conns = units[u].check_rtu_conns()
+
+        for i = 1, #u_conns.boilers do
+            if (rtu_conns.boilers[i] or false) ~= u_conns.boilers[i] then
+                report(u_conns.boilers[i], util.c("unit ", u, "'s #", i, " boiler"))
+                u_conns.boilers[i] = rtu_conns.boilers[i] or false
+            end
+        end
+
+        for i = 1, #u_conns.turbines do
+            if (rtu_conns.turbines[i] or false) ~= u_conns.turbines[i] then
+                report(u_conns.turbines[i], util.c("unit ", u, "'s #", i, " turbine"))
+                u_conns.turbines[i] = rtu_conns.turbines[i] or false
+            end
+        end
+
+        for i = 1, #u_conns.tanks do
+            if (rtu_conns.tanks[i] or false) ~= u_conns.tanks[i] then
+                report(u_conns.tanks[i], util.c("unit ", u, "'s dynamic tank"))
+                u_conns.tanks[i] = rtu_conns.tanks[i] or false
+            end
+        end
     end
 end
 
@@ -211,6 +270,7 @@ end
 
 --#region PUBLIC FUNCTIONS
 
+-- on attempted link of an RTU to a facility or unit object, verify its ID and report a problem if it can't be accepted
 ---@param unit unit_session RTU session
 ---@param list table table of RTU sessions
 ---@param max integer max of this type of RTU
@@ -240,7 +300,7 @@ function svsessions.check_rtu_id(unit, list, max)
 
     -- add to the list for the user
     if fail_code > 0 and fail_code ~= 3 then
-        local cmp_id
+        local cmp_id = -1
 
         for i = 1, #self.sessions.rtu do
             if self.sessions.rtu[i].instance.get_id() == unit.get_session_id() then
@@ -249,7 +309,42 @@ function svsessions.check_rtu_id(unit, list, max)
             end
         end
 
-        pgi.create_chk_entry(unit, fail_code, cmp_id)
+        local r_id = unit.get_reactor()
+        local idx  = unit.get_device_idx()
+        local type = unit.get_unit_type()
+        local msg  = "? (error)"
+
+        if r_id == 0 then
+            msg = "the facility's "
+
+            if type == RTU_TYPES.IMATRIX then
+                msg = msg .. "induction matrix"
+            elseif type == RTU_TYPES.SPS then
+                msg = msg .. "SPS"
+            elseif type == RTU_TYPES.DYNAMIC_VALVE then
+                msg = util.c(msg, "#", idx, " dynamic tank")
+            elseif type == RTU_TYPES.ENV_DETECTOR then
+                msg = util.c(msg, "#", idx, " environment detector")
+            else
+                msg = msg .. " ? (error)"
+            end
+        else
+            msg = util.c("unit ", r_id, "'s ")
+
+            if type == RTU_TYPES.BOILER_VALVE then
+                msg = util.c(msg, "#", idx, " boiler")
+            elseif type == RTU_TYPES.TURBINE_VALVE then
+                msg = util.c(msg, "#", idx, " turbine")
+            elseif type == RTU_TYPES.DYNAMIC_VALVE then
+                msg = msg .. "dynamic tank"
+            elseif type == RTU_TYPES.ENV_DETECTOR then
+                msg = util.c(msg, "#", idx, " environment detector")
+            else
+                msg = msg .. " ? (error)"
+            end
+        end
+
+        pgi.create_chk_entry(unit, fail_code, cmp_id, msg)
     end
 
     return fail_code, fail_str
@@ -266,10 +361,29 @@ function svsessions.init(nic, fp_ok, config, facility)
     self.config = config
     self.facility = facility
 
-    -- initialize connection tracking table
-    self.dev_dbg.connected = { imatrix = nil, sps = nil, tanks = {}, units = {} }
+    -- initialize connection tracking table by setting all expected devices to true
+    -- if connections are missing, missing entries will then be created on the next update
+
+    self.dev_dbg.connected = { induction = true, sps = true, tanks = {}, units = {} }
+
+    local cool_conf = facility.get_cooling_conf()
+
+    for i = 1, #cool_conf.fac_tank_list do
+        self.dev_dbg.connected.tanks[i] = true
+    end
+
     for i = 1, config.UnitCount do
-        self.dev_dbg.connected.units[i] = { boilers = {}, turbines = {}, tanks = {} }
+        local r_cool = cool_conf.r_cool[i]
+        local conns = { boilers = {}, turbines = {}, tanks = {} }
+
+        for b = 1, r_cool.BoilerCount do conns.boilers[b] = true end
+        for t = 1, r_cool.TurbineCount do conns.boilers[t] = true end
+
+        if r_cool.TankConnection and cool_conf.fac_tank_defs[i] == 1 then
+            conns.tanks[1] = true
+        end
+
+        self.dev_dbg.connected.units[i] = conns
     end
 end
 

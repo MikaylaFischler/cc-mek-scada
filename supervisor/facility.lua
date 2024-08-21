@@ -285,7 +285,18 @@ function facility.new(config)
 
     -- link an environment detector RTU session
     ---@param envd unit_session
-    function public.add_envd(envd) table.insert(self.envd, envd) end
+    ---@return boolean linked environment detector accepted
+    function public.add_envd(envd)
+        local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
+
+        if fail_code == 0 then
+            table.insert(self.envd, envd)
+        else
+            log.warning(util.c("FAC: rejected environment detector linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return fail_code == 0
+    end
 
     -- purge devices associated with the given RTU session ID
     ---@param session integer RTU session ID
@@ -573,6 +584,22 @@ function facility.new(config)
             self.pu_fallback and (self.current_waste_product == WASTE.PLUTONIUM) and (self.waste_product ~= WASTE.PLUTONIUM),
             self.disabled_sps
         }
+    end
+
+    -- check which RTUs are connected
+    ---@nodiscard
+    function public.check_rtu_conns()
+        local conns = {}
+
+        conns.induction = #self.induction > 0
+        conns.sps = #self.sps > 0
+
+        conns.tanks = {}
+        for i = 1, #self.tanks do
+            conns.tanks[self.tanks[i].get_device_idx()] = true
+        end
+
+        return conns
     end
 
     -- get RTU statuses
