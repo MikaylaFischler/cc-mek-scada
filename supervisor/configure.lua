@@ -907,7 +907,8 @@ local function config_view(display)
     end
 
     local function save_and_continue()
-        for k, v in pairs(tmp_cfg) do
+        for _, field in ipairs(fields) do
+            local k, v = field[1], tmp_cfg[field[1]]
             if v == nil then settings.unset(k) else settings.set(k, v) end
         end
 
