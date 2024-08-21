@@ -824,8 +824,9 @@ end
 
 --#endregion
 
----@param _self _facility_self
-return function (_self)
-    self = _self
+-- link the self instance and return the update interface
+---@param fac_self _facility_self
+return function (fac_self)
+    self = fac_self
     return update
 end

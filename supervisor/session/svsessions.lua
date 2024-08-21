@@ -300,10 +300,8 @@ function svsessions.check_rtu_id(unit, list, max)
 
     -- add to the list for the user
     if fail_code > 0 and fail_code ~= 3 then
-        local r_id = unit.get_reactor()
-        local idx  = unit.get_device_idx()
-        local type = unit.get_unit_type()
-        local msg  = "? (error)"
+        local r_id, idx, type = unit.get_reactor(), unit.get_device_idx(), unit.get_unit_type()
+        local msg
 
         if r_id == 0 then
             msg = "the facility's "
