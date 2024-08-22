@@ -287,8 +287,17 @@ function facility.new(config)
     -- link a dynamic tank RTU session
     ---@param dynamic_tank unit_session
     function public.add_tank(dynamic_tank)
-        table.insert(self.tanks, dynamic_tank)
-        log.debug(util.c("FAC: linked dynamic tank #", dynamic_tank.get_device_idx(), " [", dynamic_tank.get_unit_id(), "@", dynamic_tank.get_session_id(), "]"))
+        local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, #self.cooling_conf.fac_tank_list)
+        local ok = fail_code == RTU_ID_FAIL.OK
+
+        if ok then
+            table.insert(self.tanks, dynamic_tank)
+            log.debug(util.c("FAC: linked dynamic tank #", dynamic_tank.get_device_idx(), " [", dynamic_tank.get_unit_id(), "@", dynamic_tank.get_session_id(), "]"))
+        else
+            log.warning(util.c("FAC: rejected dynamic tank linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return ok
     end
 
     -- link an environment detector RTU session
