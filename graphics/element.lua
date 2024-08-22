@@ -2,8 +2,8 @@
 -- Generic Graphics Element
 --
 
-local util = require("scada-common.util")
 local log  = require("scada-common.log")
+local util = require("scada-common.util")
 
 local core = require("graphics.core")
 
