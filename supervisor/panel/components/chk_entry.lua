@@ -2,6 +2,8 @@
 -- RTU ID Check Failure Entry
 --
 
+local types   = require("scada-common.types")
+
 local style   = require("supervisor.panel.style")
 
 local core    = require("graphics.core")
@@ -25,10 +27,10 @@ local function init(parent, msg, fail_code)
     local fg_bg = cpair(colors.black,colors.yellow)
     local tag = "MISSING"
 
-    if fail_code == 1 then
+    if fail_code == types.RTU_ID_FAIL.OUT_OF_RANGE then
         fg_bg = cpair(colors.black,colors.orange)
         tag = "BAD INDEX"
-    elseif fail_code == 2 then
+    elseif fail_code == types.RTU_ID_FAIL.DUPLICATE then
         fg_bg = cpair(colors.black,colors.red)
         tag = "DUPLICATE"
     end

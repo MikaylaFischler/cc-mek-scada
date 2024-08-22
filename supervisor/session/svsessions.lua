@@ -17,14 +17,15 @@ local pocket      = require("supervisor.session.pocket")
 local rtu         = require("supervisor.session.rtu")
 local svqtypes    = require("supervisor.session.svqtypes")
 
-local RTU_TYPES  = types.RTU_UNIT_TYPE
+local RTU_ID_FAIL = types.RTU_ID_FAIL
+local RTU_TYPES   = types.RTU_UNIT_TYPE
 
-local SV_Q_DATA  = svqtypes.SV_Q_DATA
+local SV_Q_DATA   = svqtypes.SV_Q_DATA
 
-local PLC_S_CMDS = plc.PLC_S_CMDS
-local PLC_S_DATA = plc.PLC_S_DATA
+local PLC_S_CMDS  = plc.PLC_S_CMDS
+local PLC_S_DATA  = plc.PLC_S_DATA
 
-local CRD_S_DATA = coordinator.CRD_S_DATA
+local CRD_S_DATA  = coordinator.CRD_S_DATA
 
 local svsessions = {}
 
@@ -274,19 +275,19 @@ end
 ---@param unit unit_session RTU session
 ---@param list table table of RTU sessions
 ---@param max integer max of this type of RTU
----@return 0|1|2|3 fail_code, string fail_str 0 = success, 1 = out-of-range, 2 = duplicate, 3 = exceeded table max
+---@return RTU_ID_FAIL fail_code, string fail_str
 function svsessions.check_rtu_id(unit, list, max)
-    local fail_code, fail_str = 0, "OK"
+    local fail_code, fail_str = RTU_ID_FAIL.OK, "OK"
 
     if (unit.get_device_idx() < 1 and max ~= 1) or unit.get_device_idx() > max then
         -- out-of-range
-        fail_code, fail_str = 1, "index out of range"
+        fail_code, fail_str = RTU_ID_FAIL.OUT_OF_RANGE, "index out of range"
         table.insert(self.dev_dbg.out_of_range, unit)
     else
         for _, u in ipairs(list) do
             if u.get_device_idx() == unit.get_device_idx() then
                 -- duplicate
-                fail_code, fail_str = 2, "duplicate index"
+                fail_code, fail_str = RTU_ID_FAIL.DUPLICATE, "duplicate index"
                 table.insert(self.dev_dbg.duplicate, unit)
                 break
             end
@@ -294,12 +295,12 @@ function svsessions.check_rtu_id(unit, list, max)
     end
 
     -- make sure this won't exceed the maximum allowable devices
-    if fail_code == 0 and #list >= max then
-        fail_code, fail_str = 3, "too many of this type"
+    if fail_code == RTU_ID_FAIL.OK and #list >= max then
+        fail_code, fail_str = RTU_ID_FAIL.MAX_DEVICES, "too many of this type"
     end
 
     -- add to the list for the user
-    if fail_code > 0 and fail_code ~= 3 then
+    if fail_code ~= RTU_ID_FAIL.OK and fail_code ~= RTU_ID_FAIL.MAX_DEVICES then
         local r_id, idx, type = unit.get_reactor(), unit.get_device_idx(), unit.get_unit_type()
         local msg
 
@@ -641,6 +642,7 @@ function svsessions.iterate_all()
     -- iterate units
     self.facility.update_units()
 
+    -- update tracking of bad RTU IDs and missing devices
     _update_dev_dbg()
 end
 

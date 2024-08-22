@@ -15,6 +15,7 @@ local ALARM         = types.ALARM
 local PRIO          = types.ALARM_PRIORITY
 local ALARM_STATE   = types.ALARM_STATE
 local TRI_FAIL      = types.TRI_FAIL
+local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
@@ -423,6 +424,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         self.plc_s = plc_session
         self.plc_i = plc_session.instance
 
+        log.debug(util.c(log_tag, "linked PLC [", plc_session.s_addr, ":", plc_session.r_chan, "]"))
+
         -- reset deltas
         _reset_dt(DT_KEYS.ReactorTemp)
         _reset_dt(DT_KEYS.ReactorFuel)
@@ -435,6 +438,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@param rs_unit unit_session
     function public.add_redstone(rs_unit)
         table.insert(self.redstone, rs_unit)
+        log.debug(util.c(log_tag, "linked redstone [", rs_unit.get_unit_id(), "@", rs_unit.get_session_id(), "]"))
 
         -- send or re-send waste settings
         _set_waste_valves(self.waste_product)
@@ -445,9 +449,11 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
         local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, num_turbines)
+        local ok = fail_code == RTU_ID_FAIL.OK
 
-        if fail_code == 0 then
+        if ok then
             table.insert(self.turbines, turbine)
+            log.debug(util.c(log_tag, "linked turbine #", turbine.get_device_idx(), " [", turbine.get_unit_id(), "@", turbine.get_session_id(), "]"))
 
             -- reset deltas
             _reset_dt(DT_KEYS.TurbineSteam .. turbine.get_device_idx())
@@ -456,7 +462,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             log.warning(util.c(log_tag, "rejected turbine linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
-        return fail_code == 0
+        return ok
     end
 
     -- link a boiler RTU session
@@ -464,9 +470,11 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
         local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, num_boilers)
+        local ok = fail_code == RTU_ID_FAIL.OK
 
-        if fail_code == 0 then
+        if ok then
             table.insert(self.boilers, boiler)
+            log.debug(util.c(log_tag, "linked boiler #", boiler.get_device_idx(), " [", boiler.get_unit_id(), "@", boiler.get_session_id(), "]"))
 
             -- reset deltas
             _reset_dt(DT_KEYS.BoilerWater .. boiler.get_device_idx())
@@ -477,7 +485,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             log.warning(util.c(log_tag, "rejected boiler linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
-        return fail_code == 0
+        return ok
     end
 
     -- link a dynamic tank RTU session
@@ -485,14 +493,16 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@return boolean linked dynamic tank accepted (max 1)
     function public.add_tank(dynamic_tank)
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, 1)
+        local ok = fail_code == RTU_ID_FAIL.OK
 
-        if fail_code == 0 then
+        if ok then
             table.insert(self.tanks, dynamic_tank)
+            log.debug(util.c(log_tag, "linked dynamic tank [", dynamic_tank.get_unit_id(), "@", dynamic_tank.get_session_id(), "]"))
         else
             log.warning(util.c(log_tag, "rejected dynamic tank linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
-        return fail_code == 0
+        return ok
     end
 
     -- link a solar neutron activator RTU session
@@ -504,14 +514,16 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@return boolean linked environment detector accepted
     function public.add_envd(envd)
         local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
+        local ok = fail_code == RTU_ID_FAIL.OK
 
-        if fail_code == 0 then
+        if ok then
             table.insert(self.envd, envd)
+            log.debug(util.c(log_tag, "linked environment detector #", envd.get_device_idx(), " [", envd.get_unit_id(), "@", envd.get_session_id(), "]"))
         else
             log.warning(util.c(log_tag, "rejected environment detector linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
-        return fail_code == 0
+        return ok
     end
 
     -- purge devices associated with the given RTU session ID

@@ -109,6 +109,7 @@ function pgi.delete_pdg_entry(session_id)
 end
 
 -- add a device ID check failure entry to the CHK list
+---@note this assumes only one type of failure can occur per each RTU gateway session's RTU, which is the case
 ---@param unit unit_session RTU session
 ---@param fail_code integer failure code
 ---@param msg string description to show the user
@@ -130,6 +131,7 @@ function pgi.create_chk_entry(unit, fail_code, msg)
 end
 
 -- delete a device ID check failure entry from the CHK list
+---@note this assumes only one type of failure can occur per each RTU gateway session's RTU, which is the case
 ---@param unit unit_session RTU session
 function pgi.delete_chk_entry(unit)
     local gw_session = unit.get_session_id()
