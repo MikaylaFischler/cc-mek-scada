@@ -53,7 +53,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
-    local log_header = "crdn_session(" .. id .. "): "
+    local log_tag = "crdn_session(" .. id .. "): "
 
     local self = {
         units = facility.get_units(),
@@ -184,7 +184,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_tag .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num() + 1
@@ -205,7 +205,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "COORD KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_tag .. "COORD KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
                     -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
@@ -213,13 +213,17 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     databus.tx_crd_rtt(self.last_rtt)
                 else
-                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                    log.debug(log_tag .. "SCADA keep alive packet length mismatch")
                 end
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.ESTABLISH then
+                -- something is wrong, kill the session
+                _close()
+                log.warning(log_tag .. "terminated session due to an unexpected ESTABLISH packet")
             else
-                log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
             ---@cast pkt crdn_frame
@@ -252,7 +256,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                             _send(CRDN_TYPE.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })
                         else
-                            log.debug(log_header .. "CRDN auto start (with configuration) packet length mismatch")
+                            log.debug(log_tag .. "CRDN auto start (with configuration) packet length mismatch")
                         end
                     elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                         facility.ack_all()
@@ -261,25 +265,25 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         if pkt.length == 2 then
                             _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_waste_product(pkt.data[2]) })
                         else
-                            log.debug(log_header .. "CRDN set waste mode packet length mismatch")
+                            log.debug(log_tag .. "CRDN set waste mode packet length mismatch")
                         end
                     elseif cmd == FAC_COMMAND.SET_PU_FB then
                         if pkt.length == 2 then
                             _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_pu_fallback(pkt.data[2]) })
                         else
-                            log.debug(log_header .. "CRDN set pu fallback packet length mismatch")
+                            log.debug(log_tag .. "CRDN set pu fallback packet length mismatch")
                         end
                     elseif cmd == FAC_COMMAND.SET_SPS_LP then
                         if pkt.length == 2 then
                             _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_sps_low_power(pkt.data[2]) })
                         else
-                            log.debug(log_header .. "CRDN set sps low power packet length mismatch")
+                            log.debug(log_tag .. "CRDN set sps low power packet length mismatch")
                         end
                     else
-                        log.debug(log_header .. "CRDN facility command unknown")
+                        log.debug(log_tag .. "CRDN facility command unknown")
                     end
                 else
-                    log.debug(log_header .. "CRDN facility command packet length mismatch")
+                    log.debug(log_tag .. "CRDN facility command packet length mismatch")
                 end
             elseif pkt.type == CRDN_TYPE.UNIT_BUILDS then
                 -- acknowledgement to coordinator receiving builds
@@ -307,13 +311,13 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                             if pkt.length == 3 then
                                 out_queue.push_data(SV_Q_DATA.SET_BURN, data)
                             else
-                                log.debug(log_header .. "CRDN unit command burn rate missing option")
+                                log.debug(log_tag .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
                                 unit.set_waste_mode(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
+                                log.debug(log_tag .. "CRDN unit command set waste missing/invalid option")
                             end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             unit.ack_all()
@@ -322,32 +326,32 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                             if pkt.length == 3 then
                                 unit.ack_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command ack alarm missing alarm id")
+                                log.debug(log_tag .. "CRDN unit command ack alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMAND.RESET_ALARM then
                             if pkt.length == 3 then
                                 unit.reset_alarm(pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
+                                log.debug(log_tag .. "CRDN unit command reset alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
                                 facility.set_group(unit.get_id(), pkt.data[3])
                                 _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
-                                log.debug(log_header .. "CRDN unit command set group missing group id")
+                                log.debug(log_tag .. "CRDN unit command set group missing group id")
                             end
                         else
-                            log.debug(log_header .. "CRDN unit command unknown")
+                            log.debug(log_tag .. "CRDN unit command unknown")
                         end
                     else
-                        log.debug(log_header .. "CRDN unit command invalid")
+                        log.debug(log_tag .. "CRDN unit command invalid")
                     end
                 else
-                    log.debug(log_header .. "CRDN unit command packet length mismatch")
+                    log.debug(log_tag .. "CRDN unit command packet length mismatch")
                 end
             else
-                log.debug(log_header .. "handler received unexpected SCADA_CRDN packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unexpected SCADA_CRDN packet type " .. pkt.type)
             end
         end
     end
@@ -370,7 +374,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
         _close()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
         println("connection to coordinator " .. id .. " closed by server")
-        log.info(log_header .. "session closed by server")
+        log.info(log_tag .. "session closed by server")
     end
 
     -- iterate the session
@@ -437,14 +441,14 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                                 _send(CRDN_TYPE.FAC_BUILDS, { facility.get_build(cmd.val.type) })
                             end
                         else
-                            log.error(log_header .. "unsupported data command received in in_queue (this is a bug)", true)
+                            log.error(log_tag .. "unsupported data command received in in_queue (this is a bug)", true)
                         end
                     end
                 end
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning(log_header .. "exceeded 100ms queue process limit")
+                    log.warning(log_tag .. "exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -452,7 +456,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
             -- exit if connection was closed
             if not self.connected then
                 println("connection to coordinator closed by remote host")
-                log.info(log_header .. "session closed by remote host")
+                log.info(log_tag .. "session closed by remote host")
                 return self.connected
             end
 

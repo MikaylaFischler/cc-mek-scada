@@ -610,7 +610,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num() + 1
                 elseif self.api.r_seq_num ~= packet.scada_frame.seq_num() then
-                    log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (API): next = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.api.linked and (src_addr ~= self.api.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
@@ -697,24 +697,24 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 else
                                     log.debug("received coordinator establish allow without facility configuration")
                                 end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator comms version mismatch")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator api version mismatch")
-                                end
                             else
-                                log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                                if self.api.last_est_ack ~= est_ack then
+                                    if est_ack == ESTABLISH_ACK.DENY then
+                                        log.info("coordinator connection denied")
+                                    elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                        log.info("coordinator connection denied due to collision")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                        log.info("coordinator comms version mismatch")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
+                                        log.info("coordinator api version mismatch")
+                                    else
+                                        log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                                    end
+                                end
+
+                                -- unlink
+                                self.api.addr = comms.BROADCAST
+                                self.api.linked = false
                             end
 
                             self.api.last_est_ack = est_ack
@@ -730,7 +730,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if self.sv.r_seq_num == nil then
                     self.sv.r_seq_num = packet.scada_frame.seq_num() + 1
                 elseif self.sv.r_seq_num ~= packet.scada_frame.seq_num() then
-                    log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (SVR): next = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.sv.linked and (src_addr ~= self.sv.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
@@ -831,20 +831,22 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 else
                                     iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, self.sv.addr, nil)
                                 end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor comms version mismatch")
-                                end
                             else
-                                log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                                if self.sv.last_est_ack ~= est_ack then
+                                    if est_ack == ESTABLISH_ACK.DENY then
+                                        log.info("supervisor connection denied")
+                                    elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                        log.info("supervisor connection denied due to collision")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                        log.info("supervisor comms version mismatch")
+                                    else
+                                        log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                                    end
+                                end
+
+                                -- unlink
+                                self.sv.addr = comms.BROADCAST
+                                self.sv.linked = false
                             end
 
                             self.sv.last_est_ack = est_ack

@@ -242,7 +242,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_tag .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_tag .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num() + 1
@@ -283,6 +283,10 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.ESTABLISH then
+                -- something is wrong, kill the session
+                _close()
+                log.warning(log_tag .. "terminated session due to an unexpected ESTABLISH packet")
             elseif pkt.type == MGMT_TYPE.RTU_ADVERT then
                 -- RTU advertisement
                 log.debug(log_tag .. "received updated advertisement")

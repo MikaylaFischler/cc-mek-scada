@@ -520,7 +520,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                 if self.sv_r_seq_num == nil then
                     self.sv_r_seq_num = packet.scada_frame.seq_num() + 1
                 elseif self.sv_r_seq_num ~= packet.scada_frame.seq_num() then
-                    log.warning("sequence out-of-order: last = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order: next = " .. self.sv_r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return false
                 elseif self.sv_linked and src_addr ~= self.sv_addr then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked; channel in use by another system?")

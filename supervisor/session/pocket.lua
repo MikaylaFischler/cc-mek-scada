@@ -40,7 +40,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
-    local log_header = "pdg_session(" .. id .. "): "
+    local log_tag = "pdg_session(" .. id .. "): "
 
     local self = {
         -- connection properties
@@ -95,7 +95,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_tag .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num() + 1
@@ -116,7 +116,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "PDG KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_tag .. "PDG KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
                     -- log.debug(log_header .. "PDG RTT = " .. self.last_rtt .. "ms")
@@ -124,11 +124,15 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
                     databus.tx_pdg_rtt(id, self.last_rtt)
                 else
-                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                    log.debug(log_tag .. "SCADA keep alive packet length mismatch")
                 end
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.ESTABLISH then
+                -- something is wrong, kill the session
+                _close()
+                log.warning(log_tag .. "terminated session due to an unexpected ESTABLISH packet")
             elseif pkt.type == MGMT_TYPE.DIAG_TONE_GET then
                 -- get the state of alarm tones
                 _send_mgmt(MGMT_TYPE.DIAG_TONE_GET, facility.get_alarm_tones())
@@ -145,13 +149,13 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                             local allow_testing, test_tone_states = facility.diag_set_test_tone(pkt.data[1], pkt.data[2])
                             _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
                         else
-                            log.debug(log_header .. "SCADA diag tone set packet data type mismatch")
+                            log.debug(log_tag .. "SCADA diag tone set packet data type mismatch")
                         end
                     else
-                        log.debug(log_header .. "SCADA diag tone set packet length mismatch")
+                        log.debug(log_tag .. "SCADA diag tone set packet length mismatch")
                     end
                 else
-                    log.debug(log_header .. "DIAG_TONE_SET is blocked without HMAC for security")
+                    log.debug(log_tag .. "DIAG_TONE_SET is blocked without HMAC for security")
                 end
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { false }) end
@@ -168,18 +172,18 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                             local allow_testing, test_alarm_states = facility.diag_set_test_alarm(pkt.data[1], pkt.data[2])
                             _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
                         else
-                            log.debug(log_header .. "SCADA diag alarm set packet data type mismatch")
+                            log.debug(log_tag .. "SCADA diag alarm set packet data type mismatch")
                         end
                     else
-                        log.debug(log_header .. "SCADA diag alarm set packet length mismatch")
+                        log.debug(log_tag .. "SCADA diag alarm set packet length mismatch")
                     end
                 else
-                    log.debug(log_header .. "DIAG_ALARM_SET is blocked without HMAC for security")
+                    log.debug(log_tag .. "DIAG_ALARM_SET is blocked without HMAC for security")
                 end
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { false }) end
             else
-                log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         end
     end
@@ -205,7 +209,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
         _close()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
         println("connection to pocket diag session " .. id .. " closed by server")
-        log.info(log_header .. "session closed by server")
+        log.info(log_tag .. "session closed by server")
     end
 
     -- iterate the session
@@ -236,7 +240,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning(log_header .. "exceeded 100ms queue process limit")
+                    log.warning(log_tag .. "exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -244,7 +248,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
             -- exit if connection was closed
             if not self.connected then
                 println("connection to pocket diag session " .. id .. " closed by remote host")
-                log.info(log_header .. "session closed by remote host")
+                log.info(log_tag .. "session closed by remote host")
                 return self.connected
             end
 
