@@ -102,13 +102,11 @@ end
 ---@param _version string supervisor version
 ---@param nic nic network interface device
 ---@param fp_ok boolean if the front panel UI is running
+---@param facility facility facility instance
 ---@diagnostic disable-next-line: unused-local
-function supervisor.comms(_version, nic, fp_ok)
+function supervisor.comms(_version, nic, fp_ok, facility)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
-
-    ---@class sv_cooling_conf
-    local cooling_conf = { r_cool = config.CoolingConfig, fac_tank_mode = config.FacilityTankMode, fac_tank_defs = config.FacilityTankDefs }
 
     local self = {
         last_est_acks = {}
@@ -122,8 +120,8 @@ function supervisor.comms(_version, nic, fp_ok)
     nic.closeAll()
     nic.open(config.SVR_Channel)
 
-    -- pass modem, status, and config data to svsessions
-    svsessions.init(nic, fp_ok, config, cooling_conf)
+    -- pass system data and objects to svsessions
+    svsessions.init(nic, fp_ok, config, facility)
 
     -- send an establish request response
     ---@param packet scada_packet
@@ -373,7 +371,7 @@ function supervisor.comms(_version, nic, fp_ok)
                                 println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                                 log.info(util.c("CRD_ESTABLISH: coordinator (", firmware_v, ") [@", src_addr, "] connected with session ID ", s_id))
 
-                                _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, cooling_conf })
+                                _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf() })
                             else
                                 if last_ack ~= ESTABLISH_ACK.COLLISION then
                                     log.info("CRD_ESTABLISH: denied new coordinator [@" .. src_addr .. "] due to already being connected to another coordinator")

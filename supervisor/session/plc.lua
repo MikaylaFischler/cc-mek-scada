@@ -802,7 +802,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
 
                 if not self.received_status_cache then
                     if rtimes.status_req - util.time() <= 0 then
-                        _send(RPLC_TYPE.MEK_STATUS, {})
+                        _send(RPLC_TYPE.STATUS, {})
                         rtimes.status_req = util.time() + RETRY_PERIOD
                     end
                 end

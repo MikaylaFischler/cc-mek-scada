@@ -5,7 +5,7 @@
 ---@class types
 local types = {}
 
--- CLASSES --
+--#region CLASSES
 
 ---@class tank_fluid
 ---@field name fluid
@@ -67,12 +67,13 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 ---@field reactor integer
 ---@field rsio table|nil
 
+--#endregion
+
 -- ALIASES --
 
 ---@alias color integer
 
--- ENUMERATION TYPES --
---#region
+--#region ENUMERATION TYPES
 
 ---@enum TEMP_SCALE
 types.TEMP_SCALE = {
@@ -168,6 +169,15 @@ function types.rtu_type_to_string(utype)
         return ""
     end
 end
+
+---@enum RTU_ID_FAIL
+types.RTU_ID_FAIL = {
+    OK = 0,
+    OUT_OF_RANGE = 1,
+    DUPLICATE = 2,
+    MAX_DEVICES = 3,
+    MISSING = 4
+}
 
 ---@enum TRI_FAIL
 types.TRI_FAIL = {
@@ -290,8 +300,7 @@ types.ALARM_STATE_NAMES = {
 
 --#endregion
 
--- STRING TYPES --
---#region
+--#region STRING TYPES
 
 ---@alias side
 ---|"top"
@@ -405,8 +414,7 @@ types.DUMPING_MODE = {
 
 --#endregion
 
--- MODBUS --
---#region
+--#region MODBUS
 
 -- MODBUS function codes
 ---@enum MODBUS_FCODE

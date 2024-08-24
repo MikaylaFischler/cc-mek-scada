@@ -30,7 +30,7 @@ local PERIODICS = {
     ALARM_TONES = 500
 }
 
--- create a new RTU session
+-- create a new RTU gateway session
 ---@nodiscard
 ---@param id integer session ID
 ---@param s_addr integer device source address
@@ -38,14 +38,14 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
----@param advertisement table RTU device advertisement
+---@param advertisement table RTU gateway device advertisement
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
 function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, advertisement, facility, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
-    local log_header = "rtu_session(" .. id .. "): "
+    local log_tag = "rtu_gw_session(" .. id .. "): "
 
     local self = {
         modbus_q = mqueue.new(),
@@ -124,7 +124,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
 
             if u_type == false then
                 -- validation fail
-                log.debug(log_header .. "_handle_advertisement(): advertisement unit validation failure")
+                log.debug(log_tag .. "_handle_advertisement(): advertisement unit validation failure")
             else
                 if unit_advert.reactor > 0 then
                     local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
@@ -156,9 +156,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                         if type(unit) ~= "nil" then target_unit.add_envd(unit) end
                     elseif u_type == RTU_UNIT_TYPE.VIRTUAL then
                         -- skip virtual units
-                        log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
+                        log.debug(util.c(log_tag, "skipping virtual RTU #", i))
                     else
-                        log.warning(util.c(log_header, "_handle_advertisement(): encountered unsupported reactor-specific RTU type ", type_string))
+                        log.warning(util.c(log_tag, "_handle_advertisement(): encountered unsupported reactor-specific RTU type ", type_string))
                     end
                 else
                     -- facility RTUs
@@ -184,9 +184,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                         if type(unit) ~= "nil" then facility.add_envd(unit) end
                     elseif u_type == RTU_UNIT_TYPE.VIRTUAL then
                         -- skip virtual units
-                        log.debug(util.c(log_header, "skipping virtual RTU unit #", i))
+                        log.debug(util.c(log_tag, "skipping virtual RTU #", i))
                     else
-                        log.warning(util.c(log_header, "_handle_advertisement(): encountered unsupported facility RTU type ", type_string))
+                        log.warning(util.c(log_tag, "_handle_advertisement(): encountered unsupported facility RTU type ", type_string))
                     end
                 end
             end
@@ -195,20 +195,20 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 self.units[i] = unit
                 unit_count = unit_count + 1
             elseif u_type ~= RTU_UNIT_TYPE.VIRTUAL then
-                log.warning(util.c(log_header, "_handle_advertisement(): problem occured while creating a unit (type is ", type_string, ")"))
+                log.warning(util.c(log_tag, "_handle_advertisement(): problem occured while creating a unit (type is ", type_string, ")"))
             end
         end
 
         databus.tx_rtu_units(id, unit_count)
     end
 
-    -- mark this RTU session as closed, stop watchdog
+    -- mark this RTU gateway session as closed, stop watchdog
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
         databus.tx_rtu_disconnected(id)
 
-        -- mark all RTU unit sessions as closed so the reactor unit knows
+        -- mark all RTU sessions as closed so the reactor unit knows
         for _, unit in pairs(self.units) do unit.close() end
     end
 
@@ -242,7 +242,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_tag .. "sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num() + 1
@@ -265,27 +265,27 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    -- local rtu_send = pkt.data[2]
+                    -- local rtu_gw_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "RTU KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_tag .. "RTU GW KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "RTU RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "RTU TT  = " .. (srv_now - rtu_send) .. "ms")
+                    -- log.debug(log_tag .. "RTU GW RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_tag .. "RTU GW TT  = " .. (srv_now - rtu_gw_send) .. "ms")
 
                     databus.tx_rtu_rtt(id, self.last_rtt)
                 else
-                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                    log.debug(log_tag .. "SCADA keep alive packet length mismatch")
                 end
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
             elseif pkt.type == MGMT_TYPE.RTU_ADVERT then
-                -- RTU unit advertisement
-                log.debug(log_header .. "received updated advertisement")
+                -- RTU advertisement
+                log.debug(log_tag .. "received updated advertisement")
                 self.advert = pkt.data
 
                 -- handle advertisement; this will re-create all unit sub-sessions
@@ -298,17 +298,17 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                         unit.invalidate_cache()
                     end
                 else
-                    log.debug(log_header .. "SCADA RTU device re-mount packet length mismatch")
+                    log.debug(log_tag .. "SCADA RTU GW device re-mount packet length mismatch")
                 end
             else
-                log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         end
     end
 
     -- PUBLIC FUNCTIONS --
 
-    -- get the session ID
+    -- get the gateway session ID
     function public.get_id() return id end
 
     -- check if a timer matches this session's watchdog
@@ -322,8 +322,8 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     function public.close()
         _close()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
-        println(log_header .. "connection to RTU closed by server")
-        log.info(log_header .. "session closed by server")
+        println(log_tag .. "connection to RTU GW closed by server")
+        log.info(log_tag .. "session closed by server")
     end
 
     -- iterate the session
@@ -354,7 +354,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning(log_header .. "exceeded 100ms queue process limit")
+                    log.warning(log_tag .. "exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -362,7 +362,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             -- exit if connection was closed
             if not self.connected then
                 println("RTU connection " .. id .. " closed by remote host")
-                log.info(log_header .. "session closed by remote host")
+                log.info(log_tag .. "session closed by remote host")
                 return self.connected
             end
 

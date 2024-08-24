@@ -10,6 +10,7 @@ local supervisor    = require("supervisor.supervisor")
 local pgi           = require("supervisor.panel.pgi")
 local style         = require("supervisor.panel.style")
 
+local chk_entry     = require("supervisor.panel.components.chk_entry")
 local pdg_entry     = require("supervisor.panel.components.pdg_entry")
 local rtu_entry     = require("supervisor.panel.components.rtu_entry")
 
@@ -83,7 +84,7 @@ local function init(panel)
     -- page handling
     --
 
-    -- plc page
+    -- plc sessions page
 
     local plc_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local plc_list = Div{parent=plc_page,x=2,y=2,width=49}
@@ -115,13 +116,13 @@ local function init(panel)
         plc_list.line_break()
     end
 
-    -- rtu page
+    -- rtu sessions page
 
     local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local rtu_list = ListBox{parent=rtu_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=rtu_list,height=1,hidden=true} -- padding
 
-    -- coordinator page
+    -- coordinator session page
 
     local crd_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local crd_box = Div{parent=crd_page,x=2,y=2,width=49,height=4,fg_bg=s_hi_bright}
@@ -143,15 +144,21 @@ local function init(panel)
     crd_rtt.register(databus.ps, "crd_rtt", crd_rtt.update)
     crd_rtt.register(databus.ps, "crd_rtt_color", crd_rtt.recolor)
 
-    -- pocket diagnostics page
+    -- pocket sessions page
 
     local pkt_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local pdg_list = ListBox{parent=pkt_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=pdg_list,height=1,hidden=true} -- padding
 
+    -- RTU device ID check/diagnostics page
+
+    local chk_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local chk_list = ListBox{parent=chk_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local _ = Div{parent=chk_list,height=1,hidden=true} -- padding
+
     -- assemble page panes
 
-    local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page }
+    local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page, chk_page }
 
     local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
@@ -161,12 +168,13 @@ local function init(panel)
         { name = "RTU", color = style.fp.text },
         { name = "CRD", color = style.fp.text },
         { name = "PKT", color = style.fp.text },
+        { name = "CHECK", color = style.fp.text }
     }
 
-    TabBar{parent=panel,y=2,tabs=tabs,min_width=9,callback=page_pane.set_value,fg_bg=style.theme.highlight_box_bright}
+    TabBar{parent=panel,y=2,tabs=tabs,min_width=7,callback=page_pane.set_value,fg_bg=style.theme.highlight_box_bright}
 
-    -- link RTU/PDG list management to PGI
-    pgi.link_elements(rtu_list, rtu_entry, pdg_list, pdg_entry)
+    -- link RTU/PDG/CHK list management to PGI
+    pgi.link_elements(rtu_list, rtu_entry, pdg_list, pdg_entry, chk_list, chk_entry)
 end
 
 return init

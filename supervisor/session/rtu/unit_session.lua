@@ -24,7 +24,7 @@ unit_session.RTU_US_DATA = RTU_US_DATA
 
 -- create a new unit session runner
 ---@nodiscard
----@param session_id integer RTU session ID
+---@param session_id integer RTU gateway session ID
 ---@param unit_id integer MODBUS unit ID
 ---@param advert rtu_advertisement RTU advertisement for this unit
 ---@param out_queue mqueue send queue
@@ -144,12 +144,15 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
     -- PUBLIC FUNCTIONS --
 
-    -- get the unit ID
+    -- get the RTU gateway session ID
     ---@nodiscard
     function public.get_session_id() return session_id end
     -- get the unit ID
     ---@nodiscard
     function public.get_unit_id() return unit_id end
+    -- get the RTU type
+    ---@nodiscard
+    function public.get_unit_type() return advert.type end
     -- get the device index
     ---@nodiscard
     function public.get_device_idx() return self.device_index or 0 end
