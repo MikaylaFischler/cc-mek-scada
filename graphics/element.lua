@@ -504,10 +504,10 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
         if args.parent ~= nil then
             -- remove self from parent
-            log.debug("removing " .. self.id .. " from parent")
+            -- log.debug("removing " .. self.id .. " from parent")
             args.parent.__remove_child(self.id)
         else
-            log.debug("no parent for " .. self.id .. " on delete attempt")
+            -- log.debug("no parent for " .. self.id .. " on delete attempt")
         end
     end
 
