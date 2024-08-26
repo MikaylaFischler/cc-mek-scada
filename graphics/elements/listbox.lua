@@ -1,6 +1,6 @@
 -- Scroll-able List Box Display Graphics Element
 
-local log     = require("scada-common.log")
+-- local log     = require("scada-common.log")
 local tcd     = require("scada-common.tcd")
 
 local core    = require("graphics.core")
