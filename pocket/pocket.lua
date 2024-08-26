@@ -686,6 +686,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         self.api.linked = true
                                         self.api.addr = src_addr
 
+                                        iocontrol.report_crd_link_error("")
+
                                         if self.sv.linked then
                                             iocontrol.report_link_state(LINK_STATE.LINKED, nil, self.api.addr)
                                         else
@@ -701,14 +703,19 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if self.api.last_est_ack ~= est_ack then
                                     if est_ack == ESTABLISH_ACK.DENY then
                                         log.info("coordinator connection denied")
+                                        iocontrol.report_crd_link_error("denied")
                                     elseif est_ack == ESTABLISH_ACK.COLLISION then
                                         log.info("coordinator connection denied due to collision")
+                                        iocontrol.report_crd_link_error("collision")
                                     elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                         log.info("coordinator comms version mismatch")
+                                        iocontrol.report_crd_link_error("comms version mismatch")
                                     elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
                                         log.info("coordinator api version mismatch")
+                                        iocontrol.report_crd_link_error("API version mismatch")
                                     else
                                         log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                                        iocontrol.report_crd_link_error("unknown reply")
                                     end
                                 end
 
@@ -826,6 +833,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 self.sv.linked = true
                                 self.sv.addr = src_addr
 
+                                iocontrol.report_svr_link_error("")
+
                                 if self.api.linked then
                                     iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, nil)
                                 else
@@ -835,12 +844,16 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if self.sv.last_est_ack ~= est_ack then
                                     if est_ack == ESTABLISH_ACK.DENY then
                                         log.info("supervisor connection denied")
+                                        iocontrol.report_svr_link_error("denied")
                                     elseif est_ack == ESTABLISH_ACK.COLLISION then
                                         log.info("supervisor connection denied due to collision")
+                                        iocontrol.report_svr_link_error("collision")
                                     elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                         log.info("supervisor comms version mismatch")
+                                        iocontrol.report_svr_link_error("comms version mismatch")
                                     else
                                         log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                                        iocontrol.report_svr_link_error("unknown reply")
                                     end
                                 end
 

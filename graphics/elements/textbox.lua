@@ -57,6 +57,9 @@ local function textbox(args)
         for i = 1, #lines do
             if i > e.frame.h then break end
 
+            -- trim leading/trailing whitespace
+            lines[i] = util.trim(lines[i])
+
             local len = string.len(lines[i])
 
             -- use cursor position to align this line

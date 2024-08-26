@@ -110,6 +110,15 @@ function util.pad(str, n)
     return t_concat{util.spaces(lpad), str, util.spaces(rpad)}
 end
 
+-- trim leading and trailing whitespace
+---@nodiscard
+---@param s string text
+---@return string
+function util.trim(s)
+    local str = s:gsub("^%s*(.-)%s*$", "%1")
+    return str
+end
+
 -- wrap a string into a table of lines
 ---@nodiscard
 ---@param str string
