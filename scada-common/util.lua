@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.4.2"
+util.version = "1.4.3"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -108,6 +108,15 @@ function util.pad(str, n)
     local rpad = (n - len) - lpad
 
     return t_concat{util.spaces(lpad), str, util.spaces(rpad)}
+end
+
+-- trim leading and trailing whitespace
+---@nodiscard
+---@param s string text
+---@return string
+function util.trim(s)
+    local str = s:gsub("^%s*(.-)%s*$", "%1")
+    return str
 end
 
 -- wrap a string into a table of lines

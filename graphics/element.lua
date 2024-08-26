@@ -2,6 +2,7 @@
 -- Generic Graphics Element
 --
 
+-- local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
 local core = require("graphics.core")
@@ -503,7 +504,10 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
         if args.parent ~= nil then
             -- remove self from parent
+            -- log.debug("removing " .. self.id .. " from parent")
             args.parent.__remove_child(self.id)
+        else
+            -- log.debug("no parent for " .. self.id .. " on delete attempt")
         end
     end
 

@@ -833,7 +833,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
             if self.r_seq_num == nil then
                 self.r_seq_num = packet.scada_frame.seq_num() + 1
             elseif self.r_seq_num ~= packet.scada_frame.seq_num() then
-                log.warning("sequence out-of-order: last = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                log.warning("sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                 return
             elseif self.linked and (src_addr ~= self.sv_addr) then
                 log.debug("received packet from unknown computer " .. src_addr .. " while linked (expected " .. self.sv_addr ..

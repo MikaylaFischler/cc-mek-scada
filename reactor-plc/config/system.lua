@@ -450,7 +450,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     end
 
     local function save_and_continue()
-        for k, v in pairs(tmp_cfg) do settings.set(k, v) end
+        for _, field in ipairs(fields) do
+            local k, v = field[1], tmp_cfg[field[1]]
+            if v == nil then settings.unset(k) else settings.set(k, v) end
+        end
 
         if settings.save("/reactor-plc.settings") then
             load_settings(settings_cfg, true)

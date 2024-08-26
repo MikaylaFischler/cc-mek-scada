@@ -16,12 +16,13 @@ local core       = require("graphics.core")
 
 local configure  = require("supervisor.configure")
 local databus    = require("supervisor.databus")
+local facility   = require("supervisor.facility")
 local renderer   = require("supervisor.renderer")
 local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.4.2"
+local SUPERVISOR_VERSION = "v1.5.2"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -129,9 +130,12 @@ local function main()
         println_ts = function (_) end
     end
 
+    -- create facility and unit objects
+    local sv_facility = facility.new(config)
+
     -- create network interface then setup comms
     local nic = network.nic(modem)
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, nic, fp_ok)
+    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, nic, fp_ok, sv_facility)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15

@@ -610,7 +610,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if self.api.r_seq_num == nil then
                     self.api.r_seq_num = packet.scada_frame.seq_num() + 1
                 elseif self.api.r_seq_num ~= packet.scada_frame.seq_num() then
-                    log.warning("sequence out-of-order (API): last = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (API): next = " .. self.api.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.api.linked and (src_addr ~= self.api.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (API expected " .. self.api.addr ..
@@ -686,6 +686,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         self.api.linked = true
                                         self.api.addr = src_addr
 
+                                        iocontrol.report_crd_link_error("")
+
                                         if self.sv.linked then
                                             iocontrol.report_link_state(LINK_STATE.LINKED, nil, self.api.addr)
                                         else
@@ -697,24 +699,29 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 else
                                     log.debug("received coordinator establish allow without facility configuration")
                                 end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator comms version mismatch")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
-                                if self.api.last_est_ack ~= est_ack then
-                                    log.info("coordinator api version mismatch")
-                                end
                             else
-                                log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                                if self.api.last_est_ack ~= est_ack then
+                                    if est_ack == ESTABLISH_ACK.DENY then
+                                        log.info("coordinator connection denied")
+                                        iocontrol.report_crd_link_error("denied")
+                                    elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                        log.info("coordinator connection denied due to collision")
+                                        iocontrol.report_crd_link_error("collision")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                        log.info("coordinator comms version mismatch")
+                                        iocontrol.report_crd_link_error("comms version mismatch")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
+                                        log.info("coordinator api version mismatch")
+                                        iocontrol.report_crd_link_error("API version mismatch")
+                                    else
+                                        log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
+                                        iocontrol.report_crd_link_error("unknown reply")
+                                    end
+                                end
+
+                                -- unlink
+                                self.api.addr = comms.BROADCAST
+                                self.api.linked = false
                             end
 
                             self.api.last_est_ack = est_ack
@@ -730,7 +737,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if self.sv.r_seq_num == nil then
                     self.sv.r_seq_num = packet.scada_frame.seq_num() + 1
                 elseif self.sv.r_seq_num ~= packet.scada_frame.seq_num() then
-                    log.warning("sequence out-of-order (SVR): last = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
+                    log.warning("sequence out-of-order (SVR): next = " .. self.sv.r_seq_num .. ", new = " .. packet.scada_frame.seq_num())
                     return
                 elseif self.sv.linked and (src_addr ~= self.sv.addr) then
                     log.debug("received packet from unknown computer " .. src_addr .. " while linked (SVR expected " .. self.sv.addr ..
@@ -826,25 +833,33 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 self.sv.linked = true
                                 self.sv.addr = src_addr
 
+                                iocontrol.report_svr_link_error("")
+
                                 if self.api.linked then
                                     iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, nil)
                                 else
                                     iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, self.sv.addr, nil)
                                 end
-                            elseif est_ack == ESTABLISH_ACK.DENY then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.COLLISION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor connection denied due to collision")
-                                end
-                            elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                                if self.sv.last_est_ack ~= est_ack then
-                                    log.info("supervisor comms version mismatch")
-                                end
                             else
-                                log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                                if self.sv.last_est_ack ~= est_ack then
+                                    if est_ack == ESTABLISH_ACK.DENY then
+                                        log.info("supervisor connection denied")
+                                        iocontrol.report_svr_link_error("denied")
+                                    elseif est_ack == ESTABLISH_ACK.COLLISION then
+                                        log.info("supervisor connection denied due to collision")
+                                        iocontrol.report_svr_link_error("collision")
+                                    elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
+                                        log.info("supervisor comms version mismatch")
+                                        iocontrol.report_svr_link_error("comms version mismatch")
+                                    else
+                                        log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
+                                        iocontrol.report_svr_link_error("unknown reply")
+                                    end
+                                end
+
+                                -- unlink
+                                self.sv.addr = comms.BROADCAST
+                                self.sv.linked = false
                             end
 
                             self.sv.last_est_ack = est_ack
