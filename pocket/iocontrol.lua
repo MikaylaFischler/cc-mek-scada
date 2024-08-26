@@ -376,6 +376,12 @@ function iocontrol.report_link_state(state, sv_addr, api_addr)
     end
 end
 
+-- show the reason the supervisor connection isn't linking
+function iocontrol.report_svr_link_error(msg) io.ps.publish("svr_link_msg", msg) end
+
+-- show the reason the coordinator api connection isn't linking
+function iocontrol.report_crd_link_error(msg) io.ps.publish("api_link_msg", msg) end
+
 -- determine supervisor connection quality (trip time)
 ---@param trip_time integer
 function iocontrol.report_svr_tt(trip_time)
