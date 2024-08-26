@@ -144,7 +144,7 @@ local function new_view(root)
                 for idx = 1, #s_results[tier] do
                     local entry = s_results[tier][idx]
                     TextBox{parent=search_results,text=entry[3].." >",fg_bg=cpair(colors.gray,colors.black)}
-                    PushButton{parent=search_results,text=entry[2],alignment=ALIGN.LEFT,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=entry[4]}
+                    PushButton{parent=search_results,text=entry[2],fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=entry[4]}
 
                     empty = false
                 end

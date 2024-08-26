@@ -148,8 +148,8 @@ local function init(panel)
     --
 
     local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)

@@ -63,25 +63,25 @@ local function create_pages(root)
 
     PushButton{parent=nt_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
 
-    TextBox{parent=nt_div,x=2,y=3,text="Pocket Address",alignment=ALIGN.LEFT,fg_bg=label}
+    TextBox{parent=nt_div,x=2,y=3,text="Pocket Address",fg_bg=label}
 ---@diagnostic disable-next-line: undefined-field
-    TextBox{parent=nt_div,x=2,text=util.c(os.getComputerID(),":",config.PKT_Channel),alignment=ALIGN.LEFT}
+    TextBox{parent=nt_div,x=2,text=util.c(os.getComputerID(),":",config.PKT_Channel)}
 
     nt_div.line_break()
-    TextBox{parent=nt_div,x=2,text="Supervisor Address",alignment=ALIGN.LEFT,fg_bg=label}
-    local sv = TextBox{parent=nt_div,x=2,text="",alignment=ALIGN.LEFT}
+    TextBox{parent=nt_div,x=2,text="Supervisor Address",fg_bg=label}
+    local sv = TextBox{parent=nt_div,x=2,text=""}
 
     nt_div.line_break()
-    TextBox{parent=nt_div,x=2,text="Coordinator Address",alignment=ALIGN.LEFT,fg_bg=label}
-    local coord = TextBox{parent=nt_div,x=2,text="",alignment=ALIGN.LEFT}
+    TextBox{parent=nt_div,x=2,text="Coordinator Address",fg_bg=label}
+    local coord = TextBox{parent=nt_div,x=2,text=""}
 
     sv.register(db.ps, "sv_addr", sv.set_value)
     coord.register(db.ps, "api_addr", coord.set_value)
 
     nt_div.line_break()
-    TextBox{parent=nt_div,x=2,text="Message Authentication",alignment=ALIGN.LEFT,fg_bg=label}
+    TextBox{parent=nt_div,x=2,text="Message Authentication",fg_bg=label}
     local auth = util.trinary(type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0, "HMAC-MD5", "None")
-    TextBox{parent=nt_div,x=2,text=auth,alignment=ALIGN.LEFT}
+    TextBox{parent=nt_div,x=2,text=auth}
 
     --#endregion
 
@@ -96,28 +96,28 @@ local function create_pages(root)
 
     local fw_list = Div{parent=fw_list_box,x=1,y=2,height=18}
 
-    TextBox{parent=fw_list,x=2,text="Pocket Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=db.version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="Pocket Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=db.version}
 
     fw_list.line_break()
-    TextBox{parent=fw_list,x=2,text="Comms Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=comms.version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="Comms Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=comms.version}
 
     fw_list.line_break()
-    TextBox{parent=fw_list,x=2,text="API Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=comms.api_version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="API Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=comms.api_version}
 
     fw_list.line_break()
-    TextBox{parent=fw_list,x=2,text="Common Lib Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=util.version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="Common Lib Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=util.version}
 
     fw_list.line_break()
-    TextBox{parent=fw_list,x=2,text="Graphics Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=core.version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="Graphics Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=core.version}
 
     fw_list.line_break()
-    TextBox{parent=fw_list,x=2,text="Lockbox Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=fw_list,x=2,text=lockbox.version,alignment=ALIGN.LEFT}
+    TextBox{parent=fw_list,x=2,text="Lockbox Version",fg_bg=label}
+    TextBox{parent=fw_list,x=2,text=lockbox.version}
 
     --#endregion
 
@@ -129,12 +129,12 @@ local function create_pages(root)
     PushButton{parent=hw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
 
     hw_div.line_break()
-    TextBox{parent=hw_div,x=2,text="Lua Version",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=hw_div,x=2,text=_VERSION,alignment=ALIGN.LEFT}
+    TextBox{parent=hw_div,x=2,text="Lua Version",fg_bg=label}
+    TextBox{parent=hw_div,x=2,text=_VERSION}
 
     hw_div.line_break()
-    TextBox{parent=hw_div,x=2,text="Environment",alignment=ALIGN.LEFT,fg_bg=label}
-    TextBox{parent=hw_div,x=2,text=_HOST,height=6,alignment=ALIGN.LEFT}
+    TextBox{parent=hw_div,x=2,text="Environment",fg_bg=label}
+    TextBox{parent=hw_div,x=2,text=_HOST,height=6}
 
     --#endregion
 

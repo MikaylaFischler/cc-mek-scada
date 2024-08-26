@@ -74,8 +74,8 @@ local function init(panel)
     --
 
     local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00",alignment=ALIGN.LEFT}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00",alignment=ALIGN.LEFT}
+    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -156,9 +156,25 @@ local function init(panel)
     local chk_list = ListBox{parent=chk_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=chk_list,height=1,hidden=true} -- padding
 
+    -- info page
+
+    local info_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local info = Div{parent=info_page,height=6,x=2,y=2}
+
+    TextBox{parent=info,text="SVR \x1a Supervisor Status"}
+    TextBox{parent=info,text="PLC \x1a Reactor PLC Connections"}
+    TextBox{parent=info,text="RTU \x1a RTU Gateway Connections"}
+    TextBox{parent=info,text="CRD \x1a Coordinator Connection"}
+    TextBox{parent=info,text="PKT \x1a Pocket Connections"}
+    TextBox{parent=info,text="DEV \x1a RTU Device/Configuration Alerts"}
+
+    local notes = Div{parent=info_page,width=49,height=8,x=2,y=9,fg_bg=style.fp.disabled_fg}
+
+    TextBox{parent=notes,text="The DEV tab will show missing devices and devices that connected with incorrect information. Missing entries will indicate how the configuration should be, duplicate entries will indicate what is a duplicate, and out-of-range entries will indicate the invalid entry. An out-of-range example is a #2 turbine when you should only have 1 turbine for that unit."}
+
     -- assemble page panes
 
-    local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page, chk_page }
+    local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page, chk_page, info_page }
 
     local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
 
@@ -168,7 +184,8 @@ local function init(panel)
         { name = "RTU", color = style.fp.text },
         { name = "CRD", color = style.fp.text },
         { name = "PKT", color = style.fp.text },
-        { name = "CHECK", color = style.fp.text }
+        { name = "DEV", color = style.fp.text },
+        { name = "INF", color = style.fp.text }
     }
 
     TabBar{parent=panel,y=2,tabs=tabs,min_width=7,callback=page_pane.set_value,fg_bg=style.theme.highlight_box_bright}
