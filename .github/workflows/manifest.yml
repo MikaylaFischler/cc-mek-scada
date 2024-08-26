@@ -32,6 +32,8 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Setup Python
         uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' 
       # Generate manifest + shields files for main branch
       - name: Checkout main
         id: checkout-main
