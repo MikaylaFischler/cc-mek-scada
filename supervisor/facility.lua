@@ -379,7 +379,7 @@ function facility.new(config)
     function public.auto_stop() self.mode = PROCESS.INACTIVE end
 
     -- set automatic control configuration and start the process
-    ---@param auto_cfg coord_auto_config configuration
+    ---@param auto_cfg sys_auto_config configuration
     ---@return table response ready state (successfully started) and current configuration (after updating)
     function public.auto_start(auto_cfg)
         local charge_scaler = 1000000   -- convert MFE to FE

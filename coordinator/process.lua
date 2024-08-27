@@ -19,9 +19,9 @@ local process = {}
 local self = {
     io = nil,       ---@type ioctl
     comms = nil,    ---@type coord_comms
-    ---@class coord_control_states
+    ---@class sys_control_states
     control_states = {
-        ---@class coord_auto_config
+        ---@class sys_auto_config
         process = {
             mode = PROCESS.INACTIVE,
             burn_target = 0.0,
@@ -55,7 +55,7 @@ function process.init(iocontrol, coord_comms)
     end
 
     local ctrl_states = settings.get("ControlStates", {})
-    local config = ctrl_states.process  ---@type coord_auto_config
+    local config = ctrl_states.process  ---@type sys_auto_config
 
     -- facility auto control configuration
     if type(config) == "table" then

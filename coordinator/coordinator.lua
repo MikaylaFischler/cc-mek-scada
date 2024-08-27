@@ -386,7 +386,7 @@ function coordinator.comms(version, nic, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param auto_cfg coord_auto_config configuration
+    ---@param auto_cfg sys_auto_config configuration
     function public.send_auto_start(auto_cfg)
         _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
             FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
@@ -632,11 +632,11 @@ function coordinator.comms(version, nic, sv_watchdog)
                                     elseif cmd == UNIT_COMMAND.SET_BURN then
                                         unit.set_burn_ack(ack)
                                     elseif cmd == UNIT_COMMAND.SET_WASTE then
-                                        unit.set_waste_ack(ack)
+                                        -- updated by unit updates
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
-                                        -- UI will be updated to display current group if changed successfully
+                                        -- updated by unit updates
                                     else
                                         log.debug(util.c("received unit command ack with unknown command ", cmd))
                                     end
