@@ -17,6 +17,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field max_frac_digits? integer maximum number of fractional digits, enforced on unfocus
 ---@field allow_decimal? boolean true to allow decimals
 ---@field allow_negative? boolean true to allow negative numbers
+---@field align_right? boolean true to align right while unfocused
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
 ---@field id? string element id
@@ -47,7 +48,7 @@ local function number_field(args)
     e.value = "" .. (args.default or 0)
 
     -- make an interactive field manager
-    local ifield = core.new_ifield(e, args.max_chars, args.fg_bg, args.dis_fg_bg)
+    local ifield = core.new_ifield(e, args.max_chars, args.fg_bg, args.dis_fg_bg, args.align_right)
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
@@ -55,10 +56,16 @@ local function number_field(args)
         -- only handle if on an increment or decrement arrow
         if e.enabled and e.in_frame_bounds(event.current.x, event.current.y) then
             if core.events.was_clicked(event.type) then
+                local x = event.current.x
+
+                if not e.is_focused() then
+                    x = ifield.get_cursor_align_shift(x)
+                end
+
                 e.take_focus()
 
                 if event.type == MOUSE_CLICK.UP then
-                    ifield.move_cursor(event.current.x)
+                    ifield.move_cursor(x)
                 end
             elseif event.type == MOUSE_CLICK.DOUBLE_CLICK then
                 ifield.select_all()
