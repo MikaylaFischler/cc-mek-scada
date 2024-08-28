@@ -82,6 +82,9 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         io.energy_convert_to_fe = util.joules_to_fe_rf
     end
 
+    -- coordinator's process handle
+    io.process = process.create_handle()
+
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
@@ -186,10 +189,10 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             -- auto control group
             a_group = 0,
 
-            start = function () process.start(i) end,
-            scram = function () process.scram(i) end,
-            reset_rps = function () process.reset_rps(i) end,
-            ack_alarms = function () process.ack_all_alarms(i) end,
+            start = function () io.process.start(i) end,
+            scram = function () io.process.scram(i) end,
+            reset_rps = function () io.process.reset_rps(i) end,
+            ack_alarms = function () io.process.ack_all_alarms(i) end,
             set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
             set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
 
