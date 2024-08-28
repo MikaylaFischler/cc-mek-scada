@@ -50,12 +50,14 @@ local function __generic_ack(success) end
 -- luacheck: unused args
 
 local config = nil  ---@type pkt_config
+local comms  = nil  ---@type pocket_comms
 
 -- initialize facility-independent components of pocket iocontrol
----@param comms pocket_comms
+---@param pkt_comms pocket_comms
 ---@param nav pocket_nav
 ---@param cfg pkt_config
-function iocontrol.init_core(comms, nav, cfg)
+function iocontrol.init_core(pkt_comms, nav, cfg)
+    comms = pkt_comms
     config = cfg
 
     io.nav = nav
@@ -102,9 +104,6 @@ function iocontrol.init_core(comms, nav, cfg)
     io.api = {
         get_unit = function (unit) comms.api__get_unit(unit) end
     }
-
-    -- pass IO control here since it can't be require'd due to a require loop
-    process.init(io, comms)
 end
 
 -- initialize facility-dependent components of pocket iocontrol
@@ -374,6 +373,9 @@ function iocontrol.init_fac(conf)
 
         table.insert(io.units, entry)
     end
+
+    -- pass IO control here since it can't be require'd due to a require loop
+    process.init(io, comms)
 end
 
 -- set network link state
