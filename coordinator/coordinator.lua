@@ -630,7 +630,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                     elseif cmd == UNIT_COMMAND.RESET_RPS then
                                         unit.reset_rps_ack(ack)
                                     elseif cmd == UNIT_COMMAND.SET_BURN then
-                                        unit.set_burn_ack(ack)
+                                        -- this also doesn't exist
                                     elseif cmd == UNIT_COMMAND.SET_WASTE then
                                         -- updated by unit updates
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then

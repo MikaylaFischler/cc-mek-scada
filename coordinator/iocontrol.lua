@@ -199,7 +199,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             scram_ack = __generic_ack,
             reset_rps_ack = __generic_ack,
             ack_alarms_ack = __generic_ack,
-            set_burn_ack = __generic_ack,
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
