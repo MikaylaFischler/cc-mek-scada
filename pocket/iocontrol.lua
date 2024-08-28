@@ -8,6 +8,8 @@ local psil  = require("scada-common.psil")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
+local process = require("pocket.process")
+
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
 
@@ -37,6 +39,15 @@ local io = {
     version = "unknown",
     ps = psil.create()
 }
+
+-- luacheck: no unused args
+
+-- placeholder acknowledge function for type hinting
+---@param success boolean
+---@diagnostic disable-next-line: unused-local
+local function __generic_ack(success) end
+
+-- luacheck: unused args
 
 local config = nil  ---@type pkt_config
 
@@ -91,6 +102,9 @@ function iocontrol.init_core(comms, nav, cfg)
     io.api = {
         get_unit = function (unit) comms.api__get_unit(unit) end
     }
+
+    -- pass IO control here since it can't be require'd due to a require loop
+    process.init(io, comms)
 end
 
 -- initialize facility-dependent components of pocket iocontrol
@@ -299,6 +313,20 @@ function iocontrol.init_fac(conf)
 
             -- auto control group
             a_group = 0,
+
+            start = function () process.start(i) end,
+            scram = function () process.scram(i) end,
+            reset_rps = function () process.reset_rps(i) end,
+            ack_alarms = function () process.ack_all_alarms(i) end,
+            set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
+            set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
+
+            set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
+
+            start_ack = __generic_ack,
+            scram_ack = __generic_ack,
+            reset_rps_ack = __generic_ack,
+            ack_alarms_ack = __generic_ack,
 
             ---@type alarms
             alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
@@ -689,7 +717,7 @@ function iocontrol.record_unit_data(data)
 
     --#region Status Information Display
 
-    local ecam = {} -- aviation reference :) back to VATSIM I go...
+    local ecam = {} -- aviation reference :)
 
     -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end

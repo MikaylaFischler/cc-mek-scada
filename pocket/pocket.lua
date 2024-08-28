@@ -9,6 +9,8 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 local CRDN_TYPE = comms.CRDN_TYPE
+local UNIT_COMMAND = comms.UNIT_COMMAND
+local FAC_COMMAND = comms.FAC_COMMAND
 
 local LINK_STATE = iocontrol.LINK_STATE
 
@@ -84,13 +86,14 @@ local APP_ID = {
     LOADER = 2,
     -- main app pages
     UNITS = 3,
-    GUIDE = 4,
-    ABOUT = 5,
+    CONTROL = 4,
+    GUIDE = 5,
+    ABOUT = 6,
     -- diag app page
-    ALARMS = 6,
+    ALARMS = 7,
     -- other
-    DUMMY = 7,
-    NUM_APPS = 7
+    DUMMY = 8,
+    NUM_APPS = 8
 }
 
 pocket.APP_ID = APP_ID
@@ -539,6 +542,29 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     -- coordinator get unit data
     function public.api__get_unit(unit)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
+    end
+
+    -- send a facility command
+    ---@param cmd FAC_COMMAND command
+    ---@param option any? optional option options for the optional options (like waste mode)
+    function public.send_fac_command(cmd, option)
+        _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
+    end
+
+    -- send the auto process control configuration with a start command
+    ---@param auto_cfg sys_auto_config configuration
+    function public.send_auto_start(auto_cfg)
+        _send_api(CRDN_TYPE.FAC_CMD, {
+            FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
+        })
+    end
+
+    -- send a unit command
+    ---@param cmd UNIT_COMMAND command
+    ---@param unit integer unit ID
+    ---@param option any? optional option options for the optional options (like burn rate)
+    function public.send_unit_command(cmd, unit, option)
+        _send_api(CRDN_TYPE.UNIT_CMD, { cmd, unit, option })
     end
 
     -- parse a packet
