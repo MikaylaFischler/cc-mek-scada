@@ -78,6 +78,7 @@ local function new_view(root)
         local uis_page = app.new_page(main_page, 4)
         local fps_page = app.new_page(main_page, 5)
         local gls_page = app.new_page(main_page, 6)
+        local lnk_page = app.new_page(main_page, 7)
 
         local home = Div{parent=page_div,x=2}
         local search = Div{parent=page_div,x=2}
@@ -85,7 +86,8 @@ local function new_view(root)
         local uis = Div{parent=page_div,x=2,width=p_width}
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2,width=p_width}
-        local panes = { home, search, use, uis, fps, gls }
+        local lnk = Div{parent=page_div,x=2,width=p_width}
+        local panes = { home, search, use, uis, fps, gls, lnk }
 
         local doc_map = {}
         local search_db = {}
@@ -100,6 +102,7 @@ local function new_view(root)
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
+        PushButton{parent=home,y=10,text="Wiki and Discord    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=lnk_page.nav_to}
 
         TextBox{parent=search,y=1,text="Search",alignment=ALIGN.CENTER}
 
@@ -213,6 +216,19 @@ local function new_view(root)
 
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
+
+        TextBox{parent=lnk,y=1,text="Wiki and Discord",alignment=ALIGN.CENTER}
+        PushButton{parent=lnk,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
+
+        lnk.line_break()
+        TextBox{parent=lnk,text="GitHub",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada"}
+        lnk.line_break()
+        TextBox{parent=lnk,text="Wiki",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada/wiki"}
+        lnk.line_break()
+        TextBox{parent=lnk,text="Discord",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="discord.gg/R9NSCkhcwt"}
 
         -- setup multipane
         local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
