@@ -3,6 +3,7 @@
 --
 
 local util          = require("scada-common.util")
+local log           = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
 local pocket        = require("pocket.pocket")
@@ -120,10 +121,12 @@ local function new_view(root)
 
             search_results.remove_all()
 
-            if string.len(query) < 3 then
-                TextBox{parent=search_results,text="Search requires at least 3 characters."}
+            if string.len(query) < 2 then
+                TextBox{parent=search_results,text="Search requires at least 2 characters."}
                 return
             end
+
+            local start = util.time_ms()
 
             for _, entry in ipairs(search_db) do
                 local s_start, _ = string.find(entry[1], query, 1, true)
@@ -152,6 +155,8 @@ local function new_view(root)
                     empty = false
                 end
             end
+
+            log.debug("App.Guide: search for \"" .. query .. "\" completed in " .. (util.time_ms() - start) .. "ms")
 
             if empty then
                 TextBox{parent=search_results,text="No results found."}
@@ -191,7 +196,8 @@ local function new_view(root)
         local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section, 170)
         local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section, 100)
         local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section, 170)
-        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.unit.fac_section, 100)
+
+        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.facility.main_section, 100)
 
         PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
@@ -202,9 +208,13 @@ local function new_view(root)
         TextBox{parent=fps,y=1,text="Front Panels",alignment=ALIGN.CENTER}
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 100)
+        local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 100)
+        local fp_rtu_page = guide_section(sect_construct_data, fps_page, "RTU Gateway", docs.fp.rtu_gw, 100)
+
+        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_common_page.nav_to}
+        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rplc_page.nav_to}
+        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rtu_page.nav_to}
         PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
