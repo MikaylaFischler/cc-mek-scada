@@ -2,12 +2,34 @@ local const   = require("scada-common.constants")
 
 local docs = {}
 
+---@enum DOC_LIST_TYPE
+local DOC_LIST_TYPE = {
+    BULLET = 1,
+    NUMBERED = 2,
+    INDICATOR = 3,
+    LED = 4
+}
+
+docs.DOC_LIST_TYPE = DOC_LIST_TYPE
+
 local target
 
+---@param key string item identifier for linking
+---@param name string item name for display
+---@param desc string text body
 local function doc(key, name, desc)
     ---@class pocket_doc_item
     local item = { key = key, name = name, desc = desc }
     table.insert(target, item)
+end
+
+---@param type DOC_LIST_TYPE
+---@param items table
+---@param colors table|nil colors for indicators or nil for normal lists
+local function list(type, items, colors)
+    ---@class pocket_doc_list
+    local list_def = { type = type, items = items, colors = colors }
+    table.insert(target, list_def)
 end
 
 -- important to note in the future: The PLC should always be in a chunk with the reactor to ensure it can protect it on chunk load if you do not keep it all chunk loaded
@@ -110,6 +132,7 @@ doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC. For t
 doc("fp_heartbeat", "HEARTBEAT", "This alternates between lit and unlit as the main loop on the device runs. If this freezes, something is wrong and the logs will indicate why.")
 doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the supervisor's connection lists.")
 doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors. Off is no link, green is linked, red is link denied, orange is mismatching comms versions, and yellow is Reactor PLC-specific, indicating a unit ID collision (duplicate unit IDs in use).")
+list(DOC_LIST_TYPE.LED, { "not linked", "linked" }, { colors.gray, colors.green })
 doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only) This lights up once the device is linked to the supervisor.")
 doc("fp_nt_version", "NT VERSION", "(color accessibility modes only) This lights up if the communications versions of the supervisor and this device do not match. Make sure everything is up-to-date.")
 doc("fp_fw", "FW", "Firmware application version of this device.")
