@@ -76,7 +76,7 @@ return function (data, base_page, title, items, scroll_height)
         elseif item.type == DOC_TYPE.TEXT then
             ---@cast item pocket_doc_text
             TextBox{parent=def_list,text=item.text}
-            local _ = Div{parent=def_list,height=1}
+            _end = Div{parent=def_list,height=1,can_focus=true}
         elseif item.type == DOC_TYPE.LIST then
             ---@cast item pocket_doc_list
 
@@ -101,7 +101,7 @@ return function (data, base_page, title, items, scroll_height)
                 end
             end
 
-            local _ = Div{parent=def_list,height=1}
+            _end = Div{parent=def_list,height=1,can_focus=true}
         end
 
         if i % 12 == 0 then util.nop() end
