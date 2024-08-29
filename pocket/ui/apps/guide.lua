@@ -117,7 +117,7 @@ local function new_view(root)
 
         function func_ref.run_search()
             local query = string.lower(query_field.get_value())
-            local s_results = { {}, {}, {} }
+            local s_results = { {}, {}, {}, {} }
 
             search_results.remove_all()
 
@@ -129,24 +129,29 @@ local function new_view(root)
             local start = util.time_ms()
 
             for _, entry in ipairs(search_db) do
-                local s_start, _ = string.find(entry[1], query, 1, true)
+                local s_start, s_end = string.find(entry[1], query, 1, true)
 
                 if s_start == nil then
                 elseif s_start == 1 then
-                    -- best match, start of key
-                    table.insert(s_results[1], entry)
+                    if s_end == string.len(entry[1]) then
+                        -- best match: full match
+                        table.insert(s_results[1], entry)
+                    else
+                        -- very good match, start of key
+                        table.insert(s_results[2], entry)
+                    end
                 elseif string.sub(query, s_start - 1, s_start) == " " then
                     -- start of word, good match
-                    table.insert(s_results[2], entry)
+                    table.insert(s_results[3], entry)
                 else
                     -- basic match in content
-                    table.insert(s_results[3], entry)
+                    table.insert(s_results[4], entry)
                 end
             end
 
             local empty = true
 
-            for tier = 1, 3 do
+            for tier = 1, 4 do
                 for idx = 1, #s_results[tier] do
                     local entry = s_results[tier][idx]
                     TextBox{parent=search_results,text=entry[3].." >",fg_bg=cpair(colors.gray,colors.black)}
