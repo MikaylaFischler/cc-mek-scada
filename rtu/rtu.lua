@@ -378,6 +378,7 @@ function rtu.comms(version, nic, conn_watchdog)
     -- send establish request (includes advertisement)
     ---@param units table
     function public.send_establish(units)
+        self.r_seq_num = nil
         _send(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
     end
 

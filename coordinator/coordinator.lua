@@ -296,6 +296,7 @@ function coordinator.comms(version, nic, sv_watchdog)
 
     -- attempt connection establishment
     local function _send_establish()
+        self.sv_r_seq_num = nil
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRD })
     end
 
