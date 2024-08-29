@@ -17,6 +17,7 @@ local LED        = require("graphics.elements.indicators.led")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
+local DOC_TYPE = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
@@ -47,13 +48,19 @@ return function (data, base_page, title, items, scroll_height)
     local _end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_item|pocket_doc_list
+        local item = items[i] ---@type pocket_doc_sect|pocket_doc_text|pocket_doc_list
 
-        if item.type == nil then
-            ---@cast item pocket_doc_item
+        if item.type == DOC_TYPE.SECTION then
+            ---@cast item pocket_doc_sect
 
             local anchor = TextBox{parent=def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
-            TextBox{parent=def_list,text=item.desc}
+
+            if item.subtitle then
+                TextBox{parent=def_list,text=item.subtitle,fg_bg=cpair(colors.gray,colors.black)}
+            end
+
+            TextBox{parent=def_list,text=item.body}
+
             _end = Div{parent=def_list,height=1,can_focus=true}
 
             local function view()
@@ -66,32 +73,38 @@ return function (data, base_page, title, items, scroll_height)
             table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
             PushButton{parent=name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
-
-            if i % 12 == 0 then util.nop() end
-        else
+        elseif item.type == DOC_TYPE.TEXT then
+            ---@cast item pocket_doc_text
+            TextBox{parent=def_list,text=item.text}
+            local _ = Div{parent=def_list,height=1}
+        elseif item.type == DOC_TYPE.LIST then
             ---@cast item pocket_doc_list
 
-            if item.type == LIST_TYPE.BULLET then
+            local container = Div{parent=def_list,height=#item.items}
+
+            if item.list_type == LIST_TYPE.BULLET then
                 for _, li in ipairs(item.items) do
-                    TextBox{parent=def_list,x=2,text="\x07 "..li}
+                    TextBox{parent=container,x=2,text="\x07 "..li}
                 end
-            elseif item.type == LIST_TYPE.NUMBERED then
+            elseif item.list_type == LIST_TYPE.NUMBERED then
                 local width = string.len("" .. #item.items)
                 for idx, li in ipairs(item.items) do
-                    TextBox{parent=def_list,x=2,text=util.sprintf("%" .. width .. "d. %s", idx, li)}
+                    TextBox{parent=container,x=2,text=util.sprintf("%" .. width .. "d. %s", idx, li)}
                 end
-            elseif item.type == LIST_TYPE.INDICATOR then
+            elseif item.list_type == LIST_TYPE.INDICATOR then
                 for idx, li in ipairs(item.items) do
-                    local _ = IndicatorLight{parent=def_list,x=2,label=li,colors=cpair(colors.black,item.colors[idx])}
+                    local _ = IndicatorLight{parent=container,x=2,label=li,colors=cpair(colors.black,item.colors[idx])}
                 end
-            elseif item.type == LIST_TYPE.LED then
+            elseif item.list_type == LIST_TYPE.LED then
                 for idx, li in ipairs(item.items) do
-                    local _ = LED{parent=def_list,x=2,label=li,colors=cpair(colors.black,item.colors[idx])}
+                    local _ = LED{parent=container,x=2,label=li,colors=cpair(colors.black,item.colors[idx])}
                 end
             end
 
             local _ = Div{parent=def_list,height=1}
         end
+
+        if i % 12 == 0 then util.nop() end
     end
 
     log.debug("guide section " .. title .. " generated with final height ".. _end.get_y())

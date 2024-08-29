@@ -2,6 +2,13 @@ local const   = require("scada-common.constants")
 
 local docs = {}
 
+---@enum DOC_ITEM_TYPE
+local DOC_ITEM_TYPE = {
+    SECTION = 1,
+    TEXT = 2,
+    LIST = 3
+}
+
 ---@enum DOC_LIST_TYPE
 local DOC_LIST_TYPE = {
     BULLET = 1,
@@ -10,16 +17,30 @@ local DOC_LIST_TYPE = {
     LED = 4
 }
 
+docs.DOC_ITEM_TYPE = DOC_ITEM_TYPE
 docs.DOC_LIST_TYPE = DOC_LIST_TYPE
 
 local target
 
 ---@param key string item identifier for linking
 ---@param name string item name for display
----@param desc string text body
-local function doc(key, name, desc)
-    ---@class pocket_doc_item
-    local item = { key = key, name = name, desc = desc }
+---@param text_a string text body, or the subtitle/note if text_b is specified
+---@param text_b? string text body if subtitle/note was specified
+local function doc(key, name, text_a, text_b)
+    if text_b == nil then
+        text_b = text_a
+---@diagnostic disable-next-line: cast-local-type
+        text_a = nil
+    end
+
+    ---@class pocket_doc_sect
+    local item = { type = DOC_ITEM_TYPE.SECTION, key = key, name = name, subtitle = text_a, body = text_b }
+    table.insert(target, item)
+end
+
+local function text(body)
+    ---@class pocket_doc_text
+    local item = { type = DOC_ITEM_TYPE.TEXT, text = body }
     table.insert(target, item)
 end
 
@@ -28,7 +49,7 @@ end
 ---@param colors table|nil colors for indicators or nil for normal lists
 local function list(type, items, colors)
     ---@class pocket_doc_list
-    local list_def = { type = type, items = items, colors = colors }
+    local list_def = { type = DOC_ITEM_TYPE.LIST, list_type = type, items = items, colors = colors }
     table.insert(target, list_def)
 end
 
@@ -131,15 +152,16 @@ target = docs.fp.common
 doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC. For that, it is green once initialized and OK (has all its peripherals) and red if something is wrong, in which case you should refer to the other indicator lights.")
 doc("fp_heartbeat", "HEARTBEAT", "This alternates between lit and unlit as the main loop on the device runs. If this freezes, something is wrong and the logs will indicate why.")
 doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the supervisor's connection lists.")
-doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors. Off is no link, green is linked, red is link denied, orange is mismatching comms versions, and yellow is Reactor PLC-specific, indicating a unit ID collision (duplicate unit IDs in use).")
-list(DOC_LIST_TYPE.LED, { "not linked", "linked" }, { colors.gray, colors.green })
-doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only) This lights up once the device is linked to the supervisor.")
-doc("fp_nt_version", "NT VERSION", "(color accessibility modes only) This lights up if the communications versions of the supervisor and this device do not match. Make sure everything is up-to-date.")
+doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors.")
+list(DOC_LIST_TYPE.LED, { "not linked", "linked", "link denied", "bad comms version", "duplicate PLC" }, { colors.gray, colors.green, colors.red, colors.orange, colors.yellow })
+text("You can fix \"bad comms version\" by ensuring all devices are up-to-date, as this indicates a communications protocol version mismatch. Note that yellow is Reactor PLC-specific, indicating duplicate unit IDs in use.")
+doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only)", "This indicates the device is linked to the supervisor.")
+doc("fp_nt_version", "NT VERSION", "(color accessibility modes only)", "This indicates the communications versions of the supervisor and this device do not match. Make sure everything is up-to-date.")
 doc("fp_fw", "FW", "Firmware application version of this device.")
 doc("fp_nt", "NT", "Network (comms) version this device has. These must match between devices in order for them to connect.")
 
 target = docs.fp.r_plc
-doc("fp_nt_collision", "NT COLLISION", "(color accessibility modes only) This lights up if the Reactor PLC reactor unit ID conflicts with (is a duplicate of) another already connected Reactor PLC.")
+doc("fp_nt_collision", "NT COLLISION", "(color accessibility modes only)", "This indicates the Reactor PLC unit ID is a duplicate of another already connected Reactor PLC.")
 doc("fp_rplc_rt_main", "RT MAIN", "This lights up as long as the device's main loop co-routine is running, which it should be as long as STATUS is green.")
 doc("fp_rplc_rt_rps", "RT RPS", "This should always be lit up if a reactor is connected as it indicates the RPS co-routine is running, otherwise safety checks will not be running.")
 doc("fp_rplc_rt_ctx", "RT COMMS TX", "This should always be lit if the Reactor PLC is not running in standalone mode, as it indicates the communications transmission co-routine is running.")
@@ -165,6 +187,7 @@ doc("fp_rtu_rt_main", "RT MAIN", "This indicates if the device's main loop co-ro
 doc("fp_rtu_rt_comms", "RT COMMS", "This indicates if the communications handler co-routine is running.")
 doc("fp_rtu_rt", "RT", "In each RTU entry row, an RT light indicates if the co-routine for that RTU unit is running. This is never lit for redstone units.")
 doc("fp_rtu_rt", "Device Status", "In each RTU entry row, the light to the left of the device name indicates its peripheral status.")
+list(DOC_LIST_TYPE.LED, { "disconnected", "faulted", "unformed", "ok" }, { colors.red, colors.orange, colors.yellow, colors.green })
 
 docs.glossary = {
     abbvs = {}, terms = {}
