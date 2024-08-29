@@ -29,13 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
       - name: Setup Python
-        uses: actions/setup-python@v3.1.3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' 
       # Generate manifest + shields files for main branch
       - name: Checkout main
         id: checkout-main
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'main'
           clean: false
@@ -54,7 +56,7 @@ jobs:
       - name: Checkout devel
         id: checkout-devel
         if: success() || failure()
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'devel'
           clean: false
@@ -69,11 +71,11 @@ jobs:
       - name: Upload artifacts
         id: upload-artifacts
         if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           # Upload manifest JSON
           path: 'deploy/'
       - name: Deploy to GitHub Pages
         if: ${{ (success() || failure()) && steps.upload-artifacts.outcome == 'success' }}
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4

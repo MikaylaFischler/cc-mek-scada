@@ -735,6 +735,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
     -- attempt to establish link with supervisor
     function public.send_link_req()
+        self.r_seq_num = nil
         _send_mgmt(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, config.UnitID })
     end
 

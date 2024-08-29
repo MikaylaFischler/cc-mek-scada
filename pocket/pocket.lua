@@ -442,11 +442,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
     -- attempt supervisor connection establishment
     local function _send_sv_establish()
+        self.sv.r_seq_num = nil
         _send_sv(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT })
     end
 
     -- attempt coordinator API connection establishment
     local function _send_api_establish()
+        self.api.r_seq_num = nil
         _send_crd(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT, comms.api_version })
     end
 
