@@ -42,7 +42,7 @@ return function (data, base_page, title, items, scroll_height)
     TextBox{parent=section_view_div,y=1,text=title,alignment=ALIGN.CENTER}
     PushButton{parent=section_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=section_page.nav_to}
 
-    local name_list = ListBox{parent=section_div,x=1,y=3,scroll_height=30,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+    local name_list = ListBox{parent=section_div,x=1,y=3,scroll_height=40,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
     local def_list = ListBox{parent=section_view_div,x=1,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
     local _end

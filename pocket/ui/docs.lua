@@ -162,9 +162,9 @@ docs.fp = {
 
 target = docs.fp.common
 sect("Core Status")
-doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC. For that, it is green once initialized and OK (has all its peripherals) and red if something is wrong, in which case you should refer to the other indicator lights.")
+doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC (see Reactor PLC section).")
 doc("fp_heartbeat", "HEARTBEAT", "This alternates between lit and unlit as the main loop on the device runs. If this freezes, something is wrong and the logs will indicate why.")
-sect("Network")
+sect("Hardware & Network")
 doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the supervisor's connection lists.")
 doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors.")
 list(DOC_LIST_TYPE.LED, { "not linked", "linked", "link denied", "bad comms version", "duplicate PLC" }, { colors.gray, colors.green, colors.red, colors.orange, colors.yellow })
@@ -176,7 +176,11 @@ doc("fp_fw", "FW", "Firmware application version of this device.")
 doc("fp_nt", "NT", "Network (comms) version this device has. These must match between devices in order for them to connect.")
 
 target = docs.fp.r_plc
-sect("Network")
+sect("Core Status")
+doc("fp_status", "STATUS", "This is green once the PLC is initialized and OK (has all its peripherals) and red if something is wrong, in which case you should refer to the other indicator lights (REACTOR & MODEM).")
+sect("Hardware & Network")
+doc("fp_rplc_reactor", "REACTOR", "This indicates the status of the connected reactor peripheral.")
+list(DOC_LIST_TYPE.LED, { "disconnected", "unformed", "ok" }, { colors.red, colors.yellow, colors.green })
 doc("fp_nt_collision", "NT COLLISION", "(color accessibility modes only)", "This indicates the Reactor PLC unit ID is a duplicate of another already connected Reactor PLC.")
 sect("Co-Routine States")
 doc("fp_rplc_rt_main", "RT MAIN", "This lights up as long as the device's main loop co-routine is running, which it should be as long as STATUS is green.")
