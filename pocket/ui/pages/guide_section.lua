@@ -48,10 +48,28 @@ return function (data, base_page, title, items, scroll_height)
     local _end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_sect|pocket_doc_text|pocket_doc_list
+        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_list
 
         if item.type == DOC_TYPE.SECTION then
             ---@cast item pocket_doc_sect
+
+            local anchor = TextBox{parent=def_list,text=item.name,anchor=true,fg_bg=cpair(colors.green,colors.black)}
+
+            _end = Div{parent=def_list,height=1,can_focus=true}
+
+            local function view()
+                _end.focus()
+                view_page.nav_to()
+                anchor.focus()
+            end
+
+            if #name_list.get_children() > 0 then
+                local _ = Div{parent=name_list,height=1}
+            end
+
+            PushButton{parent=name_list,text=item.name,fg_bg=cpair(colors.green,colors.black),active_fg_bg=btn_active,callback=view}
+        elseif item.type == DOC_TYPE.SUBSECTION then
+            ---@cast item pocket_doc_subsect
 
             local anchor = TextBox{parent=def_list,text=item.name,anchor=true,fg_bg=cpair(colors.blue,colors.black)}
 
@@ -75,7 +93,9 @@ return function (data, base_page, title, items, scroll_height)
             PushButton{parent=name_list,text=item.name,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
         elseif item.type == DOC_TYPE.TEXT then
             ---@cast item pocket_doc_text
+
             TextBox{parent=def_list,text=item.text}
+
             _end = Div{parent=def_list,height=1,can_focus=true}
         elseif item.type == DOC_TYPE.LIST then
             ---@cast item pocket_doc_list

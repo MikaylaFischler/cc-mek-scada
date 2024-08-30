@@ -5,8 +5,9 @@ local docs = {}
 ---@enum DOC_ITEM_TYPE
 local DOC_ITEM_TYPE = {
     SECTION = 1,
-    TEXT = 2,
-    LIST = 3
+    SUBSECTION = 2,
+    TEXT = 3,
+    LIST = 4
 }
 
 ---@enum DOC_LIST_TYPE
@@ -22,6 +23,12 @@ docs.DOC_LIST_TYPE = DOC_LIST_TYPE
 
 local target
 
+local function sect(name)
+    ---@class pocket_doc_sect
+    local item = { type = DOC_ITEM_TYPE.SECTION, name = name }
+    table.insert(target, item)
+end
+
 ---@param key string item identifier for linking
 ---@param name string item name for display
 ---@param text_a string text body, or the subtitle/note if text_b is specified
@@ -33,8 +40,8 @@ local function doc(key, name, text_a, text_b)
         text_a = nil
     end
 
-    ---@class pocket_doc_sect
-    local item = { type = DOC_ITEM_TYPE.SECTION, key = key, name = name, subtitle = text_a, body = text_b }
+    ---@class pocket_doc_subsect
+    local item = { type = DOC_ITEM_TYPE.SUBSECTION, key = key, name = name, subtitle = text_a, body = text_b }
     table.insert(target, item)
 end
 
@@ -81,10 +88,12 @@ docs.annunc = {
 }
 
 target = docs.annunc.unit.main_section
+sect("Unit Status")
 doc("PLCOnline", "PLC Online", "Indicates if the fission reactor PLC is connected. If it isn't, check that your PLC is on and configured properly.")
 doc("PLCHeartbeat", "PLC Heartbeat", "An indicator of status data being live. As status messages are received from the PLC, this light will turn on and off. If it gets stuck, the supervisor has stopped receiving data or a screen has frozen.")
 doc("RadiationMonitor", "Radiation Monitor", "On if at least one environment detector is connected and assigned to this unit.")
 doc("AutoControl", "Automatic Control", "On if the reactor is under the control of one of the automatic control modes.")
+sect("Safety Status")
 doc("ReactorSCRAM", "Reactor SCRAM", "On if the reactor protection system is holding the reactor SCRAM'd.")
 doc("ManualReactorSCRAM", "Manual Reactor SCRAM", "On if the operator (you) initiated a SCRAM.")
 doc("AutoReactorSCRAM", "Auto Reactor SCRAM", "On if the automatic control system initiated a SCRAM. The main view screen annunciator will have an indication as to why.")
@@ -127,14 +136,17 @@ doc("GeneratorTrip", "Generator Trip", "The turbine is no longer outputting powe
 doc("TurbineTrip", "Turbine Trip", "The turbine has reached its maximum power charge and has stopped rotating, and as a result stopped cooling steam to water. Ensure the turbine has somewhere to output power, as this is the most common cause of reactor meltdowns. However, the likelihood of a meltdown with this system in place is much lower, especially with emergency coolant helping during turbine trips.")
 
 target = docs.annunc.facility.main_section
+sect("Connectivity")
 doc("all_sys_ok", "Unit Systems Online", "All unit systems (reactors, boilers, and turbines) are connected.")
 doc("rad_computed_status", "Radiation Monitor", "At least one facility radiation monitor is connected")
 doc("im_computed_status", "Induction Matrix", "The induction matrix is connected.")
 doc("sps_computed_status", "SPS Connected", "Indicates if the super-critical phase shifter is connected.")
+sect("Automatic Control")
 doc("auto_ready", "Configured Units Ready", "All units assigned to automatic control are ready to run automatic control.")
 doc("auto_active", "Process Active", "Automatic process control is active.")
 doc("auto_ramping", "Process Ramping", "Automatic process control is performing an initial ramp-up of the reactors for later PID control (generation and charge mode).")
 doc("auto_saturated", "Min/Max Burn Rate", "Auto control has either commanded 0 mB/t or the maximum total burn rate available (from assigned units).")
+sect("Automatic SCRAM")
 doc("auto_scram", "Automatic SCRAM", "Automatic control system SCRAM'ed the assigned reactors due to a safety hazard, shown by the below indicators.")
 doc("as_matrix_dc", "Matrix Disconnected", "Automatic SCRAM occurred due to loss of induction matrix connection.")
 doc("as_matrix_fill", "Matrix Charge High", "Automatic SCRAM occurred due to induction matrix charge exceeding acceptable limit.")
@@ -149,27 +161,34 @@ docs.fp = {
 --comp id "This must never be the identical between devices, and that can only happen if you duplicate a computer (such as middle-click on it and place it elsewhere in creative mode)."
 
 target = docs.fp.common
+sect("Core Status")
 doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC. For that, it is green once initialized and OK (has all its peripherals) and red if something is wrong, in which case you should refer to the other indicator lights.")
 doc("fp_heartbeat", "HEARTBEAT", "This alternates between lit and unlit as the main loop on the device runs. If this freezes, something is wrong and the logs will indicate why.")
+sect("Network")
 doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the supervisor's connection lists.")
 doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors.")
 list(DOC_LIST_TYPE.LED, { "not linked", "linked", "link denied", "bad comms version", "duplicate PLC" }, { colors.gray, colors.green, colors.red, colors.orange, colors.yellow })
 text("You can fix \"bad comms version\" by ensuring all devices are up-to-date, as this indicates a communications protocol version mismatch. Note that yellow is Reactor PLC-specific, indicating duplicate unit IDs in use.")
 doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only)", "This indicates the device is linked to the supervisor.")
 doc("fp_nt_version", "NT VERSION", "(color accessibility modes only)", "This indicates the communications versions of the supervisor and this device do not match. Make sure everything is up-to-date.")
+sect("Versions")
 doc("fp_fw", "FW", "Firmware application version of this device.")
 doc("fp_nt", "NT", "Network (comms) version this device has. These must match between devices in order for them to connect.")
 
 target = docs.fp.r_plc
+sect("Network")
 doc("fp_nt_collision", "NT COLLISION", "(color accessibility modes only)", "This indicates the Reactor PLC unit ID is a duplicate of another already connected Reactor PLC.")
+sect("Co-Routine States")
 doc("fp_rplc_rt_main", "RT MAIN", "This lights up as long as the device's main loop co-routine is running, which it should be as long as STATUS is green.")
 doc("fp_rplc_rt_rps", "RT RPS", "This should always be lit up if a reactor is connected as it indicates the RPS co-routine is running, otherwise safety checks will not be running.")
 doc("fp_rplc_rt_ctx", "RT COMMS TX", "This should always be lit if the Reactor PLC is not running in standalone mode, as it indicates the communications transmission co-routine is running.")
 doc("fp_rplc_rt_crx", "RT COMMS RX", "This should always be lit if the Reactor PLC is not running in standalone mode, as it indicates the communications receiver/handler co-routine is running.")
 doc("fp_rplc_rt_spctl", "RT SPCTL", "This should always be lit if the Reactor PLC is not running in standalone mode, as it indicates the process setpoint controller co-routine is running.")
+sect("Status")
 doc("fp_rct_active", "RCT ACTIVE", "The reactor is active (running).")
 doc("fp_emer_cool", "EMER COOLANT", "This is only present if PLC-controlled emergency coolant is configured on that device. When lit, it indicates that it has been activated.")
 doc("fp_rps_trip", "RPS TRIP", "Flashes when the RPS has SCRAM'd the reactor due to a safety trip.")
+sect("RPS Conditions")
 doc("fp_rps_man", "MANUAL", "The RPS was tripped manually (SCRAM by user, not via the Mekanism Reactor UI).")
 doc("fp_rps_auto", "AUTOMATIC", "The RPS was tripped by the supervisor automatically.")
 doc("fp_rps_to", "TIMEOUT", "The RPS tripped due to losing the supervisor connection.")
@@ -183,11 +202,15 @@ doc("fp_rps_ccool", "LO CCOOLANT", "The RPS tripped due to having low levels of 
 doc("fp_rps_ccool", "HI HCOOLANT", "The RPS tripped due to having high levels of heated coolant (> " .. const.RPS_LIMITS.MAX_HEATED_COLLANT_FILL .. "%).")
 
 target = docs.fp.rtu_gw
+sect("Co-Routine States")
 doc("fp_rtu_rt_main", "RT MAIN", "This indicates if the device's main loop co-routine is running.")
 doc("fp_rtu_rt_comms", "RT COMMS", "This indicates if the communications handler co-routine is running.")
+sect("Device List")
 doc("fp_rtu_rt", "RT", "In each RTU entry row, an RT light indicates if the co-routine for that RTU unit is running. This is never lit for redstone units.")
 doc("fp_rtu_rt", "Device Status", "In each RTU entry row, the light to the left of the device name indicates its peripheral status.")
 list(DOC_LIST_TYPE.LED, { "disconnected", "faulted", "unformed", "ok" }, { colors.red, colors.orange, colors.yellow, colors.green })
+text("Note that disconnected devices lack detailed information and will not be modifiable in configuration until re-connected.")
+doc("fp_rtu_rt", "Device Assignment", "In each RTU entry row, the device identification is to the right of the status light. This begins with the device type and its index followed by its assignment after the \x1a, which is a unit or the facility (FACIL). Unit 1's 3rd turbine would show up as 'TURBINE 3 \x1a UNIT 1'.")
 
 docs.glossary = {
     abbvs = {}, terms = {}
