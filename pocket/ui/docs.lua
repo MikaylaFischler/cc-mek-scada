@@ -155,7 +155,7 @@ doc("as_radiation", "Facility Radiation High", "Automatic SCRAM occurred due to 
 doc("as_gen_fault", "Gen. Control Fault", "Automatic SCRAM occurred due to assigned units being degraded/no longer ready during generation mode. The system will automatically resume (starting with initial ramp) once the problem is resolved.")
 
 docs.fp = {
-    common = {}, r_plc = {}, rtu_gw = {}
+    common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}
 }
 
 --comp id "This must never be the identical between devices, and that can only happen if you duplicate a computer (such as middle-click on it and place it elsewhere in creative mode)."
@@ -215,6 +215,32 @@ doc("fp_rtu_rt", "Device Status", "In each RTU entry row, the light to the left 
 list(DOC_LIST_TYPE.LED, { "disconnected", "faulted", "unformed", "ok" }, { colors.red, colors.orange, colors.yellow, colors.green })
 text("Note that disconnected devices lack detailed information and will not be modifiable in configuration until re-connected.")
 doc("fp_rtu_rt", "Device Assignment", "In each RTU entry row, the device identification is to the right of the status light. This begins with the device type and its index followed by its assignment after the \x1a, which is a unit or the facility (FACIL). Unit 1's 3rd turbine would show up as 'TURBINE 3 \x1a UNIT 1'.")
+
+target = docs.fp.supervisor
+sect("Round Trip Times")
+doc("fp_sv_fw", "RTT", "Each connection has a round trip time, or RTT. Since the supervisor updates at a rate of 150ms, RTTs from ~150ms to ~300ms are typical. Higher RTTs indicate lag, and if they end up in the thousands there will be performance problems.")
+list(DOC_LIST_TYPE.BULLET, { "green: <=300ms", "yellow: <=500ms ", "red: >500ms" })
+sect("SVR Tab")
+text("This tab includes information about the supervisor, covered by 'Common Items'.")
+sect("PLC Tab")
+text("This tab lists the expected PLC connections based on the number of configured units. Status information about each connection is shown when linked.")
+doc("fp_sv_link", "LINK", "This indicates if the reactor PLC is linked.")
+doc("fp_sv_p_cmpid", "PLC Computer ID", "This shows the computer ID of the reactor PLC, or --- if disconnected.")
+doc("fp_sv_p_fw", "PLC FW", "This shows the firmware version of the reactor PLC.")
+sect("RTU Tab")
+text("As RTU gateways connect to the supervisor, they will show up here along with some information.")
+doc("fp_sv_r_cmpid", "RTU Computer ID", "At the start of the entry is an @ sign followed by the computer ID of the RTU gateway.")
+doc("fp_sv_r_units", "UNITS", "This is a count of the number of RTUs configured on the RTU gateway (each line on the RTU gateway's front panel).")
+doc("fp_sv_r_fw", "RTU FW", "This shows the firmware version of the RTU gateway.")
+sect("PKT Tab")
+text("As pocket computers connect to the supervisor, they will show up here along with some information. The properties listed are the same as with RTU gateways (except for UNITS), so they will not be further described here.")
+sect("DEV Tab")
+text("If nothing is connected, this will list all the expected RTU devices that aren't found. This page should be blank if everything is connected and configured correctly. If not, it will list certain types of detectable problems.")
+doc("fp_sv_d_miss", "MISSING", "These items list missing devices, with the details that should be used in the RTU's configuration.")
+doc("fp_sv_d_oor", "BAD INDEX", "If you have a configuration entry that has an index outside of the maximum number of devices configured on the supervisor, this will show up indicating what entry is incorrect. For example, if you specified a unit has 2 turbines and a #3 connected, it would show up here as out of range.")
+doc("fp_sv_d_dupe", "DUPLICATE", "If a device tries to connect that is configured the same as another, it will be rejected and show up here. If you try to connect two #1 turbines for a unit, that would fail and one would appear here.")
+sect("INF Tab")
+text("This tab gives information about the other tabs, along with extra details on the DEV tab.")
 
 docs.glossary = {
     abbvs = {}, terms = {}
