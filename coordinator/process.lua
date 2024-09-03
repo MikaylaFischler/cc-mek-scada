@@ -41,9 +41,6 @@ local pctl = {
     commands = { unit = {}, fac = {} }
 }
 
-for _, v in pairs(U_CMD) do pctl.commands.unit[v] = { active = false, timeout = 0, requestors = {} } end
-for _, v in pairs(F_CMD) do pctl.commands.fac[v]  = { active = false, timeout = 0, requestors = {} } end
-
 -- write auto process control to config file
 local function _write_auto_config()
     -- save config
@@ -62,6 +59,13 @@ end
 function process.init(iocontrol, coord_comms)
     pctl.io = iocontrol
     pctl.comms = coord_comms
+
+    -- create command handling objects
+    for _, v in pairs(F_CMD) do pctl.commands.fac[v]  = { active = false, timeout = 0, requestors = {} } end
+    for i = 1, pctl.io.facility.num_units do
+        pctl.commands.unit[i] = {}
+        for _, v in pairs(U_CMD) do pctl.commands.unit[i][v] = { active = false, timeout = 0, requestors = {} } end
+    end
 
     local ctl_proc = pctl.control_states.process
 
@@ -151,7 +155,7 @@ function process.create_handle()
         return new
     end
 
-    local function u_request(cmd_id) return request(pctl.commands.unit[cmd_id]) end
+    local function u_request(u_id, cmd_id) return request(pctl.commands.unit[u_id][cmd_id]) end
     local function f_request(cmd_id) return request(pctl.commands.fac[cmd_id]) end
 
     --#region Facility Commands
@@ -179,7 +183,7 @@ function process.create_handle()
     -- start a reactor
     ---@param id integer unit ID
     function handle.start(id)
-        if u_request(U_CMD.START) then
+        if u_request(id, U_CMD.START) then
             pctl.io.units[id].control_state = true
             pctl.comms.send_unit_command(U_CMD.START, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] START"))
@@ -189,7 +193,7 @@ function process.create_handle()
     -- SCRAM reactor
     ---@param id integer unit ID
     function handle.scram(id)
-        if u_request(U_CMD.SCRAM) then
+        if u_request(id, U_CMD.SCRAM) then
             pctl.io.units[id].control_state = false
             pctl.comms.send_unit_command(U_CMD.SCRAM, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] SCRAM"))
@@ -199,7 +203,7 @@ function process.create_handle()
     -- reset reactor protection system
     ---@param id integer unit ID
     function handle.reset_rps(id)
-        if u_request(U_CMD.RESET_RPS) then
+        if u_request(id, U_CMD.RESET_RPS) then
             pctl.comms.send_unit_command(U_CMD.RESET_RPS, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] RESET RPS"))
         end
@@ -208,7 +212,7 @@ function process.create_handle()
     -- acknowledge all alarms
     ---@param id integer unit ID
     function handle.ack_all_alarms(id)
-        if u_request(U_CMD.ACK_ALL_ALARMS) then
+        if u_request(id, U_CMD.ACK_ALL_ALARMS) then
             pctl.comms.send_unit_command(U_CMD.ACK_ALL_ALARMS, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] ACK ALL ALARMS"))
         end
@@ -222,7 +226,15 @@ end
 function process.clear_timed_out()
 end
 
-function process.handle_ack()
+---@param command FAC_COMMAND command
+function process.fac_ack(command)
+    local cmd_req = pctl.commands.fac[command]
+end
+
+---@param unit integer unit ID
+---@param command UNIT_COMMAND command
+function process.unit_ack(unit, command)
+    local cmd_req = pctl.commands.unit[unit][command]
 end
 
 --#region One-Way Commands (no acknowledgements)
