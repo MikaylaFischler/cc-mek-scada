@@ -576,7 +576,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 local ack = packet.data[2] == true
 
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
-                                    iocontrol.get_db().facility.scram_ack(ack)
+                                    process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.STOP then
                                     iocontrol.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
@@ -586,7 +586,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
                                     end
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
-                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                    process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
                                     process.waste_ack_handle(packet.data[2])
                                 elseif cmd == FAC_COMMAND.SET_PU_FB then

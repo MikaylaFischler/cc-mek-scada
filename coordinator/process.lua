@@ -13,7 +13,7 @@ local U_CMD = comms.UNIT_COMMAND
 local PROCESS = types.PROCESS
 local PRODUCT = types.WASTE_PRODUCT
 
-local REQUEST_TIMEOUT_MS = 5000
+local REQUEST_TIMEOUT_MS = 10000
 
 ---@class process_controller
 local process = {}
@@ -40,6 +40,11 @@ local pctl = {
     next_handle = 0,
     commands = { unit = {}, fac = {} }
 }
+
+---@class process_command_state
+---@field active boolean
+---@field timeout integer
+---@field requestors table
 
 -- write auto process control to config file
 local function _write_auto_config()
@@ -142,7 +147,7 @@ function process.create_handle()
     ---@class process_handle
     local handle = {}
 
-    local function request(cmd)
+    local function request(cmd, ack)
         local new = not cmd.active
 
         if new then
@@ -150,19 +155,19 @@ function process.create_handle()
             cmd.timeout = util.time_ms() + REQUEST_TIMEOUT_MS
         end
 
-        cmd.requstors[self.id] = true
+        table.insert(cmd.requstors, ack)
 
         return new
     end
 
-    local function u_request(u_id, cmd_id) return request(pctl.commands.unit[u_id][cmd_id]) end
-    local function f_request(cmd_id) return request(pctl.commands.fac[cmd_id]) end
+    local function u_request(u_id, cmd_id, ack) return request(pctl.commands.unit[u_id][cmd_id], ack) end
+    local function f_request(cmd_id, ack) return request(pctl.commands.fac[cmd_id], ack) end
 
     --#region Facility Commands
 
     -- facility SCRAM command
     function handle.fac_scram()
-        if f_request(F_CMD.SCRAM_ALL) then
+        if f_request(F_CMD.SCRAM_ALL, handle.on_fac_scram_ack) then
             pctl.comms.send_fac_command(F_CMD.SCRAM_ALL)
             log.debug("PROCESS: FAC SCRAM ALL")
         end
@@ -170,11 +175,25 @@ function process.create_handle()
 
     -- facility alarm acknowledge command
     function handle.fac_ack_alarms()
-        if f_request(F_CMD.ACK_ALL_ALARMS) then
+        if f_request(F_CMD.ACK_ALL_ALARMS, handle.on_fac_ack_alarms_ack) then
             pctl.comms.send_fac_command(F_CMD.ACK_ALL_ALARMS)
             log.debug("PROCESS: FAC ACK ALL ALARMS")
         end
     end
+
+    -- luacheck: no unused args
+
+    -- facility SCRAM ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_fac_scram_ack(success) end
+
+    -- facility acknowledge all alarms ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_fac_ack_alarms_ack(success) end
+
+    -- luacheck: unused args
 
     --#endregion
 
@@ -183,7 +202,7 @@ function process.create_handle()
     -- start a reactor
     ---@param id integer unit ID
     function handle.start(id)
-        if u_request(id, U_CMD.START) then
+        if u_request(id, U_CMD.START, handle.on_unit_start_ack) then
             pctl.io.units[id].control_state = true
             pctl.comms.send_unit_command(U_CMD.START, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] START"))
@@ -193,7 +212,7 @@ function process.create_handle()
     -- SCRAM reactor
     ---@param id integer unit ID
     function handle.scram(id)
-        if u_request(id, U_CMD.SCRAM) then
+        if u_request(id, U_CMD.SCRAM, handle.on_unit_scram_ack) then
             pctl.io.units[id].control_state = false
             pctl.comms.send_unit_command(U_CMD.SCRAM, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] SCRAM"))
@@ -203,7 +222,7 @@ function process.create_handle()
     -- reset reactor protection system
     ---@param id integer unit ID
     function handle.reset_rps(id)
-        if u_request(id, U_CMD.RESET_RPS) then
+        if u_request(id, U_CMD.RESET_RPS, handle.on_unit_rps_reset_ack) then
             pctl.comms.send_unit_command(U_CMD.RESET_RPS, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] RESET RPS"))
         end
@@ -212,11 +231,35 @@ function process.create_handle()
     -- acknowledge all alarms
     ---@param id integer unit ID
     function handle.ack_all_alarms(id)
-        if u_request(id, U_CMD.ACK_ALL_ALARMS) then
+        if u_request(id, U_CMD.ACK_ALL_ALARMS, handle.on_unit_ack_alarms_ack) then
             pctl.comms.send_unit_command(U_CMD.ACK_ALL_ALARMS, id)
             log.debug(util.c("PROCESS: UNIT[", id, "] ACK ALL ALARMS"))
         end
     end
+
+    -- luacheck: no unused args
+
+    -- unit start ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_unit_start_ack(success) end
+
+    -- unit SCRAM ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_unit_scram_ack(success) end
+
+    -- unit RPS reset ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_unit_rps_reset_ack(success) end
+
+    -- unit acknowledge all alarms ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.on_unit_ack_alarms_ack(success) end
+
+    -- luacheck: unused args
 
     --#endregion
 
@@ -224,17 +267,47 @@ function process.create_handle()
 end
 
 function process.clear_timed_out()
+    local now = util.time_ms()
+    local objs = { pctl.commands.fac, table.unpack(pctl.commands.unit) }
+
+    for _, obj in pairs(objs) do
+        ---@cast obj process_command_state
+
+        -- cancel expired requests
+        if obj.active and now > obj.timeout then
+            obj.active = false
+            obj.requestors = {}
+        end
+    end
 end
 
+-- handle a command acknowledgement
+---@param cmd_state process_command_state
+---@param success boolean if the command was successful
+local function cmd_ack(cmd_state, success)
+    if cmd_state.active then
+        cmd_state.active = false
+
+        -- call all acknowledge callback functions
+        for i = 1, #cmd_state.requestors do
+            cmd_state.requestors[i](success)
+        end
+    end
+end
+
+-- handle a facility command acknowledgement
 ---@param command FAC_COMMAND command
-function process.fac_ack(command)
-    local cmd_req = pctl.commands.fac[command]
+---@param success boolean if the command was successful
+function process.fac_ack(command, success)
+    cmd_ack(pctl.commands.fac[command], success)
 end
 
+-- handle a unit command acknowledgement
 ---@param unit integer unit ID
 ---@param command UNIT_COMMAND command
-function process.unit_ack(unit, command)
-    local cmd_req = pctl.commands.unit[unit][command]
+---@param success boolean if the command was successful
+function process.unit_ack(unit, command, success)
+    cmd_ack(pctl.commands.unit[unit][command], success)
 end
 
 --#region One-Way Commands (no acknowledgements)
