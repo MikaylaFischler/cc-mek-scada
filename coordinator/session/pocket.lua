@@ -4,12 +4,14 @@ local mqueue    = require("scada-common.mqueue")
 local util      = require("scada-common.util")
 
 local iocontrol = require("coordinator.iocontrol")
+local process   = require("coordinator.process")
 
 local pocket = {}
 
 local PROTOCOL = comms.PROTOCOL
 local CRDN_TYPE = comms.CRDN_TYPE
 local MGMT_TYPE = comms.MGMT_TYPE
+local UNIT_COMMAND = comms.UNIT_COMMAND
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -46,6 +48,8 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
         connected = true,
         conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
+        -- process accessor handle
+        proc_handle = process.create_handle(),
         -- periodic messages
         periodics = {
             last_update = 0,
@@ -101,6 +105,14 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
         self.seq_num = self.seq_num + 1
     end
 
+    -- link callback transmissions
+    for u = 1, iocontrol.get_db().facility.num_units do
+        self.proc_handle.unit_ack[u].on_start = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.START, u, success }) end
+        self.proc_handle.unit_ack[u].on_scram = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.SCRAM, u, success }) end
+        self.proc_handle.unit_ack[u].on_rps_reset = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.RESET_RPS, u, success }) end
+        self.proc_handle.unit_ack[u].on_ack_alarms = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.ACK_ALL_ALARMS, u, success }) end
+    end
+
     -- handle a packet
     ---@param pkt mgmt_frame|crdn_frame
     local function _handle_packet(pkt)
@@ -122,7 +134,67 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
             local db = iocontrol.get_db()
 
             -- handle packet by type
-            if pkt.type == CRDN_TYPE.API_GET_FAC then
+            if pkt.type == CRDN_TYPE.UNIT_CMD then
+                if pkt.length >= 2 then
+                    -- get command and unit id
+                    local cmd = pkt.data[1]
+                    local uid = pkt.data[2]
+
+                    -- continue if valid unit id
+                    if util.is_int(uid) and uid > 0 and uid <= #db.units then
+                        if cmd == UNIT_COMMAND.START then
+                            log.info(util.c(log_header, "UNIT[", uid, "] START"))
+                            self.proc_handle.start(uid)
+                        elseif cmd == UNIT_COMMAND.SCRAM then
+                            log.info(util.c(log_header, "UNIT[", uid, "] SCRAM"))
+                            self.proc_handle.scram(uid)
+                        elseif cmd == UNIT_COMMAND.RESET_RPS then
+                            log.info(util.c(log_header, "UNIT[", uid, "] RESET RPS"))
+                            self.proc_handle.reset_rps(uid)
+                        elseif cmd == UNIT_COMMAND.SET_BURN then
+                            if pkt.length == 3 then
+                                log.info(util.c(log_header, "UNIT[", uid, "] SET BURN ", pkt.data[3]))
+                                process.set_rate(uid, pkt.data[3])
+                            else
+                                log.debug(log_header .. "CRDN unit command burn rate missing option")
+                            end
+                        elseif cmd == UNIT_COMMAND.SET_WASTE then
+                            -- if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
+                            --     process.set_unit_waste(uid, pkt.data[3])
+                            -- else
+                            --     log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
+                            -- end
+                        elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
+                            log.info(util.c(log_header, "UNIT[", uid, "] ACK ALL ALARMS"))
+                            self.proc_handle.ack_all_alarms(uid)
+                        elseif cmd == UNIT_COMMAND.ACK_ALARM then
+                            -- if pkt.length == 3 then
+                            --     process.ack_alarm(uid, pkt.data[3])
+                            -- else
+                            --     log.debug(log_header .. "CRDN unit command ack alarm missing alarm id")
+                            -- end
+                        elseif cmd == UNIT_COMMAND.RESET_ALARM then
+                            -- if pkt.length == 3 then
+                            --     process.reset_alarm(uid, pkt.data[3])
+                            -- else
+                            --     log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
+                            -- end
+                        elseif cmd == UNIT_COMMAND.SET_GROUP then
+                            -- if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
+                            --     process.set_group(uid, pkt.data[3])
+                            -- else
+                            --     log.debug(log_header .. "CRDN unit command set group missing group id")
+                            -- end
+                        else
+                            log.debug(log_header .. "CRDN unit command unknown")
+                        end
+                    else
+                        log.debug(log_header .. "CRDN unit command invalid")
+                    end
+                else
+                    log.debug(log_header .. "CRDN unit command packet length mismatch")
+                end
+            elseif pkt.type == CRDN_TYPE.API_GET_FAC then
                 local fac = db.facility
 
                 local data = {
