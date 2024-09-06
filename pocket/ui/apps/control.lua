@@ -154,12 +154,34 @@ local function new_view(root)
             local set_burn = function () unit.set_burn(burn_cmd.get_value()) end
             local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=cpair(colors.gray,colors.black),callback=set_burn}
 
+            burn_cmd.register(u_ps, "burn_rate", burn_cmd.set_value)
             burn_cmd.register(u_ps, "max_burn", burn_cmd.set_max)
 
             local start = HazardButton{parent=u_div,x=2,y=11,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,fg_bg=hzd_fg_bg}
             local ack_a = HazardButton{parent=u_div,x=12,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,fg_bg=hzd_fg_bg}
             local scram = HazardButton{parent=u_div,x=2,y=15,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
             local reset = HazardButton{parent=u_div,x=12,y=15,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
+
+            unit.start_ack = start.on_response
+            unit.ack_alarms_ack = ack_a.on_response
+            unit.scram_ack = scram.on_response
+            unit.reset_rps_ack = reset.on_response
+
+            local function start_button_en_check()
+                if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
+                    local can_start = (not unit.reactor_data.mek_status.status) and
+                                        (not unit.reactor_data.rps_tripped) and
+                                        (unit.a_group == 0)
+                    if can_start then start.enable() else start.disable() end
+                end
+            end
+
+            start.register(u_ps, "status", start_button_en_check)
+            start.register(u_ps, "rps_tripped", start_button_en_check)
+            -- start.register(u_ps, "auto_group_id", start_button_en_check)
+            -- start.register(u_ps, "AutoControl", start_button_en_check)
+
+            reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
             --#endregion
 

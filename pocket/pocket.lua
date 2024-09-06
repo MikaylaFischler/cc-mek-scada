@@ -654,7 +654,36 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame
                     if self.api.linked then
-                        if packet.type == CRDN_TYPE.API_GET_FAC then
+                        if packet.type == CRDN_TYPE.UNIT_CMD then
+                            -- unit command acknowledgement
+                            if packet.length == 3 then
+                                local cmd = packet.data[1]
+                                local unit_id = packet.data[2]
+                                local ack = packet.data[3] == true
+
+                                local unit = iocontrol.get_db().units[unit_id]  ---@type pioctl_unit
+
+                                if unit ~= nil then
+                                    if cmd == UNIT_COMMAND.SCRAM then
+                                        unit.scram_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.START then
+                                        unit.start_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.RESET_RPS then
+                                        unit.reset_rps_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.SET_BURN then
+                                        -- this also doesn't exist
+                                    elseif cmd == UNIT_COMMAND.SET_WASTE then
+                                        -- updated by unit updates
+                                    elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
+                                        unit.ack_alarms_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.SET_GROUP then
+                                        -- updated by unit updates
+                                    else
+                                        log.debug(util.c("received unit command ack with unknown command ", cmd))
+                                    end
+                                end
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_FAC then
                             if _check_length(packet, 11) then
                                 iocontrol.record_facility_data(packet.data)
                             end

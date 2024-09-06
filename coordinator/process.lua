@@ -316,13 +316,11 @@ function process.fac_ack(command, success)
 end
 
 -- handle a unit command acknowledgement
----@param unit any unit ID (invalid index protected)
+---@param unit integer unit ID
 ---@param command UNIT_COMMAND command
 ---@param success boolean if the command was successful
 function process.unit_ack(unit, command, success)
-    if pctl.commands.unit[unit] then
-        cmd_ack(pctl.commands.unit[unit][command], success)
-    end
+    cmd_ack(pctl.commands.unit[unit][command], success)
 end
 
 --#region One-Way Commands (no acknowledgements)
