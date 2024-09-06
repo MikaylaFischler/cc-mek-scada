@@ -373,10 +373,10 @@ local function init(parent, id)
     local scram = HazardButton{parent=main,x=2,y=32,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
     local reset = HazardButton{parent=main,x=22,y=32,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
 
-    unit.start_ack = start.on_response
-    unit.scram_ack = scram.on_response
-    unit.reset_rps_ack = reset.on_response
-    unit.ack_alarms_ack = ack_a.on_response
+    db.process.unit_ack[id].on_start = start.on_response
+    db.process.unit_ack[id].on_scram = scram.on_response
+    db.process.unit_ack[id].on_rps_reset = reset.on_response
+    db.process.unit_ack[id].on_ack_alarms = ack_a.on_response
 
     local function start_button_en_check()
         if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then

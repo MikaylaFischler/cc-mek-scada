@@ -82,9 +82,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         io.energy_convert_to_fe = util.joules_to_fe_rf
     end
 
-    -- coordinator's process handle
-    io.process = process.create_handle()
-
     -- facility data structure
     ---@class ioctl_facility
     io.facility = {
@@ -121,8 +118,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         save_cfg_ack = __generic_ack,
         start_ack = __generic_ack,
         stop_ack = __generic_ack,
-        scram_ack = __generic_ack,
-        ack_alarms_ack = __generic_ack,
 
         alarm_tones = { false, false, false, false, false, false, false, false },
 
@@ -197,11 +192,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
 
             set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
-
-            start_ack = __generic_ack,
-            scram_ack = __generic_ack,
-            reset_rps_ack = __generic_ack,
-            ack_alarms_ack = __generic_ack,
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
@@ -282,6 +272,9 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
 
     -- pass IO control here since it can't be require'd due to a require loop
     process.init(io, comms)
+
+    -- coordinator's process handle
+    io.process = process.create_handle()
 end
 
 --#region Front Panel PSIL

@@ -591,6 +591,8 @@ function coordinator.comms(version, nic, sv_watchdog)
                                     process.waste_ack_handle(packet.data[2])
                                 elseif cmd == FAC_COMMAND.SET_PU_FB then
                                     process.pu_fb_ack_handle(packet.data[2])
+                                elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                                    ---@todo
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end
@@ -625,17 +627,17 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then
-                                        unit.scram_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.START then
-                                        unit.start_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.RESET_RPS then
-                                        unit.reset_rps_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.SET_BURN then
                                         -- this also doesn't exist
                                     elseif cmd == UNIT_COMMAND.SET_WASTE then
                                         -- updated by unit updates
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
-                                        unit.ack_alarms_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.SET_GROUP then
                                         -- updated by unit updates
                                     else
