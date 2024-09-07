@@ -632,16 +632,10 @@ function coordinator.comms(version, nic, sv_watchdog)
                                         process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.RESET_RPS then
                                         process.unit_ack(unit_id, cmd, ack)
-                                    elseif cmd == UNIT_COMMAND.SET_BURN then
-                                        -- this also doesn't exist
-                                    elseif cmd == UNIT_COMMAND.SET_WASTE then
-                                        -- updated by unit updates
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         process.unit_ack(unit_id, cmd, ack)
-                                    elseif cmd == UNIT_COMMAND.SET_GROUP then
-                                        -- updated by unit updates
                                     else
-                                        log.debug(util.c("received unit command ack with unknown command ", cmd))
+                                        log.debug(util.c("received unsupported unit command ack for command ", cmd))
                                     end
                                 else
                                     log.debug(util.c("received unit command ack with unknown unit ", unit_id))

@@ -73,8 +73,8 @@ function facility.new(config)
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_setpoint = 0,            -- FE charge target setpoint
         gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
-        group_map = {},                 -- units -> group IDs
-        prio_defs = { {}, {}, {}, {} }, -- priority definitions (each level is a table of units)
+        group_map = {},                 ---@type integer[] units -> group IDs
+        prio_defs = { {}, {}, {}, {} }, ---@type reactor_unit[][] priority definitions (each level is a table of units)
         at_max_burn = false,
         ascram = false,
         ascram_reason = AUTO_SCRAM.NONE,
@@ -375,6 +375,9 @@ function facility.new(config)
         end
     end
 
+    -- check automatic control mode
+    function public.auto_is_active() return self.mode ~= PROCESS.INACTIVE end
+
     -- stop auto control
     function public.auto_stop() self.mode = PROCESS.INACTIVE end
 
@@ -468,6 +471,11 @@ function facility.new(config)
             end
         end
     end
+
+    -- get the automatic control group of a unit
+    ---@param unit_id integer unit ID
+    ---@nodiscard
+    function public.get_group(unit_id) return self.group_map[unit_id] end
 
     -- set waste production
     ---@param product WASTE_PRODUCT target product

@@ -241,8 +241,13 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         facility.scram_all()
                         _send(CRDN_TYPE.FAC_CMD, { cmd, true })
                     elseif cmd == FAC_COMMAND.STOP then
-                        facility.auto_stop()
-                        _send(CRDN_TYPE.FAC_CMD, { cmd, true })
+                        local was_active = facility.auto_is_active()
+
+                        if was_active then
+                            facility.auto_stop()
+                        end
+
+                        _send(CRDN_TYPE.FAC_CMD, { cmd, was_active })
                     elseif cmd == FAC_COMMAND.START then
                         if pkt.length == 6 then
                             ---@type sys_auto_config
@@ -299,17 +304,25 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
-                        local unit = self.units[uid]    ---@type reactor_unit
+                        local unit   = self.units[uid]    ---@type reactor_unit
+                        local manual = facility.get_group(uid) == 0
 
                         if cmd == UNIT_COMMAND.START then
-                            out_queue.push_data(SV_Q_DATA.START, data)
+                            if manual then
+                                out_queue.push_data(SV_Q_DATA.START, data)
+                            else
+                                -- denied
+                                _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, false })
+                            end
                         elseif cmd == UNIT_COMMAND.SCRAM then
                             out_queue.push_data(SV_Q_DATA.SCRAM, data)
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
                             out_queue.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
                             if pkt.length == 3 then
-                                out_queue.push_data(SV_Q_DATA.SET_BURN, data)
+                                if manual then
+                                    out_queue.push_data(SV_Q_DATA.SET_BURN, data)
+                                end
                             else
                                 log.debug(log_tag .. "CRDN unit command burn rate missing option")
                             end
@@ -337,7 +350,6 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
                                 facility.set_group(unit.get_id(), pkt.data[3])
-                                _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
                                 log.debug(log_tag .. "CRDN unit command set group missing group id")
                             end
