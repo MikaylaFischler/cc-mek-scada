@@ -654,7 +654,28 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame
                     if self.api.linked then
-                        if packet.type == CRDN_TYPE.UNIT_CMD then
+                        if packet.type == CRDN_TYPE.FAC_CMD then
+                            -- facility command acknowledgement
+                            if packet.length >= 2 then
+                                local cmd = packet.data[1]
+                                local ack = packet.data[2] == true
+
+                                if cmd == FAC_COMMAND.SCRAM_ALL then
+                                    iocontrol.get_db().facility.scram_ack(ack)
+                                elseif cmd == FAC_COMMAND.STOP then
+                                elseif cmd == FAC_COMMAND.START then
+                                elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
+                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                                elseif cmd == FAC_COMMAND.SET_PU_FB then
+                                elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                                else
+                                    log.debug(util.c("received facility command ack with unknown command ", cmd))
+                                end
+                            else
+                                log.debug("SCADA_CRDN facility command ack packet length mismatch")
+                            end
+                        elseif packet.type == CRDN_TYPE.UNIT_CMD then
                             -- unit command acknowledgement
                             if packet.length == 3 then
                                 local cmd = packet.data[1]
@@ -670,16 +691,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         unit.start_ack(ack)
                                     elseif cmd == UNIT_COMMAND.RESET_RPS then
                                         unit.reset_rps_ack(ack)
-                                    elseif cmd == UNIT_COMMAND.SET_BURN then
-                                        -- this also doesn't exist
-                                    elseif cmd == UNIT_COMMAND.SET_WASTE then
-                                        -- updated by unit updates
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                                         unit.ack_alarms_ack(ack)
-                                    elseif cmd == UNIT_COMMAND.SET_GROUP then
-                                        -- updated by unit updates
                                     else
-                                        log.debug(util.c("received unit command ack with unknown command ", cmd))
+                                        log.debug(util.c("received unsupported unit command ack for command ", cmd))
                                     end
                                 end
                             end

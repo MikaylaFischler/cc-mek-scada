@@ -6,13 +6,13 @@ local util          = require("scada-common.util")
 
 local iocontrol     = require("pocket.iocontrol")
 local pocket        = require("pocket.pocket")
+local process       = require("pocket.process")
 
 local style         = require("pocket.ui.style")
 
 local core          = require("graphics.core")
 
 local Div           = require("graphics.elements.div")
-local ListBox       = require("graphics.elements.listbox")
 local MultiPane     = require("graphics.elements.multipane")
 local TextBox       = require("graphics.elements.textbox")
 
@@ -77,6 +77,7 @@ local function new_view(root)
     local function set_sidebar()
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = function () app.switcher(db.facility.num_units + 1) end }
         }
 
         for i = 1, db.facility.num_units do
@@ -95,7 +96,7 @@ local function new_view(root)
         local active_unit = 1
 
         -- create all page divs
-        for _ = 1, db.facility.num_units do
+        for _ = 1, db.facility.num_units + 1 do
             local div = Div{parent=page_div}
             table.insert(panes, div)
         end
@@ -187,6 +188,21 @@ local function new_view(root)
 
             util.nop()
         end
+
+        -- facility controls
+
+        local f_pane = panes[db.facility.num_units + 1]
+        local f_div = Div{parent=f_pane,x=2,width=main.get_width()-2}
+
+        app.new_page(nil, db.facility.num_units + 1)
+
+        TextBox{parent=f_div,y=1,text="Facility Commands",alignment=ALIGN.CENTER}
+
+        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
+        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,fg_bg=hzd_fg_bg}
+
+        db.facility.scram_ack = scram.on_response
+        db.facility.ack_alarms_ack = ack_a.on_response
 
         -- setup multipane
         local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}

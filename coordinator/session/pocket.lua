@@ -11,6 +11,7 @@ local pocket = {}
 local PROTOCOL = comms.PROTOCOL
 local CRDN_TYPE = comms.CRDN_TYPE
 local MGMT_TYPE = comms.MGMT_TYPE
+local FAC_COMMAND = comms.FAC_COMMAND
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
 -- retry time constants in ms
@@ -39,7 +40,7 @@ local PERIODICS = {
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
 function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
-    local log_header = "pkt_session(" .. id .. "): "
+    local log_tag = "pkt_session(" .. id .. "): "
 
     local self = {
         -- connection properties
@@ -106,6 +107,10 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     end
 
     -- link callback transmissions
+
+    self.proc_handle.fac_ack.on_scram = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.SCRAM, success }) end
+    self.proc_handle.fac_ack.on_ack_alarms = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.ACK_ALL_ALARMS, success }) end
+
     for u = 1, iocontrol.get_db().facility.num_units do
         self.proc_handle.unit_ack[u].on_start = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.START, u, success }) end
         self.proc_handle.unit_ack[u].on_scram = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.SCRAM, u, success }) end
@@ -118,7 +123,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
-            log.warning(log_header .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
+            log.warning(log_tag .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
             return
         else
             self.r_seq_num = pkt.scada_frame.seq_num() + 1
@@ -134,7 +139,28 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
             local db = iocontrol.get_db()
 
             -- handle packet by type
-            if pkt.type == CRDN_TYPE.UNIT_CMD then
+            if pkt.type == CRDN_TYPE.FAC_CMD then
+                if pkt.length >= 1 then
+                    local cmd = pkt.data[1]
+
+                    if cmd == FAC_COMMAND.SCRAM_ALL then
+                        log.info(log_tag .. "FAC SCRAM ALL")
+                        self.proc_handle.fac_scram()
+                    elseif cmd == FAC_COMMAND.STOP then
+                    elseif cmd == FAC_COMMAND.START then
+                    elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
+                        log.info(log_tag .. "FAC ACK ALL ALARMS")
+                        self.proc_handle.fac_ack_alarms()
+                    elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                    elseif cmd == FAC_COMMAND.SET_PU_FB then
+                    elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                    else
+                        log.debug(log_tag .. "CRDN facility command unknown")
+                    end
+                else
+                    log.debug(log_tag .. "CRDN facility command packet length mismatch")
+                end
+            elseif pkt.type == CRDN_TYPE.UNIT_CMD then
                 if pkt.length >= 2 then
                     -- get command and unit id
                     local cmd = pkt.data[1]
@@ -143,56 +169,36 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #db.units then
                         if cmd == UNIT_COMMAND.START then
-                            log.info(util.c(log_header, "UNIT[", uid, "] START"))
+                            log.info(util.c(log_tag, "UNIT[", uid, "] START"))
                             self.proc_handle.start(uid)
                         elseif cmd == UNIT_COMMAND.SCRAM then
-                            log.info(util.c(log_header, "UNIT[", uid, "] SCRAM"))
+                            log.info(util.c(log_tag, "UNIT[", uid, "] SCRAM"))
                             self.proc_handle.scram(uid)
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
-                            log.info(util.c(log_header, "UNIT[", uid, "] RESET RPS"))
+                            log.info(util.c(log_tag, "UNIT[", uid, "] RESET RPS"))
                             self.proc_handle.reset_rps(uid)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
                             if pkt.length == 3 then
-                                log.info(util.c(log_header, "UNIT[", uid, "] SET BURN ", pkt.data[3]))
+                                log.info(util.c(log_tag, "UNIT[", uid, "] SET BURN ", pkt.data[3]))
                                 process.set_rate(uid, pkt.data[3])
                             else
-                                log.debug(log_header .. "CRDN unit command burn rate missing option")
+                                log.debug(log_tag .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
-                            -- if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
-                            --     process.set_unit_waste(uid, pkt.data[3])
-                            -- else
-                            --     log.debug(log_header .. "CRDN unit command set waste missing/invalid option")
-                            -- end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
-                            log.info(util.c(log_header, "UNIT[", uid, "] ACK ALL ALARMS"))
+                            log.info(util.c(log_tag, "UNIT[", uid, "] ACK ALL ALARMS"))
                             self.proc_handle.ack_all_alarms(uid)
                         elseif cmd == UNIT_COMMAND.ACK_ALARM then
-                            -- if pkt.length == 3 then
-                            --     process.ack_alarm(uid, pkt.data[3])
-                            -- else
-                            --     log.debug(log_header .. "CRDN unit command ack alarm missing alarm id")
-                            -- end
                         elseif cmd == UNIT_COMMAND.RESET_ALARM then
-                            -- if pkt.length == 3 then
-                            --     process.reset_alarm(uid, pkt.data[3])
-                            -- else
-                            --     log.debug(log_header .. "CRDN unit command reset alarm missing alarm id")
-                            -- end
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
-                            -- if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
-                            --     process.set_group(uid, pkt.data[3])
-                            -- else
-                            --     log.debug(log_header .. "CRDN unit command set group missing group id")
-                            -- end
                         else
-                            log.debug(log_header .. "CRDN unit command unknown")
+                            log.debug(log_tag .. "CRDN unit command unknown")
                         end
                     else
-                        log.debug(log_header .. "CRDN unit command invalid")
+                        log.debug(log_tag .. "CRDN unit command invalid")
                     end
                 else
-                    log.debug(log_header .. "CRDN unit command packet length mismatch")
+                    log.debug(log_tag .. "CRDN unit command packet length mismatch")
                 end
             elseif pkt.type == CRDN_TYPE.API_GET_FAC then
                 local fac = db.facility
@@ -232,7 +238,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     end
                 end
             else
-                log.debug(log_header .. "handler received unsupported CRDN packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_frame
@@ -245,7 +251,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_header .. "PKT KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_tag .. "PKT KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
                     -- log.debug(log_header .. "PKT RTT = " .. self.last_rtt .. "ms")
@@ -253,7 +259,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                     iocontrol.fp_pkt_rtt(id, self.last_rtt)
                 else
-                    log.debug(log_header .. "SCADA keep alive packet length mismatch")
+                    log.debug(log_tag .. "SCADA keep alive packet length mismatch")
                 end
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
@@ -261,9 +267,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()
-                log.warning(log_header .. "terminated session due to an unexpected ESTABLISH packet")
+                log.warning(log_tag .. "terminated session due to an unexpected ESTABLISH packet")
             else
-                log.debug(log_header .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
+                log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
         end
     end
@@ -288,7 +294,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     function public.close()
         _close()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
-        log.info(log_header .. "session closed by server")
+        log.info(log_tag .. "session closed by server")
     end
 
     -- iterate the session
@@ -319,14 +325,14 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning(log_header .. "exceeded 100ms queue process limit")
+                    log.warning(log_tag .. "exceeded 100ms queue process limit")
                     break
                 end
             end
 
             -- exit if connection was closed
             if not self.connected then
-                log.info(log_header .. "session closed by remote host")
+                log.info(log_tag .. "session closed by remote host")
                 return self.connected
             end
 

@@ -167,6 +167,11 @@ function iocontrol.init_fac(conf)
 
         radiation = types.new_zero_radiation_reading(),
 
+        start_ack = __generic_ack,
+        stop_ack = __generic_ack,
+        scram_ack = __generic_ack,
+        ack_alarms_ack = __generic_ack,
+
         ps = psil.create(),
 
         induction_ps_tbl = {},
