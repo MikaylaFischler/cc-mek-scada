@@ -305,6 +305,8 @@ local function cmd_ack(cmd_state, success)
         for i = 1, #cmd_state.requestors do
             cmd_state.requestors[i](success)
         end
+
+        cmd_state.requestors = {}
     end
 end
 
