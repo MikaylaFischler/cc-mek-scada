@@ -108,7 +108,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
     -- link callback transmissions
 
-    self.proc_handle.fac_ack.on_scram = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.SCRAM, success }) end
+    self.proc_handle.fac_ack.on_scram = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.SCRAM_ALL, success }) end
     self.proc_handle.fac_ack.on_ack_alarms = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.ACK_ALL_ALARMS, success }) end
 
     for u = 1, iocontrol.get_db().facility.num_units do
