@@ -18,7 +18,7 @@ local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
 comms.version = "3.0.0"
-comms.api_version = "0.0.3"
+comms.api_version = "0.0.4"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
