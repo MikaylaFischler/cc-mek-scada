@@ -68,19 +68,6 @@ function process.set_rate(id, rate)
     log.debug(util.c("PROCESS: UNIT[", id, "] SET BURN ", rate))
 end
 
--- set waste mode
----@param id integer unit ID
----@param mode integer waste mode
-function process.set_unit_waste(id, mode)
-    -- publish so that if it fails then it gets reset
-    self.io.units[id].unit_ps.publish("U_WasteMode", mode)
-
-    self.comms.send_unit_command(UNIT_COMMAND.SET_WASTE, id, mode)
-    log.debug(util.c("PROCESS: UNIT[", id, "] SET WASTE ", mode))
-
-    self.control_states.waste_modes[id] = mode
-end
-
 -- acknowledge all alarms
 ---@param id integer unit ID
 function process.ack_all_alarms(id)
@@ -102,16 +89,6 @@ end
 function process.reset_alarm(id, alarm)
     self.comms.send_unit_command(UNIT_COMMAND.RESET_ALARM, id, alarm)
     log.debug(util.c("PROCESS: UNIT[", id, "] RESET ALARM ", alarm))
-end
-
--- assign a unit to a group
----@param unit_id integer unit ID
----@param group_id integer|0 group ID or 0 for independent
-function process.set_group(unit_id, group_id)
-    self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, unit_id, group_id)
-    log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
-
-    self.control_states.priority_groups[unit_id] = group_id
 end
 
 return process
