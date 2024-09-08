@@ -182,7 +182,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             turbine_flow_stable = false,
 
             -- auto control group
-            a_group = 0,
+            a_group = types.AUTO_GROUP.MANUAL,
 
             start = function () io.process.start(i) end,
             scram = function () io.process.scram(i) end,
@@ -569,11 +569,10 @@ function iocontrol.update_facility_status(status)
             local group_map = ctl_status[14]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
-                local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
                 for i = 1, #group_map do
                     io.units[i].a_group = group_map[i]
                     io.units[i].unit_ps.publish("auto_group_id", group_map[i])
-                    io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
+                    io.units[i].unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[group_map[i] + 1])
                 end
             end
 

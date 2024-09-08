@@ -8,6 +8,7 @@ local fac_update = require("supervisor.facility_update")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
+local AUTO_GROUP    = types.AUTO_GROUP
 local PROCESS       = types.PROCESS
 local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
@@ -73,7 +74,7 @@ function facility.new(config)
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_setpoint = 0,            -- FE charge target setpoint
         gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
-        group_map = {},                 ---@type integer[] units -> group IDs
+        group_map = {},                 ---@type AUTO_GROUP[] units -> group IDs
         prio_defs = { {}, {}, {}, {} }, ---@type reactor_unit[][] priority definitions (each level is a table of units)
         at_max_burn = false,
         ascram = false,
@@ -130,7 +131,7 @@ function facility.new(config)
     for i = 1, config.UnitCount do
         table.insert(self.units,
             unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
-        table.insert(self.group_map, 0)
+        table.insert(self.group_map, AUTO_GROUP.MANUAL)
     end
 
     -- list for RTU session management
@@ -454,19 +455,19 @@ function facility.new(config)
 
     -- set the automatic control group of a unit
     ---@param unit_id integer unit ID
-    ---@param group integer group ID or 0 for independent
+    ---@param group AUTO_GROUP group ID or 0 for independent
     function public.set_group(unit_id, group)
-        if (group >= 0 and group <= 4) and (unit_id > 0 and unit_id <= config.UnitCount) and self.mode == PROCESS.INACTIVE then
+        if (group >= AUTO_GROUP.MANUAL and group <= AUTO_GROUP.BACKUP) and (unit_id > 0 and unit_id <= config.UnitCount) and self.mode == PROCESS.INACTIVE then
             -- remove from old group if previously assigned
             local old_group = self.group_map[unit_id]
-            if old_group ~= 0 then
+            if old_group ~= AUTO_GROUP.MANUAL then
                 util.filter_table(self.prio_defs[old_group], function (u) return u.get_id() ~= unit_id end)
             end
 
             self.group_map[unit_id] = group
 
             -- add to group if not independent
-            if group > 0 then
+            if group > AUTO_GROUP.MANUAL then
                 table.insert(self.prio_defs[group], self.units[unit_id])
             end
         end

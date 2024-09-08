@@ -2,6 +2,7 @@
 -- Unit Control Page
 --
 
+local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
 local iocontrol     = require("pocket.iocontrol")
@@ -25,6 +26,8 @@ local NumberField   = require("graphics.elements.form.number_field")
 
 local DataIndicator = require("graphics.elements.indicators.data")
 local IconIndicator = require("graphics.elements.indicators.icon")
+
+local AUTO_GROUP = types.AUTO_GROUP
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -146,10 +149,10 @@ local function new_view(root)
 
             -- enable/disable controls based on group assignment (start button is separate)
             burn_cmd.register(u_ps, "auto_group_id", function (gid)
-                if gid == 0 then burn_cmd.enable() else burn_cmd.disable() end
+                if gid == AUTO_GROUP.MANUAL then burn_cmd.enable() else burn_cmd.disable() end
             end)
             set_burn_btn.register(u_ps, "auto_group_id", function (gid)
-                if gid == 0 then set_burn_btn.enable() else set_burn_btn.disable() end
+                if gid == AUTO_GROUP.MANUAL then set_burn_btn.enable() else set_burn_btn.disable() end
             end)
 
             burn_cmd.register(u_ps, "burn_rate", burn_cmd.set_value)
@@ -169,7 +172,7 @@ local function new_view(root)
                 if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
                     local can_start = (not unit.reactor_data.mek_status.status) and
                                         (not unit.reactor_data.rps_tripped) and
-                                        (unit.a_group == 0)
+                                        (unit.a_group == AUTO_GROUP.MANUAL)
                     if can_start then start.enable() else start.disable() end
                 end
             end

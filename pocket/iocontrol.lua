@@ -2,11 +2,10 @@
 -- I/O Control for Pocket Integration with Supervisor & Coordinator
 --
 
-local const = require("scada-common.constants")
--- local log   = require("scada-common.log")
-local psil  = require("scada-common.psil")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local const   = require("scada-common.constants")
+local psil    = require("scada-common.psil")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
 local process = require("pocket.process")
 
@@ -21,8 +20,6 @@ local TEMP_UNITS = types.TEMP_SCALE_UNITS
 ---@todo nominal trip time is ping (0ms to 10ms usually)
 local WARN_TT = 40
 local HIGH_TT = 80
-
-local GROUP_NAMES = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
 
 local iocontrol = {}
 
@@ -318,7 +315,7 @@ function iocontrol.init_fac(conf)
             turbine_flow_stable = false,
 
             -- auto control group
-            a_group = 0,
+            a_group = types.AUTO_GROUP.MANUAL,
 
             start = function () process.start(i) end,
             scram = function () process.scram(i) end,
@@ -499,7 +496,7 @@ function iocontrol.record_unit_data(data)
     unit.alarms = data[5]
 
     unit.unit_ps.publish("auto_group_id", unit.a_group)
-    unit.unit_ps.publish("auto_group", GROUP_NAMES[unit.a_group + 1])
+    unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
 
     --#region Annunciator
 
