@@ -4,14 +4,10 @@
 
 local comms = require("scada-common.comms")
 local log   = require("scada-common.log")
-local types = require("scada-common.types")
 local util  = require("scada-common.util")
 
 local FAC_COMMAND = comms.FAC_COMMAND
 local UNIT_COMMAND = comms.UNIT_COMMAND
-
-local PROCESS = types.PROCESS
-local PRODUCT = types.WASTE_PRODUCT
 
 ---@class pocket_process_controller
 local process = {}
