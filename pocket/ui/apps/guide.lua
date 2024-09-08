@@ -237,13 +237,13 @@ local function new_view(root)
         PushButton{parent=lnk,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         lnk.line_break()
-        TextBox{parent=lnk,text="GitHub",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="GitHub",fg_bg=cpair(colors.lightGray,colors.black)}
         TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada"}
         lnk.line_break()
-        TextBox{parent=lnk,text="Wiki",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="Wiki",fg_bg=cpair(colors.lightGray,colors.black)}
         TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada/wiki"}
         lnk.line_break()
-        TextBox{parent=lnk,text="Discord",alignment=ALIGN.LEFT,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="Discord",fg_bg=cpair(colors.lightGray,colors.black)}
         TextBox{parent=lnk,text="discord.gg/R9NSCkhcwt"}
 
         -- setup multipane

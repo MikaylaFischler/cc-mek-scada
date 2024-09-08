@@ -120,8 +120,6 @@ local function new_view(root)
                 end
             end
 
-            --#region Main Unit Overview
-
             local u_page = app.new_page(nil, i)
             u_page.tasks = { update }
 
@@ -184,8 +182,6 @@ local function new_view(root)
 
             reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-            --#endregion
-
             util.nop()
         end
 
@@ -198,8 +194,8 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility Commands",alignment=ALIGN.CENTER}
 
-        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
-        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,fg_bg=hzd_fg_bg}
+        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,timeout=3,fg_bg=hzd_fg_bg}
+        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
 
         db.facility.scram_ack = scram.on_response
         db.facility.ack_alarms_ack = ack_a.on_response

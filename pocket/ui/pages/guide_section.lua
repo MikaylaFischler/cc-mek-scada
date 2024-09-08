@@ -1,18 +1,18 @@
-local log        = require("scada-common.log")
-local util       = require("scada-common.util")
+local log            = require("scada-common.log")
+local util           = require("scada-common.util")
 
-local docs       = require("pocket.ui.docs")
+local docs           = require("pocket.ui.docs")
 
-local core       = require("graphics.core")
+local core           = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local TextBox    = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.div")
+local ListBox        = require("graphics.elements.listbox")
+local TextBox        = require("graphics.elements.textbox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton     = require("graphics.elements.controls.push_button")
 
 local IndicatorLight = require("graphics.elements.indicators.light")
-local LED        = require("graphics.elements.indicators.led")
+local LED            = require("graphics.elements.indicators.led")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

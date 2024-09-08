@@ -38,7 +38,6 @@ local MGMT_TYPE = comms.MGMT_TYPE
 
 local cpair = core.cpair
 
-local LEFT = core.ALIGN.LEFT
 local CENTER = core.ALIGN.CENTER
 local RIGHT = core.ALIGN.RIGHT
 
@@ -1401,7 +1400,7 @@ local function config_view(display)
 
             local textbox
             if height > 1 then
-                textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1,alignment=LEFT}
+                textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
             else
                 textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
             end

@@ -1,4 +1,4 @@
-local const   = require("scada-common.constants")
+local const = require("scada-common.constants")
 
 local docs = {}
 

@@ -553,14 +553,6 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
     end
 
-    -- send the auto process control configuration with a start command
-    ---@param auto_cfg sys_auto_config configuration
-    function public.send_auto_start(auto_cfg)
-        _send_api(CRDN_TYPE.FAC_CMD, {
-            FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
-        })
-    end
-
     -- send a unit command
     ---@param cmd UNIT_COMMAND command
     ---@param unit integer unit ID
