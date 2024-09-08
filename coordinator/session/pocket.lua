@@ -168,12 +168,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #db.units then
-                        if cmd == UNIT_COMMAND.START then
-                            log.info(util.c(log_tag, "UNIT[", uid, "] START"))
-                            self.proc_handle.start(uid)
-                        elseif cmd == UNIT_COMMAND.SCRAM then
+                        if cmd == UNIT_COMMAND.SCRAM then
                             log.info(util.c(log_tag, "UNIT[", uid, "] SCRAM"))
                             self.proc_handle.scram(uid)
+                        elseif cmd == UNIT_COMMAND.START then
+                            log.info(util.c(log_tag, "UNIT[", uid, "] START"))
+                            self.proc_handle.start(uid)
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
                             log.info(util.c(log_tag, "UNIT[", uid, "] RESET RPS"))
                             self.proc_handle.reset_rps(uid)

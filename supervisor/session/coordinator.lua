@@ -307,15 +307,15 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         local unit   = self.units[uid]    ---@type reactor_unit
                         local manual = facility.get_group(uid) == 0
 
-                        if cmd == UNIT_COMMAND.START then
+                        if cmd == UNIT_COMMAND.SCRAM then
+                            out_queue.push_data(SV_Q_DATA.SCRAM, data)
+                        elseif cmd == UNIT_COMMAND.START then
                             if manual then
                                 out_queue.push_data(SV_Q_DATA.START, data)
                             else
                                 -- denied
                                 _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, false })
                             end
-                        elseif cmd == UNIT_COMMAND.SCRAM then
-                            out_queue.push_data(SV_Q_DATA.SCRAM, data)
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
                             out_queue.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == UNIT_COMMAND.SET_BURN then

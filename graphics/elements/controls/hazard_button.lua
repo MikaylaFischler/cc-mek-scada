@@ -152,7 +152,7 @@ local function hazard_button(args)
             tcd.abort(on_success)
             tcd.abort(on_failure)
 
-            -- operation timeout handling
+            -- operation timeout animation
             tcd.dispatch(timeout, on_timeout)
 
             args.callback()
