@@ -224,6 +224,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                             u.unit_id,
                             u.connected,
                             u.rtu_hw,
+                            u.a_group,
                             u.alarms,
                             u.annunciator,
                             u.reactor_data,

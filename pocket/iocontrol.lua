@@ -22,6 +22,8 @@ local TEMP_UNITS = types.TEMP_SCALE_UNITS
 local WARN_TT = 40
 local HIGH_TT = 80
 
+local GROUP_NAMES = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
+
 local iocontrol = {}
 
 ---@enum POCKET_LINK_STATE
@@ -493,11 +495,15 @@ function iocontrol.record_unit_data(data)
 
     unit.connected = data[2]
     unit.rtu_hw = data[3]
-    unit.alarms = data[4]
+    unit.a_group = data[4]
+    unit.alarms = data[5]
+
+    unit.unit_ps.publish("auto_group_id", unit.a_group)
+    unit.unit_ps.publish("auto_group", GROUP_NAMES[unit.a_group + 1])
 
     --#region Annunciator
 
-    unit.annunciator = data[5]
+    unit.annunciator = data[6]
 
     local rcs_disconn, rcs_warn, rcs_hazard = false, false, false
 
@@ -575,7 +581,7 @@ function iocontrol.record_unit_data(data)
 
     --#region Reactor Data
 
-    unit.reactor_data = data[6]
+    unit.reactor_data = data[7]
 
     local control_status = 1
     local reactor_status = 1
@@ -647,7 +653,7 @@ function iocontrol.record_unit_data(data)
 
     --#region RTU Devices
 
-    unit.boiler_data_tbl = data[7]
+    unit.boiler_data_tbl = data[8]
 
     for id = 1, #unit.boiler_data_tbl do
         local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
@@ -680,7 +686,7 @@ function iocontrol.record_unit_data(data)
         ps.publish("BoilerStateStatus", computed_status)
     end
 
-    unit.turbine_data_tbl = data[8]
+    unit.turbine_data_tbl = data[9]
 
     for id = 1, #unit.turbine_data_tbl do
         local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
@@ -715,10 +721,10 @@ function iocontrol.record_unit_data(data)
         ps.publish("TurbineStateStatus", computed_status)
     end
 
-    unit.tank_data_tbl = data[9]
+    unit.tank_data_tbl = data[10]
 
-    unit.last_rate_change_ms = data[10]
-    unit.turbine_flow_stable = data[11]
+    unit.last_rate_change_ms = data[11]
+    unit.turbine_flow_stable = data[12]
 
     --#endregion
 

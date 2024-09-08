@@ -10,6 +10,7 @@ local element = require("graphics.element")
 ---@field accent color accent color for hazard border
 ---@field dis_colors? cpair text color and border color when disabled
 ---@field callback function function to call on touch
+---@field timeout? integer override for the default 1.5 second timeout, in seconds
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -27,6 +28,8 @@ local function hazard_button(args)
 
     args.height = 3
     args.width = string.len(args.text) + 4
+
+    local timeout = args.timeout or 1.5
 
     -- create new graphics element base object
     local e = element.new(args)
@@ -149,8 +152,8 @@ local function hazard_button(args)
             tcd.abort(on_success)
             tcd.abort(on_failure)
 
-            -- 1.5 second timeout
-            tcd.dispatch(1.5, on_timeout)
+            -- operation timeout handling
+            tcd.dispatch(timeout, on_timeout)
 
             args.callback()
         end

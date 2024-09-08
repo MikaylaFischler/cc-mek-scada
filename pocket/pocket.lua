@@ -609,7 +609,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= (max or 0))
         if not ok then
             local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: packet length mismatch -> expect %d != actual %d"
-            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type, length, packet.scada_frame.length()))
+            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type, length, packet.length))
         end
         return ok
     end
@@ -703,7 +703,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 iocontrol.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
-                            if _check_length(packet, 11) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
+                            if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
                                 iocontrol.record_unit_data(packet.data)
                             end
                         else _fail_type(packet) end
