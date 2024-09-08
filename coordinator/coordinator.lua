@@ -592,7 +592,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 elseif cmd == FAC_COMMAND.SET_PU_FB then
                                     process.pu_fb_ack_handle(packet.data[2])
                                 elseif cmd == FAC_COMMAND.SET_SPS_LP then
-                                    ---@todo
+                                    process.sps_lp_ack_handle(packet.data[2])
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end

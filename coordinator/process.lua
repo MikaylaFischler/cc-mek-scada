@@ -485,18 +485,25 @@ function process.start_ack_handle(response)
     pctl.io.facility.start_ack(ack)
 end
 
--- record waste product state after attempting to change it
----@param response WASTE_PRODUCT supervisor waste product state
+-- record waste product settting after attempting to change it
+---@param response WASTE_PRODUCT supervisor waste product settting
 function process.waste_ack_handle(response)
     pctl.control_states.process.waste_product = response
     pctl.io.facility.ps.publish("process_waste_product", response)
 end
 
--- record plutonium fallback state after attempting to change it
----@param response boolean supervisor plutonium fallback state
+-- record plutonium fallback settting after attempting to change it
+---@param response boolean supervisor plutonium fallback settting
 function process.pu_fb_ack_handle(response)
     pctl.control_states.process.pu_fallback = response
     pctl.io.facility.ps.publish("process_pu_fallback", response)
+end
+
+-- record SPS low power settting after attempting to change it
+---@param response boolean supervisor SPS low power settting
+function process.sps_lp_ack_handle(response)
+    pctl.control_states.process.sps_low_power = response
+    pctl.io.facility.ps.publish("process_sps_low_power", response)
 end
 
 return process
