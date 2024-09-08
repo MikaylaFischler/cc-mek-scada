@@ -321,10 +321,7 @@ function iocontrol.init_fac(conf)
             scram = function () process.scram(i) end,
             reset_rps = function () process.reset_rps(i) end,
             ack_alarms = function () process.ack_all_alarms(i) end,
-            set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
-            set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
-
-            set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
+            set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
 
             start_ack = __generic_ack,
             scram_ack = __generic_ack,
