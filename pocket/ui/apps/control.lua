@@ -31,23 +31,12 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
--- local label        = style.label
 local lu_col       = style.label_unit_pair
 local text_fg      = style.text_fg
-local basic_states = style.icon_states.basic_states
 local mode_states  = style.icon_states.mode_states
-local red_ind_s    = style.icon_states.red_ind_s
-local yel_ind_s    = style.icon_states.yel_ind_s
-
 
 local hzd_fg_bg = cpair(colors.white, colors.gray)
 local dis_colors = cpair(colors.white, colors.lightGray)
-
-local emc_ind_s = {
-    { color = cpair(colors.black, colors.gray), symbol = "-" },
-    { color = cpair(colors.black, colors.white), symbol = "\x07" },
-    { color = cpair(colors.black, colors.green), symbol = "+" }
-}
 
 -- new unit control page view
 ---@param root graphics_element parent
