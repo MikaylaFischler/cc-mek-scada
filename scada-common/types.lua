@@ -209,6 +209,23 @@ types.PROCESS_NAMES = {
     "GEN_RATE_FAULT_IDLE"
 }
 
+---@enum AUTO_GROUP
+types.AUTO_GROUP = {
+    MANUAL = 0,
+    PRIMARY = 1,
+    SECONDARY = 2,
+    TERTIARY = 3,
+    BACKUP = 4
+}
+
+types.AUTO_GROUP_NAMES = {
+    "Manual",
+    "Primary",
+    "Secondary",
+    "Tertiary",
+    "Backup"
+}
+
 ---@enum WASTE_MODE
 types.WASTE_MODE = {
     AUTO = 1,

@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.3.3"
+core.version = "2.3.4"
 
 core.flasher = flasher
 core.events = events
@@ -123,15 +123,17 @@ end
 
 -- Interactive Field Manager
 
----@param e graphics_base
----@param max_len any
----@param fg_bg any
----@param dis_fg_bg any
-function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
+---@param e graphics_base element
+---@param max_len any max value length
+---@param fg_bg any enabled fg/bg
+---@param dis_fg_bg any disabled fg/bg
+---@param align_right any true to align content right while unfocused
+function core.new_ifield(e, max_len, fg_bg, dis_fg_bg, align_right)
     local self = {
         frame_start = 1,
         visible_text = e.value,
         cursor_pos = string.len(e.value) + 1,
+        align_offset = 0,
         selected_all = false
     }
 
@@ -186,7 +188,12 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
         e.w_write(string.rep(" ", e.frame.w))
         e.w_set_cur(1, 1)
 
-        local function _write()
+        local function _write(align_r)
+            if align_r and string.len(self.visible_text) <=e.frame.w then
+                self.align_offset = (e.frame.w - string.len(self.visible_text))
+                e.w_set_cur((e.frame.w - string.len(self.visible_text)) + 1, 1)
+            end
+
             if self.censor then
                 e.w_write(string.rep(self.censor, string.len(self.visible_text)))
             else
@@ -226,15 +233,27 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg)
             self.selected_all = false
 
             -- write text without cursor
-            _write()
+            _write(align_right)
         end
     end
 
-    -- move cursor to x
+    -- get an x value to pass to move_cursor taking into account right alignment offset present when unfocused
     ---@param x integer
+    function public.get_cursor_align_shift(x)
+        return math.max(0, x - self.align_offset)
+    end
+
+    -- move cursor to x
+    ---@param x integer x position or 0 to jump to the end
     function public.move_cursor(x)
         self.selected_all = false
-        self.cursor_pos = math.min(x, string.len(self.visible_text) + 1)
+
+        if x <= 0 then
+            self.cursor_pos = string.len(self.visible_text) + 1
+        else
+            self.cursor_pos = math.min(x, string.len(self.visible_text) + 1)
+        end
+
         public.show()
     end
 

@@ -63,11 +63,11 @@ local function new_view(root, x, y)
 
     local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
-    local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,fg_bg=hzd_fg_bg}
-    local ack_a = HazardButton{parent=main,x=16,y=1,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,fg_bg=hzd_fg_bg}
+    local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=db.process.fac_scram,fg_bg=hzd_fg_bg}
+    local ack_a = HazardButton{parent=main,x=16,y=1,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=db.process.fac_ack_alarms,fg_bg=hzd_fg_bg}
 
-    facility.scram_ack = scram.on_response
-    facility.ack_alarms_ack = ack_a.on_response
+    db.process.fac_ack.on_scram = scram.on_response
+    db.process.fac_ack.on_ack_alarms = ack_a.on_response
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=ind_grn}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=style.ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd}

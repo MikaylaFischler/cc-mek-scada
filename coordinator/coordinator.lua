@@ -387,7 +387,7 @@ function coordinator.comms(version, nic, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param auto_cfg coord_auto_config configuration
+    ---@param auto_cfg sys_auto_config configuration
     function public.send_auto_start(auto_cfg)
         _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
             FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
@@ -576,7 +576,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 local ack = packet.data[2] == true
 
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
-                                    iocontrol.get_db().facility.scram_ack(ack)
+                                    process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.STOP then
                                     iocontrol.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
@@ -586,11 +586,13 @@ function coordinator.comms(version, nic, sv_watchdog)
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
                                     end
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
-                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                    process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
                                     process.waste_ack_handle(packet.data[2])
                                 elseif cmd == FAC_COMMAND.SET_PU_FB then
                                     process.pu_fb_ack_handle(packet.data[2])
+                                elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                                    process.sps_lp_ack_handle(packet.data[2])
                                 else
                                     log.debug(util.c("received facility command ack with unknown command ", cmd))
                                 end
@@ -625,21 +627,15 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then
-                                        unit.scram_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.START then
-                                        unit.start_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.RESET_RPS then
-                                        unit.reset_rps_ack(ack)
-                                    elseif cmd == UNIT_COMMAND.SET_BURN then
-                                        unit.set_burn_ack(ack)
-                                    elseif cmd == UNIT_COMMAND.SET_WASTE then
-                                        unit.set_waste_ack(ack)
+                                        process.unit_ack(unit_id, cmd, ack)
                                     elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
-                                        unit.ack_alarms_ack(ack)
-                                    elseif cmd == UNIT_COMMAND.SET_GROUP then
-                                        -- UI will be updated to display current group if changed successfully
+                                        process.unit_ack(unit_id, cmd, ack)
                                     else
-                                        log.debug(util.c("received unit command ack with unknown command ", cmd))
+                                        log.debug(util.c("received unsupported unit command ack for command ", cmd))
                                     end
                                 else
                                     log.debug(util.c("received unit command ack with unknown unit ", unit_id))

@@ -3,6 +3,7 @@
 --
 
 local util          = require("scada-common.util")
+local log           = require("scada-common.log")
 
 local iocontrol     = require("pocket.iocontrol")
 local pocket        = require("pocket.pocket")
@@ -78,6 +79,7 @@ local function new_view(root)
         local uis_page = app.new_page(main_page, 4)
         local fps_page = app.new_page(main_page, 5)
         local gls_page = app.new_page(main_page, 6)
+        local lnk_page = app.new_page(main_page, 7)
 
         local home = Div{parent=page_div,x=2}
         local search = Div{parent=page_div,x=2}
@@ -85,7 +87,8 @@ local function new_view(root)
         local uis = Div{parent=page_div,x=2,width=p_width}
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2,width=p_width}
-        local panes = { home, search, use, uis, fps, gls }
+        local lnk = Div{parent=page_div,x=2,width=p_width}
+        local panes = { home, search, use, uis, fps, gls, lnk }
 
         local doc_map = {}
         local search_db = {}
@@ -100,6 +103,7 @@ local function new_view(root)
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
+        PushButton{parent=home,y=10,text="Wiki and Discord    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=lnk_page.nav_to}
 
         TextBox{parent=search,y=1,text="Search",alignment=ALIGN.CENTER}
 
@@ -113,34 +117,41 @@ local function new_view(root)
 
         function func_ref.run_search()
             local query = string.lower(query_field.get_value())
-            local s_results = { {}, {}, {} }
+            local s_results = { {}, {}, {}, {} }
 
             search_results.remove_all()
 
-            if string.len(query) < 3 then
-                TextBox{parent=search_results,text="Search requires at least 3 characters."}
+            if string.len(query) < 2 then
+                TextBox{parent=search_results,text="Search requires at least 2 characters."}
                 return
             end
 
+            local start = util.time_ms()
+
             for _, entry in ipairs(search_db) do
-                local s_start, _ = string.find(entry[1], query, 1, true)
+                local s_start, s_end = string.find(entry[1], query, 1, true)
 
                 if s_start == nil then
                 elseif s_start == 1 then
-                    -- best match, start of key
-                    table.insert(s_results[1], entry)
+                    if s_end == string.len(entry[1]) then
+                        -- best match: full match
+                        table.insert(s_results[1], entry)
+                    else
+                        -- very good match, start of key
+                        table.insert(s_results[2], entry)
+                    end
                 elseif string.sub(query, s_start - 1, s_start) == " " then
                     -- start of word, good match
-                    table.insert(s_results[2], entry)
+                    table.insert(s_results[3], entry)
                 else
                     -- basic match in content
-                    table.insert(s_results[3], entry)
+                    table.insert(s_results[4], entry)
                 end
             end
 
             local empty = true
 
-            for tier = 1, 3 do
+            for tier = 1, 4 do
                 for idx = 1, #s_results[tier] do
                     local entry = s_results[tier][idx]
                     TextBox{parent=search_results,text=entry[3].." >",fg_bg=cpair(colors.gray,colors.black)}
@@ -149,6 +160,8 @@ local function new_view(root)
                     empty = false
                 end
             end
+
+            log.debug("App.Guide: search for \"" .. query .. "\" completed in " .. (util.time_ms() - start) .. "ms")
 
             if empty then
                 TextBox{parent=search_results,text="No results found."}
@@ -188,7 +201,8 @@ local function new_view(root)
         local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section, 170)
         local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section, 100)
         local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section, 170)
-        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.unit.fac_section, 100)
+
+        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.facility.main_section, 110)
 
         PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
@@ -199,20 +213,38 @@ local function new_view(root)
         TextBox{parent=fps,y=1,text="Front Panels",alignment=ALIGN.CENTER}
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 100)
+        local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 180)
+        local fp_rtu_page = guide_section(sect_construct_data, fps_page, "RTU Gateway", docs.fp.rtu_gw, 100)
+        local fp_supervisor_page = guide_section(sect_construct_data, fps_page, "Supervisor", docs.fp.supervisor, 160)
+
+        PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_common_page.nav_to}
+        PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rplc_page.nav_to}
+        PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rtu_page.nav_to}
+        PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_supervisor_page.nav_to}
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=gls,y=1,text="Glossary",alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs, 130)
+        local gls_abbv_page = guide_section(sect_construct_data, gls_page, "Abbreviations", docs.glossary.abbvs, 140)
         local gls_term_page = guide_section(sect_construct_data, gls_page, "Terminology", docs.glossary.terms, 100)
 
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
+
+        TextBox{parent=lnk,y=1,text="Wiki and Discord",alignment=ALIGN.CENTER}
+        PushButton{parent=lnk,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
+
+        lnk.line_break()
+        TextBox{parent=lnk,text="GitHub",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada"}
+        lnk.line_break()
+        TextBox{parent=lnk,text="Wiki",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="https://github.com/MikaylaFischler/cc-mek-scada/wiki"}
+        lnk.line_break()
+        TextBox{parent=lnk,text="Discord",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=lnk,text="discord.gg/R9NSCkhcwt"}
 
         -- setup multipane
         local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}

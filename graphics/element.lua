@@ -574,6 +574,15 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     ---@return graphics_element
     function public.get_child(id) return protected.children[protected.child_id_map[id]].get() end
 
+    -- get all children
+    ---@nodiscard
+    ---@return table children table of graphics_element objects
+    function public.get_children()
+        local list = {}
+        for k, v in pairs(protected.children) do list[k] = v.get() end
+        return list
+    end
+
     -- remove a child element
     ---@param id element_id
     function public.remove(id)

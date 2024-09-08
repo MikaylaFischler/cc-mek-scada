@@ -6,6 +6,7 @@ local util        = require("scada-common.util")
 
 local coordinator = require("coordinator.coordinator")
 local iocontrol   = require("coordinator.iocontrol")
+local process     = require("coordinator.process")
 local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 
@@ -146,6 +147,9 @@ function threads.thread__main(smem)
                     -- iterate sessions and free any closed ones
                     apisessions.iterate_all()
                     apisessions.free_all_closed()
+
+                    -- clear timed out process commands
+                    process.clear_timed_out()
 
                     if renderer.ui_ready() then
                         -- update clock used on main and flow monitors

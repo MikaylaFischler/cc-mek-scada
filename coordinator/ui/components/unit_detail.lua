@@ -29,6 +29,8 @@ local PushButton        = require("graphics.elements.controls.push_button")
 local RadioButton       = require("graphics.elements.controls.radio_button")
 local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
 
+local AUTO_GROUP = types.AUTO_GROUP
+
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
@@ -373,16 +375,16 @@ local function init(parent, id)
     local scram = HazardButton{parent=main,x=2,y=32,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,fg_bg=hzd_fg_bg}
     local reset = HazardButton{parent=main,x=22,y=32,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,fg_bg=hzd_fg_bg}
 
-    unit.start_ack = start.on_response
-    unit.scram_ack = scram.on_response
-    unit.reset_rps_ack = reset.on_response
-    unit.ack_alarms_ack = ack_a.on_response
+    db.process.unit_ack[id].on_start = start.on_response
+    db.process.unit_ack[id].on_scram = scram.on_response
+    db.process.unit_ack[id].on_rps_reset = reset.on_response
+    db.process.unit_ack[id].on_ack_alarms = ack_a.on_response
 
     local function start_button_en_check()
         if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
             local can_start = (not unit.reactor_data.mek_status.status) and
                                 (not unit.reactor_data.rps_tripped) and
-                                (unit.a_group == 0)
+                                (unit.a_group == AUTO_GROUP.MANUAL)
             if can_start then start.enable() else start.disable() end
         end
     end
@@ -486,9 +488,7 @@ local function init(parent, id)
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
     local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
-    local ctl_opts = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
-
-    local group = RadioButton{parent=auto_div,options=ctl_opts,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
+    local group = RadioButton{parent=auto_div,options=types.AUTO_GROUP_NAMES,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 
     group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 
@@ -523,10 +523,10 @@ local function init(parent, id)
 
     -- enable/disable controls based on group assignment (start button is separate)
     burn_rate.register(u_ps, "auto_group_id", function (gid)
-        if gid == 0 then burn_rate.enable() else burn_rate.disable() end
+        if gid == AUTO_GROUP.MANUAL then burn_rate.enable() else burn_rate.disable() end
     end)
     set_burn_btn.register(u_ps, "auto_group_id", function (gid)
-        if gid == 0 then set_burn_btn.enable() else set_burn_btn.disable() end
+        if gid == AUTO_GROUP.MANUAL then set_burn_btn.enable() else set_burn_btn.disable() end
     end)
 
     -- can't change group if auto is engaged regardless of if this unit is part of auto control

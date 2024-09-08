@@ -1,6 +1,7 @@
 local comms    = require("scada-common.comms")
 local log      = require("scada-common.log")
 local mqueue   = require("scada-common.mqueue")
+local types    = require("scada-common.types")
 local util     = require("scada-common.util")
 
 local databus  = require("supervisor.databus")
@@ -14,6 +15,9 @@ local MGMT_TYPE = comms.MGMT_TYPE
 local CRDN_TYPE = comms.CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
+
+local AUTO_GROUP = types.AUTO_GROUP
+local WASTE_MODE = types.WASTE_MODE
 
 local SV_Q_DATA = svqtypes.SV_Q_DATA
 
@@ -241,11 +245,16 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         facility.scram_all()
                         _send(CRDN_TYPE.FAC_CMD, { cmd, true })
                     elseif cmd == FAC_COMMAND.STOP then
-                        facility.auto_stop()
-                        _send(CRDN_TYPE.FAC_CMD, { cmd, true })
+                        local was_active = facility.auto_is_active()
+
+                        if was_active then
+                            facility.auto_stop()
+                        end
+
+                        _send(CRDN_TYPE.FAC_CMD, { cmd, was_active })
                     elseif cmd == FAC_COMMAND.START then
                         if pkt.length == 6 then
-                            ---@type coord_auto_config
+                            ---@type sys_auto_config
                             local config = {
                                 mode = pkt.data[2],
                                 burn_target = pkt.data[3],
@@ -299,22 +308,31 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
-                        local unit = self.units[uid]    ---@type reactor_unit
+                        local unit   = self.units[uid]    ---@type reactor_unit
+                        local manual = facility.get_group(uid) == AUTO_GROUP.MANUAL
 
-                        if cmd == UNIT_COMMAND.START then
-                            out_queue.push_data(SV_Q_DATA.START, data)
-                        elseif cmd == UNIT_COMMAND.SCRAM then
+                        if cmd == UNIT_COMMAND.SCRAM then
                             out_queue.push_data(SV_Q_DATA.SCRAM, data)
+                        elseif cmd == UNIT_COMMAND.START then
+                            if manual then
+                                out_queue.push_data(SV_Q_DATA.START, data)
+                            else
+                                -- denied
+                                _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, false })
+                            end
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
                             out_queue.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
                             if pkt.length == 3 then
-                                out_queue.push_data(SV_Q_DATA.SET_BURN, data)
+                                if manual then
+                                    out_queue.push_data(SV_Q_DATA.SET_BURN, data)
+                                end
                             else
                                 log.debug(log_tag .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
-                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] > 0) and (pkt.data[3] <= 4) then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and
+                               (pkt.data[3] >= WASTE_MODE.AUTO) and (pkt.data[3] <= WASTE_MODE.MANUAL_ANTI_MATTER) then
                                 unit.set_waste_mode(pkt.data[3])
                             else
                                 log.debug(log_tag .. "CRDN unit command set waste missing/invalid option")
@@ -335,9 +353,9 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                                 log.debug(log_tag .. "CRDN unit command reset alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
-                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and (pkt.data[3] >= 0) and (pkt.data[3] <= 4) then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and
+                               (pkt.data[3] >= AUTO_GROUP.MANUAL) and (pkt.data[3] <= AUTO_GROUP.BACKUP) then
                                 facility.set_group(unit.get_id(), pkt.data[3])
-                                _send(CRDN_TYPE.UNIT_CMD, { cmd, uid, pkt.data[3] })
                             else
                                 log.debug(log_tag .. "CRDN unit command set group missing group id")
                             end

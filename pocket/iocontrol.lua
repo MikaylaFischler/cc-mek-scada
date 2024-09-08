@@ -2,11 +2,12 @@
 -- I/O Control for Pocket Integration with Supervisor & Coordinator
 --
 
-local const = require("scada-common.constants")
--- local log   = require("scada-common.log")
-local psil  = require("scada-common.psil")
-local types = require("scada-common.types")
-local util  = require("scada-common.util")
+local const   = require("scada-common.constants")
+local psil    = require("scada-common.psil")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
+
+local process = require("pocket.process")
 
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
@@ -38,13 +39,24 @@ local io = {
     ps = psil.create()
 }
 
+-- luacheck: no unused args
+
+-- placeholder acknowledge function for type hinting
+---@param success boolean
+---@diagnostic disable-next-line: unused-local
+local function __generic_ack(success) end
+
+-- luacheck: unused args
+
 local config = nil  ---@type pkt_config
+local comms  = nil  ---@type pocket_comms
 
 -- initialize facility-independent components of pocket iocontrol
----@param comms pocket_comms
+---@param pkt_comms pocket_comms
 ---@param nav pocket_nav
 ---@param cfg pkt_config
-function iocontrol.init_core(comms, nav, cfg)
+function iocontrol.init_core(pkt_comms, nav, cfg)
+    comms = pkt_comms
     config = cfg
 
     io.nav = nav
@@ -153,6 +165,11 @@ function iocontrol.init_fac(conf)
         auto_pu_fallback_active = false,
 
         radiation = types.new_zero_radiation_reading(),
+
+        start_ack = __generic_ack,
+        stop_ack = __generic_ack,
+        scram_ack = __generic_ack,
+        ack_alarms_ack = __generic_ack,
 
         ps = psil.create(),
 
@@ -298,7 +315,18 @@ function iocontrol.init_fac(conf)
             turbine_flow_stable = false,
 
             -- auto control group
-            a_group = 0,
+            a_group = types.AUTO_GROUP.MANUAL,
+
+            start = function () process.start(i) end,
+            scram = function () process.scram(i) end,
+            reset_rps = function () process.reset_rps(i) end,
+            ack_alarms = function () process.ack_all_alarms(i) end,
+            set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
+
+            start_ack = __generic_ack,
+            scram_ack = __generic_ack,
+            reset_rps_ack = __generic_ack,
+            ack_alarms_ack = __generic_ack,
 
             ---@type alarms
             alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
@@ -346,6 +374,9 @@ function iocontrol.init_fac(conf)
 
         table.insert(io.units, entry)
     end
+
+    -- pass IO control here since it can't be require'd due to a require loop
+    process.init(io, comms)
 end
 
 -- set network link state
@@ -458,11 +489,15 @@ function iocontrol.record_unit_data(data)
 
     unit.connected = data[2]
     unit.rtu_hw = data[3]
-    unit.alarms = data[4]
+    unit.a_group = data[4]
+    unit.alarms = data[5]
+
+    unit.unit_ps.publish("auto_group_id", unit.a_group)
+    unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
 
     --#region Annunciator
 
-    unit.annunciator = data[5]
+    unit.annunciator = data[6]
 
     local rcs_disconn, rcs_warn, rcs_hazard = false, false, false
 
@@ -540,7 +575,7 @@ function iocontrol.record_unit_data(data)
 
     --#region Reactor Data
 
-    unit.reactor_data = data[6]
+    unit.reactor_data = data[7]
 
     local control_status = 1
     local reactor_status = 1
@@ -612,7 +647,7 @@ function iocontrol.record_unit_data(data)
 
     --#region RTU Devices
 
-    unit.boiler_data_tbl = data[7]
+    unit.boiler_data_tbl = data[8]
 
     for id = 1, #unit.boiler_data_tbl do
         local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
@@ -645,7 +680,7 @@ function iocontrol.record_unit_data(data)
         ps.publish("BoilerStateStatus", computed_status)
     end
 
-    unit.turbine_data_tbl = data[8]
+    unit.turbine_data_tbl = data[9]
 
     for id = 1, #unit.turbine_data_tbl do
         local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
@@ -680,16 +715,16 @@ function iocontrol.record_unit_data(data)
         ps.publish("TurbineStateStatus", computed_status)
     end
 
-    unit.tank_data_tbl = data[9]
+    unit.tank_data_tbl = data[10]
 
-    unit.last_rate_change_ms = data[10]
-    unit.turbine_flow_stable = data[11]
+    unit.last_rate_change_ms = data[11]
+    unit.turbine_flow_stable = data[12]
 
     --#endregion
 
     --#region Status Information Display
 
-    local ecam = {} -- aviation reference :) back to VATSIM I go...
+    local ecam = {} -- aviation reference :)
 
     -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end
