@@ -7,7 +7,7 @@ local util = require("scada-common.util")
 ---@class logger
 local log = {}
 
----@alias MODE integer
+---@enum MODE
 local MODE = { APPEND = 0, NEW = 1 }
 
 log.MODE = MODE
@@ -18,7 +18,7 @@ local logger = {
     mode = MODE.APPEND,
     debug = false,
     file = nil,         ---@type table|nil
-    dmesg_out = nil,
+    dmesg_out = nil,    ---@type table|nil
     dmesg_restore_coord = { 1, 1 },
     dmesg_scroll_count = 0
 }
@@ -37,7 +37,7 @@ local function _log(msg)
 
     local out_of_space = false
     local time_stamp = os.date("[%c] ")
-    local stamped = time_stamp .. util.strval(msg)
+    local stamped = util.c(time_stamp, msg)
 
     -- attempt to write log
     local status, result = pcall(function ()
@@ -291,7 +291,7 @@ function log.dmesg_working(msg, tag, tag_color)
 end
 
 -- log debug messages
----@param msg string message
+---@param msg any message
 ---@param trace? boolean include file trace
 function log.debug(msg, trace)
     if logger.debug then
@@ -302,30 +302,30 @@ function log.debug(msg, trace)
             local name = ""
 
             if info.name ~= nil then
-                name = ":" .. info.name .. "():"
+                name = util.c(":", info.name, "():")
             end
 
-            dbg_info = info.short_src .. ":" .. name .. info.currentline .. " > "
+            dbg_info = util.c(info.short_src, ":", name, info.currentline, " > ")
         end
 
-        _log("[DBG] " .. dbg_info .. util.strval(msg))
+        _log(util.c("[DBG] ", dbg_info, msg))
     end
 end
 
 -- log info messages
----@param msg string message
+---@param msg any message
 function log.info(msg)
-    _log("[INF] " .. util.strval(msg))
+    _log(util.c("[INF] ", msg))
 end
 
 -- log warning messages
----@param msg string message
+---@param msg any message
 function log.warning(msg)
-    _log("[WRN] " .. util.strval(msg))
+    _log(util.c("[WRN] ", msg))
 end
 
 -- log error messages
----@param msg string message
+---@param msg any message
 ---@param trace? boolean include file trace
 function log.error(msg, trace)
     local dbg_info = ""
@@ -335,19 +335,19 @@ function log.error(msg, trace)
         local name = ""
 
         if info.name ~= nil then
-            name = ":" .. info.name .. "():"
+            name = util.c(":", info.name, "():")
         end
 
-        dbg_info = info.short_src .. ":" .. name ..  info.currentline .. " > "
+        dbg_info = util.c(info.short_src, ":", name, info.currentline, " > ")
     end
 
-    _log("[ERR] " .. dbg_info .. util.strval(msg))
+    _log(util.c("[ERR] ", dbg_info, msg))
 end
 
 -- log fatal errors
----@param msg string message
+---@param msg any message
 function log.fatal(msg)
-    _log("[FTL] " .. util.strval(msg))
+    _log(util.c("[FTL] ", msg))
 end
 
 return log

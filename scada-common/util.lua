@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.4.4"
+util.version = "1.4.5"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -33,9 +33,9 @@ util.TICK_TIME_MS = 50
 
 -- trinary operator
 ---@nodiscard
----@param cond boolean|nil condition
----@param a any return if true
----@param b any return if false
+---@param cond any condition
+---@param a any return if evaluated as true
+---@param b any return if false or nil
 ---@return any value
 function util.trinary(cond, a, b)
     if cond then return a else return b end
@@ -84,7 +84,7 @@ end
 -- does not behave exactly like C's strtok
 ---@param str string string to tokenize
 ---@param sep string separator to tokenize by
----@return table token_list
+---@return string[] token_list
 function util.strtok(str, sep)
     local list = {}
     for part in string.gmatch(str, "([^" .. sep .. "]+)") do t_insert(list, part) end
@@ -123,7 +123,7 @@ end
 ---@nodiscard
 ---@param str string
 ---@param limit integer line limit, must be greater than 0
----@return table lines
+---@return string[] lines
 function util.strwrap(str, limit)
     assert(limit > 0, "util.strwrap() limit not greater than 0")
     return cc_strings.wrap(str, limit)
@@ -343,8 +343,9 @@ end
 
 -- delete elements from a table if the passed function returns false when passed a table element<br>
 -- put briefly: deletes elements that return false, keeps elements that return true
----@param t table table to remove elements from
----@param f function should return false to delete an element when passed the element: f(elem) = true|false
+---@generic Type
+---@param t Type[] table to remove elements from
+---@param f fun(t_elem: Type) : boolean should return false to delete an element when passed the element
 ---@param on_delete? function optional function to execute on deletion, passed the table element to be deleted as the parameter
 function util.filter_table(t, f, on_delete)
     local move_to = 1
@@ -366,9 +367,10 @@ function util.filter_table(t, f, on_delete)
 end
 
 -- check if a table contains the provided element
+---@generic Type
 ---@nodiscard
----@param t table table to check
----@param element any element to check for
+---@param t Type[] table to check
+---@param element Type element to check for
 function util.table_contains(t, element)
     for i = 1, #t do
         if t[i] == element then return true end

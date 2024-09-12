@@ -85,18 +85,15 @@ function network.nic(modem)
     }
 
     ---@class nic
-    ---@field open function
-    ---@field isOpen function
-    ---@field close function
-    ---@field closeAll function
-    ---@field isWireless function
-    ---@field getNameLocal function
-    ---@field getNamesRemote function
-    ---@field isPresentRemote function
-    ---@field getTypeRemote function
-    ---@field hasTypeRemote function
-    ---@field getMethodsRemote function
-    ---@field callRemote function
+    ---@field isOpen fun(channel: integer) : boolean check if a channel is open
+    ---@field isWireless fun() : boolean determine if this is a wired or wireless modem
+    ---@field getNamesRemote fun() : string[] list all remote peripherals on the wired network
+    ---@field isPresentRemote fun(name: string) : boolean determine if a peripheral is available on this wired network
+    ---@field getTypeRemote fun(name: string) : string|nil get the type of a peripheral is available on this wired network
+    ---@field hasTypeRemote fun(name: string, type: string) : boolean|nil check a peripheral is of a particular type
+    ---@field getMethodsRemote fun(name: string) : string[] get all available methods for the remote peripheral with the given name
+    ---@field callRemote fun(remoteName: string, method: string, ...) : table call a method on a peripheral on this wired network
+    ---@field getNameLocal fun() : string|nil returns the network name of the current computer, if the modem is on
     local public = {}
 
     -- check if this NIC has a connected modem

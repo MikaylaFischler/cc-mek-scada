@@ -27,6 +27,7 @@ local remove = table.remove
 -- create a new message queue
 ---@nodiscard
 function mqueue.new()
+    ---@type queue_item[]
     local queue = {}
 
     ---@class mqueue

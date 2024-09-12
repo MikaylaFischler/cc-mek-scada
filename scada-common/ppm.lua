@@ -23,7 +23,7 @@ ppm.VIRTUAL_DEVICE_TYPE   = VIRTUAL_DEVICE_TYPE
 local REPORT_FREQUENCY = 20 -- log every 20 faults per function
 
 local ppm_sys = {
-    mounts = {},
+    mounts = {},    ---@type { [string]: ppm_entry }
     next_vid = 0,
     auto_cf = false,
     faulted = false,
@@ -40,10 +40,10 @@ local function peri_init(iface)
     local self = {
         faulted = false,
         last_fault = "",
-        fault_counts = {},
+        fault_counts = {},          ---@type { [string]: integer }
         auto_cf = true,
-        type = VIRTUAL_DEVICE_TYPE,
-        device = {}
+        type = VIRTUAL_DEVICE_TYPE, ---@type string
+        device = {}                 ---@type { [string]: function }
     }
 
     if iface ~= "__virtual__" then
@@ -181,7 +181,7 @@ local function peri_init(iface)
     setmetatable(self.device, mt)
 
     ---@class ppm_entry
-    local entry = { type = self.type, dev  = self.device }
+    local entry = { type = self.type, dev = self.device }
 
     return entry
 end
@@ -284,10 +284,10 @@ end
 ---@param device table device table
 function ppm.unmount(device)
     if device then
-        for side, data in pairs(ppm_sys.mounts) do
+        for iface, data in pairs(ppm_sys.mounts) do
             if data.dev == device then
-                log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", side))
-                ppm_sys.mounts[side] = nil
+                log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", iface))
+                ppm_sys.mounts[iface] = nil
                 break
             end
         end
@@ -352,8 +352,8 @@ end
 ---@return string|nil iface CC peripheral interface
 function ppm.get_iface(device)
     if device then
-        for side, data in pairs(ppm_sys.mounts) do
-            if data.dev == device then return side end
+        for iface, data in pairs(ppm_sys.mounts) do
+            if data.dev == device then return iface end
         end
     end
 

@@ -7,6 +7,7 @@ local util = require("scada-common.util")
 
 local tcd = {}
 
+---@type { callback: function, duration: number, expiry: number }[]
 local registry = {}
 
 -- request a function to be called after the specified time
