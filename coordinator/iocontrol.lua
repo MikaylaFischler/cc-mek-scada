@@ -118,8 +118,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         save_cfg_ack = __generic_ack,
         start_ack = __generic_ack,
         stop_ack = __generic_ack,
-        scram_ack = __generic_ack,
-        ack_alarms_ack = __generic_ack,
 
         alarm_tones = { false, false, false, false, false, false, false, false },
 
@@ -184,23 +182,16 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             turbine_flow_stable = false,
 
             -- auto control group
-            a_group = 0,
+            a_group = types.AUTO_GROUP.MANUAL,
 
-            start = function () process.start(i) end,
-            scram = function () process.scram(i) end,
-            reset_rps = function () process.reset_rps(i) end,
-            ack_alarms = function () process.ack_all_alarms(i) end,
+            start = function () io.process.start(i) end,
+            scram = function () io.process.scram(i) end,
+            reset_rps = function () io.process.reset_rps(i) end,
+            ack_alarms = function () io.process.ack_all_alarms(i) end,
             set_burn = function (rate) process.set_rate(i, rate) end,        ---@param rate number burn rate
             set_waste = function (mode) process.set_unit_waste(i, mode) end, ---@param mode WASTE_MODE waste processing mode
 
             set_group = function (grp) process.set_group(i, grp) end,        ---@param grp integer|0 group ID or 0 for manual
-
-            start_ack = __generic_ack,
-            scram_ack = __generic_ack,
-            reset_rps_ack = __generic_ack,
-            ack_alarms_ack = __generic_ack,
-            set_burn_ack = __generic_ack,
-            set_waste_ack = __generic_ack,
 
             alarm_callbacks = {
                 c_breach   = { ack = function () ack(1)  end, reset = function () reset(1)  end },
@@ -281,6 +272,9 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
 
     -- pass IO control here since it can't be require'd due to a require loop
     process.init(io, comms)
+
+    -- coordinator's process handle
+    io.process = process.create_handle()
 end
 
 --#region Front Panel PSIL
@@ -575,11 +569,10 @@ function iocontrol.update_facility_status(status)
             local group_map = ctl_status[14]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
-                local names = { "Manual", "Primary", "Secondary", "Tertiary", "Backup" }
                 for i = 1, #group_map do
                     io.units[i].a_group = group_map[i]
                     io.units[i].unit_ps.publish("auto_group_id", group_map[i])
-                    io.units[i].unit_ps.publish("auto_group", names[group_map[i] + 1])
+                    io.units[i].unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[group_map[i] + 1])
                 end
             end
 

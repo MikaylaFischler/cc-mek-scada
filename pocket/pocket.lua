@@ -9,6 +9,8 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 local CRDN_TYPE = comms.CRDN_TYPE
+local UNIT_COMMAND = comms.UNIT_COMMAND
+local FAC_COMMAND = comms.FAC_COMMAND
 
 local LINK_STATE = iocontrol.LINK_STATE
 
@@ -84,13 +86,14 @@ local APP_ID = {
     LOADER = 2,
     -- main app pages
     UNITS = 3,
-    GUIDE = 4,
-    ABOUT = 5,
+    CONTROL = 4,
+    GUIDE = 5,
+    ABOUT = 6,
     -- diag app page
-    ALARMS = 6,
+    ALARMS = 7,
     -- other
-    DUMMY = 7,
-    NUM_APPS = 7
+    DUMMY = 8,
+    NUM_APPS = 8
 }
 
 pocket.APP_ID = APP_ID
@@ -439,11 +442,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
     -- attempt supervisor connection establishment
     local function _send_sv_establish()
+        self.sv.r_seq_num = nil
         _send_sv(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT })
     end
 
     -- attempt coordinator API connection establishment
     local function _send_api_establish()
+        self.api.r_seq_num = nil
         _send_crd(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PKT, comms.api_version })
     end
 
@@ -541,6 +546,21 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
     end
 
+    -- send a facility command
+    ---@param cmd FAC_COMMAND command
+    ---@param option any? optional option options for the optional options (like waste mode)
+    function public.send_fac_command(cmd, option)
+        _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
+    end
+
+    -- send a unit command
+    ---@param cmd UNIT_COMMAND command
+    ---@param unit integer unit ID
+    ---@param option any? optional option options for the optional options (like burn rate)
+    function public.send_unit_command(cmd, unit, option)
+        _send_api(CRDN_TYPE.UNIT_CMD, { cmd, unit, option })
+    end
+
     -- parse a packet
     ---@param side string
     ---@param sender integer
@@ -581,7 +601,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         local ok = util.trinary(max == nil, packet.length == length, packet.length >= length and packet.length <= (max or 0))
         if not ok then
             local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: packet length mismatch -> expect %d != actual %d"
-            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type, length, packet.scada_frame.length()))
+            log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type, length, packet.length))
         end
         return ok
     end
@@ -626,12 +646,56 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 if protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame
                     if self.api.linked then
-                        if packet.type == CRDN_TYPE.API_GET_FAC then
+                        if packet.type == CRDN_TYPE.FAC_CMD then
+                            -- facility command acknowledgement
+                            if packet.length >= 2 then
+                                local cmd = packet.data[1]
+                                local ack = packet.data[2] == true
+
+                                if cmd == FAC_COMMAND.SCRAM_ALL then
+                                    iocontrol.get_db().facility.scram_ack(ack)
+                                elseif cmd == FAC_COMMAND.STOP then
+                                elseif cmd == FAC_COMMAND.START then
+                                elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
+                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                                elseif cmd == FAC_COMMAND.SET_PU_FB then
+                                elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                                else
+                                    log.debug(util.c("received facility command ack with unknown command ", cmd))
+                                end
+                            else
+                                log.debug("SCADA_CRDN facility command ack packet length mismatch")
+                            end
+                        elseif packet.type == CRDN_TYPE.UNIT_CMD then
+                            -- unit command acknowledgement
+                            if packet.length == 3 then
+                                local cmd = packet.data[1]
+                                local unit_id = packet.data[2]
+                                local ack = packet.data[3] == true
+
+                                local unit = iocontrol.get_db().units[unit_id]  ---@type pioctl_unit
+
+                                if unit ~= nil then
+                                    if cmd == UNIT_COMMAND.SCRAM then
+                                        unit.scram_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.START then
+                                        unit.start_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.RESET_RPS then
+                                        unit.reset_rps_ack(ack)
+                                    elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
+                                        unit.ack_alarms_ack(ack)
+                                    else
+                                        log.debug(util.c("received unsupported unit command ack for command ", cmd))
+                                    end
+                                end
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_FAC then
                             if _check_length(packet, 11) then
                                 iocontrol.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
-                            if _check_length(packet, 11) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
+                            if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
                                 iocontrol.record_unit_data(packet.data)
                             end
                         else _fail_type(packet) end

@@ -395,13 +395,6 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 elseif ack == false then
                     log.debug(log_tag .. "burn rate update failed!")
                 end
-
-                -- send acknowledgement to coordinator
-                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
-                    unit = reactor_id,
-                    cmd = UNIT_COMMAND.SET_BURN,
-                    ack = ack
-                })
             elseif pkt.type == RPLC_TYPE.RPS_ENABLE then
                 -- enable acknowledgement
                 local ack = _get_ack(pkt)
