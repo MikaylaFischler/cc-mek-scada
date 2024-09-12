@@ -254,7 +254,7 @@ doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket 
 doc("G_FP", "FP", "Front Panel. See Terminology.")
 doc("G_Hi", "Hi", "High.")
 doc("G_Lo", "Lo", "Low.")
-doc("G_PID", "PID", "A Proportional Integral Derivitave closed-loop controller.")
+doc("G_PID", "PID", "A Proportional Integral Derivative closed-loop controller.")
 doc("G_PKT", "PKT", "Pocket. Abbreviation for the pocket computer.")
 doc("G_PLC", "PLC", "Programmable Logic Controller. A device that not only reports data and controls outputs, but can also make decisions on its own.")
 doc("G_PPM", "PPM", "Protected Peripheral Manager. This is an abstraction layer created for this project that prevents peripheral calls from crashing applications.")
