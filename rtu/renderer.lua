@@ -18,7 +18,7 @@ local ui = {
 }
 
 -- try to start the UI
----@param units table RTU units
+---@param units rtu_registry_entry[] RTU entries
 ---@param theme FP_THEME front panel theme
 ---@param color_mode COLOR_MODE color mode
 ---@return boolean success, any error_msg

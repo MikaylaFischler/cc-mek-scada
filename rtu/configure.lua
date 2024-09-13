@@ -88,16 +88,16 @@ local changes = {
     { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } }
 }
 
+---@class rtu_peri_definition
+---@field unit integer|nil
+---@field index integer|nil
+---@field name string
+
 ---@class rtu_rs_definition
 ---@field unit integer|nil
 ---@field port IO_PORT
 ---@field side side
 ---@field color color|nil
-
----@class rtu_peri_definition
----@field unit integer|nil
----@field index integer|nil
----@field name string
 
 local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
 local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
@@ -174,8 +174,8 @@ local tool_ctl = {
 ---@class rtu_config
 local tmp_cfg = {
     SpeakerVolume = 1.0,
-    Peripherals = {},
-    Redstone = {},
+    Peripherals = {},   ---@type rtu_peri_definition[]
+    Redstone = {},      ---@type rtu_rs_definition[]
     SVR_Channel = nil,  ---@type integer
     RTU_Channel = nil,  ---@type integer
     ConnTimeout = nil,  ---@type number
@@ -1296,7 +1296,7 @@ local function config_view(display)
             local ini_unit = tri(for_facility, nil, entry.for_reactor)
 
             local def = { name = entry.name, unit = ini_unit, index = entry.index }
-            local mount = mounts[def.name] ---@type ppm_entry|nil
+            local mount = mounts[def.name]
 
             local status = "  \x13 not connected, please re-config later"
             local color = colors.orange
@@ -1497,7 +1497,7 @@ local function config_view(display)
         peri_list.remove_all()
 
         for i = 1, #cfg.Peripherals do
-            local def = cfg.Peripherals[i]  ---@type rtu_peri_definition
+            local def = cfg.Peripherals[i]
 
             local t = ppm.get_type(def.name)
             local t_str = "<disconnected> (connect to edit)"
@@ -1529,7 +1529,7 @@ local function config_view(display)
     end
 
     local function edit_rs_entry(idx)
-        local def = tmp_cfg.Redstone[idx]   ---@type rtu_rs_definition
+        local def = tmp_cfg.Redstone[idx]
 
         tool_ctl.rs_cfg_shortcut.hide(true)
         tool_ctl.rs_cfg_color.show()

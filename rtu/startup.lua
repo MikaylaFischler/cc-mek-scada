@@ -109,7 +109,7 @@ local function main()
         -- RTU gateway devices (not RTU units)
         rtu_dev = {
             modem = ppm.get_wireless_modem(),
-            sounders = {}
+            sounders = {}        ---@type rtu_speaker_sounder[]
         },
 
         -- system objects
@@ -117,7 +117,7 @@ local function main()
             nic = nil,           ---@type nic
             rtu_comms = nil,     ---@type rtu_comms
             conn_watchdog = nil, ---@type watchdog
-            units = {}
+            units = {}           ---@type rtu_registry_entry[]
         },
 
         -- message queues
@@ -143,11 +143,11 @@ local function main()
     -- configure RTU gateway based on settings file definitions
     local function sys_config()
         -- redstone interfaces
-        local rs_rtus = {}
+        local rs_rtus = {}  ---@type { rtu: rtu_rs_device, capabilities: IO_PORT[] }[]
 
         -- go through redstone definitions list
         for entry_idx = 1, #rtu_redstone do
-            local entry = rtu_redstone[entry_idx]   ---@type rtu_rs_definition
+            local entry = rtu_redstone[entry_idx]
             local assignment
             local for_reactor = entry.unit
             local iface_name = util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
@@ -227,14 +227,14 @@ local function main()
 
         -- create unit entries for redstone RTUs
         for for_reactor, def in pairs(rs_rtus) do
-            ---@class rtu_unit_registry_entry
+            ---@class rtu_registry_entry
             local unit = {
                 uid = 0,                            ---@type integer
                 name = "redstone_io",               ---@type string
                 type = RTU_UNIT_TYPE.REDSTONE,      ---@type RTU_UNIT_TYPE
                 index = false,                      ---@type integer|false
                 reactor = for_reactor,              ---@type integer
-                device = def.capabilities,          ---@type table use device field for redstone ports
+                device = def.capabilities,          ---@type IO_PORT[] use device field for redstone ports
                 is_multiblock = false,              ---@type boolean
                 formed = nil,                       ---@type boolean|nil
                 hw_state = RTU_UNIT_HW_STATE.OK,    ---@type RTU_UNIT_HW_STATE
@@ -440,14 +440,14 @@ local function main()
                 end
             end
 
-            ---@class rtu_unit_registry_entry
+            ---@class rtu_registry_entry
             local rtu_unit = {
                 uid = 0,                                ---@type integer
                 name = name,                            ---@type string
                 type = rtu_type,                        ---@type RTU_UNIT_TYPE
                 index = index or false,                 ---@type integer|false
                 reactor = for_reactor,                  ---@type integer
-                device = device,                        ---@type table
+                device = device,                        ---@type table peripheral reference
                 is_multiblock = is_multiblock,          ---@type boolean
                 formed = formed,                        ---@type boolean|nil
                 hw_state = RTU_UNIT_HW_STATE.OFFLINE,   ---@type RTU_UNIT_HW_STATE

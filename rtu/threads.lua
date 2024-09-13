@@ -33,7 +33,7 @@ local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 ---@param iface string
 ---@param type string
 ---@param device table
----@param unit rtu_unit_registry_entry
+---@param unit rtu_registry_entry
 local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
     local sys = smem.rtu_sys
 
@@ -279,7 +279,7 @@ function threads.thread__main(smem)
                             -- find disconnected device
                             if units[i].device == device then
                                 -- will let the PPM prevent crashes, which will indicate failures in MODBUS queries
-                                local unit = units[i]   ---@type rtu_unit_registry_entry
+                                local unit = units[i]
                                 local type_name = types.rtu_type_to_string(unit.type)
 
                                 println_ts(util.c("lost the ", type_name, " on interface ", unit.name))
@@ -332,7 +332,7 @@ function threads.thread__main(smem)
             elseif event == "speaker_audio_empty" then
                 -- handle empty speaker audio buffer
                 for i = 1, #sounders do
-                    local sounder = sounders[i] ---@type rtu_speaker_sounder
+                    local sounder = sounders[i]
                     if sounder.name == param1 then
                         sounder.continue()
                         break
@@ -460,7 +460,7 @@ end
 -- per-unit communications handler thread
 ---@nodiscard
 ---@param smem rtu_shared_memory
----@param unit rtu_unit_registry_entry
+---@param unit rtu_registry_entry
 function threads.thread__unit_comms(smem, unit)
     ---@class parallel_thread
     local public = {}
