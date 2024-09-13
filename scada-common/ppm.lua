@@ -334,12 +334,12 @@ end
 
 -- list all available peripherals
 ---@nodiscard
----@return table names
+---@return string[] names
 function ppm.list_avail() return peripheral.getNames() end
 
 -- list mounted peripherals
 ---@nodiscard
----@return table mounts
+---@return { [string]: ppm_entry } mounts
 function ppm.list_mounts()
     local list = {}
     for k, v in pairs(ppm_sys.mounts) do list[k] = v end
@@ -363,7 +363,7 @@ end
 -- get a mounted peripheral by side/interface
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return table|nil device function table
+---@return { [string]: function }|nil device function table
 function ppm.get_periph(iface)
     if ppm_sys.mounts[iface] then
         return ppm_sys.mounts[iface].dev
