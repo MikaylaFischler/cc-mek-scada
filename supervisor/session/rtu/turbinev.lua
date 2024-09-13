@@ -109,6 +109,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class turbinev_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --

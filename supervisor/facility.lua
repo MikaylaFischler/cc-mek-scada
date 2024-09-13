@@ -54,13 +54,13 @@ function facility.new(config)
             fac_tank_list = {}  ---@type integer[]
         },
         -- rtus
-        rtu_conn_count = 0,
+        rtu_gw_conn_count = 0,
         rtu_list = {},  ---@type unit_session[][]
-        redstone = {},  ---@type unit_session[]
-        induction = {}, ---@type unit_session[]
-        sps = {},       ---@type unit_session[]
-        tanks = {},     ---@type unit_session[]
-        envd = {},      ---@type unit_session[]
+        redstone = {},  ---@type redstone_session[]
+        induction = {}, ---@type imatrix_session[]
+        sps = {},       ---@type sps_session[]
+        tanks = {},     ---@type dynamicv_session[]
+        envd = {},      ---@type envd_session[]
         -- redstone I/O control
         io_ctl = nil,   ---@type rs_controller
         -- process control
@@ -509,7 +509,7 @@ function facility.new(config)
     -- attempt to set a test tone state
     ---@param id TONE|0 tone ID or 0 to disable all
     ---@param state boolean state
-    ---@return boolean allow_testing, table test_tone_states
+    ---@return boolean allow_testing, { [TONE]: boolean } test_tone_states
     function public.diag_set_test_tone(id, state)
         if self.allow_testing then
             self.test_tone_set = true
@@ -528,7 +528,7 @@ function facility.new(config)
     -- attempt to set a test alarm state
     ---@param id ALARM|0 alarm ID or 0 to disable all
     ---@param state boolean state
-    ---@return boolean allow_testing, table test_alarm_states
+    ---@return boolean allow_testing, { [ALARM]: boolean } test_alarm_states
     function public.diag_set_test_alarm(id, state)
         if self.allow_testing then
             self.test_tone_set = true
@@ -633,7 +633,7 @@ function facility.new(config)
         local status = {}
 
         -- total count of all connected RTUs in the facility
-        status.count = self.rtu_conn_count
+        status.count = self.rtu_gw_conn_count
 
         -- power averages from induction matricies
         status.power = {
@@ -647,7 +647,7 @@ function facility.new(config)
         status.induction = {}
         for i = 1, #self.induction do
             local matrix = self.induction[i]
-            local db     = matrix.get_db() ---@type imatrix_session_db
+            local db = matrix.get_db()
 
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
@@ -660,7 +660,7 @@ function facility.new(config)
         status.sps = {}
         for i = 1, #self.sps do
             local sps = self.sps[i]
-            local db  = sps.get_db() ---@type sps_session_db
+            local db = sps.get_db()
             status.sps[i] = { sps.is_faulted(), db.formed, db.state, db.tanks }
         end
 
@@ -668,7 +668,7 @@ function facility.new(config)
         status.tanks = {}
         for i = 1, #self.tanks do
             local tank = self.tanks[i]
-            local db   = tank.get_db() ---@type dynamicv_session_db
+            local db = tank.get_db()
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
@@ -676,7 +676,7 @@ function facility.new(config)
         status.envds = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]
-            local db   = envd.get_db() ---@type envd_session_db
+            local db = envd.get_db()
             status.envds[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
@@ -685,9 +685,9 @@ function facility.new(config)
 
     --#endregion
 
-    -- supervisor sessions reporting the list of active RTU sessions
-    ---@param rtu_sessions table session list of all connected RTUs
-    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
+    -- supervisor sessions reporting the list of active RTU gateway sessions
+    ---@param sessions rtu_session_struct[] session list of all connected RTU gateways
+    function public.report_rtu_gateways(sessions) self.rtu_gw_conn_count = #sessions end
 
     -- get the facility cooling configuration
     function public.get_cooling_conf() return self.cooling_conf end

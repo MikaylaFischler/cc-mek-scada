@@ -82,12 +82,12 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         -- rtus
         rtu_list = {},  ---@type unit_session[][]
-        redstone = {},  ---@type unit_session[]
-        boilers = {},   ---@type unit_session[]
-        turbines = {},  ---@type unit_session[]
-        tanks = {},     ---@type unit_session[]
-        snas = {},      ---@type unit_session[]
-        envd = {},      ---@type unit_session[]
+        redstone = {},  ---@type redstone_session[]
+        boilers = {},   ---@type boilerv_session[]
+        turbines = {},  ---@type turbinev_session[]
+        tanks = {},     ---@type dynamicv_session[]
+        snas = {},      ---@type sna_session[]
+        envd = {},      ---@type envd_session[]
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
         valves = {},    ---@type unit_valves
@@ -154,7 +154,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             waste = 0,
             high_temp_lim = 1150
         },
-        ---@class alarm_monitors
+        ---@type { [string]: alarm_def }
         alarms = {
             -- reactor lost under the condition of meltdown imminent
             ContainmentBreach    = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.ContainmentBreach, tier = PRIO.CRITICAL },
@@ -221,7 +221,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
                 GeneratorTrip = {},    ---@type boolean[]
                 TurbineTrip = {}       ---@type boolean[]
             },
-            ---@class alarms
+            ---@type { [ALARM]: ALARM_STATE }
             alarm_states = {
                 ALARM_STATE.INACTIVE,
                 ALARM_STATE.INACTIVE,
@@ -325,7 +325,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]
-            local db = boiler.get_db() ---@type boilerv_session_db
+            local db = boiler.get_db()
 
             local last_update_s = db.tanks.last_update / 1000.0
 
@@ -337,7 +337,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]
-            local db = turbine.get_db() ---@type turbinev_session_db
+            local db = turbine.get_db()
 
             local last_update_s = db.tanks.last_update / 1000.0
 
@@ -554,7 +554,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         -- check boilers formed/faulted
         for i = 1, #self.boilers do
             local sess = self.boilers[i]
-            local boiler = sess.get_db() ---@type boilerv_session_db
+            local boiler = sess.get_db()
             if sess.is_faulted() or not boiler.formed then
                 self.db.control.degraded = true
             end
@@ -563,7 +563,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         -- check turbines formed/faulted
         for i = 1, #self.turbines do
             local sess = self.turbines[i]
-            local turbine = sess.get_db() ---@type turbinev_session_db
+            local turbine = sess.get_db()
             if sess.is_faulted() or not turbine.formed then
                 self.db.control.degraded = true
             end
@@ -928,19 +928,22 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     ---@nodiscard
     function public.check_rtu_conns()
         ---@class unit_connections
+        ---@field boilers boolean[]
+        ---@field turbines boolean[]
+        ---@field tanks boolean[]
         local conns = {}
 
-        conns.boilers = {}  ---@type boolean[]
+        conns.boilers = {}
         for i = 1, #self.boilers do
             conns.boilers[self.boilers[i].get_device_idx()] = true
         end
 
-        conns.turbines = {} ---@type boolean[]
+        conns.turbines = {}
         for i = 1, #self.turbines do
             conns.turbines[self.turbines[i].get_device_idx()] = true
         end
 
-        conns.tanks = {}    ---@type boolean[]
+        conns.tanks = {}
         for i = 1, #self.tanks do
             conns.tanks[self.tanks[i].get_device_idx()] = true
         end
@@ -957,7 +960,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         status.boilers = {}
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]
-            local db     = boiler.get_db() ---@type boilerv_session_db
+            local db = boiler.get_db()
             status.boilers[boiler.get_device_idx()] = { boiler.is_faulted(), db.formed, db.state, db.tanks }
         end
 
@@ -965,7 +968,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         status.turbines = {}
         for i = 1, #self.turbines do
             local turbine = self.turbines[i]
-            local db      = turbine.get_db() ---@type turbinev_session_db
+            local db = turbine.get_db()
             status.turbines[turbine.get_device_idx()] = { turbine.is_faulted(), db.formed, db.state, db.tanks }
         end
 
@@ -973,14 +976,14 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         status.tanks = {}
         for i = 1, #self.tanks do
             local tank = self.tanks[i]
-            local db   = tank.get_db() ---@type dynamicv_session_db
+            local db = tank.get_db()
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- SNA statistical information
         local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
-            local db = self.snas[i].get_db() ---@type sna_session_db
+            local db = self.snas[i].get_db()
             total_peak = total_peak + db.state.peak_production
             total_avail = total_avail + db.state.production_rate
             total_out = total_out + math.min(db.tanks.input.amount / 10, db.state.production_rate)
@@ -991,7 +994,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         status.envds = {}
         for i = 1, #self.envd do
             local envd = self.envd[i]
-            local db   = envd.get_db() ---@type envd_session_db
+            local db = envd.get_db()
             status.envds[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
@@ -1005,7 +1008,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         local total_avail_rate = 0
 
         for i = 1, #self.snas do
-            local db = self.snas[i].get_db() ---@type sna_session_db
+            local db = self.snas[i].get_db()
             total_avail_rate = total_avail_rate + db.state.production_rate
         end
 

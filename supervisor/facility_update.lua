@@ -150,7 +150,7 @@ function update.pre_auto()
     -- calculate moving averages for induction matrix
     if self.induction[1] ~= nil then
         local matrix = self.induction[1]
-        local db = matrix.get_db() ---@type imatrix_session_db
+        local db = matrix.get_db()
 
         local build_update = db.build.last_update
         rate_update = db.state.last_update
@@ -512,7 +512,7 @@ function update.auto_safety()
     local astatus = self.ascram_status
 
     if self.induction[1] ~= nil then
-        local db = self.induction[1].get_db() ---@type imatrix_session_db
+        local db = self.induction[1].get_db()
 
         -- clear matrix disconnected
         if astatus.matrix_dc then
@@ -545,7 +545,7 @@ function update.auto_safety()
 
             for i = 1, #self.envd do
                 local envd = self.envd[i]
-                local e_db = envd.get_db() ---@type envd_session_db
+                local e_db = envd.get_db()
                 if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
             end
 
@@ -756,7 +756,7 @@ function update.redstone(ack_all)
 
         -- update induction matrix related outputs
         if self.induction[1] ~= nil then
-            local db = self.induction[1].get_db() ---@type imatrix_session_db
+            local db = self.induction[1].get_db()
 
             self.io_ctl.digital_write(IO.F_MATRIX_LOW, db.tanks.energy_fill < const.RS_THRESHOLDS.IMATRIX_CHARGE_LOW)
             self.io_ctl.digital_write(IO.F_MATRIX_HIGH, db.tanks.energy_fill > const.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH)
@@ -791,7 +791,7 @@ function update.unit_mgmt()
     self.current_waste_product = self.waste_product
 
     if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
-        local db = self.induction[1].get_db() ---@type imatrix_session_db
+        local db = self.induction[1].get_db()
 
         if db.tanks.energy_fill >= 0.15 then
             self.disabled_sps = false
@@ -813,7 +813,7 @@ function update.unit_mgmt()
     if need_emcool then
         for i = 1, #self.tanks do
             local session = self.tanks[i]
-            local tank = session.get_db() ---@type dynamicv_session_db
+            local tank = session.get_db()
 
             if tank.state.container_mode == CONTAINER_MODE.FILL then
                 session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)

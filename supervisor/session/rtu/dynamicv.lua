@@ -94,6 +94,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class dynamicv_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --

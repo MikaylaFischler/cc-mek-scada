@@ -29,7 +29,7 @@ unit_session.RTU_US_DATA = RTU_US_DATA
 ---@param advert rtu_advertisement RTU advertisement for this unit
 ---@param out_queue mqueue send queue
 ---@param log_tag string logging tag
----@param txn_tags table transaction log tags
+---@param txn_tags string[] transaction log tags
 function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_tags)
     local self = {
         device_index = advert.index,
@@ -52,7 +52,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     -- send a MODBUS message, creating a transaction in the process
     ---@param txn_type integer transaction type
     ---@param f_code MODBUS_FCODE function code
-    ---@param register_param table register range or register and values
+    ---@param register_param (number|string)[] register range or register and values
     ---@return integer txn_id transaction ID of this transaction
     function protected.send_request(txn_type, f_code, register_param)
         local m_pkt = comms.modbus_packet()

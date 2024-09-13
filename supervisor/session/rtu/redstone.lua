@@ -39,9 +39,13 @@ local PERIODICS = {
     OUTPUT_SYNC = 200
 }
 
----@class phy_entry
----@field phy IO_LVL
----@field req IO_LVL
+---@class dig_phy_entry
+---@field phy IO_LVL actual value
+---@field req IO_LVL commanded value
+
+---@class ana_phy_entry
+---@field phy number actual value
+---@field req number commanded value
 
 -- create a new redstone rtu session runner
 ---@nodiscard
@@ -72,27 +76,29 @@ function redstone.new(session_id, unit_id, advert, out_queue)
         },
         ---@class rs_io_list
         io_list = {
-            digital_in = {},        -- discrete inputs
-            digital_out = {},       -- coils
-            analog_in = {},         -- input registers
-            analog_out = {}         -- holding registers
+            digital_in = {},    ---@type IO_PORT[] discrete inputs
+            digital_out = {},   ---@type IO_PORT[] coils
+            analog_in = {},     ---@type IO_PORT[] input registers
+            analog_out = {}     ---@type IO_PORT[] holding registers
         },
         phy_trans = { coils = -1, hold_regs = -1 },
         -- last set/read ports (reflecting the current state of the RTU)
         ---@class rs_io_states
         phy_io = {
-            digital_in = {},        -- discrete inputs
-            digital_out = {},       -- coils
-            analog_in = {},         -- input registers
-            analog_out = {}         -- holding registers
+            digital_in = {},    ---@type dig_phy_entry[] discrete inputs
+            digital_out = {},   ---@type dig_phy_entry[] coils
+            analog_in = {},     ---@type ana_phy_entry[] input registers
+            analog_out = {}     ---@type ana_phy_entry[] holding registers
         },
         ---@class redstone_session_db
         db = {
             -- read/write functions for connected I/O
+            ---@type (rs_db_dig_io|rs_db_ana_io)[]
             io = {}
         }
     }
 
+    ---@class redstone_session:unit_session
     local public = self.session.get()
 
     -- INITIALIZE --

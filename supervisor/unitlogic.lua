@@ -162,7 +162,7 @@ function logic.update_annunciator(self)
 
     for i = 1, #self.envd do
         local envd = self.envd[i]
-        local db = envd.get_db() ---@type envd_session_db
+        local db = envd.get_db()
         any_faulted = any_faulted or envd.is_faulted()
         if db.radiation_raw > max_rad then max_rad = db.radiation_raw end
     end
@@ -173,8 +173,7 @@ function logic.update_annunciator(self)
     annunc.EmergencyCoolant = 1
 
     for i = 1, #self.redstone do
-        local db = self.redstone[i].get_db() ---@type redstone_session_db
-        local io = db.io[IO.U_EMER_COOL]     ---@type rs_db_dig_io|nil
+        local io = self.redstone[i].get_db().io[IO.U_EMER_COOL]
         if io ~= nil then
             annunc.EmergencyCoolant = util.trinary(io.read(), 3, 2)
             break
@@ -198,7 +197,7 @@ function logic.update_annunciator(self)
         -- go through boilers for stats and online
         for i = 1, #self.boilers do
             local session = self.boilers[i]
-            local boiler = session.get_db() ---@type boilerv_session_db
+            local boiler = session.get_db()
             local idx = session.get_device_idx()
 
             annunc.RCSFault = annunc.RCSFault or (not boiler.formed) or session.is_faulted()
@@ -227,7 +226,7 @@ function logic.update_annunciator(self)
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]
                 local idx = boiler.get_device_idx()
-                local db = boiler.get_db() ---@type boilerv_session_db
+                local db = boiler.get_db()
 
                 if r_db.mek_status.status then
                     annunc.HeatingRateLow[idx] = db.state.boil_rate == 0
@@ -252,7 +251,7 @@ function logic.update_annunciator(self)
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]
             local idx = boiler.get_device_idx()
-            local db = boiler.get_db() ---@type boilerv_session_db
+            local db = boiler.get_db()
 
             local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
 
@@ -295,7 +294,7 @@ function logic.update_annunciator(self)
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
         local session = self.turbines[i]
-        local turbine = session.get_db() ---@type turbinev_session_db
+        local turbine = session.get_db()
         local idx = session.get_device_idx()
 
         annunc.RCSFault = annunc.RCSFault or (not turbine.formed) or session.is_faulted()
@@ -381,7 +380,7 @@ function logic.update_annunciator(self)
     -- turbine safety checks
     for i = 1, #self.turbines do
         local turbine = self.turbines[i]
-        local db = turbine.get_db() ---@type turbinev_session_db
+        local db = turbine.get_db()
         local idx = turbine.get_device_idx()
 
         -- check if steam dumps are open
@@ -652,7 +651,7 @@ function logic.update_status_text(self)
 
     -- check if an alarm is active (tripped or ack'd)
     ---@nodiscard
-    ---@param alarm table alarm entry
+    ---@param alarm alarm_def alarm entry
     ---@return boolean active
     local function is_active(alarm)
         return alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED
@@ -818,7 +817,7 @@ function logic.handle_redstone(self)
 
     -- check if an alarm is active (tripped or ack'd)
     ---@nodiscard
-    ---@param alarm table alarm entry
+    ---@param alarm alarm_def alarm entry
     ---@return boolean active
     local function is_active(alarm)
         return alarm.state == AISTATE.TRIPPED or alarm.state == AISTATE.ACKED
@@ -905,7 +904,7 @@ function logic.handle_redstone(self)
         -- set turbines to not dump steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]
-            local turbine = session.get_db() ---@type turbinev_session_db
+            local turbine = session.get_db()
 
             if turbine.state.dumping_mode ~= DUMPING_MODE.IDLE then
                 session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.IDLE)
@@ -922,7 +921,7 @@ function logic.handle_redstone(self)
         -- set turbines to dump excess steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]
-            local turbine = session.get_db() ---@type turbinev_session_db
+            local turbine = session.get_db()
 
             if turbine.state.dumping_mode ~= DUMPING_MODE.DUMPING_EXCESS then
                 session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.DUMPING_EXCESS)
@@ -932,7 +931,7 @@ function logic.handle_redstone(self)
         -- make sure dynamic tanks are allowing outflow
         for i = 1, #self.tanks do
             local session = self.tanks[i]
-            local tank = session.get_db() ---@type dynamicv_session_db
+            local tank = session.get_db()
 
             if tank.state.container_mode == CONTAINER_MODE.FILL then
                 session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)

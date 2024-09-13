@@ -287,7 +287,7 @@ end
 
 -- on attempted link of an RTU to a facility or unit object, verify its ID and report a problem if it can't be accepted
 ---@param unit unit_session RTU session
----@param list table table of RTU sessions
+---@param list unit_session[] table of RTU sessions
 ---@param max integer max of this type of RTU
 ---@return RTU_ID_FAIL fail_code, string fail_str
 function svsessions.check_rtu_id(unit, list, max)
@@ -647,8 +647,8 @@ function svsessions.iterate_all()
     -- iterate sessions
     for _, list in pairs(self.sessions) do _iterate(list) end
 
-    -- report RTU sessions to facility
-    self.facility.report_rtus(self.sessions.rtu)
+    -- report RTU gateway sessions to facility
+    self.facility.report_rtu_gateways(self.sessions.rtu)
 
     -- iterate facility
     self.facility.update()
