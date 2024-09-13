@@ -23,7 +23,7 @@ local core         = require("graphics.core")
 local threads = {}
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-local UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
+local RTU_HW_STATE = databus.RTU_HW_STATE
 
 local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
@@ -106,7 +106,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
         -- if disconnected on startup, config wouldn't have been validated
         -- checking now that it has connected; the config isn't valid, so don't connect it
         if invalid then
-            unit.hw_state = UNIT_HW_STATE.OFFLINE
+            unit.hw_state = RTU_HW_STATE.OFFLINE
             databus.tx_unit_hw_status(unit.uid, unit.hw_state)
             return
         end
@@ -138,16 +138,16 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
         end
 
         if unit.is_multiblock then
-            unit.hw_state = UNIT_HW_STATE.UNFORMED
+            unit.hw_state = RTU_HW_STATE.UNFORMED
             if unit.formed == false then
                 log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
             end
         elseif faulted then
-            unit.hw_state = UNIT_HW_STATE.FAULTED
+            unit.hw_state = RTU_HW_STATE.FAULTED
         elseif not unknown then
-            unit.hw_state = UNIT_HW_STATE.OK
+            unit.hw_state = RTU_HW_STATE.OK
         else
-            unit.hw_state = UNIT_HW_STATE.OFFLINE
+            unit.hw_state = RTU_HW_STATE.OFFLINE
         end
 
         databus.tx_unit_hw_status(unit.uid, unit.hw_state)
@@ -285,7 +285,7 @@ function threads.thread__main(smem)
                                 println_ts(util.c("lost the ", type_name, " on interface ", unit.name))
                                 log.warning(util.c("lost the ", type_name, " unit peripheral on interface ", unit.name))
 
-                                unit.hw_state = UNIT_HW_STATE.OFFLINE
+                                unit.hw_state = RTU_HW_STATE.OFFLINE
                                 databus.tx_unit_hw_status(unit.uid, unit.hw_state)
                                 break
                             end
@@ -523,13 +523,13 @@ function threads.thread__unit_comms(smem, unit)
 
                 if unit.formed == nil then
                     unit.formed = is_formed
-                    if is_formed then unit.hw_state = UNIT_HW_STATE.OK end
+                    if is_formed then unit.hw_state = RTU_HW_STATE.OK end
                 elseif not unit.formed then
-                    unit.hw_state = UNIT_HW_STATE.UNFORMED
+                    unit.hw_state = RTU_HW_STATE.UNFORMED
                 end
 
                 if (is_formed == true) and not unit.formed then
-                    unit.hw_state = UNIT_HW_STATE.OK
+                    unit.hw_state = RTU_HW_STATE.OK
                     log.info(util.c(detail_name, " is now formed"))
                     rtu_comms.send_remounted(unit.uid)
                 elseif (is_formed == false) and unit.formed then
@@ -541,9 +541,9 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check hardware status
             if unit.device.__p_is_healthy() then
-                if unit.hw_state == UNIT_HW_STATE.FAULTED then unit.hw_state = UNIT_HW_STATE.OK end
+                if unit.hw_state == RTU_HW_STATE.FAULTED then unit.hw_state = RTU_HW_STATE.OK end
             else
-                if unit.hw_state == UNIT_HW_STATE.OK then unit.hw_state = UNIT_HW_STATE.FAULTED end
+                if unit.hw_state == RTU_HW_STATE.OK then unit.hw_state = RTU_HW_STATE.FAULTED end
             end
 
             -- update hw status
