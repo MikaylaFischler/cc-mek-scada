@@ -77,31 +77,31 @@ local tool_ctl = {
     auth_key_textbox = nil, ---@type graphics_element
     auth_key_value = "",
 
-    cooling_elems = {},
-    tank_elems = {},
+    cooling_elems = {},     ---@type { line: graphics_element, turbines: graphics_element, boilers: graphics_element, tank: graphics_element }[]
+    tank_elems = {},        ---@type { div: graphics_element, tank_opt: graphics_element, no_tank: graphics_element }[]
 
-    vis_ftanks = {},
-    vis_utanks = {}
+    vis_ftanks = {},        ---@type { line: graphics_element, pipe_conn?: graphics_element, pipe_chain?: graphics_element, pipe_direct?: graphics_element, label?: graphics_element }[]
+    vis_utanks = {}         ---@type { line: graphics_element, label: graphics_element }[]
 }
 
 ---@class svr_config
 local tmp_cfg = {
     UnitCount = 1,
-    CoolingConfig = {},
+    CoolingConfig = {},     ---@type { TurbineCount: integer, BoilerCount: integer, TankConnection: boolean }[]
     FacilityTankMode = 0,
-    FacilityTankDefs = {},
+    FacilityTankDefs = {},  ---@type integer[]
     ExtChargeIdling = false,
-    SVR_Channel = nil,  ---@type integer
-    PLC_Channel = nil,  ---@type integer
-    RTU_Channel = nil,  ---@type integer
-    CRD_Channel = nil,  ---@type integer
-    PKT_Channel = nil,  ---@type integer
-    PLC_Timeout = nil,  ---@type number
-    RTU_Timeout = nil,  ---@type number
-    CRD_Timeout = nil,  ---@type number
-    PKT_Timeout = nil,  ---@type number
-    TrustedRange = nil, ---@type number
-    AuthKey = nil,      ---@type string|nil
+    SVR_Channel = nil,      ---@type integer
+    PLC_Channel = nil,      ---@type integer
+    RTU_Channel = nil,      ---@type integer
+    CRD_Channel = nil,      ---@type integer
+    PKT_Channel = nil,      ---@type integer
+    PLC_Timeout = nil,      ---@type number
+    RTU_Timeout = nil,      ---@type number
+    CRD_Timeout = nil,      ---@type number
+    PKT_Timeout = nil,      ---@type number
+    TrustedRange = nil,     ---@type number
+    AuthKey = nil,          ---@type string|nil
     LogMode = 0,
     LogPath = "",
     LogDebug = false,
@@ -294,6 +294,8 @@ local function config_view(display)
             tmp_cfg.CoolingConfig = {}
             for i = 1, tmp_cfg.UnitCount do
                 local conf = tool_ctl.cooling_elems[i]
+                -- already verified fields are numbers
+---@diagnostic disable-next-line: assign-type-mismatch
                 tmp_cfg.CoolingConfig[i] = { TurbineCount = tonumber(conf.turbines.get_value()), BoilerCount = tonumber(conf.boilers.get_value()), TankConnection = conf.tank.get_value() }
                 if conf.tank.get_value() then any_has_tank = true end
             end

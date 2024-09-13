@@ -164,7 +164,6 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     function public.get_cmd_queue() return protected.in_q end
 
     -- close this unit
-    ---@nodiscard
     function public.close() self.connected = false end
     -- check if this unit is connected
     ---@nodiscard

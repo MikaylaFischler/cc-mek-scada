@@ -161,8 +161,8 @@ function logic.update_annunciator(self)
     local max_rad, any_faulted = 0, false
 
     for i = 1, #self.envd do
-        local envd = self.envd[i] ---@type unit_session
-        local db = envd.get_db()  ---@type envd_session_db
+        local envd = self.envd[i]
+        local db = envd.get_db() ---@type envd_session_db
         any_faulted = any_faulted or envd.is_faulted()
         if db.radiation_raw > max_rad then max_rad = db.radiation_raw end
     end
@@ -197,7 +197,7 @@ function logic.update_annunciator(self)
     if num_boilers > 0 then
         -- go through boilers for stats and online
         for i = 1, #self.boilers do
-            local session = self.boilers[i] ---@type unit_session
+            local session = self.boilers[i]
             local boiler = session.get_db() ---@type boilerv_session_db
             local idx = session.get_device_idx()
 
@@ -225,9 +225,9 @@ function logic.update_annunciator(self)
 
             -- check for inactive boilers while reactor is active
             for i = 1, #self.boilers do
-                local boiler = self.boilers[i] ---@type unit_session
+                local boiler = self.boilers[i]
                 local idx = boiler.get_device_idx()
-                local db = boiler.get_db()     ---@type boilerv_session_db
+                local db = boiler.get_db() ---@type boilerv_session_db
 
                 if r_db.mek_status.status then
                     annunc.HeatingRateLow[idx] = db.state.boil_rate == 0
@@ -250,9 +250,9 @@ function logic.update_annunciator(self)
 
     if num_boilers > 0 then
         for i = 1, #self.boilers do
-            local boiler = self.boilers[i] ---@type unit_session
+            local boiler = self.boilers[i]
             local idx = boiler.get_device_idx()
-            local db = boiler.get_db()     ---@type boilerv_session_db
+            local db = boiler.get_db() ---@type boilerv_session_db
 
             local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
 
@@ -294,7 +294,7 @@ function logic.update_annunciator(self)
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
-        local session = self.turbines[i] ---@type unit_session
+        local session = self.turbines[i]
         local turbine = session.get_db() ---@type turbinev_session_db
         local idx = session.get_device_idx()
 
@@ -380,8 +380,8 @@ function logic.update_annunciator(self)
 
     -- turbine safety checks
     for i = 1, #self.turbines do
-        local turbine = self.turbines[i] ---@type unit_session
-        local db = turbine.get_db()      ---@type turbinev_session_db
+        local turbine = self.turbines[i]
+        local db = turbine.get_db() ---@type turbinev_session_db
         local idx = turbine.get_device_idx()
 
         -- check if steam dumps are open
@@ -904,8 +904,8 @@ function logic.handle_redstone(self)
     if not cache.rps_trip then
         -- set turbines to not dump steam
         for i = 1, #self.turbines do
-            local session = self.turbines[i]    ---@type unit_session
-            local turbine = session.get_db()    ---@type turbinev_session_db
+            local session = self.turbines[i]
+            local turbine = session.get_db() ---@type turbinev_session_db
 
             if turbine.state.dumping_mode ~= DUMPING_MODE.IDLE then
                 session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.IDLE)
@@ -921,8 +921,8 @@ function logic.handle_redstone(self)
     elseif enable_emer_cool or self.emcool_opened then
         -- set turbines to dump excess steam
         for i = 1, #self.turbines do
-            local session = self.turbines[i]    ---@type unit_session
-            local turbine = session.get_db()    ---@type turbinev_session_db
+            local session = self.turbines[i]
+            local turbine = session.get_db() ---@type turbinev_session_db
 
             if turbine.state.dumping_mode ~= DUMPING_MODE.DUMPING_EXCESS then
                 session.get_cmd_queue().push_data(TBV_RTU_S_DATA.SET_DUMP_MODE, DUMPING_MODE.DUMPING_EXCESS)
@@ -931,8 +931,8 @@ function logic.handle_redstone(self)
 
         -- make sure dynamic tanks are allowing outflow
         for i = 1, #self.tanks do
-            local session = self.tanks[i]   ---@type unit_session
-            local tank = session.get_db()   ---@type dynamicv_session_db
+            local session = self.tanks[i]
+            local tank = session.get_db() ---@type dynamicv_session_db
 
             if tank.state.container_mode == CONTAINER_MODE.FILL then
                 session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)

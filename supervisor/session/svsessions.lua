@@ -40,13 +40,26 @@ local SESSION_TYPE = {
 svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
-    nic = nil,          ---@type nic|nil
+    -- references to supervisor state and other data
+    nic = nil,              ---@type nic|nil
     fp_ok = false,
-    config = nil,       ---@type svr_config
-    facility = nil,     ---@type facility|nil
-    sessions = { rtu = {}, plc = {}, crd = {}, pdg = {} },
+    config = nil,           ---@type svr_config
+    facility = nil,         ---@type facility|nil
+    -- lists of connected sessions
+    sessions = {
+        rtu = {},           ---@type rtu_session_struct
+        plc = {},           ---@type plc_session_struct
+        crd = {},           ---@type crd_session_struct
+        pdg = {}            ---@type pdg_session_struct
+    },
+    -- next session IDs
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
-    dev_dbg = { duplicate = {}, out_of_range = {}, connected = {} }
+    -- rtu device tracking and invalid assignment detection
+    dev_dbg = {
+        duplicate = {},     ---@type unit_session
+        out_of_range = {},  ---@type unit_session
+        connected = {}      ---@type { induction: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
+    }
 }
 
 ---@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
@@ -119,10 +132,10 @@ local function _sv_handle_outq(session)
 end
 
 -- iterate all the given sessions
----@param sessions table
+---@param sessions sv_session_structs[]
 local function _iterate(sessions)
     for i = 1, #sessions do
-        local session = sessions[i] ---@type sv_session_structs
+        local session = sessions[i]
 
         if session.open and session.instance.iterate() then
             _sv_handle_outq(session)
@@ -150,20 +163,20 @@ local function _shutdown(session)
 end
 
 -- close connections
----@param sessions table
+---@param sessions sv_session_structs[]
 local function _close(sessions)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type sv_session_structs
+        local session = sessions[i]
         if session.open then _shutdown(session) end
     end
 end
 
 -- check if a watchdog timer event matches that of one of the provided sessions
----@param sessions table
+---@param sessions sv_session_structs[]
 ---@param timer_event number
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
-        local session = sessions[i]  ---@type sv_session_structs
+        local session = sessions[i]
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -175,8 +188,9 @@ local function _check_watchdogs(sessions, timer_event)
 end
 
 -- delete any closed sessions
----@param sessions table
+---@param sessions sv_session_structs[]
 local function _free_closed(sessions)
+    ---@param session sv_session_structs
     local f = function (session) return session.open end
 
     ---@param session sv_session_structs
@@ -189,7 +203,7 @@ end
 
 -- find a session by computer ID
 ---@nodiscard
----@param list table
+---@param list sv_session_structs[]
 ---@param s_addr integer
 ---@return sv_session_structs|nil
 local function _find_session(list, s_addr)
@@ -366,7 +380,7 @@ function svsessions.init(nic, fp_ok, config, facility)
 
     for i = 1, config.UnitCount do
         local r_cool = cool_conf.r_cool[i]
-        local conns = { boilers = {}, turbines = {}, tanks = {} }
+        local conns = { boilers = {}, turbines = {}, tanks = {} }   ---@type unit_connections
 
         for b = 1, r_cool.BoilerCount do conns.boilers[b] = true end
         for t = 1, r_cool.TurbineCount do conns.turbines[t] = true end
