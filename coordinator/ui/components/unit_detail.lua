@@ -62,7 +62,7 @@ local function init(parent, id)
     local ind_wht = style.ind_wht
 
     local db = iocontrol.get_db()
-    local unit = db.units[id]   ---@type ioctl_unit
+    local unit = db.units[id]
     local f_ps = db.facility.ps
 
     local main = Div{parent=parent,x=1,y=1}

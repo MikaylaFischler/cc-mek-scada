@@ -44,7 +44,7 @@ function sounder.reconnect(speaker)
 end
 
 -- set alarm tones
----@param states table alarm tone commands from supervisor
+---@param states { [TONE]: boolean } alarm tone commands from supervisor
 function sounder.set(states)
     -- set tone states
     for id = 1, #states do alarm_ctl.stream.set_active(id, states[id]) end

@@ -8,10 +8,12 @@ local util = require("scada-common.util")
 local pgi = {}
 
 local data = {
-    pkt_list = nil,     ---@type nil|graphics_element
-    pkt_entry = nil,    ---@type function
+    pkt_list = nil,  ---@type nil|graphics_element
+    pkt_entry = nil, ---@type function
     -- session entries
-    s_entries = { pkt = {} }
+    s_entries = {
+        pkt = {}     ---@type graphics_element[]
+    }
 }
 
 -- link list boxes

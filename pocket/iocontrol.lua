@@ -223,7 +223,7 @@ function iocontrol.init_fac(conf)
             reset_rps_ack = nil,    ---@type fun(success: boolean)
             ack_alarms_ack = nil,   ---@type fun(success: boolean)
 
-            ---@type alarms
+            ---@type { [ALARM]: ALARM_STATE }
             alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
 
             annunciator = {},       ---@type annunciator

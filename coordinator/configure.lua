@@ -71,7 +71,7 @@ local tool_ctl = {
     net_listen = false,
     sv_addr = comms.BROADCAST,
     sv_seq_num = util.time_ms() * 10,
-    sv_cool_conf = nil,     ---@type table list of boiler & turbine counts
+    sv_cool_conf = nil,     ---@type [ integer, integer ][] list of boiler & turbine counts
     show_sv_cfg = nil,      ---@type function
 
     start_fail = 0,
@@ -110,7 +110,7 @@ local tool_ctl = {
     edit_monitor = nil,     ---@type function
 
     mon_iface = "",
-    mon_expect = {}
+    mon_expect = {}         ---@type integer[]
 }
 
 ---@class crd_config

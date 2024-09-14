@@ -84,8 +84,7 @@ local function init(main)
                 table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
                 table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
 
-                local u = units[i]  ---@type ioctl_unit
-                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
                 table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
             end
         end
@@ -102,8 +101,7 @@ local function init(main)
                     table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
                 end
 
-                local u = units[i]  ---@type ioctl_unit
-                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
                 table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
             end
         end

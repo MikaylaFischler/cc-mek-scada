@@ -37,7 +37,7 @@ local engine = {
         front_panel = nil,  ---@type graphics_element|nil
         main_display = nil, ---@type graphics_element|nil
         flow_display = nil, ---@type graphics_element|nil
-        unit_displays = {}
+        unit_displays = {}  ---@type (graphics_element|nil)[]
     },
     disable_flow_view = false
 }

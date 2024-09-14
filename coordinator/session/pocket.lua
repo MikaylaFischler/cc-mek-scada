@@ -217,7 +217,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 _send(CRDN_TYPE.API_GET_FAC, data)
             elseif pkt.type == CRDN_TYPE.API_GET_UNIT then
                 if pkt.length == 1 and type(pkt.data[1]) == "number" then
-                    local u = db.units[pkt.data[1]]   ---@type ioctl_unit
+                    local u = db.units[pkt.data[1]]
 
                     if u then
                         local data = {

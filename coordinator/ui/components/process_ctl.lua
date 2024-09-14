@@ -177,7 +177,7 @@ local function new_view(root, x, y)
         local cur_lu    = style.theme.disabled
 
         if i <= facility.num_units then
-            unit = units[i]   ---@type ioctl_unit
+            unit = units[i]
             tag_fg_bg = cpair(colors.black, colors.lightBlue)
             lim_fg_bg = s_hi_box
             label_fg  = style.theme.label_fg
@@ -234,7 +234,7 @@ local function new_view(root, x, y)
         local degraded = IndicatorLight{parent=lights,x=2,y=3,label="Degraded",colors=cpair(ind_red.fgd,ind_off),flash=true,period=period.BLINK_250_MS}
 
         if i <= facility.num_units then
-            local unit = units[i]   ---@type ioctl_unit
+            local unit = units[i]
 
             ready.register(unit.unit_ps, "U_AutoReady", ready.update)
             degraded.register(unit.unit_ps, "U_AutoDegraded", degraded.update)
@@ -323,7 +323,7 @@ local function new_view(root, x, y)
     local waste_status = Div{parent=proc,width=24,height=4,x=57,y=1,}
 
     for i = 1, facility.num_units do
-        local unit = units[i]   ---@type ioctl_unit
+        local unit = units[i]
 
         TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8}
         local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
