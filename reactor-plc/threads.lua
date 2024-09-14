@@ -628,9 +628,10 @@ function threads.thread__setpoint_control(smem)
             local reactor = plc_dev.reactor
 
             if plc_state.init_ok and (not plc_state.no_reactor) then
+                ---@cast reactor table won't be nil
+
                 -- check if we should start ramping
                 if setpoints.burn_rate_en and (setpoints.burn_rate ~= last_burn_sp) then
----@diagnostic disable-next-line: need-check-nil
                     local cur_burn_rate = reactor.getBurnRate()
 
                     if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
@@ -644,7 +645,6 @@ function threads.thread__setpoint_control(smem)
                             log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))
                         else
                             log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
----@diagnostic disable-next-line: need-check-nil
                             reactor.setBurnRate(setpoints.burn_rate)
                         end
                     end
@@ -658,7 +658,6 @@ function threads.thread__setpoint_control(smem)
                     -- adjust burn rate (setpoints.burn_rate)
                     if setpoints.burn_rate_en then
                         if rps.is_active() then
----@diagnostic disable-next-line: need-check-nil
                             local current_burn_rate = reactor.getBurnRate()
 
                             -- we yielded, check enable again
@@ -679,7 +678,6 @@ function threads.thread__setpoint_control(smem)
                                 running = running or (new_burn_rate ~= setpoints.burn_rate)
 
                                 -- set the burn rate
----@diagnostic disable-next-line: need-check-nil
                                 reactor.setBurnRate(new_burn_rate)
                             end
                         else

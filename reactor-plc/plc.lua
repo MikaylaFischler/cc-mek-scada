@@ -110,22 +110,8 @@ end
 ---@param reactor table
 ---@param is_formed boolean
 function plc.rps_init(reactor, is_formed)
-    local state_keys = {
-        high_dmg = 1,
-        high_temp = 2,
-        low_coolant = 3,
-        ex_waste = 4,
-        ex_hcoolant = 5,
-        no_fuel = 6,
-        fault = 7,
-        timeout = 8,
-        manual = 9,
-        automatic = 10,
-        sys_fail = 11,
-        force_disabled = 12
-    }
-
     local self = {
+        ---@type boolean[] check states
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_enabled = false,
         enabled_at = 0,
@@ -136,12 +122,27 @@ function plc.rps_init(reactor, is_formed)
         trip_cause = "ok"       ---@type rps_trip_cause
     }
 
+    local CHK = {
+        HIGH_DMG = 1,
+        HIGH_TEMP = 2,
+        LOW_COOLANT = 3,
+        EX_WASTE = 4,
+        EX_HCOOLANT = 5,
+        NO_FUEL = 6,
+        FAULT = 7,
+        TIMEOUT = 8,
+        MANUAL = 9,
+        AUTOMATIC = 10,
+        SYS_FAIL = 11,
+        FORCE_DISABLED = 12
+    }
+
     -- PRIVATE FUNCTIONS --
 
     -- set reactor access fault flag
     local function _set_fault()
         if reactor.__p_last_fault() ~= "Terminated" then
-            self.state[state_keys.fault] = true
+            self.state[CHK.FAULT] = true
         end
     end
 
@@ -203,8 +204,8 @@ function plc.rps_init(reactor, is_formed)
         end
 
         -- always update, since some ppm failures constitute not being formed
-        if not self.state[state_keys.sys_fail] then
-            self.state[state_keys.sys_fail] = not self.formed
+        if not self.state[CHK.SYS_FAIL] then
+            self.state[CHK.SYS_FAIL] = not self.formed
         end
     end
 
@@ -214,8 +215,8 @@ function plc.rps_init(reactor, is_formed)
         if _check_and_handle_ppm_call(disabled) then
             self.force_disabled = disabled
 
-            if not self.state[state_keys.force_disabled] then
-                self.state[state_keys.force_disabled] = disabled
+            if not self.state[CHK.FORCE_DISABLED] then
+                self.state[CHK.FORCE_DISABLED] = disabled
             end
         end
     end
@@ -223,8 +224,8 @@ function plc.rps_init(reactor, is_formed)
     -- check for high damage
     local function _high_damage()
         local damage_percent = reactor.getDamagePercent()
-        if _check_and_handle_ppm_call(damage_percent) and not self.state[state_keys.high_dmg] then
-            self.state[state_keys.high_dmg] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
+        if _check_and_handle_ppm_call(damage_percent) and not self.state[CHK.HIGH_DMG] then
+            self.state[CHK.HIGH_DMG] = damage_percent >= RPS_LIMITS.MAX_DAMAGE_PERCENT
         end
     end
 
@@ -232,40 +233,40 @@ function plc.rps_init(reactor, is_formed)
     local function _high_temp()
         -- mekanism: MAX_DAMAGE_TEMPERATURE = 1200K
         local temp = reactor.getTemperature()
-        if _check_and_handle_ppm_call(temp) and not self.state[state_keys.high_temp] then
-            self.state[state_keys.high_temp] = temp >= RPS_LIMITS.MAX_DAMAGE_TEMPERATURE
+        if _check_and_handle_ppm_call(temp) and not self.state[CHK.HIGH_TEMP] then
+            self.state[CHK.HIGH_TEMP] = temp >= RPS_LIMITS.MAX_DAMAGE_TEMPERATURE
         end
     end
 
     -- check if there is very low coolant
     local function _low_coolant()
         local coolant_filled = reactor.getCoolantFilledPercentage()
-        if _check_and_handle_ppm_call(coolant_filled) and not self.state[state_keys.low_coolant] then
-            self.state[state_keys.low_coolant] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
+        if _check_and_handle_ppm_call(coolant_filled) and not self.state[CHK.LOW_COOLANT] then
+            self.state[CHK.LOW_COOLANT] = coolant_filled < RPS_LIMITS.MIN_COOLANT_FILL
         end
     end
 
     -- check for excess waste (>80% filled)
     local function _excess_waste()
         local w_filled = reactor.getWasteFilledPercentage()
-        if _check_and_handle_ppm_call(w_filled) and not self.state[state_keys.ex_waste] then
-            self.state[state_keys.ex_waste] = w_filled > RPS_LIMITS.MAX_WASTE_FILL
+        if _check_and_handle_ppm_call(w_filled) and not self.state[CHK.EX_WASTE] then
+            self.state[CHK.EX_WASTE] = w_filled > RPS_LIMITS.MAX_WASTE_FILL
         end
     end
 
     -- check for heated coolant backup (>95% filled)
     local function _excess_heated_coolant()
         local hc_filled = reactor.getHeatedCoolantFilledPercentage()
-        if _check_and_handle_ppm_call(hc_filled) and not self.state[state_keys.ex_hcoolant] then
-            self.state[state_keys.ex_hcoolant] = hc_filled > RPS_LIMITS.MAX_HEATED_COLLANT_FILL
+        if _check_and_handle_ppm_call(hc_filled) and not self.state[CHK.EX_HCOOLANT] then
+            self.state[CHK.EX_HCOOLANT] = hc_filled > RPS_LIMITS.MAX_HEATED_COLLANT_FILL
         end
     end
 
     -- check if there is no fuel
     local function _insufficient_fuel()
         local fuel = reactor.getFuelFilledPercentage()
-        if _check_and_handle_ppm_call(fuel) and not self.state[state_keys.no_fuel] then
-            self.state[state_keys.no_fuel] = fuel <= RPS_LIMITS.NO_FUEL_FILL
+        if _check_and_handle_ppm_call(fuel) and not self.state[CHK.NO_FUEL] then
+            self.state[CHK.NO_FUEL] = fuel <= RPS_LIMITS.NO_FUEL_FILL
         end
     end
 
@@ -287,23 +288,23 @@ function plc.rps_init(reactor, is_formed)
 
     -- trip for a PLC comms timeout
     function public.trip_timeout()
-        self.state[state_keys.timeout] = true
+        self.state[CHK.TIMEOUT] = true
     end
 
     -- manually SCRAM the reactor
     function public.trip_manual()
-        self.state[state_keys.manual] = true
+        self.state[CHK.MANUAL] = true
     end
 
     -- automatic SCRAM commanded by supervisor
     function public.trip_auto()
-        self.state[state_keys.automatic] = true
+        self.state[CHK.AUTOMATIC] = true
     end
 
     -- trip for unformed reactor
     function public.trip_sys_fail()
-        self.state[state_keys.fault] = true
-        self.state[state_keys.sys_fail] = true
+        self.state[CHK.FAULT] = true
+        self.state[CHK.SYS_FAIL] = true
     end
 
     -- SCRAM the reactor now<br>
@@ -350,7 +351,7 @@ function plc.rps_init(reactor, is_formed)
     function public.auto_activate()
         -- clear automatic SCRAM if it was the cause
         if self.tripped and self.trip_cause == "automatic" then
-            self.state[state_keys.automatic] = true
+            self.state[CHK.AUTOMATIC] = true
             self.trip_cause = RPS_TRIP_CAUSE.OK
             self.tripped = false
 
@@ -388,40 +389,40 @@ function plc.rps_init(reactor, is_formed)
         -- check system states in order of severity
         if self.tripped then
             status = self.trip_cause
-        elseif self.state[state_keys.sys_fail] then
+        elseif self.state[CHK.SYS_FAIL] then
             log.warning("RPS: system failure, reactor not formed")
             status = RPS_TRIP_CAUSE.SYS_FAIL
-        elseif self.state[state_keys.force_disabled] then
+        elseif self.state[CHK.FORCE_DISABLED] then
             log.warning("RPS: reactor was force disabled")
             status = RPS_TRIP_CAUSE.FORCE_DISABLED
-        elseif self.state[state_keys.high_dmg] then
+        elseif self.state[CHK.HIGH_DMG] then
             log.warning("RPS: high damage")
             status = RPS_TRIP_CAUSE.HIGH_DMG
-        elseif self.state[state_keys.high_temp] then
+        elseif self.state[CHK.HIGH_TEMP] then
             log.warning("RPS: high temperature")
             status = RPS_TRIP_CAUSE.HIGH_TEMP
-        elseif self.state[state_keys.low_coolant] then
+        elseif self.state[CHK.LOW_COOLANT] then
             log.warning("RPS: low coolant")
             status = RPS_TRIP_CAUSE.LOW_COOLANT
-        elseif self.state[state_keys.ex_waste] then
+        elseif self.state[CHK.EX_WASTE] then
             log.warning("RPS: full waste")
             status = RPS_TRIP_CAUSE.EX_WASTE
-        elseif self.state[state_keys.ex_hcoolant] then
+        elseif self.state[CHK.EX_HCOOLANT] then
             log.warning("RPS: heated coolant backup")
             status = RPS_TRIP_CAUSE.EX_HCOOLANT
-        elseif self.state[state_keys.no_fuel] then
+        elseif self.state[CHK.NO_FUEL] then
             log.warning("RPS: no fuel")
             status = RPS_TRIP_CAUSE.NO_FUEL
-        elseif self.state[state_keys.fault] then
+        elseif self.state[CHK.FAULT] then
             log.warning("RPS: reactor access fault")
             status = RPS_TRIP_CAUSE.FAULT
-        elseif self.state[state_keys.timeout] then
+        elseif self.state[CHK.TIMEOUT] then
             log.warning("RPS: supervisor connection timeout")
             status = RPS_TRIP_CAUSE.TIMEOUT
-        elseif self.state[state_keys.manual] then
+        elseif self.state[CHK.MANUAL] then
             log.warning("RPS: manual SCRAM requested")
             status = RPS_TRIP_CAUSE.MANUAL
-        elseif self.state[state_keys.automatic] then
+        elseif self.state[CHK.AUTOMATIC] then
             log.warning("RPS: automatic SCRAM requested")
             status = RPS_TRIP_CAUSE.AUTOMATIC
         else
@@ -449,7 +450,7 @@ function plc.rps_init(reactor, is_formed)
         end
 
         -- update emergency coolant control if configured
-        _set_emer_cool(self.state[state_keys.low_coolant])
+        _set_emer_cool(self.state[CHK.LOW_COOLANT])
 
         -- report RPS status
         databus.tx_rps(self.tripped, self.state, self.emer_cool_active)
@@ -465,7 +466,7 @@ function plc.rps_init(reactor, is_formed)
     ---@nodiscard
     function public.get_trip_cause() return self.trip_cause end
     ---@nodiscard
-    function public.is_low_coolant() return self.states[state_keys.low_coolant] end
+    function public.is_low_coolant() return self.states[CHK.LOW_COOLANT] end
 
     ---@nodiscard
     function public.is_active() return self.reactor_enabled end
@@ -495,16 +496,16 @@ function plc.rps_init(reactor, is_formed)
         self.tripped = false
         self.trip_cause = RPS_TRIP_CAUSE.OK
 
-        self.state[state_keys.fault] = false
-        self.state[state_keys.sys_fail] = false
+        self.state[CHK.FAULT] = false
+        self.state[CHK.SYS_FAIL] = false
 
         log.info("RPS: partial reset on formed")
     end
 
     -- reset the automatic and timeout trip flags, then clear trip if that was the trip cause
     function public.auto_reset()
-        self.state[state_keys.automatic] = false
-        self.state[state_keys.timeout] = false
+        self.state[CHK.AUTOMATIC] = false
+        self.state[CHK.TIMEOUT] = false
 
         if self.trip_cause == RPS_TRIP_CAUSE.AUTOMATIC or self.trip_cause == RPS_TRIP_CAUSE.TIMEOUT then
             self.trip_cause = RPS_TRIP_CAUSE.OK

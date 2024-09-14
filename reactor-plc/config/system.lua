@@ -62,16 +62,13 @@ local system = {}
 -- create the system configuration view
 ---@param tool_ctl _plc_cfg_tool_ctl
 ---@param main_pane graphics_element
----@param cfg_sys table
----@param divs table
----@param style table
+---@param cfg_sys [ plc_config, plc_config, plc_config, table, function ]
+---@param divs graphics_element[]
+---@param style { [string]: cpair }
 ---@param exit function
 function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
-    ---@type plc_config, plc_config, plc_config, table, function
-    local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = table.unpack(cfg_sys)
-
-    ---@type graphics_element, graphics_element, graphics_element, graphics_element, graphics_element
-    local plc_cfg, net_cfg, log_cfg, clr_cfg, summary = table.unpack(divs)
+    local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
+    local plc_cfg, net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4], divs[5]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg

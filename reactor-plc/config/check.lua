@@ -175,7 +175,7 @@ local check = {}
 ---@param main_pane graphics_element
 ---@param settings_cfg plc_config
 ---@param check_sys graphics_element
----@param style table
+---@param style { [string]: cpair }
 function check.create(main_pane, settings_cfg, check_sys, style)
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
