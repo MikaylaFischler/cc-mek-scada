@@ -129,8 +129,14 @@ local function sidebar(args)
     end
 
     -- update the sidebar navigation options
-    ---@param items table sidebar entries
+    ---@param items sidebar_entry[] sidebar entries
     function e.on_update(items)
+        ---@class sidebar_entry
+        ---@field label string
+        ---@field tall boolean
+        ---@field color cpair
+        ---@field callback function|nil
+
         local next_y = 1
 
         tabs = {}

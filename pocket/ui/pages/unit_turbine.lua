@@ -30,7 +30,7 @@ local yel_ind_s = style.icon_states.yel_ind_s
 -- create a turbine view in the unit app
 ---@param app pocket_app
 ---@param u_page nav_tree_page
----@param panes table
+---@param panes graphics_element[]
 ---@param tbn_pane graphics_element
 ---@param u_id integer unit ID
 ---@param t_id integer turbine ID

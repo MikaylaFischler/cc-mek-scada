@@ -108,7 +108,7 @@ local function new_view(root)
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i] ---@type pioctl_unit
+            local unit = db.units[i]
             local u_ps = unit.unit_ps
 
             -- refresh data callback, every 500ms it will re-send the query

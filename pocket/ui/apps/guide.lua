@@ -90,10 +90,9 @@ local function new_view(root)
         local lnk = Div{parent=page_div,x=2,width=p_width}
         local panes = { home, search, use, uis, fps, gls, lnk }
 
-        local doc_map = {}
-        local search_db = {}
+        local doc_map = {}   ---@type { [string]: function }
+        local search_db = {} ---@type [ string, string, string, function ][]
 
-        ---@class _guide_section_constructor_data
         local sect_construct_data = { app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active }
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",alignment=ALIGN.CENTER}
@@ -117,7 +116,7 @@ local function new_view(root)
 
         function func_ref.run_search()
             local query = string.lower(query_field.get_value())
-            local s_results = { {}, {}, {}, {} }
+            local s_results = { {}, {}, {}, {} } ---@type [ string, string, string, function ][][]
 
             search_results.remove_all()
 

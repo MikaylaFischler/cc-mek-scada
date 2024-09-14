@@ -73,7 +73,7 @@ local function new_view(root)
 
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar(id)
-        local unit = db.units[id] ---@type pioctl_unit
+        local unit = db.units[id]
 
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
@@ -127,7 +127,7 @@ local function new_view(root)
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i] ---@type pioctl_unit
+            local unit = db.units[i]
             local u_ps = unit.unit_ps
 
             -- refresh data callback, every 500ms it will re-send the query

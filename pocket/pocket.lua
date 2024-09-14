@@ -100,22 +100,22 @@ pocket.APP_ID = APP_ID
 
 ---@class nav_tree_page
 ---@field _p nav_tree_page|nil page's parent
----@field _c table page's children
+---@field _c nav_tree_page[] page's children
 ---@field nav_to function function to navigate to this page
 ---@field switcher function|nil function to switch between children
----@field tasks table tasks to run while viewing this page
+---@field tasks function[] tasks to run while viewing this page
 
 -- initialize the page navigation system
 ---@param smem pkt_shared_memory
 function pocket.init_nav(smem)
     local self = {
-        pane = nil,    ---@type graphics_element
-        sidebar = nil, ---@type graphics_element
-        apps = {},
-        containers = {},
-        help_map = {},
-        help_return = nil,
-        loader_return = nil,
+        pane = nil,          ---@type graphics_element
+        sidebar = nil,       ---@type graphics_element
+        apps = {},           ---@type pocket_app[]
+        containers = {},     ---@type graphics_element[]
+        help_map = {},       ---@type { [string]: function }
+        help_return = nil,   ---@type POCKET_APP_ID|nil
+        loader_return = nil, ---@type POCKET_APP_ID|nil
         cur_app = APP_ID.ROOT
     }
 
@@ -142,10 +142,10 @@ function pocket.init_nav(smem)
         ---@class pocket_app
         local app = {
             loaded = false,
-            cur_page = nil, ---@type nav_tree_page
+            cur_page = nil,    ---@type nav_tree_page
             pane = pane,
-            paned_pages = {},
-            sidebar_items = {}
+            paned_pages = {},  ---@type nav_tree_page[]
+            sidebar_items = {} ---@type sidebar_entry[]
         }
 
         app.load = function () app.loaded = true end
@@ -165,7 +165,7 @@ function pocket.init_nav(smem)
         end
 
         -- configure the sidebar
-        ---@param items table
+        ---@param items sidebar_entry[]
         function app.set_sidebar(items)
             app.sidebar_items = items
             if self.sidebar then self.sidebar.update(items) end
@@ -263,7 +263,7 @@ function pocket.init_nav(smem)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
-        local app = self.apps[app_id] ---@type pocket_app
+        local app = self.apps[app_id]
         if app then
             if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
                 -- bring up the app loader
@@ -339,7 +339,7 @@ function pocket.init_nav(smem)
             return
         end
 
-        local app = self.apps[self.cur_app] ---@type pocket_app
+        local app = self.apps[self.cur_app]
         log.debug("attempting app nav up for app " .. self.cur_app)
 
         if not app.nav_up() then
@@ -359,6 +359,7 @@ function pocket.init_nav(smem)
     end
 
     -- link the help map from the guide app
+    ---@param map { [string]: function }
     function nav.link_help(map) self.help_map = map end
 
     return nav
