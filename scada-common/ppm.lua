@@ -423,7 +423,7 @@ function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAda
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@nodiscard
----@return table|nil modem function table
+---@return Modem|nil modem function table
 function ppm.get_wireless_modem()
     local w_modem = nil
     local emulated_env = periphemu ~= nil
@@ -440,7 +440,7 @@ end
 
 -- list all connected monitors
 ---@nodiscard
----@return table monitors
+---@return { [string]: ppm_entry } monitors
 function ppm.get_monitor_list()
     local list = {}
 

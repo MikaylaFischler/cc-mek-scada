@@ -77,23 +77,14 @@ end
 
 -- NIC: Network Interface Controller<br>
 -- utilizes HMAC-MD5 for message authentication, if enabled
----@param modem table modem to use
+---@param modem Modem modem to use
 function network.nic(modem)
     local self = {
         connected = true, -- used to avoid costly MAC calculations if modem isn't even present
         channels = {}
     }
 
-    ---@class nic
-    ---@field isOpen fun(channel: integer) : boolean check if a channel is open
-    ---@field isWireless fun() : boolean determine if this is a wired or wireless modem
-    ---@field getNamesRemote fun() : string[] list all remote peripherals on the wired network
-    ---@field isPresentRemote fun(name: string) : boolean determine if a peripheral is available on this wired network
-    ---@field getTypeRemote fun(name: string) : string|nil get the type of a peripheral is available on this wired network
-    ---@field hasTypeRemote fun(name: string, type: string) : boolean|nil check a peripheral is of a particular type
-    ---@field getMethodsRemote fun(name: string) : string[] get all available methods for the remote peripheral with the given name
-    ---@field callRemote fun(remoteName: string, method: string, ...) : table call a method on a peripheral on this wired network
-    ---@field getNameLocal fun() : string|nil returns the network name of the current computer, if the modem is on
+    ---@class nic:Modem
     local public = {}
 
     -- check if this NIC has a connected modem
@@ -101,7 +92,7 @@ function network.nic(modem)
     function public.is_connected() return self.connected end
 
     -- connect to a modem peripheral
-    ---@param reconnected_modem table
+    ---@param reconnected_modem Modem
     function public.connect(reconnected_modem)
         modem = reconnected_modem
         self.connected = true

@@ -1263,7 +1263,7 @@ local function config_view(display)
         -- list connected monitors
         local monitors = ppm.get_monitor_list()
         for iface, device in pairs(monitors) do
-            local dev = device.dev
+            local dev = device.dev  ---@type Monitor
 
             dev.setTextScale(0.5)
             dev.setTextColor(colors.white)

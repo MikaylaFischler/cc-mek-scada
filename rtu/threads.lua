@@ -245,6 +245,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         -- we only care if this is our wireless modem
                         if nic.is_modem(device) then
                             nic.disconnect()
@@ -263,6 +264,7 @@ function threads.thread__main(smem)
                             log.warning("non-comms modem disconnected")
                         end
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         for i = 1, #sounders do
                             if sounders[i].speaker == device then
                                 table.remove(sounders, i)
@@ -298,6 +300,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         if device.isWireless() and not nic.is_connected() then
                             -- reconnected modem
                             nic.connect(device)
@@ -312,6 +315,7 @@ function threads.thread__main(smem)
                             log.info("wired modem reconnected")
                         end
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         table.insert(sounders, rtu.init_sounder(device))
 
                         println_ts("speaker connected")

@@ -157,6 +157,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
+                    ---@cast device Modem
                     -- we only care if this is our wireless modem
                     if nic.is_modem(device) then
                         nic.disconnect()
@@ -181,6 +182,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
+                    ---@cast device Modem
                     if device.isWireless() and not nic.is_connected() then
                         -- reconnected modem
                         nic.connect(device)

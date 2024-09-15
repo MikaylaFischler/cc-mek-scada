@@ -144,6 +144,7 @@ function threads.thread__main(smem, init)
                         plc_state.no_reactor = true
                         plc_state.degraded = true
                     elseif networked and type == "modem" then
+                        ---@cast device Modem
                         -- we only care if this is our wireless modem
                         -- note, check init_ok first since nic will be nil if it is false
                         if plc_state.init_ok and nic.is_modem(device) then
@@ -208,6 +209,7 @@ function threads.thread__main(smem, init)
                             rps.reset_formed()
                         end
                     elseif networked and type == "modem" then
+                        ---@cast device Modem
                         -- note, check init_ok first since nic will be nil if it is false
                         if device.isWireless() and not (plc_state.init_ok and nic.is_connected()) then
                             -- reconnected modem

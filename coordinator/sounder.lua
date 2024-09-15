@@ -9,7 +9,7 @@ local log   = require("scada-common.log")
 local sounder = {}
 
 local alarm_ctl = {
-    speaker = nil,
+    speaker = nil,  ---@type Speaker
     volume = 0.5,
     stream = audio.new_stream()
 }
@@ -24,7 +24,7 @@ local function play()
 end
 
 -- initialize the annunciator alarm system
----@param speaker table speaker peripheral
+---@param speaker Speaker speaker peripheral
 ---@param volume number speaker volume
 function sounder.init(speaker, volume)
     alarm_ctl.speaker = speaker
@@ -36,7 +36,7 @@ function sounder.init(speaker, volume)
 end
 
 -- reconnect the speaker peripheral
----@param speaker table speaker peripheral
+---@param speaker Speaker speaker peripheral
 function sounder.reconnect(speaker)
     alarm_ctl.speaker = speaker
     alarm_ctl.playing = false

@@ -111,11 +111,11 @@ function coordinator.load_config()
 
     ---@class monitors_struct
     local monitors = {
-        main = nil,         ---@type table|nil
+        main = nil,         ---@type Monitor|nil
         main_name = "",
-        flow = nil,         ---@type table|nil
+        flow = nil,         ---@type Monitor|nil
         flow_name = "",
-        unit_displays = {}, ---@type table[]
+        unit_displays = {}, ---@type Monitor[]
         unit_name_map = {}  ---@type string[]
     }
 

@@ -152,7 +152,7 @@ local function main()
         -- core coordinator devices
         crd_dev = {
             modem = ppm.get_wireless_modem(),
-            speaker = ppm.get_device("speaker")
+            speaker = ppm.get_device("speaker") ---@type Speaker|nil
         },
 
         -- system objects

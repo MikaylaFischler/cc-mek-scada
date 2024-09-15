@@ -235,7 +235,7 @@ function rtu.init_unit(device)
 end
 
 -- create an alarm speaker sounder
----@param speaker table device peripheral
+---@param speaker Speaker device peripheral
 function rtu.init_sounder(speaker)
     ---@class rtu_speaker_sounder
     local spkr_ctl = {
