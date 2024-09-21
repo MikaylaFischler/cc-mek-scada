@@ -295,8 +295,12 @@ local function config_view(display)
             for i = 1, tmp_cfg.UnitCount do
                 local conf = tool_ctl.cooling_elems[i]
                 -- already verified fields are numbers
----@diagnostic disable-next-line: assign-type-mismatch
-                tmp_cfg.CoolingConfig[i] = { TurbineCount = tonumber(conf.turbines.get_value()), BoilerCount = tonumber(conf.boilers.get_value()), TankConnection = conf.tank.get_value() }
+                tmp_cfg.CoolingConfig[i] = {
+                    TurbineCount = tonumber(conf.turbines.get_value()) --[[@as number]],
+                    BoilerCount = tonumber(conf.boilers.get_value()) --[[@as number]],
+                    TankConnection = conf.tank.get_value()
+                }
+
                 if conf.tank.get_value() then any_has_tank = true end
             end
 

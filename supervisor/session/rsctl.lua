@@ -41,9 +41,7 @@ function rsctl.new(redstone_rtus)
     function public.digital_read(port)
         for i = 1, #redstone_rtus do
             local io = redstone_rtus[i].get_db().io[port]
-            -- this would only be digital, so it would only return boolean or nil
----@diagnostic disable-next-line: return-type-mismatch
-            if io ~= nil then return io.read() end
+            if io ~= nil then return io.read() --[[@as boolean|nil]] end
         end
     end
 

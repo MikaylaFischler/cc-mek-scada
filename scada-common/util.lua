@@ -138,7 +138,7 @@ function util.strminw(str, width) return cc_strings.ensure_width(str, width) end
 
 -- concatenation with built-in to string
 ---@nodiscard
----@vararg any
+---@param ... any
 ---@return string
 function util.concat(...)
     local args, strings = t_pack(...), {}
@@ -152,7 +152,7 @@ util.c = util.concat
 -- sprintf implementation
 ---@nodiscard
 ---@param format string
----@vararg any
+---@param ... any
 function util.sprintf(format, ...) return string.format(format, ...) end
 
 -- format a number string with commas as the thousands separator<br>
