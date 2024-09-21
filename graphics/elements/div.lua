@@ -13,13 +13,16 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new div element
+-- Create a new div container element.
 ---@nodiscard
 ---@param args div_args
----@return graphics_element element, element_id id
-local function div(args)
+---@return Div element, element_id id
+return function (args)
     -- create new graphics element base object
-    return element.new(args).complete()
-end
+    local e = element.new(args --[[@as graphics_args]])
 
-return div
+    ---@class Div:graphics_element
+    local Div, id = e.complete()
+
+    return Div, id
+end

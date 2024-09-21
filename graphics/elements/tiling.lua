@@ -20,12 +20,12 @@ local element = require("graphics.element")
 
 -- new tiling box
 ---@param args tiling_args
----@return graphics_element element, element_id id
-local function tiling(args)
+---@return Tiling element, element_id id
+return function (args)
     element.assert(type(args.fill_c) == "table", "fill_c is a required field")
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     local fill_a = args.fill_c.blit_a
     local fill_b = args.fill_c.blit_b
@@ -52,7 +52,7 @@ local function tiling(args)
     element.assert(start_x <= inner_width, "start_x > inner_width")
     element.assert(start_y <= inner_height, "start_y > inner_height")
 
-    -- draw tiling box
+    -- draw the tiling box
     function e.redraw()
         local alternator = true
 
@@ -86,10 +86,8 @@ local function tiling(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class Tiling:graphics_element
+    local Tiling, id = e.complete(true)
 
-    return e.complete()
+    return Tiling, id
 end
-
-return tiling

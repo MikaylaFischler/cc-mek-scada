@@ -14,15 +14,15 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new multipane element
+-- Create a new multipane container element.
 ---@nodiscard
 ---@param args multipane_args
----@return graphics_element element, element_id id
-local function multipane(args)
+---@return MultiPane element, element_id id
+return function (args)
     element.assert(type(args.panes) == "table", "panes is a required field")
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -41,10 +41,8 @@ local function multipane(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class MultiPane:graphics_element
+    local MultiPane, id = e.complete(true)
 
-    return e.complete()
+    return MultiPane, id
 end
-
-return multipane

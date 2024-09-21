@@ -30,15 +30,15 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field y integer y position
 ---@field h integer element height
 
--- new listbox element
+-- Create a new scrollable listbox container element.
 ---@nodiscard
 ---@param args listbox_args
----@return graphics_element element, element_id id
-local function listbox(args)
+---@return ListBox element, element_id id
+return function (args)
     args.can_focus = true
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- create content window for child elements
     local scroll_frame = window.create(e.window, 1, 1, e.frame.w - 1, args.scroll_height, false)
@@ -339,10 +339,8 @@ local function listbox(args)
         draw_bar()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class ListBox:graphics_element
+    local ListBox, id = e.complete(true)
 
-    return e.complete()
+    return ListBox, id
 end
-
-return listbox

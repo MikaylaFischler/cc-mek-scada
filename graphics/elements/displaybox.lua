@@ -13,13 +13,16 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new root display box
+-- Create a root display box.
 ---@nodiscard
 ---@param args displaybox_args
----@return graphics_element element, element_id id
-local function displaybox(args)
+---@return DisplayBox element, element_id id
+return function (args)
     -- create new graphics element base object
-    return element.new(args).complete()
-end
+    local e = element.new(args --[[@as graphics_args]])
 
-return displaybox
+    ---@class DisplayBox:graphics_element
+    local DisplayBox, id = e.complete()
+
+    return DisplayBox, id
+end

@@ -9,10 +9,10 @@ local element = require("graphics.element")
 ---@field y? integer auto incremented if omitted
 ---@field hidden? boolean true to hide on initial draw
 
--- new color map
+-- Create a horizontal reference color map. Primarily used for tuning custom colors.
 ---@param args colormap_args
----@return graphics_element element, element_id id
-local function colormap(args)
+---@return ColorMap element, element_id id
+return function (args)
     local bkg = "008877FFCCEE114455DD9933BBAA2266"
     local spaces = string.rep(" ", 32)
 
@@ -20,7 +20,7 @@ local function colormap(args)
     args.height = 1
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- draw color map
     function e.redraw()
@@ -28,10 +28,8 @@ local function colormap(args)
         e.w_blit(spaces, bkg, bkg)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class ColorMap:graphics_element
+    local ColorMap, id = e.complete(true)
 
-    return e.complete()
+    return ColorMap, id
 end
-
-return colormap

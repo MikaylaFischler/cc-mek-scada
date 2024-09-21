@@ -23,8 +23,8 @@ local ALIGN = core.ALIGN
 
 -- new text box
 ---@param args textbox_args
----@return graphics_element element, element_id id
-local function textbox(args)
+---@return TextBox element, element_id id
+return function (args)
     element.assert(type(args.text) == "string", "text is a required field")
 
     if args.anchor == true then args.can_focus = true end
@@ -42,7 +42,7 @@ local function textbox(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args, constrain)
+    local e = element.new(args --[[@as graphics_args]], constrain)
 
     e.value = args.text
 
@@ -82,10 +82,8 @@ local function textbox(args)
         e.redraw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class TextBox:graphics_element
+    local TextBox, id = e.complete(true)
 
-    return e.complete()
+    return TextBox, id
 end
-
-return textbox

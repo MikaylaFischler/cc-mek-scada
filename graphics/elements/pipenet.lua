@@ -20,10 +20,10 @@ local element = require("graphics.element")
 ---@field fg string foreground blit
 ---@field bg string background blit
 
--- new pipe network
+-- Create a pipe network diagram.
 ---@param args pipenet_args
----@return graphics_element element, element_id id
-local function pipenet(args)
+---@return PipeNetwork element, element_id id
+return function (args)
     element.assert(type(args.pipes) == "table", "pipes is a required field")
 
     args.width = 0
@@ -47,7 +47,7 @@ local function pipenet(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- determine if there are any thin pipes involved
     local any_thin = false
@@ -322,10 +322,8 @@ local function pipenet(args)
         if any_thin then map_draw() else vector_draw() end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class PipeNetwork:graphics_element
+    local PipeNetwork, id = e.complete(true)
 
-    return e.complete()
+    return PipeNetwork, id
 end
-
-return pipenet

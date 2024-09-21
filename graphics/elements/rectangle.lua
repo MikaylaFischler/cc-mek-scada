@@ -18,10 +18,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new rectangle
+-- Create a new rectangle container element.
 ---@param args rectangle_args
----@return graphics_element element, element_id id
-local function rectangle(args)
+---@return Rectangle element, element_id id
+return function (args)
     element.assert(args.border ~= nil or args.thin ~= true, "thin requires border to be provided")
 
     -- if thin, then width will always need to be 1
@@ -45,7 +45,7 @@ local function rectangle(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args, nil, offset_x, offset_y)
+    local e = element.new(args --[[@as graphics_args]], nil, offset_x, offset_y)
 
     -- create content window for child elements
     e.content_window = window.create(e.window, 1 + offset_x, 1 + offset_y, e.frame.w - (2 * offset_x), e.frame.h - (2 * offset_y))
@@ -191,7 +191,8 @@ local function rectangle(args)
         e.redraw()
     end
 
-    return e.complete()
-end
+    ---@class Rectangle:graphics_element
+    local Rectangle, id = e.complete()
 
-return rectangle
+    return Rectangle, id
+end

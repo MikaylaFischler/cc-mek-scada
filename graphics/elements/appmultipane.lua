@@ -24,15 +24,15 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new app multipane element
+-- Create a new app multipane container element.
 ---@nodiscard
 ---@param args app_multipane_args
----@return graphics_element element, element_id id
-local function multipane(args)
+---@return AppMultiPane element, element_id id
+return function (args)
     element.assert(type(args.panes) == "table", "panes is a required field")
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -100,10 +100,8 @@ local function multipane(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class AppMultiPane:graphics_element
+    local AppMultiPane, id = e.complete(true)
 
-    return e.complete()
+    return AppMultiPane, id
 end
-
-return multipane

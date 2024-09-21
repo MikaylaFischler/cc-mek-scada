@@ -18,7 +18,7 @@ local PERIOD = {
 flasher.PERIOD = PERIOD
 
 local active = false
-local registry = { {}, {}, {} } -- one registry table per period
+local registry = { {}, {}, {} } ---@type [ function[], function[], function [] ] one registry table per period
 local callback_counter = 0
 
 -- blink registered indicators<br>

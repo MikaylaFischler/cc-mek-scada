@@ -11,8 +11,8 @@ local events = core.events
 
 local element = {}
 
----@class graphics_args_generic
----@field window? table
+---@class graphics_args
+---@field window? Window
 ---@field parent? graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -23,47 +23,6 @@ local element = {}
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 ---@field can_focus? boolean true if this element can be focused, false by default
-
----@alias graphics_args graphics_args_generic
----|waiting_args
----|app_button_args
----|checkbox_args
----|hazard_button_args
----|multi_button_args
----|push_button_args
----|radio_2d_args
----|radio_button_args
----|sidebar_args
----|spinbox_args
----|switch_button_args
----|tabbar_args
----|number_field_args
----|text_field_args
----|alarm_indicator_light
----|core_map_args
----|data_indicator_args
----|hbar_args
----|icon_indicator_args
----|indicator_led_args
----|indicator_led_pair_args
----|indicator_led_rgb_args
----|indicator_light_args
----|power_indicator_args
----|rad_indicator_args
----|signal_bar_args
----|state_indicator_args
----|tristate_indicator_light_args
----|vbar_args
----|app_multipane_args
----|colormap_args
----|displaybox_args
----|div_args
----|listbox_args
----|multipane_args
----|pipenet_args
----|rectangle_args
----|textbox_args
----|tiling_args
 
 ---@class element_subscription
 ---@field ps psil ps used
@@ -92,14 +51,14 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         is_root = args.parent == nil,
         elem_type = debug.getinfo(2).name,
         define_completed = false,
-        p_window = nil,                                 ---@type table
+        p_window = nil,                                 ---@type Window
         position = events.new_coord_2d(1, 1),
         bounds = { x1 = 1, y1 = 1, x2 = 1, y2 = 1 },    ---@class element_bounds
         offset_x = 0,
         offset_y = 0,
         next_y = 1,                                     -- next child y coordinate
-        next_id = 0,                                    -- next child ID
-        subscriptions = {},
+        next_id = 0,                                    -- next child ID[
+        subscriptions = {},                             ---@type { ps: psil, key: string, func: function }[]
         button_down = { events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1) },
         focused = false,
         mt = {}
@@ -109,13 +68,13 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     local protected = {
         enabled = true,
         value = nil,            ---@type any
-        window = nil,           ---@type table
-        content_window = nil,   ---@type table|nil
+        window = nil,           ---@type Window
+        content_window = nil,   ---@type Window|nil
         mouse_window_shift = { x = 0, y = 0 },
         fg_bg = core.cpair(colors.white, colors.black),
         frame = core.gframe(1, 1, 1, 1),
-        children = {},
-        child_id_map = {}
+        children = {},          ---@type graphics_base[]
+        child_id_map = {}       ---@type { [element_id]: integer }
     }
 
     -- element as string
@@ -168,10 +127,10 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
             end
         end
 
-        ---@param children table
+        ---@param children graphics_base[]
         local function traverse(children)
             for i = 1, #children do
-                local child = children[i]   ---@type graphics_base
+                local child = children[i]
                 handle_element(child.get())
                 if child.get().is_visible() then traverse(child.children) end
             end
@@ -286,24 +245,29 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
         -- alias functions
 
-        -- window set cursor position
+        -- window set cursor position<br>
+        ---@see Window.setCursorPos
         ---@param x integer
         ---@param y integer
         function protected.w_set_cur(x, y) protected.window.setCursorPos(x, y) end
 
-        -- set background color
+        -- set background color<br>
+        ---@see Window.setBackgroundColor
         ---@param c color
         function protected.w_set_bkg(c) protected.window.setBackgroundColor(c) end
 
-        -- set foreground (text) color
+        -- set foreground (text) color<br>
+        ---@see Window.setTextColor
         ---@param c color
         function protected.w_set_fgd(c) protected.window.setTextColor(c) end
 
-        -- write text
+        -- write text<br>
+        ---@see Window.write
         ---@param str string
         function protected.w_write(str) protected.window.write(str) end
 
-        -- blit text
+        -- blit text<br>
+        ---@see Window.blit
         ---@param str string
         ---@param fg string
         ---@param bg string
@@ -335,8 +299,10 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
     -- report completion of element instantiation and get the public interface
     ---@nodiscard
+    ---@param redraw? boolean true to call redraw as part of completing this element
     ---@return graphics_element element, element_id id
-    function protected.complete()
+    function protected.complete(redraw)
+        if redraw then protected.redraw() end
         if args.parent ~= nil then args.parent.__child_ready(self.id, public) end
         return public, self.id
     end
@@ -352,7 +318,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- focus this element and take away focus from all other elements
     function protected.take_focus() args.parent.__focus_child(public) end
 
-    -- action handlers --
+    --#region Action Handlers
 
 -- luacheck: push ignore
 ---@diagnostic disable: unused-local, unused-vararg
@@ -401,14 +367,15 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     function protected.handle_paste(text) end
 
     -- handle data value changes
-    ---@vararg any value(s)
+    ---@param ... any value(s)
     function protected.on_update(...) end
 
     -- callback on control press responses
     ---@param result any
     function protected.response_callback(result) end
 
-    -- accessors and control --
+    --#endregion
+    --#region Accessors and Control --
 
     -- get value
     ---@nodiscard
@@ -427,11 +394,11 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     function protected.set_max(max) end
 
     -- custom recolor command, varies by element if implemented
-    ---@vararg cpair|color color(s)
+    ---@param ... cpair|color color(s)
     function protected.recolor(...) end
 
     -- custom resize command, varies by element if implemented
-    ---@vararg integer sizing
+    ---@param ... integer sizing
     function protected.resize(...) end
 
 -- luacheck: pop
@@ -514,6 +481,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- ELEMENT TREE --
 
     -- add a child element
+    ---@package
     ---@nodiscard
     ---@param key string|nil id
     ---@param child graphics_base
@@ -523,7 +491,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
         self.next_y = child.frame.y + child.frame.h
 
-        local id = key  ---@type string|integer|nil
+        local id = key  ---@type element_id|nil
         if id == nil then
             id = self.next_id
             self.next_id = self.next_id + 1
@@ -537,6 +505,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     end
 
     -- remove a child element
+    ---@package
     ---@param id element_id id
     function public.__remove_child(id)
         local index = protected.child_id_map[id]
@@ -548,11 +517,13 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     end
 
     -- actions to take upon a child element becoming ready (initial draw/construction completed)
+    ---@package
     ---@param key element_id id
     ---@param child graphics_element
     function public.__child_ready(key, child) protected.on_added(key, child) end
 
     -- focus solely on this child
+    ---@package
     ---@param child graphics_element
     function public.__focus_child(child)
         if self.is_root then
@@ -562,6 +533,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     end
 
     -- a child was focused, used to make sure it is actually visible to the user in the content frame
+    ---@package
     ---@param child graphics_element
     function public.__child_focused(child)
         protected.on_child_focused(child)
@@ -571,8 +543,8 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- get a child element
     ---@nodiscard
     ---@param id element_id
-    ---@return graphics_element
-    function public.get_child(id) return protected.children[protected.child_id_map[id]].get() end
+    ---@return graphics_element element
+    function public.get_child(id) return ({ protected.children[protected.child_id_map[id]].get() })[1] end
 
     -- get all children
     ---@nodiscard
@@ -619,7 +591,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
                 local elem = child.get().get_element_by_id(id)
                 if elem ~= nil then return elem end
             end
-        else return protected.children[index].get() end
+        else return ({ protected.children[index].get() })[1] end
     end
 
     -- AUTO-PLACEMENT --
@@ -631,17 +603,17 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
     -- PROPERTIES --
 
-    -- get element id
+    -- get element ID
     ---@nodiscard
     ---@return element_id
     function public.get_id() return self.id end
 
-    -- get element x
+    -- get element relative x position
     ---@nodiscard
     ---@return integer x
     function public.get_x() return protected.frame.x end
 
-    -- get element y
+    -- get element relative y position
     ---@nodiscard
     ---@return integer y
     function public.get_y() return protected.frame.y end
@@ -661,12 +633,12 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     ---@return cpair fg_bg
     function public.get_fg_bg() return protected.fg_bg end
 
-    -- get the element value
+    -- get the element's value
     ---@nodiscard
     ---@return any value
     function public.get_value() return protected.get_value() end
 
-    -- set the element value
+    -- set the element's value
     ---@param value any new value
     function public.set_value(value) protected.set_value(value) end
 
@@ -728,11 +700,11 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     end
 
     -- custom recolor command, varies by element if implemented
-    ---@vararg cpair|color color(s)
+    ---@param ... cpair|color color(s)
     function public.recolor(...) protected.recolor(...) end
 
     -- resize attributes of the element value if supported
-    ---@vararg number dimensions (element specific)
+    ---@param ... number dimensions (element specific)
     function public.resize(...) protected.resize(...) end
 
     -- reposition the element window<br>
@@ -818,7 +790,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     end
 
     -- draw the element given new data
-    ---@vararg any new data
+    ---@param ... any new data
     function public.update(...) protected.on_update(...) end
 
     -- on a control request response
