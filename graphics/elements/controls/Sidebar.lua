@@ -17,14 +17,14 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new sidebar tab selector
+-- Create a new sidebar tab selector control element.
 ---@param args sidebar_args
----@return graphics_element element, element_id id
-local function sidebar(args)
+---@return Sidebar element, element_id id
+return function (args)
     args.width = 3
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- default to 1st tab
     e.value = 1
@@ -166,9 +166,8 @@ local function sidebar(args)
     -- element redraw
     e.redraw = draw
 
-    e.redraw()
+    ---@class Sidebar:graphics_element
+    local Sidebar, id = e.complete(true)
 
-    return e.complete()
+    return Sidebar, id
 end
-
-return sidebar

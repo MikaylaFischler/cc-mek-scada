@@ -20,10 +20,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new spinbox control (minimum value is 0)
+-- Create a new spinbox control element (minimum value is 0).
 ---@param args spinbox_args
----@return graphics_element element, element_id id
-local function spinbox(args)
+---@return SpinboxNumeric element, element_id id
+return function (args)
     -- properties
     local digits = {}
     local wn_prec = args.whole_num_precision
@@ -51,7 +51,7 @@ local function spinbox(args)
     args.height = 3
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- set initial value
     e.value = args.default or 0
@@ -179,10 +179,8 @@ local function spinbox(args)
         draw_arrows(util.trinary(e.enabled, args.arrow_fg_bg.fgd, args.arrow_disable or colors.lightGray))
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class SpinboxNumeric:graphics_element
+    local SpinboxNumeric, id = e.complete(true)
 
-    return e.complete()
+    return SpinboxNumeric, id
 end
-
-return spinbox

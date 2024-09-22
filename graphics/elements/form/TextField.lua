@@ -19,15 +19,15 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new text entry field
+-- Create a new text entry field.
 ---@param args text_field_args
----@return graphics_element element, element_id id, function censor_ctl
-local function text_field(args)
+---@return TextField element, element_id id
+return function (args)
     args.height = 1
     args.can_focus = true
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- set initial value
     e.value = args.value or ""
@@ -95,11 +95,10 @@ local function text_field(args)
     e.on_disabled = ifield.show
     e.redraw = ifield.show
 
-    -- initial draw
-    e.redraw()
+    ---@class TextField:graphics_element
+    local TextField, id = e.complete(true)
 
-    local elem, id = e.complete()
-    return elem, id, ifield.censor
+    TextField.censor = ifield.censor
+
+    return TextField, id
 end
-
-return text_field

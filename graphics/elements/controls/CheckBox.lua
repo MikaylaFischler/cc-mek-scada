@@ -15,10 +15,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new checkbox control
+-- Create a new checkbox control element.
 ---@param args checkbox_args
----@return graphics_element element, element_id id
-local function checkbox(args)
+---@return CheckBox element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.box_fg_bg) == "table", "box_fg_bg is a required field")
 
@@ -27,7 +27,7 @@ local function checkbox(args)
     args.width = 2 + string.len(args.label)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.default == true
 
@@ -112,10 +112,8 @@ local function checkbox(args)
         draw_label()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class CheckBox:graphics_element
+    local CheckBox, id = e.complete(true)
 
-    return e.complete()
+    return CheckBox, id
 end
-
-return checkbox

@@ -282,9 +282,9 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=6,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_4,x=1,y=12,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_4,x=1,y=13,max_len=64,value=ini_cfg.AuthKey,width=24,height=1,fg_bg=bw_fg_bg}
+    local key, _ = TextField{parent=net_c_4,x=1,y=13,max_len=64,value=ini_cfg.AuthKey,width=24,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(util.trinary(enable, "*", nil)) end
 
     -- declare back first so tabbing makes sense visually
     PushButton{parent=net_c_4,x=1,y=15,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}

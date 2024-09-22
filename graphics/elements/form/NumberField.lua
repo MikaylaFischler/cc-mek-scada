@@ -27,10 +27,10 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new numeric entry field
+-- Create a new numeric entry field.
 ---@param args number_field_args
----@return graphics_element element, element_id id
-local function number_field(args)
+---@return NumberField element, element_id id
+return function (args)
     element.assert(args.max_int_digits == nil or (util.is_int(args.max_int_digits) and args.max_int_digits > 0), "max_int_digits must be an integer greater than zero if supplied")
     element.assert(args.max_frac_digits == nil or (util.is_int(args.max_frac_digits) and args.max_frac_digits > 0), "max_frac_digits must be an integer greater than zero if supplied")
 
@@ -38,7 +38,7 @@ local function number_field(args)
     args.can_focus = true
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     local has_decimal = false
 
@@ -195,10 +195,8 @@ local function number_field(args)
     e.on_disabled = ifield.show
     e.redraw = ifield.show
 
-    -- initial draw
-    e.redraw()
+    ---@class NumberField:graphics_element
+    local NumberField, id = e.complete(true)
 
-    return e.complete()
+    return NumberField, id
 end
-
-return number_field

@@ -20,10 +20,10 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new app button
+-- Create a new 'app' style button control element, like on a phone.
 ---@param args app_button_args
----@return graphics_element element, element_id id
-local function app_button(args)
+---@return App element, element_id id
+return function (args)
     element.assert(type(args.text) == "string", "text is a required field")
     element.assert(type(args.title) == "string", "title is a required field")
     element.assert(type(args.callback) == "function", "callback is a required field")
@@ -33,7 +33,7 @@ local function app_button(args)
     args.width = 7
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- draw the app button
     local function draw()
@@ -123,10 +123,8 @@ local function app_button(args)
         draw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class App:graphics_element
+    local App, id = e.complete(true)
 
-    return e.complete()
+    return App, id
 end
-
-return app_button

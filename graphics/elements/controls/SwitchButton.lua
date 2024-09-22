@@ -17,10 +17,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new switch button (latch high/low)
+-- Create a new latching switch button control element.
 ---@param args switch_button_args
----@return graphics_element element, element_id id
-local function switch_button(args)
+---@return SwitchButton element, element_id id
+return function (args)
     element.assert(type(args.text) == "string", "text is a required field")
     element.assert(type(args.callback) == "function", "callback is a required field")
     element.assert(type(args.active_fg_bg) == "table", "active_fg_bg is a required field")
@@ -33,7 +33,7 @@ local function switch_button(args)
     args.width = math.max(text_width, args.min_width)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.default or false
 
@@ -72,10 +72,8 @@ local function switch_button(args)
         e.redraw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class SwitchButton:graphics_element
+    local SwitchButton, id = e.complete(true)
 
-    return e.complete()
+    return SwitchButton, id
 end
-
-return switch_button

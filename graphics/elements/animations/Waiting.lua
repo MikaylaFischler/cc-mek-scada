@@ -12,10 +12,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new waiting animation element
+-- Create a new waiting animation element.
 ---@param args waiting_args
----@return graphics_element element, element_id id
-local function waiting(args)
+---@return Waiting element, element_id id
+return function (args)
     local state = 0
     local run_animation = false
 
@@ -23,7 +23,7 @@ local function waiting(args)
     args.height = 3
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     local blit_fg = e.fg_bg.blit_fgd
     local blit_bg = e.fg_bg.blit_bkg
@@ -103,7 +103,8 @@ local function waiting(args)
 
     e.start_anim()
 
-    return e.complete()
-end
+    ---@class Waiting:graphics_element
+    local Waiting, id = e.complete()
 
-return waiting
+    return Waiting, id
+end

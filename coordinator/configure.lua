@@ -460,9 +460,9 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_4,x=1,y=11,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    local key, _ = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(util.trinary(enable, "*", nil)) end
 
     local hide_key = CheckBox{parent=net_c_4,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 

@@ -18,10 +18,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new hazard button
+-- Create a new hazard button control element.
 ---@param args hazard_button_args
----@return graphics_element element, element_id id
-local function hazard_button(args)
+---@return HazardButton element, element_id id
+return function (args)
     element.assert(type(args.text) == "string", "text is a required field")
     element.assert(type(args.accent) == "number", "accent is a required field")
     element.assert(type(args.callback) == "function", "callback is a required field")
@@ -32,7 +32,7 @@ local function hazard_button(args)
     local timeout = args.timeout or 1.5
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- draw border
     ---@param accent color accent color
@@ -198,10 +198,8 @@ local function hazard_button(args)
         draw_border(args.accent)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class HazardButton:graphics_element
+    local HazardButton, id = e.complete(true)
 
-    return e.complete()
+    return HazardButton, id
 end
-
-return hazard_button

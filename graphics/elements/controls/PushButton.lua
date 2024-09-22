@@ -25,10 +25,10 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new push button
+-- Create a new push button control element.
 ---@param args push_button_args
----@return graphics_element element, element_id id
-local function push_button(args)
+---@return PushButton element, element_id id
+return function (args)
     element.assert(type(args.text) == "string", "text is a required field")
     element.assert(type(args.callback) == "function", "callback is a required field")
     element.assert(type(args.min_width) == "nil" or (type(args.min_width) == "number" and args.min_width > 0), "min_width must be nil or a number > 0")
@@ -48,7 +48,7 @@ local function push_button(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args, constrain)
+    local e = element.new(args --[[@as graphics_args]], constrain)
 
     local text_lines = util.strwrap(args.text, e.frame.w)
 
@@ -157,10 +157,8 @@ local function push_button(args)
     e.on_focused = show_pressed
     e.on_unfocused = show_unpressed
 
-    -- initial draw
-    e.redraw()
+    ---@class PushButton:graphics_element
+    local PushButton, id = e.complete(true)
 
-    return e.complete()
+    return PushButton, id
 end
-
-return push_button

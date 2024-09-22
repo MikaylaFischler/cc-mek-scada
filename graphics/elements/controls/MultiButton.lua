@@ -25,10 +25,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new multi button (latch selection, exclusively one button at a time)
+-- Create a new multi button control element (latch selection, exclusively one button at a time).
 ---@param args multi_button_args
----@return graphics_element element, element_id id
-local function multi_button(args)
+---@return MultiButton element, element_id id
+return function (args)
     element.assert(type(args.options) == "table", "options is a required field")
     element.assert(#args.options > 0, "at least one option is required")
     element.assert(type(args.callback) == "function", "callback is a required field")
@@ -52,7 +52,7 @@ local function multi_button(args)
     args.width = (button_width * #args.options) + #args.options + 1
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- button state (convert nil to 1 if missing)
     e.value = args.default or 1
@@ -126,10 +126,8 @@ local function multi_button(args)
         e.redraw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class MultiButton:graphics_element
+    local MultiButton, id = e.complete(true)
 
-    return e.complete()
+    return MultiButton, id
 end
-
-return multi_button

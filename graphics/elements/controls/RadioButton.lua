@@ -21,10 +21,10 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new radio button list (latch selection, exclusively one button at a time)
+-- Create a new radio button list control element (latch selection, exclusively one button at a time).
 ---@param args radio_button_args
----@return graphics_element element, element_id id
-local function radio_button(args)
+---@return RadioButton element, element_id id
+return function (args)
     element.assert(type(args.options) == "table", "options is a required field")
     element.assert(#args.options > 0, "at least one option is required")
     element.assert(type(args.radio_colors) == "table", "radio_colors is a required field")
@@ -49,7 +49,7 @@ local function radio_button(args)
     args.height = #args.options -- one line per option
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     local focused_opt = 1
 
@@ -139,10 +139,8 @@ local function radio_button(args)
     e.on_enabled = e.redraw
     e.on_disabled = e.redraw
 
-    -- initial draw
-    e.redraw()
+    ---@class RadioButton:graphics_element
+    local RadioButton, id = e.complete(true)
 
-    return e.complete()
+    return RadioButton, id
 end
-
-return radio_button

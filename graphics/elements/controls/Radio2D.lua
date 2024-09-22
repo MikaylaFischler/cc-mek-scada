@@ -23,10 +23,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new 2D radio button list (latch selection, exclusively one color at a time)
+-- Create a new 2D radio button list control element (latch selection, exclusively one color at a time).
 ---@param args radio_2d_args
----@return graphics_element element, element_id id
-local function radio_2d_button(args)
+---@return Radio2D element, element_id id
+return function (args)
     element.assert(type(args.options) == "table" and #args.options > 0, "options should be a table with length >= 1")
     element.assert(util.is_int(args.rows) and util.is_int(args.columns), "rows/columns must be integers")
     element.assert((args.rows * args.columns) >= #args.options, "rows x columns size insufficient for provided number of options")
@@ -70,7 +70,7 @@ local function radio_2d_button(args)
     args.height = max_rows
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     -- selected option (convert nil to 1 if missing)
     e.value = args.default or 1
@@ -194,10 +194,8 @@ local function radio_2d_button(args)
     e.on_enabled = e.redraw
     e.on_disabled = e.redraw
 
-    -- initial draw
-    e.redraw()
+    ---@class Radio2D:graphics_element
+    local Radio2D, id = e.complete(true)
 
-    return e.complete()
+    return Radio2D, id
 end
-
-return radio_2d_button

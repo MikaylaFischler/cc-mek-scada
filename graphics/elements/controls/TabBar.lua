@@ -23,10 +23,10 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new tab selector
+-- Create a new tab selector control element.
 ---@param args tabbar_args
----@return graphics_element element, element_id id
-local function tabbar(args)
+---@return TabBar element, element_id id
+return function (args)
     element.assert(type(args.tabs) == "table", "tabs is a required field")
     element.assert(#args.tabs > 0, "at least one tab is required")
     element.assert(type(args.callback) == "function", "callback is a required field")
@@ -46,7 +46,7 @@ local function tabbar(args)
     local button_width = math.max(max_width, args.min_width or 0)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     element.assert(e.frame.w >= (button_width * #args.tabs), "width insufficent to display all tabs")
 
@@ -120,10 +120,8 @@ local function tabbar(args)
         e.redraw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class TabBar:graphics_element
+    local TabBar, id = e.complete(true)
 
-    return e.complete()
+    return TabBar, id
 end
-
-return tabbar
