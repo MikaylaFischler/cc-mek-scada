@@ -21,7 +21,7 @@ local ALIGN = core.ALIGN
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new text box
+-- Create a new text box element.
 ---@param args textbox_args
 ---@return TextBox element, element_id id
 return function (args)

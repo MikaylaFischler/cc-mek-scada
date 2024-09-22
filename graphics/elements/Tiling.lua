@@ -18,7 +18,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new tiling box
+-- Create a new tiling box element.
 ---@param args tiling_args
 ---@return Tiling element, element_id id
 return function (args)
