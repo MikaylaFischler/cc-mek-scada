@@ -9,9 +9,9 @@ local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local core         = require("graphics.core")
 
-local Div          = require("graphics.elements.div")
-local MultiPane    = require("graphics.elements.multipane")
-local TextBox      = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.Div")
+local MultiPane    = require("graphics.elements.MultiPane")
+local TextBox      = require("graphics.elements.TextBox")
 
 local APP_ID = pocket.APP_ID
 

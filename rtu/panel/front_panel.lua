@@ -11,13 +11,13 @@ local style         = require("rtu.panel.style")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local TextBox       = require("graphics.elements.TextBox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local LED           = require("graphics.elements.indicators.led")
-local LEDPair       = require("graphics.elements.indicators.ledpair")
-local RGBLED        = require("graphics.elements.indicators.ledrgb")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
+local LEDPair       = require("graphics.elements.indicators.LEDPair")
+local RGBLED        = require("graphics.elements.indicators.RGBLED")
 
 local LINK_STATE = types.PANEL_LINK_STATE
 

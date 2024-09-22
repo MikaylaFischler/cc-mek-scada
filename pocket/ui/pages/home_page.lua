@@ -7,11 +7,11 @@ local pocket       = require("pocket.pocket")
 
 local core         = require("graphics.core")
 
-local AppMultiPane = require("graphics.elements.appmultipane")
-local Div          = require("graphics.elements.div")
-local TextBox      = require("graphics.elements.textbox")
+local AppMultiPane = require("graphics.elements.AppMultiPane")
+local Div          = require("graphics.elements.Div")
+local TextBox      = require("graphics.elements.TextBox")
 
-local App          = require("graphics.elements.controls.app")
+local App          = require("graphics.elements.controls.App")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

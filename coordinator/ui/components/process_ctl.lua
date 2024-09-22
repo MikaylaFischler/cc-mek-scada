@@ -8,20 +8,20 @@ local style             = require("coordinator.ui.style")
 
 local core              = require("graphics.core")
 
-local Div               = require("graphics.elements.div")
-local Rectangle         = require("graphics.elements.rectangle")
-local TextBox           = require("graphics.elements.textbox")
+local Div               = require("graphics.elements.Div")
+local Rectangle         = require("graphics.elements.Rectangle")
+local TextBox           = require("graphics.elements.TextBox")
 
-local DataIndicator     = require("graphics.elements.indicators.data")
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local RadIndicator      = require("graphics.elements.indicators.rad")
-local StateIndicator    = require("graphics.elements.indicators.state")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
+local IndicatorLight    = require("graphics.elements.indicators.IndicatorLight")
+local RadIndicator      = require("graphics.elements.indicators.RadIndicator")
+local StateIndicator    = require("graphics.elements.indicators.StateIndicator")
+local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
-local Checkbox          = require("graphics.elements.controls.checkbox")
-local HazardButton      = require("graphics.elements.controls.hazard_button")
-local RadioButton       = require("graphics.elements.controls.radio_button")
-local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
+local Checkbox          = require("graphics.elements.controls.CheckBox")
+local HazardButton      = require("graphics.elements.controls.HazardButton")
+local RadioButton       = require("graphics.elements.controls.RadioButton")
+local SpinboxNumeric    = require("graphics.elements.controls.SpinboxNumeric")
 
 local ALIGN = core.ALIGN
 

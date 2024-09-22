@@ -14,16 +14,16 @@ local pkt_entry = require("coordinator.ui.components.pkt_entry")
 
 local core      = require("graphics.core")
 
-local Div       = require("graphics.elements.div")
-local ListBox   = require("graphics.elements.listbox")
-local MultiPane = require("graphics.elements.multipane")
-local TextBox   = require("graphics.elements.textbox")
+local Div       = require("graphics.elements.Div")
+local ListBox   = require("graphics.elements.ListBox")
+local MultiPane = require("graphics.elements.MultiPane")
+local TextBox   = require("graphics.elements.TextBox")
 
-local TabBar    = require("graphics.elements.controls.tabbar")
+local TabBar    = require("graphics.elements.controls.TabBar")
 
-local LED       = require("graphics.elements.indicators.led")
-local LEDPair   = require("graphics.elements.indicators.ledpair")
-local RGBLED    = require("graphics.elements.indicators.ledrgb")
+local LED       = require("graphics.elements.indicators.LED")
+local LEDPair   = require("graphics.elements.indicators.LEDPair")
+local RGBLED    = require("graphics.elements.indicators.RGBLED")
 
 local LINK_STATE = types.PANEL_LINK_STATE
 

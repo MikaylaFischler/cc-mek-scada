@@ -12,13 +12,13 @@ local system     = require("reactor-plc.config.system")
 local core       = require("graphics.core")
 local themes     = require("graphics.themes")
 
-local DisplayBox = require("graphics.elements.displaybox")
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local MultiPane  = require("graphics.elements.multipane")
-local TextBox    = require("graphics.elements.textbox")
+local DisplayBox = require("graphics.elements.DisplayBox")
+local Div        = require("graphics.elements.Div")
+local ListBox    = require("graphics.elements.ListBox")
+local MultiPane  = require("graphics.elements.MultiPane")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
 local println = util.println
 local tri = util.trinary

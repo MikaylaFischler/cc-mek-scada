@@ -6,16 +6,16 @@ local style          = require("pocket.ui.style")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local TextBox        = require("graphics.elements.TextBox")
 
-local PushButton     = require("graphics.elements.controls.push_button")
+local PushButton     = require("graphics.elements.controls.PushButton")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local IconIndicator  = require("graphics.elements.indicators.icon")
-local PowerIndicator = require("graphics.elements.indicators.power")
-local StateIndicator = require("graphics.elements.indicators.state")
-local VerticalBar    = require("graphics.elements.indicators.vbar")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
+local PowerIndicator = require("graphics.elements.indicators.PowerIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
+local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

@@ -19,7 +19,7 @@ local unit_view   = require("coordinator.ui.layout.unit_view")
 local core        = require("graphics.core")
 local flasher     = require("graphics.flasher")
 
-local DisplayBox  = require("graphics.elements.displaybox")
+local DisplayBox  = require("graphics.elements.DisplayBox")
 
 local log_render = coordinator.log_render
 

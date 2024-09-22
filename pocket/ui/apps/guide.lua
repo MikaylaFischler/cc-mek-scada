@@ -15,16 +15,16 @@ local guide_section = require("pocket.ui.pages.guide_section")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local ListBox       = require("graphics.elements.listbox")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local ListBox       = require("graphics.elements.ListBox")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local PushButton    = require("graphics.elements.controls.push_button")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local TextField     = require("graphics.elements.form.text_field")
+local TextField     = require("graphics.elements.form.TextField")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

@@ -9,21 +9,21 @@ local util        = require("scada-common.util")
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
 
-local DisplayBox  = require("graphics.elements.displaybox")
-local Div         = require("graphics.elements.div")
-local ListBox     = require("graphics.elements.listbox")
-local MultiPane   = require("graphics.elements.multipane")
-local TextBox     = require("graphics.elements.textbox")
+local DisplayBox  = require("graphics.elements.DisplayBox")
+local Div         = require("graphics.elements.Div")
+local ListBox     = require("graphics.elements.ListBox")
+local MultiPane   = require("graphics.elements.MultiPane")
+local TextBox     = require("graphics.elements.TextBox")
 
-local CheckBox    = require("graphics.elements.controls.checkbox")
-local PushButton  = require("graphics.elements.controls.push_button")
-local Radio2D     = require("graphics.elements.controls.radio_2d")
-local RadioButton = require("graphics.elements.controls.radio_button")
+local CheckBox    = require("graphics.elements.controls.CheckBox")
+local PushButton  = require("graphics.elements.controls.PushButton")
+local Radio2D     = require("graphics.elements.controls.Radio2D")
+local RadioButton = require("graphics.elements.controls.RadioButton")
 
-local NumberField = require("graphics.elements.form.number_field")
-local TextField   = require("graphics.elements.form.text_field")
+local NumberField = require("graphics.elements.form.NumberField")
+local TextField   = require("graphics.elements.form.TextField")
 
-local IndLight    = require("graphics.elements.indicators.light")
+local IndLight    = require("graphics.elements.indicators.IndicatorLight")
 
 local println = util.println
 local tri = util.trinary

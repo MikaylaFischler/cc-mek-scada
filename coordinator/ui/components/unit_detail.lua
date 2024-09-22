@@ -11,23 +11,23 @@ local style             = require("coordinator.ui.style")
 
 local core              = require("graphics.core")
 
-local Div               = require("graphics.elements.div")
-local Rectangle         = require("graphics.elements.rectangle")
-local TextBox           = require("graphics.elements.textbox")
+local Div               = require("graphics.elements.Div")
+local Rectangle         = require("graphics.elements.Rectangle")
+local TextBox           = require("graphics.elements.TextBox")
 
-local AlarmLight        = require("graphics.elements.indicators.alight")
-local CoreMap           = require("graphics.elements.indicators.coremap")
-local DataIndicator     = require("graphics.elements.indicators.data")
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local RadIndicator      = require("graphics.elements.indicators.rad")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
+local AlarmLight        = require("graphics.elements.indicators.AlarmLight")
+local CoreMap           = require("graphics.elements.indicators.CoreMap")
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
+local IndicatorLight    = require("graphics.elements.indicators.IndicatorLight")
+local RadIndicator      = require("graphics.elements.indicators.RadIndicator")
+local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
+local VerticalBar       = require("graphics.elements.indicators.VerticalBar")
 
-local HazardButton      = require("graphics.elements.controls.hazard_button")
-local MultiButton       = require("graphics.elements.controls.multi_button")
-local PushButton        = require("graphics.elements.controls.push_button")
-local RadioButton       = require("graphics.elements.controls.radio_button")
-local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
+local HazardButton      = require("graphics.elements.controls.HazardButton")
+local MultiButton       = require("graphics.elements.controls.MultiButton")
+local PushButton        = require("graphics.elements.controls.PushButton")
+local RadioButton       = require("graphics.elements.controls.RadioButton")
+local SpinboxNumeric    = require("graphics.elements.controls.SpinboxNumeric")
 
 local AUTO_GROUP = types.AUTO_GROUP
 

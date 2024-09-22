@@ -8,7 +8,7 @@ local style      = require("rtu.panel.style")
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
-local DisplayBox = require("graphics.elements.displaybox")
+local DisplayBox = require("graphics.elements.DisplayBox")
 
 ---@class rtu_renderer
 local renderer = {}

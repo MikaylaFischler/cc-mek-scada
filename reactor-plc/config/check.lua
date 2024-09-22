@@ -8,11 +8,11 @@ local plc        = require("reactor-plc.plc")
 
 local core       = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local TextBox    = require("graphics.elements.textbox")
+local Div        = require("graphics.elements.Div")
+local ListBox    = require("graphics.elements.ListBox")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
 local tri = util.trinary
 

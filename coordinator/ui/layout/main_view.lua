@@ -14,9 +14,9 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
-local TextBox       = require("graphics.elements.textbox")
+local TextBox       = require("graphics.elements.TextBox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 
 local ALIGN = core.ALIGN
 

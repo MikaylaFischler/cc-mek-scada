@@ -6,15 +6,15 @@ local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local Rectangle      = require("graphics.elements.Rectangle")
+local TextBox        = require("graphics.elements.TextBox")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local IndicatorLight = require("graphics.elements.indicators.light")
-local PowerIndicator = require("graphics.elements.indicators.power")
-local StateIndicator = require("graphics.elements.indicators.state")
-local VerticalBar    = require("graphics.elements.indicators.vbar")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
+local PowerIndicator = require("graphics.elements.indicators.PowerIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
+local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local cpair = core.cpair
 local border = core.border

@@ -21,16 +21,16 @@ local style       = require("pocket.ui.style")
 
 local core        = require("graphics.core")
 
-local Div         = require("graphics.elements.div")
-local MultiPane   = require("graphics.elements.multipane")
-local TextBox     = require("graphics.elements.textbox")
+local Div         = require("graphics.elements.Div")
+local MultiPane   = require("graphics.elements.MultiPane")
+local TextBox     = require("graphics.elements.TextBox")
 
-local WaitingAnim = require("graphics.elements.animations.waiting")
+local WaitingAnim = require("graphics.elements.animations.Waiting")
 
-local PushButton  = require("graphics.elements.controls.push_button")
-local Sidebar     = require("graphics.elements.controls.sidebar")
+local PushButton  = require("graphics.elements.controls.PushButton")
+local Sidebar     = require("graphics.elements.controls.SideBar")
 
-local SignalBar   = require("graphics.elements.indicators.signal")
+local SignalBar   = require("graphics.elements.indicators.SignalBar")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

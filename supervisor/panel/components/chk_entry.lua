@@ -8,8 +8,8 @@ local style   = require("supervisor.panel.style")
 
 local core    = require("graphics.core")
 
-local Div     = require("graphics.elements.div")
-local TextBox = require("graphics.elements.textbox")
+local Div     = require("graphics.elements.Div")
+local TextBox = require("graphics.elements.TextBox")
 
 local ALIGN = core.ALIGN
 

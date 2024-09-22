@@ -10,9 +10,9 @@ local reactor_view = require("coordinator.ui.components.reactor")
 local boiler_view  = require("coordinator.ui.components.boiler")
 local turbine_view = require("coordinator.ui.components.turbine")
 
-local Div          = require("graphics.elements.div")
-local PipeNetwork  = require("graphics.elements.pipenet")
-local TextBox      = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.Div")
+local PipeNetwork  = require("graphics.elements.PipeNetwork")
+local TextBox      = require("graphics.elements.TextBox")
 
 local ALIGN = core.ALIGN
 

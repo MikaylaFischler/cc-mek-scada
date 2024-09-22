@@ -13,15 +13,15 @@ local unit_flow      = require("coordinator.ui.components.unit_flow")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local PipeNetwork    = require("graphics.elements.pipenet")
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local PipeNetwork    = require("graphics.elements.PipeNetwork")
+local Rectangle      = require("graphics.elements.Rectangle")
+local TextBox        = require("graphics.elements.TextBox")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local IndicatorLight = require("graphics.elements.indicators.light")
-local StateIndicator = require("graphics.elements.indicators.state")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
+local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local CONTAINER_MODE = types.CONTAINER_MODE
 
