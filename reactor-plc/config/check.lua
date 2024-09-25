@@ -33,8 +33,8 @@ local self = {
 
     settings = nil,      ---@type plc_config
 
-    run_test_btn = nil,  ---@type graphics_element
-    sc_log = nil,        ---@type graphics_element
+    run_test_btn = nil,  ---@type PushButton
+    sc_log = nil,        ---@type ListBox
     self_check_msg = nil ---@type function
 }
 

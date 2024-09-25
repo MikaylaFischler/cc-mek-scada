@@ -58,11 +58,11 @@ local tool_ctl = {
     viewing_config = false,
     jumped_to_color = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    color_cfg = nil,        ---@type graphics_element
-    color_next = nil,       ---@type graphics_element
-    color_apply = nil,      ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    color_cfg = nil,        ---@type PushButton
+    color_next = nil,       ---@type PushButton
+    color_apply = nil,      ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     gen_summary = nil,      ---@type function
     load_legacy = nil,      ---@type function

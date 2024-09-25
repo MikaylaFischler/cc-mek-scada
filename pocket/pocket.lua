@@ -109,8 +109,8 @@ pocket.APP_ID = APP_ID
 ---@param smem pkt_shared_memory
 function pocket.init_nav(smem)
     local self = {
-        pane = nil,          ---@type graphics_element
-        sidebar = nil,       ---@type graphics_element
+        pane = nil,          ---@type MultiPane|nil
+        sidebar = nil,       ---@type Sidebar|nil
         apps = {},           ---@type pocket_app[]
         containers = {},     ---@type graphics_element[]
         help_map = {},       ---@type { [string]: function }
@@ -125,11 +125,11 @@ function pocket.init_nav(smem)
     local nav = {}
 
     -- set the root pane element to switch between apps with
-    ---@param root_pane graphics_element
+    ---@param root_pane MultiPane
     function nav.set_pane(root_pane) self.pane = root_pane end
 
     -- link sidebar element
-    ---@param sidebar graphics_element
+    ---@param sidebar Sidebar
     function nav.set_sidebar(sidebar) self.sidebar = sidebar end
 
     -- register an app

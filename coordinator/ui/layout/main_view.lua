@@ -37,7 +37,7 @@ local function init(main)
     ping.register(facility.ps, "sv_ping", ping.update)
     datetime.register(facility.ps, "date_time", datetime.set_value)
 
-    ---@type graphics_element, graphics_element, graphics_element, graphics_element
+    ---@type Div, Div, Div, Div
     local uo_1, uo_2, uo_3, uo_4
 
     local cnc_y_start = 3

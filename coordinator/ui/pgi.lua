@@ -8,17 +8,17 @@ local util = require("scada-common.util")
 local pgi = {}
 
 local data = {
-    pkt_list = nil,  ---@type nil|graphics_element
+    pkt_list = nil,  ---@type ListBox|nil
     pkt_entry = nil, ---@type function
     -- session entries
     s_entries = {
-        pkt = {}     ---@type graphics_element[]
+        pkt = {}     ---@type Div[]
     }
 }
 
 -- link list boxes
----@param pkt_list graphics_element pocket list element
----@param pkt_entry function pocket entry constructor
+---@param pkt_list ListBox pocket list element
+---@param pkt_entry fun(parent: ListBox, id: integer) : Div pocket entry constructor
 function pgi.link_elements(pkt_list, pkt_entry)
     data.pkt_list = pkt_list
     data.pkt_entry = pkt_entry

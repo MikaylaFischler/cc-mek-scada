@@ -16,7 +16,7 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 -- create an ID check list entry
----@param parent graphics_element parent
+---@param parent ListBox parent
 ---@param msg string message
 ---@param fail_code integer failure code
 local function init(parent, msg, fail_code)

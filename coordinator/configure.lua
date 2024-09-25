@@ -81,29 +81,29 @@ local tool_ctl = {
     importing_legacy = false,
     jumped_to_color = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    color_cfg = nil,        ---@type graphics_element
-    color_next = nil,       ---@type graphics_element
-    color_apply = nil,      ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    color_cfg = nil,        ---@type PushButton
+    color_next = nil,       ---@type PushButton
+    color_apply = nil,      ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     gen_summary = nil,      ---@type function
     show_current_cfg = nil, ---@type function
     load_legacy = nil,      ---@type function
 
     show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = "",
 
     sv_connect = nil,       ---@type function
-    sv_conn_button = nil,   ---@type graphics_element
-    sv_conn_status = nil,   ---@type graphics_element
-    sv_conn_detail = nil,   ---@type graphics_element
-    sv_skip = nil,          ---@type graphics_element
-    sv_next = nil,          ---@type graphics_element
+    sv_conn_button = nil,   ---@type PushButton
+    sv_conn_status = nil,   ---@type TextBox
+    sv_conn_detail = nil,   ---@type TextBox
+    sv_skip = nil,          ---@type PushButton
+    sv_next = nil,          ---@type PushButton
 
-    apply_mon = nil,        ---@type graphics_element
+    apply_mon = nil,        ---@type PushButton
 
     update_mon_reqs = nil,  ---@type function
     gen_mon_list = function () end,
@@ -622,7 +622,7 @@ local function config_view(display)
 
     local mon_desc = TextBox{parent=mon_c_3,x=1,y=1,height=4,text=""}
 
-    local mon_unit_l, mon_unit = nil, nil   ---@type graphics_element, graphics_element
+    local mon_unit_l, mon_unit = nil, nil ---@type TextBox, NumberField
 
     local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="",fg_bg=cpair(colors.red,colors.lightGray)}
 

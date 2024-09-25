@@ -58,8 +58,8 @@ local tool_ctl = {
     viewing_config = false,
     importing_legacy = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     set_networked = nil,    ---@type function
     bundled_emcool = nil,   ---@type function
@@ -68,8 +68,8 @@ local tool_ctl = {
     load_legacy = nil,      ---@type function
 
     show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = ""
 }
 

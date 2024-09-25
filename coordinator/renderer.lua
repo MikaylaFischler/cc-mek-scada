@@ -34,10 +34,10 @@ local engine = {
     ui_ready = false,
     fp_ready = false,
     ui = {
-        front_panel = nil,  ---@type graphics_element|nil
-        main_display = nil, ---@type graphics_element|nil
-        flow_display = nil, ---@type graphics_element|nil
-        unit_displays = {}  ---@type (graphics_element|nil)[]
+        front_panel = nil,  ---@type DisplayBox|nil
+        main_display = nil, ---@type DisplayBox|nil
+        flow_display = nil, ---@type DisplayBox|nil
+        unit_displays = {}  ---@type (DisplayBox|nil)[]
     },
     disable_flow_view = false
 }

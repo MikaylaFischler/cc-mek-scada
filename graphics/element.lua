@@ -566,7 +566,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- remove all child elements and reset next y
     function public.remove_all()
         for i = 1, #protected.children do
-            local child = protected.children[i].get()   ---@type graphics_element
+            local child = protected.children[i].get() ---@type graphics_element
             child.delete()
             protected.on_removed(child.get_id())
         end

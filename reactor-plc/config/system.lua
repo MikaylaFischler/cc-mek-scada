@@ -31,8 +31,8 @@ local self = {
     bundled_emcool = nil,   ---@type function
 
     show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = ""
 }
 

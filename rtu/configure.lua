@@ -130,14 +130,14 @@ local tool_ctl = {
     rs_cfg_port = IO.F_SCRAM, ---@type IO_PORT
     rs_cfg_editing = false,   ---@type integer|false
 
-    view_gw_cfg = nil,        ---@type graphics_element
-    dev_cfg = nil,            ---@type graphics_element
-    rs_cfg = nil,             ---@type graphics_element
-    color_cfg = nil,          ---@type graphics_element
-    color_next = nil,         ---@type graphics_element
-    color_apply = nil,        ---@type graphics_element
-    settings_apply = nil,     ---@type graphics_element
-    settings_confirm = nil,   ---@type graphics_element
+    view_gw_cfg = nil,        ---@type PushButton
+    dev_cfg = nil,            ---@type PushButton
+    rs_cfg = nil,             ---@type PushButton
+    color_cfg = nil,          ---@type PushButton
+    color_next = nil,         ---@type PushButton
+    color_apply = nil,        ---@type PushButton
+    settings_apply = nil,     ---@type PushButton
+    settings_confirm = nil,   ---@type PushButton
 
     go_home = nil,            ---@type function
     gen_summary = nil,        ---@type function
@@ -149,26 +149,26 @@ local tool_ctl = {
     gen_rs_summary = nil,     ---@type function
 
     show_auth_key = nil,      ---@type function
-    show_key_btn = nil,       ---@type graphics_element
-    auth_key_textbox = nil,   ---@type graphics_element
+    show_key_btn = nil,       ---@type PushButton
+    auth_key_textbox = nil,   ---@type TextBox
     auth_key_value = "",
 
-    ppm_devs = nil,           ---@type graphics_element
-    p_name_msg = nil,         ---@type graphics_element
-    p_prompt = nil,           ---@type graphics_element
-    p_idx = nil,              ---@type graphics_element
-    p_unit = nil,             ---@type graphics_element
-    p_assign_btn = nil,       ---@type graphics_element
-    p_desc = nil,             ---@type graphics_element
-    p_desc_ext = nil,         ---@type graphics_element
-    p_err = nil,              ---@type graphics_element
+    ppm_devs = nil,           ---@type ListBox
+    p_name_msg = nil,         ---@type TextBox
+    p_prompt = nil,           ---@type TextBox
+    p_idx = nil,              ---@type NumberField
+    p_unit = nil,             ---@type NumberField
+    p_assign_btn = nil,       ---@type RadioButton
+    p_desc = nil,             ---@type TextBox
+    p_desc_ext = nil,         ---@type TextBox
+    p_err = nil,              ---@type TextBox
 
-    rs_cfg_selection = nil,   ---@type graphics_element
-    rs_cfg_unit_l = nil,      ---@type graphics_element
-    rs_cfg_unit = nil,        ---@type graphics_element
-    rs_cfg_side_l = nil,      ---@type graphics_element
-    rs_cfg_color = nil,       ---@type graphics_element
-    rs_cfg_shortcut = nil     ---@type graphics_element
+    rs_cfg_selection = nil,   ---@type TextBox
+    rs_cfg_unit_l = nil,      ---@type TextBox
+    rs_cfg_unit = nil,        ---@type NumberField
+    rs_cfg_side_l = nil,      ---@type TextBox
+    rs_cfg_color = nil,       ---@type Radio2D
+    rs_cfg_shortcut = nil     ---@type TextBox
 }
 
 ---@class rtu_config

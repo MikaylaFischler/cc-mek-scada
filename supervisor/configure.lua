@@ -62,26 +62,26 @@ local tool_ctl = {
     importing_legacy = false,
     jumped_to_color = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    color_cfg = nil,        ---@type graphics_element
-    color_next = nil,       ---@type graphics_element
-    color_apply = nil,      ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    color_cfg = nil,        ---@type PushButton
+    color_next = nil,       ---@type PushButton
+    color_apply = nil,      ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     gen_summary = nil,      ---@type function
     show_current_cfg = nil, ---@type function
     load_legacy = nil,      ---@type function
 
     show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = "",
 
-    cooling_elems = {},     ---@type { line: graphics_element, turbines: graphics_element, boilers: graphics_element, tank: graphics_element }[]
-    tank_elems = {},        ---@type { div: graphics_element, tank_opt: graphics_element, no_tank: graphics_element }[]
+    cooling_elems = {},     ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: CheckBox }[]
+    tank_elems = {},        ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
 
-    vis_ftanks = {},        ---@type { line: graphics_element, pipe_conn?: graphics_element, pipe_chain?: graphics_element, pipe_direct?: graphics_element, label?: graphics_element }[]
-    vis_utanks = {}         ---@type { line: graphics_element, label: graphics_element }[]
+    vis_ftanks = {},        ---@type { line: Div, pipe_conn?: TextBox, pipe_chain?: TextBox, pipe_direct?: TextBox, label?: TextBox }[]
+    vis_utanks = {}         ---@type { line: Div, label: TextBox }[]
 }
 
 ---@class svr_config

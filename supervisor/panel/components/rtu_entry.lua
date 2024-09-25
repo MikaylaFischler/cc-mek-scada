@@ -18,7 +18,7 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 -- create an RTU list entry
----@param parent graphics_element parent
+---@param parent ListBox parent
 ---@param id integer RTU session ID
 local function init(parent, id)
     local s_hi_box = style.theme.highlight_box
