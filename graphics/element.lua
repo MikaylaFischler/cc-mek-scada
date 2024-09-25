@@ -821,6 +821,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
     -- hide the element and disables animations<br>
     -- this alone does not cause an element to be fully hidden, it only prevents updates from being shown<br>
+    ---@see Window.redraw
     ---@see graphics_element.redraw
     ---@see graphics_element.content_redraw
     ---@param clear? boolean true to visibly hide this element (redraws the parent)
