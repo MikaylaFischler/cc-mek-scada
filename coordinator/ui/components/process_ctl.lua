@@ -20,8 +20,8 @@ local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLigh
 
 local Checkbox          = require("graphics.elements.controls.CheckBox")
 local HazardButton      = require("graphics.elements.controls.HazardButton")
+local NumericSpinbox    = require("graphics.elements.controls.NumericSpinbox")
 local RadioButton       = require("graphics.elements.controls.RadioButton")
-local SpinboxNumeric    = require("graphics.elements.controls.SpinboxNumeric")
 
 local ALIGN = core.ALIGN
 
@@ -131,7 +131,7 @@ local function new_view(root, x, y)
     TextBox{parent=burn_tag,x=2,y=2,text="Burn Target",width=7,height=2}
 
     local burn_target = Div{parent=targets,x=9,y=1,width=23,height=3,fg_bg=s_hi_box}
-    local b_target = SpinboxNumeric{parent=burn_target,x=11,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local b_target = NumericSpinbox{parent=burn_target,x=11,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=burn_target,x=18,y=2,text="mB/t",fg_bg=style.theme.label_fg}
     local burn_sum = DataIndicator{parent=targets,x=9,y=4,label="",format="%18.1f",value=0,unit="mB/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
@@ -142,7 +142,7 @@ local function new_view(root, x, y)
     TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
 
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
-    local c_target = SpinboxNumeric{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local c_target = NumericSpinbox{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_target,x=18,y=2,text="M"..db.energy_label,fg_bg=style.theme.label_fg}
     local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
@@ -153,7 +153,7 @@ local function new_view(root, x, y)
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
 
     local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=s_hi_box}
-    local g_target = SpinboxNumeric{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local g_target = NumericSpinbox{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=gen_target,x=18,y=2,text="k"..db.energy_label.."/t",fg_bg=style.theme.label_fg}
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
@@ -191,7 +191,7 @@ local function new_view(root, x, y)
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Limit",width=7,height=2}
 
         local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=s_hi_box}
-        local lim = SpinboxNumeric{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled,fg_bg=lim_fg_bg}
+        local lim = NumericSpinbox{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled,fg_bg=lim_fg_bg}
         TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,fg_bg=label_fg}
 
         local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}

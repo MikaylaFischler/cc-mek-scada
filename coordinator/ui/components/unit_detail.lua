@@ -25,9 +25,9 @@ local VerticalBar       = require("graphics.elements.indicators.VerticalBar")
 
 local HazardButton      = require("graphics.elements.controls.HazardButton")
 local MultiButton       = require("graphics.elements.controls.MultiButton")
+local NumericSpinbox    = require("graphics.elements.controls.NumericSpinbox")
 local PushButton        = require("graphics.elements.controls.PushButton")
 local RadioButton       = require("graphics.elements.controls.RadioButton")
-local SpinboxNumeric    = require("graphics.elements.controls.SpinboxNumeric")
 
 local AUTO_GROUP = types.AUTO_GROUP
 
@@ -361,7 +361,7 @@ local function init(parent, id)
     ----------------------
 
     local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=s_hi_box}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local burn_rate = NumericSpinbox{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t",fg_bg=style.theme.label_fg}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end

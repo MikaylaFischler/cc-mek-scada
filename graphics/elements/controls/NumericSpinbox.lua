@@ -22,7 +22,7 @@ local element = require("graphics.element")
 
 -- Create a new spinbox control element (minimum value is 0).
 ---@param args spinbox_args
----@return SpinboxNumeric element, element_id id
+---@return NumericSpinbox element, element_id id
 return function (args)
     -- properties
     local digits = {}
@@ -179,8 +179,8 @@ return function (args)
         draw_arrows(util.trinary(e.enabled, args.arrow_fg_bg.fgd, args.arrow_disable or colors.lightGray))
     end
 
-    ---@class SpinboxNumeric:graphics_element
-    local SpinboxNumeric, id = e.complete(true)
+    ---@class NumericSpinbox:graphics_element
+    local NumericSpinbox, id = e.complete(true)
 
-    return SpinboxNumeric, id
+    return NumericSpinbox, id
 end
