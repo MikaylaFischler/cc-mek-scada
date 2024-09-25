@@ -14,7 +14,7 @@ local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
 
 local Checkbox       = require("graphics.elements.controls.CheckBox")
 local PushButton     = require("graphics.elements.controls.PushButton")
-local SwitchButton   = require("graphics.elements.controls.SpinboxNumeric")
+local SwitchButton   = require("graphics.elements.controls.SwitchButton")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
