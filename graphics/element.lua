@@ -370,10 +370,6 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     ---@param ... any value(s)
     function protected.on_update(...) end
 
-    -- callback on control press responses
-    ---@param result any
-    function protected.response_callback(result) end
-
     --#endregion
     --#region Accessors and Control --
 
@@ -792,10 +788,6 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- draw the element given new data
     ---@param ... any new data
     function public.update(...) protected.on_update(...) end
-
-    -- on a control request response
-    ---@param result any
-    function public.on_response(result) protected.response_callback(result) end
 
     -- register a callback with a PSIL, allowing for automatic unregister on delete<br>
     -- do not use graphics elements directly with PSIL subscribe()

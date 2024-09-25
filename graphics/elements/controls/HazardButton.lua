@@ -159,13 +159,6 @@ return function (args)
         end
     end
 
-    -- callback on request response
-    ---@param result boolean true for success, false for failure
-    function e.response_callback(result)
-        tcd.abort(on_timeout)
-        if result then on_success() else on_failure(0) end
-    end
-
     -- set the value (true simulates pressing the button)
     ---@param val boolean new value
     function e.set_value(val)
@@ -200,6 +193,13 @@ return function (args)
 
     ---@class HazardButton:graphics_element
     local HazardButton, id = e.complete(true)
+
+    -- callback for request response
+    ---@param success boolean
+    function HazardButton.on_response(success)
+        tcd.abort(on_timeout)
+        if success then on_success() else on_failure(0) end
+    end
 
     return HazardButton, id
 end
