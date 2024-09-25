@@ -370,7 +370,7 @@ function facility.new(config)
     -- ack all alarms on all reactor units
     function public.ack_all()
         for i = 1, #self.units do
-            local u = self.units[i].ack_all()
+            self.units[i].ack_all()
         end
     end
 
