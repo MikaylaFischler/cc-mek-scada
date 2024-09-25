@@ -17,7 +17,7 @@ local element = require("graphics.element")
 
 -- Create a new checkbox control element.
 ---@param args checkbox_args
----@return CheckBox element, element_id id
+---@return Checkbox element, element_id id
 return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.box_fg_bg) == "table", "box_fg_bg is a required field")
@@ -112,8 +112,8 @@ return function (args)
         draw_label()
     end
 
-    ---@class CheckBox:graphics_element
-    local CheckBox, id = e.complete(true)
+    ---@class Checkbox:graphics_element
+    local Checkbox, id = e.complete(true)
 
-    return CheckBox, id
+    return Checkbox, id
 end

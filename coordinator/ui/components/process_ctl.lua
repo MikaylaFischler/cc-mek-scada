@@ -18,7 +18,7 @@ local RadIndicator      = require("graphics.elements.indicators.RadIndicator")
 local StateIndicator    = require("graphics.elements.indicators.StateIndicator")
 local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
-local Checkbox          = require("graphics.elements.controls.CheckBox")
+local Checkbox          = require("graphics.elements.controls.Checkbox")
 local HazardButton      = require("graphics.elements.controls.HazardButton")
 local NumericSpinbox    = require("graphics.elements.controls.NumericSpinbox")
 local RadioButton       = require("graphics.elements.controls.RadioButton")

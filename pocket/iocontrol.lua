@@ -85,7 +85,7 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
 
         ready_warn = nil,       ---@type TextBox
         tone_buttons = {},      ---@type SwitchButton[]
-        alarm_buttons = {},     ---@type CheckBox[]
+        alarm_buttons = {},     ---@type Checkbox[]
         tone_indicators = {}    ---@type IndicatorLight[] indicators to update from supervisor tone states
     }
 
