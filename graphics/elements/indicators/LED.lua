@@ -18,11 +18,11 @@ local flasher = require("graphics.flasher")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new indicator LED
+-- Create a new indicator LED element.
 ---@nodiscard
 ---@param args indicator_led_args
----@return graphics_element element, element_id id
-local function indicator_led(args)
+---@return LED element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.colors) == "table", "colors is a required field")
 
@@ -36,7 +36,7 @@ local function indicator_led(args)
     local flash_on = true
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = false
 
@@ -95,10 +95,8 @@ local function indicator_led(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class LED:graphics_element
+    local LED, id = e.complete(true)
 
-    return e.complete()
+    return LED, id
 end
-
-return indicator_led

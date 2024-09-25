@@ -20,11 +20,11 @@ local flasher = require("graphics.flasher")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new tri-state indicator light
+-- Create a new tri-state indicator light element.
 ---@nodiscard
 ---@param args tristate_indicator_light_args
----@return graphics_element element, element_id id
-local function tristate_indicator_light(args)
+---@return TriIndicatorLight element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.c1) == "number", "c1 is a required field")
     element.assert(type(args.c2) == "number", "c2 is a required field")
@@ -38,7 +38,7 @@ local function tristate_indicator_light(args)
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -102,10 +102,8 @@ local function tristate_indicator_light(args)
         e.w_write(args.label)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class TriIndicatorLight:graphics_element
+    local TriIndicatorLight, id = e.complete(true)
 
-    return e.complete()
+    return TriIndicatorLight, id
 end
-
-return tristate_indicator_light

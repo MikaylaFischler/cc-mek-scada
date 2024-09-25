@@ -13,11 +13,11 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer auto incremented if omitted
 
--- new core map box
+-- Create a new core map box element.
 ---@nodiscard
 ---@param args core_map_args
----@return graphics_element element, element_id id
-local function core_map(args)
+---@return CoreMap element, element_id id
+return function (args)
     element.assert(util.is_int(args.reactor_l), "reactor_l is a required field")
     element.assert(util.is_int(args.reactor_w), "reactor_w is a required field")
 
@@ -29,7 +29,7 @@ local function core_map(args)
     args.fg_bg = core.cpair(args.parent.get_fg_bg().fgd, colors.gray)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 0
 
@@ -165,10 +165,8 @@ local function core_map(args)
         draw_core(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class CoreMap:graphics_element
+    local CoreMap, id = e.complete(true)
 
-    return e.complete()
+    return CoreMap, id
 end
-
-return core_map

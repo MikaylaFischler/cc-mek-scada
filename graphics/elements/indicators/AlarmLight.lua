@@ -20,11 +20,11 @@ local flasher = require("graphics.flasher")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new alarm indicator light
+-- Create a new alarm indicator light element.
 ---@nodiscard
 ---@param args alarm_indicator_light
----@return graphics_element element, element_id id
-local function alarm_indicator_light(args)
+---@return AlarmLight element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.c1) == "number", "c1 is a required field")
     element.assert(type(args.c2) == "number", "c2 is a required field")
@@ -49,7 +49,7 @@ local function alarm_indicator_light(args)
     local c3 = colors.toBlit(args.c3)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -113,10 +113,8 @@ local function alarm_indicator_light(args)
         e.w_write(args.label)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class AlarmLight:graphics_element
+    local AlarmLight, id = e.complete(true)
 
-    return e.complete()
+    return AlarmLight, id
 end
-
-return alarm_indicator_light

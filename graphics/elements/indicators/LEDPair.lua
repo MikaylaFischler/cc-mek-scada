@@ -20,11 +20,12 @@ local flasher = require("graphics.flasher")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new dual LED indicator light
+-- Create a new three-state LED indicator light. Two "active" states (colors c1 and c2) and an inactive state (off).<br>
+-- Values: 1 = off, 2 = c1, 3 = c2
 ---@nodiscard
 ---@param args indicator_led_pair_args
----@return graphics_element element, element_id id
-local function indicator_led_pair(args)
+---@return LEDPair element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.off) == "number", "off is a required field")
     element.assert(type(args.c1) == "number", "c1 is a required field")
@@ -44,7 +45,7 @@ local function indicator_led_pair(args)
     local c2 = colors.toBlit(args.c2)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -104,10 +105,8 @@ local function indicator_led_pair(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class LEDPair:graphics_element
+    local LEDPair, id = e.complete(true)
 
-    return e.complete()
+    return LEDPair, id
 end
-
-return indicator_led_pair

@@ -19,11 +19,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new data indicator
+-- Create new data indicator element.
 ---@nodiscard
 ---@param args data_indicator_args
----@return graphics_element element, element_id id
-local function data(args)
+---@return DataIndicator element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.format) == "string", "format is a required field")
     element.assert(args.value ~= nil, "value is a required field")
@@ -32,7 +32,7 @@ local function data(args)
     args.height = 1
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.value
 
@@ -94,10 +94,8 @@ local function data(args)
         e.on_update(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class DataIndicator:graphics_element
+    local DataIndicator, id = e.complete(true)
 
-    return e.complete()
+    return DataIndicator, id
 end
-
-return data

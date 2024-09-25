@@ -20,11 +20,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new state indicator
+-- Create a new state indicator element.
 ---@nodiscard
 ---@param args state_indicator_args
----@return graphics_element element, element_id id
-local function state_indicator(args)
+---@return StateIndicator element, element_id id
+return function (args)
     element.assert(type(args.states) == "table", "states is a required field")
 
     if util.is_int(args.height) then
@@ -52,7 +52,7 @@ local function state_indicator(args)
     end
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.value or 1
 
@@ -74,10 +74,8 @@ local function state_indicator(args)
     ---@param val integer indicator state
     function e.set_value(val) e.on_update(val) end
 
-    -- initial draw
-    e.redraw()
+    ---@class StateIndicator:graphics_element
+    local StateIndicator, id = e.complete(true)
 
-    return e.complete()
+    return StateIndicator, id
 end
-
-return state_indicator

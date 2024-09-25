@@ -15,13 +15,13 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new vertical bar
+-- Create a new vertical fill bar indicator element.
 ---@nodiscard
 ---@param args vbar_args
----@return graphics_element element, element_id id
-local function vbar(args)
+---@return VerticalBar element, element_id id
+return function (args)
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 0.0
 
@@ -98,10 +98,8 @@ local function vbar(args)
         e.redraw()
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class VerticalBar:graphics_element
+    local VerticalBar, id = e.complete(true)
 
-    return e.complete()
+    return VerticalBar, id
 end
-
-return vbar

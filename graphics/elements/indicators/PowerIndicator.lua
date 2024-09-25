@@ -19,11 +19,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new power indicator
+-- Create a new power indicator. Variant of a data indicator with dynamic energy units.
 ---@nodiscard
 ---@param args power_indicator_args
----@return graphics_element element, element_id id
-local function power(args)
+---@return PowerIndicator element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.unit) == "string", "unit is a required field")
     element.assert(type(args.value) == "number", "value is a required field")
@@ -32,7 +32,7 @@ local function power(args)
     args.height = 1
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.value
 
@@ -82,10 +82,8 @@ local function power(args)
         e.on_update(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class PowerIndicator:graphics_element
+    local PowerIndicator, id = e.complete(true)
 
-    return e.complete()
+    return PowerIndicator, id
 end
-
-return power

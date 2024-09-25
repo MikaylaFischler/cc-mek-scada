@@ -19,11 +19,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new radiation indicator
+-- Create a new radiation indicator element. Variant of a data indicator using dynamic Sievert unit precision.
 ---@nodiscard
 ---@param args rad_indicator_args
----@return graphics_element element, element_id id
-local function rad(args)
+---@return RadIndicator element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.format) == "string", "format is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
@@ -31,7 +31,7 @@ local function rad(args)
     args.height = 1
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.value or types.new_zero_radiation_reading()
 
@@ -83,10 +83,8 @@ local function rad(args)
         e.on_update(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class RadIndicator:graphics_element
+    local RadIndicator, id = e.complete(true)
 
-    return e.complete()
+    return RadIndicator, id
 end
-
-return rad

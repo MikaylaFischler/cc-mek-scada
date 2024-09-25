@@ -17,13 +17,13 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new horizontal bar
+-- Create a new horizontal fill bar indicator element.
 ---@nodiscard
 ---@param args hbar_args
 ---@return graphics_element element, element_id id
-local function hbar(args)
+return function (args)
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 0.0
 
@@ -119,10 +119,8 @@ local function hbar(args)
         e.on_update(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class HorizontalBar:graphics_element
+    local HorizontalBar, id = e.complete(true)
 
-    return e.complete()
+    return HorizontalBar, id
 end
-
-return hbar

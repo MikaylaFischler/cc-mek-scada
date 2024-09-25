@@ -15,16 +15,16 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors (foreground is used for high signal quality)
 ---@field hidden? boolean true to hide on initial draw
 
--- new signal bar
+-- Create a new signal bar indicator element.
 ---@nodiscard
 ---@param args signal_bar_args
----@return graphics_element element, element_id id
-local function signal_bar(args)
+---@return SignalBar element, element_id id
+return function (args)
     args.height = 1
     args.width = util.trinary(args.compact, 1, 2)
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 0
 
@@ -76,10 +76,8 @@ local function signal_bar(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class SignalBar:graphics_element
+    local SignalBar, id = e.complete(true)
 
-    return e.complete()
+    return SignalBar, id
 end
-
-return signal_bar

@@ -13,11 +13,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new RGB LED indicator light
+-- Create a new RGB LED indicator light element.
 ---@nodiscard
 ---@param args indicator_led_rgb_args
----@return graphics_element element, element_id id
-local function indicator_led_rgb(args)
+---@return RGBLED element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.colors) == "table", "colors is a required field")
 
@@ -25,7 +25,7 @@ local function indicator_led_rgb(args)
     args.width = math.max(args.min_label_width or 0, string.len(args.label)) + 2
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = 1
 
@@ -52,10 +52,8 @@ local function indicator_led_rgb(args)
         end
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class RGBLED:graphics_element
+    local RGBLED, id = e.complete(true)
 
-    return e.complete()
+    return RGBLED, id
 end
-
-return indicator_led_rgb

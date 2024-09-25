@@ -18,11 +18,11 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- new icon indicator
+-- Create a new icon indicator element.
 ---@nodiscard
 ---@param args icon_indicator_args
----@return graphics_element element, element_id id
-local function icon(args)
+---@return IconIndicator element, element_id id
+return function (args)
     element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.states) == "table", "states is a required field")
 
@@ -30,7 +30,7 @@ local function icon(args)
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 4
 
     -- create new graphics element base object
-    local e = element.new(args)
+    local e = element.new(args --[[@as graphics_args]])
 
     e.value = args.value or 1
     if e.value == true then e.value = 2 end
@@ -71,10 +71,8 @@ local function icon(args)
         e.on_update(e.value)
     end
 
-    -- initial draw
-    e.redraw()
+    ---@class IconIndicator:graphics_element
+    local IconIndicator, id = e.complete(true)
 
-    return e.complete()
+    return IconIndicator, id
 end
-
-return icon
