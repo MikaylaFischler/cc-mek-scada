@@ -4,6 +4,10 @@
 
 local util = require("scada-common.util")
 
+-- constant strings for speed
+local DBG_TAG, INF_TAG, WRN_TAG, ERR_TAG, FTL_TAG = "[DBG] ", "[INF] ", "[WRN] ", "[ERR] ", "[FTL] "
+local COLON, FUNC, ARROW = ":", "():", " > "
+
 ---@class logger
 local log = {}
 
@@ -31,13 +35,13 @@ local free_space = fs.getFreeSpace
 -----------------------
 
 -- private log write function
----@param msg string
-local function _log(msg)
+---@param msg_bits any[]
+local function _log(msg_bits)
     if logger.not_ready then return end
 
     local out_of_space = false
-    local time_stamp = os.date("[%c] ")
-    local stamped = util.c(time_stamp, msg)
+    local time_stamp   = os.date("[%c] ")
+    local stamped      = util.c(time_stamp, table.unpack(msg_bits))
 
     -- attempt to write log
     local status, result = pcall(function ()
@@ -102,16 +106,14 @@ function log.init(path, write_mode, include_debug, dmesg_redirect)
 end
 
 -- close the log file handle
-function log.close()
-    logger.file.close()
-end
+function log.close() logger.file.close() end
 
 -- direct dmesg output to a monitor/window
 ---@param window Window window or terminal reference
 function log.direct_dmesg(window) logger.dmesg_out = window end
 
 -- dmesg style logging for boot because I like linux-y things
----@param msg string message
+---@param msg any message
 ---@param tag? string log tag
 ---@param tag_color? integer log tag color
 ---@return dmesg_ts_coord coordinates line area to place working indicator
@@ -120,8 +122,7 @@ function log.dmesg(msg, tag, tag_color)
     local ts_coord = { x1 = 2, x2 = 3, y = 1 }
 
     msg = util.strval(msg)
-    tag = tag or ""
-    tag = util.strval(tag)
+    tag = util.strval(tag or "")
 
     local t_stamp = string.format("%12.2f", os.clock())
     local out = logger.dmesg_out
@@ -209,7 +210,7 @@ function log.dmesg(msg, tag, tag_color)
 
         logger.dmesg_restore_coord = { out.getCursorPos() }
 
-        _log(util.c("[", t_stamp, "] [", tag, "] ", msg))
+        _log{"[", t_stamp, "] [", tag, "] ", msg}
     end
 
     return ts_coord
@@ -295,59 +296,47 @@ end
 ---@param trace? boolean include file trace
 function log.debug(msg, trace)
     if logger.debug then
-        local dbg_info = ""
-
         if trace then
             local info = debug.getinfo(2)
-            local name = ""
 
             if info.name ~= nil then
-                name = util.c(":", info.name, "():")
+                _log{DBG_TAG, info.short_src, COLON, info.name, FUNC, info.currentline, ARROW, msg}
+            else
+                _log{DBG_TAG, info.short_src, COLON, info.currentline, ARROW, msg}
             end
-
-            dbg_info = util.c(info.short_src, ":", name, info.currentline, " > ")
+        else
+            _log{DBG_TAG, msg}
         end
-
-        _log(util.c("[DBG] ", dbg_info, msg))
     end
 end
 
 -- log info messages
 ---@param msg any message
-function log.info(msg)
-    _log(util.c("[INF] ", msg))
-end
+function log.info(msg) _log{INF_TAG, msg} end
 
 -- log warning messages
 ---@param msg any message
-function log.warning(msg)
-    _log(util.c("[WRN] ", msg))
-end
+function log.warning(msg) _log{WRN_TAG, msg} end
 
 -- log error messages
 ---@param msg any message
 ---@param trace? boolean include file trace
 function log.error(msg, trace)
-    local dbg_info = ""
-
     if trace then
         local info = debug.getinfo(2)
-        local name = ""
 
         if info.name ~= nil then
-            name = util.c(":", info.name, "():")
+            _log{ERR_TAG, info.short_src, COLON, info.name, FUNC, info.currentline, ARROW, msg}
+        else
+            _log{ERR_TAG, info.short_src, COLON, info.currentline, ARROW, msg}
         end
-
-        dbg_info = util.c(info.short_src, ":", name, info.currentline, " > ")
+    else
+        _log{ERR_TAG, msg}
     end
-
-    _log(util.c("[ERR] ", dbg_info, msg))
 end
 
 -- log fatal errors
 ---@param msg any message
-function log.fatal(msg)
-    _log(util.c("[FTL] ", msg))
-end
+function log.fatal(msg) _log{FTL_TAG, msg} end
 
 return log
