@@ -31,7 +31,7 @@ local wh_gray = style.wh_gray
 local lg_gray = style.lg_gray
 
 -- make a new unit flow window
----@param parent DisplayBox parent
+---@param parent Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version

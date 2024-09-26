@@ -42,7 +42,7 @@ local gry_wht = style.gray_white
 local period = core.flasher.PERIOD
 
 -- create a unit view
----@param parent DisplayBox parent
+---@param parent Container parent
 ---@param id integer
 local function init(parent, id)
     local s_hi_box = style.theme.highlight_box
