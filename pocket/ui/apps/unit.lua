@@ -47,7 +47,7 @@ local emc_ind_s = {
 }
 
 -- new unit page view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
@@ -69,7 +69,7 @@ local function new_view(root)
     local btn_active = cpair(colors.white, colors.black)
 
     local nav_links = {}
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar(id)
@@ -99,7 +99,7 @@ local function new_view(root)
     local function load()
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
-        local panes = {}
+        local panes = {} ---@type Div[]
 
         local active_unit = 1
 

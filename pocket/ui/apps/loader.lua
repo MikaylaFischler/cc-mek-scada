@@ -18,7 +18,7 @@ local APP_ID = pocket.APP_ID
 local LINK_STATE = iocontrol.LINK_STATE
 
 -- create the connecting to SV & API page
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

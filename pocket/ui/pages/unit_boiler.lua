@@ -29,8 +29,8 @@ local yel_ind_s = style.icon_states.yel_ind_s
 -- create a boiler view in the unit app
 ---@param app pocket_app
 ---@param u_page nav_tree_page
----@param panes graphics_element[]
----@param blr_pane graphics_element
+---@param panes Div[]
+---@param blr_pane Div
 ---@param b_id integer boiler ID
 ---@param ps psil
 ---@param update function

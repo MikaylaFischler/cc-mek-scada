@@ -160,7 +160,7 @@ local function self_check()
 end
 
 -- exit self check back home
----@param main_pane graphics_element
+---@param main_pane MultiPane
 local function exit_self_check(main_pane)
     tcd.abort(handle_timeout)
     self.net_listen = false
@@ -172,9 +172,9 @@ end
 local check = {}
 
 -- create the self-check view
----@param main_pane graphics_element
+---@param main_pane MultiPane
 ---@param settings_cfg plc_config
----@param check_sys graphics_element
+---@param check_sys Div
 ---@param style { [string]: cpair }
 function check.create(main_pane, settings_cfg, check_sys, style)
     local bw_fg_bg      = style.bw_fg_bg

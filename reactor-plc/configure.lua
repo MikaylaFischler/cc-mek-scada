@@ -125,7 +125,7 @@ local function load_settings(target, raw)
 end
 
 -- create the config view
----@param display graphics_element
+---@param display DisplayBox
 local function config_view(display)
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg

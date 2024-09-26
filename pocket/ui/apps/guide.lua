@@ -36,7 +36,7 @@ local APP_ID = pocket.APP_ID
 -- local text_fg = style.text_fg
 
 -- new system guide view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
@@ -58,7 +58,7 @@ local function new_view(root)
 
     app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end }})
 
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- load the app (create the elements)
     local function load()
@@ -88,7 +88,7 @@ local function new_view(root)
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2,width=p_width}
         local lnk = Div{parent=page_div,x=2,width=p_width}
-        local panes = { home, search, use, uis, fps, gls, lnk }
+        local panes = { home, search, use, uis, fps, gls, lnk } ---@type Div[]
 
         local doc_map = {}   ---@type { [string]: function }
         local search_db = {} ---@type [ string, string, string, function ][]

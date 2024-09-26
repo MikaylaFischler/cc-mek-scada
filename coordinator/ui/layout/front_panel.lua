@@ -34,7 +34,7 @@ local cpair = core.cpair
 local led_grn = style.led_grn
 
 -- create new front panel view
----@param panel graphics_element main displaybox
+---@param panel DisplayBox main displaybox
 ---@param num_units integer number of units (number of unit monitors)
 local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps

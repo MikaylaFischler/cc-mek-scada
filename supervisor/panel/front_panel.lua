@@ -33,7 +33,7 @@ local cpair = core.cpair
 local ind_grn = style.ind_grn
 
 -- create new front panel view
----@param panel graphics_element main displaybox
+---@param panel DisplayBox main displaybox
 local function init(panel)
     local s_hi_box = style.theme.highlight_box
     local s_hi_bright = style.theme.highlight_box_bright

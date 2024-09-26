@@ -38,7 +38,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- create new main view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local db = iocontrol.get_db()
 

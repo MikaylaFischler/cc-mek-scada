@@ -61,7 +61,7 @@ local system = {}
 
 -- create the system configuration view
 ---@param tool_ctl _plc_cfg_tool_ctl
----@param main_pane graphics_element
+---@param main_pane MultiPane
 ---@param cfg_sys [ plc_config, plc_config, plc_config, table, function ]
 ---@param divs Div[]
 ---@param style { [string]: cpair }

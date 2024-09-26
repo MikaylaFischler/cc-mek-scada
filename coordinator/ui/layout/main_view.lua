@@ -21,7 +21,7 @@ local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 local ALIGN = core.ALIGN
 
 -- create new main view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local s_header = style.theme.header
 

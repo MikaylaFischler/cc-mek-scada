@@ -19,7 +19,7 @@ local ALIGN = core.ALIGN
 local pipe = core.pipe
 
 -- make a new unit overview window
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param unit ioctl_unit unit database entry

@@ -25,7 +25,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- create system app pages
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

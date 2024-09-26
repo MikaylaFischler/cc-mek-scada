@@ -16,7 +16,7 @@ local cpair = core.cpair
 local border = core.border
 
 -- new turbine view
----@param root graphics_element parent
+---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface

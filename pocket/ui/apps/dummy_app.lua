@@ -13,7 +13,7 @@ local TextBox   = require("graphics.elements.TextBox")
 local APP_ID = pocket.APP_ID
 
 -- create placeholder app page
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

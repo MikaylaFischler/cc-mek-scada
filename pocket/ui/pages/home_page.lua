@@ -19,7 +19,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- new home page view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 

@@ -109,10 +109,10 @@ pocket.APP_ID = APP_ID
 ---@param smem pkt_shared_memory
 function pocket.init_nav(smem)
     local self = {
-        pane = nil,          ---@type MultiPane|nil
+        pane = nil,          ---@type AppMultiPane|MultiPane|nil
         sidebar = nil,       ---@type Sidebar|nil
         apps = {},           ---@type pocket_app[]
-        containers = {},     ---@type graphics_element[]
+        containers = {},     ---@type Container[]
         help_map = {},       ---@type { [string]: function }
         help_return = nil,   ---@type POCKET_APP_ID|nil
         loader_return = nil, ---@type POCKET_APP_ID|nil
@@ -134,8 +134,8 @@ function pocket.init_nav(smem)
 
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
-    ---@param container graphics_element element that contains this app (usually a Div)
-    ---@param pane? graphics_element multipane if this is a simple paned app, then nav_to must be a number
+    ---@param container Container element that contains this app (usually a Div)
+    ---@param pane? AppMultiPane|MultiPane multipane if this is a simple paned app, then nav_to must be a number
     ---@param require_sv? boolean true to specifiy if this app should be unloaded when the supervisor connection is lost
     ---@param require_api? boolean true to specifiy if this app should be unloaded when the api connection is lost
     function nav.register_app(app_id, container, pane, require_sv, require_api)
@@ -159,7 +159,7 @@ function pocket.init_nav(smem)
         function app.requires_conn() return require_sv or require_api or false end
 
         -- delayed set of the pane if it wasn't ready at the start
-        ---@param root_pane graphics_element multipane
+        ---@param root_pane AppMultiPane|MultiPane multipane
         function app.set_root_pane(root_pane)
             app.pane = root_pane
         end

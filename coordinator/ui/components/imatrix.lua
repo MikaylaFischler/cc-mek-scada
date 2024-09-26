@@ -22,7 +22,7 @@ local border = core.border
 local ALIGN = core.ALIGN
 
 -- new induction matrix view
----@param root graphics_element parent
+---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param data imatrix_session_db matrix data

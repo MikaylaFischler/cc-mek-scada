@@ -34,7 +34,7 @@ local pipe = core.pipe
 local wh_gray = style.wh_gray
 
 -- create new flow view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local s_hi_bright = style.theme.highlight_box_bright
     local s_field = style.theme.field_box

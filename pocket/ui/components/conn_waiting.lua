@@ -18,7 +18,7 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 -- create a waiting view
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param y integer y offset
 local function init(parent, y, is_api)
     -- root div

@@ -21,7 +21,7 @@ local DOC_TYPE = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
----@param data { [1]: pocket_app, [2]: graphics_element, [3]: graphics_element[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
+---@param data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
 ---@param base_page nav_tree_page
 ---@param title string
 ---@param items table

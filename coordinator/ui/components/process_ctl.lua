@@ -33,7 +33,7 @@ local bw_fg_bg = style.bw_fg_bg
 local period = core.flasher.PERIOD
 
 -- new process control view
----@param root graphics_element parent
+---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 local function new_view(root, x, y)

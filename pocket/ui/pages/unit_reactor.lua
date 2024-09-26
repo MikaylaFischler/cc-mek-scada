@@ -29,8 +29,8 @@ local yel_ind_s = style.icon_states.yel_ind_s
 -- create a reactor view in the unit app
 ---@param app pocket_app
 ---@param u_page nav_tree_page
----@param panes graphics_element[]
----@param page_div graphics_element
+---@param panes Div[]
+---@param page_div Div
 ---@param u_ps psil
 ---@param update function
 return function (app, u_page, panes, page_div, u_ps, update)

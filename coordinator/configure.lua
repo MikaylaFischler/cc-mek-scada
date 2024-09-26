@@ -302,7 +302,7 @@ local function load_settings(target, raw)
 end
 
 -- create the config view
----@param display graphics_element
+---@param display DisplayBox
 local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end

@@ -30,7 +30,7 @@ local ind_grn = style.ind_grn
 local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
 
 -- create new front panel view
----@param panel graphics_element main displaybox
+---@param panel DisplayBox main displaybox
 ---@param units rtu_registry_entry[] unit list
 local function init(panel, units)
     local disabled_fg = style.fp.disabled_fg

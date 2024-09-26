@@ -17,6 +17,8 @@ core.events = events
 ---@enum ALIGN
 core.ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
 
+---@alias Container DisplayBox|Div|ListBox|MultiPane|AppMultiPane|Rectangle
+
 ---@class graphics_border
 ---@field width integer
 ---@field color color
