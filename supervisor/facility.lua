@@ -105,11 +105,11 @@ function facility.new(config)
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
-        tone_states = {},       ---@type boolean[]
+        tone_states = {},       ---@type { [TONE]: boolean }
         test_tone_set = false,
         test_tone_reset = false,
-        test_tone_states = {},  ---@type boolean[]
-        test_alarm_states = {}, ---@type boolean[]
+        test_tone_states = {},  ---@type { [TONE]: boolean }
+        test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
         im_stat_init = false,
         avg_charge = util.mov_avg(3),  -- 3 seconds

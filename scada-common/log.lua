@@ -18,7 +18,7 @@ local logger = {
     mode = MODE.APPEND,
     debug = false,
     file = nil,         ---@type table|nil
-    dmesg_out = nil,    ---@type table|nil
+    dmesg_out = nil,    ---@type Redirect|nil
     dmesg_restore_coord = { 1, 1 },
     dmesg_scroll_count = 0
 }
@@ -80,7 +80,7 @@ end
 ---@param path string file path
 ---@param write_mode MODE file write mode
 ---@param include_debug boolean whether or not to include debug logs
----@param dmesg_redirect? table terminal/window to direct dmesg to
+---@param dmesg_redirect? Redirect terminal/window to direct dmesg to
 function log.init(path, write_mode, include_debug, dmesg_redirect)
     logger.path = path
     logger.mode = write_mode
@@ -107,7 +107,7 @@ function log.close()
 end
 
 -- direct dmesg output to a monitor/window
----@param window table window or terminal reference
+---@param window Window window or terminal reference
 function log.direct_dmesg(window) logger.dmesg_out = window end
 
 -- dmesg style logging for boot because I like linux-y things

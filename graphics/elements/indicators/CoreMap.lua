@@ -13,7 +13,7 @@ local element = require("graphics.element")
 ---@field x? integer 1 if omitted
 ---@field y? integer auto incremented if omitted
 
--- Create a new core map box element.
+-- Create a new core map diagram indicator element.
 ---@nodiscard
 ---@param args core_map_args
 ---@return CoreMap element, element_id id

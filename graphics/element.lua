@@ -57,7 +57,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         offset_x = 0,
         offset_y = 0,
         next_y = 1,                                     -- next child y coordinate
-        next_id = 0,                                    -- next child ID[
+        next_id = 0,                                    -- next child ID
         subscriptions = {},                             ---@type { ps: psil, key: string, func: function }[]
         button_down = { events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1) },
         focused = false,
@@ -87,9 +87,9 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
     setmetatable(public, self.mt)
 
-    -----------------------
-    -- PRIVATE FUNCTIONS --
-    -----------------------
+    ------------------------------
+    --#region PRIVATE FUNCTIONS --
+    ------------------------------
 
     -- use tab to jump to the next focusable field
     ---@param reverse boolean
@@ -150,9 +150,11 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         end
     end
 
-    -------------------------
-    -- PROTECTED FUNCTIONS --
-    -------------------------
+    --#endregion
+
+    --------------------------------
+    --#region PROTECTED FUNCTIONS --
+    --------------------------------
 
     -- prepare the template
     ---@param offset_x integer x offset for mouse events
@@ -371,7 +373,8 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     function protected.on_update(...) end
 
     --#endregion
-    --#region Accessors and Control --
+
+    --#region Accessors and Control
 
     -- get value
     ---@nodiscard
@@ -409,9 +412,13 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
     -- stop animations
     function protected.stop_anim() end
 
-    -----------
-    -- SETUP --
-    -----------
+    --#endregion
+
+    --#endregion
+
+    ------------------
+    --#region SETUP --
+    ------------------
 
     -- get the parent window
     self.p_window = args.window
@@ -430,9 +437,11 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         self.id = args.parent.__add_child(args.id, protected)
     end
 
-    ----------------------
-    -- PUBLIC FUNCTIONS --
-    ----------------------
+    --#endregion
+
+    -----------------------------
+    --#region PUBLIC FUNCTIONS --
+    -----------------------------
 
     -- get the window object
     ---@nodiscard
@@ -474,7 +483,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         end
     end
 
-    -- ELEMENT TREE --
+    --#region ELEMENT TREE
 
     -- add a child element
     ---@package
@@ -590,14 +599,18 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         else return ({ protected.children[index].get() })[1] end
     end
 
-    -- AUTO-PLACEMENT --
+    --#endregion
+
+    --#region AUTO-PLACEMENT
 
     -- skip a line for automatically placed elements
     function public.line_break()
         self.next_y = self.next_y + 1
     end
 
-    -- PROPERTIES --
+    --#endregion
+
+    --#region PROPERTIES
 
     -- get element ID
     ---@nodiscard
@@ -724,7 +737,9 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         self.bounds.y2 = self.position.y + protected.frame.h - 1
     end
 
-    -- FUNCTION CALLBACKS --
+    --#endregion
+
+    --#region FUNCTION CALLBACKS
 
     -- handle a monitor touch or mouse click if this element is visible
     ---@param event mouse_interaction mouse interaction event
@@ -799,7 +814,9 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         ps.subscribe(key, func)
     end
 
-    -- VISIBILITY & ANIMATIONS --
+    --#endregion
+
+    --#region VISIBILITY & ANIMATIONS
 
     -- check if this element is visible
     function public.is_visible() return protected.window.isVisible() end
@@ -864,6 +881,10 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
             for _, child in pairs(protected.children) do child.get().redraw() end
         end
     end
+
+    --#endregion
+
+    --#endregion
 
     return protected
 end

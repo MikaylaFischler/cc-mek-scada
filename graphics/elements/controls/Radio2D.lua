@@ -23,7 +23,7 @@ local element = require("graphics.element")
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- Create a new 2D radio button list control element (latch selection, exclusively one color at a time).
+-- Create a new 2-dimensional (rows and columns of options) radio button list control element (latch selection, exclusively one color at a time).
 ---@param args radio_2d_args
 ---@return Radio2D element, element_id id
 return function (args)

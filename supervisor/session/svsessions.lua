@@ -56,8 +56,8 @@ local self = {
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
     -- rtu device tracking and invalid assignment detection
     dev_dbg = {
-        duplicate = {},     ---@type unit_session
-        out_of_range = {},  ---@type unit_session
+        duplicate = {},     ---@type unit_session[]
+        out_of_range = {},  ---@type unit_session[]
         connected = {}      ---@type { induction: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
     }
 }

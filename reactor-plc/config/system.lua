@@ -63,7 +63,7 @@ local system = {}
 ---@param tool_ctl _plc_cfg_tool_ctl
 ---@param main_pane graphics_element
 ---@param cfg_sys [ plc_config, plc_config, plc_config, table, function ]
----@param divs graphics_element[]
+---@param divs Div[]
 ---@param style { [string]: cpair }
 ---@param exit function
 function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)

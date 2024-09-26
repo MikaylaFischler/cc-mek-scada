@@ -20,7 +20,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field fg_bg? cpair foreground/background colors
 ---@field hidden? boolean true to hide on initial draw
 
--- Create a new 'app' style button control element, like on a phone.
+-- Create a new app icon style button control element, like on a mobile device.
 ---@param args app_button_args
 ---@return App element, element_id id
 return function (args)
