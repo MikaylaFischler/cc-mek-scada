@@ -19,7 +19,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "v1.5.9"
+local COORDINATOR_VERSION = "v1.5.10"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 

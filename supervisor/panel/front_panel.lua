@@ -120,7 +120,7 @@ local function init(panel)
 
     local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local rtu_list = ListBox{parent=rtu_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
-    local _ = Div{parent=rtu_list,height=1,hidden=true} -- padding
+    local _ = Div{parent=rtu_list,height=1} -- padding
 
     -- coordinator session page
 
@@ -148,13 +148,13 @@ local function init(panel)
 
     local pkt_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local pdg_list = ListBox{parent=pkt_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
-    local _ = Div{parent=pdg_list,height=1,hidden=true} -- padding
+    local _ = Div{parent=pdg_list,height=1} -- padding
 
     -- RTU device ID check/diagnostics page
 
     local chk_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local chk_list = ListBox{parent=chk_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
-    local _ = Div{parent=chk_list,height=1,hidden=true} -- padding
+    local _ = Div{parent=chk_list,height=1} -- padding
 
     -- info page
 

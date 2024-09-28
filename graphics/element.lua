@@ -57,7 +57,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
         offset_x = 0,
         offset_y = 0,
         next_y = 1,                                     -- next child y coordinate
-        next_id = 0,                                    -- next child ID
+        next_id = 1,                                    -- next child ID
         subscriptions = {},                             ---@type { ps: psil, key: string, func: function }[]
         button_down = { events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1), events.new_coord_2d(-1, -1) },
         focused = false,

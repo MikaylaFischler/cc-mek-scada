@@ -146,7 +146,7 @@ local function init(panel, num_units)
 
     local api_page = Div{parent=page_div,x=1,y=1,hidden=true}
     local api_list = ListBox{parent=api_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
-    local _ = Div{parent=api_list,height=1,hidden=true} -- padding
+    local _ = Div{parent=api_list,height=1} -- padding
 
     -- assemble page panes
 

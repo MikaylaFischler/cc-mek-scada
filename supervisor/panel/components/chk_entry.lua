@@ -21,7 +21,7 @@ local cpair = core.cpair
 ---@param fail_code integer failure code
 local function init(parent, msg, fail_code)
     -- root div
-    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}
+    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2}
     local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
 
     local fg_bg = cpair(colors.black,colors.yellow)

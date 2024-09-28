@@ -26,7 +26,7 @@ local function init(parent, id)
     local label_fg = style.fp.label_fg
 
     -- root div
-    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}
+    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2}
     local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
 
     local ps_prefix = "rtu_" .. id .. "_"
