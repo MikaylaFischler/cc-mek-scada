@@ -28,7 +28,7 @@ local TextBox     = require("graphics.elements.TextBox")
 local WaitingAnim = require("graphics.elements.animations.Waiting")
 
 local PushButton  = require("graphics.elements.controls.PushButton")
-local Sidebar     = require("graphics.elements.controls.SideBar")
+local Sidebar     = require("graphics.elements.controls.Sidebar")
 
 local SignalBar   = require("graphics.elements.indicators.SignalBar")
 
