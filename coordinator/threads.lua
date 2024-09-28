@@ -68,6 +68,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         -- we only really care if this is our wireless modem
                         -- if it is another modem, handle other peripheral losses separately
                         if nic.is_modem(device) then
@@ -91,8 +92,10 @@ function threads.thread__main(smem)
                             log_sys("non-comms modem disconnected")
                         end
                     elseif type == "monitor" then
+                        ---@cast device Monitor
                         smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_DISCONNECT, device)
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         log_sys("lost alarm sounder speaker")
                         iocontrol.fp_has_speaker(false)
                     end
@@ -102,6 +105,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         if device.isWireless() and not nic.is_connected() then
                             -- reconnected modem
                             log_sys("comms modem reconnected")
@@ -113,8 +117,10 @@ function threads.thread__main(smem)
                             log_sys("wired modem reconnected")
                         end
                     elseif type == "monitor" then
+                        ---@cast device Monitor
                         smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, { name = param1, device = device })
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         log_sys("alarm sounder speaker reconnected")
                         sounder.reconnect(device)
                         iocontrol.fp_has_speaker(true)

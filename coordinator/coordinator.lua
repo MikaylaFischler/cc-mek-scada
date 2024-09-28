@@ -111,12 +111,12 @@ function coordinator.load_config()
 
     ---@class monitors_struct
     local monitors = {
-        main = nil,     ---@type table|nil
+        main = nil,         ---@type Monitor|nil
         main_name = "",
-        flow = nil,     ---@type table|nil
+        flow = nil,         ---@type Monitor|nil
         flow_name = "",
-        unit_displays = {},
-        unit_name_map = {}
+        unit_displays = {}, ---@type Monitor[]
+        unit_name_map = {}  ---@type string[]
     }
 
     local mon_cfv = util.new_validator()
@@ -623,7 +623,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 local unit_id = packet.data[2]
                                 local ack = packet.data[3] == true
 
-                                local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_unit
+                                local unit = iocontrol.get_db().units[unit_id]
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then

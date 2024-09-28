@@ -40,7 +40,7 @@ local facility = {}
 function facility.new(config)
     ---@class _facility_self
     local self = {
-        units = {},
+        units = {},     ---@type reactor_unit[]
         types = { AUTO_SCRAM = AUTO_SCRAM, START_STATUS = START_STATUS },
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
@@ -51,16 +51,16 @@ function facility.new(config)
             r_cool = config.CoolingConfig,
             fac_tank_mode = config.FacilityTankMode,
             fac_tank_defs = config.FacilityTankDefs,
-            fac_tank_list = {}
+            fac_tank_list = {}  ---@type integer[]
         },
         -- rtus
-        rtu_conn_count = 0,
-        rtu_list = {},
-        redstone = {},
-        induction = {},
-        sps = {},
-        tanks = {},
-        envd = {},
+        rtu_gw_conn_count = 0,
+        rtu_list = {},  ---@type unit_session[][]
+        redstone = {},  ---@type redstone_session[]
+        induction = {}, ---@type imatrix_session[]
+        sps = {},       ---@type sps_session[]
+        tanks = {},     ---@type dynamicv_session[]
+        envd = {},      ---@type envd_session[]
         -- redstone I/O control
         io_ctl = nil,   ---@type rs_controller
         -- process control
@@ -105,11 +105,11 @@ function facility.new(config)
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
-        tone_states = {},
+        tone_states = {},       ---@type { [TONE]: boolean }
         test_tone_set = false,
         test_tone_reset = false,
-        test_tone_states = {},
-        test_alarm_states = {},
+        test_tone_states = {},  ---@type { [TONE]: boolean }
+        test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
         im_stat_init = false,
         avg_charge = util.mov_avg(3),  -- 3 seconds
@@ -350,7 +350,7 @@ function facility.new(config)
     -- additionally sets the requested auto waste mode if applicable
     function public.update_units()
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
+            local u = self.units[i]
             u.auto_set_waste(self.current_waste_product)
             u.update()
         end
@@ -363,16 +363,14 @@ function facility.new(config)
     -- SCRAM all reactor units
     function public.scram_all()
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
-            u.scram()
+            self.units[i].scram()
         end
     end
 
     -- ack all alarms on all reactor units
     function public.ack_all()
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
-            u.ack_all()
+            self.units[i].ack_all()
         end
     end
 
@@ -393,8 +391,7 @@ function facility.new(config)
         -- load up current limits
         local limits = {}
         for i = 1, config.UnitCount do
-            local u = self.units[i] ---@type reactor_unit
-            limits[i] = u.get_control_inf().lim_br100 * 100
+            limits[i] = self.units[i].get_control_inf().lim_br100 * 100
         end
 
         -- only allow changes if not running
@@ -512,7 +509,7 @@ function facility.new(config)
     -- attempt to set a test tone state
     ---@param id TONE|0 tone ID or 0 to disable all
     ---@param state boolean state
-    ---@return boolean allow_testing, table test_tone_states
+    ---@return boolean allow_testing, { [TONE]: boolean } test_tone_states
     function public.diag_set_test_tone(id, state)
         if self.allow_testing then
             self.test_tone_set = true
@@ -531,7 +528,7 @@ function facility.new(config)
     -- attempt to set a test alarm state
     ---@param id ALARM|0 alarm ID or 0 to disable all
     ---@param state boolean state
-    ---@return boolean allow_testing, table test_alarm_states
+    ---@return boolean allow_testing, { [ALARM]: boolean } test_alarm_states
     function public.diag_set_test_alarm(id, state)
         if self.allow_testing then
             self.test_tone_set = true
@@ -565,7 +562,7 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.IMATRIX then
             build.induction = {}
             for i = 1, #self.induction do
-                local matrix = self.induction[i]    ---@type unit_session
+                local matrix = self.induction[i]
                 build.induction[i] = { matrix.get_db().formed, matrix.get_db().build }
             end
         end
@@ -573,7 +570,7 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
-                local sps = self.sps[i] ---@type unit_session
+                local sps = self.sps[i]
                 build.sps[i] = { sps.get_db().formed, sps.get_db().build }
             end
         end
@@ -581,7 +578,7 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.DYNAMIC_VALVE then
             build.tanks = {}
             for i = 1, #self.tanks do
-                local tank = self.tanks[i]  ---@type unit_session
+                local tank = self.tanks[i]
                 build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }
             end
         end
@@ -636,7 +633,7 @@ function facility.new(config)
         local status = {}
 
         -- total count of all connected RTUs in the facility
-        status.count = self.rtu_conn_count
+        status.count = self.rtu_gw_conn_count
 
         -- power averages from induction matricies
         status.power = {
@@ -649,8 +646,8 @@ function facility.new(config)
         -- status of induction matricies (including tanks)
         status.induction = {}
         for i = 1, #self.induction do
-            local matrix = self.induction[i] ---@type unit_session
-            local db     = matrix.get_db()   ---@type imatrix_session_db
+            local matrix = self.induction[i]
+            local db = matrix.get_db()
 
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
@@ -662,24 +659,24 @@ function facility.new(config)
         -- status of sps
         status.sps = {}
         for i = 1, #self.sps do
-            local sps = self.sps[i]     ---@type unit_session
-            local db  = sps.get_db()    ---@type sps_session_db
+            local sps = self.sps[i]
+            local db = sps.get_db()
             status.sps[i] = { sps.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- status of dynamic tanks
         status.tanks = {}
         for i = 1, #self.tanks do
-            local tank = self.tanks[i]  ---@type unit_session
-            local db   = tank.get_db()  ---@type dynamicv_session_db
+            local tank = self.tanks[i]
+            local db = tank.get_db()
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
         -- radiation monitors (environment detectors)
         status.envds = {}
         for i = 1, #self.envd do
-            local envd = self.envd[i]   ---@type unit_session
-            local db   = envd.get_db()  ---@type envd_session_db
+            local envd = self.envd[i]
+            local db = envd.get_db()
             status.envds[envd.get_device_idx()] = { envd.is_faulted(), db.radiation, db.radiation_raw }
         end
 
@@ -688,9 +685,9 @@ function facility.new(config)
 
     --#endregion
 
-    -- supervisor sessions reporting the list of active RTU sessions
-    ---@param rtu_sessions table session list of all connected RTUs
-    function public.report_rtus(rtu_sessions) self.rtu_conn_count = #rtu_sessions end
+    -- supervisor sessions reporting the list of active RTU gateway sessions
+    ---@param sessions rtu_session_struct[] session list of all connected RTU gateways
+    function public.report_rtu_gateways(sessions) self.rtu_gw_conn_count = #sessions end
 
     -- get the facility cooling configuration
     function public.get_cooling_conf() return self.cooling_conf end

@@ -13,19 +13,19 @@ local style         = require("pocket.ui.style")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local HazardButton  = require("graphics.elements.controls.hazard_button")
-local PushButton    = require("graphics.elements.controls.push_button")
+local HazardButton  = require("graphics.elements.controls.HazardButton")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local NumberField   = require("graphics.elements.form.number_field")
+local NumberField   = require("graphics.elements.form.NumberField")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local IconIndicator = require("graphics.elements.indicators.icon")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator = require("graphics.elements.indicators.IconIndicator")
 
 local AUTO_GROUP = types.AUTO_GROUP
 
@@ -42,7 +42,7 @@ local hzd_fg_bg = cpair(colors.white, colors.gray)
 local dis_colors = cpair(colors.white, colors.lightGray)
 
 -- new unit control page view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
@@ -63,7 +63,7 @@ local function new_view(root)
     local btn_fg_bg = cpair(colors.green, colors.black)
     local btn_active = cpair(colors.white, colors.black)
 
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar()
@@ -83,7 +83,7 @@ local function new_view(root)
     local function load()
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
-        local panes = {}
+        local panes = {} ---@type Div[]
 
         local active_unit = 1
 
@@ -108,7 +108,7 @@ local function new_view(root)
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i] ---@type pioctl_unit
+            local unit = db.units[i]
             local u_ps = unit.unit_ps
 
             -- refresh data callback, every 500ms it will re-send the query

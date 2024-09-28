@@ -8,17 +8,17 @@ local style       = require("pocket.ui.style")
 
 local core        = require("graphics.core")
 
-local Div         = require("graphics.elements.div")
-local TextBox     = require("graphics.elements.textbox")
+local Div         = require("graphics.elements.Div")
+local TextBox     = require("graphics.elements.TextBox")
 
-local WaitingAnim = require("graphics.elements.animations.waiting")
+local WaitingAnim = require("graphics.elements.animations.Waiting")
 
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
 -- create a waiting view
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param y integer y offset
 local function init(parent, y, is_api)
     -- root div

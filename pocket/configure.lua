@@ -9,18 +9,18 @@ local util        = require("scada-common.util")
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
 
-local DisplayBox  = require("graphics.elements.displaybox")
-local Div         = require("graphics.elements.div")
-local ListBox     = require("graphics.elements.listbox")
-local MultiPane   = require("graphics.elements.multipane")
-local TextBox     = require("graphics.elements.textbox")
+local DisplayBox  = require("graphics.elements.DisplayBox")
+local Div         = require("graphics.elements.Div")
+local ListBox     = require("graphics.elements.ListBox")
+local MultiPane   = require("graphics.elements.MultiPane")
+local TextBox     = require("graphics.elements.TextBox")
 
-local CheckBox    = require("graphics.elements.controls.checkbox")
-local PushButton  = require("graphics.elements.controls.push_button")
-local RadioButton = require("graphics.elements.controls.radio_button")
+local Checkbox    = require("graphics.elements.controls.Checkbox")
+local PushButton  = require("graphics.elements.controls.PushButton")
+local RadioButton = require("graphics.elements.controls.RadioButton")
 
-local NumberField = require("graphics.elements.form.number_field")
-local TextField   = require("graphics.elements.form.text_field")
+local NumberField = require("graphics.elements.form.NumberField")
+local TextField   = require("graphics.elements.form.TextField")
 
 local println = util.println
 local tri = util.trinary
@@ -58,8 +58,8 @@ local tool_ctl = {
     viewing_config = false,
     importing_legacy = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     set_networked = nil,    ---@type function
     bundled_emcool = nil,   ---@type function
@@ -68,8 +68,8 @@ local tool_ctl = {
     load_legacy = nil,      ---@type function
 
     show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type graphics_element
-    auth_key_textbox = nil, ---@type graphics_element
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = ""
 }
 
@@ -122,7 +122,7 @@ local function load_settings(target, raw)
 end
 
 -- create the config view
----@param display graphics_element
+---@param display DisplayBox
 local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
@@ -282,14 +282,14 @@ local function config_view(display)
     TextBox{parent=net_c_4,x=1,y=6,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_4,x=1,y=12,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_4,x=1,y=13,max_len=64,value=ini_cfg.AuthKey,width=24,height=1,fg_bg=bw_fg_bg}
+    local key, _ = TextField{parent=net_c_4,x=1,y=13,max_len=64,value=ini_cfg.AuthKey,width=24,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(util.trinary(enable, "*", nil)) end
 
     -- declare back first so tabbing makes sense visually
     PushButton{parent=net_c_4,x=1,y=15,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    local hide_key = CheckBox{parent=net_c_4,x=8,y=15,label="Hide Key",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+    local hide_key = Checkbox{parent=net_c_4,x=8,y=15,label="Hide Key",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
     censor_key(true)
@@ -323,7 +323,7 @@ local function config_view(display)
     TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=24,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
-    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
+    local en_dbg = Checkbox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=4,text="This results in much larger log files. Use only as needed.",fg_bg=g_lg_fg_bg}
 
     local path_err = TextBox{parent=log_c_1,x=1,y=14,width=24,text="Provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}

@@ -23,7 +23,7 @@ ppm.VIRTUAL_DEVICE_TYPE   = VIRTUAL_DEVICE_TYPE
 local REPORT_FREQUENCY = 20 -- log every 20 faults per function
 
 local ppm_sys = {
-    mounts = {},
+    mounts = {},    ---@type { [string]: ppm_entry }
     next_vid = 0,
     auto_cf = false,
     faulted = false,
@@ -40,10 +40,10 @@ local function peri_init(iface)
     local self = {
         faulted = false,
         last_fault = "",
-        fault_counts = {},
+        fault_counts = {},          ---@type { [string]: integer }
         auto_cf = true,
-        type = VIRTUAL_DEVICE_TYPE,
-        device = {}
+        type = VIRTUAL_DEVICE_TYPE, ---@type string
+        device = {}                 ---@type { [string]: function }
     }
 
     if iface ~= "__virtual__" then
@@ -181,7 +181,7 @@ local function peri_init(iface)
     setmetatable(self.device, mt)
 
     ---@class ppm_entry
-    local entry = { type = self.type, dev  = self.device }
+    local entry = { type = self.type, dev = self.device }
 
     return entry
 end
@@ -284,10 +284,10 @@ end
 ---@param device table device table
 function ppm.unmount(device)
     if device then
-        for side, data in pairs(ppm_sys.mounts) do
+        for iface, data in pairs(ppm_sys.mounts) do
             if data.dev == device then
-                log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", side))
-                ppm_sys.mounts[side] = nil
+                log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", iface))
+                ppm_sys.mounts[iface] = nil
                 break
             end
         end
@@ -334,12 +334,12 @@ end
 
 -- list all available peripherals
 ---@nodiscard
----@return table names
+---@return string[] names
 function ppm.list_avail() return peripheral.getNames() end
 
 -- list mounted peripherals
 ---@nodiscard
----@return table mounts
+---@return { [string]: ppm_entry } mounts
 function ppm.list_mounts()
     local list = {}
     for k, v in pairs(ppm_sys.mounts) do list[k] = v end
@@ -352,8 +352,8 @@ end
 ---@return string|nil iface CC peripheral interface
 function ppm.get_iface(device)
     if device then
-        for side, data in pairs(ppm_sys.mounts) do
-            if data.dev == device then return side end
+        for iface, data in pairs(ppm_sys.mounts) do
+            if data.dev == device then return iface end
         end
     end
 
@@ -363,7 +363,7 @@ end
 -- get a mounted peripheral by side/interface
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return table|nil device function table
+---@return { [string]: function }|nil device function table
 function ppm.get_periph(iface)
     if ppm_sys.mounts[iface] then
         return ppm_sys.mounts[iface].dev
@@ -423,7 +423,7 @@ function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAda
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@nodiscard
----@return table|nil modem function table
+---@return Modem|nil modem function table
 function ppm.get_wireless_modem()
     local w_modem = nil
     local emulated_env = periphemu ~= nil
@@ -440,7 +440,7 @@ end
 
 -- list all connected monitors
 ---@nodiscard
----@return table monitors
+---@return { [string]: ppm_entry } monitors
 function ppm.get_monitor_list()
     local list = {}
 

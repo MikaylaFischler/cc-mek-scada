@@ -6,18 +6,18 @@ local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
 
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
+local Rectangle      = require("graphics.elements.Rectangle")
+local TextBox        = require("graphics.elements.TextBox")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local StateIndicator = require("graphics.elements.indicators.state")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local cpair = core.cpair
 local border = core.border
 
 -- create new reactor view
----@param root graphics_element parent
+---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface

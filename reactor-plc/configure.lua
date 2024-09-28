@@ -12,13 +12,13 @@ local system     = require("reactor-plc.config.system")
 local core       = require("graphics.core")
 local themes     = require("graphics.themes")
 
-local DisplayBox = require("graphics.elements.displaybox")
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local MultiPane  = require("graphics.elements.multipane")
-local TextBox    = require("graphics.elements.textbox")
+local DisplayBox = require("graphics.elements.DisplayBox")
+local Div        = require("graphics.elements.Div")
+local ListBox    = require("graphics.elements.ListBox")
+local MultiPane  = require("graphics.elements.MultiPane")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
 local println = util.println
 local tri = util.trinary
@@ -58,11 +58,11 @@ local tool_ctl = {
     viewing_config = false,
     jumped_to_color = false,
 
-    view_cfg = nil,         ---@type graphics_element
-    color_cfg = nil,        ---@type graphics_element
-    color_next = nil,       ---@type graphics_element
-    color_apply = nil,      ---@type graphics_element
-    settings_apply = nil,   ---@type graphics_element
+    view_cfg = nil,         ---@type PushButton
+    color_cfg = nil,        ---@type PushButton
+    color_next = nil,       ---@type PushButton
+    color_apply = nil,      ---@type PushButton
+    settings_apply = nil,   ---@type PushButton
 
     gen_summary = nil,      ---@type function
     load_legacy = nil,      ---@type function
@@ -125,7 +125,7 @@ local function load_settings(target, raw)
 end
 
 -- create the config view
----@param display graphics_element
+---@param display DisplayBox
 local function config_view(display)
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg

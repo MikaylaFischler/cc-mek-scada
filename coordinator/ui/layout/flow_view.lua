@@ -13,15 +13,15 @@ local unit_flow      = require("coordinator.ui.components.unit_flow")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local PipeNetwork    = require("graphics.elements.pipenet")
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local PipeNetwork    = require("graphics.elements.PipeNetwork")
+local Rectangle      = require("graphics.elements.Rectangle")
+local TextBox        = require("graphics.elements.TextBox")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local HorizontalBar  = require("graphics.elements.indicators.hbar")
-local IndicatorLight = require("graphics.elements.indicators.light")
-local StateIndicator = require("graphics.elements.indicators.state")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
+local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local CONTAINER_MODE = types.CONTAINER_MODE
 
@@ -34,7 +34,7 @@ local pipe = core.pipe
 local wh_gray = style.wh_gray
 
 -- create new flow view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local s_hi_bright = style.theme.highlight_box_bright
     local s_field = style.theme.field_box
@@ -84,8 +84,7 @@ local function init(main)
                 table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
                 table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
 
-                local u = units[i]  ---@type ioctl_unit
-                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
                 table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
             end
         end
@@ -102,8 +101,7 @@ local function init(main)
                     table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
                 end
 
-                local u = units[i]  ---@type ioctl_unit
-                local x = util.trinary(u.num_boilers == 0, 45, 84)
+                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
                 table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
             end
         end

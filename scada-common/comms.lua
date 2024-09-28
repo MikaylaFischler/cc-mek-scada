@@ -405,7 +405,7 @@ function comms.modbus_packet()
             self.raw = { self.txn_id, self.unit_id, self.func_code }
             for i = 1, self.length do insert(self.raw, data[i]) end
         else
-            log.error("comms.modbus_packet.make(): data not table")
+            log.error("comms.modbus_packet.make(): data not a table")
         end
     end
 
@@ -491,7 +491,7 @@ function comms.rplc_packet()
             self.raw = { self.id, self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.rplc_packet.make(): data not table")
+            log.error("comms.rplc_packet.make(): data not a table")
         end
     end
 
@@ -573,7 +573,7 @@ function comms.mgmt_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.mgmt_packet.make(): data not table")
+            log.error("comms.mgmt_packet.make(): data not a table")
         end
     end
 
@@ -652,7 +652,7 @@ function comms.crdn_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.crdn_packet.make(): data not table")
+            log.error("comms.crdn_packet.make(): data not a table")
         end
     end
 

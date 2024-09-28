@@ -29,13 +29,13 @@ local pctl = {
             burn_target = 0.0,
             charge_target = 0.0,
             gen_target = 0.0,
-            limits = {},
+            limits = {},     ---@type number[]
             waste_product = PRODUCT.PLUTONIUM,
             pu_fallback = false,
             sps_low_power = false
         },
-        waste_modes = {},
-        priority_groups = {}
+        waste_modes = {},    ---@type WASTE_MODE[]
+        priority_groups = {} ---@type AUTO_GROUP[]
     },
     commands = {
         unit = {}, ---@type process_command_state[][]
@@ -46,7 +46,7 @@ local pctl = {
 ---@class process_command_state
 ---@field active boolean if this command is live
 ---@field timeout integer expiration time of this command request
----@field requestors table list of callbacks from the requestors
+---@field requestors function[] list of callbacks from the requestors
 
 -- write auto process control to config file
 local function _write_auto_config()
@@ -80,8 +80,8 @@ function process.init(iocontrol, coord_comms)
         ctl_proc.limits[i] = 0.1
     end
 
-    local ctrl_states = settings.get("ControlStates", {})
-    local config = ctrl_states.process  ---@type sys_auto_config
+    local ctrl_states = settings.get("ControlStates", {})   ---@type sys_control_states
+    local config = ctrl_states.process
 
     -- facility auto control configuration
     if type(config) == "table" then
@@ -103,7 +103,7 @@ function process.init(iocontrol, coord_comms)
         pctl.io.facility.ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
 
         for id = 1, math.min(#ctl_proc.limits, pctl.io.facility.num_units) do
-            local unit = pctl.io.units[id]   ---@type ioctl_unit
+            local unit = pctl.io.units[id]
             unit.unit_ps.publish("burn_limit", ctl_proc.limits[id])
         end
 
@@ -116,7 +116,7 @@ function process.init(iocontrol, coord_comms)
     end
 
     -- unit waste states
-    local waste_modes = ctrl_states.waste_modes  ---@type table|nil
+    local waste_modes = ctrl_states.waste_modes
     if type(waste_modes) == "table" then
         for id, mode in pairs(waste_modes) do
             pctl.control_states.waste_modes[id] = mode
@@ -127,7 +127,7 @@ function process.init(iocontrol, coord_comms)
     end
 
     -- unit priority groups
-    local prio_groups = ctrl_states.priority_groups ---@type table|nil
+    local prio_groups = ctrl_states.priority_groups
     if type(prio_groups) == "table" then
         for id, group in pairs(prio_groups) do
             pctl.control_states.priority_groups[id] = group
@@ -443,7 +443,7 @@ end
 ---@param burn_target number burn rate target
 ---@param charge_target number charge target
 ---@param gen_target number generation rate target
----@param limits table unit burn rate limits
+---@param limits number[] unit burn rate limits
 function process.save(mode, burn_target, charge_target, gen_target, limits)
     log.debug("PROCESS: SAVE")
 
@@ -473,7 +473,7 @@ function process.start_ack_handle(response)
     for i = 1, math.min(#response[6], pctl.io.facility.num_units) do
         ctl_proc.limits[i] = response[6][i]
 
-        local unit = pctl.io.units[i]   ---@type ioctl_unit
+        local unit = pctl.io.units[i]
         unit.unit_ps.publish("burn_limit", ctl_proc.limits[i])
     end
 

@@ -100,22 +100,22 @@ pocket.APP_ID = APP_ID
 
 ---@class nav_tree_page
 ---@field _p nav_tree_page|nil page's parent
----@field _c table page's children
+---@field _c nav_tree_page[] page's children
 ---@field nav_to function function to navigate to this page
 ---@field switcher function|nil function to switch between children
----@field tasks table tasks to run while viewing this page
+---@field tasks function[] tasks to run while viewing this page
 
 -- initialize the page navigation system
 ---@param smem pkt_shared_memory
 function pocket.init_nav(smem)
     local self = {
-        pane = nil,    ---@type graphics_element
-        sidebar = nil, ---@type graphics_element
-        apps = {},
-        containers = {},
-        help_map = {},
-        help_return = nil,
-        loader_return = nil,
+        pane = nil,          ---@type AppMultiPane|MultiPane|nil
+        sidebar = nil,       ---@type Sidebar|nil
+        apps = {},           ---@type pocket_app[]
+        containers = {},     ---@type Container[]
+        help_map = {},       ---@type { [string]: function }
+        help_return = nil,   ---@type POCKET_APP_ID|nil
+        loader_return = nil, ---@type POCKET_APP_ID|nil
         cur_app = APP_ID.ROOT
     }
 
@@ -125,27 +125,27 @@ function pocket.init_nav(smem)
     local nav = {}
 
     -- set the root pane element to switch between apps with
-    ---@param root_pane graphics_element
+    ---@param root_pane MultiPane
     function nav.set_pane(root_pane) self.pane = root_pane end
 
     -- link sidebar element
-    ---@param sidebar graphics_element
+    ---@param sidebar Sidebar
     function nav.set_sidebar(sidebar) self.sidebar = sidebar end
 
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
-    ---@param container graphics_element element that contains this app (usually a Div)
-    ---@param pane? graphics_element multipane if this is a simple paned app, then nav_to must be a number
+    ---@param container Container element that contains this app (usually a Div)
+    ---@param pane? AppMultiPane|MultiPane multipane if this is a simple paned app, then nav_to must be a number
     ---@param require_sv? boolean true to specifiy if this app should be unloaded when the supervisor connection is lost
     ---@param require_api? boolean true to specifiy if this app should be unloaded when the api connection is lost
     function nav.register_app(app_id, container, pane, require_sv, require_api)
         ---@class pocket_app
         local app = {
             loaded = false,
-            cur_page = nil, ---@type nav_tree_page
+            cur_page = nil,    ---@type nav_tree_page
             pane = pane,
-            paned_pages = {},
-            sidebar_items = {}
+            paned_pages = {},  ---@type nav_tree_page[]
+            sidebar_items = {} ---@type sidebar_entry[]
         }
 
         app.load = function () app.loaded = true end
@@ -159,13 +159,13 @@ function pocket.init_nav(smem)
         function app.requires_conn() return require_sv or require_api or false end
 
         -- delayed set of the pane if it wasn't ready at the start
-        ---@param root_pane graphics_element multipane
+        ---@param root_pane AppMultiPane|MultiPane multipane
         function app.set_root_pane(root_pane)
             app.pane = root_pane
         end
 
         -- configure the sidebar
-        ---@param items table
+        ---@param items sidebar_entry[]
         function app.set_sidebar(items)
             app.sidebar_items = items
             if self.sidebar then self.sidebar.update(items) end
@@ -263,7 +263,7 @@ function pocket.init_nav(smem)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
-        local app = self.apps[app_id] ---@type pocket_app
+        local app = self.apps[app_id]
         if app then
             if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
                 -- bring up the app loader
@@ -339,7 +339,7 @@ function pocket.init_nav(smem)
             return
         end
 
-        local app = self.apps[self.cur_app] ---@type pocket_app
+        local app = self.apps[self.cur_app]
         log.debug("attempting app nav up for app " .. self.cur_app)
 
         if not app.nav_up() then
@@ -359,6 +359,7 @@ function pocket.init_nav(smem)
     end
 
     -- link the help map from the guide app
+    ---@param map { [string]: function }
     function nav.link_help(map) self.help_map = map end
 
     return nav

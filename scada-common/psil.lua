@@ -6,9 +6,10 @@ local util = require("scada-common.util")
 
 local psil = {}
 
--- instantiate a new PSI layer
+-- instantiate a new interconnect layer
 ---@nodiscard
 function psil.create()
+    ---@type { [string]: { subscribers: { notify: fun(param: any) }[], value: any } } interconnect table
     local ic = {}
 
     -- allocate a new interconnect field

@@ -12,21 +12,21 @@ local util        = require("scada-common.util")
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
 
-local DisplayBox  = require("graphics.elements.displaybox")
-local Div         = require("graphics.elements.div")
-local ListBox     = require("graphics.elements.listbox")
-local MultiPane   = require("graphics.elements.multipane")
-local TextBox     = require("graphics.elements.textbox")
+local DisplayBox  = require("graphics.elements.DisplayBox")
+local Div         = require("graphics.elements.Div")
+local ListBox     = require("graphics.elements.ListBox")
+local MultiPane   = require("graphics.elements.MultiPane")
+local TextBox     = require("graphics.elements.TextBox")
 
-local CheckBox    = require("graphics.elements.controls.checkbox")
-local PushButton  = require("graphics.elements.controls.push_button")
-local Radio2D     = require("graphics.elements.controls.radio_2d")
-local RadioButton = require("graphics.elements.controls.radio_button")
+local Checkbox    = require("graphics.elements.controls.Checkbox")
+local PushButton  = require("graphics.elements.controls.PushButton")
+local Radio2D     = require("graphics.elements.controls.Radio2D")
+local RadioButton = require("graphics.elements.controls.RadioButton")
 
-local NumberField = require("graphics.elements.form.number_field")
-local TextField   = require("graphics.elements.form.text_field")
+local NumberField = require("graphics.elements.form.NumberField")
+local TextField   = require("graphics.elements.form.TextField")
 
-local IndLight    = require("graphics.elements.indicators.light")
+local IndLight    = require("graphics.elements.indicators.IndicatorLight")
 
 local println = util.println
 local tri = util.trinary
@@ -88,16 +88,16 @@ local changes = {
     { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } }
 }
 
+---@class rtu_peri_definition
+---@field unit integer|nil
+---@field index integer|nil
+---@field name string
+
 ---@class rtu_rs_definition
 ---@field unit integer|nil
 ---@field port IO_PORT
 ---@field side side
 ---@field color color|nil
-
----@class rtu_peri_definition
----@field unit integer|nil
----@field index integer|nil
----@field name string
 
 local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
 local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
@@ -130,14 +130,14 @@ local tool_ctl = {
     rs_cfg_port = IO.F_SCRAM, ---@type IO_PORT
     rs_cfg_editing = false,   ---@type integer|false
 
-    view_gw_cfg = nil,        ---@type graphics_element
-    dev_cfg = nil,            ---@type graphics_element
-    rs_cfg = nil,             ---@type graphics_element
-    color_cfg = nil,          ---@type graphics_element
-    color_next = nil,         ---@type graphics_element
-    color_apply = nil,        ---@type graphics_element
-    settings_apply = nil,     ---@type graphics_element
-    settings_confirm = nil,   ---@type graphics_element
+    view_gw_cfg = nil,        ---@type PushButton
+    dev_cfg = nil,            ---@type PushButton
+    rs_cfg = nil,             ---@type PushButton
+    color_cfg = nil,          ---@type PushButton
+    color_next = nil,         ---@type PushButton
+    color_apply = nil,        ---@type PushButton
+    settings_apply = nil,     ---@type PushButton
+    settings_confirm = nil,   ---@type PushButton
 
     go_home = nil,            ---@type function
     gen_summary = nil,        ---@type function
@@ -149,33 +149,33 @@ local tool_ctl = {
     gen_rs_summary = nil,     ---@type function
 
     show_auth_key = nil,      ---@type function
-    show_key_btn = nil,       ---@type graphics_element
-    auth_key_textbox = nil,   ---@type graphics_element
+    show_key_btn = nil,       ---@type PushButton
+    auth_key_textbox = nil,   ---@type TextBox
     auth_key_value = "",
 
-    ppm_devs = nil,           ---@type graphics_element
-    p_name_msg = nil,         ---@type graphics_element
-    p_prompt = nil,           ---@type graphics_element
-    p_idx = nil,              ---@type graphics_element
-    p_unit = nil,             ---@type graphics_element
-    p_assign_btn = nil,       ---@type graphics_element
-    p_desc = nil,             ---@type graphics_element
-    p_desc_ext = nil,         ---@type graphics_element
-    p_err = nil,              ---@type graphics_element
+    ppm_devs = nil,           ---@type ListBox
+    p_name_msg = nil,         ---@type TextBox
+    p_prompt = nil,           ---@type TextBox
+    p_idx = nil,              ---@type NumberField
+    p_unit = nil,             ---@type NumberField
+    p_assign_btn = nil,       ---@type RadioButton
+    p_desc = nil,             ---@type TextBox
+    p_desc_ext = nil,         ---@type TextBox
+    p_err = nil,              ---@type TextBox
 
-    rs_cfg_selection = nil,   ---@type graphics_element
-    rs_cfg_unit_l = nil,      ---@type graphics_element
-    rs_cfg_unit = nil,        ---@type graphics_element
-    rs_cfg_side_l = nil,      ---@type graphics_element
-    rs_cfg_color = nil,       ---@type graphics_element
-    rs_cfg_shortcut = nil     ---@type graphics_element
+    rs_cfg_selection = nil,   ---@type TextBox
+    rs_cfg_unit_l = nil,      ---@type TextBox
+    rs_cfg_unit = nil,        ---@type NumberField
+    rs_cfg_side_l = nil,      ---@type TextBox
+    rs_cfg_color = nil,       ---@type Radio2D
+    rs_cfg_shortcut = nil     ---@type TextBox
 }
 
 ---@class rtu_config
 local tmp_cfg = {
     SpeakerVolume = 1.0,
-    Peripherals = {},
-    Redstone = {},
+    Peripherals = {},   ---@type rtu_peri_definition[]
+    Redstone = {},      ---@type rtu_rs_definition[]
     SVR_Channel = nil,  ---@type integer
     RTU_Channel = nil,  ---@type integer
     ConnTimeout = nil,  ---@type number
@@ -259,7 +259,7 @@ local function load_settings(target, raw)
 end
 
 -- create the config view
----@param display graphics_element
+---@param display DisplayBox
 local function config_view(display)
 ---@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
@@ -446,11 +446,11 @@ local function config_view(display)
     TextBox{parent=net_c_3,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra compution (can slow things down).",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_3,x=1,y=11,text="Facility Auth Key"}
-    local key, _, censor = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    local key, _ = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) censor(tri(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
 
-    local hide_key = CheckBox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+    local hide_key = Checkbox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
     censor_key(true)
@@ -485,7 +485,7 @@ local function config_view(display)
     TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
-    local en_dbg = CheckBox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
+    local en_dbg = Checkbox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
     local path_err = TextBox{parent=log_c_1,x=8,y=14,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -1198,7 +1198,7 @@ local function config_view(display)
     tool_ctl.rs_cfg_shortcut = TextBox{parent=rs_c_3,x=1,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
     tool_ctl.rs_cfg_shortcut.hide(true)
 
-    local bundled = CheckBox{parent=rs_c_3,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled}
+    local bundled = Checkbox{parent=rs_c_3,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled}
     tool_ctl.rs_cfg_color = Radio2D{parent=rs_c_3,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     tool_ctl.rs_cfg_color.disable()
 
@@ -1296,7 +1296,7 @@ local function config_view(display)
             local ini_unit = tri(for_facility, nil, entry.for_reactor)
 
             local def = { name = entry.name, unit = ini_unit, index = entry.index }
-            local mount = mounts[def.name] ---@type ppm_entry|nil
+            local mount = mounts[def.name]
 
             local status = "  \x13 not connected, please re-config later"
             local color = colors.orange
@@ -1497,7 +1497,7 @@ local function config_view(display)
         peri_list.remove_all()
 
         for i = 1, #cfg.Peripherals do
-            local def = cfg.Peripherals[i]  ---@type rtu_peri_definition
+            local def = cfg.Peripherals[i]
 
             local t = ppm.get_type(def.name)
             local t_str = "<disconnected> (connect to edit)"
@@ -1529,7 +1529,7 @@ local function config_view(display)
     end
 
     local function edit_rs_entry(idx)
-        local def = tmp_cfg.Redstone[idx]   ---@type rtu_rs_definition
+        local def = tmp_cfg.Redstone[idx]
 
         tool_ctl.rs_cfg_shortcut.hide(true)
         tool_ctl.rs_cfg_color.show()
