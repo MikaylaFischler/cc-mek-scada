@@ -306,12 +306,12 @@ local function config_view(display)
     end
 
     local function show_peri_conns()
-        tool_ctl.gen_peri_summary(ini_cfg)
+        tool_ctl.gen_peri_summary()
         main_pane.set_value(8)
     end
 
     local function show_rs_conns()
-        tool_ctl.gen_rs_summary(ini_cfg)
+        tool_ctl.gen_rs_summary()
         main_pane.set_value(9)
     end
 
@@ -790,7 +790,7 @@ local function config_view(display)
 
     local function peri_revert()
         tmp_cfg.Peripherals = deep_copy_peri(ini_cfg.Peripherals)
-        tool_ctl.gen_peri_summary(tmp_cfg)
+        tool_ctl.gen_peri_summary()
     end
 
     local function peri_apply()
@@ -806,9 +806,9 @@ local function config_view(display)
     end
 
     PushButton{parent=peri_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=peri_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=peri_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    local peri_revert_btn = PushButton{parent=peri_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=peri_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     PushButton{parent=peri_c_1,x=35,y=14,min_width=7,text="Add +",callback=function()peri_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=peri_c_1,x=43,y=14,min_width=7,text="Apply",callback=peri_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    local peri_apply_btn = PushButton{parent=peri_c_1,x=43,y=14,min_width=7,text="Apply",callback=peri_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     TextBox{parent=peri_c_2,x=1,y=1,text="Select one of the below devices to use."}
 
@@ -1037,7 +1037,7 @@ local function config_view(display)
         end
 
         peri_pane.set_value(1)
-        tool_ctl.gen_peri_summary(tmp_cfg)
+        tool_ctl.gen_peri_summary()
         tool_ctl.update_peri_list()
 
         tool_ctl.p_idx.set_value(1)
@@ -1075,7 +1075,7 @@ local function config_view(display)
 
     local function rs_revert()
         tmp_cfg.Redstone = deep_copy_rs(ini_cfg.Redstone)
-        tool_ctl.gen_rs_summary(tmp_cfg)
+        tool_ctl.gen_rs_summary()
     end
 
     local function rs_apply()
@@ -1091,9 +1091,9 @@ local function config_view(display)
     end
 
     PushButton{parent=rs_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=rs_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=rs_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    local rs_revert_btn = PushButton{parent=rs_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=rs_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    local rs_apply_btn = PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     TextBox{parent=rs_c_6,x=1,y=1,height=5,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
     PushButton{parent=rs_c_6,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -1246,7 +1246,7 @@ local function config_view(display)
             end
 
             rs_pane.set_value(1)
-            tool_ctl.gen_rs_summary(tmp_cfg)
+            tool_ctl.gen_rs_summary()
 
             side.set_value(1)
             bundled.set_value(false)
@@ -1487,17 +1487,18 @@ local function config_view(display)
 
     local function delete_peri_entry(idx)
         table.remove(tmp_cfg.Peripherals, idx)
-        tool_ctl.gen_peri_summary(tmp_cfg)
+        tool_ctl.gen_peri_summary()
         tool_ctl.update_peri_list()
     end
 
     -- generate the peripherals summary list
-    ---@param cfg rtu_config
-    function tool_ctl.gen_peri_summary(cfg)
+    function tool_ctl.gen_peri_summary()
         peri_list.remove_all()
 
-        for i = 1, #cfg.Peripherals do
-            local def = cfg.Peripherals[i]
+        local modified = #ini_cfg.Peripherals ~= #tmp_cfg.Peripherals
+
+        for i = 1, #tmp_cfg.Peripherals do
+            local def = tmp_cfg.Peripherals[i]
 
             local t = ppm.get_type(def.name)
             local t_str = "<disconnected> (connect to edit)"
@@ -1525,6 +1526,21 @@ local function config_view(display)
             PushButton{parent=entry,x=41,y=3,min_width=8,height=1,text="DELETE",callback=function()delete_peri_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
 
             if disconnected then edit_btn.disable() end
+
+            if not modified then
+                local a = ini_cfg.Peripherals[i]
+                local b = tmp_cfg.Peripherals[i]
+
+                modified = (a.unit ~= b.unit) or (a.index ~= b.index) or (a.name ~= b.name)
+            end
+        end
+
+        if modified then
+            peri_revert_btn.enable()
+            peri_apply_btn.enable()
+        else
+            peri_revert_btn.disable()
+            peri_apply_btn.disable()
         end
     end
 
@@ -1567,16 +1583,17 @@ local function config_view(display)
 
     local function delete_rs_entry(idx)
         table.remove(tmp_cfg.Redstone, idx)
-        tool_ctl.gen_rs_summary(tmp_cfg)
+        tool_ctl.gen_rs_summary()
     end
 
     -- generate the redstone summary list
-    ---@param cfg rtu_config
-    function tool_ctl.gen_rs_summary(cfg)
+    function tool_ctl.gen_rs_summary()
         rs_list.remove_all()
 
-        for i = 1, #cfg.Redstone do
-            local def = cfg.Redstone[i]   ---@type rtu_rs_definition
+        local modified = #ini_cfg.Redstone ~= #tmp_cfg.Redstone
+
+        for i = 1, #tmp_cfg.Redstone do
+            local def = tmp_cfg.Redstone[i]
 
             local name = rsio.to_string(def.port)
             local io_dir = tri(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
@@ -1592,6 +1609,21 @@ local function config_view(display)
             TextBox{parent=entry,x=33,y=1,width=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
             PushButton{parent=entry,x=35,y=1,min_width=6,height=1,text="EDIT",callback=function()edit_rs_entry(i)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
             PushButton{parent=entry,x=41,y=1,min_width=8,height=1,text="DELETE",callback=function()delete_rs_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+
+            if not modified then
+                local a = ini_cfg.Redstone[i]
+                local b = tmp_cfg.Redstone[i]
+
+                modified = (a.unit ~= b.unit) or (a.port ~= b.port) or (a.side ~= b.side) or (a.color ~= b.color)
+            end
+        end
+
+        if modified then
+            rs_revert_btn.enable()
+            rs_apply_btn.enable()
+        else
+            rs_revert_btn.disable()
+            rs_apply_btn.disable()
         end
     end
 end

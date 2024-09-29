@@ -12,8 +12,8 @@ local events = core.events
 local element = {}
 
 ---@class graphics_args
----@field window? Window
----@field parent? graphics_element
+---@field window? Window base window to use, only root elements should use this
+---@field parent? graphics_element parent element, if not a root element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
 ---@field y? integer next line if omitted
