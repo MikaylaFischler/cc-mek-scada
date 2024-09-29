@@ -57,8 +57,11 @@ return function (args)
         for i = 1, #lines do
             if i > e.frame.h then break end
 
-            -- trim leading/trailing whitespace
-            lines[i] = util.trim(lines[i])
+            -- trim leading/trailing whitespace, except on the first line
+            -- leading whitespace on the first line is usually intentional
+            if i > 1 then
+                lines[i] = util.trim(lines[i])
+            end
 
             local len = string.len(lines[i])
 
