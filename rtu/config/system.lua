@@ -1,4 +1,5 @@
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local util        = require("scada-common.util")
 
@@ -12,7 +13,6 @@ local TextBox     = require("graphics.elements.TextBox")
 
 local Checkbox    = require("graphics.elements.controls.Checkbox")
 local PushButton  = require("graphics.elements.controls.PushButton")
-local Radio2D     = require("graphics.elements.controls.Radio2D")
 local RadioButton = require("graphics.elements.controls.RadioButton")
 
 local NumberField = require("graphics.elements.form.NumberField")
@@ -20,55 +20,35 @@ local TextField   = require("graphics.elements.form.TextField")
 
 local IndLight    = require("graphics.elements.indicators.IndicatorLight")
 
+local tri = util.trinary
+
 local cpair = core.cpair
 
 local RIGHT = core.ALIGN.RIGHT
 
 local self = {
     importing_legacy = false,
+    importing_any_dc = false,
 
-    set_networked = nil,    ---@type function
-    bundled_emcool = nil,   ---@type function
-
-    show_auth_key = nil,    ---@type function
-    show_key_btn = nil,     ---@type PushButton
-    auth_key_textbox = nil, ---@type TextBox
+    show_auth_key = nil,      ---@type function
+    show_key_btn = nil,       ---@type PushButton
+    auth_key_textbox = nil,   ---@type TextBox
     auth_key_value = ""
 }
-
-local side_options = { "Top", "Bottom", "Left", "Right", "Front", "Back" }
-local side_options_map = { "top", "bottom", "left", "right", "front", "back" }
-local color_options = { "Red", "Orange", "Yellow", "Lime", "Green", "Cyan", "Light Blue", "Blue", "Purple", "Magenta", "Pink", "White", "Light Gray", "Gray", "Black", "Brown" }
-local color_options_map = { colors.red, colors.orange, colors.yellow, colors.lime, colors.green, colors.cyan, colors.lightBlue, colors.blue, colors.purple, colors.magenta, colors.pink, colors.white, colors.lightGray, colors.gray, colors.black, colors.brown }
-
--- convert text representation to index
----@param side string
-local function side_to_idx(side)
-    for k, v in ipairs(side_options_map) do
-        if v == side then return k end
-    end
-end
-
--- convert color to index
----@param color color
-local function color_to_idx(color)
-    for k, v in ipairs(color_options_map) do
-        if v == color then return k end
-    end
-end
 
 local system = {}
 
 -- create the system configuration view
----@param tool_ctl _plc_cfg_tool_ctl
+---@param tool_ctl _rtu_cfg_tool_ctl
 ---@param main_pane MultiPane
----@param cfg_sys [ plc_config, plc_config, plc_config, { [1]: string, [2]: string, [3]: any }[], function ]
+---@param cfg_sys [ rtu_config, rtu_config, rtu_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
+---@param ext [ MultiPane, MultiPane, string[], function, function, function ]
 ---@param style { [string]: cpair }
----@param exit function
-function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
-    local plc_cfg, net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4], divs[5]
+    local spkr_cfg, net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4], divs[5]
+    local peri_pane, rs_pane, NEEDS_UNIT, show_peri_conns, show_rs_conns, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
@@ -76,90 +56,32 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local btn_act_fg_bg = style.btn_act_fg_bg
     local btn_dis_fg_bg = style.btn_dis_fg_bg
 
-    --#region PLC
+    --#region Speakers
 
-    local plc_c_1 = Div{parent=plc_cfg,x=2,y=4,width=49}
-    local plc_c_2 = Div{parent=plc_cfg,x=2,y=4,width=49}
-    local plc_c_3 = Div{parent=plc_cfg,x=2,y=4,width=49}
-    local plc_c_4 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
 
-    local plc_pane = MultiPane{parent=plc_cfg,x=1,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4}}
+    TextBox{parent=spkr_cfg,x=1,y=2,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
 
-    TextBox{parent=plc_cfg,x=1,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
+    TextBox{parent=spkr_c,x=1,y=1,height=2,text="Speakers can be connected to this RTU gateway without RTU unit configuration entries."}
+    TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
 
-    TextBox{parent=plc_c_1,x=1,y=1,text="Would you like to set this PLC as networked?"}
-    TextBox{parent=plc_c_1,x=1,y=3,height=4,text="If you have a supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=g_lg_fg_bg}
+    local s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_chars=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
 
-    local networked = Checkbox{parent=plc_c_1,x=1,y=8,label="Networked",default=ini_cfg.Networked,box_fg_bg=cpair(colors.orange,colors.black)}
+    TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
 
-    local function submit_networked()
-        self.set_networked(networked.get_value())
-        plc_pane.set_value(2)
+    local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    local function submit_vol()
+        local vol = tonumber(s_vol.get_value())
+        if vol ~= nil then
+            s_vol_err.hide(true)
+            tmp_cfg.SpeakerVolume = vol
+            main_pane.set_value(3)
+        else s_vol_err.show() end
     end
 
-    PushButton{parent=plc_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_1,x=44,y=14,text="Next \x1a",callback=submit_networked,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    TextBox{parent=plc_c_2,x=1,y=1,text="Please enter the reactor unit ID for this PLC."}
-    TextBox{parent=plc_c_2,x=1,y=3,height=3,text="If this is a networked PLC, currently only IDs 1 through 4 are acceptable.",fg_bg=g_lg_fg_bg}
-
-    TextBox{parent=plc_c_2,x=1,y=6,text="Unit #"}
-    local u_id = NumberField{parent=plc_c_2,x=7,y=6,width=5,max_chars=3,default=ini_cfg.UnitID,min=1,fg_bg=bw_fg_bg}
-
-    local u_id_err = TextBox{parent=plc_c_2,x=8,y=14,width=35,text="Please set a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
-
-    function self.set_networked(enable)
-        tmp_cfg.Networked = enable
-        if enable then u_id.set_max(4) else u_id.set_max(999) end
-    end
-
-    local function submit_id()
-        local unit_id = tonumber(u_id.get_value())
-        if unit_id ~= nil then
-            u_id_err.hide(true)
-            tmp_cfg.UnitID = unit_id
-            plc_pane.set_value(3)
-        else u_id_err.show() end
-    end
-
-    PushButton{parent=plc_c_2,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_2,x=44,y=14,text="Next \x1a",callback=submit_id,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    TextBox{parent=plc_c_3,x=1,y=1,height=4,text="When networked, the supervisor takes care of emergency coolant via RTUs. However, you can configure independent emergency coolant via the PLC."}
-    TextBox{parent=plc_c_3,x=1,y=6,height=5,text="This independent control can be used with or without a supervisor. To configure, you would next select the interface of the redstone output connected to one or more mekanism pipes.",fg_bg=g_lg_fg_bg}
-
-    local en_em_cool = Checkbox{parent=plc_c_3,x=1,y=11,label="Enable PLC Emergency Coolant Control",default=ini_cfg.EmerCoolEnable,box_fg_bg=cpair(colors.orange,colors.black)}
-
-    local function next_from_plc()
-        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(4) end
-    end
-
-    local function submit_en_emcool()
-        tmp_cfg.EmerCoolEnable = en_em_cool.get_value()
-        if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else next_from_plc() end
-    end
-
-    PushButton{parent=plc_c_3,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_3,x=44,y=14,text="Next \x1a",callback=submit_en_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    TextBox{parent=plc_c_4,x=1,y=1,text="Emergency Coolant Redstone Output Side"}
-    local side = Radio2D{parent=plc_c_4,x=1,y=2,rows=2,columns=3,default=side_to_idx(ini_cfg.EmerCoolSide),options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.orange}
-
-    TextBox{parent=plc_c_4,x=1,y=5,text="Bundled Redstone Configuration"}
-    local bundled = Checkbox{parent=plc_c_4,x=1,y=6,label="Is Bundled?",default=ini_cfg.EmerCoolColor~=nil,box_fg_bg=cpair(colors.orange,colors.black),callback=function(v)self.bundled_emcool(v)end}
-    local color = Radio2D{parent=plc_c_4,x=1,y=8,rows=4,columns=4,default=color_to_idx(ini_cfg.EmerCoolColor),options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-    if ini_cfg.EmerCoolColor == nil then color.disable() end
-
-    function self.bundled_emcool(en) if en then color.enable() else color.disable() end end
-
-    local function submit_emcool()
-        tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
-        tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
-        next_from_plc()
-    end
-
-    PushButton{parent=plc_c_4,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_4,x=44,y=14,text="Next \x1a",callback=submit_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -179,25 +101,25 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=net_c_1,x=1,y=8,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_1,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_1,x=1,y=11,text="PLC Channel"}
-    local plc_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=12,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=11,text="RTU Channel"}
+    local rtu_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.RTU_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_1,x=9,y=12,height=4,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
 
     local chan_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c = tonumber(svr_chan.get_value())
-        local plc_c = tonumber(plc_chan.get_value())
-        if svr_c ~= nil and plc_c ~= nil then
+        local rtu_c = tonumber(rtu_chan.get_value())
+        if svr_c ~= nil and rtu_c ~= nil then
             tmp_cfg.SVR_Channel = svr_c
-            tmp_cfg.PLC_Channel = plc_c
+            tmp_cfg.RTU_Channel = rtu_c
             net_pane.set_value(2)
             chan_err.hide(true)
         elseif svr_c == nil then
             chan_err.set_value("Please set the supervisor channel.")
             chan_err.show()
         else
-            chan_err.set_value("Please set the PLC channel.")
+            chan_err.set_value("Please set the RTU channel.")
             chan_err.show()
         end
     end
@@ -242,7 +164,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=net_c_3,x=1,y=11,text="Facility Auth Key"}
     local key, _ = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) key.censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
 
     local hide_key = Checkbox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
@@ -296,11 +218,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         else path_err.show() end
     end
 
-    local function back_from_log()
-        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(2) end
-    end
-
-    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=back_from_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -359,7 +277,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local function back_from_colors()
-        main_pane.set_value(util.trinary(tool_ctl.jumped_to_color, 1, 4))
+        main_pane.set_value(tri(tool_ctl.jumped_to_color, 1, 4))
         tool_ctl.jumped_to_color = false
         recolor(1)
     end
@@ -377,7 +295,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             settings.set("FrontPanelTheme", tmp_cfg.FrontPanelTheme)
             settings.set("ColorMode", tmp_cfg.ColorMode)
 
-            if settings.save("/reactor-plc.settings") then
+            if settings.save("/rtu.settings") then
                 load_settings(settings_cfg, true)
                 load_settings(ini_cfg)
                 clr_pane.set_value(3)
@@ -389,6 +307,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             tool_ctl.viewing_config = false
             self.importing_legacy = false
             tool_ctl.settings_apply.show()
+            tool_ctl.settings_confirm.hide(true)
             main_pane.set_value(6)
         end
     end
@@ -400,18 +319,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     tool_ctl.color_apply.hide(true)
 
-    local function c_go_home()
-        main_pane.set_value(1)
-        clr_pane.set_value(1)
-    end
-
     TextBox{parent=clr_c_3,x=1,y=1,text="Settings saved!"}
     PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
-    PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=clr_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
     PushButton{parent=clr_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
-    PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -421,8 +335,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local sum_c_2 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_3 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_4 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_5 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_6 = Div{parent=summary,x=2,y=4,width=49}
+    local sum_c_7 = Div{parent=summary,x=2,y=4,width=49}
 
-    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
+    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4,sum_c_5,sum_c_6,sum_c_7}}
 
     TextBox{parent=summary,x=1,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
@@ -430,13 +347,15 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local function back_from_settings()
         if tool_ctl.viewing_config or self.importing_legacy then
-            main_pane.set_value(1)
+            if self.importing_legacy and self.importing_any_dc then
+                sum_pane.set_value(7)
+            else
+                self.importing_legacy = false
+                tool_ctl.go_home()
+            end
+
             tool_ctl.viewing_config = false
-            self.importing_legacy = false
-            tool_ctl.settings_apply.show()
-        else
-            main_pane.set_value(5)
-        end
+        else main_pane.set_value(5) end
     end
 
     ---@param element graphics_element
@@ -445,24 +364,26 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         if data ~= nil then element.set_value(data) end
     end
 
-    local function save_and_continue()
+    ---@param exclude_conns boolean? true to exclude saving peripheral/redstone connections
+    local function save_and_continue(exclude_conns)
         for _, field in ipairs(fields) do
             local k, v = field[1], tmp_cfg[field[1]]
-            if v == nil then settings.unset(k) else settings.set(k, v) end
+            if not (exclude_conns and (k == "Peripherals" or k == "Redstone")) then
+                if v == nil then settings.unset(k) else settings.set(k, v) end
+            end
         end
 
-        if settings.save("/reactor-plc.settings") then
+        -- always set these if missing
+        if settings.get("Peripherals") == nil then settings.set("Peripherals", {}) end
+        if settings.get("Redstone") == nil then settings.set("Redstone", {}) end
+
+        if settings.save("/rtu.settings") then
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
-            try_set(networked, ini_cfg.Networked)
-            try_set(u_id, ini_cfg.UnitID)
-            try_set(en_em_cool, ini_cfg.EmerCoolEnable)
-            try_set(side, side_to_idx(ini_cfg.EmerCoolSide))
-            try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
-            if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
+            try_set(s_vol, ini_cfg.SpeakerVolume)
             try_set(svr_chan, ini_cfg.SVR_Channel)
-            try_set(plc_chan, ini_cfg.PLC_Channel)
+            try_set(rtu_chan, ini_cfg.RTU_Channel)
             try_set(timeout, ini_cfg.ConnTimeout)
             try_set(range, ini_cfg.TrustedRange)
             try_set(key, ini_cfg.AuthKey)
@@ -472,51 +393,77 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(fp_theme, ini_cfg.FrontPanelTheme)
             try_set(c_mode, ini_cfg.ColorMode)
 
-            tool_ctl.view_cfg.enable()
-            tool_ctl.color_cfg.enable()
+            if not exclude_conns then
+                tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
+                tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
+
+                tool_ctl.update_peri_list()
+            end
+
+            tool_ctl.dev_cfg.enable()
+            tool_ctl.rs_cfg.enable()
+            tool_ctl.view_gw_cfg.enable()
 
             if self.importing_legacy then
                 self.importing_legacy = false
-                sum_pane.set_value(3)
-            else
-                sum_pane.set_value(2)
-            end
-        else
-            sum_pane.set_value(4)
-        end
+                sum_pane.set_value(5)
+            else sum_pane.set_value(4) end
+        else sum_pane.set_value(6) end
     end
 
     PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()self.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=function()save_and_continue(true)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_confirm = PushButton{parent=sum_c_1,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.settings_confirm.hide()
 
-    TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
-    TextBox{parent=sum_c_2,x=1,y=3,text="Tip: you can run a Self-Check from the configurator home screen to make sure everything is going to work right!"}
+    TextBox{parent=sum_c_2,x=1,y=1,text="The following peripherals will be imported:"}
+    local peri_import_list = ListBox{parent=sum_c_2,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local function go_home()
-        main_pane.set_value(1)
-        plc_pane.set_value(1)
-        net_pane.set_value(1)
-        clr_pane.set_value(1)
-        sum_pane.set_value(1)
+    PushButton{parent=sum_c_2,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=sum_c_3,x=1,y=1,text="The following redstone entries will be imported:"}
+    local rs_import_list = ListBox{parent=sum_c_3,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    PushButton{parent=sum_c_3,x=1,y=14,text="\x1b Back",callback=function()sum_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+
+    local function jump_peri_conns()
+        tool_ctl.go_home()
+        show_peri_conns()
     end
 
-    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    local function jump_rs_conns()
+        tool_ctl.go_home()
+        show_rs_conns()
+    end
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_4,x=1,y=1,text="Settings saved!"}
+    TextBox{parent=sum_c_4,x=1,y=3,height=4,text="Remember to configure any peripherals or redstone that you have connected to this RTU gateway if you have not already done so, or if you have added, removed, or modified any of them."}
+    PushButton{parent=sum_c_4,x=1,y=8,min_width=24,text="Peripheral Connections",callback=jump_peri_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_4,x=1,y=10,min_width=22,text="Redstone Connections",callback=jump_rs_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=sum_c_5,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
-        fs.delete("/reactor-plc/config.lua")
+        fs.delete("/rtu/config.lua")
         exit()
     end
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=8,text="Cancel",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_3,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=sum_c_5,x=1,y=14,min_width=8,text="Cancel",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_5,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=sum_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=sum_c_6,x=1,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_6,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    TextBox{parent=sum_c_7,x=1,y=1,height=8,text="Warning!\n\nSome of the devices in your old config file aren't currently connected. If the device isn't connected, the options can't be properly validated. Please either connect your devices and try again or complete the import without validation on those entry's settings."}
+    TextBox{parent=sum_c_7,x=1,y=10,height=3,text="Afterwards, either (a) edit then save entries for currently disconnected devices to properly configure or (b) delete those entries."}
+    PushButton{parent=sum_c_7,x=1,y=14,text="\x1b Back",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_7,x=41,y=14,min_width=9,text="Confirm",callback=function()sum_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -524,33 +471,141 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     -- load a legacy config file
     function tool_ctl.load_legacy()
-        local config = require("reactor-plc.config")
+        local config = require("rtu.config")
 
-        tmp_cfg.Networked = config.NETWORKED
-        tmp_cfg.UnitID = config.REACTOR_ID
-        tmp_cfg.EmerCoolEnable = type(config.EMERGENCY_COOL) == "table"
+        self.importing_any_dc = false
 
-        if tmp_cfg.EmerCoolEnable then
-            tmp_cfg.EmerCoolSide = config.EMERGENCY_COOL.side
-            tmp_cfg.EmerCoolColor = config.EMERGENCY_COOL.color
-        else
-            tmp_cfg.EmerCoolSide = nil
-            tmp_cfg.EmerCoolColor = nil
-        end
-
+        tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME or 1
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
-        tmp_cfg.PLC_Channel = config.PLC_CHANNEL
+        tmp_cfg.RTU_Channel = config.RTU_CHANNEL
         tmp_cfg.ConnTimeout = config.COMMS_TIMEOUT
         tmp_cfg.TrustedRange = config.TRUSTED_RANGE
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
         tmp_cfg.LogMode = config.LOG_MODE
         tmp_cfg.LogPath = config.LOG_PATH
         tmp_cfg.LogDebug = config.LOG_DEBUG or false
+        tmp_cfg.Peripherals = {}
+        tmp_cfg.Redstone = {}
+
+        local mounts = ppm.list_mounts()
+
+        peri_import_list.remove_all()
+        for _, entry in ipairs(config.RTU_DEVICES) do
+            local for_facility = entry.for_reactor == 0
+            local ini_unit = tri(for_facility, nil, entry.for_reactor)
+
+            local def = { name = entry.name, unit = ini_unit, index = entry.index }
+            local mount = mounts[def.name]
+
+            local status = "  \x13 not connected, please re-config later"
+            local color = colors.orange
+
+            if mount ~= nil then
+                -- lets make sure things are valid
+                local unit, index, err = nil, nil, false
+                local u, idx = def.unit, def.index
+
+                if util.table_contains(NEEDS_UNIT, mount.type) then
+                    if (mount.type == "dynamicValve" or mount.type == "environmentDetector") and for_facility then
+                        -- skip
+                    elseif not (util.is_int(u) and u > 0 and u < 5) then
+                        err = true
+                    else unit = u end
+                end
+
+                if mount.type == "boilerValve" then
+                    if not (idx == 1 or idx == 2) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "turbineValve" then
+                    if not (idx == 1 or idx == 2 or idx == 3) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "dynamicValve" and for_facility then
+                    if not (util.is_int(idx) and idx > 0 and idx < 5) then
+                        err = true
+                    else index = idx end
+                elseif mount.type == "dynamicValve" then
+                    index = 1
+                elseif mount.type == "environmentDetector" then
+                    if not (util.is_int(idx) and idx > 0) then
+                        err = true
+                    else index = idx end
+                end
+
+                if err then
+                    status = "  \x13 invalid, please re-config later"
+                else
+                    def.index = index
+                    def.unit = unit
+                    status = "  \x04 validated"
+                    color = colors.green
+                end
+            else self.importing_any_dc = true end
+
+            table.insert(tmp_cfg.Peripherals, def)
+
+            local desc = "  \x1a "
+
+            if type(def.index) == "number" then
+                desc = desc .. "#" .. def.index .. " "
+            end
+
+            if type(def.unit) == "number" then
+                desc = desc .. "for unit " .. def.unit
+            else
+                desc = desc .. "for the facility"
+            end
+
+            local line = Div{parent=peri_import_list,height=3}
+            TextBox{parent=line,x=1,y=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=line,x=1,y=2,text=status,fg_bg=cpair(color,colors.white)}
+            TextBox{parent=line,x=1,y=3,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+        end
+
+        rs_import_list.remove_all()
+        for _, entry in ipairs(config.RTU_REDSTONE) do
+            if entry.for_reactor == 0 then entry.for_reactor = nil end
+            for _, io_entry in ipairs(entry.io) do
+                local def = { unit = entry.for_reactor, port = io_entry.port, side = io_entry.side, color = io_entry.bundled_color }
+                table.insert(tmp_cfg.Redstone, def)
+
+                local name = rsio.to_string(def.port)
+                local io_dir = tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+                local conn = def.side
+                local unit = "facility"
+
+                if def.unit then unit = "unit " .. def.unit end
+                if def.color ~= nil then conn = def.side .. "/" .. rsio.color_name(def.color) end
+
+                local line = Div{parent=rs_import_list,height=1}
+                TextBox{parent=line,x=1,y=1,width=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+                TextBox{parent=line,x=2,y=1,width=14,text=name}
+                TextBox{parent=line,x=18,y=1,width=string.len(conn),text=conn,fg_bg=cpair(colors.gray,colors.white)}
+                TextBox{parent=line,x=40,y=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
+            end
+        end
 
         tool_ctl.gen_summary(tmp_cfg)
-        sum_pane.set_value(1)
+        if self.importing_any_dc then sum_pane.set_value(7) else sum_pane.set_value(1) end
         main_pane.set_value(6)
+        tool_ctl.settings_apply.hide(true)
+        tool_ctl.settings_confirm.show()
         self.importing_legacy = true
+    end
+
+    -- go back to the home page
+    function tool_ctl.go_home()
+        tool_ctl.viewing_config = false
+        self.importing_legacy = false
+        self.importing_any_dc = false
+
+        main_pane.set_value(1)
+        net_pane.set_value(1)
+        clr_pane.set_value(1)
+        sum_pane.set_value(1)
+        peri_pane.set_value(1)
+        rs_pane.set_value(1)
     end
 
     -- expose the auth key on the summary page
@@ -560,14 +615,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     end
 
     -- generate the summary list
-    ---@param cfg plc_config
+    ---@param cfg rtu_config
     function tool_ctl.gen_summary(cfg)
         setting_list.remove_all()
 
         local alternate = false
         local inner_width = setting_list.get_width() - 1
 
-        if cfg.AuthKey then self.show_key_btn.enable() else self.show_key_btn.disable() end
+        self.show_key_btn.enable()
         self.auth_key_value = cfg.AuthKey or "" -- to show auth key
 
         for i = 1, #fields do
@@ -578,9 +633,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             local raw = cfg[f[1]]
             local val = util.strval(raw)
 
-            if f[1] == "AuthKey" and raw then val = string.rep("*", string.len(val))
-            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
-            elseif f[1] == "EmerCoolColor" and raw ~= nil then val = rsio.color_name(raw)
+            if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
+            elseif f[1] == "LogMode" then val = tri(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "FrontPanelTheme" then
                 val = util.strval(themes.fp_theme_name(raw))
             elseif f[1] == "ColorMode" then
@@ -589,7 +643,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
             if val == "nil" then val = "<not set>" end
 
-            local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
+            local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
 
             if string.len(val) > val_max_w then
