@@ -6,6 +6,7 @@ local const   = require("scada-common.constants")
 local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
+local log     = require("scada-common.log")
 
 local process = require("pocket.process")
 
@@ -92,7 +93,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
     -- API access
     ---@class pocket_ioctl_api
     io.api = {
-        get_unit = function (unit) comms.api__get_unit(unit) end
+        get_unit = function (unit) comms.api__get_unit(unit) end,
+        get_ctrl = function () comms.api__get_control() end
     }
 end
 
@@ -526,6 +528,12 @@ function iocontrol.record_unit_data(data)
             end
         end
 
+        if type(unit.reactor_data.mek_struct) == "table" then
+            for key, val in pairs(unit.reactor_data.mek_struct) do
+                unit.unit_ps.publish(key, val)
+            end
+        end
+
         if type(unit.reactor_data.mek_status) == "table" then
             for key, val in pairs(unit.reactor_data.mek_status) do
                 unit.unit_ps.publish(key, val)
@@ -821,6 +829,54 @@ function iocontrol.record_unit_data(data)
     unit.unit_ps.publish("U_ECAM", textutils.serialize(ecam))
 
     --#endregion
+end
+
+---@param data table
+function iocontrol.record_control_data(data)
+    for u_id = 1, #data do
+        local unit   = io.units[u_id]
+        local u_data = data[u_id]
+
+        if type(u_data) ~= "table" then
+            log.debug(util.c("iocontrol.record_control_data: unit ", u_id, " data invalid"))
+        else
+            unit.connected = u_data[1]
+
+            unit.reactor_data.rps_tripped = u_data[2]
+            unit.unit_ps.publish("rps_tripped", u_data[2])
+            unit.reactor_data.mek_status.status = u_data[3]
+            unit.unit_ps.publish("status", u_data[3])
+            unit.reactor_data.mek_status.temp = u_data[4]
+            unit.unit_ps.publish("temp", u_data[4])
+            unit.reactor_data.mek_status.burn_rate = u_data[5]
+            unit.unit_ps.publish("burn_rate", u_data[5])
+            unit.reactor_data.mek_status.act_burn_rate = u_data[6]
+            unit.unit_ps.publish("act_burn_rate", u_data[6])
+            unit.reactor_data.mek_struct.max_burn = u_data[7]
+            unit.unit_ps.publish("max_burn", u_data[7])
+
+            unit.annunciator.AutoControl = u_data[8]
+            unit.unit_ps.publish("AutoControl", u_data[8])
+
+            unit.a_group = u_data[9]
+            unit.unit_ps.publish("auto_group_id", unit.a_group)
+            unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+
+            local control_status = 1
+
+            if unit.connected then
+                if unit.reactor_data.rps_tripped then
+                    control_status = 2
+                end
+
+                if unit.reactor_data.mek_status.status then
+                    control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+                end
+            end
+
+            unit.unit_ps.publish("U_ControlStatus", control_status)
+        end
+    end
 end
 
 -- get the IO controller database

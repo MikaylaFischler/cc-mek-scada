@@ -105,20 +105,20 @@ local function new_view(root)
             app.switcher(active_unit)
         end
 
+        local last_update = 0
+        -- refresh data callback, every 500ms it will re-send the query
+        local function update()
+            if util.time_ms() - last_update >= 500 then
+                db.api.get_ctrl()
+                last_update = util.time_ms()
+            end
+        end
+
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
             local unit = db.units[i]
             local u_ps = unit.unit_ps
-
-            -- refresh data callback, every 500ms it will re-send the query
-            local last_update = 0
-            local function update()
-                if util.time_ms() - last_update >= 500 then
-                    db.api.get_unit(i)
-                    last_update = util.time_ms()
-                end
-            end
 
             local u_page = app.new_page(nil, i)
             u_page.tasks = { update }
