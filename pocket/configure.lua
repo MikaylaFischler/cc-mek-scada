@@ -75,15 +75,15 @@ local tool_ctl = {
 
 ---@class pkt_config
 local tmp_cfg = {
-    TempScale = 1,
-    EnergyScale = 1,
+    TempScale = 1,      ---@type TEMP_SCALE
+    EnergyScale = 1,    ---@type ENERGY_SCALE
     SVR_Channel = nil,  ---@type integer
     CRD_Channel = nil,  ---@type integer
     PKT_Channel = nil,  ---@type integer
     ConnTimeout = nil,  ---@type number
     TrustedRange = nil, ---@type number
     AuthKey = nil,      ---@type string|nil
-    LogMode = 0,
+    LogMode = 0,        ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
 }
