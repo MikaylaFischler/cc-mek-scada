@@ -231,7 +231,7 @@ function iocontrol.init_fac(conf)
             annunciator = {},       ---@type annunciator
 
             unit_ps = psil.create(),
-            reactor_data = {},      ---@type reactor_db
+            reactor_data = types.new_reactor_db(),
 
             boiler_ps_tbl = {},     ---@type psil[]
             boiler_data_tbl = {},   ---@type boilerv_session_db[]
