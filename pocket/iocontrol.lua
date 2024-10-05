@@ -835,7 +835,7 @@ end
 ---@param data table
 function iocontrol.record_control_data(data)
     for u_id = 1, #data do
-        local unit   = io.units[u_id]
+        local unit = io.units[u_id]
         local u_data = data[u_id]
 
         if type(u_data) ~= "table" then
