@@ -831,6 +831,7 @@ function iocontrol.record_unit_data(data)
     --#endregion
 end
 
+-- update control app with unit data from API_GET_CTRL
 ---@param data table
 function iocontrol.record_control_data(data)
     for u_id = 1, #data do
