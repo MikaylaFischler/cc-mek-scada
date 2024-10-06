@@ -167,12 +167,10 @@ local function new_view(root)
             unit.reset_rps_ack = reset.on_response
 
             local function start_button_en_check()
-                if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
-                    local can_start = (not unit.reactor_data.mek_status.status) and
-                                        (not unit.reactor_data.rps_tripped) and
-                                        (unit.a_group == AUTO_GROUP.MANUAL)
-                    if can_start then start.enable() else start.disable() end
-                end
+                local can_start = (not unit.reactor_data.mek_status.status) and
+                                    (not unit.reactor_data.rps_tripped) and
+                                    (unit.a_group == AUTO_GROUP.MANUAL)
+                if can_start then start.enable() else start.disable() end
             end
 
             start.register(u_ps, "status", start_button_en_check)

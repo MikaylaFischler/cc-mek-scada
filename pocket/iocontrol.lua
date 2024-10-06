@@ -522,22 +522,16 @@ function iocontrol.record_unit_data(data)
             end
         end
 
-        if type(unit.reactor_data.rps_status) == "table" then
-            for key, val in pairs(unit.reactor_data.rps_status) do
-                unit.unit_ps.publish(key, val)
-            end
+        for key, val in pairs(unit.reactor_data.rps_status) do
+            unit.unit_ps.publish(key, val)
         end
 
-        if type(unit.reactor_data.mek_struct) == "table" then
-            for key, val in pairs(unit.reactor_data.mek_struct) do
-                unit.unit_ps.publish(key, val)
-            end
+        for key, val in pairs(unit.reactor_data.mek_struct) do
+            unit.unit_ps.publish(key, val)
         end
 
-        if type(unit.reactor_data.mek_status) == "table" then
-            for key, val in pairs(unit.reactor_data.mek_status) do
-                unit.unit_ps.publish(key, val)
-            end
+        for key, val in pairs(unit.reactor_data.mek_status) do
+            unit.unit_ps.publish(key, val)
         end
     end
 
@@ -632,21 +626,6 @@ function iocontrol.record_unit_data(data)
     -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end
     local function blue(text) return { text = text, color = colors.blue } end
-
-    -- unit.reactor_data.rps_status = {
-    --     high_dmg = false,
-    --     high_temp = false,
-    --     low_cool = false,
-    --     ex_waste = false,
-    --     ex_hcool = false,
-    --     no_fuel = false,
-    --     fault = false,
-    --     timeout = false,
-    --     manual = false,
-    --     automatic = false,
-    --     sys_fail = false,
-    --     force_dis = false
-    -- }
 
     -- if unit.reactor_data.rps_status then
     --     for k, v in pairs(unit.alarms) do
