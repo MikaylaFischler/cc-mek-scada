@@ -11,7 +11,7 @@ local COLON, FUNC, ARROW = ":", "():", " > "
 ---@class logger
 local log = {}
 
----@enum MODE
+---@enum LOG_MODE
 local MODE = { APPEND = 0, NEW = 1 }
 
 log.MODE = MODE
@@ -82,7 +82,7 @@ end
 
 -- initialize logger
 ---@param path string file path
----@param write_mode MODE file write mode
+---@param write_mode LOG_MODE file write mode
 ---@param include_debug boolean whether or not to include debug logs
 ---@param dmesg_redirect? Redirect terminal/window to direct dmesg to
 function log.init(path, write_mode, include_debug, dmesg_redirect)

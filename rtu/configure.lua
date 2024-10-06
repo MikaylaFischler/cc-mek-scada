@@ -80,18 +80,18 @@ local tool_ctl = {
 ---@class rtu_config
 local tmp_cfg = {
     SpeakerVolume = 1.0,
-    Peripherals = {},   ---@type rtu_peri_definition[]
-    Redstone = {},      ---@type rtu_rs_definition[]
-    SVR_Channel = nil,  ---@type integer
-    RTU_Channel = nil,  ---@type integer
-    ConnTimeout = nil,  ---@type number
-    TrustedRange = nil, ---@type number
-    AuthKey = nil,      ---@type string|nil
-    LogMode = 0,
+    Peripherals = {},    ---@type rtu_peri_definition[]
+    Redstone = {},       ---@type rtu_rs_definition[]
+    SVR_Channel = nil,   ---@type integer
+    RTU_Channel = nil,   ---@type integer
+    ConnTimeout = nil,   ---@type number
+    TrustedRange = nil,  ---@type number
+    AuthKey = nil,       ---@type string|nil
+    LogMode = 0,         ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
-    FrontPanelTheme = 1,
-    ColorMode = 1
+    FrontPanelTheme = 1, ---@type FP_THEME
+    ColorMode = 1        ---@type COLOR_MODE
 }
 
 ---@class rtu_config

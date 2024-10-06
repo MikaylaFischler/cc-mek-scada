@@ -219,7 +219,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             annunciator = {},       ---@type annunciator
 
             unit_ps = psil.create(),
-            reactor_data = {},      ---@type reactor_db
+            reactor_data = types.new_reactor_db(),
 
             boiler_ps_tbl = {},     ---@type psil[]
             boiler_data_tbl = {},   ---@type boilerv_session_db[]
@@ -840,14 +840,26 @@ function iocontrol.update_unit_statuses(statuses)
                         log.debug(log_header .. "reactor general status length mismatch")
                     end
 
-                    unit.reactor_data.rps_status = rps_status
-                    unit.reactor_data.mek_status = mek_status
-
-                    -- if status hasn't been received, mek_status = {}
-                    if type(unit.reactor_data.mek_status.act_burn_rate) == "number" then
-                        burn_rate = unit.reactor_data.mek_status.act_burn_rate
-                        burn_rate_sum = burn_rate_sum + burn_rate
+                    for key, val in pairs(unit.reactor_data) do
+                        if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
+                            unit.unit_ps.publish(key, val)
+                        end
                     end
+
+                    unit.reactor_data.rps_status = rps_status
+                    for key, val in pairs(rps_status) do
+                        unit.unit_ps.publish(key, val)
+                    end
+
+                    if next(mek_status) then
+                        unit.reactor_data.mek_status = mek_status
+                        for key, val in pairs(mek_status) do
+                            unit.unit_ps.publish(key, val)
+                        end
+                    end
+
+                    burn_rate = unit.reactor_data.mek_status.act_burn_rate
+                    burn_rate_sum = burn_rate_sum + burn_rate
 
                     if unit.reactor_data.mek_status.status then
                         unit.unit_ps.publish("computed_status", 5)     -- running
@@ -862,24 +874,6 @@ function iocontrol.update_unit_statuses(statuses)
                             unit.unit_ps.publish("computed_status", 6) -- SCRAM
                         else
                             unit.unit_ps.publish("computed_status", 4) -- disabled
-                        end
-                    end
-
-                    for key, val in pairs(unit.reactor_data) do
-                        if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                            unit.unit_ps.publish(key, val)
-                        end
-                    end
-
-                    if type(unit.reactor_data.rps_status) == "table" then
-                        for key, val in pairs(unit.reactor_data.rps_status) do
-                            unit.unit_ps.publish(key, val)
-                        end
-                    end
-
-                    if type(unit.reactor_data.mek_status) == "table" then
-                        for key, val in pairs(unit.reactor_data.mek_status) do
-                            unit.unit_ps.publish(key, val)
                         end
                     end
 
