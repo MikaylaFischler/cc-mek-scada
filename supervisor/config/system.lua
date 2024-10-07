@@ -40,10 +40,10 @@ local system = {}
 ---@param main_pane MultiPane
 ---@param cfg_sys [ svr_config, svr_config, svr_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
----@param svr_pane MultiPane
+---@param fac_pane MultiPane
 ---@param style { [string]: cpair }
 ---@param exit function
-function system.create(tool_ctl, main_pane, cfg_sys, divs, svr_pane, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary, import_err = divs[1], divs[2], divs[3], divs[4], divs[5]
 
@@ -422,7 +422,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, svr_pane, style, exit
 
     local function go_home()
         main_pane.set_value(1)
-        svr_pane.set_value(1)
+        fac_pane.set_value(1)
         net_pane.set_value(1)
         clr_pane.set_value(1)
         sum_pane.set_value(1)

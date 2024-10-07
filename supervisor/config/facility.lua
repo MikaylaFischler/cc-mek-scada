@@ -28,10 +28,10 @@ local facility = {}
 ---@param tool_ctl _svr_cfg_tool_ctl
 ---@param main_pane MultiPane
 ---@param cfg_sys [ svr_config, svr_config, svr_config, table, function ]
----@param svr_cfg Div
+---@param fac_cfg Div
 ---@param style { [string]: cpair }
----@return MultiPane peri_pane
-function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
+---@return MultiPane fac_pane
+function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local _, ini_cfg, tmp_cfg, _, _ = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
 
     local bw_fg_bg      = style.bw_fg_bg
@@ -41,23 +41,23 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
 
     --#region Facility
 
-    local svr_c_1 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_2 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_3 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_4 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_5 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_6 = Div{parent=svr_cfg,x=2,y=4,width=49}
-    local svr_c_7 = Div{parent=svr_cfg,x=2,y=4,width=49}
+    local fac_c_1 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_2 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_3 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_4 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_5 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_6 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_7 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local svr_pane = MultiPane{parent=svr_cfg,x=1,y=4,panes={svr_c_1,svr_c_2,svr_c_3,svr_c_4,svr_c_5,svr_c_6,svr_c_7}}
+    local fac_pane = MultiPane{parent=fac_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7}}
 
-    TextBox{parent=svr_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
+    TextBox{parent=fac_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
-    TextBox{parent=svr_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
-    tool_ctl.num_units = NumberField{parent=svr_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
-    TextBox{parent=svr_c_1,x=7,y=5,text="reactors"}
+    TextBox{parent=fac_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
+    tool_ctl.num_units = NumberField{parent=fac_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
+    TextBox{parent=fac_c_1,x=7,y=5,text="reactors"}
 
-    local nu_error = TextBox{parent=svr_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local nu_error = TextBox{parent=fac_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_num_units()
         local count = tonumber(tool_ctl.num_units.get_value())
@@ -70,15 +70,15 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
             if count >= 3 then confs[3].line.show() else confs[3].line.hide(true) end
             if count == 4 then confs[4].line.show() else confs[4].line.hide(true) end
 
-            svr_pane.set_value(2)
+            fac_pane.set_value(2)
         else nu_error.show() end
     end
 
-    PushButton{parent=svr_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_1,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_2,x=1,y=1,height=4,text="Please provide the reactor cooling configuration below. This includes the number of turbines, boilers, and if that reactor has a connection to a dynamic tank for emergency coolant."}
-    TextBox{parent=svr_c_2,x=1,y=6,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_2,x=1,y=1,height=4,text="Please provide the reactor cooling configuration below. This includes the number of turbines, boilers, and if that reactor has a connection to a dynamic tank for emergency coolant."}
+    TextBox{parent=fac_c_2,x=1,y=6,text="UNIT    TURBINES   BOILERS   HAS TANK CONNECTION?",fg_bg=g_lg_fg_bg}
 
     for i = 1, 4 do
         local num_t, num_b, has_t = 1, 0, false
@@ -90,7 +90,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
             has_t = conf.TankConnection == true
         end
 
-        local line = Div{parent=svr_c_2,x=1,y=7+i,height=1}
+        local line = Div{parent=fac_c_2,x=1,y=7+i,height=1}
 
         TextBox{parent=line,text="Unit "..i,width=6}
         local turbines = NumberField{parent=line,x=9,y=1,width=5,max_chars=2,default=num_t,min=1,max=3,fg_bg=bw_fg_bg}
@@ -100,7 +100,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
         tool_ctl.cooling_elems[i] = { line = line, turbines = turbines, boilers = boilers, tank = tank }
     end
 
-    local cool_err = TextBox{parent=svr_c_2,x=8,y=14,width=33,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local cool_err = TextBox{parent=fac_c_2,x=8,y=14,width=33,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_cooling()
         local any_missing = false
@@ -142,37 +142,37 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
                 else elem.div.hide(true) end
             end
 
-            if any_has_tank then svr_pane.set_value(3) else main_pane.set_value(3) end
+            if any_has_tank then fac_pane.set_value(3) else main_pane.set_value(3) end
         end
     end
 
-    PushButton{parent=svr_c_2,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_2,x=44,y=14,text="Next \x1a",callback=submit_cooling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_2,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_2,x=44,y=14,text="Next \x1a",callback=submit_cooling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_3,x=1,y=1,height=6,text="You have set one or more of your units to use dynamic tanks for emergency coolant. You have two paths for configuration. The first is to assign dynamic tanks to reactor units; one tank per reactor, only connected to that reactor. RTU configurations must also assign it as such."}
-    TextBox{parent=svr_c_3,x=1,y=8,height=3,text="Alternatively, you can configure them as facility tanks to connect to multiple reactor units. These can intermingle with unit-specific tanks."}
+    TextBox{parent=fac_c_3,x=1,y=1,height=6,text="You have set one or more of your units to use dynamic tanks for emergency coolant. You have two paths for configuration. The first is to assign dynamic tanks to reactor units; one tank per reactor, only connected to that reactor. RTU configurations must also assign it as such."}
+    TextBox{parent=fac_c_3,x=1,y=8,height=3,text="Alternatively, you can configure them as facility tanks to connect to multiple reactor units. These can intermingle with unit-specific tanks."}
 
-    tool_ctl.en_fac_tanks = Checkbox{parent=svr_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode>0,box_fg_bg=cpair(colors.yellow,colors.black)}
+    tool_ctl.en_fac_tanks = Checkbox{parent=fac_c_3,x=1,y=12,label="Use Facility Dynamic Tanks",default=ini_cfg.FacilityTankMode>0,box_fg_bg=cpair(colors.yellow,colors.black)}
 
     local function submit_en_fac_tank()
         if tool_ctl.en_fac_tanks.get_value() then
-            svr_pane.set_value(4)
+            fac_pane.set_value(4)
             tmp_cfg.FacilityTankMode = tri(tmp_cfg.FacilityTankMode == 0, 1, math.min(8, math.max(1, ini_cfg.FacilityTankMode)))
         else
             tmp_cfg.FacilityTankMode = 0
             tmp_cfg.FacilityTankDefs = {}
-            svr_pane.set_value(7)
+            fac_pane.set_value(7)
         end
     end
 
-    PushButton{parent=svr_c_3,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_3,x=44,y=14,text="Next \x1a",callback=submit_en_fac_tank,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_3,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=submit_en_fac_tank,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_4,x=1,y=1,height=4,text="Please set unit connections to dynamic tanks, selecting at least one facility tank. The layout for facility tanks will be configured next."}
+    TextBox{parent=fac_c_4,x=1,y=1,height=4,text="Please set unit connections to dynamic tanks, selecting at least one facility tank. The layout for facility tanks will be configured next."}
 
     for i = 1, 4 do
         local val = math.max(1, ini_cfg.FacilityTankDefs[i] or 2)
-        local div = Div{parent=svr_c_4,x=1,y=3+(2*i),height=2}
+        local div = Div{parent=fac_c_4,x=1,y=3+(2*i),height=2}
 
         TextBox{parent=div,x=1,y=1,width=33,text="Unit "..i.." will be connected to..."}
         TextBox{parent=div,x=6,y=2,width=3,text="..."}
@@ -182,7 +182,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
         tool_ctl.tank_elems[i] = { div = div, tank_opt = tank_opt, no_tank = no_tank }
     end
 
-    local tank_err = TextBox{parent=svr_c_4,x=8,y=14,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local tank_err = TextBox{parent=fac_c_4,x=8,y=14,width=33,text="You selected no facility tanks.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function hide_fconn(i)
         if i > 1 then self.vis_ftanks[i].pipe_conn.hide(true)
@@ -224,21 +224,21 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
 
         if any_fac then
             tank_err.hide(true)
-            svr_pane.set_value(5)
+            fac_pane.set_value(5)
         else tank_err.show() end
     end
 
-    PushButton{parent=svr_c_4,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_4,x=44,y=14,text="Next \x1a",callback=submit_tank_defs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_4,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_4,x=44,y=14,text="Next \x1a",callback=submit_tank_defs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_5,x=1,y=1,text="Please select your dynamic tank layout."}
-    TextBox{parent=svr_c_5,x=12,y=3,text="Facility Tanks             Unit Tanks",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_5,x=1,y=1,text="Please select your dynamic tank layout."}
+    TextBox{parent=fac_c_5,x=12,y=3,text="Facility Tanks             Unit Tanks",fg_bg=g_lg_fg_bg}
 
     --#region Tank Layout Visualizer
 
     local pipe_cpair = cpair(colors.blue,colors.lightGray)
 
-    local vis = Div{parent=svr_c_5,x=14,y=5,height=7}
+    local vis = Div{parent=fac_c_5,x=14,y=5,height=7}
 
     local vis_unit_list = TextBox{parent=vis,x=15,y=1,width=6,height=7,text="Unit 1\n\nUnit 2\n\nUnit 3\n\nUnit 4"}
 
@@ -395,28 +395,28 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
     end
 
     local tank_modes = { "Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7", "Mode 8" }
-    tool_ctl.tank_mode = RadioButton{parent=svr_c_5,x=1,y=4,callback=change_mode,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
+    tool_ctl.tank_mode = RadioButton{parent=fac_c_5,x=1,y=4,callback=change_mode,default=math.max(1,ini_cfg.FacilityTankMode),options=tank_modes,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
 
     --#endregion
 
-    PushButton{parent=svr_c_5,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_5,x=44,y=14,text="Next \x1a",callback=function()svr_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_5,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_5,x=44,y=14,text="Next \x1a",callback=function()fac_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    PushButton{parent=svr_c_5,x=8,y=14,min_width=7,text="About",callback=function()svr_pane.set_value(6)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_5,x=8,y=14,min_width=7,text="About",callback=function()fac_pane.set_value(6)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_6,height=3,text="This visualization tool shows the pipe connections required for a particular dynamic tank configuration you have selected."}
-    TextBox{parent=svr_c_6,y=5,height=4,text="Examples: A U2 tank should be configured on an RTU as the dynamic tank for unit #2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
-    TextBox{parent=svr_c_6,y=10,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_6,height=3,text="This visualization tool shows the pipe connections required for a particular dynamic tank configuration you have selected."}
+    TextBox{parent=fac_c_6,y=5,height=4,text="Examples: A U2 tank should be configured on an RTU as the dynamic tank for unit #2. An F3 tank should be configured on an RTU as the #3 dynamic tank for the facility."}
+    TextBox{parent=fac_c_6,y=10,height=3,text="Some modes may look the same if you are not using 4 total reactor units. The wiki has details. Modes that look the same will function the same.",fg_bg=g_lg_fg_bg}
 
-    PushButton{parent=svr_c_6,x=1,y=14,text="\x1b Back",callback=function()svr_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_6,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=svr_c_7,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
-    TextBox{parent=svr_c_7,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
+    TextBox{parent=fac_c_7,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
+    TextBox{parent=fac_c_7,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
 
-    local ext_idling = Checkbox{parent=svr_c_7,x=1,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
+    local ext_idling = Checkbox{parent=fac_c_7,x=1,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
 
     local function back_from_idling()
-        svr_pane.set_value(tri(tmp_cfg.FacilityTankMode == 0, 3, 5))
+        fac_pane.set_value(tri(tmp_cfg.FacilityTankMode == 0, 3, 5))
     end
 
     local function submit_idling()
@@ -424,12 +424,12 @@ function facility.create(tool_ctl, main_pane, cfg_sys, svr_cfg, style)
         main_pane.set_value(3)
     end
 
-    PushButton{parent=svr_c_7,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=svr_c_7,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_7,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_7,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
-    return svr_pane
+    return fac_pane
 end
 
 return facility

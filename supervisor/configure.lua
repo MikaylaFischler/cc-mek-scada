@@ -158,7 +158,7 @@ local function config_view(display)
     local root_pane_div = Div{parent=display,x=1,y=2}
 
     local main_page = Div{parent=root_pane_div,x=1,y=1}
-    local svr_cfg = Div{parent=root_pane_div,x=1,y=1}
+    local fac_cfg = Div{parent=root_pane_div,x=1,y=1}
     local net_cfg = Div{parent=root_pane_div,x=1,y=1}
     local log_cfg = Div{parent=root_pane_div,x=1,y=1}
     local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
@@ -166,7 +166,7 @@ local function config_view(display)
     local changelog = Div{parent=root_pane_div,x=1,y=1}
     local import_err = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,svr_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,fac_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
 
     --#region Main Page
 
@@ -216,15 +216,15 @@ local function config_view(display)
 
     --#region Facility Configuration
 
-    local svr_pane = facility.create(tool_ctl, main_pane, settings, svr_cfg, style)
+    local fac_pane = facility.create(tool_ctl, main_pane, settings, fac_cfg, style)
 
     --#endregion
 
     --#region System Configuration
 
-    local divs = { svr_cfg, net_cfg, log_cfg, clr_cfg, summary, import_err }
+    local divs = { fac_cfg, net_cfg, log_cfg, clr_cfg, summary, import_err }
 
-    system.create(tool_ctl, main_pane, settings, divs, svr_pane, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, fac_pane, style, exit)
 
     --#endregion
 
