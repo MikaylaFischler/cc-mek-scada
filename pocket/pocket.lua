@@ -167,9 +167,9 @@ function pocket.init_nav(smem)
         -- configure the sidebar
         ---@param items sidebar_entry[]
         function app.set_sidebar(items)
+            app.sidebar_items = items
             -- only modify the sidebar if this app is still open
             if self.cur_app == app_id then
-                app.sidebar_items = items
                 if self.sidebar then self.sidebar.update(items) end
             end
         end
