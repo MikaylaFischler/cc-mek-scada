@@ -178,8 +178,8 @@ function pocket.init_nav(smem)
         ---@param on_load function callback
         function app.set_load(on_load)
             app.load = function ()
+                app.loaded = true   -- must flag first so it can't be repeatedly attempted
                 on_load()
-                app.loaded = true
             end
         end
 
@@ -187,8 +187,8 @@ function pocket.init_nav(smem)
         ---@param on_unload function callback
         function app.set_unload(on_unload)
             app.unload = function ()
-                on_unload()
                 app.loaded = false
+                on_unload()
             end
         end
 
