@@ -42,10 +42,10 @@ local configurator = {}
 
 local style = {}
 
-style.root = cpair(colors.black, colors.lightGray)
-style.header = cpair(colors.white, colors.gray)
+style.root          = cpair(colors.black, colors.lightGray)
+style.header        = cpair(colors.white, colors.gray)
 
-style.colors = themes.smooth_stone.colors
+style.colors        = themes.smooth_stone.colors
 
 style.bw_fg_bg      = cpair(colors.black, colors.white)
 style.g_lg_fg_bg    = cpair(colors.gray, colors.lightGray)
