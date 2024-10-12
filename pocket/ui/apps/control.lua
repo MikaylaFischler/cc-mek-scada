@@ -58,7 +58,7 @@ local function new_view(root)
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
-    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
     local btn_fg_bg = cpair(colors.green, colors.black)
     local btn_active = cpair(colors.white, colors.black)
@@ -68,7 +68,7 @@ local function new_view(root)
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar()
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = function () app.switcher(db.facility.num_units + 1) end }
         }
 
@@ -215,7 +215,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen

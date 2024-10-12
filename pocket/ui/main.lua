@@ -78,7 +78,7 @@ local function init(main)
 
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
-    db.nav.open_app(APP_ID.ROOT)
+    db.nav.go_home()
 
     -- done with initial render, lets go!
     root_pane.set_value(2)

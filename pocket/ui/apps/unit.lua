@@ -63,7 +63,7 @@ local function new_view(root)
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
-    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
@@ -76,7 +76,7 @@ local function new_view(root)
         local unit = db.units[id]
 
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
@@ -383,7 +383,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen

@@ -288,6 +288,9 @@ function pocket.init_nav(smem)
         end
     end
 
+    -- go home (open the home screen app)
+    function nav.go_home() nav.open_app(APP_ID.ROOT) end
+
     -- open the app that was blocked on connecting
     function nav.on_loader_connected()
         if self.loader_return then

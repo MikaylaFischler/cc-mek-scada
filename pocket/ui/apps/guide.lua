@@ -56,14 +56,14 @@ local function new_view(root)
     local btn_active = cpair(colors.white, colors.black)
     local btn_disable = cpair(colors.gray, colors.black)
 
-    app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end }})
+    app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home }})
 
     local page_div = nil ---@type Div|nil
 
     -- load the app (create the elements)
     local function load()
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
             { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
         }
@@ -263,7 +263,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen
