@@ -73,6 +73,16 @@ states.yel_ind_s = {
     { color = cpair(colors.black, colors.yellow), symbol = "-" }
 }
 
+states.grn_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.green), symbol = "+" }
+}
+
+states.wht_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.white), symbol = "+" }
+}
+
 style.icon_states = states
 
 -- MAIN LAYOUT --

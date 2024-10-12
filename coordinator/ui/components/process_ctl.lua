@@ -264,10 +264,8 @@ local function new_view(root, x, y)
         local limits = {}
         for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
 
-        process.save(mode.get_value(), b_target.get_value(),
-                     db.energy_convert_to_fe(c_target.get_value()),
-                     db.energy_convert_to_fe(g_target.get_value()),
-                     limits)
+        process.save(mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
+                     db.energy_convert_to_fe(g_target.get_value()), limits)
     end
 
     -- start automatic control after saving process control settings
