@@ -25,6 +25,10 @@ function process.init(iocontrol, pocket_comms)
     self.comms = pocket_comms
 end
 
+
+------------------------------
+--#region FACILITY COMMANDS --
+
 -- facility SCRAM command
 function process.fac_scram()
     self.comms.send_fac_command(FAC_COMMAND.SCRAM_ALL)
@@ -36,6 +40,12 @@ function process.fac_ack_alarms()
     self.comms.send_fac_command(FAC_COMMAND.ACK_ALL_ALARMS)
     log.debug("PROCESS: FAC ACK ALL ALARMS")
 end
+
+--#endregion
+------------------------------
+
+--------------------------
+--#region UNIT COMMANDS --
 
 -- start reactor
 ---@param id integer unit ID
@@ -68,6 +78,14 @@ function process.set_rate(id, rate)
     log.debug(util.c("PROCESS: UNIT[", id, "] SET BURN ", rate))
 end
 
+-- assign a unit to a group
+---@param unit_id integer unit ID
+---@param group_id integer|0 group ID or 0 for independent
+function process.set_group(unit_id, group_id)
+    self.comms.send_unit_command(UNIT_COMMAND.SET_GROUP, unit_id, group_id)
+    log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
+end
+
 -- acknowledge all alarms
 ---@param id integer unit ID
 function process.ack_all_alarms(id)
@@ -90,5 +108,31 @@ function process.reset_alarm(id, alarm)
     self.comms.send_unit_command(UNIT_COMMAND.RESET_ALARM, id, alarm)
     log.debug(util.c("PROCESS: UNIT[", id, "] RESET ALARM ", alarm))
 end
+
+-- #endregion
+--------------------------
+
+---------------------------------
+--#region AUTO PROCESS CONTROL --
+
+-- process start command
+---@param mode PROCESS process control mode
+---@param burn_target number burn rate target
+---@param charge_target number charge level target
+---@param gen_target number generation rate target
+---@param limits number[] unit burn rate limits
+function process.process_start(mode, burn_target, charge_target, gen_target, limits)
+    self.comms.send_auto_start({ mode, burn_target, charge_target, gen_target, limits })
+    log.debug("PROCESS: START AUTO CTRL")
+end
+
+-- process stop command
+function process.process_stop()
+    self.comms.send_fac_command(FAC_COMMAND.STOP)
+    log.debug("PROCESS: STOP AUTO CTRL")
+end
+
+-- #endregion
+---------------------------------
 
 return process

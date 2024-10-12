@@ -108,14 +108,20 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
     -- link callback transmissions
 
-    self.proc_handle.fac_ack.on_scram = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.SCRAM_ALL, success }) end
-    self.proc_handle.fac_ack.on_ack_alarms = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.ACK_ALL_ALARMS, success }) end
+    local f_ack = self.proc_handle.fac_ack
+
+    f_ack.on_scram = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.SCRAM_ALL, success }) end
+    f_ack.on_ack_alarms = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.ACK_ALL_ALARMS, success }) end
+
+    f_ack.on_start = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, success }) end
+    f_ack.on_stop = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.STOP, success }) end
 
     for u = 1, iocontrol.get_db().facility.num_units do
-        self.proc_handle.unit_ack[u].on_start = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.START, u, success }) end
-        self.proc_handle.unit_ack[u].on_scram = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.SCRAM, u, success }) end
-        self.proc_handle.unit_ack[u].on_rps_reset = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.RESET_RPS, u, success }) end
-        self.proc_handle.unit_ack[u].on_ack_alarms = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.ACK_ALL_ALARMS, u, success }) end
+        local u_ack = self.proc_handle.unit_ack[u]
+        u_ack.on_start = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.START, u, success }) end
+        u_ack.on_scram = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.SCRAM, u, success }) end
+        u_ack.on_rps_reset = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.RESET_RPS, u, success }) end
+        u_ack.on_ack_alarms = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.ACK_ALL_ALARMS, u, success }) end
     end
 
     -- handle a packet
@@ -147,7 +153,15 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         log.info(log_tag .. "FAC SCRAM ALL")
                         self.proc_handle.fac_scram()
                     elseif cmd == FAC_COMMAND.STOP then
+                        log.info(log_tag .. "STOP PROCESS CTRL")
+                        self.proc_handle.process_stop()
                     elseif cmd == FAC_COMMAND.START then
+                        if pkt.length == 6 then
+                            log.info(log_tag .. "START PROCESS CTRL")
+                            self.proc_handle.process_start_remote(pkt.data[2], pkt.data[3], pkt.data[4], pkt.data[5], pkt.data[6])
+                        else
+                            log.debug(log_tag .. "CRDN auto start (with configuration) packet length mismatch")
+                        end
                     elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                         log.info(log_tag .. "FAC ACK ALL ALARMS")
                         self.proc_handle.fac_ack_alarms()
@@ -191,6 +205,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         elseif cmd == UNIT_COMMAND.ACK_ALARM then
                         elseif cmd == UNIT_COMMAND.RESET_ALARM then
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
+                            if pkt.length == 3 then
+                                log.info(util.c(log_tag, "UNIT[", uid, "] SET GROUP ", pkt.data[3]))
+                                process.set_group(uid, pkt.data[3])
+                            else
+                                log.debug(log_tag .. "CRDN unit set group missing option")
+                            end
                         else
                             log.debug(log_tag .. "CRDN unit command unknown")
                         end

@@ -107,8 +107,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         radiation = types.new_zero_radiation_reading(),
 
         save_cfg_ack = nil,      ---@type fun(success: boolean)
-        start_ack = nil,         ---@type fun(success: boolean)
-        stop_ack = nil,          ---@type fun(success: boolean)
 
         ---@type { [TONE]: boolean }
         alarm_tones = { false, false, false, false, false, false, false, false },

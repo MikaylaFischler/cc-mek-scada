@@ -562,6 +562,12 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
     end
 
+    -- send the auto process control configuration with a start command
+    ---@param auto_cfg [ PROCESS, number, number, number, number[] ]
+    function public.send_auto_start(auto_cfg)
+        _send_api(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(auto_cfg) })
+    end
+
     -- send a unit command
     ---@param cmd UNIT_COMMAND command
     ---@param unit integer unit ID
@@ -664,7 +670,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
                                     iocontrol.get_db().facility.scram_ack(ack)
                                 elseif cmd == FAC_COMMAND.STOP then
+                                    iocontrol.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
+                                    iocontrol.get_db().facility.start_ack(ack)
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
