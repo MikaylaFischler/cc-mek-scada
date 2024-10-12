@@ -222,7 +222,7 @@ local function config_view(display)
 
     --#region System Configuration
 
-    local divs = { fac_cfg, net_cfg, log_cfg, clr_cfg, summary, import_err }
+    local divs = { net_cfg, log_cfg, clr_cfg, summary, import_err }
 
     system.create(tool_ctl, main_pane, settings, divs, fac_pane, style, exit)
 

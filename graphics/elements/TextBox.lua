@@ -10,6 +10,7 @@ local ALIGN = core.ALIGN
 ---@class textbox_args
 ---@field text string text to show
 ---@field alignment? ALIGN text alignment, left by default
+---@field trim_whitespace? boolean true to trim whitespace before/after lines of text
 ---@field anchor? boolean true to use this as an anchor, making it focusable
 ---@field parent graphics_element
 ---@field id? string element id
@@ -59,7 +60,7 @@ return function (args)
 
             -- trim leading/trailing whitespace, except on the first line
             -- leading whitespace on the first line is usually intentional
-            if i > 1 then
+            if args.trim_whitespace == true then
                 lines[i] = util.trim(lines[i])
             end
 

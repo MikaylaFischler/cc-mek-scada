@@ -29,15 +29,15 @@ local function init(parent, y, is_api)
 
     local waiting_x = math.floor(parent.get_width() / 2) - 1
 
-    local msg = TextBox{parent=box,x=3,y=11,width=box.get_width()-4,height=2,text="",alignment=ALIGN.CENTER,fg_bg=cpair(colors.red,style.root.bkg)}
+    local msg = TextBox{parent=box,x=3,y=11,width=box.get_width()-4,height=2,text="",alignment=ALIGN.CENTER,fg_bg=cpair(colors.red,style.root.bkg),trim_whitespace=true}
 
     if is_api then
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.blue,style.root.bkg)}
-        TextBox{parent=box,y=5,text="Connecting to API",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg)}
+        TextBox{parent=box,y=5,text="Connecting to API",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg),trim_whitespace=true}
         msg.register(iocontrol.get_db().ps, "api_link_msg", msg.set_value)
     else
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.green,style.root.bkg)}
-        TextBox{parent=box,y=5,text="Connecting to Supervisor",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg)}
+        TextBox{parent=box,y=5,text="Connecting to Supervisor",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg),trim_whitespace=true}
         msg.register(iocontrol.get_db().ps, "svr_link_msg", msg.set_value)
     end
 
