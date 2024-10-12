@@ -82,18 +82,20 @@ end
 
 ---@enum POCKET_APP_ID
 local APP_ID = {
+    -- core UI
     ROOT = 1,
     LOADER = 2,
     -- main app pages
     UNITS = 3,
     CONTROL = 4,
-    GUIDE = 5,
-    ABOUT = 6,
-    -- diag app page
-    ALARMS = 7,
+    PROCESS = 5,
+    GUIDE = 6,
+    ABOUT = 7,
+    -- diagnostic app pages
+    ALARMS = 8,
     -- other
-    DUMMY = 8,
-    NUM_APPS = 8
+    DUMMY = 9,
+    NUM_APPS = 9
 }
 
 pocket.APP_ID = APP_ID
