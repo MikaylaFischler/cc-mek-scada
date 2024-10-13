@@ -34,16 +34,21 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
-local lu_col       = style.label_unit_pair
-local text_fg      = style.text_fg
-local mode_states  = style.icon_states.mode_states
+local label_fg_bg    = style.label
+local lu_col         = style.label_unit_pair
+local text_fg        = style.text_fg
 
-local hzd_fg_bg = cpair(colors.white, colors.gray)
-local dis_colors = cpair(colors.white, colors.lightGray)
+local mode_states    = style.icon_states.mode_states
+
+local btn_active     = cpair(colors.white, colors.black)
+local hzd_fg_bg      = style.hzd_fg_bg
+local hzd_dis_colors = style.hzd_dis_colors
 
 -- new unit control page view
 ---@param root Container parent
 local function new_view(root)
+    local btn_fg_bg = cpair(colors.green, colors.black)
+
     local db = iocontrol.get_db()
 
     local frame = Div{parent=root,x=1,y=1}
@@ -59,9 +64,6 @@ local function new_view(root)
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
-
-    local btn_fg_bg = cpair(colors.green, colors.black)
-    local btn_active = cpair(colors.white, colors.black)
 
     local page_div = nil ---@type Div|nil
 
@@ -138,12 +140,12 @@ local function new_view(root)
 
             u_div.line_break()
 
-            TextBox{parent=u_div,y=8,text="CMD",width=4,fg_bg=cpair(colors.lightGray,colors.black)}
-            TextBox{parent=u_div,x=14,y=8,text="mB/t",width=4,fg_bg=cpair(colors.lightGray,colors.black)}
-            local burn_cmd = NumberField{parent=u_div,x=5,y=8,width=8,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
+            TextBox{parent=u_div,y=8,text="CMD",width=4,fg_bg=label_fg_bg}
+            TextBox{parent=u_div,x=14,y=8,text="mB/t",width=4,fg_bg=label_fg_bg}
+            local burn_cmd = NumberField{parent=u_div,x=5,y=8,width=8,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=style.field,dis_fg_bg=style.field_disable}
 
             local set_burn = function () unit.set_burn(burn_cmd.get_value()) end
-            local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=cpair(colors.gray,colors.black),callback=set_burn}
+            local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=style.btn_disable,callback=set_burn}
 
             -- enable/disable controls based on group assignment (start button is separate)
             burn_cmd.register(u_ps, "auto_group_id", function (gid)
@@ -156,10 +158,10 @@ local function new_view(root)
             burn_cmd.register(u_ps, "burn_rate", burn_cmd.set_value)
             burn_cmd.register(u_ps, "max_burn", burn_cmd.set_max)
 
-            local start = HazardButton{parent=u_div,x=2,y=11,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,timeout=3,fg_bg=hzd_fg_bg}
-            local ack_a = HazardButton{parent=u_div,x=12,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
-            local scram = HazardButton{parent=u_div,x=2,y=15,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,timeout=3,fg_bg=hzd_fg_bg}
-            local reset = HazardButton{parent=u_div,x=12,y=15,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,timeout=3,fg_bg=hzd_fg_bg}
+            local start = HazardButton{parent=u_div,x=2,y=11,text="START",accent=colors.lightBlue,callback=unit.start,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local ack_a = HazardButton{parent=u_div,x=12,y=11,text="ACK \x13",accent=colors.orange,callback=unit.ack_alarms,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local scram = HazardButton{parent=u_div,x=2,y=15,text="SCRAM",accent=colors.yellow,callback=unit.scram,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local reset = HazardButton{parent=u_div,x=12,y=15,text="RESET",accent=colors.red,callback=unit.reset_rps,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
 
             unit.start_ack = start.on_response
             unit.ack_alarms_ack = ack_a.on_response
@@ -192,8 +194,8 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility Commands",alignment=ALIGN.CENTER}
 
-        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,timeout=3,fg_bg=hzd_fg_bg}
-        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
+        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=hzd_dis_colors,callback=process.fac_scram,timeout=3,fg_bg=hzd_fg_bg}
+        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=hzd_dis_colors,callback=process.fac_ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
 
         db.facility.scram_ack = scram.on_response
         db.facility.ack_alarms_ack = ack_a.on_response

@@ -36,14 +36,19 @@ local border = core.border
 
 local APP_ID = pocket.APP_ID
 
+local label_fg_bg  = style.label
 local lu_col       = style.label_unit_pair
 local text_fg      = style.text_fg
+
+local field_fg_bg     = style.field
+local field_dis_fg_bg = style.field_disable
+
 local red_ind_s    = style.icon_states.red_ind_s
 local yel_ind_s    = style.icon_states.yel_ind_s
 local grn_ind_s    = style.icon_states.grn_ind_s
 local wht_ind_s    = style.icon_states.wht_ind_s
 
-local hzd_fg_bg = cpair(colors.white, colors.gray)
+local hzd_fg_bg  = style.hzd_fg_bg
 local dis_colors = cpair(colors.white, colors.lightGray)
 
 -- new process control page view
@@ -59,14 +64,11 @@ local function new_view(root)
     local main = Div{parent=frame,x=1,y=1}
 
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
-    WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.green,colors._INHERIT)}
+    WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.purple,colors._INHERIT)}
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
-
-    local btn_fg_bg = cpair(colors.green, colors.black)
-    local btn_active = cpair(colors.white, colors.black)
 
     local page_div = nil ---@type Div|nil
 
@@ -108,9 +110,9 @@ local function new_view(root)
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
-            TextBox{parent=u_div,y=3,text="Auto Rate Limit",fg_bg=cpair(colors.lightGray,colors.black)}
-            rate_limits[i] = NumberField{parent=u_div,x=1,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
-            TextBox{parent=u_div,x=18,y=4,text="mB/t",width=4,fg_bg=cpair(colors.lightGray,colors.black)}
+            TextBox{parent=u_div,y=3,text="Auto Rate Limit",fg_bg=label_fg_bg}
+            rate_limits[i] = NumberField{parent=u_div,x=1,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+            TextBox{parent=u_div,x=18,y=4,text="mB/t",width=4,fg_bg=label_fg_bg}
 
             rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
             rate_limits[i].register(unit.unit_ps, "burn_limit", rate_limits[i].set_value)
@@ -134,7 +136,7 @@ local function new_view(root)
 
             local function _set_group(value) process.set_group(i, value) end
 
-            local group = RadioButton{parent=u_div,y=10,options=types.AUTO_GROUP_NAMES,callback=_set_group,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=cpair(colors.gray,colors.black)}
+            local group = RadioButton{parent=u_div,y=10,options=types.AUTO_GROUP_NAMES,callback=_set_group,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
             -- can't change group if auto is engaged regardless of if this unit is part of auto control
             group.register(f_ps, "auto_active", function (auto_active)
@@ -144,7 +146,7 @@ local function new_view(root)
             group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 
             TextBox{parent=u_div,y=16,text="Assigned Group",fg_bg=style.label}
-            local auto_grp = TextBox{parent=u_div,text="Manual",width=11,fg_bg=cpair(colors.white,colors.gray)}
+            local auto_grp = TextBox{parent=u_div,text="Manual",width=11,fg_bg=text_fg}
 
             auto_grp.register(u_ps, "auto_group", auto_grp.set_value)
 
@@ -167,17 +169,17 @@ local function new_view(root)
 
         mode.register(f_ps, "process_mode", mode.set_value)
 
-        TextBox{parent=o_div,y=9,text="Burn Rate Target",fg_bg=cpair(colors.lightGray,colors.black)}
-        local b_target = NumberField{parent=o_div,x=1,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
-        TextBox{parent=o_div,x=17,y=10,text="mB/t",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=o_div,y=9,text="Burn Rate Target",fg_bg=label_fg_bg}
+        local b_target = NumberField{parent=o_div,x=1,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=o_div,x=17,y=10,text="mB/t",fg_bg=label_fg_bg}
 
-        TextBox{parent=o_div,y=12,text="Charge Level Target",fg_bg=cpair(colors.lightGray,colors.black)}
-        local c_target = NumberField{parent=o_div,x=1,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
-        TextBox{parent=o_div,x=17,y=13,text="M"..db.energy_label,fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=o_div,y=12,text="Charge Level Target",fg_bg=label_fg_bg}
+        local c_target = NumberField{parent=o_div,x=1,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=o_div,x=17,y=13,text="M"..db.energy_label,fg_bg=label_fg_bg}
 
-        TextBox{parent=o_div,y=15,text="Generation Target",fg_bg=cpair(colors.lightGray,colors.black)}
-        local g_target = NumberField{parent=o_div,x=1,y=16,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
-        TextBox{parent=o_div,x=17,y=16,text="k"..db.energy_label.."/t",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=o_div,y=15,text="Generation Target",fg_bg=label_fg_bg}
+        local g_target = NumberField{parent=o_div,x=1,y=16,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=o_div,x=17,y=16,text="k"..db.energy_label.."/t",fg_bg=label_fg_bg}
 
         b_target.register(f_ps, "process_burn_target", b_target.set_value)
         c_target.register(f_ps, "process_charge_target", c_target.set_value)
@@ -209,8 +211,8 @@ local function new_view(root)
                                   db.energy_convert_to_fe(g_target.get_value()), limits)
         end
 
-        local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg}
-        local stop = HazardButton{parent=c_div,x=13,y=9,text="STOP",accent=colors.red,dis_colors=dis_colors,callback=process.process_stop,timeout=3,fg_bg=hzd_fg_bg}
+        local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
+        local stop = HazardButton{parent=c_div,x=13,y=9,text="STOP",accent=colors.red,callback=process.process_stop,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
 
         db.facility.start_ack = start.on_response
         db.facility.stop_ack = stop.on_response
@@ -267,17 +269,17 @@ local function new_view(root)
 
         local auto_scram = IconIndicator{parent=a_div,y=3,label="Automatic SCRAM",states=red_ind_s}
 
-        TextBox{parent=a_div,y=5,text="Induction Matrix",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=a_div,y=5,text="Induction Matrix",fg_bg=label_fg_bg}
         local matrix_dc   = IconIndicator{parent=a_div,label="Disconnected",states=yel_ind_s}
         local matrix_fill = IconIndicator{parent=a_div,label="Charge High",states=red_ind_s}
 
-        TextBox{parent=a_div,y=9,text="Assigned Units",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=a_div,y=9,text="Assigned Units",fg_bg=label_fg_bg}
         local unit_crit = IconIndicator{parent=a_div,label="Critical Alarm",states=red_ind_s}
 
-        TextBox{parent=a_div,y=12,text="Facility",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=a_div,y=12,text="Facility",fg_bg=label_fg_bg}
         local fac_rad_h = IconIndicator{parent=a_div,label="Radiation High",states=red_ind_s}
 
-        TextBox{parent=a_div,y=15,text="Generation Rate Mode",fg_bg=cpair(colors.lightGray,colors.black)}
+        TextBox{parent=a_div,y=15,text="Generation Rate Mode",fg_bg=label_fg_bg}
         local gen_fault = IconIndicator{parent=a_div,label="Control Fault",states=yel_ind_s}
 
         auto_scram.register(f_ps, "auto_scram", auto_scram.update)
