@@ -146,7 +146,17 @@ return function (args)
     -- set the value (must be a number)
     ---@param val number number to show
     function e.set_value(val)
-        if tonumber(val) then ifield.set_value("" .. tonumber(val)) end
+        local num, max, min = tonumber(val), tonumber(args.max), tonumber(args.min)
+
+        if max and num > max then
+            _set_value(max)
+        elseif min and num < min then
+            _set_value(min)
+        elseif num then
+            _set_value(num)
+        end
+
+        ifield.set_value(e.value)
     end
 
     -- set minimum input value
