@@ -144,7 +144,7 @@ local function new_view(root)
             TextBox{parent=u_div,x=14,y=8,text="mB/t",width=4,fg_bg=label_fg_bg}
             local burn_cmd = NumberField{parent=u_div,x=5,y=8,width=8,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=style.field,dis_fg_bg=style.field_disable}
 
-            local set_burn = function () unit.set_burn(burn_cmd.get_value()) end
+            local set_burn = function () unit.set_burn(burn_cmd.get_numeric()) end
             local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=style.btn_disable,callback=set_burn}
 
             -- enable/disable controls based on group assignment (start button is separate)

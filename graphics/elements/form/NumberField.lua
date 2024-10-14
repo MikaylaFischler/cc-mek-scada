@@ -247,5 +247,11 @@ return function (args)
     ---@class NumberField:graphics_element
     local NumberField, id = e.complete(true)
 
+    -- get the numeric value of this field
+    ---@return number
+    function NumberField.get_numeric()
+        return tonumber(e.value) or 0
+    end
+
     return NumberField, id
 end

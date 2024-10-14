@@ -97,7 +97,7 @@ local function new_view(root)
 
         --#region unit settings/status
 
-        local rate_limits = {}
+        local rate_limits = {}  ---@type NumberField[]
 
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
@@ -207,10 +207,10 @@ local function new_view(root)
 
         local function _start_auto()
             local limits = {}
-            for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
+            for i = 1, #rate_limits do limits[i] = rate_limits[i].get_numeric() end
 
-            process.process_start(mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
-                                  db.energy_convert_to_fe(g_target.get_value()), limits)
+            process.process_start(mode.get_value(), b_target.get_numeric(), db.energy_convert_to_fe(c_target.get_numeric()),
+                                  db.energy_convert_to_fe(g_target.get_numeric()), limits)
         end
 
         local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
