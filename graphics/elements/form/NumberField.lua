@@ -53,7 +53,7 @@ return function (args)
     end
 
     -- set the value to a formatted numeric string<br>
-    -- trims trailing zeros
+    -- trims trailing zeros from floating point numbers
     ---@param num number
     local function _set_value(num)
         local str = util.sprintf(format, num)
@@ -185,9 +185,7 @@ return function (args)
 
     -- handle unfocused
     function e.on_unfocused()
-        local val = tonumber(e.value)
-        local max = tonumber(args.max)
-        local min = tonumber(args.min)
+        local val, max, min = tonumber(e.value), tonumber(args.max), tonumber(args.min)
 
         if val then
             if args.max_int_digits or args.max_frac_digits then

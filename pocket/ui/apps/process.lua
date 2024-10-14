@@ -229,9 +229,9 @@ local function new_view(root)
         auto_ramp.register(f_ps, "auto_ramping", auto_ramp.update)
         auto_sat.register(f_ps, "auto_saturated", auto_sat.update)
 
-        -- REGISTER_NOTE: for optimization/brevity, due to not deleting anything but the whole element tree when it comes
-        -- to the process control display and coordinator GUI as a whole, child elements will not directly be registered here
-        -- (preventing garbage collection until the parent 'proc' is deleted)
+        -- REGISTER_NOTE: for optimization/brevity, due to not deleting anything but the whole element tree
+        -- when it comes to unloading the process app, child elements will not directly be registered here
+        -- (preventing garbage collection until the parent 'page_div' is deleted)
         page_div.register(f_ps, "auto_active", function (active)
             if active then
                 b_target.disable()
