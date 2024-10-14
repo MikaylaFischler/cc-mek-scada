@@ -166,7 +166,7 @@ local function new_view(root)
         TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
 
         local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple}
+        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
         mode.register(f_ps, "process_mode", mode.set_value)
 
@@ -200,7 +200,7 @@ local function new_view(root)
 
         local u_stat = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,x=1,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
         local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
-        local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.lightGray)}
+        local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
 
         stat_line_1.register(f_ps, "status_line_1", stat_line_1.set_value)
         stat_line_2.register(f_ps, "status_line_2", stat_line_2.set_value)
