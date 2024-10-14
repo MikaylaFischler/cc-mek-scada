@@ -6,7 +6,6 @@ local const   = require("scada-common.constants")
 local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
-local log     = require("scada-common.log")
 
 local process = require("pocket.process")
 

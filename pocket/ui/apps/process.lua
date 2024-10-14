@@ -25,31 +25,27 @@ local RadioButton   = require("graphics.elements.controls.RadioButton")
 
 local NumberField   = require("graphics.elements.form.NumberField")
 
-local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 local IconIndicator = require("graphics.elements.indicators.IconIndicator")
 
-local AUTO_GROUP = types.AUTO_GROUP
-
-local ALIGN = core.ALIGN
-local cpair = core.cpair
+local ALIGN  = core.ALIGN
+local cpair  = core.cpair
 local border = core.border
 
 local APP_ID = pocket.APP_ID
 
-local label_fg_bg  = style.label
-local lu_col       = style.label_unit_pair
-local text_fg      = style.text_fg
+local label_fg_bg     = style.label
+local text_fg         = style.text_fg
 
 local field_fg_bg     = style.field
 local field_dis_fg_bg = style.field_disable
 
-local red_ind_s    = style.icon_states.red_ind_s
-local yel_ind_s    = style.icon_states.yel_ind_s
-local grn_ind_s    = style.icon_states.grn_ind_s
-local wht_ind_s    = style.icon_states.wht_ind_s
+local red_ind_s       = style.icon_states.red_ind_s
+local yel_ind_s       = style.icon_states.yel_ind_s
+local grn_ind_s       = style.icon_states.grn_ind_s
+local wht_ind_s       = style.icon_states.wht_ind_s
 
-local hzd_fg_bg  = style.hzd_fg_bg
-local dis_colors = cpair(colors.white, colors.lightGray)
+local hzd_fg_bg       = style.hzd_fg_bg
+local dis_colors      = cpair(colors.white, colors.lightGray)
 
 -- new process control page view
 ---@param root Container parent

@@ -248,7 +248,7 @@ return function (args)
     local NumberField, id = e.complete(true)
 
     -- get the numeric value of this field
-    ---@return number
+    ---@return number value the value, or 0 if not a valid number
     function NumberField.get_numeric()
         return tonumber(e.value) or 0
     end
