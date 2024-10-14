@@ -10,11 +10,18 @@ local cpair = core.cpair
 
 -- GLOBAL --
 
-style.root = cpair(colors.white, colors.black)
-style.header = cpair(colors.white, colors.gray)
-style.text_fg = cpair(colors.white, colors._INHERIT)
-style.label = cpair(colors.lightGray, colors.black)
+style.root            = cpair(colors.white, colors.black)
+style.header          = cpair(colors.white, colors.gray)
+style.text_fg         = cpair(colors.white, colors._INHERIT)
+
+style.label           = cpair(colors.lightGray, colors.black)
 style.label_unit_pair = cpair(colors.lightGray, colors.lightGray)
+
+style.field           = cpair(colors.white, colors.gray)
+style.field_disable   = cpair(colors.gray, colors.lightGray)
+style.btn_disable     = cpair(colors.gray, colors.black)
+style.hzd_fg_bg       = cpair(colors.white, colors.gray)
+style.hzd_dis_colors  = cpair(colors.white, colors.lightGray)
 
 style.colors = {
     { c = colors.red,       hex = 0xdf4949 },
@@ -71,6 +78,16 @@ states.red_ind_s = {
 states.yel_ind_s = {
     { color = cpair(colors.black, colors.lightGray), symbol = "+" },
     { color = cpair(colors.black, colors.yellow), symbol = "-" }
+}
+
+states.grn_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.green), symbol = "+" }
+}
+
+states.wht_ind_s = {
+    { color = cpair(colors.black, colors.lightGray), symbol = "\x07" },
+    { color = cpair(colors.black, colors.white), symbol = "+" }
 }
 
 style.icon_states = states

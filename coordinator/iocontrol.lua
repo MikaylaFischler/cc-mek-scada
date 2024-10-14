@@ -84,6 +84,8 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         all_sys_ok = false,
         rtu_count = 0,
 
+        status_lines = { "", "" },
+
         auto_ready = false,
         auto_active = false,
         auto_ramping = false,
@@ -107,8 +109,6 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         radiation = types.new_zero_radiation_reading(),
 
         save_cfg_ack = nil,      ---@type fun(success: boolean)
-        start_ack = nil,         ---@type fun(success: boolean)
-        stop_ack = nil,          ---@type fun(success: boolean)
 
         ---@type { [TONE]: boolean }
         alarm_tones = { false, false, false, false, false, false, false, false },
@@ -158,6 +158,11 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             num_turbines = 0,
             num_snas = 0,
             has_tank = conf.cooling.r_cool[i].TankConnection,
+
+            status_lines = { "", "" },
+
+            auto_ready = false,
+            auto_degraded = false,
 
             control_state = false,
             burn_rate_cmd = 0.0,
@@ -541,8 +546,8 @@ function iocontrol.update_facility_status(status)
             fac.ascram_status.radiation = ctl_status[10]
             fac.ascram_status.gen_fault = ctl_status[11]
 
-            fac.status_line_1 = ctl_status[12]
-            fac.status_line_2 = ctl_status[13]
+            fac.status_lines[1] = ctl_status[12]
+            fac.status_lines[2] = ctl_status[13]
 
             fac.ps.publish("all_sys_ok", fac.all_sys_ok)
             fac.ps.publish("auto_ready", fac.auto_ready)
@@ -555,8 +560,8 @@ function iocontrol.update_facility_status(status)
             fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             fac.ps.publish("as_radiation", fac.ascram_status.radiation)
             fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
-            fac.ps.publish("status_line_1", fac.status_line_1)
-            fac.ps.publish("status_line_2", fac.status_line_2)
+            fac.ps.publish("status_line_1", fac.status_lines[1])
+            fac.ps.publish("status_line_2", fac.status_lines[2])
 
             local group_map = ctl_status[14]
 
@@ -1130,15 +1135,19 @@ function iocontrol.update_unit_statuses(statuses)
 
                 if type(unit_state) == "table" then
                     if #unit_state == 8 then
+                        unit.status_lines[1] = unit_state[1]
+                        unit.status_lines[2] = unit_state[2]
+                        unit.auto_ready = unit_state[3]
+                        unit.auto_degraded = unit_state[4]
                         unit.waste_mode = unit_state[5]
                         unit.waste_product = unit_state[6]
                         unit.last_rate_change_ms = unit_state[7]
                         unit.turbine_flow_stable = unit_state[8]
 
-                        unit.unit_ps.publish("U_StatusLine1", unit_state[1])
-                        unit.unit_ps.publish("U_StatusLine2", unit_state[2])
-                        unit.unit_ps.publish("U_AutoReady", unit_state[3])
-                        unit.unit_ps.publish("U_AutoDegraded", unit_state[4])
+                        unit.unit_ps.publish("U_StatusLine1", unit.status_lines[1])
+                        unit.unit_ps.publish("U_StatusLine2", unit.status_lines[2])
+                        unit.unit_ps.publish("U_AutoReady", unit.auto_ready)
+                        unit.unit_ps.publish("U_AutoDegraded", unit.auto_degraded)
                         unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
                         unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
                         unit.unit_ps.publish("U_WasteProduct", unit.waste_product)

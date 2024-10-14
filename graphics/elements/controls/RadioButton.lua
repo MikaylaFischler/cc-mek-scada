@@ -11,6 +11,7 @@ local KEY_CLICK = core.events.KEY_CLICK
 ---@field options table button options
 ---@field radio_colors cpair radio button colors (inner & outer)
 ---@field select_color color color for radio button border when selected
+---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field default? integer default state, defaults to options[1]
 ---@field min_width? integer text length + 2 if omitted
 ---@field callback? function function to call on touch
@@ -64,6 +65,10 @@ return function (args)
             local inner_color = util.trinary(e.value == i, args.radio_colors.color_b, args.radio_colors.color_a)
             local outer_color = util.trinary(e.value == i, args.select_color, args.radio_colors.color_b)
 
+            if e.value == i and args.dis_fg_bg and not e.enabled then
+                outer_color = args.radio_colors.color_a
+            end
+
             e.w_set_cur(1, i)
 
             e.w_set_fgd(inner_color)
@@ -75,9 +80,14 @@ return function (args)
             e.w_write("\x95")
 
             -- write button text
-            if i == focused_opt and e.is_focused() and e.enabled then
-                e.w_set_fgd(e.fg_bg.bkg)
-                e.w_set_bkg(e.fg_bg.fgd)
+            if args.dis_fg_bg and not e.enabled then
+                e.w_set_fgd(args.dis_fg_bg.fgd)
+                e.w_set_bkg(args.dis_fg_bg.bkg)
+            elseif i == focused_opt and e.is_focused() then
+                if e.enabled then
+                    e.w_set_fgd(e.fg_bg.bkg)
+                    e.w_set_bkg(e.fg_bg.fgd)
+                end
             else
                 e.w_set_fgd(e.fg_bg.fgd)
                 e.w_set_bkg(e.fg_bg.bkg)

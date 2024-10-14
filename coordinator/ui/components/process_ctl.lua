@@ -264,24 +264,22 @@ local function new_view(root, x, y)
         local limits = {}
         for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
 
-        process.save(mode.get_value(), b_target.get_value(),
-                     db.energy_convert_to_fe(c_target.get_value()),
-                     db.energy_convert_to_fe(g_target.get_value()),
-                     limits)
+        process.save(mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
+                     db.energy_convert_to_fe(g_target.get_value()), limits)
     end
 
     -- start automatic control after saving process control settings
     local function _start_auto()
         _save_cfg()
-        process.start_auto()
+        db.process.process_start()
     end
 
     local save  = HazardButton{parent=auto_controls,x=2,y=2,text="SAVE",accent=colors.purple,dis_colors=dis_colors,callback=_save_cfg,fg_bg=hzd_fg_bg}
     local start = HazardButton{parent=auto_controls,x=13,y=2,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=_start_auto,fg_bg=hzd_fg_bg}
-    local stop  = HazardButton{parent=auto_controls,x=23,y=2,text="STOP",accent=colors.red,dis_colors=dis_colors,callback=process.stop_auto,fg_bg=hzd_fg_bg}
+    local stop  = HazardButton{parent=auto_controls,x=23,y=2,text="STOP",accent=colors.red,dis_colors=dis_colors,callback=db.process.process_stop,fg_bg=hzd_fg_bg}
 
-    facility.start_ack = start.on_response
-    facility.stop_ack = stop.on_response
+    db.process.fac_ack.on_start = start.on_response
+    db.process.fac_ack.on_stop = stop.on_response
 
     function facility.save_cfg_ack(ack)
         tcd.dispatch(0.2, function () save.on_response(ack) end)

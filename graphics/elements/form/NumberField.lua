@@ -44,8 +44,47 @@ return function (args)
 
     args.max_chars = args.max_chars or e.frame.w
 
+    -- determine the format to convert the number to a string
+    local format = "%d"
+    if args.allow_decimal then
+        if args.max_frac_digits then
+            format = "%."..args.max_frac_digits.."f"
+        else format = "%f" end
+    end
+
+    -- set the value to a formatted numeric string<br>
+    -- trims trailing zeros from floating point numbers
+    ---@param num number
+    local function _set_value(num)
+        local str = util.sprintf(format, num)
+
+        if args.allow_decimal then
+            local found_nonzero = false
+            local str_table = {}
+
+            for i = #str, 1, -1 do
+                local c = string.sub(str, i, i)
+
+                if found_nonzero then
+                    str_table[i] = c
+                else
+                    if c == "." then
+                        found_nonzero = true
+                    elseif c ~= "0" then
+                        str_table[i] = c
+                        found_nonzero = true
+                    end
+                end
+            end
+
+            e.value = table.concat(str_table)
+        else
+            e.value = str
+        end
+    end
+
     -- set initial value
-    e.value = "" .. (args.default or 0)
+    _set_value(args.default or 0)
 
     -- make an interactive field manager
     local ifield = core.new_ifield(e, args.max_chars, args.fg_bg, args.dis_fg_bg, args.align_right)
@@ -107,7 +146,17 @@ return function (args)
     -- set the value (must be a number)
     ---@param val number number to show
     function e.set_value(val)
-        if tonumber(val) then ifield.set_value("" .. tonumber(val)) end
+        local num, max, min = tonumber(val), tonumber(args.max), tonumber(args.min)
+
+        if max and num > max then
+            _set_value(max)
+        elseif min and num < min then
+            _set_value(min)
+        elseif num then
+            _set_value(num)
+        end
+
+        ifield.set_value(e.value)
     end
 
     -- set minimum input value
@@ -136,11 +185,9 @@ return function (args)
 
     -- handle unfocused
     function e.on_unfocused()
-        local val = tonumber(e.value)
-        local max = tonumber(args.max)
-        local min = tonumber(args.min)
+        local val, max, min = tonumber(e.value), tonumber(args.max), tonumber(args.min)
 
-        if type(val) == "number" then
+        if val then
             if args.max_int_digits or args.max_frac_digits then
                 local str = e.value
                 local ceil = false
@@ -169,17 +216,17 @@ return function (args)
 
                 if parts[2] then parts[2] = "." .. parts[2] else parts[2] = "" end
 
-                val = tonumber((parts[1] or "") .. parts[2])
+                val = tonumber((parts[1] or "") .. parts[2]) or 0
             end
 
-            if type(args.max) == "number" and val > max then
-                e.value = "" .. max
+            if max and val > max then
+                _set_value(max)
                 ifield.nav_start()
-            elseif type(args.min) == "number" and val < min then
-                e.value = "" .. min
+            elseif min and val < min then
+                _set_value(min)
                 ifield.nav_start()
             else
-                e.value = "" .. val
+                _set_value(val)
                 ifield.nav_end()
             end
         else
@@ -197,6 +244,12 @@ return function (args)
 
     ---@class NumberField:graphics_element
     local NumberField, id = e.complete(true)
+
+    -- get the numeric value of this field
+    ---@return number value the value, or 0 if not a valid number
+    function NumberField.get_numeric()
+        return tonumber(e.value) or 0
+    end
 
     return NumberField, id
 end

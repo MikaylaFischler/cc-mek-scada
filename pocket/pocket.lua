@@ -82,18 +82,20 @@ end
 
 ---@enum POCKET_APP_ID
 local APP_ID = {
+    -- core UI
     ROOT = 1,
     LOADER = 2,
     -- main app pages
     UNITS = 3,
     CONTROL = 4,
-    GUIDE = 5,
-    ABOUT = 6,
-    -- diag app page
-    ALARMS = 7,
+    PROCESS = 5,
+    GUIDE = 6,
+    ABOUT = 7,
+    -- diagnostic app pages
+    ALARMS = 8,
     -- other
-    DUMMY = 8,
-    NUM_APPS = 8
+    DUMMY = 9,
+    NUM_APPS = 9
 }
 
 pocket.APP_ID = APP_ID
@@ -167,9 +169,9 @@ function pocket.init_nav(smem)
         -- configure the sidebar
         ---@param items sidebar_entry[]
         function app.set_sidebar(items)
+            app.sidebar_items = items
             -- only modify the sidebar if this app is still open
             if self.cur_app == app_id then
-                app.sidebar_items = items
                 if self.sidebar then self.sidebar.update(items) end
             end
         end
@@ -178,8 +180,8 @@ function pocket.init_nav(smem)
         ---@param on_load function callback
         function app.set_load(on_load)
             app.load = function ()
+                app.loaded = true   -- must flag first so it can't be repeatedly attempted
                 on_load()
-                app.loaded = true
             end
         end
 
@@ -187,8 +189,8 @@ function pocket.init_nav(smem)
         ---@param on_unload function callback
         function app.set_unload(on_unload)
             app.unload = function ()
-                on_unload()
                 app.loaded = false
+                on_unload()
             end
         end
 
@@ -287,6 +289,9 @@ function pocket.init_nav(smem)
             log.debug("tried to open unknown app")
         end
     end
+
+    -- go home (open the home screen app)
+    function nav.go_home() nav.open_app(APP_ID.ROOT) end
 
     -- open the app that was blocked on connecting
     function nav.on_loader_connected()
@@ -555,11 +560,22 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_CTRL, {}) end
     end
 
+    -- coordinator get process app data
+    function public.api__get_process()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_PROC, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
     function public.send_fac_command(cmd, option)
         _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
+    end
+
+    -- send the auto process control configuration with a start command
+    ---@param auto_cfg [ PROCESS, number, number, number, number[] ]
+    function public.send_auto_start(auto_cfg)
+        _send_api(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(auto_cfg) })
     end
 
     -- send a unit command
@@ -664,7 +680,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
                                     iocontrol.get_db().facility.scram_ack(ack)
                                 elseif cmd == FAC_COMMAND.STOP then
+                                    iocontrol.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
+                                    iocontrol.get_db().facility.start_ack(ack)
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
@@ -710,6 +728,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_CTRL then
                             if _check_length(packet, #iocontrol.get_db().units) then
                                 iocontrol.record_control_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_PROC then
+                            if _check_length(packet, #iocontrol.get_db().units + 1) then
+                                iocontrol.record_process_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else

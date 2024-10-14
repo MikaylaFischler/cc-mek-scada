@@ -6,7 +6,6 @@ local const   = require("scada-common.constants")
 local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
 local util    = require("scada-common.util")
-local log     = require("scada-common.log")
 
 local process = require("pocket.process")
 
@@ -94,7 +93,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
     ---@class pocket_ioctl_api
     io.api = {
         get_unit = function (unit) comms.api__get_unit(unit) end,
-        get_ctrl = function () comms.api__get_control() end
+        get_ctrl = function () comms.api__get_control() end,
+        get_proc = function () comms.api__get_process() end
     }
 end
 
@@ -137,6 +137,8 @@ function iocontrol.init_fac(conf)
         tank_defs = conf.cooling.fac_tank_defs,
         all_sys_ok = false,
         rtu_count = 0,
+
+        status_lines = { "", "" },
 
         auto_ready = false,
         auto_active = false,
@@ -196,6 +198,11 @@ function iocontrol.init_fac(conf)
             num_turbines = 0,
             num_snas = 0,
             has_tank = conf.cooling.r_cool[i].TankConnection,
+
+            status_lines = { "", "" },
+
+            auto_ready = false,
+            auto_degraded = false,
 
             control_state = false,
             burn_rate_cmd = 0.0,
@@ -817,46 +824,100 @@ function iocontrol.record_control_data(data)
         local unit = io.units[u_id]
         local u_data = data[u_id]
 
-        if type(u_data) ~= "table" then
-            log.debug(util.c("iocontrol.record_control_data: unit ", u_id, " data invalid"))
-        else
-            unit.connected = u_data[1]
+        unit.connected = u_data[1]
 
-            unit.reactor_data.rps_tripped = u_data[2]
-            unit.unit_ps.publish("rps_tripped", u_data[2])
-            unit.reactor_data.mek_status.status = u_data[3]
-            unit.unit_ps.publish("status", u_data[3])
-            unit.reactor_data.mek_status.temp = u_data[4]
-            unit.unit_ps.publish("temp", u_data[4])
-            unit.reactor_data.mek_status.burn_rate = u_data[5]
-            unit.unit_ps.publish("burn_rate", u_data[5])
-            unit.reactor_data.mek_status.act_burn_rate = u_data[6]
-            unit.unit_ps.publish("act_burn_rate", u_data[6])
-            unit.reactor_data.mek_struct.max_burn = u_data[7]
-            unit.unit_ps.publish("max_burn", u_data[7])
+        unit.reactor_data.rps_tripped = u_data[2]
+        unit.unit_ps.publish("rps_tripped", u_data[2])
+        unit.reactor_data.mek_status.status = u_data[3]
+        unit.unit_ps.publish("status", u_data[3])
+        unit.reactor_data.mek_status.temp = u_data[4]
+        unit.unit_ps.publish("temp", u_data[4])
+        unit.reactor_data.mek_status.burn_rate = u_data[5]
+        unit.unit_ps.publish("burn_rate", u_data[5])
+        unit.reactor_data.mek_status.act_burn_rate = u_data[6]
+        unit.unit_ps.publish("act_burn_rate", u_data[6])
+        unit.reactor_data.mek_struct.max_burn = u_data[7]
+        unit.unit_ps.publish("max_burn", u_data[7])
 
-            unit.annunciator.AutoControl = u_data[8]
-            unit.unit_ps.publish("AutoControl", u_data[8])
+        unit.annunciator.AutoControl = u_data[8]
+        unit.unit_ps.publish("AutoControl", u_data[8])
 
-            unit.a_group = u_data[9]
-            unit.unit_ps.publish("auto_group_id", unit.a_group)
-            unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+        unit.a_group = u_data[9]
+        unit.unit_ps.publish("auto_group_id", unit.a_group)
+        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
 
-            local control_status = 1
+        local control_status = 1
 
-            if unit.connected then
-                if unit.reactor_data.rps_tripped then
-                    control_status = 2
-                end
-
-                if unit.reactor_data.mek_status.status then
-                    control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
-                end
+        if unit.connected then
+            if unit.reactor_data.rps_tripped then
+                control_status = 2
             end
 
-            unit.unit_ps.publish("U_ControlStatus", control_status)
+            if unit.reactor_data.mek_status.status then
+                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+            end
         end
+
+        unit.unit_ps.publish("U_ControlStatus", control_status)
     end
+end
+
+-- update process app with unit data from API_GET_PROC
+---@param data table
+function iocontrol.record_process_data(data)
+    -- get unit data
+    for u_id = 1, #io.units do
+        local unit = io.units[u_id]
+        local u_data = data[u_id]
+
+        unit.reactor_data.mek_status.status = u_data[1]
+        unit.reactor_data.mek_struct.max_burn = u_data[2]
+        unit.annunciator.AutoControl = u_data[6]
+        unit.a_group = u_data[7]
+
+        unit.unit_ps.publish("status", u_data[1])
+        unit.unit_ps.publish("max_burn", u_data[2])
+        unit.unit_ps.publish("burn_limit", u_data[3])
+        unit.unit_ps.publish("U_AutoReady", u_data[4])
+        unit.unit_ps.publish("U_AutoDegraded", u_data[5])
+        unit.unit_ps.publish("AutoControl", u_data[6])
+        unit.unit_ps.publish("auto_group_id", unit.a_group)
+        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+    end
+
+    -- get facility data
+    local fac = io.facility
+    local f_data = data[#io.units + 1]
+
+    fac.status_lines = f_data[1]
+
+    fac.auto_ready = f_data[2][1]
+    fac.auto_active = f_data[2][2]
+    fac.auto_ramping = f_data[2][3]
+    fac.auto_saturated = f_data[2][4]
+
+    fac.auto_scram = f_data[3]
+    fac.ascram_status = f_data[4]
+
+    fac.ps.publish("status_line_1", fac.status_lines[1])
+    fac.ps.publish("status_line_2", fac.status_lines[2])
+
+    fac.ps.publish("auto_ready", fac.auto_ready)
+    fac.ps.publish("auto_active", fac.auto_active)
+    fac.ps.publish("auto_ramping", fac.auto_ramping)
+    fac.ps.publish("auto_saturated", fac.auto_saturated)
+
+    fac.ps.publish("auto_scram", fac.auto_scram)
+    fac.ps.publish("as_matrix_dc", fac.ascram_status.matrix_dc)
+    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
+    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+
+    fac.ps.publish("process_mode", f_data[5][1])
+    fac.ps.publish("process_burn_target", f_data[5][2])
+    fac.ps.publish("process_charge_target", f_data[5][3])
+    fac.ps.publish("process_gen_target", f_data[5][4])
 end
 
 -- get the IO controller database

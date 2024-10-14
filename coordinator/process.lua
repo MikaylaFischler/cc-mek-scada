@@ -25,12 +25,12 @@ local pctl = {
     control_states = {
         ---@class sys_auto_config
         process = {
-            mode = PROCESS.INACTIVE,
+            mode = PROCESS.INACTIVE,           ---@type PROCESS
             burn_target = 0.0,
             charge_target = 0.0,
             gen_target = 0.0,
-            limits = {},     ---@type number[]
-            waste_product = PRODUCT.PLUTONIUM,
+            limits = {},                       ---@type number[]
+            waste_product = PRODUCT.PLUTONIUM, ---@type WASTE_PRODUCT
             pu_fallback = false,
             sps_low_power = false
         },
@@ -49,6 +49,7 @@ local pctl = {
 ---@field requestors function[] list of callbacks from the requestors
 
 -- write auto process control to config file
+---@return boolean saved
 local function _write_auto_config()
     -- save config
     settings.set("ControlStates", pctl.control_states)
@@ -59,6 +60,8 @@ local function _write_auto_config()
 
     return saved
 end
+
+--#region Core
 
 -- initialize the process controller
 ---@param iocontrol ioctl iocontrl system
@@ -180,6 +183,36 @@ function process.create_handle()
         end
     end
 
+    -- start automatic process control with current settings
+    function handle.process_start()
+        if f_request(F_CMD.START, handle.fac_ack.on_start) then
+            local p = pctl.control_states.process
+            pctl.comms.send_auto_start(p.mode, p.burn_target, p.charge_target, p.gen_target, p.limits)
+            log.debug("PROCESS: START AUTO CTRL")
+        end
+    end
+
+    -- start automatic process control with remote settings that haven't been set on the coordinator
+    ---@param mode PROCESS process control mode
+    ---@param burn_target number burn rate target
+    ---@param charge_target number charge level target
+    ---@param gen_target number generation rate target
+    ---@param limits number[] unit burn rate limits
+    function handle.process_start_remote(mode, burn_target, charge_target, gen_target, limits)
+        if f_request(F_CMD.START, handle.fac_ack.on_start) then
+            pctl.comms.send_auto_start(mode, burn_target, charge_target, gen_target, limits)
+            log.debug("PROCESS: START AUTO CTRL")
+        end
+    end
+
+    -- stop process control
+    function handle.process_stop()
+        if f_request(F_CMD.STOP, handle.fac_ack.on_stop) then
+            pctl.comms.send_fac_command(F_CMD.STOP)
+            log.debug("PROCESS: STOP AUTO CTRL")
+        end
+    end
+
     handle.fac_ack = {}
 
     -- luacheck: no unused args
@@ -193,6 +226,16 @@ function process.create_handle()
     ---@param success boolean
     ---@diagnostic disable-next-line: unused-local
     function handle.fac_ack.on_ack_alarms(success) end
+
+    -- facility auto control start ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.fac_ack.on_start(success) end
+
+    -- facility auto control stop ack, override to implement
+    ---@param success boolean
+    ---@diagnostic disable-next-line: unused-local
+    function handle.fac_ack.on_stop(success) end
 
     -- luacheck: unused args
 
@@ -294,6 +337,14 @@ function process.clear_timed_out()
     end
 end
 
+-- get the control states table
+---@nodiscard
+function process.get_control_states() return pctl.control_states end
+
+--#endregion
+
+--#region Command Handling
+
 -- handle a command acknowledgement
 ---@param cmd_state process_command_state
 ---@param success boolean if the command was successful
@@ -335,6 +386,21 @@ function process.set_rate(id, rate)
     log.debug(util.c("PROCESS: UNIT[", id, "] SET BURN ", rate))
 end
 
+-- assign a unit to a group
+---@param unit_id integer unit ID
+---@param group_id integer|0 group ID or 0 for independent
+function process.set_group(unit_id, group_id)
+    pctl.comms.send_unit_command(U_CMD.SET_GROUP, unit_id, group_id)
+    log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
+
+    pctl.control_states.priority_groups[unit_id] = group_id
+    settings.set("ControlStates", pctl.control_states)
+
+    if not settings.save("/coordinator.settings") then
+        log.error("process.set_group(): failed to save coordinator settings file")
+    end
+end
+
 -- set waste mode
 ---@param id integer unit ID
 ---@param mode integer waste mode
@@ -369,38 +435,11 @@ function process.reset_alarm(id, alarm)
     log.debug(util.c("PROCESS: UNIT[", id, "] RESET ALARM ", alarm))
 end
 
--- assign a unit to a group
----@param unit_id integer unit ID
----@param group_id integer|0 group ID or 0 for independent
-function process.set_group(unit_id, group_id)
-    pctl.comms.send_unit_command(U_CMD.SET_GROUP, unit_id, group_id)
-    log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
-
-    pctl.control_states.priority_groups[unit_id] = group_id
-    settings.set("ControlStates", pctl.control_states)
-
-    if not settings.save("/coordinator.settings") then
-        log.error("process.set_group(): failed to save coordinator settings file")
-    end
-end
-
 --#endregion
 
 --------------------------
 -- AUTO PROCESS CONTROL --
 --------------------------
-
--- start automatic process control
-function process.start_auto()
-    pctl.comms.send_auto_start(pctl.control_states.process)
-    log.debug("PROCESS: START AUTO CTL")
-end
-
--- stop automatic process control
-function process.stop_auto()
-    pctl.comms.send_fac_command(F_CMD.STOP)
-    log.debug("PROCESS: STOP AUTO CTL")
-end
 
 -- set automatic process control waste mode
 ---@param product WASTE_PRODUCT waste product for auto control
@@ -439,9 +478,9 @@ function process.set_sps_low_power(enabled)
 end
 
 -- save process control settings
----@param mode PROCESS control mode
+---@param mode PROCESS process control mode
 ---@param burn_target number burn rate target
----@param charge_target number charge target
+---@param charge_target number charge level target
 ---@param gen_target number generation rate target
 ---@param limits number[] unit burn rate limits
 function process.save(mode, burn_target, charge_target, gen_target, limits)
@@ -472,9 +511,7 @@ function process.start_ack_handle(response)
 
     for i = 1, math.min(#response[6], pctl.io.facility.num_units) do
         ctl_proc.limits[i] = response[6][i]
-
-        local unit = pctl.io.units[i]
-        unit.unit_ps.publish("burn_limit", ctl_proc.limits[i])
+        pctl.io.units[i].unit_ps.publish("burn_limit", ctl_proc.limits[i])
     end
 
     pctl.io.facility.ps.publish("process_mode", ctl_proc.mode)
@@ -482,7 +519,9 @@ function process.start_ack_handle(response)
     pctl.io.facility.ps.publish("process_charge_target", pctl.io.energy_convert_from_fe(ctl_proc.charge_target))
     pctl.io.facility.ps.publish("process_gen_target", pctl.io.energy_convert_from_fe(ctl_proc.gen_target))
 
-    pctl.io.facility.start_ack(ack)
+    _write_auto_config()
+
+    process.fac_ack(F_CMD.START, ack)
 end
 
 -- record waste product settting after attempting to change it
@@ -505,5 +544,7 @@ function process.sps_lp_ack_handle(response)
     pctl.control_states.process.sps_low_power = response
     pctl.io.facility.ps.publish("process_sps_low_power", response)
 end
+
+--#endregion
 
 return process
