@@ -425,9 +425,9 @@ function facility.new(config)
 
             ready = self.mode_set > 0
 
-            if (self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0) or
-               (self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0) or
-               (self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1) then
+            if ((self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0)) or
+               ((self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0)) or
+               ((self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1)) then
                 ready = false
             end
 
@@ -435,6 +435,8 @@ function facility.new(config)
 
             if ready then self.mode = self.mode_set end
         end
+
+        log.debug(util.c("FAC: process start ", util.trinary(ready, "accepted", "rejected")))
 
         return {
             ready,
