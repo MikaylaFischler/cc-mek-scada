@@ -61,6 +61,8 @@ local function _write_auto_config()
     return saved
 end
 
+--#region Core
+
 -- initialize the process controller
 ---@param iocontrol ioctl iocontrl system
 ---@param coord_comms coord_comms coordinator communications
@@ -335,6 +337,14 @@ function process.clear_timed_out()
     end
 end
 
+-- get the control states table
+---@nodiscard
+function process.get_control_states() return pctl.control_states end
+
+--#endregion
+
+--#region Command Handling
+
 -- handle a command acknowledgement
 ---@param cmd_state process_command_state
 ---@param success boolean if the command was successful
@@ -534,5 +544,7 @@ function process.sps_lp_ack_handle(response)
     pctl.control_states.process.sps_low_power = response
     pctl.io.facility.ps.publish("process_sps_low_power", response)
 end
+
+--#endregion
 
 return process

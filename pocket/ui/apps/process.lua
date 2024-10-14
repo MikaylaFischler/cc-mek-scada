@@ -90,7 +90,7 @@ local function new_view(root)
         -- refresh data callback, every 500ms it will re-send the query
         local function update()
             if util.time_ms() - last_update >= 500 then
-                -- db.api.get_ctrl()
+                db.api.get_proc()
                 last_update = util.time_ms()
             end
         end
@@ -134,7 +134,7 @@ local function new_view(root)
                 else a_stb.update(false) end
             end)
 
-            local function _set_group(value) process.set_group(i, value) end
+            local function _set_group(value) process.set_group(i, value - 1) end
 
             local group = RadioButton{parent=u_div,y=10,options=types.AUTO_GROUP_NAMES,callback=_set_group,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
@@ -161,6 +161,7 @@ local function new_view(root)
         local o_div = Div{parent=o_pane,x=2,width=main.get_width()-2}
 
         local opt_page = app.new_page(nil, db.facility.num_units + 2)
+        opt_page.tasks = { update }
 
         TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
 
@@ -193,6 +194,7 @@ local function new_view(root)
         local c_div = Div{parent=c_pane,x=2,width=main.get_width()-2}
 
         local proc_ctrl = app.new_page(nil, db.facility.num_units + 1)
+        proc_ctrl.tasks = { update }
 
         TextBox{parent=c_div,y=1,text="Process Control",alignment=ALIGN.CENTER}
 
@@ -264,6 +266,7 @@ local function new_view(root)
         local a_div = Div{parent=a_pane,x=2,width=main.get_width()-2}
 
         local annunc_page = app.new_page(nil, db.facility.num_units + 3)
+        annunc_page.tasks = { update }
 
         TextBox{parent=a_div,y=1,text="Automatic SCRAM",alignment=ALIGN.CENTER}
 
