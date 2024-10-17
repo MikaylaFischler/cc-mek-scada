@@ -8,7 +8,7 @@ local style      = require("pocket.ui.style")
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
-local DisplayBox = require("graphics.elements.displaybox")
+local DisplayBox = require("graphics.elements.DisplayBox")
 
 ---@class pocket_renderer
 local renderer = {}

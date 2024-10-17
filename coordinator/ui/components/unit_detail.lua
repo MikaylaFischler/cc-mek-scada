@@ -11,23 +11,23 @@ local style             = require("coordinator.ui.style")
 
 local core              = require("graphics.core")
 
-local Div               = require("graphics.elements.div")
-local Rectangle         = require("graphics.elements.rectangle")
-local TextBox           = require("graphics.elements.textbox")
+local Div               = require("graphics.elements.Div")
+local Rectangle         = require("graphics.elements.Rectangle")
+local TextBox           = require("graphics.elements.TextBox")
 
-local AlarmLight        = require("graphics.elements.indicators.alight")
-local CoreMap           = require("graphics.elements.indicators.coremap")
-local DataIndicator     = require("graphics.elements.indicators.data")
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local RadIndicator      = require("graphics.elements.indicators.rad")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
-local VerticalBar       = require("graphics.elements.indicators.vbar")
+local AlarmLight        = require("graphics.elements.indicators.AlarmLight")
+local CoreMap           = require("graphics.elements.indicators.CoreMap")
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
+local IndicatorLight    = require("graphics.elements.indicators.IndicatorLight")
+local RadIndicator      = require("graphics.elements.indicators.RadIndicator")
+local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
+local VerticalBar       = require("graphics.elements.indicators.VerticalBar")
 
-local HazardButton      = require("graphics.elements.controls.hazard_button")
-local MultiButton       = require("graphics.elements.controls.multi_button")
-local PushButton        = require("graphics.elements.controls.push_button")
-local RadioButton       = require("graphics.elements.controls.radio_button")
-local SpinboxNumeric    = require("graphics.elements.controls.spinbox_numeric")
+local HazardButton      = require("graphics.elements.controls.HazardButton")
+local MultiButton       = require("graphics.elements.controls.MultiButton")
+local NumericSpinbox    = require("graphics.elements.controls.NumericSpinbox")
+local PushButton        = require("graphics.elements.controls.PushButton")
+local RadioButton       = require("graphics.elements.controls.RadioButton")
 
 local AUTO_GROUP = types.AUTO_GROUP
 
@@ -42,7 +42,7 @@ local gry_wht = style.gray_white
 local period = core.flasher.PERIOD
 
 -- create a unit view
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param id integer
 local function init(parent, id)
     local s_hi_box = style.theme.highlight_box
@@ -62,7 +62,7 @@ local function init(parent, id)
     local ind_wht = style.ind_wht
 
     local db = iocontrol.get_db()
-    local unit = db.units[id]   ---@type ioctl_unit
+    local unit = db.units[id]
     local f_ps = db.facility.ps
 
     local main = Div{parent=parent,x=1,y=1}
@@ -361,7 +361,7 @@ local function init(parent, id)
     ----------------------
 
     local burn_control = Div{parent=main,x=12,y=28,width=19,height=3,fg_bg=s_hi_box}
-    local burn_rate = SpinboxNumeric{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local burn_rate = NumericSpinbox{parent=burn_control,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=burn_control,x=9,y=2,text="mB/t",fg_bg=style.theme.label_fg}
 
     local set_burn = function () unit.set_burn(burn_rate.get_value()) end
@@ -381,12 +381,10 @@ local function init(parent, id)
     db.process.unit_ack[id].on_ack_alarms = ack_a.on_response
 
     local function start_button_en_check()
-        if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
-            local can_start = (not unit.reactor_data.mek_status.status) and
-                                (not unit.reactor_data.rps_tripped) and
-                                (unit.a_group == AUTO_GROUP.MANUAL)
-            if can_start then start.enable() else start.disable() end
-        end
+        local can_start = (not unit.reactor_data.mek_status.status) and
+                            (not unit.reactor_data.rps_tripped) and
+                            (unit.a_group == AUTO_GROUP.MANUAL)
+        if can_start then start.enable() else start.disable() end
     end
 
     start.register(u_ps, "status", start_button_en_check)

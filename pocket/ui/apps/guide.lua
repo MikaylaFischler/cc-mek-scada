@@ -15,16 +15,16 @@ local guide_section = require("pocket.ui.pages.guide_section")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local ListBox       = require("graphics.elements.listbox")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local ListBox       = require("graphics.elements.ListBox")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local PushButton    = require("graphics.elements.controls.push_button")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local TextField     = require("graphics.elements.form.text_field")
+local TextField     = require("graphics.elements.form.TextField")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -36,7 +36,7 @@ local APP_ID = pocket.APP_ID
 -- local text_fg = style.text_fg
 
 -- new system guide view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
@@ -56,14 +56,14 @@ local function new_view(root)
     local btn_active = cpair(colors.white, colors.black)
     local btn_disable = cpair(colors.gray, colors.black)
 
-    app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end }})
+    app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home }})
 
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- load the app (create the elements)
     local function load()
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = " \x14 ", color = core.cpair(colors.black, colors.cyan), callback = function () app.switcher(1) end },
             { label = "__?", color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(2) end }
         }
@@ -88,12 +88,11 @@ local function new_view(root)
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2,width=p_width}
         local lnk = Div{parent=page_div,x=2,width=p_width}
-        local panes = { home, search, use, uis, fps, gls, lnk }
+        local panes = { home, search, use, uis, fps, gls, lnk } ---@type Div[]
 
-        local doc_map = {}
-        local search_db = {}
+        local doc_map = {}   ---@type { [string]: function }
+        local search_db = {} ---@type [ string, string, string, function ][]
 
-        ---@class _guide_section_constructor_data
         local sect_construct_data = { app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active }
 
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",alignment=ALIGN.CENTER}
@@ -117,7 +116,7 @@ local function new_view(root)
 
         function func_ref.run_search()
             local query = string.lower(query_field.get_value())
-            local s_results = { {}, {}, {}, {} }
+            local s_results = { {}, {}, {}, {} } ---@type [ string, string, string, function ][][]
 
             search_results.remove_all()
 
@@ -155,7 +154,7 @@ local function new_view(root)
                 for idx = 1, #s_results[tier] do
                     local entry = s_results[tier][idx]
                     TextBox{parent=search_results,text=entry[3].." >",fg_bg=cpair(colors.gray,colors.black)}
-                    PushButton{parent=search_results,text=entry[2],fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=entry[4]}
+                    PushButton{parent=search_results,text=entry[2],alignment=ALIGN.LEFT,fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=entry[4]}
 
                     empty = false
                 end
@@ -264,7 +263,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen

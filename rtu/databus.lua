@@ -10,15 +10,15 @@ local databus = {}
 -- databus PSIL
 databus.ps = psil.create()
 
----@enum RTU_UNIT_HW_STATE
-local RTU_UNIT_HW_STATE = {
+---@enum RTU_HW_STATE
+local RTU_HW_STATE = {
     OFFLINE = 1,
     FAULTED = 2,
     UNFORMED = 3,
     OK = 4
 }
 
-databus.RTU_UNIT_HW_STATE = RTU_UNIT_HW_STATE
+databus.RTU_HW_STATE = RTU_HW_STATE
 
 -- call to toggle heartbeat signal
 function databus.heartbeat() databus.ps.toggle("heartbeat") end
@@ -52,7 +52,7 @@ end
 
 -- transmit unit hardware status across the bus
 ---@param uid integer unit ID
----@param status RTU_UNIT_HW_STATE
+---@param status RTU_HW_STATE
 function databus.tx_unit_hw_status(uid, status)
     databus.ps.publish("unit_hw_" .. uid, status)
 end

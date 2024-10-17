@@ -5,14 +5,14 @@ local docs           = require("pocket.ui.docs")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local ListBox        = require("graphics.elements.listbox")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local ListBox        = require("graphics.elements.ListBox")
+local TextBox        = require("graphics.elements.TextBox")
 
-local PushButton     = require("graphics.elements.controls.push_button")
+local PushButton     = require("graphics.elements.controls.PushButton")
 
-local IndicatorLight = require("graphics.elements.indicators.light")
-local LED            = require("graphics.elements.indicators.led")
+local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
+local LED            = require("graphics.elements.indicators.LED")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -21,14 +21,14 @@ local DOC_TYPE = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
----@param data _guide_section_constructor_data
+---@param data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
 ---@param base_page nav_tree_page
 ---@param title string
 ---@param items table
 ---@param scroll_height integer
 ---@return nav_tree_page
 return function (data, base_page, title, items, scroll_height)
-    local app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active = table.unpack(data)
+    local app, page_div, panes, doc_map, search_db, btn_fg_bg, btn_active = data[1], data[2], data[3], data[4], data[5], data[6], data[7]
 
     local section_page = app.new_page(base_page, #panes + 1)
     local section_div = Div{parent=page_div,x=2}

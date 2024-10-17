@@ -8,16 +8,16 @@ local style             = require("coordinator.ui.style")
 
 local core              = require("graphics.core")
 
-local Div               = require("graphics.elements.div")
-local PipeNetwork       = require("graphics.elements.pipenet")
-local TextBox           = require("graphics.elements.textbox")
+local Div               = require("graphics.elements.Div")
+local PipeNetwork       = require("graphics.elements.PipeNetwork")
+local TextBox           = require("graphics.elements.TextBox")
 
-local Rectangle         = require("graphics.elements.rectangle")
+local Rectangle         = require("graphics.elements.Rectangle")
 
-local DataIndicator     = require("graphics.elements.indicators.data")
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
 
-local IndicatorLight    = require("graphics.elements.indicators.light")
-local TriIndicatorLight = require("graphics.elements.indicators.trilight")
+local IndicatorLight    = require("graphics.elements.indicators.IndicatorLight")
+local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
 local ALIGN = core.ALIGN
 
@@ -31,7 +31,7 @@ local wh_gray = style.wh_gray
 local lg_gray = style.lg_gray
 
 -- make a new unit flow window
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version

@@ -99,6 +99,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class boilerv_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --

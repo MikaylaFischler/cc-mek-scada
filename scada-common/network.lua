@@ -77,26 +77,14 @@ end
 
 -- NIC: Network Interface Controller<br>
 -- utilizes HMAC-MD5 for message authentication, if enabled
----@param modem table modem to use
+---@param modem Modem modem to use
 function network.nic(modem)
     local self = {
         connected = true, -- used to avoid costly MAC calculations if modem isn't even present
         channels = {}
     }
 
-    ---@class nic
-    ---@field open function
-    ---@field isOpen function
-    ---@field close function
-    ---@field closeAll function
-    ---@field isWireless function
-    ---@field getNameLocal function
-    ---@field getNamesRemote function
-    ---@field isPresentRemote function
-    ---@field getTypeRemote function
-    ---@field hasTypeRemote function
-    ---@field getMethodsRemote function
-    ---@field callRemote function
+    ---@class nic:Modem
     local public = {}
 
     -- check if this NIC has a connected modem
@@ -104,7 +92,7 @@ function network.nic(modem)
     function public.is_connected() return self.connected end
 
     -- connect to a modem peripheral
-    ---@param reconnected_modem table
+    ---@param reconnected_modem Modem
     function public.connect(reconnected_modem)
         modem = reconnected_modem
         self.connected = true

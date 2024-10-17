@@ -13,7 +13,7 @@ local self = {
     nic = nil,    ---@type nic
     config = nil, ---@type crd_config
     next_id = 0,
-    sessions = {}
+    sessions = {} ---@type pkt_session_struct[]
 }
 
 -- PRIVATE FUNCTIONS --
@@ -129,7 +129,7 @@ end
 ---@param timer_event number
 function apisessions.check_all_watchdogs(timer_event)
     for i = 1, #self.sessions do
-        local session = self.sessions[i]  ---@type pkt_session_struct
+        local session = self.sessions[i]
         if session.open then
             local triggered = session.instance.check_wd(timer_event)
             if triggered then
@@ -143,7 +143,7 @@ end
 -- iterate all the API sessions
 function apisessions.iterate_all()
     for i = 1, #self.sessions do
-        local session = self.sessions[i]    ---@type pkt_session_struct
+        local session = self.sessions[i]
 
         if session.open and session.instance.iterate() then
             _api_handle_outq(session)
@@ -168,7 +168,7 @@ end
 -- close all open connections
 function apisessions.close_all()
     for i = 1, #self.sessions do
-        local session = self.sessions[i]  ---@type pkt_session_struct
+        local session = self.sessions[i]
         if session.open then _shutdown(session) end
     end
 

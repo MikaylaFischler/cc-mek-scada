@@ -11,13 +11,13 @@ local style         = require("rtu.panel.style")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local TextBox       = require("graphics.elements.TextBox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local LED           = require("graphics.elements.indicators.led")
-local LEDPair       = require("graphics.elements.indicators.ledpair")
-local RGBLED        = require("graphics.elements.indicators.ledrgb")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
+local LEDPair       = require("graphics.elements.indicators.LEDPair")
+local RGBLED        = require("graphics.elements.indicators.RGBLED")
 
 local LINK_STATE = types.PANEL_LINK_STATE
 
@@ -30,8 +30,8 @@ local ind_grn = style.ind_grn
 local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
 
 -- create new front panel view
----@param panel graphics_element main displaybox
----@param units table unit list
+---@param panel DisplayBox main displaybox
+---@param units rtu_registry_entry[] unit list
 local function init(panel, units)
     local disabled_fg = style.fp.disabled_fg
 
@@ -135,7 +135,7 @@ local function init(panel, units)
 
     -- show hardware statuses
     for i = 1, list_length do
-        local unit = units[i]   ---@type rtu_unit_registry_entry
+        local unit = units[i]
 
         -- hardware status
         local unit_hw = RGBLED{parent=unit_hw_statuses,y=i,label="",colors={colors.red,colors.orange,colors.yellow,colors.green}}

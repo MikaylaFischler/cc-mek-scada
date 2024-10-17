@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.0"
-comms.api_version = "0.0.4"
+comms.version = "3.0.1"
+comms.api_version = "0.0.6"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -67,7 +67,9 @@ local CRDN_TYPE = {
     UNIT_STATUSES = 5,   -- state of each of the reactor units
     UNIT_CMD = 6,        -- command a reactor unit
     API_GET_FAC = 7,     -- API: get all the facility data
-    API_GET_UNIT = 8     -- API: get reactor unit data
+    API_GET_UNIT = 8,    -- API: get reactor unit data
+    API_GET_CTRL = 9,    -- API: get data used for the control app
+    API_GET_PROC = 10    -- API: get data used for the process app
 }
 
 ---@enum ESTABLISH_ACK
@@ -405,7 +407,7 @@ function comms.modbus_packet()
             self.raw = { self.txn_id, self.unit_id, self.func_code }
             for i = 1, self.length do insert(self.raw, data[i]) end
         else
-            log.error("comms.modbus_packet.make(): data not table")
+            log.error("comms.modbus_packet.make(): data not a table")
         end
     end
 
@@ -491,7 +493,7 @@ function comms.rplc_packet()
             self.raw = { self.id, self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.rplc_packet.make(): data not table")
+            log.error("comms.rplc_packet.make(): data not a table")
         end
     end
 
@@ -573,7 +575,7 @@ function comms.mgmt_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.mgmt_packet.make(): data not table")
+            log.error("comms.mgmt_packet.make(): data not a table")
         end
     end
 
@@ -652,7 +654,7 @@ function comms.crdn_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.crdn_packet.make(): data not table")
+            log.error("comms.crdn_packet.make(): data not a table")
         end
     end
 

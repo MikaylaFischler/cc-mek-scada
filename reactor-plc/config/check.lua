@@ -8,11 +8,11 @@ local plc        = require("reactor-plc.plc")
 
 local core       = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local TextBox    = require("graphics.elements.textbox")
+local Div        = require("graphics.elements.Div")
+local ListBox    = require("graphics.elements.ListBox")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
 local tri = util.trinary
 
@@ -33,8 +33,8 @@ local self = {
 
     settings = nil,      ---@type plc_config
 
-    run_test_btn = nil,  ---@type graphics_element
-    sc_log = nil,        ---@type graphics_element
+    run_test_btn = nil,  ---@type PushButton
+    sc_log = nil,        ---@type ListBox
     self_check_msg = nil ---@type function
 }
 
@@ -160,7 +160,7 @@ local function self_check()
 end
 
 -- exit self check back home
----@param main_pane graphics_element
+---@param main_pane MultiPane
 local function exit_self_check(main_pane)
     tcd.abort(handle_timeout)
     self.net_listen = false
@@ -172,10 +172,10 @@ end
 local check = {}
 
 -- create the self-check view
----@param main_pane graphics_element
+---@param main_pane MultiPane
 ---@param settings_cfg plc_config
----@param check_sys graphics_element
----@param style table
+---@param check_sys Div
+---@param style { [string]: cpair }
 function check.create(main_pane, settings_cfg, check_sys, style)
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg

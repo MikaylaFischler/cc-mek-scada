@@ -8,17 +8,17 @@ local style         = require("supervisor.panel.style")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local TextBox       = require("graphics.elements.TextBox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
 
 -- create a pocket diagnostics list entry
----@param parent graphics_element parent
+---@param parent ListBox parent
 ---@param id integer PDG session ID
 local function init(parent, id)
     local s_hi_box = style.theme.highlight_box
@@ -26,7 +26,7 @@ local function init(parent, id)
     local label_fg = style.fp.label_fg
 
     -- root div
-    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2,hidden=true}
+    local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2}
     local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
 
     local ps_prefix = "pdg_" .. id .. "_"

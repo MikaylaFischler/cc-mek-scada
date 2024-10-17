@@ -13,19 +13,19 @@ local style         = require("pocket.ui.style")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local HazardButton  = require("graphics.elements.controls.hazard_button")
-local PushButton    = require("graphics.elements.controls.push_button")
+local HazardButton  = require("graphics.elements.controls.HazardButton")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local NumberField   = require("graphics.elements.form.number_field")
+local NumberField   = require("graphics.elements.form.NumberField")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local IconIndicator = require("graphics.elements.indicators.icon")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator = require("graphics.elements.indicators.IconIndicator")
 
 local AUTO_GROUP = types.AUTO_GROUP
 
@@ -34,16 +34,21 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
-local lu_col       = style.label_unit_pair
-local text_fg      = style.text_fg
-local mode_states  = style.icon_states.mode_states
+local label_fg_bg    = style.label
+local lu_col         = style.label_unit_pair
+local text_fg        = style.text_fg
 
-local hzd_fg_bg = cpair(colors.white, colors.gray)
-local dis_colors = cpair(colors.white, colors.lightGray)
+local mode_states    = style.icon_states.mode_states
+
+local btn_active     = cpair(colors.white, colors.black)
+local hzd_fg_bg      = style.hzd_fg_bg
+local hzd_dis_colors = style.hzd_dis_colors
 
 -- new unit control page view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
+    local btn_fg_bg = cpair(colors.green, colors.black)
+
     local db = iocontrol.get_db()
 
     local frame = Div{parent=root,x=1,y=1}
@@ -58,17 +63,14 @@ local function new_view(root)
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
-    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
-    local btn_fg_bg = cpair(colors.green, colors.black)
-    local btn_active = cpair(colors.white, colors.black)
-
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar()
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = function () app.switcher(db.facility.num_units + 1) end }
         }
 
@@ -83,7 +85,7 @@ local function new_view(root)
     local function load()
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
-        local panes = {}
+        local panes = {} ---@type Div[]
 
         local active_unit = 1
 
@@ -105,20 +107,20 @@ local function new_view(root)
             app.switcher(active_unit)
         end
 
+        local last_update = 0
+        -- refresh data callback, every 500ms it will re-send the query
+        local function update()
+            if util.time_ms() - last_update >= 500 then
+                db.api.get_ctrl()
+                last_update = util.time_ms()
+            end
+        end
+
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i] ---@type pioctl_unit
+            local unit = db.units[i]
             local u_ps = unit.unit_ps
-
-            -- refresh data callback, every 500ms it will re-send the query
-            local last_update = 0
-            local function update()
-                if util.time_ms() - last_update >= 500 then
-                    db.api.get_unit(i)
-                    last_update = util.time_ms()
-                end
-            end
 
             local u_page = app.new_page(nil, i)
             u_page.tasks = { update }
@@ -138,12 +140,12 @@ local function new_view(root)
 
             u_div.line_break()
 
-            TextBox{parent=u_div,y=8,text="CMD",width=4,fg_bg=cpair(colors.lightGray,colors.black)}
-            TextBox{parent=u_div,x=14,y=8,text="mB/t",width=4,fg_bg=cpair(colors.lightGray,colors.black)}
-            local burn_cmd = NumberField{parent=u_div,x=5,y=8,width=8,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=cpair(colors.white,colors.gray),dis_fg_bg=cpair(colors.gray,colors.lightGray)}
+            TextBox{parent=u_div,y=8,text="CMD",width=4,fg_bg=label_fg_bg}
+            TextBox{parent=u_div,x=14,y=8,text="mB/t",width=4,fg_bg=label_fg_bg}
+            local burn_cmd = NumberField{parent=u_div,x=5,y=8,width=8,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=style.field,dis_fg_bg=style.field_disable}
 
-            local set_burn = function () unit.set_burn(burn_cmd.get_value()) end
-            local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=cpair(colors.gray,colors.black),callback=set_burn}
+            local set_burn = function () unit.set_burn(burn_cmd.get_numeric()) end
+            local set_burn_btn = PushButton{parent=u_div,x=19,y=8,text="SET",min_width=5,fg_bg=cpair(colors.green,colors.black),active_fg_bg=cpair(colors.white,colors.black),dis_fg_bg=style.btn_disable,callback=set_burn}
 
             -- enable/disable controls based on group assignment (start button is separate)
             burn_cmd.register(u_ps, "auto_group_id", function (gid)
@@ -156,10 +158,10 @@ local function new_view(root)
             burn_cmd.register(u_ps, "burn_rate", burn_cmd.set_value)
             burn_cmd.register(u_ps, "max_burn", burn_cmd.set_max)
 
-            local start = HazardButton{parent=u_div,x=2,y=11,text="START",accent=colors.lightBlue,dis_colors=dis_colors,callback=unit.start,timeout=3,fg_bg=hzd_fg_bg}
-            local ack_a = HazardButton{parent=u_div,x=12,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=unit.ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
-            local scram = HazardButton{parent=u_div,x=2,y=15,text="SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=unit.scram,timeout=3,fg_bg=hzd_fg_bg}
-            local reset = HazardButton{parent=u_div,x=12,y=15,text="RESET",accent=colors.red,dis_colors=dis_colors,callback=unit.reset_rps,timeout=3,fg_bg=hzd_fg_bg}
+            local start = HazardButton{parent=u_div,x=2,y=11,text="START",accent=colors.lightBlue,callback=unit.start,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local ack_a = HazardButton{parent=u_div,x=12,y=11,text="ACK \x13",accent=colors.orange,callback=unit.ack_alarms,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local scram = HazardButton{parent=u_div,x=2,y=15,text="SCRAM",accent=colors.yellow,callback=unit.scram,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
+            local reset = HazardButton{parent=u_div,x=12,y=15,text="RESET",accent=colors.red,callback=unit.reset_rps,timeout=3,fg_bg=hzd_fg_bg,dis_colors=hzd_dis_colors}
 
             unit.start_ack = start.on_response
             unit.ack_alarms_ack = ack_a.on_response
@@ -167,12 +169,10 @@ local function new_view(root)
             unit.reset_rps_ack = reset.on_response
 
             local function start_button_en_check()
-                if (unit.reactor_data ~= nil) and (unit.reactor_data.mek_status ~= nil) then
-                    local can_start = (not unit.reactor_data.mek_status.status) and
-                                        (not unit.reactor_data.rps_tripped) and
-                                        (unit.a_group == AUTO_GROUP.MANUAL)
-                    if can_start then start.enable() else start.disable() end
-                end
+                local can_start = (not unit.reactor_data.mek_status.status) and
+                                    (not unit.reactor_data.rps_tripped) and
+                                    (unit.a_group == AUTO_GROUP.MANUAL)
+                if can_start then start.enable() else start.disable() end
             end
 
             start.register(u_ps, "status", start_button_en_check)
@@ -194,8 +194,8 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility Commands",alignment=ALIGN.CENTER}
 
-        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=process.fac_scram,timeout=3,fg_bg=hzd_fg_bg}
-        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=process.fac_ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
+        local scram = HazardButton{parent=f_div,x=5,y=6,text="FAC SCRAM",accent=colors.yellow,dis_colors=hzd_dis_colors,callback=process.fac_scram,timeout=3,fg_bg=hzd_fg_bg}
+        local ack_a = HazardButton{parent=f_div,x=7,y=11,text="ACK \x13",accent=colors.orange,dis_colors=hzd_dis_colors,callback=process.fac_ack_alarms,timeout=3,fg_bg=hzd_fg_bg}
 
         db.facility.scram_ack = scram.on_response
         db.facility.ack_alarms_ack = ack_a.on_response
@@ -217,7 +217,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen

@@ -15,17 +15,17 @@ local turbine       = require("pocket.ui.pages.unit_turbine")
 
 local core          = require("graphics.core")
 
-local Div           = require("graphics.elements.div")
-local ListBox       = require("graphics.elements.listbox")
-local MultiPane     = require("graphics.elements.multipane")
-local TextBox       = require("graphics.elements.textbox")
+local Div           = require("graphics.elements.Div")
+local ListBox       = require("graphics.elements.ListBox")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local PushButton    = require("graphics.elements.controls.push_button")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local DataIndicator = require("graphics.elements.indicators.data")
-local IconIndicator = require("graphics.elements.indicators.icon")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator = require("graphics.elements.indicators.IconIndicator")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -47,7 +47,7 @@ local emc_ind_s = {
 }
 
 -- new unit page view
----@param root graphics_element parent
+---@param root Container parent
 local function new_view(root)
     local db = iocontrol.get_db()
 
@@ -63,20 +63,20 @@ local function new_view(root)
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
-    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+    app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
     local btn_fg_bg = cpair(colors.yellow, colors.black)
     local btn_active = cpair(colors.white, colors.black)
 
     local nav_links = {}
-    local page_div = nil ---@type nil|graphics_element
+    local page_div = nil ---@type Div|nil
 
     -- set sidebar to display unit-specific fields based on a specified unit
     local function set_sidebar(id)
-        local unit = db.units[id] ---@type pioctl_unit
+        local unit = db.units[id]
 
         local list = {
-            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end },
+            { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "U-" .. id, color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(id) end },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = nav_links[id].alarm },
             { label = "RPS", tall = true, color = core.cpair(colors.black, colors.cyan), callback = nav_links[id].rps },
@@ -99,7 +99,7 @@ local function new_view(root)
     local function load()
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
-        local panes = {}
+        local panes = {} ---@type Div[]
 
         local active_unit = 1
 
@@ -127,7 +127,7 @@ local function new_view(root)
         for i = 1, db.facility.num_units do
             local u_pane = panes[i]
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i] ---@type pioctl_unit
+            local unit = db.units[i]
             local u_ps = unit.unit_ps
 
             -- refresh data callback, every 500ms it will re-send the query
@@ -383,7 +383,7 @@ local function new_view(root)
             page_div = nil
         end
 
-        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = function () db.nav.open_app(APP_ID.ROOT) end } })
+        app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
         app.delete_pages()
 
         -- show loading screen

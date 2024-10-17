@@ -9,16 +9,16 @@ local conn_waiting = require("pocket.ui.components.conn_waiting")
 
 local core         = require("graphics.core")
 
-local Div          = require("graphics.elements.div")
-local MultiPane    = require("graphics.elements.multipane")
-local TextBox      = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.Div")
+local MultiPane    = require("graphics.elements.MultiPane")
+local TextBox      = require("graphics.elements.TextBox")
 
 local APP_ID = pocket.APP_ID
 
 local LINK_STATE = iocontrol.LINK_STATE
 
 -- create the connecting to SV & API page
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 
