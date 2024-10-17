@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.18"
+local CCMSI_VERSION = "v1.18a"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -419,7 +419,7 @@ elseif mode == "install" or mode == "update" then
 
     if manifest.versions.installer ~= CCMSI_VERSION then
         if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
-        if update_installer or ask_y_n("Would you like to update now") then
+        if update_installer or ask_y_n("Would you like to update now", true) then
             lgray();println("GET ccmsi.lua")
             local dl, err = http.get(repo_path.."ccmsi.lua")
 
