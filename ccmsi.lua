@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.17"
+local CCMSI_VERSION = "v1.18"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -169,6 +169,7 @@ local function write_install_manifest(manifest, dependencies)
 end
 
 -- try at most 3 times to download a file from the repository and write into w_path base directory
+---@return 0|1|2|3 success 0: ok, 1: download fail, 2: file open fail, 3: out of space
 local function http_get_file(file, w_path)
     local dl, err
     for i = 1, 3 do
@@ -176,17 +177,28 @@ local function http_get_file(file, w_path)
         if dl then
             if i > 1 then green();println("success!");lgray() end
             local f = fs.open(w_path..file, "w")
-            f.write(dl.readAll())
+            if not f then return 2 end
+            local ok, msg = pcall(function() f.write(dl.readAll()) end)
             f.close()
+            if not ok then
+                if string.find(msg or "", "Out of space") ~= nil then
+                    red();println("[out of space]");lgray()
+                    return 3
+                else return 2 end
+            end
             break
         else
             red();println("HTTP Error: "..err)
-            if i < 3 then lgray();print("> retrying...") end
----@diagnostic disable-next-line: undefined-field
-            os.sleep(i/3.0)
+            if i < 3 then
+                lgray();print("> retrying...")
+                ---@diagnostic disable-next-line: undefined-field
+                os.sleep(i/3.0)
+            else
+                return 1
+            end
         end
     end
-    return dl ~= nil
+    return 0
 end
 
 -- recursively build a tree out of the file manifest
@@ -492,19 +504,105 @@ elseif mode == "install" or mode == "update" then
     -- check space constraints
     if space_available < space_required then
         single_file_mode = true
-        yellow();println("NOTICE: Insufficient space available for a full cached download!");white()
-        lgray();println("Files can instead be downloaded one by one. If you are replacing a current install this may corrupt your install ONLY if it fails (such as a sudden network issue). If that occurs, you can still try again.")
-        if mode == "update" then println("If installation still fails, delete this device's log file and/or any unrelated files you have on this computer then try again.") end
-        white();
-        if not ask_y_n("Do you wish to continue", false) then
-            println("Operation cancelled.")
-            return
-        end
     end
 
     local success = true
 
-    if not single_file_mode then
+    ---@param dl_stat 1|2|3 download status
+    ---@param file string file name
+    ---@param attempt integer recursive attempt #
+    ---@param sf_install function installer function for recursion
+    local function handle_dl_fail(dl_stat, file, attempt, sf_install)
+        red()
+        if dl_stat == 1 then
+            println("failed to download "..file)
+        elseif dl_stat > 1 then
+            if dl_stat == 2 then println("filesystem error with "..file) else println("no space for "..file) end
+            if attempt == 1 then
+                orange();println("re-attempting operation...");white()
+                sf_install(2)
+            elseif attempt == 2 then
+                yellow()
+                if dl_stat == 2 then println("There was an error writing to a file.") else println("Insufficient space available.") end
+                lgray()
+                if dl_stat == 2 then
+                    println("This may be due to insufficent space available or file permission issues. The installer can now attempt to delete files not used by the SCADA system.")
+                else
+                    println("The installer can now attempt to delete files not used by the SCADA system.")
+                end
+                white()
+                if not ask_y_n("Continue", false) then
+                    success = false
+                    return
+                end
+                clean(manifest)
+                sf_install(3)
+            elseif attempt == 3 then
+                yellow()
+                if dl_stat == 2 then println("There again was an error writing to a file.") else println("Insufficient space available.") end
+                lgray()
+                if dl_stat == 2 then
+                    println("This may be due to insufficent space available or file permission issues. Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
+                else
+                    println("Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
+                end
+                white()
+                success = false
+            end
+        end
+    end
+
+    -- single file update routine: go through all files and replace one by one
+    ---@param attempt integer recursive attempt #
+    local function sf_install(attempt)
+---@diagnostic disable-next-line: undefined-field
+        if attempt > 1 then os.sleep(2.0) end
+
+        local abort_attempt = false
+        success = true
+
+        for _, dependency in pairs(dependencies) do
+            if mode == "update" and unchanged(dependency) then
+                pkg_message("skipping install of unchanged package", dependency)
+            else
+                pkg_message("installing package", dependency)
+                lgray()
+
+                -- beginning on the second try, delete the directory before starting
+                if attempt >= 2 then
+                    if dependency == "system" then
+                    elseif dependency == "common" then
+                        if fs.exists("/scada-common") then
+                            fs.delete("/scada-common")
+                            println("deleted /scada-common")
+                        end
+                    else
+                        if fs.exists("/"..dependency) then
+                            fs.delete("/"..dependency)
+                            println("deleted /"..dependency)
+                        end
+                    end
+                end
+
+                local files = file_list[dependency]
+                for _, file in pairs(files) do
+                    println("GET "..file)
+                    local dl_stat = http_get_file(file, "/")
+                    if dl_stat ~= 0 then
+                        abort_attempt = true
+---@diagnostic disable-next-line: param-type-mismatch
+                        handle_dl_fail(dl_stat, file, attempt, sf_install)
+                        break
+                    end
+                end
+            end
+            if abort_attempt or not success then break end
+        end
+    end
+
+    -- handle update/install
+    if single_file_mode then sf_install(1)
+    else
         if fs.exists(install_dir) then fs.delete(install_dir);fs.makeDir(install_dir) end
 
         -- download all dependencies
@@ -518,9 +616,17 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
-                    if not http_get_file(file, install_dir.."/") then
+                    local dl_stat = http_get_file(file, install_dir.."/")
+                    success = dl_stat == 0
+                    if dl_stat == 1 then
                         red();println("failed to download "..file)
-                        success = false
+                        break
+                    elseif dl_stat == 2 then
+                        red();println("filesystem error with "..file)
+                        break
+                    elseif dl_stat == 3 then
+                        -- this shouldn't occur in this mode
+                        red();println("no space for "..file)
                         break
                     end
                 end
@@ -548,57 +654,27 @@ elseif mode == "install" or mode == "update" then
         end
 
         fs.delete(install_dir)
+    end
 
-        if success then
-            write_install_manifest(manifest, dependencies)
-            green()
-            if mode == "install" then
-                println("Installation completed successfully.")
-            else println("Update completed successfully.") end
-            white();println("Ready to clean up unused files, press any key to continue...")
-            any_key();clean(manifest)
-            white();println("Done.")
-        else
-            if mode == "install" then
-                red();println("Installation failed.")
-            else orange();println("Update failed, existing files unmodified.") end
-        end
+    if success then
+        write_install_manifest(manifest, dependencies)
+        green()
+        if mode == "install" then
+            println("Installation completed successfully.")
+        else println("Update completed successfully.") end
+        white();println("Ready to clean up unused files, press any key to continue...")
+        any_key();clean(manifest)
+        white();println("Done.")
     else
-        -- go through all files and replace one by one
-        for _, dependency in pairs(dependencies) do
-            if mode == "update" and unchanged(dependency) then
-                pkg_message("skipping install of unchanged package", dependency)
-            else
-                pkg_message("installing package", dependency)
-                lgray()
-
-                local files = file_list[dependency]
-                for _, file in pairs(files) do
-                    println("GET "..file)
-                    if not http_get_file(file, "/") then
-                        red();println("failed to download "..file)
-                        success = false
-                        break
-                    end
-                end
-            end
-            if not success then break end
-        end
-
-        if success then
-            write_install_manifest(manifest, dependencies)
-            green()
-            if mode == "install" then
-                println("Installation completed successfully.")
-            else println("Update completed successfully.") end
-            white();println("Ready to clean up unused files, press any key to continue...")
-            any_key();clean(manifest)
-            white();println("Done.")
-        else
-            red()
+        red()
+        if single_file_mode then
             if mode == "install" then
                 println("Installation failed, files may have been skipped.")
             else println("Update failed, files may have been skipped.") end
+        else
+            if mode == "install" then
+                println("Installation failed.")
+            else orange();println("Update failed, existing files unmodified.") end
         end
     end
 elseif mode == "uninstall" then
