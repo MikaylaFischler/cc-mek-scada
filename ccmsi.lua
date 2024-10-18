@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.18a"
+local CCMSI_VERSION = "v1.18b"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -508,6 +508,19 @@ elseif mode == "install" or mode == "update" then
 
     local success = true
 
+    -- delete a file if the capitalization changes so that things work on Windows
+    ---@param path string
+    local function mitigate_case(path)
+        local dir, file = fs.getDir(path), fs.getName(path)
+        if not fs.isDir(dir) then return end
+        for _, p in ipairs(fs.list(dir)) do
+            if string.lower(p) == string.lower(file) then
+                if p ~= file then fs.delete(path) end
+                return
+            end
+        end
+    end
+
     ---@param dl_stat 1|2|3 download status
     ---@param file string file name
     ---@param attempt integer recursive attempt #
@@ -587,6 +600,7 @@ elseif mode == "install" or mode == "update" then
                 local files = file_list[dependency]
                 for _, file in pairs(files) do
                     println("GET "..file)
+                    mitigate_case(file)
                     local dl_stat = http_get_file(file, "/")
                     if dl_stat ~= 0 then
                         abort_attempt = true
