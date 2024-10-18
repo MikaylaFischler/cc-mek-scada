@@ -7,13 +7,13 @@ local pocket    = require("pocket.pocket")
 
 local core      = require("graphics.core")
 
-local Div       = require("graphics.elements.div")
-local TextBox   = require("graphics.elements.textbox")
+local Div       = require("graphics.elements.Div")
+local TextBox   = require("graphics.elements.TextBox")
 
 local APP_ID = pocket.APP_ID
 
 -- create placeholder app page
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

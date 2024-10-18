@@ -63,7 +63,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             keep_alive = 0,
             alarm_tones = 0
         },
-        units = {}
+        units = {}  ---@type unit_session[]
     }
 
     ---@class rtu_session
@@ -80,13 +80,13 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
         _reset_config()
 
         for i = 1, #self.fac_units do
-            local unit = self.fac_units[i]    ---@type reactor_unit
+            local unit = self.fac_units[i]
             unit.purge_rtu_devices(id)
             facility.purge_rtu_devices(id)
         end
 
         for i = 1, #self.advert do
-            local unit = nil    ---@type unit_session|nil
+            local unit = nil
 
             ---@type rtu_advertisement
             local unit_advert = {
@@ -96,7 +96,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 rsio = self.advert[i][4]
             }
 
-            local u_type = unit_advert.type ---@type integer|boolean
+            local u_type = unit_advert.type ---@type RTU_UNIT_TYPE|boolean
 
             -- validate unit advertisement
 
@@ -127,7 +127,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 log.debug(log_tag .. "_handle_advertisement(): advertisement unit validation failure")
             else
                 if unit_advert.reactor > 0 then
-                    local target_unit = self.fac_units[unit_advert.reactor] ---@type reactor_unit
+                    local target_unit = self.fac_units[unit_advert.reactor]
 
                     -- unit RTUs
                     if u_type == RTU_UNIT_TYPE.REDSTONE then
@@ -255,8 +255,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
             ---@cast pkt modbus_frame
             if self.units[pkt.unit_id] ~= nil then
-                local unit = self.units[pkt.unit_id]    ---@type unit_session
-                unit.handle_packet(pkt)
+                self.units[pkt.unit_id].handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_frame
@@ -298,8 +297,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 if pkt.length == 1 then
                     local unit_id = pkt.data[1]
                     if self.units[unit_id] ~= nil then
-                        local unit = self.units[unit_id]    ---@type unit_session
-                        unit.invalidate_cache()
+                        self.units[unit_id].invalidate_cache()
                     end
                 else
                     log.debug(log_tag .. "SCADA RTU GW device re-mount packet length mismatch")

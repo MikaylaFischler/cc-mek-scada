@@ -7,14 +7,14 @@ local pocket         = require("pocket.pocket")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local TextBox        = require("graphics.elements.TextBox")
 
-local IndicatorLight = require("graphics.elements.indicators.light")
+local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
 
-local Checkbox       = require("graphics.elements.controls.checkbox")
-local PushButton     = require("graphics.elements.controls.push_button")
-local SwitchButton   = require("graphics.elements.controls.switch_button")
+local Checkbox       = require("graphics.elements.controls.Checkbox")
+local PushButton     = require("graphics.elements.controls.PushButton")
+local SwitchButton   = require("graphics.elements.controls.SwitchButton")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -22,7 +22,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- create diagnostic app pages
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

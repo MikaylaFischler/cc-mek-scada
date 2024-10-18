@@ -2,7 +2,6 @@ import base64
 import json
 import os
 import subprocess
-import sys
 
 path_prefix = "./_minified/"
 

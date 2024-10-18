@@ -95,7 +95,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                 flow_rate = 0,
                 prod_rate = 0,
                 steam_input_rate = 0,
-                dumping_mode = DUMPING_MODE.IDLE    ---@type dumping_mode
+                dumping_mode = DUMPING_MODE.IDLE ---@type dumping_mode
             },
             tanks = {
                 last_update = 0,
@@ -109,6 +109,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class turbinev_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --
@@ -254,7 +255,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
-                    local cmd = msg.message     ---@type queue_data
+                    local cmd = msg.message ---@type queue_data
                     if cmd.key == TBV_RTU_S_DATA.SET_DUMP_MODE then
                         if cmd.val == types.DUMPING_MODE.IDLE or
                            cmd.val == types.DUMPING_MODE.DUMPING_EXCESS or

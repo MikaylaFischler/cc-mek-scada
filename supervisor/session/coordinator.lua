@@ -128,7 +128,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
         local unit_builds = {}
 
         for i = 1, #self.units do
-            local unit = self.units[i]  ---@type reactor_unit
+            local unit = self.units[i]
             unit_builds[unit.get_id()] = unit.get_build()
         end
 
@@ -145,7 +145,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
         local builds = {}
 
         for i = 1, #self.units do
-            local unit = self.units[i]  ---@type reactor_unit
+            local unit = self.units[i]
             builds[unit.get_id()] = unit.get_build()
         end
 
@@ -168,7 +168,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
         local status = {}
 
         for i = 1, #self.units do
-            local unit = self.units[i]  ---@type reactor_unit
+            local unit = self.units[i]
 
             status[unit.get_id()] = {
                 unit.get_reactor_status(),
@@ -308,7 +308,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     -- continue if valid unit id
                     if util.is_int(uid) and uid > 0 and uid <= #self.units then
-                        local unit   = self.units[uid]    ---@type reactor_unit
+                        local unit   = self.units[uid]
                         local manual = facility.get_group(uid) == AUTO_GROUP.MANUAL
 
                         if cmd == UNIT_COMMAND.SCRAM then
@@ -432,8 +432,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                             local unit_id = cmd.val
                             local builds = {}
 
-                            local unit = self.units[unit_id]    ---@type reactor_unit
-                            builds[unit_id] = unit.get_build(-1)
+                            builds[unit_id] = self.units[unit_id].get_build(-1)
 
                             _send(CRDN_TYPE.UNIT_BUILDS, { builds })
                         elseif cmd.key == CRD_S_DATA.RESEND_RTU_BUILD then
@@ -446,8 +445,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                                 local builds = {}
 
-                                local unit = self.units[unit_id]    ---@type reactor_unit
-                                builds[unit_id] = unit.get_build(cmd.val.type)
+                                builds[unit_id] = self.units[unit_id].get_build(cmd.val.type)
 
                                 _send(CRDN_TYPE.UNIT_BUILDS, { builds })
                             else

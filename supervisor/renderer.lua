@@ -9,7 +9,7 @@ local style      = require("supervisor.panel.style")
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
-local DisplayBox = require("graphics.elements.displaybox")
+local DisplayBox = require("graphics.elements.DisplayBox")
 
 ---@class supervisor_renderer
 local renderer = {}

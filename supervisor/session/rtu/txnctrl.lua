@@ -6,7 +6,8 @@ local util = require("scada-common.util")
 
 local txnctrl = {}
 
-local TIMEOUT = 2000    -- 2000ms max wait
+-- 2000ms max wait
+local TIMEOUT = 2000
 
 -- create a new transaction controller
 ---@nodiscard

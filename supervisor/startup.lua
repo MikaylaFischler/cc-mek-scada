@@ -22,7 +22,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.5.3"
+local SUPERVISOR_VERSION = "v1.5.10"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -157,6 +157,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
+                    ---@cast device Modem
                     -- we only care if this is our wireless modem
                     if nic.is_modem(device) then
                         nic.disconnect()
@@ -181,6 +182,7 @@ local function main()
 
             if type ~= nil and device ~= nil then
                 if type == "modem" then
+                    ---@cast device Modem
                     if device.isWireless() and not nic.is_connected() then
                         -- reconnected modem
                         nic.connect(device)

@@ -10,16 +10,16 @@ local reactor_view = require("coordinator.ui.components.reactor")
 local boiler_view  = require("coordinator.ui.components.boiler")
 local turbine_view = require("coordinator.ui.components.turbine")
 
-local Div          = require("graphics.elements.div")
-local PipeNetwork  = require("graphics.elements.pipenet")
-local TextBox      = require("graphics.elements.textbox")
+local Div          = require("graphics.elements.Div")
+local PipeNetwork  = require("graphics.elements.PipeNetwork")
+local TextBox      = require("graphics.elements.TextBox")
 
 local ALIGN = core.ALIGN
 
 local pipe = core.pipe
 
 -- make a new unit overview window
----@param parent graphics_element parent
+---@param parent Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param unit ioctl_unit unit database entry

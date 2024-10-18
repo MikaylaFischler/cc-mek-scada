@@ -14,14 +14,14 @@ local unit_overview = require("coordinator.ui.components.unit_overview")
 
 local core          = require("graphics.core")
 
-local TextBox       = require("graphics.elements.textbox")
+local TextBox       = require("graphics.elements.TextBox")
 
-local DataIndicator = require("graphics.elements.indicators.data")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 
 local ALIGN = core.ALIGN
 
 -- create new main view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local s_header = style.theme.header
 
@@ -37,7 +37,8 @@ local function init(main)
     ping.register(facility.ps, "sv_ping", ping.update)
     datetime.register(facility.ps, "date_time", datetime.set_value)
 
-    local uo_1, uo_2, uo_3, uo_4    ---@type graphics_element
+    ---@type Div, Div, Div, Div
+    local uo_1, uo_2, uo_3, uo_4
 
     local cnc_y_start = 3
     local row_1_height = 0

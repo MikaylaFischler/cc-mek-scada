@@ -4,18 +4,18 @@ local style          = require("coordinator.ui.style")
 
 local core           = require("graphics.core")
 
-local Rectangle      = require("graphics.elements.rectangle")
-local TextBox        = require("graphics.elements.textbox")
+local Rectangle      = require("graphics.elements.Rectangle")
+local TextBox        = require("graphics.elements.TextBox")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local StateIndicator = require("graphics.elements.indicators.state")
-local VerticalBar    = require("graphics.elements.indicators.vbar")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
+local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local cpair = core.cpair
 local border = core.border
 
 -- new boiler view
----@param root graphics_element parent
+---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param ps psil ps interface
