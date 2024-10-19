@@ -39,15 +39,6 @@ local io = {
     ps = psil.create()
 }
 
--- luacheck: no unused args
-
--- placeholder acknowledge function for type hinting
----@param success boolean
----@diagnostic disable-next-line: unused-local
-local function __generic_ack(success) end
-
--- luacheck: unused args
-
 local config = nil  ---@type pkt_config
 local comms  = nil  ---@type pocket_comms
 
@@ -92,16 +83,18 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
 
         get_tone_states = function () comms.diag__get_alarm_tones() end,
 
-        ready_warn = nil,       ---@type graphics_element
-        tone_buttons = {},
-        alarm_buttons = {},
-        tone_indicators = {}    -- indicators to update from supervisor tone states
+        ready_warn = nil,       ---@type TextBox
+        tone_buttons = {},      ---@type SwitchButton[]
+        alarm_buttons = {},     ---@type Checkbox[]
+        tone_indicators = {}    ---@type IndicatorLight[] indicators to update from supervisor tone states
     }
 
     -- API access
     ---@class pocket_ioctl_api
     io.api = {
-        get_unit = function (unit) comms.api__get_unit(unit) end
+        get_unit = function (unit) comms.api__get_unit(unit) end,
+        get_ctrl = function () comms.api__get_control() end,
+        get_proc = function () comms.api__get_process() end
     }
 end
 
@@ -145,6 +138,8 @@ function iocontrol.init_fac(conf)
         all_sys_ok = false,
         rtu_count = 0,
 
+        status_lines = { "", "" },
+
         auto_ready = false,
         auto_active = false,
         auto_ramping = false,
@@ -166,24 +161,21 @@ function iocontrol.init_fac(conf)
 
         radiation = types.new_zero_radiation_reading(),
 
-        start_ack = __generic_ack,
-        stop_ack = __generic_ack,
-        scram_ack = __generic_ack,
-        ack_alarms_ack = __generic_ack,
+        start_ack = nil,         ---@type fun(success: boolean)
+        stop_ack = nil,          ---@type fun(success: boolean)
+        scram_ack = nil,         ---@type fun(success: boolean)
+        ack_alarms_ack = nil,    ---@type fun(success: boolean)
 
         ps = psil.create(),
 
-        induction_ps_tbl = {},
-        induction_data_tbl = {},
+        induction_ps_tbl = {},   ---@type psil[]
+        induction_data_tbl = {}, ---@type imatrix_session_db[]
 
-        sps_ps_tbl = {},
-        sps_data_tbl = {},
+        sps_ps_tbl = {},         ---@type psil[]
+        sps_data_tbl = {},       ---@type sps_session_db[]
 
-        tank_ps_tbl = {},
-        tank_data_tbl = {},
-
-        env_d_ps = psil.create(),
-        env_d_data = {}
+        tank_ps_tbl = {},        ---@type psil[]
+        tank_data_tbl = {}       ---@type dynamicv_session_db[]
     }
 
     -- create induction and SPS tables (currently only 1 of each is supported)
@@ -192,113 +184,25 @@ function iocontrol.init_fac(conf)
     table.insert(io.facility.sps_ps_tbl, psil.create())
     table.insert(io.facility.sps_data_tbl, {})
 
-    -- determine tank information
-    if io.facility.tank_mode == 0 then
-        io.facility.tank_defs = {}
-        -- on facility tank mode 0, setup tank defs to match unit tank option
-        for i = 1, conf.num_units do
-            io.facility.tank_defs[i] = util.trinary(conf.cooling.r_cool[i].TankConnection, 1, 0)
-        end
-
-        io.facility.tank_list = { table.unpack(io.facility.tank_defs) }
-    else
-        -- decode the layout of tanks from the connections definitions
-        local tank_mode = io.facility.tank_mode
-        local tank_defs = io.facility.tank_defs
-        local tank_list = { table.unpack(tank_defs) }
-
-        local function calc_fdef(start_idx, end_idx)
-            local first = 4
-            for i = start_idx, end_idx do
-                if io.facility.tank_defs[i] == 2 then
-                    if i < first then first = i end
-                end
-            end
-            return first
-        end
-
-        if tank_mode == 1 then
-            -- (1) 1 total facility tank (A A A A)
-            local first_fdef = calc_fdef(1, #tank_defs)
-            for i = 1, #tank_defs do
-                if i > first_fdef and tank_defs[i] == 2 then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 2 then
-            -- (2) 2 total facility tanks (A A A B)
-            local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if (i ~= 4) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 3 then
-            -- (3) 2 total facility tanks (A A B B)
-            for _, a in pairs({ 1, 3 }) do
-                local b = a + 1
-                if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
-                    tank_list[b] = 0
-                end
-            end
-        elseif tank_mode == 4 then
-            -- (4) 2 total facility tanks (A B B B)
-            local first_fdef = calc_fdef(2, #tank_defs)
-            for i = 1, #tank_defs do
-                if (i ~= 1) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 5 then
-            -- (5) 3 total facility tanks (A A B C)
-            local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
-            for i = 1, #tank_defs do
-                if (not (i == 3 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 6 then
-            -- (6) 3 total facility tanks (A B B C)
-            local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if (not (i == 1 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 7 then
-            -- (7) 3 total facility tanks (A B C C)
-            local first_fdef = calc_fdef(3, #tank_defs)
-            for i = 1, #tank_defs do
-                if (not (i == 1 or i == 2)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        end
-
-        io.facility.tank_list = tank_list
-    end
-
-    -- create facility tank tables
-    for i = 1, #io.facility.tank_list do
-        if io.facility.tank_list[i] == 2 then
-            table.insert(io.facility.tank_ps_tbl, psil.create())
-            table.insert(io.facility.tank_data_tbl, {})
-        end
-    end
-
     -- create unit data structures
-    io.units = {}
+    io.units = {}   ---@type pioctl_unit[]
     for i = 1, conf.num_units do
         ---@class pioctl_unit
         local entry = {
             unit_id = i,
             connected = false,
+            ---@type { boilers: { connected: boolean, faulted: boolean }[], turbines: { connected: boolean, faulted: boolean }[] }
             rtu_hw = {},
 
             num_boilers = 0,
             num_turbines = 0,
             num_snas = 0,
             has_tank = conf.cooling.r_cool[i].TankConnection,
+
+            status_lines = { "", "" },
+
+            auto_ready = false,
+            auto_degraded = false,
 
             control_state = false,
             burn_rate_cmd = 0.0,
@@ -323,27 +227,27 @@ function iocontrol.init_fac(conf)
             ack_alarms = function () process.ack_all_alarms(i) end,
             set_burn = function (rate) process.set_rate(i, rate) end,   ---@param rate number burn rate
 
-            start_ack = __generic_ack,
-            scram_ack = __generic_ack,
-            reset_rps_ack = __generic_ack,
-            ack_alarms_ack = __generic_ack,
+            start_ack = nil,        ---@type fun(success: boolean)
+            scram_ack = nil,        ---@type fun(success: boolean)
+            reset_rps_ack = nil,    ---@type fun(success: boolean)
+            ack_alarms_ack = nil,   ---@type fun(success: boolean)
 
-            ---@type alarms
+            ---@type { [ALARM]: ALARM_STATE }
             alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
 
-            annunciator = {},   ---@type annunciator
+            annunciator = {},       ---@type annunciator
 
             unit_ps = psil.create(),
-            reactor_data = {},  ---@type reactor_db
+            reactor_data = types.new_reactor_db(),
 
-            boiler_ps_tbl = {},
-            boiler_data_tbl = {},
+            boiler_ps_tbl = {},     ---@type psil[]
+            boiler_data_tbl = {},   ---@type boilerv_session_db[]
 
-            turbine_ps_tbl = {},
-            turbine_data_tbl = {},
+            turbine_ps_tbl = {},    ---@type psil[]
+            turbine_data_tbl = {},  ---@type turbinev_session_db[]
 
-            tank_ps_tbl = {},
-            tank_data_tbl = {}
+            tank_ps_tbl = {},       ---@type psil[]
+            tank_data_tbl = {}      ---@type dynamicv_session_db[]
         }
 
         -- on other facility modes, overwrite unit TANK option with facility tank defs
@@ -485,7 +389,7 @@ end
 -- update unit status data from API_GET_UNIT
 ---@param data table
 function iocontrol.record_unit_data(data)
-    local unit = io.units[data[1]]  ---@type pioctl_unit
+    local unit = io.units[data[1]]
 
     unit.connected = data[2]
     unit.rtu_hw = data[3]
@@ -625,16 +529,16 @@ function iocontrol.record_unit_data(data)
             end
         end
 
-        if type(unit.reactor_data.rps_status) == "table" then
-            for key, val in pairs(unit.reactor_data.rps_status) do
-                unit.unit_ps.publish(key, val)
-            end
+        for key, val in pairs(unit.reactor_data.rps_status) do
+            unit.unit_ps.publish(key, val)
         end
 
-        if type(unit.reactor_data.mek_status) == "table" then
-            for key, val in pairs(unit.reactor_data.mek_status) do
-                unit.unit_ps.publish(key, val)
-            end
+        for key, val in pairs(unit.reactor_data.mek_struct) do
+            unit.unit_ps.publish(key, val)
+        end
+
+        for key, val in pairs(unit.reactor_data.mek_status) do
+            unit.unit_ps.publish(key, val)
         end
     end
 
@@ -650,8 +554,8 @@ function iocontrol.record_unit_data(data)
     unit.boiler_data_tbl = data[8]
 
     for id = 1, #unit.boiler_data_tbl do
-        local boiler = unit.boiler_data_tbl[id] ---@type boilerv_session_db
-        local ps     = unit.boiler_ps_tbl[id]   ---@type psil
+        local boiler = unit.boiler_data_tbl[id]
+        local ps     = unit.boiler_ps_tbl[id]
 
         local boiler_status = 1
         local computed_status = 1
@@ -683,8 +587,8 @@ function iocontrol.record_unit_data(data)
     unit.turbine_data_tbl = data[9]
 
     for id = 1, #unit.turbine_data_tbl do
-        local turbine = unit.turbine_data_tbl[id] ---@type turbinev_session_db
-        local ps      = unit.turbine_ps_tbl[id]   ---@type psil
+        local turbine = unit.turbine_data_tbl[id]
+        local ps      = unit.turbine_ps_tbl[id]
 
         local turbine_status = 1
         local computed_status = 1
@@ -729,21 +633,6 @@ function iocontrol.record_unit_data(data)
     -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end
     local function blue(text) return { text = text, color = colors.blue } end
-
-    -- unit.reactor_data.rps_status = {
-    --     high_dmg = false,
-    --     high_temp = false,
-    --     low_cool = false,
-    --     ex_waste = false,
-    --     ex_hcool = false,
-    --     no_fuel = false,
-    --     fault = false,
-    --     timeout = false,
-    --     manual = false,
-    --     automatic = false,
-    --     sys_fail = false,
-    --     force_dis = false
-    -- }
 
     -- if unit.reactor_data.rps_status then
     --     for k, v in pairs(unit.alarms) do
@@ -926,6 +815,109 @@ function iocontrol.record_unit_data(data)
     unit.unit_ps.publish("U_ECAM", textutils.serialize(ecam))
 
     --#endregion
+end
+
+-- update control app with unit data from API_GET_CTRL
+---@param data table
+function iocontrol.record_control_data(data)
+    for u_id = 1, #data do
+        local unit = io.units[u_id]
+        local u_data = data[u_id]
+
+        unit.connected = u_data[1]
+
+        unit.reactor_data.rps_tripped = u_data[2]
+        unit.unit_ps.publish("rps_tripped", u_data[2])
+        unit.reactor_data.mek_status.status = u_data[3]
+        unit.unit_ps.publish("status", u_data[3])
+        unit.reactor_data.mek_status.temp = u_data[4]
+        unit.unit_ps.publish("temp", u_data[4])
+        unit.reactor_data.mek_status.burn_rate = u_data[5]
+        unit.unit_ps.publish("burn_rate", u_data[5])
+        unit.reactor_data.mek_status.act_burn_rate = u_data[6]
+        unit.unit_ps.publish("act_burn_rate", u_data[6])
+        unit.reactor_data.mek_struct.max_burn = u_data[7]
+        unit.unit_ps.publish("max_burn", u_data[7])
+
+        unit.annunciator.AutoControl = u_data[8]
+        unit.unit_ps.publish("AutoControl", u_data[8])
+
+        unit.a_group = u_data[9]
+        unit.unit_ps.publish("auto_group_id", unit.a_group)
+        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+
+        local control_status = 1
+
+        if unit.connected then
+            if unit.reactor_data.rps_tripped then
+                control_status = 2
+            end
+
+            if unit.reactor_data.mek_status.status then
+                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+            end
+        end
+
+        unit.unit_ps.publish("U_ControlStatus", control_status)
+    end
+end
+
+-- update process app with unit data from API_GET_PROC
+---@param data table
+function iocontrol.record_process_data(data)
+    -- get unit data
+    for u_id = 1, #io.units do
+        local unit = io.units[u_id]
+        local u_data = data[u_id]
+
+        unit.reactor_data.mek_status.status = u_data[1]
+        unit.reactor_data.mek_struct.max_burn = u_data[2]
+        unit.annunciator.AutoControl = u_data[6]
+        unit.a_group = u_data[7]
+
+        unit.unit_ps.publish("status", u_data[1])
+        unit.unit_ps.publish("max_burn", u_data[2])
+        unit.unit_ps.publish("burn_limit", u_data[3])
+        unit.unit_ps.publish("U_AutoReady", u_data[4])
+        unit.unit_ps.publish("U_AutoDegraded", u_data[5])
+        unit.unit_ps.publish("AutoControl", u_data[6])
+        unit.unit_ps.publish("auto_group_id", unit.a_group)
+        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+    end
+
+    -- get facility data
+    local fac = io.facility
+    local f_data = data[#io.units + 1]
+
+    fac.status_lines = f_data[1]
+
+    fac.auto_ready = f_data[2][1]
+    fac.auto_active = f_data[2][2]
+    fac.auto_ramping = f_data[2][3]
+    fac.auto_saturated = f_data[2][4]
+
+    fac.auto_scram = f_data[3]
+    fac.ascram_status = f_data[4]
+
+    fac.ps.publish("status_line_1", fac.status_lines[1])
+    fac.ps.publish("status_line_2", fac.status_lines[2])
+
+    fac.ps.publish("auto_ready", fac.auto_ready)
+    fac.ps.publish("auto_active", fac.auto_active)
+    fac.ps.publish("auto_ramping", fac.auto_ramping)
+    fac.ps.publish("auto_saturated", fac.auto_saturated)
+
+    fac.ps.publish("auto_scram", fac.auto_scram)
+    fac.ps.publish("as_matrix_dc", fac.ascram_status.matrix_dc)
+    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
+    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+
+    fac.ps.publish("process_mode", f_data[5][1])
+    fac.ps.publish("process_burn_target", f_data[5][2])
+    fac.ps.publish("process_charge_target", f_data[5][3])
+    fac.ps.publish("process_gen_target", f_data[5][4])
 end
 
 -- get the IO controller database

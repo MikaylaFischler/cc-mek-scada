@@ -6,10 +6,10 @@
 
 -- note: max samples = 0x20000 (128 * 1024 samples)
 
-local _2_PI        = 2 * math.pi    -- 2 whole pies, hope you're hungry
-local _DRATE       = 48000          -- 48kHz audio
-local _MAX_VAL     = 127 / 2        -- max signed integer in this 8-bit audio
-local _05s_SAMPLES = 24000          -- half a second worth of samples
+local _2_PI        = 2 * math.pi -- 2 whole pies, hope you're hungry
+local _DRATE       = 48000       -- 48kHz audio data rate
+local _MAX_VAL     = 127 / 2     -- max signed integer in this 8-bit audio
+local _05s_SAMPLES = 24000       -- half a second worth of samples
 
 ---@class audio
 local audio = {}
@@ -28,6 +28,7 @@ local TONE = {
 
 audio.TONE = TONE
 
+---@type integer[][][]
 local tone_data = {
     { {}, {}, {}, {} }, -- 340Hz @ 2Hz Intermittent
     { {}, {}, {}, {} }, -- 544Hz 100mS / 440Hz 400mS Alternating
@@ -214,7 +215,14 @@ end
 
 -- generate all 8 tone sequences
 function audio.generate_tones()
-    gen_tone_1(); gen_tone_2(); gen_tone_3(); gen_tone_4(); gen_tone_5(); gen_tone_6(); gen_tone_7(); gen_tone_8()
+    gen_tone_1()
+    gen_tone_2()
+    gen_tone_3()
+    gen_tone_4()
+    gen_tone_5()
+    gen_tone_6()
+    gen_tone_7()
+    gen_tone_8()
 end
 
 -- hard audio limiter
@@ -226,7 +234,7 @@ local function limit(output)
 end
 
 -- clear output buffer
----@param buffer table quad buffer
+---@param buffer integer[][] quad buffer
 local function clear(buffer)
     for i = 1, 4 do
         for s = 1, _05s_SAMPLES do buffer[i][s] = 0 end
@@ -239,7 +247,7 @@ function audio.new_stream()
         any_active = false,
         need_recompute = false,
         next_block = 1,
-        -- split audio up into 0.5s samples, so specific components can be ended quicker
+        ---@type integer[][] split audio up into 0.5s samples, so specific components can be ended quicker
         quad_buffer = { {}, {}, {}, {} },
         -- all tone enable states
         tone_active = { false, false, false, false, false, false, false, false }
@@ -263,14 +271,17 @@ function audio.new_stream()
     -- check if a tone is active
     ---@param index TONE tone index
     function public.is_active(index)
-        if self.tone_active[index] then return self.tone_active[index] end
-        return false
+        return self.tone_active[index] or false
     end
 
     -- set all tones inactive, reset next block, and clear output buffer
     function public.stop()
-        for i = 1, #self.tone_active do self.tone_active[i] = false end
+        for i = 1, #self.tone_active do
+            self.tone_active[i] = false
+        end
+
         self.next_block = 1
+
         clear(self.quad_buffer)
     end
 
@@ -287,9 +298,11 @@ function audio.new_stream()
         for id = 1, #tone_data do
             if self.tone_active[id] then
                 self.any_active = true
+
                 for i = 1, 4 do
                     local buffer = self.quad_buffer[i]
                     local values = tone_data[id][i]
+
                     for s = 1, _05s_SAMPLES do self.quad_buffer[i][s] = limit(buffer[s] + values[s]) end
                 end
             end
@@ -305,8 +318,13 @@ function audio.new_stream()
     -- get the next audio block
     function public.get_next_block()
         local block = self.quad_buffer[self.next_block]
+
         self.next_block = self.next_block + 1
-        if self.next_block > 4 then self.next_block = 1 end
+
+        if self.next_block > 4 then
+            self.next_block = 1
+        end
+
         return block
     end
 

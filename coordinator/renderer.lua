@@ -19,7 +19,7 @@ local unit_view   = require("coordinator.ui.layout.unit_view")
 local core        = require("graphics.core")
 local flasher     = require("graphics.flasher")
 
-local DisplayBox  = require("graphics.elements.displaybox")
+local DisplayBox  = require("graphics.elements.DisplayBox")
 
 local log_render = coordinator.log_render
 
@@ -30,20 +30,20 @@ local renderer = {}
 local engine = {
     color_mode = 1,         ---@type COLOR_MODE
     monitors = nil,         ---@type monitors_struct|nil
-    dmesg_window = nil,     ---@type table|nil
+    dmesg_window = nil,     ---@type Window|nil
     ui_ready = false,
     fp_ready = false,
     ui = {
-        front_panel = nil,  ---@type graphics_element|nil
-        main_display = nil, ---@type graphics_element|nil
-        flow_display = nil, ---@type graphics_element|nil
-        unit_displays = {}
+        front_panel = nil,  ---@type DisplayBox|nil
+        main_display = nil, ---@type DisplayBox|nil
+        flow_display = nil, ---@type DisplayBox|nil
+        unit_displays = {}  ---@type (DisplayBox|nil)[]
     },
     disable_flow_view = false
 }
 
 -- init a display to the "default", but set text scale to 0.5
----@param monitor table monitor
+---@param monitor Monitor monitor
 local function _init_display(monitor)
     monitor.setTextScale(0.5)
     monitor.setTextColor(colors.white)
@@ -64,7 +64,7 @@ local function _init_display(monitor)
 end
 
 -- print out that the monitor is too small
----@param monitor table monitor
+---@param monitor Monitor monitor
 local function _print_too_small(monitor)
     monitor.setCursorPos(1, 1)
     monitor.setBackgroundColor(colors.black)
@@ -275,7 +275,7 @@ function renderer.fp_ready() return engine.fp_ready end
 function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a monitor peripheral being disconnected
----@param device table monitor
+---@param device Monitor monitor
 ---@return boolean is_used if the monitor is one of the configured monitors
 function renderer.handle_disconnect(device)
     local is_used = false
@@ -326,7 +326,7 @@ end
 
 -- handle a monitor peripheral being reconnected
 ---@param name string monitor name
----@param device table monitor
+---@param device Monitor monitor
 ---@return boolean is_used if the monitor is one of the configured monitors
 function renderer.handle_reconnect(name, device)
     local is_used = false
@@ -373,7 +373,7 @@ function renderer.handle_resize(name)
     if not engine.monitors then return false, false end
 
     if engine.monitors.main_name == name and engine.monitors.main then
-        local device = engine.monitors.main  ---@type table
+        local device = engine.monitors.main  ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
         _init_display(device)
@@ -416,7 +416,7 @@ function renderer.handle_resize(name)
             end
         else engine.dmesg_window.redraw() end
     elseif engine.monitors.flow_name == name and engine.monitors.flow then
-        local device = engine.monitors.flow ---@type table
+        local device = engine.monitors.flow ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
         _init_display(device)

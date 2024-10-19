@@ -8,23 +8,28 @@ local util = require("scada-common.util")
 local pgi = {}
 
 local data = {
-    rtu_list = nil,     ---@type nil|graphics_element
-    pdg_list = nil,     ---@type nil|graphics_element
-    chk_list = nil,     ---@type nil|graphics_element
-    rtu_entry = nil,    ---@type function
-    pdg_entry = nil,    ---@type function
-    chk_entry = nil,    ---@type function
+    rtu_list = nil,  ---@type ListBox|nil
+    pdg_list = nil,  ---@type ListBox|nil
+    chk_list = nil,  ---@type ListBox|nil
+    rtu_entry = nil, ---@type function
+    pdg_entry = nil, ---@type function
+    chk_entry = nil, ---@type function
     -- list entries
-    entries = { rtu = {}, pdg = {}, chk = {}, missing = {} }
+    entries = {
+        rtu = {},    ---@type Div[]
+        pdg = {},    ---@type Div[]
+        chk = {},    ---@type Div[][]
+        missing = {} ---@type Div[]
+    }
 }
 
 -- link list boxes
----@param rtu_list graphics_element RTU list element
----@param rtu_entry function RTU entry constructor
----@param pdg_list graphics_element pocket diagnostics list element
----@param pdg_entry function pocket diagnostics entry constructor
----@param chk_list graphics_element CHK list element
----@param chk_entry function CHK entry constructor
+---@param rtu_list ListBox RTU list element
+---@param rtu_entry fun(parent: ListBox, id: integer) : Div RTU entry constructor
+---@param pdg_list ListBox pocket diagnostics list element
+---@param pdg_entry fun(parent: ListBox, id: integer) : Div pocket diagnostics entry constructor
+---@param chk_list ListBox CHK list element
+---@param chk_entry fun(parent: ListBox, msg: string, fail_code: integer) : Div CHK entry constructor
 function pgi.link_elements(rtu_list, rtu_entry, pdg_list, pdg_entry, chk_list, chk_entry)
     data.rtu_list = rtu_list
     data.pdg_list = pdg_list
@@ -130,8 +135,8 @@ function pgi.create_chk_entry(unit, fail_code, msg)
     end
 end
 
--- delete a device ID check failure entry from the CHK list
----@note this assumes only one type of failure can occur per each RTU gateway session's RTU, which is the case
+-- delete a device ID check failure entry from the CHK list<br>
+-- this assumes only one type of failure can occur per each RTU gateway session's RTU, which is the case
 ---@param unit unit_session RTU session
 function pgi.delete_chk_entry(unit)
     local gw_session = unit.get_session_id()

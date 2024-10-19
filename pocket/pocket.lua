@@ -82,40 +82,42 @@ end
 
 ---@enum POCKET_APP_ID
 local APP_ID = {
+    -- core UI
     ROOT = 1,
     LOADER = 2,
     -- main app pages
     UNITS = 3,
     CONTROL = 4,
-    GUIDE = 5,
-    ABOUT = 6,
-    -- diag app page
-    ALARMS = 7,
+    PROCESS = 5,
+    GUIDE = 6,
+    ABOUT = 7,
+    -- diagnostic app pages
+    ALARMS = 8,
     -- other
-    DUMMY = 8,
-    NUM_APPS = 8
+    DUMMY = 9,
+    NUM_APPS = 9
 }
 
 pocket.APP_ID = APP_ID
 
 ---@class nav_tree_page
 ---@field _p nav_tree_page|nil page's parent
----@field _c table page's children
+---@field _c nav_tree_page[] page's children
 ---@field nav_to function function to navigate to this page
 ---@field switcher function|nil function to switch between children
----@field tasks table tasks to run while viewing this page
+---@field tasks function[] tasks to run while viewing this page
 
 -- initialize the page navigation system
 ---@param smem pkt_shared_memory
 function pocket.init_nav(smem)
     local self = {
-        pane = nil,    ---@type graphics_element
-        sidebar = nil, ---@type graphics_element
-        apps = {},
-        containers = {},
-        help_map = {},
-        help_return = nil,
-        loader_return = nil,
+        pane = nil,          ---@type AppMultiPane|MultiPane|nil
+        sidebar = nil,       ---@type Sidebar|nil
+        apps = {},           ---@type pocket_app[]
+        containers = {},     ---@type Container[]
+        help_map = {},       ---@type { [string]: function }
+        help_return = nil,   ---@type POCKET_APP_ID|nil
+        loader_return = nil, ---@type POCKET_APP_ID|nil
         cur_app = APP_ID.ROOT
     }
 
@@ -125,27 +127,27 @@ function pocket.init_nav(smem)
     local nav = {}
 
     -- set the root pane element to switch between apps with
-    ---@param root_pane graphics_element
+    ---@param root_pane MultiPane
     function nav.set_pane(root_pane) self.pane = root_pane end
 
     -- link sidebar element
-    ---@param sidebar graphics_element
+    ---@param sidebar Sidebar
     function nav.set_sidebar(sidebar) self.sidebar = sidebar end
 
     -- register an app
     ---@param app_id POCKET_APP_ID app ID
-    ---@param container graphics_element element that contains this app (usually a Div)
-    ---@param pane? graphics_element multipane if this is a simple paned app, then nav_to must be a number
+    ---@param container Container element that contains this app (usually a Div)
+    ---@param pane? AppMultiPane|MultiPane multipane if this is a simple paned app, then nav_to must be a number
     ---@param require_sv? boolean true to specifiy if this app should be unloaded when the supervisor connection is lost
     ---@param require_api? boolean true to specifiy if this app should be unloaded when the api connection is lost
     function nav.register_app(app_id, container, pane, require_sv, require_api)
         ---@class pocket_app
         local app = {
             loaded = false,
-            cur_page = nil, ---@type nav_tree_page
+            cur_page = nil,    ---@type nav_tree_page
             pane = pane,
-            paned_pages = {},
-            sidebar_items = {}
+            paned_pages = {},  ---@type nav_tree_page[]
+            sidebar_items = {} ---@type sidebar_entry[]
         }
 
         app.load = function () app.loaded = true end
@@ -159,24 +161,27 @@ function pocket.init_nav(smem)
         function app.requires_conn() return require_sv or require_api or false end
 
         -- delayed set of the pane if it wasn't ready at the start
-        ---@param root_pane graphics_element multipane
+        ---@param root_pane AppMultiPane|MultiPane multipane
         function app.set_root_pane(root_pane)
             app.pane = root_pane
         end
 
         -- configure the sidebar
-        ---@param items table
+        ---@param items sidebar_entry[]
         function app.set_sidebar(items)
             app.sidebar_items = items
-            if self.sidebar then self.sidebar.update(items) end
+            -- only modify the sidebar if this app is still open
+            if self.cur_app == app_id then
+                if self.sidebar then self.sidebar.update(items) end
+            end
         end
 
         -- function to run on initial load into memory
         ---@param on_load function callback
         function app.set_load(on_load)
             app.load = function ()
+                app.loaded = true   -- must flag first so it can't be repeatedly attempted
                 on_load()
-                app.loaded = true
             end
         end
 
@@ -184,8 +189,8 @@ function pocket.init_nav(smem)
         ---@param on_unload function callback
         function app.set_unload(on_unload)
             app.unload = function ()
-                on_unload()
                 app.loaded = false
+                on_unload()
             end
         end
 
@@ -263,7 +268,7 @@ function pocket.init_nav(smem)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
-        local app = self.apps[app_id] ---@type pocket_app
+        local app = self.apps[app_id]
         if app then
             if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
                 -- bring up the app loader
@@ -284,6 +289,9 @@ function pocket.init_nav(smem)
             log.debug("tried to open unknown app")
         end
     end
+
+    -- go home (open the home screen app)
+    function nav.go_home() nav.open_app(APP_ID.ROOT) end
 
     -- open the app that was blocked on connecting
     function nav.on_loader_connected()
@@ -339,7 +347,7 @@ function pocket.init_nav(smem)
             return
         end
 
-        local app = self.apps[self.cur_app] ---@type pocket_app
+        local app = self.apps[self.cur_app]
         log.debug("attempting app nav up for app " .. self.cur_app)
 
         if not app.nav_up() then
@@ -359,6 +367,7 @@ function pocket.init_nav(smem)
     end
 
     -- link the help map from the guide app
+    ---@param map { [string]: function }
     function nav.link_help(map) self.help_map = map end
 
     return nav
@@ -546,11 +555,27 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
     end
 
+    -- coordinator get control app data
+    function public.api__get_control()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_CTRL, {}) end
+    end
+
+    -- coordinator get process app data
+    function public.api__get_process()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_PROC, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
     function public.send_fac_command(cmd, option)
         _send_api(CRDN_TYPE.FAC_CMD, { cmd, option })
+    end
+
+    -- send the auto process control configuration with a start command
+    ---@param auto_cfg [ PROCESS, number, number, number, number[] ]
+    function public.send_auto_start(auto_cfg)
+        _send_api(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(auto_cfg) })
     end
 
     -- send a unit command
@@ -655,7 +680,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
                                     iocontrol.get_db().facility.scram_ack(ack)
                                 elseif cmd == FAC_COMMAND.STOP then
+                                    iocontrol.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
+                                    iocontrol.get_db().facility.start_ack(ack)
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
                                     iocontrol.get_db().facility.ack_alarms_ack(ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
@@ -697,6 +724,14 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
                             if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
                                 iocontrol.record_unit_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_CTRL then
+                            if _check_length(packet, #iocontrol.get_db().units) then
+                                iocontrol.record_control_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_PROC then
+                            if _check_length(packet, #iocontrol.get_db().units + 1) then
+                                iocontrol.record_process_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else

@@ -13,15 +13,15 @@ local style      = require("reactor-plc.panel.style")
 local core       = require("graphics.core")
 local flasher    = require("graphics.flasher")
 
-local Div        = require("graphics.elements.div")
-local Rectangle  = require("graphics.elements.rectangle")
-local TextBox    = require("graphics.elements.textbox")
+local Div        = require("graphics.elements.Div")
+local Rectangle  = require("graphics.elements.Rectangle")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
-local LED        = require("graphics.elements.indicators.led")
-local LEDPair    = require("graphics.elements.indicators.ledpair")
-local RGBLED     = require("graphics.elements.indicators.ledrgb")
+local LED        = require("graphics.elements.indicators.LED")
+local LEDPair    = require("graphics.elements.indicators.LEDPair")
+local RGBLED     = require("graphics.elements.indicators.RGBLED")
 
 local LINK_STATE = types.PANEL_LINK_STATE
 
@@ -34,7 +34,7 @@ local ind_grn = style.ind_grn
 local ind_red = style.ind_red
 
 -- create new front panel view
----@param panel graphics_element main displaybox
+---@param panel DisplayBox main displaybox
 local function init(panel)
     local s_hi_box = style.theme.highlight_box
 

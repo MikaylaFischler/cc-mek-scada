@@ -77,7 +77,7 @@ end
 
 -- transmit RPS data across the bus
 ---@param tripped boolean RPS tripped
----@param status table RPS status
+---@param status boolean[] RPS status
 ---@param emer_cool_active boolean RPS activated the emergency coolant
 function databus.tx_rps(tripped, status, emer_cool_active)
     databus.ps.publish("rps_scram", tripped)

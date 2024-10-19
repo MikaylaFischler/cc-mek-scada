@@ -235,7 +235,7 @@ function rtu.init_unit(device)
 end
 
 -- create an alarm speaker sounder
----@param speaker table device peripheral
+---@param speaker Speaker device peripheral
 function rtu.init_sounder(speaker)
     ---@class rtu_speaker_sounder
     local spkr_ctl = {
@@ -322,13 +322,13 @@ function rtu.comms(version, nic, conn_watchdog)
 
     -- generate device advertisement table
     ---@nodiscard
-    ---@param units table
+    ---@param units rtu_registry_entry[]
     ---@return table advertisement
     local function _generate_advertisement(units)
         local advertisement = {}
 
         for i = 1, #units do
-            local unit = units[i]   ---@type rtu_unit_registry_entry
+            local unit = units[i]
 
             if unit.type ~= nil then
                 local advert = { unit.type, unit.index, unit.reactor }
@@ -429,9 +429,9 @@ function rtu.comms(version, nic, conn_watchdog)
 
     -- handle a MODBUS/SCADA packet
     ---@param packet modbus_frame|mgmt_frame
-    ---@param units table RTU units
+    ---@param units rtu_registry_entry[] RTU entries
     ---@param rtu_state rtu_state
-    ---@param sounders table speaker alarm sounders
+    ---@param sounders rtu_speaker_sounder[] speaker alarm sounders
     function public.handle_packet(packet, units, rtu_state, sounders)
         -- print a log message to the terminal as long as the UI isn't running
         local function println_ts(message) if not rtu_state.fp_ok then util.println_ts(message) end end
@@ -467,7 +467,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
                     -- handle MODBUS instruction
                     if packet.unit_id <= #units then
-                        local unit = units[packet.unit_id]  ---@type rtu_unit_registry_entry
+                        local unit = units[packet.unit_id]
                         local unit_dbg_tag = " (unit " .. packet.unit_id .. ")"
 
                         if unit.name == "redstone_io" then
@@ -538,11 +538,9 @@ function rtu.comms(version, nic, conn_watchdog)
                         if (packet.length == 1) and type(packet.data[1] == "table") and (#packet.data[1] == 8) then
                             local states = packet.data[1]
 
+                            -- set tone states
                             for i = 1, #sounders do
-                                local s = sounders[i]   ---@type rtu_speaker_sounder
-
-                                -- set tone states
-                                for id = 1, #states do s.stream.set_active(id, states[id] == true) end
+                                for id = 1, #states do sounders[i].stream.set_active(id, states[id] == true) end
                             end
                         end
                     else

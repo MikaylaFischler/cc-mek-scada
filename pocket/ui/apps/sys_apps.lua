@@ -12,12 +12,12 @@ local pocket     = require("pocket.pocket")
 
 local core       = require("graphics.core")
 
-local Div        = require("graphics.elements.div")
-local ListBox    = require("graphics.elements.listbox")
-local MultiPane  = require("graphics.elements.multipane")
-local TextBox    = require("graphics.elements.textbox")
+local Div        = require("graphics.elements.Div")
+local ListBox    = require("graphics.elements.ListBox")
+local MultiPane  = require("graphics.elements.MultiPane")
+local TextBox    = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.push_button")
+local PushButton = require("graphics.elements.controls.PushButton")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -25,7 +25,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- create system app pages
----@param root graphics_element parent
+---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 

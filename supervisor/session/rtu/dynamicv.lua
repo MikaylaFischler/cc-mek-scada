@@ -84,7 +84,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             },
             state = {
                 last_update = 0,
-                container_mode = CONTAINER_MODE.BOTH    ---@type container_mode
+                container_mode = CONTAINER_MODE.BOTH ---@type container_mode
             },
             tanks = {
                 last_update = 0,
@@ -94,6 +94,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class dynamicv_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --
@@ -224,7 +225,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
                     end
                 elseif msg.qtype == mqueue.TYPE.DATA then
                     -- instruction with body
-                    local cmd = msg.message     ---@type queue_data
+                    local cmd = msg.message ---@type queue_data
                     if cmd.key == DTV_RTU_S_DATA.SET_CONT_MODE then
                         if cmd.val == types.CONTAINER_MODE.BOTH or
                            cmd.val == types.CONTAINER_MODE.FILL or

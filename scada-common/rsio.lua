@@ -113,10 +113,13 @@ assert(#dup_chk == rsio.NUM_PORTS, "port list malformed")
 local IO = IO_PORT
 
 -- list of all port names
+---@type string[]
 local PORT_NAMES = {}
+
 for k, v in pairs(IO) do PORT_NAMES[v] = k end
 
 -- list of all port I/O modes
+---@type { [IO_PORT]: IO_MODE }
 local MODES = {
     [IO.F_SCRAM]       = IO_MODE.DIGITAL_IN,
     [IO.F_ACK]         = IO_MODE.DIGITAL_IN,
@@ -233,6 +236,7 @@ end
 
 --#region Generic Checks
 
+---@type string[]
 local RS_SIDES = rs.getSides()
 
 -- check if a port is valid

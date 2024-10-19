@@ -84,7 +84,7 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
 
             -- go through all reactor units in this group
             for id = 1, #units do
-                local u = units[id] ---@type reactor_unit
+                local u = units[id]
 
                 local ctl = u.get_control_inf()
                 local lim_br100 = u.auto_get_effective_limit()
@@ -139,7 +139,7 @@ function update.pre_auto()
     -- check if test routines are allowed right now
     self.allow_testing = true
     for i = 1, #self.units do
-        local u = self.units[i] ---@type reactor_unit
+        local u = self.units[i]
         self.allow_testing = self.allow_testing and u.is_safe_idle()
     end
 
@@ -149,8 +149,8 @@ function update.pre_auto()
 
     -- calculate moving averages for induction matrix
     if self.induction[1] ~= nil then
-        local matrix = self.induction[1] ---@type unit_session
-        local db = matrix.get_db()       ---@type imatrix_session_db
+        local matrix = self.induction[1]
+        local db = matrix.get_db()
 
         local build_update = db.build.last_update
         rate_update = db.state.last_update
@@ -512,7 +512,7 @@ function update.auto_safety()
     local astatus = self.ascram_status
 
     if self.induction[1] ~= nil then
-        local db = self.induction[1].get_db() ---@type imatrix_session_db
+        local db = self.induction[1].get_db()
 
         -- clear matrix disconnected
         if astatus.matrix_dc then
@@ -531,7 +531,7 @@ function update.auto_safety()
         -- check for critical unit alarms
         astatus.crit_alarm = false
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
+            local u = self.units[i]
 
             if u.has_alarm_min_prio(PRIO.CRITICAL) then
                 astatus.crit_alarm = true
@@ -544,8 +544,8 @@ function update.auto_safety()
             local max_rad = 0
 
             for i = 1, #self.envd do
-                local envd = self.envd[i]  ---@type unit_session
-                local e_db = envd.get_db() ---@type envd_session_db
+                local envd = self.envd[i]
+                local e_db = envd.get_db()
                 if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
             end
 
@@ -620,7 +620,7 @@ function update.auto_safety()
 
             -- reset PLC RPS trips if we should
             for i = 1, #self.units do
-                local u = self.units[i] ---@type reactor_unit
+                local u = self.units[i]
                 u.auto_cond_rps_reset()
             end
         end
@@ -647,7 +647,7 @@ function update.alarm_audio()
     else
         -- check all alarms for all units
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
+            local u = self.units[i]
             for id, alarm in pairs(u.get_alarms()) do
                 alarms[id] = alarms[id] or (alarm == ALARM_STATE.TRIPPED)
             end
@@ -730,7 +730,7 @@ function update.redstone(ack_all)
         -- handle facility SCRAM
         if self.io_ctl.digital_read(IO.F_SCRAM) then
             for i = 1, #self.units do
-                local u = self.units[i] ---@type reactor_unit
+                local u = self.units[i]
                 u.cond_scram()
             end
         end
@@ -741,7 +741,7 @@ function update.redstone(ack_all)
         -- update facility alarm outputs
         local has_prio_alarm, has_any_alarm = false, false
         for i = 1, #self.units do
-            local u = self.units[i] ---@type reactor_unit
+            local u = self.units[i]
 
             if u.has_alarm_min_prio(PRIO.EMERGENCY) then
                 has_prio_alarm, has_any_alarm = true, true
@@ -756,7 +756,7 @@ function update.redstone(ack_all)
 
         -- update induction matrix related outputs
         if self.induction[1] ~= nil then
-            local db = self.induction[1].get_db() ---@type imatrix_session_db
+            local db = self.induction[1].get_db()
 
             self.io_ctl.digital_write(IO.F_MATRIX_LOW, db.tanks.energy_fill < const.RS_THRESHOLDS.IMATRIX_CHARGE_LOW)
             self.io_ctl.digital_write(IO.F_MATRIX_HIGH, db.tanks.energy_fill > const.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH)
@@ -771,7 +771,7 @@ function update.unit_mgmt()
     local need_emcool = false
 
     for i = 1, #self.units do
-        local u = self.units[i] ---@type reactor_unit
+        local u = self.units[i]
 
         -- update auto waste processing
         if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
@@ -791,7 +791,7 @@ function update.unit_mgmt()
     self.current_waste_product = self.waste_product
 
     if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
-        local db = self.induction[1].get_db() ---@type imatrix_session_db
+        local db = self.induction[1].get_db()
 
         if db.tanks.energy_fill >= 0.15 then
             self.disabled_sps = false
@@ -812,8 +812,8 @@ function update.unit_mgmt()
     -- there should be no need for any to be in fill only mode
     if need_emcool then
         for i = 1, #self.tanks do
-            local session = self.tanks[i]   ---@type unit_session
-            local tank = session.get_db()   ---@type dynamicv_session_db
+            local session = self.tanks[i]
+            local tank = session.get_db()
 
             if tank.state.container_mode == CONTAINER_MODE.FILL then
                 session.get_cmd_queue().push_data(DTV_RTU_S_DATA.SET_CONT_MODE, CONTAINER_MODE.BOTH)

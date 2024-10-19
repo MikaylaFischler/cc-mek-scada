@@ -23,7 +23,7 @@ local core         = require("graphics.core")
 local threads = {}
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
-local UNIT_HW_STATE = databus.RTU_UNIT_HW_STATE
+local RTU_HW_STATE = databus.RTU_HW_STATE
 
 local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
 local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
@@ -33,7 +33,7 @@ local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
 ---@param iface string
 ---@param type string
 ---@param device table
----@param unit rtu_unit_registry_entry
+---@param unit rtu_registry_entry
 local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
     local sys = smem.rtu_sys
 
@@ -106,7 +106,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
         -- if disconnected on startup, config wouldn't have been validated
         -- checking now that it has connected; the config isn't valid, so don't connect it
         if invalid then
-            unit.hw_state = UNIT_HW_STATE.OFFLINE
+            unit.hw_state = RTU_HW_STATE.OFFLINE
             databus.tx_unit_hw_status(unit.uid, unit.hw_state)
             return
         end
@@ -138,16 +138,16 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
         end
 
         if unit.is_multiblock then
-            unit.hw_state = UNIT_HW_STATE.UNFORMED
+            unit.hw_state = RTU_HW_STATE.UNFORMED
             if unit.formed == false then
                 log.info(util.c("assuming ", unit.name, " is not formed due to PPM faults while initializing"))
             end
         elseif faulted then
-            unit.hw_state = UNIT_HW_STATE.FAULTED
+            unit.hw_state = RTU_HW_STATE.FAULTED
         elseif not unknown then
-            unit.hw_state = UNIT_HW_STATE.OK
+            unit.hw_state = RTU_HW_STATE.OK
         else
-            unit.hw_state = UNIT_HW_STATE.OFFLINE
+            unit.hw_state = RTU_HW_STATE.OFFLINE
         end
 
         databus.tx_unit_hw_status(unit.uid, unit.hw_state)
@@ -245,6 +245,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         -- we only care if this is our wireless modem
                         if nic.is_modem(device) then
                             nic.disconnect()
@@ -263,6 +264,7 @@ function threads.thread__main(smem)
                             log.warning("non-comms modem disconnected")
                         end
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         for i = 1, #sounders do
                             if sounders[i].speaker == device then
                                 table.remove(sounders, i)
@@ -279,13 +281,13 @@ function threads.thread__main(smem)
                             -- find disconnected device
                             if units[i].device == device then
                                 -- will let the PPM prevent crashes, which will indicate failures in MODBUS queries
-                                local unit = units[i]   ---@type rtu_unit_registry_entry
+                                local unit = units[i]
                                 local type_name = types.rtu_type_to_string(unit.type)
 
                                 println_ts(util.c("lost the ", type_name, " on interface ", unit.name))
                                 log.warning(util.c("lost the ", type_name, " unit peripheral on interface ", unit.name))
 
-                                unit.hw_state = UNIT_HW_STATE.OFFLINE
+                                unit.hw_state = RTU_HW_STATE.OFFLINE
                                 databus.tx_unit_hw_status(unit.uid, unit.hw_state)
                                 break
                             end
@@ -298,6 +300,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
+                        ---@cast device Modem
                         if device.isWireless() and not nic.is_connected() then
                             -- reconnected modem
                             nic.connect(device)
@@ -312,6 +315,7 @@ function threads.thread__main(smem)
                             log.info("wired modem reconnected")
                         end
                     elseif type == "speaker" then
+                        ---@cast device Speaker
                         table.insert(sounders, rtu.init_sounder(device))
 
                         println_ts("speaker connected")
@@ -332,7 +336,7 @@ function threads.thread__main(smem)
             elseif event == "speaker_audio_empty" then
                 -- handle empty speaker audio buffer
                 for i = 1, #sounders do
-                    local sounder = sounders[i] ---@type rtu_speaker_sounder
+                    local sounder = sounders[i]
                     if sounder.name == param1 then
                         sounder.continue()
                         break
@@ -460,7 +464,7 @@ end
 -- per-unit communications handler thread
 ---@nodiscard
 ---@param smem rtu_shared_memory
----@param unit rtu_unit_registry_entry
+---@param unit rtu_registry_entry
 function threads.thread__unit_comms(smem, unit)
     ---@class parallel_thread
     local public = {}
@@ -523,13 +527,13 @@ function threads.thread__unit_comms(smem, unit)
 
                 if unit.formed == nil then
                     unit.formed = is_formed
-                    if is_formed then unit.hw_state = UNIT_HW_STATE.OK end
+                    if is_formed then unit.hw_state = RTU_HW_STATE.OK end
                 elseif not unit.formed then
-                    unit.hw_state = UNIT_HW_STATE.UNFORMED
+                    unit.hw_state = RTU_HW_STATE.UNFORMED
                 end
 
                 if (is_formed == true) and not unit.formed then
-                    unit.hw_state = UNIT_HW_STATE.OK
+                    unit.hw_state = RTU_HW_STATE.OK
                     log.info(util.c(detail_name, " is now formed"))
                     rtu_comms.send_remounted(unit.uid)
                 elseif (is_formed == false) and unit.formed then
@@ -541,9 +545,9 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check hardware status
             if unit.device.__p_is_healthy() then
-                if unit.hw_state == UNIT_HW_STATE.FAULTED then unit.hw_state = UNIT_HW_STATE.OK end
+                if unit.hw_state == RTU_HW_STATE.FAULTED then unit.hw_state = RTU_HW_STATE.OK end
             else
-                if unit.hw_state == UNIT_HW_STATE.OK then unit.hw_state = UNIT_HW_STATE.FAULTED end
+                if unit.hw_state == RTU_HW_STATE.OK then unit.hw_state = RTU_HW_STATE.FAULTED end
             end
 
             -- update hw status

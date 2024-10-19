@@ -7,15 +7,15 @@ local style          = require("pocket.ui.style")
 
 local core           = require("graphics.core")
 
-local Div            = require("graphics.elements.div")
-local TextBox        = require("graphics.elements.textbox")
+local Div            = require("graphics.elements.Div")
+local TextBox        = require("graphics.elements.TextBox")
 
-local PushButton     = require("graphics.elements.controls.push_button")
+local PushButton     = require("graphics.elements.controls.PushButton")
 
-local DataIndicator  = require("graphics.elements.indicators.data")
-local StateIndicator = require("graphics.elements.indicators.state")
-local IconIndicator  = require("graphics.elements.indicators.icon")
-local VerticalBar    = require("graphics.elements.indicators.vbar")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
+local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
+local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -29,8 +29,8 @@ local yel_ind_s = style.icon_states.yel_ind_s
 -- create a boiler view in the unit app
 ---@param app pocket_app
 ---@param u_page nav_tree_page
----@param panes table
----@param blr_pane graphics_element
+---@param panes Div[]
+---@param blr_pane Div
 ---@param b_id integer boiler ID
 ---@param ps psil
 ---@param update function

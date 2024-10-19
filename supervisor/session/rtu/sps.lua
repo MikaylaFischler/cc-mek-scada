@@ -88,6 +88,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
         }
     }
 
+    ---@class sps_session:unit_session
     local public = self.session.get()
 
     -- PRIVATE FUNCTIONS --

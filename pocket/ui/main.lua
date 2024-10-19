@@ -12,6 +12,7 @@ local diag_apps   = require("pocket.ui.apps.diag_apps")
 local dummy_app   = require("pocket.ui.apps.dummy_app")
 local guide_app   = require("pocket.ui.apps.guide")
 local loader_app  = require("pocket.ui.apps.loader")
+local process_app = require("pocket.ui.apps.process")
 local sys_apps    = require("pocket.ui.apps.sys_apps")
 local unit_app    = require("pocket.ui.apps.unit")
 
@@ -21,16 +22,16 @@ local style       = require("pocket.ui.style")
 
 local core        = require("graphics.core")
 
-local Div         = require("graphics.elements.div")
-local MultiPane   = require("graphics.elements.multipane")
-local TextBox     = require("graphics.elements.textbox")
+local Div         = require("graphics.elements.Div")
+local MultiPane   = require("graphics.elements.MultiPane")
+local TextBox     = require("graphics.elements.TextBox")
 
-local WaitingAnim = require("graphics.elements.animations.waiting")
+local WaitingAnim = require("graphics.elements.animations.Waiting")
 
-local PushButton  = require("graphics.elements.controls.push_button")
-local Sidebar     = require("graphics.elements.controls.sidebar")
+local PushButton  = require("graphics.elements.controls.PushButton")
+local Sidebar     = require("graphics.elements.controls.Sidebar")
 
-local SignalBar   = require("graphics.elements.indicators.signal")
+local SignalBar   = require("graphics.elements.indicators.SignalBar")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -38,7 +39,7 @@ local cpair = core.cpair
 local APP_ID = pocket.APP_ID
 
 -- create new main view
----@param main graphics_element main displaybox
+---@param main DisplayBox main displaybox
 local function init(main)
     local db = iocontrol.get_db()
 
@@ -64,6 +65,7 @@ local function init(main)
     home_page(page_div)
     unit_app(page_div)
     control_app(page_div)
+    process_app(page_div)
     guide_app(page_div)
     loader_app(page_div)
     sys_apps(page_div)
@@ -78,7 +80,7 @@ local function init(main)
 
     PushButton{parent=main_pane,x=1,y=19,text="\x1b",min_width=3,fg_bg=cpair(colors.white,colors.gray),active_fg_bg=cpair(colors.gray,colors.black),callback=db.nav.nav_up}
 
-    db.nav.open_app(APP_ID.ROOT)
+    db.nav.go_home()
 
     -- done with initial render, lets go!
     root_pane.set_value(2)

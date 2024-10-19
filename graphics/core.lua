@@ -7,7 +7,7 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.3.4"
+core.version = "2.4.5"
 
 core.flasher = flasher
 core.events = events
@@ -16,6 +16,8 @@ core.events = events
 
 ---@enum ALIGN
 core.ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
+
+---@alias Container DisplayBox|Div|ListBox|MultiPane|AppMultiPane|Rectangle
 
 ---@class graphics_border
 ---@field width integer
@@ -124,10 +126,10 @@ end
 -- Interactive Field Manager
 
 ---@param e graphics_base element
----@param max_len any max value length
----@param fg_bg any enabled fg/bg
----@param dis_fg_bg any disabled fg/bg
----@param align_right any true to align content right while unfocused
+---@param max_len integer max value length
+---@param fg_bg cpair enabled fg/bg
+---@param dis_fg_bg? cpair disabled fg/bg
+---@param align_right? boolean true to align content right while unfocused
 function core.new_ifield(e, max_len, fg_bg, dis_fg_bg, align_right)
     local self = {
         frame_start = 1,

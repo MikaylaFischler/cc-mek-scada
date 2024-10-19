@@ -111,12 +111,12 @@ function coordinator.load_config()
 
     ---@class monitors_struct
     local monitors = {
-        main = nil,     ---@type table|nil
+        main = nil,         ---@type Monitor|nil
         main_name = "",
-        flow = nil,     ---@type table|nil
+        flow = nil,         ---@type Monitor|nil
         flow_name = "",
-        unit_displays = {},
-        unit_name_map = {}
+        unit_displays = {}, ---@type Monitor[]
+        unit_name_map = {}  ---@type string[]
     }
 
     local mon_cfv = util.new_validator()
@@ -387,10 +387,14 @@ function coordinator.comms(version, nic, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param auto_cfg sys_auto_config configuration
-    function public.send_auto_start(auto_cfg)
+    ---@param mode PROCESS process control mode
+    ---@param burn_target number burn rate target
+    ---@param charge_target number charge level target
+    ---@param gen_target number generation rate target
+    ---@param limits number[] unit burn rate limits
+    function public.send_auto_start(mode, burn_target, charge_target, gen_target, limits)
         _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
-            FAC_COMMAND.START, auto_cfg.mode, auto_cfg.burn_target, auto_cfg.charge_target, auto_cfg.gen_target, auto_cfg.limits
+            FAC_COMMAND.START, mode, burn_target, charge_target, gen_target, limits
         })
     end
 
@@ -578,7 +582,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
                                     process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.STOP then
-                                    iocontrol.get_db().facility.stop_ack(ack)
+                                    process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.START then
                                     if packet.length == 7 then
                                         process.start_ack_handle({ table.unpack(packet.data, 2) })
@@ -623,7 +627,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                                 local unit_id = packet.data[2]
                                 local ack = packet.data[3] == true
 
-                                local unit = iocontrol.get_db().units[unit_id]  ---@type ioctl_unit
+                                local unit = iocontrol.get_db().units[unit_id]
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then

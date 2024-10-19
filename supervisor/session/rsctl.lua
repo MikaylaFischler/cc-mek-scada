@@ -8,7 +8,7 @@ local rsctl = {}
 
 -- create a new redstone RTU I/O controller
 ---@nodiscard
----@param redstone_rtus table redstone RTU sessions
+---@param redstone_rtus redstone_session[] redstone RTU sessions
 function rsctl.new(redstone_rtus)
     ---@class rs_controller
     local public = {}
@@ -18,8 +18,7 @@ function rsctl.new(redstone_rtus)
     ---@return boolean
     function public.is_connected(port)
         for i = 1, #redstone_rtus do
-            local db = redstone_rtus[i].get_db() ---@type redstone_session_db
-            if db.io[port] ~= nil then return true end
+            if redstone_rtus[i].get_db().io[port] ~= nil then return true end
         end
 
         return false
@@ -30,8 +29,7 @@ function rsctl.new(redstone_rtus)
     ---@param value boolean
     function public.digital_write(port, value)
         for i = 1, #redstone_rtus do
-            local db = redstone_rtus[i].get_db() ---@type redstone_session_db
-            local io = db.io[port]               ---@type rs_db_dig_io|nil
+            local io = redstone_rtus[i].get_db().io[port]
             if io ~= nil then io.write(value) end
         end
     end
@@ -42,9 +40,8 @@ function rsctl.new(redstone_rtus)
     ---@return boolean|nil
     function public.digital_read(port)
         for i = 1, #redstone_rtus do
-            local db = redstone_rtus[i].get_db() ---@type redstone_session_db
-            local io = db.io[port]               ---@type rs_db_dig_io|nil
-            if io ~= nil then return io.read() end
+            local io = redstone_rtus[i].get_db().io[port]
+            if io ~= nil then return io.read() --[[@as boolean|nil]] end
         end
     end
 
@@ -55,8 +52,7 @@ function rsctl.new(redstone_rtus)
     ---@param max number maximum value for scaling 0 to 15
     function public.analog_write(port, value, min, max)
         for i = 1, #redstone_rtus do
-            local db = redstone_rtus[i].get_db() ---@type redstone_session_db
-            local io = db.io[port]               ---@type rs_db_ana_io|nil
+            local io = redstone_rtus[i].get_db().io[port]
             if io ~= nil then io.write(rsio.analog_write(value, min, max)) end
         end
     end
