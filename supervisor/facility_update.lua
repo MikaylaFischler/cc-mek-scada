@@ -341,9 +341,17 @@ function update.auto_control(ExtChargeIdling)
         if state_changed then
             self.time_start = now
             self.saturated = true
+            self.waiting_on_ramp = true
 
-            self.status_text = { "MONITORED MODE", "running reactors at limit" }
+            self.status_text = { "MONITORED MODE", "ramping reactors to limit" }
             log.info("FAC: MAX_BURN process mode started")
+        elseif self.waiting_on_ramp then
+            if all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.status_text = { "MONITORED MODE", "running reactors at limit" }
+                log.info("FAC: MAX_BURN process mode initial ramp completed")
+            end
         end
 
         allocate_burn_rate(self.max_burn_combined, true)
@@ -351,8 +359,17 @@ function update.auto_control(ExtChargeIdling)
         -- a total aggregate burn rate
         if state_changed then
             self.time_start = now
-            self.status_text = { "BURN RATE MODE", "running" }
+            self.waiting_on_ramp = true
+
+            self.status_text = { "BURN RATE MODE", "ramping to target" }
             log.info("FAC: BURN_RATE process mode started")
+        elseif self.waiting_on_ramp then
+            if all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.status_text = { "BURN RATE MODE", "running" }
+                log.info("FAC: BURN_RATE process mode initial ramp completed")
+            end
         end
 
         local unallocated = allocate_burn_rate(self.burn_target, true)

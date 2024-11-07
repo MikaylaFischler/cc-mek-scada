@@ -91,8 +91,8 @@ function facility.new(config)
         charge_conversion = 1.0,
         time_start = 0.0,
         initial_ramp = true,
-        waiting_on_ramp = false,
-        waiting_on_stable = false,
+        waiting_on_ramp = false,    -- waiting on auto ramping
+        waiting_on_stable = false,  -- waiting on gen rate stabilization
         accumulator = 0.0,
         saturated = false,
         last_update = 0,
