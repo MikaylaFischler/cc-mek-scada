@@ -545,38 +545,38 @@ function update.auto_safety()
             log.info(util.c("FAC: charge state of induction matrix entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
         end
 
-        -- check for critical unit alarms
-        astatus.crit_alarm = false
-        for i = 1, #self.units do
-            local u = self.units[i]
-
-            if u.has_alarm_min_prio(PRIO.CRITICAL) then
-                astatus.crit_alarm = true
-                break
-            end
-        end
-
-        -- check for facility radiation
-        if #self.envd > 0 then
-            local max_rad = 0
-
-            for i = 1, #self.envd do
-                local envd = self.envd[i]
-                local e_db = envd.get_db()
-                if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
-            end
-
-            astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
-        else
-            -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
-            -- operator can restart the system or hit the stop/reset button
-        end
-
         -- system not ready, will need to restart GEN_RATE mode
         -- clears when we enter the fault waiting state
         astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
     else
-        astatus.matrix_dc = true
+        astatus.matrix_fault = true
+    end
+
+    -- check for critical unit alarms
+    astatus.crit_alarm = false
+    for i = 1, #self.units do
+        local u = self.units[i]
+
+        if u.has_alarm_min_prio(PRIO.CRITICAL) then
+            astatus.crit_alarm = true
+            break
+        end
+    end
+
+    -- check for facility radiation
+    if #self.envd > 0 then
+        local max_rad = 0
+
+        for i = 1, #self.envd do
+            local envd = self.envd[i]
+            local e_db = envd.get_db()
+            if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
+        end
+
+        astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
+    else
+        -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
+        -- operator can restart the system or hit the stop/reset button
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
