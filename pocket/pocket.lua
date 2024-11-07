@@ -264,7 +264,8 @@ function pocket.init_nav(smem)
 
     -- open an app
     ---@param app_id POCKET_APP_ID
-    function nav.open_app(app_id)
+    ---@param on_loaded? function
+    function nav.open_app(app_id, on_loaded)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
@@ -277,7 +278,7 @@ function pocket.init_nav(smem)
                 app = self.apps[app_id]
             else self.loader_return = nil end
 
-            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, app_id) end
+            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, { app_id, on_loaded }) end
 
             self.cur_app = app_id
             self.pane.set_value(app_id)
@@ -360,10 +361,10 @@ function pocket.init_nav(smem)
     function nav.open_help(key)
         self.help_return = self.cur_app
 
-        nav.open_app(APP_ID.GUIDE)
-
-        local load = self.help_map[key]
-        if load then load() end
+        nav.open_app(APP_ID.GUIDE, function ()
+            local show = self.help_map[key]
+            if show then show() end
+        end)
     end
 
     -- link the help map from the guide app
