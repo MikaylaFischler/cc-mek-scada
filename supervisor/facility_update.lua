@@ -549,7 +549,7 @@ function update.auto_safety()
         -- clears when we enter the fault waiting state
         astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
     else
-        astatus.matrix_fault = true
+        astatus.matrix_dc = true
     end
 
     -- check for critical unit alarms
