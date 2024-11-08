@@ -540,7 +540,7 @@ function update.auto_safety()
             astatus.matrix_fault = false
             log.info("FAC: induction matrix OK, clearing ASCRAM condition")
         else
-            astatus.matrix_fault = i_ok
+            astatus.matrix_fault = not i_ok
         end
 
         -- check matrix fill too high
@@ -555,7 +555,7 @@ function update.auto_safety()
         -- clears when we enter the fault waiting state
         astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
     else
-        astatus.matrix_dc = true
+        astatus.matrix_fault = true
     end
 
     -- check for critical unit alarms
