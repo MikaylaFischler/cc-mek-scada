@@ -94,14 +94,14 @@ local function new_view(root, x, y)
     main.line_break()
 
     local auto_scram  = IndicatorLight{parent=main,label="Automatic SCRAM",colors=ind_red,flash=true,period=period.BLINK_250_MS}
-    local matrix_dc   = IndicatorLight{parent=main,label="Matrix Disconnected",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local matrix_flt  = IndicatorLight{parent=main,label="Induction Matrix Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
     local matrix_fill = IndicatorLight{parent=main,label="Matrix Charge High",colors=ind_red,flash=true,period=period.BLINK_500_MS}
     local unit_crit   = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
 
     auto_scram.register(facility.ps, "auto_scram", auto_scram.update)
-    matrix_dc.register(facility.ps, "as_matrix_dc", matrix_dc.update)
+    matrix_flt.register(facility.ps, "as_matrix_fault", matrix_flt.update)
     matrix_fill.register(facility.ps, "as_matrix_fill", matrix_fill.update)
     unit_crit.register(facility.ps, "as_crit_alarm", unit_crit.update)
     fac_rad_h.register(facility.ps, "as_radiation", fac_rad_h.update)

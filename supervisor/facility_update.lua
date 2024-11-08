@@ -528,13 +528,19 @@ function update.auto_safety()
 
     local astatus = self.ascram_status
 
+    -- matrix related checks
     if self.induction[1] ~= nil then
         local db = self.induction[1].get_db()
 
-        -- clear matrix disconnected
-        if astatus.matrix_dc then
-            astatus.matrix_dc = false
-            log.info("FAC: induction matrix reconnected, clearing ASCRAM condition")
+        -- check for unformed or faulted state
+        local i_ok = db.formed and not self.induction[1].is_faulted()
+
+        -- clear matrix fault if ok again
+        if astatus.matrix_fault and i_ok then
+            astatus.matrix_fault = false
+            log.info("FAC: induction matrix OK, clearing ASCRAM condition")
+        else
+            astatus.matrix_fault = i_ok
         end
 
         -- check matrix fill too high
@@ -580,7 +586,7 @@ function update.auto_safety()
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-        local scram = astatus.matrix_dc or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
+        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
 
         if scram and not self.ascram then
             -- SCRAM all units
@@ -604,14 +610,14 @@ function update.auto_safety()
                 self.status_text = { "AUTOMATIC SCRAM", "facility radiation high" }
 
                 log.info("FAC: automatic SCRAM due to high facility radiation")
-            elseif astatus.matrix_dc then
+            elseif astatus.matrix_fault then
                 next_mode = PROCESS.MATRIX_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.MATRIX_DC
-                self.status_text = { "AUTOMATIC SCRAM", "induction matrix disconnected" }
+                self.ascram_reason = AUTO_SCRAM.MATRIX_FAULT
+                self.status_text = { "AUTOMATIC SCRAM", "induction matrix fault" }
 
                 if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
 
-                log.info("FAC: automatic SCRAM due to induction matrix disconnection")
+                log.info("FAC: automatic SCRAM due to induction matrix disconnected, unformed, or faulted")
             elseif astatus.matrix_fill then
                 next_mode = PROCESS.MATRIX_FAULT_IDLE
                 self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
