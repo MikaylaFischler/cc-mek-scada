@@ -28,7 +28,10 @@ def minify(path: str):
     contents = f.read()
     f.close()
 
-    if re.search(r'--+\[(?!\[@as)+', contents) != None:
+    # remove --[[@as type]] hints before anything, since it would detect as multiline comments
+    contents = re.sub(r' --+\[.+]]', '', contents)
+
+    if re.search(r'--+\[+', contents) != None:
         # absolutely not dealing with lua multiline comments
         # - there are more important things to do
         # - this minification is intended to be 100% safe, so working with multiline comments is asking for trouble
