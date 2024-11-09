@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.19a"
+local CCMSI_VERSION = "v1.19b"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -400,22 +400,22 @@ elseif mode == "install" or mode == "update" then
 
     -- try to find local versions
     ok, l_manifest = read_local_manifest()
-    if not update_installer then
-        if mode == "update" and not ok then
+    if mode == "update" and not update_installer then
+        if not ok then
             red();println("Failed to load local installation information, cannot update.");white()
             return
-        end
+        else
+            ver.boot.v_local = l_manifest.versions.bootloader
+            ver.app.v_local = l_manifest.versions[app]
+            ver.comms.v_local = l_manifest.versions.comms
+            ver.common.v_local = l_manifest.versions.common
+            ver.graphics.v_local = l_manifest.versions.graphics
+            ver.lockbox.v_local = l_manifest.versions.lockbox
 
-        ver.boot.v_local = l_manifest.versions.bootloader
-        ver.app.v_local = l_manifest.versions[app]
-        ver.comms.v_local = l_manifest.versions.comms
-        ver.common.v_local = l_manifest.versions.common
-        ver.graphics.v_local = l_manifest.versions.graphics
-        ver.lockbox.v_local = l_manifest.versions.lockbox
-
-        if l_manifest.versions[app] == nil then
-            red();println("Another application is already installed, please uninstall it before installing a new application.");white()
-            return
+            if l_manifest.versions[app] == nil then
+                red();println("Another application is already installed, please uninstall it before installing a new application.");white()
+                return
+            end
         end
     end
 
