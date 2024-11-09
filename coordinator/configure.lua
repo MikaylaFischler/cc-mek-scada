@@ -58,6 +58,7 @@ style.btn_dis_fg_bg = cpair(colors.lightGray,colors.white)
 local tool_ctl = {
     sv_cool_conf = nil,       ---@type [ integer, integer ][] list of boiler & turbine counts
 
+    launch_startup = false,
     start_fail = 0,
     fail_message = "",
     has_config = false,
@@ -236,9 +237,17 @@ local function config_view(display)
         main_pane.set_value(8)
     end
 
+    local function startup()
+        tool_ctl.launch_startup = true
+        exit()
+    end
+
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    tool_ctl.color_cfg = PushButton{parent=main_page,x=23,y=17,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
-    PushButton{parent=main_page,x=39,y=17,min_width=12,text="Change Log",callback=function()main_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    local start_btn = PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    if tool_ctl.start_fail ~= 0 then start_btn.disable() end
 
     if not tool_ctl.has_config then
         tool_ctl.view_cfg.disable()
@@ -372,7 +381,7 @@ function configurator.configure(start_code, message)
         println("configurator error: " .. error)
     end
 
-    return status, error
+    return status, error, tool_ctl.launch_startup
 end
 
 return configurator
