@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.19"
+local CCMSI_VERSION = "v1.19b"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -149,16 +149,16 @@ local function get_remote_manifest()
 end
 
 -- record the local installation manifest
-local function write_install_manifest(manifest, dependencies)
+local function write_install_manifest(manifest, deps)
     local versions = {}
     for key, value in pairs(manifest.versions) do
-        local is_dependency = false
-        for _, dependency in pairs(dependencies) do
-            if (key == "bootloader" and dependency == "system") or key == dependency then
-                is_dependency = true;break
+        local is_dep = false
+        for _, dep in pairs(deps) do
+            if (key == "bootloader" and dep == "system") or key == dep then
+                is_dep = true;break
             end
         end
-        if key == app or key == "comms" or is_dependency then versions[key] = value end
+        if key == app or key == "comms" or is_dep then versions[key] = value end
     end
 
     manifest.versions = versions
@@ -383,8 +383,10 @@ if mode == "check" then
         yellow();println("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
     end
 elseif mode == "install" or mode == "update" then
+    local ok, r_manifest, l_manifest
+
     local update_installer = app == "installer"
-    local ok, manifest = get_remote_manifest()
+    ok, r_manifest = get_remote_manifest()
     if not ok then return end
 
     local ver = {
@@ -397,27 +399,27 @@ elseif mode == "install" or mode == "update" then
     }
 
     -- try to find local versions
-    local local_ok, lmnf = read_local_manifest()
-    if not local_ok then
-        if mode == "update" then
+    ok, l_manifest = read_local_manifest()
+    if mode == "update" and not update_installer then
+        if not ok then
             red();println("Failed to load local installation information, cannot update.");white()
             return
-        end
-    elseif not update_installer then
-        ver.boot.v_local = lmnf.versions.bootloader
-        ver.app.v_local = lmnf.versions[app]
-        ver.comms.v_local = lmnf.versions.comms
-        ver.common.v_local = lmnf.versions.common
-        ver.graphics.v_local = lmnf.versions.graphics
-        ver.lockbox.v_local = lmnf.versions.lockbox
+        else
+            ver.boot.v_local = l_manifest.versions.bootloader
+            ver.app.v_local = l_manifest.versions[app]
+            ver.comms.v_local = l_manifest.versions.comms
+            ver.common.v_local = l_manifest.versions.common
+            ver.graphics.v_local = l_manifest.versions.graphics
+            ver.lockbox.v_local = l_manifest.versions.lockbox
 
-        if lmnf.versions[app] == nil then
-            red();println("Another application is already installed, please uninstall it before installing a new application.");white()
-            return
+            if l_manifest.versions[app] == nil then
+                red();println("Another application is already installed, please uninstall it before installing a new application.");white()
+                return
+            end
         end
     end
 
-    if manifest.versions.installer ~= CCMSI_VERSION then
+    if r_manifest.versions.installer ~= CCMSI_VERSION then
         if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
         if update_installer or ask_y_n("Would you like to update now", true) then
             lgray();println("GET ccmsi.lua")
@@ -440,12 +442,12 @@ elseif mode == "install" or mode == "update" then
         return
     end
 
-    ver.boot.v_remote = manifest.versions.bootloader
-    ver.app.v_remote = manifest.versions[app]
-    ver.comms.v_remote = manifest.versions.comms
-    ver.common.v_remote = manifest.versions.common
-    ver.graphics.v_remote = manifest.versions.graphics
-    ver.lockbox.v_remote = manifest.versions.lockbox
+    ver.boot.v_remote = r_manifest.versions.bootloader
+    ver.app.v_remote = r_manifest.versions[app]
+    ver.comms.v_remote = r_manifest.versions.comms
+    ver.common.v_remote = r_manifest.versions.common
+    ver.graphics.v_remote = r_manifest.versions.graphics
+    ver.lockbox.v_remote = r_manifest.versions.lockbox
 
     green()
     if mode == "install" then print("Installing ") else print("Updating ") end
@@ -461,36 +463,33 @@ elseif mode == "install" or mode == "update" then
     ver.graphics.changed = show_pkg_change("graphics", ver.graphics)
     ver.lockbox.changed = show_pkg_change("lockbox", ver.lockbox)
 
-    --------------------------
-    -- START INSTALL/UPDATE --
-    --------------------------
+    -- start install/update
 
-    local space_required = manifest.sizes.manifest
-    local space_available = fs.getFreeSpace("/")
+    local space_req = r_manifest.sizes.manifest
+    local space_avail = fs.getFreeSpace("/")
 
-    local single_file_mode = false
-    local file_list = manifest.files
-    local size_list = manifest.sizes
-    local dependencies = manifest.depends[app]
+    local file_list = r_manifest.files
+    local size_list = r_manifest.sizes
+    local deps = r_manifest.depends[app]
 
-    table.insert(dependencies, app)
+    table.insert(deps, app)
 
     -- helper function to check if a dependency is unchanged
-    local function unchanged(dependency)
-        if dependency == "system" then return not ver.boot.changed
-        elseif dependency == "graphics" then return not ver.graphics.changed
-        elseif dependency == "lockbox" then return not ver.lockbox.changed
-        elseif dependency == "common" then return not (ver.common.changed or ver.comms.changed)
-        elseif dependency == app then return not ver.app.changed
+    local function unchanged(dep)
+        if dep == "system" then return not ver.boot.changed
+        elseif dep == "graphics" then return not ver.graphics.changed
+        elseif dep == "lockbox" then return not ver.lockbox.changed
+        elseif dep == "common" then return not (ver.common.changed or ver.comms.changed)
+        elseif dep == app then return not ver.app.changed
         else return true end
     end
 
     local any_change = false
 
-    for _, dependency in pairs(dependencies) do
-        local size = size_list[dependency]
-        space_required = space_required + size
-        any_change = any_change or not unchanged(dependency)
+    for _, dep in pairs(deps) do
+        local size = size_list[dep]
+        space_req = space_req + size
+        any_change = any_change or not unchanged(dep)
     end
 
     if mode == "update" and not any_change then
@@ -501,10 +500,7 @@ elseif mode == "install" or mode == "update" then
     -- ask for confirmation
     if not ask_y_n("Continue", false) then return end
 
-    -- check space constraints
-    if space_available < space_required then
-        single_file_mode = true
-    end
+    local single_file_mode = space_avail < space_req
 
     local success = true
 
@@ -548,7 +544,7 @@ elseif mode == "install" or mode == "update" then
                     success = false
                     return
                 end
-                clean(manifest)
+                clean(r_manifest)
                 sf_install(3)
             elseif attempt == 3 then
                 yellow()
@@ -574,30 +570,30 @@ elseif mode == "install" or mode == "update" then
         local abort_attempt = false
         success = true
 
-        for _, dependency in pairs(dependencies) do
-            if mode == "update" and unchanged(dependency) then
-                pkg_message("skipping install of unchanged package", dependency)
+        for _, dep in pairs(deps) do
+            if mode == "update" and unchanged(dep) then
+                pkg_message("skipping install of unchanged package", dep)
             else
-                pkg_message("installing package", dependency)
+                pkg_message("installing package", dep)
                 lgray()
 
                 -- beginning on the second try, delete the directory before starting
                 if attempt >= 2 then
-                    if dependency == "system" then
-                    elseif dependency == "common" then
+                    if dep == "system" then
+                    elseif dep == "common" then
                         if fs.exists("/scada-common") then
                             fs.delete("/scada-common")
                             println("deleted /scada-common")
                         end
                     else
-                        if fs.exists("/"..dependency) then
-                            fs.delete("/"..dependency)
-                            println("deleted /"..dependency)
+                        if fs.exists("/"..dep) then
+                            fs.delete("/"..dep)
+                            println("deleted /"..dep)
                         end
                     end
                 end
 
-                local files = file_list[dependency]
+                local files = file_list[dep]
                 for _, file in pairs(files) do
                     println("GET "..file)
                     mitigate_case(file)
@@ -620,14 +616,14 @@ elseif mode == "install" or mode == "update" then
         if fs.exists(install_dir) then fs.delete(install_dir);fs.makeDir(install_dir) end
 
         -- download all dependencies
-        for _, dependency in pairs(dependencies) do
-            if mode == "update" and unchanged(dependency) then
-                pkg_message("skipping download of unchanged package", dependency)
+        for _, dep in pairs(deps) do
+            if mode == "update" and unchanged(dep) then
+                pkg_message("skipping download of unchanged package", dep)
             else
-                pkg_message("downloading package", dependency)
+                pkg_message("downloading package", dep)
                 lgray()
 
-                local files = file_list[dependency]
+                local files = file_list[dep]
                 for _, file in pairs(files) do
                     println("GET "..file)
                     local dl_stat = http_get_file(file, install_dir.."/")
@@ -650,14 +646,14 @@ elseif mode == "install" or mode == "update" then
 
         -- copy in downloaded files (installation)
         if success then
-            for _, dependency in pairs(dependencies) do
-                if mode == "update" and unchanged(dependency) then
-                    pkg_message("skipping install of unchanged package", dependency)
+            for _, dep in pairs(deps) do
+                if mode == "update" and unchanged(dep) then
+                    pkg_message("skipping install of unchanged package", dep)
                 else
-                    pkg_message("installing package", dependency)
+                    pkg_message("installing package", dep)
                     lgray()
 
-                    local files = file_list[dependency]
+                    local files = file_list[dep]
                     for _, file in pairs(files) do
                         local temp_file = install_dir.."/"..file
                         if fs.exists(file) then fs.delete(file) end
@@ -671,13 +667,13 @@ elseif mode == "install" or mode == "update" then
     end
 
     if success then
-        write_install_manifest(manifest, dependencies)
+        write_install_manifest(r_manifest, deps)
         green()
         if mode == "install" then
             println("Installation completed successfully.")
         else println("Update completed successfully.") end
         white();println("Ready to clean up unused files, press any key to continue...")
-        any_key();clean(manifest)
+        any_key();clean(r_manifest)
         white();println("Done.")
     else
         red()
@@ -712,14 +708,14 @@ elseif mode == "uninstall" then
     clean(manifest)
 
     local file_list = manifest.files
-    local dependencies = manifest.depends[app]
+    local deps = manifest.depends[app]
 
-    table.insert(dependencies, app)
+    table.insert(deps, app)
 
     -- delete all installed files
     lgray()
-    for _, dependency in pairs(dependencies) do
-        local files = file_list[dependency]
+    for _, dep in pairs(deps) do
+        local files = file_list[dep]
         for _, file in pairs(files) do
             if fs.exists(file) then fs.delete(file);println("deleted "..file) end
         end

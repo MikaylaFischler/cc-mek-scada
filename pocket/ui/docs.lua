@@ -148,7 +148,7 @@ doc("auto_ramping", "Process Ramping", "Automatic process control is performing 
 doc("auto_saturated", "Min/Max Burn Rate", "Auto control has either commanded 0 mB/t or the maximum total burn rate available (from assigned units).")
 sect("Automatic SCRAM")
 doc("auto_scram", "Automatic SCRAM", "Automatic control system SCRAM'ed the assigned reactors due to a safety hazard, shown by the below indicators.")
-doc("as_matrix_dc", "Matrix Disconnected", "Automatic SCRAM occurred due to loss of induction matrix connection.")
+doc("as_matrix_fault", "Matrix Fault", "Automatic SCRAM occurred due to the loss of the induction matrix connection, or the matrix being unformed or faulted.")
 doc("as_matrix_fill", "Matrix Charge High", "Automatic SCRAM occurred due to induction matrix charge exceeding acceptable limit.")
 doc("as_crit_alarm", "Unit Critical Alarm", "Automatic SCRAM occurred due to critical level unit alarm(s).")
 doc("as_radiation", "Facility Radiation High", "Automatic SCRAM occurred due to high facility radiation levels.")

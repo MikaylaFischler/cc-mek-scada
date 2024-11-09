@@ -148,7 +148,7 @@ function iocontrol.init_fac(conf)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_dc = false,
+            matrix_fault = false,
             matrix_fill = false,
             crit_alarm = false,
             radiation = false,
@@ -908,7 +908,7 @@ function iocontrol.record_process_data(data)
     fac.ps.publish("auto_saturated", fac.auto_saturated)
 
     fac.ps.publish("auto_scram", fac.auto_scram)
-    fac.ps.publish("as_matrix_dc", fac.ascram_status.matrix_dc)
+    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
     fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
     fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
     fac.ps.publish("as_radiation", fac.ascram_status.radiation)
