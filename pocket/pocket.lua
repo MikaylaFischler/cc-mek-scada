@@ -89,13 +89,14 @@ local APP_ID = {
     UNITS = 3,
     CONTROL = 4,
     PROCESS = 5,
-    GUIDE = 6,
-    ABOUT = 7,
+    WASTE = 6,
+    GUIDE = 7,
+    ABOUT = 8,
     -- diagnostic app pages
-    ALARMS = 8,
+    ALARMS = 9,
     -- other
-    DUMMY = 9,
-    NUM_APPS = 9
+    DUMMY = 10,
+    NUM_APPS = 10
 }
 
 pocket.APP_ID = APP_ID
