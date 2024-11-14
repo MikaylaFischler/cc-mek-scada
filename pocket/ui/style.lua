@@ -214,6 +214,32 @@ style.imatrix = {
     }
 }
 
+style.sps = {
+    -- SPS states
+    states = {
+        {
+            color = cpair(colors.black, colors.yellow),
+            text = "OFF-LINE"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "NOT FORMED"
+        },
+        {
+            color = cpair(colors.black, colors.orange),
+            text = "RTU  FAULT"
+        },
+        {
+            color = cpair(colors.white, colors.gray),
+            text = "IDLE"
+        },
+        {
+            color = cpair(colors.black, colors.green),
+            text = "ACTIVE"
+        }
+    }
+}
+
 style.waste = {
     -- auto waste processing states
     states = {
@@ -247,28 +273,7 @@ style.waste = {
     -- process radio button options
     options = { "Plutonium", "Polonium", "Antimatter" },
     -- unit waste selection
-    unit_opts = {
-        {
-            text = "Auto",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.white, colors.gray)
-        },
-        {
-            text = "Pu",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.green)
-        },
-        {
-            text = "Po",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.cyan)
-        },
-        {
-            text = "AM",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.purple)
-        }
-    }
+    unit_opts = { "Auto", "Plutonium", "Polonium", "Antimatter" }
 }
 
 return style

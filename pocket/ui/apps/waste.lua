@@ -22,11 +22,13 @@ local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
 local Checkbox      = require("graphics.elements.controls.Checkbox")
 local HazardButton  = require("graphics.elements.controls.HazardButton")
+local PushButton     = require("graphics.elements.controls.PushButton")
 local RadioButton   = require("graphics.elements.controls.RadioButton")
 
 local NumberField   = require("graphics.elements.form.NumberField")
 
-local IconIndicator = require("graphics.elements.indicators.IconIndicator")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
 local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local ALIGN  = core.ALIGN
@@ -37,6 +39,8 @@ local APP_ID = pocket.APP_ID
 
 local label_fg_bg     = style.label
 local text_fg         = style.text_fg
+
+local lu_col    = style.label_unit_pair
 
 local field_fg_bg     = style.field
 local field_dis_fg_bg = style.field_disable
@@ -79,7 +83,7 @@ local function new_view(root)
         local panes = {} ---@type Div[]
 
         -- create all page divs
-        for _ = 1, db.facility.num_units + 3 do
+        for _ = 1, db.facility.num_units do
             local div = Div{parent=page_div}
             table.insert(panes, div)
         end
@@ -105,16 +109,103 @@ local function new_view(root)
             u_page.tasks = { update }
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
+
+            local u_status = StateIndicator{parent=u_div,x=16,y=3,states=style.waste.states_abbrv,value=1,min_width=6}
+
+            -- u_status.register(f_ps, "current_waste_product", u_status.update)
+
+            local waste_prod = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+
+            TextBox{parent=u_div,y=8,text="SNAs"}
+            TextBox{parent=u_div,x=14,y=8,text="Count",fg_bg=style.label}
+            local count = DataIndicator{parent=u_div,x=20,y=8,label="",format="%2d",value=0,unit="",lu_colors=lu_col,width=2,fg_bg=text_fg}
+
+            TextBox{parent=u_div,y=10,text="Peak Rate\n In\n Out",fg_bg=style.label}
+            local peak_i = DataIndicator{parent=u_div,x=6,y=11,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local peak_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+
+            TextBox{parent=u_div,y=13,text="Maximum Rate\n In\n Out",fg_bg=style.label}
+            local max_i = DataIndicator{parent=u_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local max_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+
+            TextBox{parent=u_div,y=16,text="Current Rate\n In\n Out",fg_bg=style.label}
+            local cur_i = DataIndicator{parent=u_div,x=6,y=17,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local cur_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
         end
+
+        --#endregion
+
+        --#region waste control page
+
+        local c_pane = Div{parent=page_div}
+        local c_div = Div{parent=c_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, c_div)
+
+        local wst_ctrl = app.new_page(nil, #panes)
+        wst_ctrl.tasks = { update }
+
+        TextBox{parent=c_div,y=1,text="Waste Control",alignment=ALIGN.CENTER}
+
+        local status = StateIndicator{parent=c_div,x=3,y=3,states=style.waste.states,value=1,min_width=17}
+
+        status.register(f_ps, "current_waste_product", status.update)
+
+        local waste_prod = RadioButton{parent=c_div,y=5,options=style.waste.options,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+
+        waste_prod.register(f_ps, "process_waste_product", waste_prod.set_value)
+
+        local fb_active    = IconIndicator{parent=c_div,y=9,label="Fallback Active",states=wht_ind_s}
+        local sps_disabled = IconIndicator{parent=c_div,y=10,label="SPS Disabled LC",states=yel_ind_s}
+
+        fb_active.register(f_ps, "pu_fallback_active", fb_active.update)
+        sps_disabled.register(f_ps, "sps_disabled_low_power", sps_disabled.update)
+
+        TextBox{parent=c_div,y=12,text="Nuclear Waste In",fg_bg=style.label}
+        local sum_raw_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+        -- sum_raw_waste.register(f_ps, "burn_sum", sum_raw_waste.update)
+
+        TextBox{parent=c_div,y=15,text="Spent Waste Out",fg_bg=style.label}
+        local sum_sp_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+        -- sum_sp_waste.register(f_ps, "spent_waste_rate", sum_sp_waste.update)
+
+        local stats_div = Div{parent=c_pane,x=2,width=page_div.get_width()-2}
+        table.insert(panes, stats_div)
+
+        local stats_page = app.new_page(wst_ctrl, #panes)
+        stats_page.tasks = { update }
+
+        PushButton{parent=c_div,x=6,y=18,text="PROD RATES",min_width=12,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=stats_page.nav_to}
+        PushButton{parent=stats_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=wst_ctrl.nav_to}
+
+        TextBox{parent=stats_div,y=1,text="Production Rates",alignment=ALIGN.CENTER}
+
+        TextBox{parent=stats_div,y=3,text="Plutonium (Pellets)",fg_bg=style.label}
+        local pu = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+        TextBox{parent=stats_div,y=6,text="Polonium",fg_bg=style.label}
+        local po = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+        TextBox{parent=stats_div,y=9,text="Polonium (Pellets)",fg_bg=style.label}
+        local popl = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+        -- pu.register(f_ps, "pu_rate", pu.update)
+        -- po.register(f_ps, "po_rate", po.update)
+        -- popl.register(f_ps, "po_pl_rate", popl.update)
+
+        TextBox{parent=stats_div,y=12,text="Antimatter",fg_bg=style.label}
+        local am = DataIndicator{parent=stats_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+        -- am.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
         --#endregion
 
         --#region waste options page
 
-        local o_pane = panes[db.facility.num_units + 2]
+        local o_pane = Div{parent=page_div}
         local o_div = Div{parent=o_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, o_pane)
 
-        local opt_page = app.new_page(nil, db.facility.num_units + 2)
+        local opt_page = app.new_page(nil, #panes)
         opt_page.tasks = { update }
 
         TextBox{parent=o_div,y=1,text="Waste Options",alignment=ALIGN.CENTER}
@@ -132,41 +223,30 @@ local function new_view(root)
 
         --#endregion
 
-        --#region process control page
+        --#region SPS page
 
-        local c_pane = panes[db.facility.num_units + 1]
-        local c_div = Div{parent=c_pane,x=2,width=main.get_width()-2}
+        local s_pane = Div{parent=page_div}
+        local s_div = Div{parent=s_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, s_pane)
 
-        local wst_ctrl = app.new_page(nil, db.facility.num_units + 1)
-        wst_ctrl.tasks = { update }
+        local sps_page = app.new_page(nil, #panes)
+        sps_page.tasks = { update }
 
-        TextBox{parent=c_div,y=1,text="Waste Control",alignment=ALIGN.CENTER}
+        TextBox{parent=s_div,y=1,text="Facility SPS",alignment=ALIGN.CENTER}
 
-        local status = StateIndicator{parent=c_div,x=3,y=3,states=style.waste.states,value=1,min_width=17}
+        local sps_status = StateIndicator{parent=s_div,x=5,y=3,states=style.sps.states,value=1,min_width=12}
 
-        status.register(f_ps, "current_waste_product", status.update)
+        -- status.register(facility.sps_ps_tbl[1], "computed_status", status.update)
 
-        local waste_prod = RadioButton{parent=c_div,x=2,y=5,options=style.waste.options,callback=function()end,radio_colors=cpair(colors.white,colors.black),select_color=colors.brown}
+        TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=style.label}
+        local sps_in = DataIndicator{parent=s_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        waste_prod.register(f_ps, "process_waste_product", waste_prod.set_value)
+        -- sps_in.register(facility.ps, "po_am_rate", sps_in.update)
 
-        local fb_active    = IconIndicator{parent=c_div,x=2,y=9,label="Fallback Active",states=wht_ind_s}
-        local sps_disabled = IconIndicator{parent=c_div,x=2,y=10,label="SPS Disabled LC",states=yel_ind_s}
+        TextBox{parent=s_div,y=8,text="Production Rate",width=15,fg_bg=style.label}
+        local sps_rate = DataIndicator{parent=s_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        fb_active.register(f_ps, "pu_fallback_active", fb_active.update)
-        sps_disabled.register(f_ps, "sps_disabled_low_power", sps_disabled.update)
-
-        --#endregion
-
-        --#region auto-SCRAM annunciator page
-
-        local a_pane = panes[db.facility.num_units + 3]
-        local a_div = Div{parent=a_pane,x=2,width=main.get_width()-2}
-
-        local annunc_page = app.new_page(nil, db.facility.num_units + 3)
-        annunc_page.tasks = { update }
-
-        TextBox{parent=a_div,y=1,text="Automatic SCRAM",alignment=ALIGN.CENTER}
+        -- sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
         --#endregion
 
@@ -180,7 +260,7 @@ local function new_view(root)
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "WST", color = core.cpair(colors.black, colors.brown), callback = wst_ctrl.nav_to },
             { label = "OPT", color = core.cpair(colors.black, colors.white), callback = opt_page.nav_to },
-            { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = annunc_page.nav_to }
+            { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page.nav_to }
         }
 
         for i = 1, db.facility.num_units do
