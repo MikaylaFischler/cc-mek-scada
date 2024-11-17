@@ -87,7 +87,7 @@ local function new_view(root)
         -- refresh data callback, every 500ms it will re-send the query
         local function update()
             if util.time_ms() - last_update >= 500 then
-                -- db.api.get_waste()
+                db.api.get_waste()
                 last_update = util.time_ms()
             end
         end
@@ -109,11 +109,11 @@ local function new_view(root)
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
-            local u_status = StateIndicator{parent=u_div,x=16,y=3,states=style.waste.states_abbrv,value=1,min_width=6}
+            local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.waste.states_abbrv,value=1,min_width=6}
+            local waste_mode = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
-            -- u_status.register(f_ps, "current_waste_product", u_status.update)
-
-            local waste_prod = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+            waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
+            waste_mode.register(u_ps, "U_WasteMode", waste_mode.update)
 
             TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=style.label}
             local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
@@ -121,6 +121,10 @@ local function new_view(root)
             local po = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
             TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=style.label}
             local popl = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+            pu.register(u_ps, "pu_rate", pu.update)
+            po.register(u_ps, "po_rate", po.update)
+            popl.register(u_ps, "po_pl_rate", popl.update)
 
             local sna_div = Div{parent=u_pane,x=2,width=page_div.get_width()-2}
             table.insert(panes, sna_div)
@@ -146,6 +150,14 @@ local function new_view(root)
             TextBox{parent=sna_div,y=13,text="Current Rate\n In\n Out",fg_bg=style.label}
             local cur_i = DataIndicator{parent=sna_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
             local cur_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+
+            count.register(u_ps, "sna_count", count.update)
+            peak_i.register(u_ps, "sna_peak_rate", function (x) peak_i.update(x * 10) end)
+            peak_o.register(u_ps, "sna_peak_rate", peak_o.update)
+            max_i.register(u_ps, "sna_max_rate", function (x) max_i.update(x * 10) end)
+            max_o.register(u_ps, "sna_max_rate", max_o.update)
+            cur_i.register(u_ps, "sna_out_rate", function (x) cur_i.update(x * 10) end)
+            cur_o.register(u_ps, "sna_out_rate", cur_o.update)
         end
 
         --#endregion

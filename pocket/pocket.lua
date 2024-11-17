@@ -567,6 +567,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_PROC, {}) end
     end
 
+    -- coordinator get waste app data
+    function public.api__get_waste()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_WASTE, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
@@ -734,6 +739,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_PROC then
                             if _check_length(packet, #iocontrol.get_db().units + 1) then
                                 iocontrol.record_process_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_WASTE then
+                            if _check_length(packet, #iocontrol.get_db().units + 1) then
+                                iocontrol.record_waste_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else

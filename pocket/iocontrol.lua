@@ -94,7 +94,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
     io.api = {
         get_unit = function (unit) comms.api__get_unit(unit) end,
         get_ctrl = function () comms.api__get_control() end,
-        get_proc = function () comms.api__get_process() end
+        get_proc = function () comms.api__get_process() end,
+        get_waste = function () comms.api__get_waste() end
     }
 end
 
@@ -217,6 +218,7 @@ function iocontrol.init_fac(conf)
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
+            waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             -- auto control group
             a_group = types.AUTO_GROUP.MANUAL,
@@ -918,6 +920,37 @@ function iocontrol.record_process_data(data)
     fac.ps.publish("process_burn_target", f_data[5][2])
     fac.ps.publish("process_charge_target", f_data[5][3])
     fac.ps.publish("process_gen_target", f_data[5][4])
+end
+
+-- update waste app with unit data from API_GET_WASTE
+---@param data table
+function iocontrol.record_waste_data(data)
+    -- get unit data
+    for u_id = 1, #io.units do
+        local unit = io.units[u_id]
+        local u_data = data[u_id]
+
+        unit.waste_mode = u_data[1]
+        unit.waste_product = u_data[2]
+        unit.num_snas = u_data[3]
+        unit.sna_peak_rate = u_data[4]
+        unit.sna_max_rate = u_data[5]
+        unit.sna_out_rate = u_data[6]
+        unit.waste_stats = u_data[7]
+
+        unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+        unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
+        unit.unit_ps.publish("U_WasteProduct", unit.waste_product)
+
+        unit.unit_ps.publish("sna_count", unit.num_snas)
+        unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
+        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
+        unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
+
+        unit.unit_ps.publish("pu_rate", unit.waste_stats[1])
+        unit.unit_ps.publish("po_rate", unit.waste_stats[2])
+        unit.unit_ps.publish("po_pl_rate", unit.waste_stats[3])
+    end
 end
 
 -- get the IO controller database

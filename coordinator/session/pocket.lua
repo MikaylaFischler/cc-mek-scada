@@ -340,6 +340,31 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 }
 
                 _send(CRDN_TYPE.API_GET_PROC, data)
+            elseif pkt.type == CRDN_TYPE.API_GET_WASTE then
+                local data = {}
+
+                -- local fac = db.facility
+                -- local proc = process.get_control_states().process
+
+                -- unit data
+                for i = 1, #db.units do
+                    local u = db.units[i]
+
+                    data[i] = {
+                        u.waste_mode,
+                        u.waste_product,
+                        u.num_snas,
+                        u.sna_peak_rate,
+                        u.sna_max_rate,
+                        u.sna_out_rate,
+                        u.waste_stats
+                    }
+                end
+
+                -- facility data
+                data[#db.units + 1] = {}
+
+                _send(CRDN_TYPE.API_GET_PROC, data)
             else
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

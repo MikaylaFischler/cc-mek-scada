@@ -174,6 +174,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+            waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
@@ -1192,6 +1193,7 @@ function iocontrol.update_unit_statuses(statuses)
                 local u_spent_rate = waste_rate
                 local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
                 local u_po_rate = unit.sna_out_rate
+                local u_po_pl_rate = 0
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
@@ -1202,6 +1204,7 @@ function iocontrol.update_unit_statuses(statuses)
                     u_spent_rate = u_po_rate
                     unit.unit_ps.publish("po_pl_rate", u_po_rate)
                     unit.unit_ps.publish("po_am_rate", 0)
+                    u_po_pl_rate = u_po_rate
                     po_pl_rate = po_pl_rate + u_po_rate
                 elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
                     u_spent_rate = 0
@@ -1212,6 +1215,8 @@ function iocontrol.update_unit_statuses(statuses)
                     unit.unit_ps.publish("po_pl_rate", 0)
                     unit.unit_ps.publish("po_am_rate", 0)
                 end
+
+                unit.waste_stats = { u_pu_rate, u_po_rate, u_po_pl_rate }
 
                 unit.unit_ps.publish("ws_rate", u_spent_rate)
 
