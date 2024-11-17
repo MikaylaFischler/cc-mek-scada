@@ -80,13 +80,8 @@ local function new_view(root)
 
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
-        local panes = {} ---@type Div[]
-
-        -- create all page divs
-        for _ = 1, db.facility.num_units do
-            local div = Div{parent=page_div}
-            table.insert(panes, div)
-        end
+        local panes   = {} ---@type Div[]
+        local u_pages = {} ---@type nav_tree_page[]
 
         local last_update = 0
         -- refresh data callback, every 500ms it will re-send the query
@@ -100,13 +95,17 @@ local function new_view(root)
         --#region unit settings/status
 
         for i = 1, db.facility.num_units do
-            local u_pane = panes[i]
+            local u_pane = Div{parent=page_div}
             local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
             local unit = db.units[i]
             local u_ps = unit.unit_ps
 
-            local u_page = app.new_page(nil, i)
+            table.insert(panes, u_div)
+
+            local u_page = app.new_page(nil, #panes)
             u_page.tasks = { update }
+
+            table.insert(u_pages, u_page)
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
@@ -116,21 +115,37 @@ local function new_view(root)
 
             local waste_prod = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
-            TextBox{parent=u_div,y=8,text="SNAs"}
-            TextBox{parent=u_div,x=14,y=8,text="Count",fg_bg=style.label}
-            local count = DataIndicator{parent=u_div,x=20,y=8,label="",format="%2d",value=0,unit="",lu_colors=lu_col,width=2,fg_bg=text_fg}
+            TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=style.label}
+            local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+            TextBox{parent=u_div,y=11,text="Polonium",fg_bg=style.label}
+            local po = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+            TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=style.label}
+            local popl = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-            TextBox{parent=u_div,y=10,text="Peak Rate\n In\n Out",fg_bg=style.label}
-            local peak_i = DataIndicator{parent=u_div,x=6,y=11,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
-            local peak_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local sna_div = Div{parent=u_pane,x=2,width=page_div.get_width()-2}
+            table.insert(panes, sna_div)
 
-            TextBox{parent=u_div,y=13,text="Maximum Rate\n In\n Out",fg_bg=style.label}
-            local max_i = DataIndicator{parent=u_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
-            local max_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local sps_page = app.new_page(u_page, #panes)
+            sps_page.tasks = { update }
 
-            TextBox{parent=u_div,y=16,text="Current Rate\n In\n Out",fg_bg=style.label}
-            local cur_i = DataIndicator{parent=u_div,x=6,y=17,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
-            local cur_o = DataIndicator{parent=u_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            PushButton{parent=u_div,x=6,y=18,text="SNA DATA",min_width=12,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=sps_page.nav_to}
+            PushButton{parent=sna_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=u_page.nav_to}
+
+            TextBox{parent=sna_div,y=1,text="Unit "..i.." SNAs",alignment=ALIGN.CENTER}
+            TextBox{parent=sna_div,y=3,text="Connected",fg_bg=style.label}
+            local count = DataIndicator{parent=sna_div,x=20,y=3,label="",format="%2d",value=0,unit="",lu_colors=lu_col,width=2,fg_bg=text_fg}
+
+            TextBox{parent=sna_div,y=5,text="Peak Possible Rate\n In\n Out",fg_bg=style.label}
+            local peak_i = DataIndicator{parent=sna_div,x=6,y=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local peak_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+
+            TextBox{parent=sna_div,y=9,text="Current Maximum Rate\n In\n Out",fg_bg=style.label}
+            local max_i = DataIndicator{parent=sna_div,x=6,y=10,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local max_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+
+            TextBox{parent=sna_div,y=13,text="Current Rate\n In\n Out",fg_bg=style.label}
+            local cur_i = DataIndicator{parent=sna_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
+            local cur_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
         end
 
         --#endregion
@@ -264,7 +279,7 @@ local function new_view(root)
         }
 
         for i = 1, db.facility.num_units do
-            table.insert(list, { label = "U-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(i) end })
+            table.insert(list, { label = "U-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = u_pages[i].nav_to })
         end
 
         app.set_sidebar(list)
