@@ -85,6 +85,14 @@ function process.set_group(unit_id, group_id)
     log.debug(util.c("PROCESS: UNIT[", unit_id, "] SET GROUP ", group_id))
 end
 
+-- set waste mode
+---@param id integer unit ID
+---@param mode integer waste mode
+function process.set_unit_waste(id, mode)
+    self.comms.send_unit_command(U_CMD.SET_WASTE, id, mode)
+    log.debug(util.c("PROCESS: UNIT[", id, "] SET WASTE ", mode))
+end
+
 -- acknowledge all alarms
 ---@param id integer unit ID
 function process.ack_all_alarms(id)

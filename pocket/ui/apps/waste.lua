@@ -109,11 +109,13 @@ local function new_view(root)
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
+            local function set_waste(mode) process.set_unit_waste(i, mode) end
+
             local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.waste.states_abbrv,value=1,min_width=6}
-            local waste_mode = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+            local waste_mode = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=set_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
             waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
-            waste_mode.register(u_ps, "U_WasteMode", waste_mode.update)
+            waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
 
             TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=style.label}
             local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}

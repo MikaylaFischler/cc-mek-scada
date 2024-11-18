@@ -364,7 +364,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 -- facility data
                 data[#db.units + 1] = {}
 
-                _send(CRDN_TYPE.API_GET_PROC, data)
+                _send(CRDN_TYPE.API_GET_WASTE, data)
             else
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end
