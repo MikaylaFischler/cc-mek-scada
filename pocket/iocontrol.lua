@@ -159,6 +159,7 @@ function iocontrol.init_fac(conf)
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
+        auto_sps_disabled = false,
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -951,6 +952,24 @@ function iocontrol.record_waste_data(data)
         unit.unit_ps.publish("po_rate", unit.waste_stats[2])
         unit.unit_ps.publish("po_pl_rate", unit.waste_stats[3])
     end
+
+    -- get facility data
+    local fac = io.facility
+    local f_data = data[#io.units + 1]
+
+    fac.auto_current_waste_product = f_data[1]
+    fac.auto_pu_fallback_active = f_data[2]
+    fac.auto_sps_disabled = f_data[3]
+
+    fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
+    fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+    fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
+
+    fac.ps.publish("process_waste_product", f_data[4])
+    fac.ps.publish("process_pu_fallback", f_data[5])
+    fac.ps.publish("process_sps_low_power", f_data[6])
+
+    fac.sps_data_tbl = f_data[7]
 end
 
 -- get the IO controller database

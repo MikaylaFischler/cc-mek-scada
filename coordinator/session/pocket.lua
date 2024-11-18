@@ -305,7 +305,6 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         u.annunciator.AutoControl,
                         u.a_group
                     }
-
                 end
 
                 _send(CRDN_TYPE.API_GET_CTRL, data)
@@ -343,8 +342,8 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
             elseif pkt.type == CRDN_TYPE.API_GET_WASTE then
                 local data = {}
 
-                -- local fac = db.facility
-                -- local proc = process.get_control_states().process
+                local fac = db.facility
+                local proc = process.get_control_states().process
 
                 -- unit data
                 for i = 1, #db.units do
@@ -362,7 +361,15 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 end
 
                 -- facility data
-                data[#db.units + 1] = {}
+                data[#db.units + 1] = {
+                    fac.auto_current_waste_product,
+                    fac.auto_pu_fallback_active,
+                    fac.auto_sps_disabled,
+                    proc.waste_product,
+                    proc.pu_fallback,
+                    proc.sps_low_power,
+                    fac.sps_data_tbl
+                }
 
                 _send(CRDN_TYPE.API_GET_WASTE, data)
             else

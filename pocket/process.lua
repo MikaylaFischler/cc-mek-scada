@@ -139,6 +139,27 @@ function process.process_stop()
     log.debug("PROCESS: STOP AUTO CTRL")
 end
 
+-- set automatic process control waste mode
+---@param product WASTE_PRODUCT waste product for auto control
+function process.set_process_waste(product)
+    self.comms.send_fac_command(F_CMD.SET_WASTE_MODE, product)
+    log.debug(util.c("PROCESS: SET WASTE ", product))
+end
+
+-- set automatic process control plutonium fallback
+---@param enabled boolean whether to enable plutonium fallback
+function process.set_pu_fallback(enabled)
+    self.comms.send_fac_command(F_CMD.SET_PU_FB, enabled)
+    log.debug(util.c("PROCESS: SET PU FALLBACK ", enabled))
+end
+
+-- set automatic process control SPS usage at low power
+---@param enabled boolean whether to enable SPS usage at low power
+function process.set_sps_low_power(enabled)
+    self.comms.send_fac_command(F_CMD.SET_SPS_LP, enabled)
+    log.debug(util.c("PROCESS: SET SPS LOW POWER ", enabled))
+end
+
 -- #endregion
 ---------------------------------
 

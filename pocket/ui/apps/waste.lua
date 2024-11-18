@@ -176,14 +176,12 @@ local function new_view(root)
         TextBox{parent=c_div,y=1,text="Waste Control",alignment=ALIGN.CENTER}
 
         local status = StateIndicator{parent=c_div,x=3,y=3,states=style.waste.states,value=1,min_width=17}
+        local waste_prod = RadioButton{parent=c_div,y=5,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
         status.register(f_ps, "current_waste_product", status.update)
-
-        local waste_prod = RadioButton{parent=c_div,y=5,options=style.waste.options,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
-
         waste_prod.register(f_ps, "process_waste_product", waste_prod.set_value)
 
-        local fb_active    = IconIndicator{parent=c_div,y=9,label="Fallback Active",states=wht_ind_s}
+        local fb_active = IconIndicator{parent=c_div,y=9,label="Fallback Active",states=wht_ind_s}
         local sps_disabled = IconIndicator{parent=c_div,y=10,label="SPS Disabled LC",states=yel_ind_s}
 
         fb_active.register(f_ps, "pu_fallback_active", fb_active.update)
@@ -239,11 +237,11 @@ local function new_view(root)
 
         TextBox{parent=o_div,y=1,text="Waste Options",alignment=ALIGN.CENTER}
 
-        local pu_fallback = Checkbox{parent=o_div,x=2,y=3,label="Pu Fallback",callback=function()end,box_fg_bg=cpair(colors.white,colors.gray)}
+        local pu_fallback = Checkbox{parent=o_div,x=2,y=3,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.white,colors.gray)}
 
         TextBox{parent=o_div,x=2,y=5,height=3,text="Switch to Pu when SNAs cannot keep up with waste.",fg_bg=style.label}
 
-        local lc_sps = Checkbox{parent=o_div,x=2,y=9,label="Low Charge SPS",callback=function()end,box_fg_bg=cpair(colors.white,colors.gray)}
+        local lc_sps = Checkbox{parent=o_div,x=2,y=9,label="Low Charge SPS",callback=process.set_sps_low_power,box_fg_bg=cpair(colors.white,colors.gray)}
 
         TextBox{parent=o_div,x=2,y=11,height=3,text="Use SPS at low charge, otherwise switches to Po.",fg_bg=style.label}
 
