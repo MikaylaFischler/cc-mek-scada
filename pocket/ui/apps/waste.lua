@@ -2,56 +2,42 @@
 -- Waste Control Page
 --
 
-local types         = require("scada-common.types")
-local util          = require("scada-common.util")
+local util           = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
-local pocket        = require("pocket.pocket")
-local process       = require("pocket.process")
+local iocontrol      = require("pocket.iocontrol")
+local pocket         = require("pocket.pocket")
+local process        = require("pocket.process")
 
-local style         = require("pocket.ui.style")
+local style          = require("pocket.ui.style")
 
-local core          = require("graphics.core")
+local core           = require("graphics.core")
 
-local Div           = require("graphics.elements.Div")
-local MultiPane     = require("graphics.elements.MultiPane")
-local Rectangle     = require("graphics.elements.Rectangle")
-local TextBox       = require("graphics.elements.TextBox")
+local Div            = require("graphics.elements.Div")
+local MultiPane      = require("graphics.elements.MultiPane")
+local TextBox        = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.Waiting")
+local WaitingAnim    = require("graphics.elements.animations.Waiting")
 
-local Checkbox      = require("graphics.elements.controls.Checkbox")
-local HazardButton  = require("graphics.elements.controls.HazardButton")
+local Checkbox       = require("graphics.elements.controls.Checkbox")
 local PushButton     = require("graphics.elements.controls.PushButton")
-local RadioButton   = require("graphics.elements.controls.RadioButton")
-
-local NumberField   = require("graphics.elements.form.NumberField")
+local RadioButton    = require("graphics.elements.controls.RadioButton")
 
 local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
 local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
 local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
-local ALIGN  = core.ALIGN
-local cpair  = core.cpair
-local border = core.border
+local ALIGN = core.ALIGN
+local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
-local label_fg_bg     = style.label
-local text_fg         = style.text_fg
+local label_fg_bg = style.label
+local text_fg     = style.text_fg
 
-local lu_col    = style.label_unit_pair
+local lu_col      = style.label_unit_pair
 
-local field_fg_bg     = style.field
-local field_dis_fg_bg = style.field_disable
-
-local red_ind_s       = style.icon_states.red_ind_s
-local yel_ind_s       = style.icon_states.yel_ind_s
-local grn_ind_s       = style.icon_states.grn_ind_s
-local wht_ind_s       = style.icon_states.wht_ind_s
-
-local hzd_fg_bg       = style.hzd_fg_bg
-local dis_colors      = cpair(colors.white, colors.lightGray)
+local yel_ind_s   = style.icon_states.yel_ind_s
+local wht_ind_s   = style.icon_states.wht_ind_s
 
 -- new waste control page view
 ---@param root Container parent
@@ -117,11 +103,11 @@ local function new_view(root)
             waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
             waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
 
-            TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=style.label}
+            TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=label_fg_bg}
             local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-            TextBox{parent=u_div,y=11,text="Polonium",fg_bg=style.label}
+            TextBox{parent=u_div,y=11,text="Polonium",fg_bg=label_fg_bg}
             local po = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-            TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=style.label}
+            TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=label_fg_bg}
             local popl = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
             pu.register(u_ps, "pu_rate", pu.update)
@@ -138,18 +124,18 @@ local function new_view(root)
             PushButton{parent=sna_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=u_page.nav_to}
 
             TextBox{parent=sna_div,y=1,text="Unit "..i.." SNAs",alignment=ALIGN.CENTER}
-            TextBox{parent=sna_div,y=3,text="Connected",fg_bg=style.label}
+            TextBox{parent=sna_div,y=3,text="Connected",fg_bg=label_fg_bg}
             local count = DataIndicator{parent=sna_div,x=20,y=3,label="",format="%2d",value=0,unit="",lu_colors=lu_col,width=2,fg_bg=text_fg}
 
-            TextBox{parent=sna_div,y=5,text="Peak Possible Rate\n In\n Out",fg_bg=style.label}
+            TextBox{parent=sna_div,y=5,text="Peak Possible Rate\n In\n Out",fg_bg=label_fg_bg}
             local peak_i = DataIndicator{parent=sna_div,x=6,y=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
             local peak_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
 
-            TextBox{parent=sna_div,y=9,text="Current Maximum Rate\n In\n Out",fg_bg=style.label}
+            TextBox{parent=sna_div,y=9,text="Current Maximum Rate\n In\n Out",fg_bg=label_fg_bg}
             local max_i = DataIndicator{parent=sna_div,x=6,y=10,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
             local max_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
 
-            TextBox{parent=sna_div,y=13,text="Current Rate\n In\n Out",fg_bg=style.label}
+            TextBox{parent=sna_div,y=13,text="Current Rate\n In\n Out",fg_bg=label_fg_bg}
             local cur_i = DataIndicator{parent=sna_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
             local cur_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
 
@@ -187,12 +173,12 @@ local function new_view(root)
         fb_active.register(f_ps, "pu_fallback_active", fb_active.update)
         sps_disabled.register(f_ps, "sps_disabled_low_power", sps_disabled.update)
 
-        TextBox{parent=c_div,y=12,text="Nuclear Waste In",fg_bg=style.label}
+        TextBox{parent=c_div,y=12,text="Nuclear Waste In",fg_bg=label_fg_bg}
         local sum_raw_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         sum_raw_waste.register(f_ps, "burn_sum", sum_raw_waste.update)
 
-        TextBox{parent=c_div,y=15,text="Spent Waste Out",fg_bg=style.label}
+        TextBox{parent=c_div,y=15,text="Spent Waste Out",fg_bg=label_fg_bg}
         local sum_sp_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         sum_sp_waste.register(f_ps, "spent_waste_rate", sum_sp_waste.update)
@@ -208,18 +194,18 @@ local function new_view(root)
 
         TextBox{parent=stats_div,y=1,text="Production Rates",alignment=ALIGN.CENTER}
 
-        TextBox{parent=stats_div,y=3,text="Plutonium (Pellets)",fg_bg=style.label}
+        TextBox{parent=stats_div,y=3,text="Plutonium (Pellets)",fg_bg=label_fg_bg}
         local pu = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-        TextBox{parent=stats_div,y=6,text="Polonium",fg_bg=style.label}
+        TextBox{parent=stats_div,y=6,text="Polonium",fg_bg=label_fg_bg}
         local po = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-        TextBox{parent=stats_div,y=9,text="Polonium (Pellets)",fg_bg=style.label}
+        TextBox{parent=stats_div,y=9,text="Polonium (Pellets)",fg_bg=label_fg_bg}
         local popl = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         pu.register(f_ps, "pu_rate", pu.update)
         po.register(f_ps, "po_rate", po.update)
         popl.register(f_ps, "po_pl_rate", popl.update)
 
-        TextBox{parent=stats_div,y=12,text="Antimatter",fg_bg=style.label}
+        TextBox{parent=stats_div,y=12,text="Antimatter",fg_bg=label_fg_bg}
         local am = DataIndicator{parent=stats_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         am.register(f_ps, "sps_process_rate", function (r) am.update(r * 1000) end)
@@ -239,11 +225,11 @@ local function new_view(root)
 
         local pu_fallback = Checkbox{parent=o_div,x=2,y=3,label="Pu Fallback",callback=process.set_pu_fallback,box_fg_bg=cpair(colors.white,colors.gray)}
 
-        TextBox{parent=o_div,x=2,y=5,height=3,text="Switch to Pu when SNAs cannot keep up with waste.",fg_bg=style.label}
+        TextBox{parent=o_div,x=2,y=5,height=3,text="Switch to Pu when SNAs cannot keep up with waste.",fg_bg=label_fg_bg}
 
         local lc_sps = Checkbox{parent=o_div,x=2,y=9,label="Low Charge SPS",callback=process.set_sps_low_power,box_fg_bg=cpair(colors.white,colors.gray)}
 
-        TextBox{parent=o_div,x=2,y=11,height=3,text="Use SPS at low charge, otherwise switches to Po.",fg_bg=style.label}
+        TextBox{parent=o_div,x=2,y=11,height=3,text="Use SPS at low charge, otherwise switches to Po.",fg_bg=label_fg_bg}
 
         pu_fallback.register(f_ps, "process_pu_fallback", pu_fallback.set_value)
         lc_sps.register(f_ps, "process_sps_low_power", lc_sps.set_value)
@@ -265,12 +251,12 @@ local function new_view(root)
 
         sps_status.register(f_ps, "sps_computed_status", sps_status.update)
 
-        TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=style.label}
+        TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=label_fg_bg}
         local sps_in = DataIndicator{parent=s_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         sps_in.register(f_ps, "po_am_rate", sps_in.update)
 
-        TextBox{parent=s_div,y=8,text="Production Rate",width=15,fg_bg=style.label}
+        TextBox{parent=s_div,y=8,text="Production Rate",width=15,fg_bg=label_fg_bg}
         local sps_rate = DataIndicator{parent=s_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
         sps_rate.register(f_ps, "sps_process_rate", function (r) sps_rate.update(r * 1000) end)
