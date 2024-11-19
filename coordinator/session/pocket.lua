@@ -360,6 +360,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     }
                 end
 
+                local process_rate = 0
+
+                if fac.sps_data_tbl[1].state then
+                    process_rate = fac.sps_data_tbl[1].state.process_rate
+                end
+
                 -- facility data
                 data[#db.units + 1] = {
                     fac.auto_current_waste_product,
@@ -368,7 +374,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     proc.waste_product,
                     proc.pu_fallback,
                     proc.sps_low_power,
-                    fac.sps_data_tbl
+                    fac.waste_stats,
+                    fac.sps_status,
+                    process_rate
                 }
 
                 _send(CRDN_TYPE.API_GET_WASTE, data)

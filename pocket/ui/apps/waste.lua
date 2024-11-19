@@ -190,12 +190,12 @@ local function new_view(root)
         TextBox{parent=c_div,y=12,text="Nuclear Waste In",fg_bg=style.label}
         local sum_raw_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- sum_raw_waste.register(f_ps, "burn_sum", sum_raw_waste.update)
+        sum_raw_waste.register(f_ps, "burn_sum", sum_raw_waste.update)
 
         TextBox{parent=c_div,y=15,text="Spent Waste Out",fg_bg=style.label}
         local sum_sp_waste = DataIndicator{parent=c_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- sum_sp_waste.register(f_ps, "spent_waste_rate", sum_sp_waste.update)
+        sum_sp_waste.register(f_ps, "spent_waste_rate", sum_sp_waste.update)
 
         local stats_div = Div{parent=c_pane,x=2,width=page_div.get_width()-2}
         table.insert(panes, stats_div)
@@ -215,14 +215,14 @@ local function new_view(root)
         TextBox{parent=stats_div,y=9,text="Polonium (Pellets)",fg_bg=style.label}
         local popl = DataIndicator{parent=stats_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- pu.register(f_ps, "pu_rate", pu.update)
-        -- po.register(f_ps, "po_rate", po.update)
-        -- popl.register(f_ps, "po_pl_rate", popl.update)
+        pu.register(f_ps, "pu_rate", pu.update)
+        po.register(f_ps, "po_rate", po.update)
+        popl.register(f_ps, "po_pl_rate", popl.update)
 
         TextBox{parent=stats_div,y=12,text="Antimatter",fg_bg=style.label}
         local am = DataIndicator{parent=stats_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- am.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
+        am.register(f_ps, "sps_process_rate", function (r) am.update(r * 1000) end)
 
         --#endregion
 
@@ -263,17 +263,17 @@ local function new_view(root)
 
         local sps_status = StateIndicator{parent=s_div,x=5,y=3,states=style.sps.states,value=1,min_width=12}
 
-        -- status.register(facility.sps_ps_tbl[1], "computed_status", status.update)
+        sps_status.register(f_ps, "sps_computed_status", sps_status.update)
 
         TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=style.label}
         local sps_in = DataIndicator{parent=s_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- sps_in.register(facility.ps, "po_am_rate", sps_in.update)
+        sps_in.register(f_ps, "po_am_rate", sps_in.update)
 
         TextBox{parent=s_div,y=8,text="Production Rate",width=15,fg_bg=style.label}
         local sps_rate = DataIndicator{parent=s_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-        -- sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
+        sps_rate.register(f_ps, "sps_process_rate", function (r) sps_rate.update(r * 1000) end)
 
         --#endregion
 

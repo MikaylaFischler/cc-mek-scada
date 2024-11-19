@@ -105,6 +105,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
         auto_sps_disabled = false,
+        waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -118,6 +119,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         induction_ps_tbl = {},   ---@type psil[]
         induction_data_tbl = {}, ---@type imatrix_session_db[]
 
+        sps_status = 1,
         sps_ps_tbl = {},         ---@type psil[]
         sps_data_tbl = {},       ---@type sps_session_db[]
 
@@ -663,6 +665,8 @@ function iocontrol.update_facility_status(status)
 
             -- SPS statuses
             if type(rtu_statuses.sps) == "table" then
+                local comp_stat = 1
+
                 for id = 1, #fac.sps_ps_tbl do
                     if rtu_statuses.sps[id] == nil then
                         -- disconnected
@@ -678,22 +682,26 @@ function iocontrol.update_facility_status(status)
                         local rtu_faulted = _record_multiblock_status(sps, data, ps)
 
                         if rtu_faulted then
-                            ps.publish("computed_status", 3)     -- faulted
+                            comp_stat = 3 -- faulted
                         elseif data.formed then
                             if data.state.process_rate > 0 then
-                                ps.publish("computed_status", 5) -- active
+                                comp_stat = 5 -- active
                             else
-                                ps.publish("computed_status", 4) -- idle
+                                comp_stat = 4 -- idle
                             end
                         else
-                            ps.publish("computed_status", 2)     -- not formed
+                            comp_stat = 2 -- not formed
                         end
+
+                        ps.publish("computed_status", comp_stat)
 
                         io.facility.ps.publish("am_rate", data.state.process_rate * 1000)
                     else
                         log.debug(util.c(log_header, "invalid sps id ", id))
                     end
                 end
+
+                io.facility.sps_status = comp_stat
             else
                 log.debug(log_header .. "sps list not a table")
                 valid = false
@@ -1225,6 +1233,8 @@ function iocontrol.update_unit_statuses(statuses)
                 spent_rate = spent_rate + u_spent_rate
             end
         end
+
+        io.facility.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
 
         io.facility.ps.publish("burn_sum", burn_rate_sum)
         io.facility.ps.publish("sna_count", sna_count_sum)
