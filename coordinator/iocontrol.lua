@@ -686,7 +686,7 @@ function iocontrol.update_facility_status(status)
                         elseif data.formed then
                             -- active / idle
                             sps_status = util.trinary(data.state.process_rate > 0, 5, 4)
-                        else sps_status = 2 end -- not formed 
+                        else sps_status = 2 end -- not formed
 
                         ps.publish("computed_status", sps_status)
 
