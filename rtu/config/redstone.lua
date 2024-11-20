@@ -32,15 +32,16 @@ local IO_MODE = rsio.IO_MODE
 local LEFT = core.ALIGN.LEFT
 
 local self = {
-    rs_cfg_port = 1,          ---@type IO_PORT
-    rs_cfg_editing = false,   ---@type integer|false
+    rs_cfg_port = 1,        ---@type IO_PORT
+    rs_cfg_editing = false, ---@type integer|false
 
-    rs_cfg_selection = nil,   ---@type TextBox
-    rs_cfg_unit_l = nil,      ---@type TextBox
-    rs_cfg_unit = nil,        ---@type NumberField
-    rs_cfg_side_l = nil,      ---@type TextBox
-    rs_cfg_color = nil,       ---@type Radio2D
-    rs_cfg_shortcut = nil     ---@type TextBox
+    rs_cfg_selection = nil, ---@type TextBox
+    rs_cfg_unit_l = nil,    ---@type TextBox
+    rs_cfg_unit = nil,      ---@type NumberField
+    rs_cfg_side_l = nil,    ---@type TextBox
+    rs_cfg_bundled = nil,   ---@type Checkbox
+    rs_cfg_color = nil,     ---@type Radio2D
+    rs_cfg_shortcut = nil   ---@type TextBox
 }
 
 -- rsio port descriptions
@@ -195,6 +196,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             local io_mode = rsio.get_io_mode(port)
             local inv = tri(rsio.digital_is_active(port, IO_LVL.LOW) == true, "inverted ", "")
 
+            if rsio.is_analog(port) then
+                self.rs_cfg_bundled.set_value(false)
+                self.rs_cfg_bundled.disable()
+                self.rs_cfg_color.disable()
+            else
+                self.rs_cfg_bundled.enable()
+                if self.rs_cfg_bundled.get_value() then self.rs_cfg_color.enable() else self.rs_cfg_color.disable() end
+            end
+
             if io_mode == IO_MODE.DIGITAL_IN then
                 io_type = inv .. "digital input "
             elseif io_mode == IO_MODE.DIGITAL_OUT then
@@ -263,7 +273,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     self.rs_cfg_shortcut = TextBox{parent=rs_c_3,x=1,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
     self.rs_cfg_shortcut.hide(true)
 
-    local bundled = Checkbox{parent=rs_c_3,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled}
+    self.rs_cfg_bundled = Checkbox{parent=rs_c_3,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled,disable_fg_bg=g_lg_fg_bg}
     self.rs_cfg_color = Radio2D{parent=rs_c_3,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     self.rs_cfg_color.disable()
 
@@ -288,7 +298,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     unit = tri(PORT_DSGN[port] == 1, u, nil),
                     port = port,
                     side = side_options_map[side.get_value()],
-                    color = tri(bundled.get_value(), color_options_map[self.rs_cfg_color.get_value()], nil)
+                    color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil)
                 }
 
                 if self.rs_cfg_editing == false then
@@ -304,8 +314,8 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     table.insert(tmp_cfg.Redstone, {
                         unit = tri(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
                         port = IO.WASTE_PU + i,
-                        side = tri(bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
-                        color = tri(bundled.get_value(), default_colors[i + 1], nil)
+                        side = tri(self.rs_cfg_bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
+                        color = tri(self.rs_cfg_bundled.get_value(), default_colors[i + 1], nil)
                     })
                 end
             end
@@ -314,7 +324,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             tool_ctl.gen_rs_summary()
 
             side.set_value(1)
-            bundled.set_value(false)
+            self.rs_cfg_bundled.set_value(false)
             self.rs_cfg_color.set_value(1)
             self.rs_cfg_color.disable()
         else rs_err.show() end
@@ -356,6 +366,14 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             text = text .. "the facility)."
         end
 
+        if rsio.is_analog(def.port) then
+            self.rs_cfg_bundled.set_value(false)
+            self.rs_cfg_bundled.disable()
+        else
+            self.rs_cfg_bundled.enable()
+            self.rs_cfg_bundled.set_value(def.color ~= nil)
+        end
+
         local value = 1
         if def.color ~= nil then
             value = color_to_idx(def.color)
@@ -367,7 +385,6 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         self.rs_cfg_selection.set_value(text)
         self.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
-        bundled.set_value(def.color ~= nil)
         self.rs_cfg_color.set_value(value)
         rs_pane.set_value(3)
     end
