@@ -165,15 +165,18 @@ function threads.thread__render(smem)
                         local cmd = msg.message ---@type queue_data
 
                         if cmd.key == MQ__RENDER_DATA.LOAD_APP then
-                            log.debug("RENDER: load app " .. cmd.val)
+                            log.debug("RENDER: load app " .. cmd.val[1])
 
                             local draw_start = util.time_ms()
 
-                            pkt_state.ui_ok, pkt_state.ui_error = pcall(function () nav.load_app(cmd.val) end)
+                            pkt_state.ui_ok, pkt_state.ui_error = pcall(function () nav.load_app(cmd.val[1]) end)
                             if not pkt_state.ui_ok then
                                 log.fatal(util.c("RENDER: app load failed with error ", pkt_state.ui_error))
                             else
                                 log.debug("RENDER: app loaded in " .. (util.time_ms() - draw_start) .. "ms")
+
+                                -- call the on loaded function if provided
+                                if type(cmd.val[2]) == "function" then cmd.val[2]() end
                             end
                         end
                     elseif msg.qtype == mqueue.TYPE.PACKET then

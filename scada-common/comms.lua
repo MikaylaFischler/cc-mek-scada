@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.1"
-comms.api_version = "0.0.6"
+comms.version = "3.0.2"
+comms.api_version = "0.0.7"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -68,8 +68,9 @@ local CRDN_TYPE = {
     UNIT_CMD = 6,        -- command a reactor unit
     API_GET_FAC = 7,     -- API: get all the facility data
     API_GET_UNIT = 8,    -- API: get reactor unit data
-    API_GET_CTRL = 9,    -- API: get data used for the control app
-    API_GET_PROC = 10    -- API: get data used for the process app
+    API_GET_CTRL = 9,    -- API: get data for the control app
+    API_GET_PROC = 10,   -- API: get data for the process app
+    API_GET_WASTE = 11   -- API: get data for the waste app
 }
 
 ---@enum ESTABLISH_ACK

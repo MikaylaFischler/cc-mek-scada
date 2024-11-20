@@ -278,13 +278,13 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         end
                     elseif cmd == FAC_COMMAND.SET_PU_FB then
                         if pkt.length == 2 then
-                            _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_pu_fallback(pkt.data[2]) })
+                            _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_pu_fallback(pkt.data[2] == true) })
                         else
                             log.debug(log_tag .. "CRDN set pu fallback packet length mismatch")
                         end
                     elseif cmd == FAC_COMMAND.SET_SPS_LP then
                         if pkt.length == 2 then
-                            _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_sps_low_power(pkt.data[2]) })
+                            _send(CRDN_TYPE.FAC_CMD, { cmd, facility.set_sps_low_power(pkt.data[2] == true) })
                         else
                             log.debug(log_tag .. "CRDN set sps low power packet length mismatch")
                         end

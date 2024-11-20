@@ -986,7 +986,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             local db = self.snas[i].get_db()
             total_peak = total_peak + db.state.peak_production
             total_avail = total_avail + db.state.production_rate
-            total_out = total_out + math.min(db.tanks.input.amount / 10, db.state.production_rate)
+            local out_from_in = util.trinary(db.tanks.input.amount >= 10, db.tanks.input.amount / 10, 0)
+            total_out = total_out + math.min(out_from_in, db.state.production_rate)
         end
         status.sna = { #self.snas, total_peak, total_avail, total_out }
 
