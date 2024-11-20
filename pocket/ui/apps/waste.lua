@@ -78,7 +78,7 @@ local function new_view(root)
             end
         end
 
-        --#region unit settings/status
+        --#region unit waste options/statistics
 
         for i = 1, db.facility.num_units do
             local u_pane = Div{parent=page_div}

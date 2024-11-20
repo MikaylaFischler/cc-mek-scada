@@ -665,7 +665,7 @@ function iocontrol.update_facility_status(status)
 
             -- SPS statuses
             if type(rtu_statuses.sps) == "table" then
-                local comp_stat = 1
+                local sps_status = 1
 
                 for id = 1, #fac.sps_ps_tbl do
                     if rtu_statuses.sps[id] == nil then
@@ -682,18 +682,13 @@ function iocontrol.update_facility_status(status)
                         local rtu_faulted = _record_multiblock_status(sps, data, ps)
 
                         if rtu_faulted then
-                            comp_stat = 3 -- faulted
+                            sps_status = 3 -- faulted
                         elseif data.formed then
-                            if data.state.process_rate > 0 then
-                                comp_stat = 5 -- active
-                            else
-                                comp_stat = 4 -- idle
-                            end
-                        else
-                            comp_stat = 2 -- not formed
-                        end
+                            -- active / idle
+                            sps_status = util.trinary(data.state.process_rate > 0, 5, 4)
+                        else sps_status = 2 end -- not formed 
 
-                        ps.publish("computed_status", comp_stat)
+                        ps.publish("computed_status", sps_status)
 
                         io.facility.ps.publish("am_rate", data.state.process_rate * 1000)
                     else
@@ -701,7 +696,7 @@ function iocontrol.update_facility_status(status)
                     end
                 end
 
-                io.facility.sps_status = comp_stat
+                io.facility.sps_status = sps_status
             else
                 log.debug(log_header .. "sps list not a table")
                 valid = false
