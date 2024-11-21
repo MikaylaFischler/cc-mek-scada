@@ -1,6 +1,7 @@
 local comms     = require("scada-common.comms")
 local log       = require("scada-common.log")
 local mqueue    = require("scada-common.mqueue")
+local types     = require("scada-common.types")
 local util      = require("scada-common.util")
 
 local iocontrol = require("coordinator.iocontrol")
@@ -13,6 +14,9 @@ local CRDN_TYPE = comms.CRDN_TYPE
 local MGMT_TYPE = comms.MGMT_TYPE
 local FAC_COMMAND = comms.FAC_COMMAND
 local UNIT_COMMAND = comms.UNIT_COMMAND
+
+local AUTO_GROUP = types.AUTO_GROUP
+local WASTE_MODE = types.WASTE_MODE
 
 -- retry time constants in ms
 -- local INITIAL_WAIT = 1500
@@ -166,8 +170,26 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         log.info(log_tag .. "FAC ACK ALL ALARMS")
                         self.proc_handle.fac_ack_alarms()
                     elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
+                        if pkt.length == 2 then
+                            log.info(util.c(log_tag, " SET WASTE ", pkt.data[2]))
+                            process.set_process_waste(pkt.data[2])
+                        else
+                            log.debug(log_tag .. "CRDN set waste mode packet length mismatch")
+                        end
                     elseif cmd == FAC_COMMAND.SET_PU_FB then
+                        if pkt.length == 2 then
+                            log.info(util.c(log_tag, " SET PU FALLBACK ", pkt.data[2]))
+                            process.set_pu_fallback(pkt.data[2] == true)
+                        else
+                            log.debug(log_tag .. "CRDN set pu fallback packet length mismatch")
+                        end
                     elseif cmd == FAC_COMMAND.SET_SPS_LP then
+                        if pkt.length == 2 then
+                            log.info(util.c(log_tag, " SET SPS LOW POWER ", pkt.data[2]))
+                            process.set_sps_low_power(pkt.data[2] == true)
+                        else
+                            log.debug(log_tag .. "CRDN set sps low power packet length mismatch")
+                        end
                     else
                         log.debug(log_tag .. "CRDN facility command unknown")
                     end
@@ -192,20 +214,28 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                             log.info(util.c(log_tag, "UNIT[", uid, "] RESET RPS"))
                             self.proc_handle.reset_rps(uid)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
-                            if pkt.length == 3 then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") then
                                 log.info(util.c(log_tag, "UNIT[", uid, "] SET BURN ", pkt.data[3]))
                                 process.set_rate(uid, pkt.data[3])
                             else
                                 log.debug(log_tag .. "CRDN unit command burn rate missing option")
                             end
                         elseif cmd == UNIT_COMMAND.SET_WASTE then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and
+                               (pkt.data[3] >= WASTE_MODE.AUTO) and (pkt.data[3] <= WASTE_MODE.MANUAL_ANTI_MATTER) then
+                                log.info(util.c(log_tag, "UNIT[", id, "] SET WASTE ", pkt.data[3]))
+                                process.set_unit_waste(uid, pkt.data[3])
+                            else
+                                log.debug(log_tag .. "CRDN unit command set waste missing/invalid option")
+                            end
                         elseif cmd == UNIT_COMMAND.ACK_ALL_ALARMS then
                             log.info(util.c(log_tag, "UNIT[", uid, "] ACK ALL ALARMS"))
                             self.proc_handle.ack_all_alarms(uid)
                         elseif cmd == UNIT_COMMAND.ACK_ALARM then
                         elseif cmd == UNIT_COMMAND.RESET_ALARM then
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
-                            if pkt.length == 3 then
+                            if (pkt.length == 3) and (type(pkt.data[3]) == "number") and
+                               (pkt.data[3] >= AUTO_GROUP.MANUAL) and (pkt.data[3] <= AUTO_GROUP.BACKUP) then
                                 log.info(util.c(log_tag, "UNIT[", uid, "] SET GROUP ", pkt.data[3]))
                                 process.set_group(uid, pkt.data[3])
                             else
@@ -275,7 +305,6 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         u.annunciator.AutoControl,
                         u.a_group
                     }
-
                 end
 
                 _send(CRDN_TYPE.API_GET_CTRL, data)
@@ -310,6 +339,47 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 }
 
                 _send(CRDN_TYPE.API_GET_PROC, data)
+            elseif pkt.type == CRDN_TYPE.API_GET_WASTE then
+                local data = {}
+
+                local fac = db.facility
+                local proc = process.get_control_states().process
+
+                -- unit data
+                for i = 1, #db.units do
+                    local u = db.units[i]
+
+                    data[i] = {
+                        u.waste_mode,
+                        u.waste_product,
+                        u.num_snas,
+                        u.sna_peak_rate,
+                        u.sna_max_rate,
+                        u.sna_out_rate,
+                        u.waste_stats
+                    }
+                end
+
+                local process_rate = 0
+
+                if fac.sps_data_tbl[1].state then
+                    process_rate = fac.sps_data_tbl[1].state.process_rate
+                end
+
+                -- facility data
+                data[#db.units + 1] = {
+                    fac.auto_current_waste_product,
+                    fac.auto_pu_fallback_active,
+                    fac.auto_sps_disabled,
+                    proc.waste_product,
+                    proc.pu_fallback,
+                    proc.sps_low_power,
+                    fac.waste_stats,
+                    fac.sps_status,
+                    process_rate
+                }
+
+                _send(CRDN_TYPE.API_GET_WASTE, data)
             else
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

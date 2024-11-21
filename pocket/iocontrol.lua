@@ -94,7 +94,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
     io.api = {
         get_unit = function (unit) comms.api__get_unit(unit) end,
         get_ctrl = function () comms.api__get_control() end,
-        get_proc = function () comms.api__get_process() end
+        get_proc = function () comms.api__get_process() end,
+        get_waste = function () comms.api__get_waste() end
     }
 end
 
@@ -148,7 +149,7 @@ function iocontrol.init_fac(conf)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_dc = false,
+            matrix_fault = false,
             matrix_fill = false,
             crit_alarm = false,
             radiation = false,
@@ -158,6 +159,8 @@ function iocontrol.init_fac(conf)
         ---@type WASTE_PRODUCT
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
+        auto_sps_disabled = false,
+        waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -217,6 +220,7 @@ function iocontrol.init_fac(conf)
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
+            waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             -- auto control group
             a_group = types.AUTO_GROUP.MANUAL,
@@ -908,7 +912,7 @@ function iocontrol.record_process_data(data)
     fac.ps.publish("auto_saturated", fac.auto_saturated)
 
     fac.ps.publish("auto_scram", fac.auto_scram)
-    fac.ps.publish("as_matrix_dc", fac.ascram_status.matrix_dc)
+    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
     fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
     fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
     fac.ps.publish("as_radiation", fac.ascram_status.radiation)
@@ -918,6 +922,65 @@ function iocontrol.record_process_data(data)
     fac.ps.publish("process_burn_target", f_data[5][2])
     fac.ps.publish("process_charge_target", f_data[5][3])
     fac.ps.publish("process_gen_target", f_data[5][4])
+end
+
+-- update waste app with unit data from API_GET_WASTE
+---@param data table
+function iocontrol.record_waste_data(data)
+    -- get unit data
+    for u_id = 1, #io.units do
+        local unit = io.units[u_id]
+        local u_data = data[u_id]
+
+        unit.waste_mode = u_data[1]
+        unit.waste_product = u_data[2]
+        unit.num_snas = u_data[3]
+        unit.sna_peak_rate = u_data[4]
+        unit.sna_max_rate = u_data[5]
+        unit.sna_out_rate = u_data[6]
+        unit.waste_stats = u_data[7]
+
+        unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+        unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
+        unit.unit_ps.publish("U_WasteProduct", unit.waste_product)
+
+        unit.unit_ps.publish("sna_count", unit.num_snas)
+        unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
+        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
+        unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
+
+        unit.unit_ps.publish("pu_rate", unit.waste_stats[1])
+        unit.unit_ps.publish("po_rate", unit.waste_stats[2])
+        unit.unit_ps.publish("po_pl_rate", unit.waste_stats[3])
+    end
+
+    -- get facility data
+    local fac = io.facility
+    local f_data = data[#io.units + 1]
+
+    fac.auto_current_waste_product = f_data[1]
+    fac.auto_pu_fallback_active = f_data[2]
+    fac.auto_sps_disabled = f_data[3]
+
+    fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
+    fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+    fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
+
+    fac.ps.publish("process_waste_product", f_data[4])
+    fac.ps.publish("process_pu_fallback", f_data[5])
+    fac.ps.publish("process_sps_low_power", f_data[6])
+
+    fac.waste_stats = f_data[7]
+
+    fac.ps.publish("burn_sum", fac.waste_stats[1])
+    fac.ps.publish("pu_rate", fac.waste_stats[2])
+    fac.ps.publish("po_rate", fac.waste_stats[3])
+    fac.ps.publish("po_pl_rate", fac.waste_stats[4])
+    fac.ps.publish("po_am_rate", fac.waste_stats[5])
+    fac.ps.publish("spent_waste_rate", fac.waste_stats[6])
+
+    fac.ps.publish("sps_computed_status", f_data[8])
+    fac.ps.publish("sps_process_rate", f_data[9])
 end
 
 -- get the IO controller database

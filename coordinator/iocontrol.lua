@@ -94,7 +94,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_dc = false,
+            matrix_fault = false,
             matrix_fill = false,
             crit_alarm = false,
             radiation = false,
@@ -105,6 +105,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
         auto_pu_fallback_active = false,
         auto_sps_disabled = false,
+        waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -118,6 +119,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         induction_ps_tbl = {},   ---@type psil[]
         induction_data_tbl = {}, ---@type imatrix_session_db[]
 
+        sps_status = 1,
         sps_ps_tbl = {},         ---@type psil[]
         sps_data_tbl = {},       ---@type sps_session_db[]
 
@@ -174,6 +176,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
             waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+            waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
@@ -540,7 +543,7 @@ function iocontrol.update_facility_status(status)
             fac.auto_saturated = ctl_status[5]
 
             fac.auto_scram = ctl_status[6]
-            fac.ascram_status.matrix_dc = ctl_status[7]
+            fac.ascram_status.matrix_fault = ctl_status[7]
             fac.ascram_status.matrix_fill = ctl_status[8]
             fac.ascram_status.crit_alarm = ctl_status[9]
             fac.ascram_status.radiation = ctl_status[10]
@@ -555,7 +558,7 @@ function iocontrol.update_facility_status(status)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
             fac.ps.publish("auto_saturated", fac.auto_saturated)
             fac.ps.publish("auto_scram", fac.auto_scram)
-            fac.ps.publish("as_matrix_dc", fac.ascram_status.matrix_dc)
+            fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
             fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
             fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             fac.ps.publish("as_radiation", fac.ascram_status.radiation)
@@ -662,6 +665,8 @@ function iocontrol.update_facility_status(status)
 
             -- SPS statuses
             if type(rtu_statuses.sps) == "table" then
+                local sps_status = 1
+
                 for id = 1, #fac.sps_ps_tbl do
                     if rtu_statuses.sps[id] == nil then
                         -- disconnected
@@ -677,22 +682,21 @@ function iocontrol.update_facility_status(status)
                         local rtu_faulted = _record_multiblock_status(sps, data, ps)
 
                         if rtu_faulted then
-                            ps.publish("computed_status", 3)     -- faulted
+                            sps_status = 3 -- faulted
                         elseif data.formed then
-                            if data.state.process_rate > 0 then
-                                ps.publish("computed_status", 5) -- active
-                            else
-                                ps.publish("computed_status", 4) -- idle
-                            end
-                        else
-                            ps.publish("computed_status", 2)     -- not formed
-                        end
+                            -- active / idle
+                            sps_status = util.trinary(data.state.process_rate > 0, 5, 4)
+                        else sps_status = 2 end -- not formed
+
+                        ps.publish("computed_status", sps_status)
 
                         io.facility.ps.publish("am_rate", data.state.process_rate * 1000)
                     else
                         log.debug(util.c(log_header, "invalid sps id ", id))
                     end
                 end
+
+                io.facility.sps_status = sps_status
             else
                 log.debug(log_header .. "sps list not a table")
                 valid = false
@@ -1192,6 +1196,7 @@ function iocontrol.update_unit_statuses(statuses)
                 local u_spent_rate = waste_rate
                 local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
                 local u_po_rate = unit.sna_out_rate
+                local u_po_pl_rate = 0
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
@@ -1202,6 +1207,7 @@ function iocontrol.update_unit_statuses(statuses)
                     u_spent_rate = u_po_rate
                     unit.unit_ps.publish("po_pl_rate", u_po_rate)
                     unit.unit_ps.publish("po_am_rate", 0)
+                    u_po_pl_rate = u_po_rate
                     po_pl_rate = po_pl_rate + u_po_rate
                 elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
                     u_spent_rate = 0
@@ -1213,6 +1219,8 @@ function iocontrol.update_unit_statuses(statuses)
                     unit.unit_ps.publish("po_am_rate", 0)
                 end
 
+                unit.waste_stats = { u_pu_rate, u_po_rate, u_po_pl_rate }
+
                 unit.unit_ps.publish("ws_rate", u_spent_rate)
 
                 pu_rate = pu_rate + u_pu_rate
@@ -1220,6 +1228,8 @@ function iocontrol.update_unit_statuses(statuses)
                 spent_rate = spent_rate + u_spent_rate
             end
         end
+
+        io.facility.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
 
         io.facility.ps.publish("burn_sum", burn_rate_sum)
         io.facility.ps.publish("sna_count", sna_count_sum)

@@ -341,9 +341,17 @@ function update.auto_control(ExtChargeIdling)
         if state_changed then
             self.time_start = now
             self.saturated = true
+            self.waiting_on_ramp = true
 
-            self.status_text = { "MONITORED MODE", "running reactors at limit" }
+            self.status_text = { "MONITORED MODE", "ramping reactors to limit" }
             log.info("FAC: MAX_BURN process mode started")
+        elseif self.waiting_on_ramp then
+            if all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.status_text = { "MONITORED MODE", "running reactors at limit" }
+                log.info("FAC: MAX_BURN process mode initial ramp completed")
+            end
         end
 
         allocate_burn_rate(self.max_burn_combined, true)
@@ -351,8 +359,17 @@ function update.auto_control(ExtChargeIdling)
         -- a total aggregate burn rate
         if state_changed then
             self.time_start = now
-            self.status_text = { "BURN RATE MODE", "running" }
+            self.waiting_on_ramp = true
+
+            self.status_text = { "BURN RATE MODE", "ramping to target" }
             log.info("FAC: BURN_RATE process mode started")
+        elseif self.waiting_on_ramp then
+            if all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.status_text = { "BURN RATE MODE", "running" }
+                log.info("FAC: BURN_RATE process mode initial ramp completed")
+            end
         end
 
         local unallocated = allocate_burn_rate(self.burn_target, true)
@@ -511,13 +528,19 @@ function update.auto_safety()
 
     local astatus = self.ascram_status
 
+    -- matrix related checks
     if self.induction[1] ~= nil then
         local db = self.induction[1].get_db()
 
-        -- clear matrix disconnected
-        if astatus.matrix_dc then
-            astatus.matrix_dc = false
-            log.info("FAC: induction matrix reconnected, clearing ASCRAM condition")
+        -- check for unformed or faulted state
+        local i_ok = db.formed and not self.induction[1].is_faulted()
+
+        -- clear matrix fault if ok again
+        if astatus.matrix_fault and i_ok then
+            astatus.matrix_fault = false
+            log.info("FAC: induction matrix OK, clearing ASCRAM condition")
+        else
+            astatus.matrix_fault = not i_ok
         end
 
         -- check matrix fill too high
@@ -528,42 +551,42 @@ function update.auto_safety()
             log.info(util.c("FAC: charge state of induction matrix entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
         end
 
-        -- check for critical unit alarms
-        astatus.crit_alarm = false
-        for i = 1, #self.units do
-            local u = self.units[i]
-
-            if u.has_alarm_min_prio(PRIO.CRITICAL) then
-                astatus.crit_alarm = true
-                break
-            end
-        end
-
-        -- check for facility radiation
-        if #self.envd > 0 then
-            local max_rad = 0
-
-            for i = 1, #self.envd do
-                local envd = self.envd[i]
-                local e_db = envd.get_db()
-                if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
-            end
-
-            astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
-        else
-            -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
-            -- operator can restart the system or hit the stop/reset button
-        end
-
         -- system not ready, will need to restart GEN_RATE mode
         -- clears when we enter the fault waiting state
         astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
     else
-        astatus.matrix_dc = true
+        astatus.matrix_fault = true
+    end
+
+    -- check for critical unit alarms
+    astatus.crit_alarm = false
+    for i = 1, #self.units do
+        local u = self.units[i]
+
+        if u.has_alarm_min_prio(PRIO.CRITICAL) then
+            astatus.crit_alarm = true
+            break
+        end
+    end
+
+    -- check for facility radiation
+    if #self.envd > 0 then
+        local max_rad = 0
+
+        for i = 1, #self.envd do
+            local envd = self.envd[i]
+            local e_db = envd.get_db()
+            if e_db.radiation_raw > max_rad then max_rad = e_db.radiation_raw end
+        end
+
+        astatus.radiation = max_rad >= ALARM_LIMS.FAC_HIGH_RAD
+    else
+        -- don't clear, if it is true then we lost it with high radiation, so just keep alarming
+        -- operator can restart the system or hit the stop/reset button
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-        local scram = astatus.matrix_dc or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
+        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
 
         if scram and not self.ascram then
             -- SCRAM all units
@@ -587,14 +610,14 @@ function update.auto_safety()
                 self.status_text = { "AUTOMATIC SCRAM", "facility radiation high" }
 
                 log.info("FAC: automatic SCRAM due to high facility radiation")
-            elseif astatus.matrix_dc then
+            elseif astatus.matrix_fault then
                 next_mode = PROCESS.MATRIX_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.MATRIX_DC
-                self.status_text = { "AUTOMATIC SCRAM", "induction matrix disconnected" }
+                self.ascram_reason = AUTO_SCRAM.MATRIX_FAULT
+                self.status_text = { "AUTOMATIC SCRAM", "induction matrix fault" }
 
                 if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
 
-                log.info("FAC: automatic SCRAM due to induction matrix disconnection")
+                log.info("FAC: automatic SCRAM due to induction matrix disconnected, unformed, or faulted")
             elseif astatus.matrix_fill then
                 next_mode = PROCESS.MATRIX_FAULT_IDLE
                 self.ascram_reason = AUTO_SCRAM.MATRIX_FILL

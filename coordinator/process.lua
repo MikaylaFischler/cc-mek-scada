@@ -445,36 +445,21 @@ end
 ---@param product WASTE_PRODUCT waste product for auto control
 function process.set_process_waste(product)
     pctl.comms.send_fac_command(F_CMD.SET_WASTE_MODE, product)
-
     log.debug(util.c("PROCESS: SET WASTE ", product))
-
-    -- update config table and save
-    pctl.control_states.process.waste_product = product
-    _write_auto_config()
 end
 
 -- set automatic process control plutonium fallback
 ---@param enabled boolean whether to enable plutonium fallback
 function process.set_pu_fallback(enabled)
     pctl.comms.send_fac_command(F_CMD.SET_PU_FB, enabled)
-
     log.debug(util.c("PROCESS: SET PU FALLBACK ", enabled))
-
-    -- update config table and save
-    pctl.control_states.process.pu_fallback = enabled
-    _write_auto_config()
 end
 
 -- set automatic process control SPS usage at low power
 ---@param enabled boolean whether to enable SPS usage at low power
 function process.set_sps_low_power(enabled)
     pctl.comms.send_fac_command(F_CMD.SET_SPS_LP, enabled)
-
     log.debug(util.c("PROCESS: SET SPS LOW POWER ", enabled))
-
-    -- update config table and save
-    pctl.control_states.process.sps_low_power = enabled
-    _write_auto_config()
 end
 
 -- save process control settings
@@ -527,21 +512,30 @@ end
 -- record waste product settting after attempting to change it
 ---@param response WASTE_PRODUCT supervisor waste product settting
 function process.waste_ack_handle(response)
+    -- update config table and save
     pctl.control_states.process.waste_product = response
+    _write_auto_config()
+
     pctl.io.facility.ps.publish("process_waste_product", response)
 end
 
 -- record plutonium fallback settting after attempting to change it
 ---@param response boolean supervisor plutonium fallback settting
 function process.pu_fb_ack_handle(response)
+    -- update config table and save
     pctl.control_states.process.pu_fallback = response
+    _write_auto_config()
+
     pctl.io.facility.ps.publish("process_pu_fallback", response)
 end
 
 -- record SPS low power settting after attempting to change it
 ---@param response boolean supervisor SPS low power settting
 function process.sps_lp_ack_handle(response)
+    -- update config table and save
     pctl.control_states.process.sps_low_power = response
+    _write_auto_config()
+
     pctl.io.facility.ps.publish("process_sps_low_power", response)
 end
 

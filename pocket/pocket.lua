@@ -89,13 +89,14 @@ local APP_ID = {
     UNITS = 3,
     CONTROL = 4,
     PROCESS = 5,
-    GUIDE = 6,
-    ABOUT = 7,
+    WASTE = 6,
+    GUIDE = 7,
+    ABOUT = 8,
     -- diagnostic app pages
-    ALARMS = 8,
+    ALARMS = 9,
     -- other
-    DUMMY = 9,
-    NUM_APPS = 9
+    DUMMY = 10,
+    NUM_APPS = 10
 }
 
 pocket.APP_ID = APP_ID
@@ -264,7 +265,8 @@ function pocket.init_nav(smem)
 
     -- open an app
     ---@param app_id POCKET_APP_ID
-    function nav.open_app(app_id)
+    ---@param on_loaded? function
+    function nav.open_app(app_id, on_loaded)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
@@ -277,7 +279,7 @@ function pocket.init_nav(smem)
                 app = self.apps[app_id]
             else self.loader_return = nil end
 
-            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, app_id) end
+            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, { app_id, on_loaded }) end
 
             self.cur_app = app_id
             self.pane.set_value(app_id)
@@ -360,10 +362,10 @@ function pocket.init_nav(smem)
     function nav.open_help(key)
         self.help_return = self.cur_app
 
-        nav.open_app(APP_ID.GUIDE)
-
-        local load = self.help_map[key]
-        if load then load() end
+        nav.open_app(APP_ID.GUIDE, function ()
+            local show = self.help_map[key]
+            if show then show() end
+        end)
     end
 
     -- link the help map from the guide app
@@ -565,6 +567,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_PROC, {}) end
     end
 
+    -- coordinator get waste app data
+    function public.api__get_waste()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_WASTE, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
@@ -732,6 +739,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_PROC then
                             if _check_length(packet, #iocontrol.get_db().units + 1) then
                                 iocontrol.record_process_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_WASTE then
+                            if _check_length(packet, #iocontrol.get_db().units + 1) then
+                                iocontrol.record_waste_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else

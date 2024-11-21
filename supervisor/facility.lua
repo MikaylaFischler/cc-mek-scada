@@ -17,7 +17,7 @@ local WASTE         = types.WASTE_PRODUCT
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
     NONE = 0,
-    MATRIX_DC = 1,
+    MATRIX_FAULT = 1,
     MATRIX_FILL = 2,
     CRIT_ALARM = 3,
     RADIATION = 4,
@@ -81,7 +81,7 @@ function facility.new(config)
         ascram_reason = AUTO_SCRAM.NONE,
         ---@class ascram_status
         ascram_status = {
-            matrix_dc = false,
+            matrix_fault = false,
             matrix_fill = false,
             crit_alarm = false,
             radiation = false,
@@ -91,8 +91,8 @@ function facility.new(config)
         charge_conversion = 1.0,
         time_start = 0.0,
         initial_ramp = true,
-        waiting_on_ramp = false,
-        waiting_on_stable = false,
+        waiting_on_ramp = false,    -- waiting on auto ramping
+        waiting_on_stable = false,  -- waiting on gen rate stabilization
         accumulator = 0.0,
         saturated = false,
         last_update = 0,
@@ -599,7 +599,7 @@ function facility.new(config)
             self.waiting_on_ramp or self.waiting_on_stable,
             self.at_max_burn or self.saturated,
             self.ascram,
-            astat.matrix_dc,
+            astat.matrix_fault,
             astat.matrix_fill,
             astat.crit_alarm,
             astat.radiation,

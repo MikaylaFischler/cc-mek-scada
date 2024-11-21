@@ -6,6 +6,7 @@ local element = require("graphics.element")
 ---@class checkbox_args
 ---@field label string checkbox text
 ---@field box_fg_bg cpair colors for checkbox
+---@field disable_fg_bg? cpair text colors when disabled
 ---@field default? boolean default value
 ---@field callback? function function to call on press
 ---@field parent graphics_element
@@ -35,20 +36,27 @@ return function (args)
     local function draw()
         e.w_set_cur(1, 1)
 
+        local fgd, bkg = args.box_fg_bg.fgd, args.box_fg_bg.bkg
+
+        if (not e.enabled) and type(args.disable_fg_bg) == "table" then
+            fgd = args.disable_fg_bg.bkg
+            bkg = args.disable_fg_bg.fgd
+        end
+
         if e.value then
             -- show as selected
-            e.w_set_fgd(args.box_fg_bg.bkg)
-            e.w_set_bkg(args.box_fg_bg.fgd)
+            e.w_set_fgd(bkg)
+            e.w_set_bkg(fgd)
             e.w_write("\x88")
-            e.w_set_fgd(args.box_fg_bg.fgd)
+            e.w_set_fgd(fgd)
             e.w_set_bkg(e.fg_bg.bkg)
             e.w_write("\x95")
         else
             -- show as unselected
             e.w_set_fgd(e.fg_bg.bkg)
-            e.w_set_bkg(args.box_fg_bg.bkg)
+            e.w_set_bkg(bkg)
             e.w_write("\x88")
-            e.w_set_fgd(args.box_fg_bg.bkg)
+            e.w_set_fgd(bkg)
             e.w_set_bkg(e.fg_bg.bkg)
             e.w_write("\x95")
         end
@@ -57,16 +65,18 @@ return function (args)
     -- write label text
     local function draw_label()
         if e.enabled and e.is_focused() then
-            e.w_set_cur(3, 1)
             e.w_set_fgd(e.fg_bg.bkg)
             e.w_set_bkg(e.fg_bg.fgd)
-            e.w_write(args.label)
+        elseif (not e.enabled) and type(args.disable_fg_bg) == "table" then
+            e.w_set_fgd(args.disable_fg_bg.fgd)
+            e.w_set_bkg(args.disable_fg_bg.bkg)
         else
-            e.w_set_cur(3, 1)
             e.w_set_fgd(e.fg_bg.fgd)
             e.w_set_bkg(e.fg_bg.bkg)
-            e.w_write(args.label)
         end
+
+        e.w_set_cur(3, 1)
+        e.w_write(args.label)
     end
 
     -- handle mouse interaction
@@ -98,19 +108,19 @@ return function (args)
         draw()
     end
 
-    -- handle focus
-    e.on_focused = draw_label
-    e.on_unfocused = draw_label
-
-    -- handle enable
-    e.on_enabled = draw_label
-    e.on_disabled = draw_label
-
     -- element redraw
     function e.redraw()
         draw()
         draw_label()
     end
+
+    -- handle focus
+    e.on_focused = draw_label
+    e.on_unfocused = draw_label
+
+    -- handle enable
+    e.on_enabled = e.redraw
+    e.on_disabled = e.redraw
 
     ---@class Checkbox:graphics_element
     local Checkbox, id = e.complete(true)
