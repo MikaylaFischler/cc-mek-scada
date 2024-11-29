@@ -726,23 +726,23 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_FAC then
                             if _check_length(packet, 11) then
-                                iocontrol.record_facility_data(packet.data)
+                                iocontrol.rx.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
                             if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
-                                iocontrol.record_unit_data(packet.data)
+                                iocontrol.rx.record_unit_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_CTRL then
                             if _check_length(packet, #iocontrol.get_db().units) then
-                                iocontrol.record_control_data(packet.data)
+                                iocontrol.rx.record_control_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_PROC then
                             if _check_length(packet, #iocontrol.get_db().units + 1) then
-                                iocontrol.record_process_data(packet.data)
+                                iocontrol.rx.record_process_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_WASTE then
                             if _check_length(packet, #iocontrol.get_db().units + 1) then
-                                iocontrol.record_waste_data(packet.data)
+                                iocontrol.rx.record_waste_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else
