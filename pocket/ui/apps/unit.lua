@@ -372,7 +372,7 @@ local function new_view(root)
 
             if #unit.tank_data_tbl > 0 then
                 local tank_pane = Div{parent=page_div}
-                nav_links[i].d_tank = dyn_tank(app, u_page, panes, tank_pane, 1, unit.tank_ps_tbl[1], update)
+                nav_links[i].d_tank = dyn_tank(app, u_page, panes, tank_pane, unit.tank_ps_tbl[1], update)
             end
 
             --#endregion
