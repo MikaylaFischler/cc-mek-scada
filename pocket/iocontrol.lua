@@ -196,8 +196,6 @@ function iocontrol.init_fac(conf)
         local entry = {
             unit_id = i,
             connected = false,
-            ---@type { boilers: { connected: boolean, faulted: boolean }[], turbines: { connected: boolean, faulted: boolean }[] }
-            rtu_hw = {},
 
             num_boilers = 0,
             num_turbines = 0,

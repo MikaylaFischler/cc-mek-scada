@@ -9,6 +9,10 @@ local util  = require("scada-common.util")
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
 
+local BLR_STATE = types.BOILER_STATE
+local TRB_STATE = types.TURBINE_STATE
+local TNK_STATE = types.TANK_STATE
+
 local io        ---@type pocket_ioctl
 local iorx = {} ---@class iorx
 
@@ -61,9 +65,11 @@ function iorx.record_unit_data(data)
     local unit = io.units[data[1]]
 
     unit.connected = data[2]
-    unit.rtu_hw = data[3]
+    local comp_statuses = data[3]
     unit.a_group = data[4]
     unit.alarms = data[5]
+
+    local next_c_stat = 1
 
     unit.unit_ps.publish("auto_group_id", unit.a_group)
     unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
@@ -152,43 +158,27 @@ function iorx.record_unit_data(data)
 
     local control_status = 1
     local reactor_status = 1
-    local reactor_state = 1
     local rps_status = 1
 
     if unit.connected then
         -- update RPS status
         if unit.reactor_data.rps_tripped then
             control_status = 2
-
-            if unit.reactor_data.rps_trip_cause == "manual" then
-                reactor_state = 4   -- disabled
-                rps_status = 3
-            else
-                reactor_state = 6   -- SCRAM
-                rps_status = 2
-            end
+            rps_status = util.trinary(unit.reactor_data.rps_trip_cause == "manual", 3, 2)
         else
             rps_status = 4
-            reactor_state = 4
         end
+
+        reactor_status = 4  -- ok, until proven otherwise
 
         -- update reactor/control status
         if unit.reactor_data.mek_status.status then
-            reactor_status = 4
-            reactor_state = 5  -- running
             control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
         else
             if unit.reactor_data.no_reactor then
                 reactor_status = 2
-                reactor_state = 3   -- faulted
-            elseif not unit.reactor_data.formed then
+            elseif (not unit.reactor_data.formed) or unit.reactor_data.rps_status.force_dis then
                 reactor_status = 3
-                reactor_state = 2   -- not formed
-            elseif unit.reactor_data.rps_status.force_dis then
-                reactor_status = 3
-                reactor_state = 7   -- force disabled
-            else
-                reactor_status = 4
             end
         end
 
@@ -213,8 +203,10 @@ function iorx.record_unit_data(data)
 
     unit.unit_ps.publish("U_ControlStatus", control_status)
     unit.unit_ps.publish("U_ReactorStatus", reactor_status)
-    unit.unit_ps.publish("U_ReactorStateStatus", reactor_state)
+    unit.unit_ps.publish("U_ReactorStateStatus", comp_statuses[next_c_stat])
     unit.unit_ps.publish("U_RPS", rps_status)
+
+    next_c_stat = next_c_stat + 1
 
     --#endregion
 
@@ -225,32 +217,26 @@ function iorx.record_unit_data(data)
     for id = 1, #unit.boiler_data_tbl do
         local boiler = unit.boiler_data_tbl[id]
         local ps     = unit.boiler_ps_tbl[id]
+        local c_stat = comp_statuses[next_c_stat]
 
         local boiler_status = 1
-        local computed_status = 1
 
-        if unit.rtu_hw.boilers[id].connected then
-            if unit.rtu_hw.boilers[id].faulted then
+        if c_stat ~= BLR_STATE.OFFLINE then
+            if c_stat == BLR_STATE.FAULT then
                 boiler_status = 3
-                computed_status = 3
-            elseif boiler.formed then
+            elseif c_stat ~= BLR_STATE.UNFORMED then
                 boiler_status = 4
-
-                if boiler.state.boil_rate > 0 then
-                    computed_status = 5
-                else
-                    computed_status = 4
-                end
             else
                 boiler_status = 2
-                computed_status = 2
             end
 
-            _record_multiblock_status(unit.rtu_hw.boilers[id].faulted, boiler, ps)
+            _record_multiblock_status(c_stat == BLR_STATE.FAULT, boiler, ps)
         end
 
         ps.publish("BoilerStatus", boiler_status)
-        ps.publish("BoilerStateStatus", computed_status)
+        ps.publish("BoilerStateStatus", c_stat)
+
+        next_c_stat = next_c_stat + 1
     end
 
     unit.turbine_data_tbl = data[9]
@@ -258,37 +244,54 @@ function iorx.record_unit_data(data)
     for id = 1, #unit.turbine_data_tbl do
         local turbine = unit.turbine_data_tbl[id]
         local ps      = unit.turbine_ps_tbl[id]
+        local c_stat  = comp_statuses[next_c_stat]
 
         local turbine_status = 1
-        local computed_status = 1
 
-        if unit.rtu_hw.turbines[id].connected then
-            if unit.rtu_hw.turbines[id].faulted then
+        if c_stat ~= TRB_STATE.OFFLINE then
+            if c_stat == TRB_STATE.FAULT then
                 turbine_status = 3
-                computed_status = 3
             elseif turbine.formed then
                 turbine_status = 4
-
-                if turbine.tanks.energy_fill >= 0.99 then
-                    computed_status = 6
-                elseif turbine.state.flow_rate < 100 then
-                    computed_status = 4
-                else
-                    computed_status = 5
-                end
             else
                 turbine_status = 2
-                computed_status = 2
             end
 
-            _record_multiblock_status(unit.rtu_hw.turbines[id].faulted, turbine, ps)
+            _record_multiblock_status(c_stat == TRB_STATE.FAULT, turbine, ps)
         end
 
         ps.publish("TurbineStatus", turbine_status)
-        ps.publish("TurbineStateStatus", computed_status)
+        ps.publish("TurbineStateStatus", c_stat)
+
+        next_c_stat = next_c_stat + 1
     end
 
     unit.tank_data_tbl = data[10]
+
+    for id = 1, #unit.tank_data_tbl do
+        local tank   = unit.tank_data_tbl[id]
+        local ps     = unit.tank_ps_tbl[id]
+        local c_stat = comp_statuses[next_c_stat]
+
+        local tank_status = 1
+
+        if c_stat ~= TNK_STATE.OFFLINE then
+            if c_stat == TNK_STATE.FAULT then
+                tank_status = 3
+            elseif tank.formed then
+                tank_status = 4
+            else
+                tank_status = 2
+            end
+
+            _record_multiblock_status(c_stat == TNK_STATE.FAULT, tank, ps)
+        end
+
+        ps.publish("DynamicTankStatus", tank_status)
+        ps.publish("DynamicTankStateStatus", c_stat)
+
+        next_c_stat = next_c_stat + 1
+    end
 
     unit.last_rate_change_ms = data[11]
     unit.turbine_flow_stable = data[12]
