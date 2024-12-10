@@ -29,6 +29,7 @@ pocket.MQ__RENDER_CMD = MQ__RENDER_CMD
 pocket.MQ__RENDER_DATA = MQ__RENDER_DATA
 
 ---@type pkt_config
+---@diagnostic disable-next-line: missing-fields
 local config = {}
 
 pocket.config = config

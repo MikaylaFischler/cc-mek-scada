@@ -224,6 +224,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
                 ALARM_STATE.INACTIVE  -- turbine trip
             },
 
+---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
             unit_ps = psil.create(),
@@ -366,6 +367,7 @@ local function _record_multiblock_build(id, entry, data_tbl, ps_tbl, create)
     if exists or create then
         if not exists then
             ps_tbl[id] = psil.create()
+---@diagnostic disable-next-line: missing-fields
             data_tbl[id] = {}
         end
 
@@ -1085,6 +1087,7 @@ function iocontrol.update_unit_statuses(statuses)
                 unit.annunciator = status[3]
 
                 if type(unit.annunciator) ~= "table" then
+---@diagnostic disable-next-line: missing-fields
                     unit.annunciator = {}
                     log.debug(log_header .. "annunciator state not a table")
                     valid = false

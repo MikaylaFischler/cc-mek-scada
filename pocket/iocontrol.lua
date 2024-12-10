@@ -241,6 +241,7 @@ function iocontrol.init_fac(conf)
             ---@type { [ALARM]: ALARM_STATE }
             alarms = { ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE, ALARM_STATE.INACTIVE },
 
+---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
             unit_ps = psil.create(),
