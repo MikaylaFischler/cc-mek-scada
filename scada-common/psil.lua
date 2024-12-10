@@ -74,6 +74,13 @@ function psil.create()
         end
     end
 
+    -- get the currently stored value for a key or nil if not set
+    ---@param key string data key
+    ---@return any
+    function public.get(key)
+        if ic[key] ~= nil then return ic[key].value else return nil end
+    end
+
     -- clear the contents of the interconnect
     function public.purge() ic = {} end
 
