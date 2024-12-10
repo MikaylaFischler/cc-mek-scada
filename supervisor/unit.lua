@@ -813,7 +813,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         if limit > 0 then
             self.db.control.lim_br100 = math.floor(limit * 100)
 
-            if self.plc_i ~= nil then
+            if (self.plc_i ~= nil) and (type(self.plc_i.get_struct().max_burn) == "number") then
                 if limit > self.plc_i.get_struct().max_burn then
                     self.db.control.lim_br100 = math.floor(self.plc_i.get_struct().max_burn * 100)
                 end
