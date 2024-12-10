@@ -14,6 +14,7 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 
 ---@type svr_config
+---@diagnostic disable-next-line: missing-fields
 local config = {}
 
 supervisor.config = config

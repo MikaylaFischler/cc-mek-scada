@@ -24,6 +24,7 @@ local LINK_TIMEOUT = 60.0
 local coordinator = {}
 
 ---@type crd_config
+---@diagnostic disable-next-line: missing-fields
 local config = {}
 
 coordinator.config = config
