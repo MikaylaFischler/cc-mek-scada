@@ -242,7 +242,7 @@ function ppm.mount_all()
     end
 end
 
--- mount a particular device
+-- mount a specified device
 ---@nodiscard
 ---@param iface string CC peripheral interface
 ---@return string|nil type, table|nil device
@@ -259,6 +259,33 @@ function ppm.mount(iface)
             pm_dev = ppm_sys.mounts[iface].dev
 
             log.info(util.c("PPM: mount(", iface, ") -> found a ", pm_type))
+            break
+        end
+    end
+
+    return pm_type, pm_dev
+end
+
+-- unmount and remount a specified device
+---@nodiscard
+---@param iface string CC peripheral interface
+---@return string|nil type, table|nil device
+function ppm.remount(iface)
+    local ifaces = peripheral.getNames()
+    local pm_dev = nil
+    local pm_type = nil
+
+    for i = 1, #ifaces do
+        if iface == ifaces[i] then
+            log.info(util.c("PPM: remount(", iface, ") -> is a ", pm_type))
+            ppm.unmount(ppm_sys.mounts[iface].dev)
+
+            ppm_sys.mounts[iface] = peri_init(iface)
+
+            pm_type = ppm_sys.mounts[iface].type
+            pm_dev = ppm_sys.mounts[iface].dev
+
+            log.info(util.c("PPM: remount(", iface, ") -> remounted a ", pm_type))
             break
         end
     end
