@@ -541,7 +541,7 @@ function threads.thread__unit_comms(smem, unit)
                     rtu_comms.send_remounted(unit.uid)
                 elseif (is_formed == false) and unit.formed then
                     log.warning(util.c(detail_name, " is no longer formed"))
-                elseif is_formed == nil then
+                elseif (is_formed == nil) and (unit.hw_state ~= RTU_HW_STATE.OFFLINE) then
                     log.error(util.c(detail_name, " failed to check if formed, attempting remount..."))
 
                     local type, dev = ppm.remount(unit.name)
