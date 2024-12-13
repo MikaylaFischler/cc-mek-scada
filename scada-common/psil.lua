@@ -74,7 +74,7 @@ function psil.create()
         end
     end
 
-    -- get the currently stored value for a key or nil if not set
+    -- get the currently stored value for a key, or nil if not set
     ---@param key string data key
     ---@return any
     function public.get(key)
