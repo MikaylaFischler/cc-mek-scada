@@ -269,11 +269,17 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 if pkt.length == 1 and type(pkt.data[1]) == "number" then
                     local u = db.units[pkt.data[1]]
 
+                    local statuses = { u.unit_ps.get("computed_status") }
+
+                    for i = 1, #u.boiler_ps_tbl do table.insert(statuses, u.boiler_ps_tbl[i].get("computed_status")) end
+                    for i = 1, #u.turbine_ps_tbl do table.insert(statuses, u.turbine_ps_tbl[i].get("computed_status")) end
+                    for i = 1, #u.tank_ps_tbl do table.insert(statuses, u.tank_ps_tbl[i].get("computed_status")) end
+
                     if u then
                         local data = {
                             u.unit_id,
                             u.connected,
-                            u.rtu_hw,
+                            statuses,
                             u.a_group,
                             u.alarms,
                             u.annunciator,
@@ -375,7 +381,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     proc.pu_fallback,
                     proc.sps_low_power,
                     fac.waste_stats,
-                    fac.sps_status,
+                    fac.sps_ps_tbl[1].get("computed_status") or types.SPS_STATE.OFFLINE,
                     process_rate
                 }
 

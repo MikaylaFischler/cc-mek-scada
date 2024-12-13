@@ -90,6 +90,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         envd = {},      ---@type envd_session[]
         -- redstone control
         io_ctl = nil,   ---@type rs_controller
+---@diagnostic disable-next-line: missing-fields
         valves = {},    ---@type unit_valves
         emcool_opened = false,
         -- auto control
