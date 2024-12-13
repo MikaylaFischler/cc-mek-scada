@@ -51,8 +51,8 @@ return function (app, page, panes, tank_pane, ps, update)
     local level = HorizontalBar{parent=tank_div,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=21}
 
     TextBox{parent=tank_div,y=9,text="Tank Fill Mode",width=14,fg_bg=label}
-    local can_fill = IconIndicator{parent=tank_div,y=10,label="Filling Enabled",states=mode_ind_s}
-    local can_empty = IconIndicator{parent=tank_div,y=11,label="Emptying Enabled",states=mode_ind_s}
+    local can_fill = IconIndicator{parent=tank_div,y=10,label="Fill",states=mode_ind_s}
+    local can_empty = IconIndicator{parent=tank_div,y=11,label="Empty",states=mode_ind_s}
 
     local function _can_fill(mode)
         can_fill.update((mode == CONTAINER_MODE.BOTH) or (mode == CONTAINER_MODE.FILL))
