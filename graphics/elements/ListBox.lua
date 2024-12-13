@@ -1,6 +1,5 @@
 -- Scroll-able List Box Display Graphics Element
 
--- local log     = require("scada-common.log")
 local tcd     = require("scada-common.tcd")
 
 local core    = require("graphics.core")
@@ -153,7 +152,6 @@ return function (args)
             next_y = next_y + item.h + item_pad
             item.e.reposition(1, item.y)
             item.e.show()
-            -- log.debug("iterated " .. item.e.get_id())
         end
 
         content_height = next_y
@@ -212,7 +210,6 @@ return function (args)
     ---@param child graphics_element child element
     function e.on_added(id, child)
         table.insert(list, { id = id, e = child, y = 0, h = child.get_height() })
-        -- log.debug("added child " .. id .. " into slot " .. #list)
         update_positions()
     end
 
@@ -222,12 +219,10 @@ return function (args)
         for idx, elem in ipairs(list) do
             if elem.id == id then
                 table.remove(list, idx)
-                -- log.debug("removed child " .. id .. " from slot " .. idx)
                 update_positions()
                 return
             end
         end
-        -- log.debug("failed to remove child " .. id)
     end
 
     -- handle focus
