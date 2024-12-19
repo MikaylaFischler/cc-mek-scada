@@ -67,7 +67,7 @@ local function init(main)
 
     -- get the coolant color
     ---@param idx integer tank index
-    local function c_clr(idx) return util.trinary(tank_types[tank_conns[idx]] == COOLANT_TYPE.WATER, colors.blue, colors.cyan) end
+    local function c_clr(idx) return util.trinary(tank_types[tank_conns[idx]] == COOLANT_TYPE.WATER, colors.blue, colors.lightBlue) end
 
     -- determinte facility tank start/end from the definitions list
     ---@param start_idx integer start index of table iteration
@@ -128,9 +128,9 @@ local function init(main)
                     table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, c_clr(first_fdef), true))
                     elseif i < last_fdef then
-                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, c_clr(first_fdef), true))
                     end
                 end
             end
@@ -268,7 +268,7 @@ local function init(main)
 
     for i = 1, facility.num_units do
         local y_offset = y_ofs(i)
-        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, units[i])
+        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, i)
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
         util.nop()
     end
@@ -323,8 +323,10 @@ local function init(main)
             local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
             local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=s_field}
 
-            TextBox{parent=tank_box,x=2,y=6,text=util.trinary(tank_types[i]==COOLANT_TYPE.WATER,"Water","Sodium").." Level",width=11,fg_bg=style.label}
-            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(util.trinary(tank_types[i]==COOLANT_TYPE.WATER,colors.blue,colors.cyan),colors.gray),height=1,width=16}
+            local is_water = tank_types[i] == COOLANT_TYPE.WATER
+
+            TextBox{parent=tank_box,x=2,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=12,fg_bg=style.label}
+            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.lightBlue),colors.gray),height=1,width=16}
 
             TextBox{parent=tank_box,x=2,y=9,text="In/Out Mode",width=11,fg_bg=style.label}
             local can_fill = IndicatorLight{parent=tank_box,x=2,y=10,label="FILL",colors=style.ind_wht}

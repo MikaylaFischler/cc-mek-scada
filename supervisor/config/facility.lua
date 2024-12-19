@@ -29,6 +29,138 @@ local self = {
 
 local facility = {}
 
+-- generate the tank list and tank connections tables
+---@param mode integer facility tank mode
+---@param defs table facility tank definitions
+---@return table tank_list
+---@return table tank_conns
+local function generate_tank_list_and_conns(mode, defs)
+    local tank_mode = mode
+    local tank_defs = defs
+    local tank_list = { table.unpack(tank_defs) }
+    local tank_conns = { table.unpack(tank_defs) }
+
+    local function calc_fdef(start_idx, end_idx)
+        local first = 4
+        for i = start_idx, end_idx do
+            if tank_defs[i] == 2 then
+                if i < first then first = i end
+            end
+        end
+        return first
+    end
+
+    -- set units using their own tanks as connected to their respective unit tank
+    for i = 1, #tank_defs do
+        if tank_defs[i] == 1 then tank_conns[i] = i end
+    end
+
+    if tank_mode == 1 then
+        -- (1) 1 total facility tank (A A A A)
+        local first_fdef = calc_fdef(1, #tank_defs)
+        for i = 1, #tank_defs do
+            if (i >= first_fdef) and (tank_defs[i] == 2) then
+                tank_conns[i] = first_fdef
+
+                if i > first_fdef then tank_list[i] = 0 end
+            end
+        end
+    elseif tank_mode == 2 then
+        -- (2) 2 total facility tanks (A A A B)
+        local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
+        for i = 1, #tank_defs do
+            if (i >= first_fdef) and (tank_defs[i] == 2) then
+                if i == 4 then
+                    tank_conns[i] = 4
+                else
+                    tank_conns[i] = first_fdef
+
+                    if i > first_fdef then tank_list[i] = 0 end
+                end
+            end
+        end
+    elseif tank_mode == 3 then
+        -- (3) 2 total facility tanks (A A B B)
+        for _, a in pairs({ 1, 3 }) do
+            local b = a + 1
+
+            if tank_defs[a] == 2 then
+                tank_conns[a] = a
+            elseif tank_defs[b] == 2 then
+                tank_conns[b] = b
+            end
+
+            if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
+                tank_list[b] = 0
+                tank_conns[b] = a
+            end
+        end
+    elseif tank_mode == 4 then
+        -- (4) 2 total facility tanks (A B B B)
+        local first_fdef = calc_fdef(2, #tank_defs)
+        for i = 1, #tank_defs do
+            if tank_defs[i] == 2 then
+                if i == 1 then
+                    tank_conns[i] = 1
+                elseif i >= first_fdef then
+                    tank_conns[i] = first_fdef
+
+                    if i > first_fdef then tank_list[i] = 0 end
+                end
+            end
+        end
+    elseif tank_mode == 5 then
+        -- (5) 3 total facility tanks (A A B C)
+        local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
+        for i = 1, #tank_defs do
+            if (i >= first_fdef) and (tank_defs[i] == 2) then
+                if i == 3 or i == 4 then
+                    tank_conns[i] = i
+                elseif i >= first_fdef then
+                    tank_conns[i] = first_fdef
+
+                    if i > first_fdef then tank_list[i] = 0 end
+                end
+            end
+        end
+    elseif tank_mode == 6 then
+        -- (6) 3 total facility tanks (A B B C)
+        local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
+        for i = 1, #tank_defs do
+            if tank_defs[i] == 2 then
+                if i == 1 or i == 4 then
+                    tank_conns[i] = i
+                elseif i >= first_fdef then
+                    tank_conns[i] = first_fdef
+
+                    if i > first_fdef then tank_list[i] = 0 end
+                end
+            end
+        end
+    elseif tank_mode == 7 then
+        -- (7) 3 total facility tanks (A B C C)
+        local first_fdef = calc_fdef(3, #tank_defs)
+        for i = 1, #tank_defs do
+            if tank_defs[i] == 2 then
+                if i == 1 or i == 2 then
+                    tank_conns[i] = i
+                elseif i >= first_fdef then
+                    tank_conns[i] = first_fdef
+
+                    if i > first_fdef then tank_list[i] = 0 end
+                end
+            end
+        end
+    elseif tank_mode == 8 then
+        -- (8) 4 total facility tanks (A B C D)
+        for i = 1, #tank_defs do
+            if tank_defs[i] == 2 then tank_conns[i] = i end
+        end
+    end
+
+    return tank_list, tank_conns
+end
+
 -- create the facility configuration view
 ---@param tool_ctl _svr_cfg_tool_ctl
 ---@param main_pane MultiPane
@@ -178,10 +310,12 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
             -- on facility tank mode 0, setup tank defs to match unit tank option
             for i = 1, tmp_cfg.UnitCount do
-                tmp_cfg.FacilityTankDefs[i] = util.trinary(tmp_cfg.CoolingConfig[i].TankConnection, 1, 0)
+                tmp_cfg.FacilityTankDefs[i] = tri(tmp_cfg.CoolingConfig[i].TankConnection, 1, 0)
             end
 
-            tmp_cfg.FacilityTankList = { table.unpack(tmp_cfg.FacilityTankDefs) }
+            tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
+
+            self.draw_fluid_ops()
 
             fac_pane.set_value(7)
         end
@@ -429,132 +563,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     local function next_from_tank_mode()
         -- determine tank list and connections
-
-        local tank_mode = tmp_cfg.FacilityTankMode
-        local tank_defs = tmp_cfg.FacilityTankDefs
-        local tank_list = { table.unpack(tank_defs) }
-        local tank_conns = { table.unpack(tank_defs) }
-
-        local function calc_fdef(start_idx, end_idx)
-            local first = 4
-            for i = start_idx, end_idx do
-                if tank_defs[i] == 2 then
-                    if i < first then first = i end
-                end
-            end
-            return first
-        end
-
-        -- set units using their own tanks as connected to their respective unit tank
-        for i = 1, #tank_defs do
-            if tank_defs[i] == 1 then tank_conns[i] = i end
-        end
-
-        if tank_mode == 1 then
-            -- (1) 1 total facility tank (A A A A)
-            local first_fdef = calc_fdef(1, #tank_defs)
-            for i = 1, #tank_defs do
-                if (i >= first_fdef) and (tank_defs[i] == 2) then
-                    tank_conns[i] = first_fdef
-
-                    if i > first_fdef then tank_list[i] = 0 end
-                end
-            end
-        elseif tank_mode == 2 then
-            -- (2) 2 total facility tanks (A A A B)
-            local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if (i >= first_fdef) and (tank_defs[i] == 2) then
-                    if i == 4 then
-                        tank_conns[i] = 4
-                    else
-                        tank_conns[i] = first_fdef
-
-                        if i > first_fdef then tank_list[i] = 0 end
-                    end
-                end
-            end
-        elseif tank_mode == 3 then
-            -- (3) 2 total facility tanks (A A B B)
-            for _, a in pairs({ 1, 3 }) do
-                local b = a + 1
-
-                if tank_defs[a] == 2 then
-                    tank_conns[a] = a
-                elseif tank_defs[b] == 2 then
-                    tank_conns[b] = b
-                end
-
-                if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
-                    tank_list[b] = 0
-                    tank_conns[b] = a
-                end
-            end
-        elseif tank_mode == 4 then
-            -- (4) 2 total facility tanks (A B B B)
-            local first_fdef = calc_fdef(2, #tank_defs)
-            for i = 1, #tank_defs do
-                if tank_defs[i] == 2 then
-                    if i == 1 then
-                        tank_conns[i] = 1
-                    elseif i >= first_fdef then
-                        tank_conns[i] = first_fdef
-
-                        if i > first_fdef then tank_list[i] = 0 end
-                    end
-                end
-            end
-        elseif tank_mode == 5 then
-            -- (5) 3 total facility tanks (A A B C)
-            local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
-            for i = 1, #tank_defs do
-                if (i >= first_fdef) and (tank_defs[i] == 2) then
-                    if i == 3 or i == 4 then
-                        tank_conns[i] = i
-                    elseif i >= first_fdef then
-                        tank_conns[i] = first_fdef
-
-                        if i > first_fdef then tank_list[i] = 0 end
-                    end
-                end
-            end
-        elseif tank_mode == 6 then
-            -- (6) 3 total facility tanks (A B B C)
-            local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if tank_defs[i] == 2 then
-                    if i == 1 or i == 4 then
-                        tank_conns[i] = i
-                    elseif i >= first_fdef then
-                        tank_conns[i] = first_fdef
-
-                        if i > first_fdef then tank_list[i] = 0 end
-                    end
-                end
-            end
-        elseif tank_mode == 7 then
-            -- (7) 3 total facility tanks (A B C C)
-            local first_fdef = calc_fdef(3, #tank_defs)
-            for i = 1, #tank_defs do
-                if tank_defs[i] == 2 then
-                    if i == 1 or i == 2 then
-                        tank_conns[i] = i
-                    elseif i >= first_fdef then
-                        tank_conns[i] = first_fdef
-
-                        if i > first_fdef then tank_list[i] = 0 end
-                    end
-                end
-            end
-        elseif tank_mode == 8 then
-            -- (8) 4 total facility tanks (A B C D)
-            for i = 1, #tank_defs do
-                if tank_defs[i] == 2 then tank_conns[i] = i end
-            end
-        end
-
-        tmp_cfg.FacilityTankList = tank_list
-        tmp_cfg.FacilityTankConns = tank_conns
+        tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
 
         self.draw_fluid_ops()
 
@@ -578,7 +587,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     --#endregion
     --#region Dynamic Tank Fluid Types
 
-    TextBox{parent=fac_c_7,height=3,text="Specify the type of coolant each tank will contain. This only affects visualizations, not operation. You cannot set Sodium if one or more of the connected reactors is water cooled."}
+    TextBox{parent=fac_c_7,height=3,text="Specify the type of coolant each tank will contain, for display use only. Water is the only option if one or more of the connected units is water cooled."}
 
     local tank_fluid_list = Div{parent=fac_c_7,x=1,y=5,height=8}
 
@@ -591,15 +600,17 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         local next_f = 1
 
         for i = 1, #tank_list do
+            local type = tmp_cfg.TankFluidTypes[i]
+
             self.tank_fluid_opts[i] = nil
 
             if tank_list[i] == 1 then
                 local row = Div{parent=tank_fluid_list,height=2}
 
                 TextBox{parent=row,width=11,text="Unit Tank "..i}
-                TextBox{parent=row,text="Connected to: Unit "..i}
+                TextBox{parent=row,text="Connected to: Unit "..i,fg_bg=cpair(colors.gray,colors.lightGray)}
 
-                local tank_fluid = Radio2D{parent=row,x=15,y=1,rows=1,columns=2,default=ini_cfg.TankFluidTypes[i],options={"Water","Sodium"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+                local tank_fluid = Radio2D{parent=row,x=34,y=1,rows=1,columns=2,default=type,options={"Water","Sodium"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
 
                 if tmp_cfg.CoolingConfig[i].BoilerCount == 0 then
                     tank_fluid.set_value(1)
@@ -612,19 +623,19 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
                 TextBox{parent=row,width=15,text="Facility Tank "..next_f}
 
-                local conns = "Connected to: "
+                local conns = ""
                 local any_bwr = false
 
                 for u = 1, #tank_conns do
                     if tank_conns[u] == i then
-                        conns = conns .. "Unit " .. u .. " "
+                        conns = conns .. tri(conns == "", "", ", ") .. "Unit " .. u
                         any_bwr = any_bwr or (tmp_cfg.CoolingConfig[u].BoilerCount == 0)
                     end
                 end
 
-                TextBox{parent=row,text=conns}
+                TextBox{parent=row,text="Connected to: "..conns,fg_bg=cpair(colors.gray,colors.lightGray)}
 
-                local tank_fluid = Radio2D{parent=row,x=15,y=1,rows=1,columns=2,default=ini_cfg.TankFluidTypes[i],options={"Water","Sodium"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+                local tank_fluid = Radio2D{parent=row,x=34,y=1,rows=1,columns=2,default=type,options={"Water","Sodium"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
 
                 if any_bwr then
                     tank_fluid.set_value(1)
@@ -636,6 +647,10 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                 next_f = next_f + 1
             end
         end
+    end
+
+    local function back_from_fluids()
+        fac_pane.set_value(tri(tmp_cfg.FacilityTankMode == 0, 3, 5))
     end
 
     local function submit_tank_fluids()
@@ -652,7 +667,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         fac_pane.set_value(8)
     end
 
-    PushButton{parent=fac_c_7,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_7,x=1,y=14,text="\x1b Back",callback=back_from_fluids,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_7,x=44,y=14,text="Next \x1a",callback=submit_tank_fluids,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -672,8 +687,8 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         main_pane.set_value(3)
     end
 
-    PushButton{parent=fac_c_7,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=fac_c_7,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_8,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_8,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

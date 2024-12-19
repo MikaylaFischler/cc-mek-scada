@@ -420,8 +420,8 @@ types.AUTO_GROUP_NAMES = {
 
 ---@enum COOLANT_TYPE
 types.COOLANT_TYPE = {
-    WATER = 0,
-    SODIUM = 1
+    WATER = 1,
+    SODIUM = 2
 }
 
 ---@enum WASTE_MODE

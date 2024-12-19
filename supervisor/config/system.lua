@@ -557,6 +557,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             local val_max_w = (inner_width - label_w) + 1
             local raw = cfg[f[1]]
             local val = util.strval(raw)
+            local skip = false
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = tri(raw == log.MODE.APPEND, "append", "replace")
@@ -593,29 +594,49 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 end
 
                 if val == "" then val = "no facility tanks" end
+            elseif f[1] == "FacilityTankList" or f[1] == "FacilityTankConns" then
+                -- hide
+                skip = true
+            elseif f[1] == "TankFluidTypes" and type(cfg.TankFluidTypes) == "table" and type(cfg.FacilityTankDefs) == "table" then
+                val = ""
+
+                for idx = 1, #cfg.FacilityTankDefs do
+                    local t_mode = "not connected to a tank"
+                    if cfg.FacilityTankDefs[idx] == 1 then
+                        t_mode = "connected to its unit tank"
+                    elseif cfg.FacilityTankDefs[idx] == 2 then
+                        t_mode = "connected to a facility tank"
+                    end
+
+                    val = val .. tri(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
+                end
+
+                if val == "" then val = "no emergency coolant tanks" end
             end
 
-            if val == "nil" then val = "<not set>" end
+            if not skip then
+                if val == "nil" then val = "<not set>" end
 
-            local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
-            alternate = not alternate
+                local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
+                alternate = not alternate
 
-            if string.len(val) > val_max_w then
-                local lines = util.strwrap(val, inner_width)
-                height = #lines + 1
+                if string.len(val) > val_max_w then
+                    local lines = util.strwrap(val, inner_width)
+                    height = #lines + 1
+                end
+
+                local line = Div{parent=setting_list,height=height,fg_bg=c}
+                TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+
+                local textbox
+                if height > 1 then
+                    textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
+                else
+                    textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
+                end
+
+                if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
             end
-
-            local line = Div{parent=setting_list,height=height,fg_bg=c}
-            TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
-
-            local textbox
-            if height > 1 then
-                textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
-            else
-                textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
-            end
-
-            if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
         end
     end
 
