@@ -1,4 +1,7 @@
 local types          = require("scada-common.types")
+local util           = require("scada-common.util")
+
+local iocontrol      = require("pocket.iocontrol")
 
 local style          = require("pocket.ui.style")
 
@@ -13,6 +16,7 @@ local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
 local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local CONTAINER_MODE = types.CONTAINER_MODE
+local COOLANT_TYPE = types.COOLANT_TYPE
 
 local cpair = core.cpair
 
@@ -30,9 +34,12 @@ local mode_ind_s = {
 ---@param page nav_tree_page
 ---@param panes Div[]
 ---@param tank_pane Div
+---@param tank_id integer global facility tank ID (as used for tank list, etc)
 ---@param ps psil
 ---@param update function
-return function (app, page, panes, tank_pane, ps, update)
+return function (app, page, panes, tank_pane, tank_id, ps, update)
+    local fac = iocontrol.get_db().facility
+
     local tank_div = Div{parent=tank_pane,x=2,width=tank_pane.get_width()-2}
     table.insert(panes, tank_div)
 
@@ -47,8 +54,10 @@ return function (app, page, panes, tank_pane, ps, update)
     local tank_pcnt = DataIndicator{parent=tank_div,x=14,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_fg}
     local tank_amnt = DataIndicator{parent=tank_div,label="",format="%18d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-    TextBox{parent=tank_div,y=6,text="Fluid Level",width=11,fg_bg=label}
-    local level = HorizontalBar{parent=tank_div,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=21}
+    local is_water = fac.tank_fluid_types[tank_id] == COOLANT_TYPE.WATER
+
+    TextBox{parent=tank_div,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=11,fg_bg=label}
+    local level = HorizontalBar{parent=tank_div,y=7,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.cyan),colors.gray),height=1,width=21}
 
     TextBox{parent=tank_div,y=9,text="Tank Fill Mode",width=14,fg_bg=label}
     local can_fill = IconIndicator{parent=tank_div,y=10,label="Fill",states=mode_ind_s}

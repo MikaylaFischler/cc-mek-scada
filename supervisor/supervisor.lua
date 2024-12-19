@@ -27,6 +27,7 @@ function supervisor.load_config()
     config.CoolingConfig = settings.get("CoolingConfig")
     config.FacilityTankMode = settings.get("FacilityTankMode")
     config.FacilityTankDefs = settings.get("FacilityTankDefs")
+    config.TankFluidTypes = settings.get("TankFluidTypes")
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
 
     config.SVR_Channel = settings.get("SVR_Channel")
@@ -56,8 +57,9 @@ function supervisor.load_config()
     cfv.assert_range(config.UnitCount, 1, 4)
 
     cfv.assert_type_table(config.CoolingConfig)
-    cfv.assert_type_table(config.FacilityTankDefs)
     cfv.assert_type_int(config.FacilityTankMode)
+    cfv.assert_type_table(config.FacilityTankDefs)
+    cfv.assert_type_table(config.TankFluidTypes)
     cfv.assert_range(config.FacilityTankMode, 0, 8)
 
     cfv.assert_type_bool(config.ExtChargeIdling)

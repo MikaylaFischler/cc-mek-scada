@@ -88,6 +88,8 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         tank_mode = conf.cooling.fac_tank_mode,
         tank_defs = conf.cooling.fac_tank_defs,
         tank_list = conf.cooling.fac_tank_list,
+        tank_conns = conf.cooling.fac_tank_conns,
+        tank_fluid_types = conf.cooling.tank_fluid_types,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -116,7 +118,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
 
         radiation = types.new_zero_radiation_reading(),
 
-        save_cfg_ack = nil,      ---@type fun(success: boolean)
+        save_cfg_ack = nil, ---@type fun(success: boolean)
 
         ---@type { [TONE]: boolean }
         alarm_tones = { false, false, false, false, false, false, false, false },

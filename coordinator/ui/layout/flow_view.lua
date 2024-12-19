@@ -24,6 +24,7 @@ local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
 local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local CONTAINER_MODE = types.CONTAINER_MODE
+local COOLANT_TYPE = types.COOLANT_TYPE
 
 local ALIGN = core.ALIGN
 
@@ -45,8 +46,10 @@ local function init(main)
     local facility = iocontrol.get_db().facility
     local units = iocontrol.get_db().units
 
-    local tank_defs = facility.tank_defs
-    local tank_list = facility.tank_list
+    local tank_defs  = facility.tank_defs
+    local tank_conns = facility.tank_conns
+    local tank_list  = facility.tank_list
+    local tank_types = facility.tank_fluid_types
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
@@ -56,11 +59,15 @@ local function init(main)
     datetime.register(facility.ps, "date_time", datetime.set_value)
 
     local po_pipes = {}
-    local water_pipes = {}
+    local emcool_pipes = {}
 
     -- get the y offset for this unit index
     ---@param idx integer unit index
     local function y_ofs(idx) return ((idx - 1) * 20) end
+
+    -- get the coolant color
+    ---@param idx integer tank index
+    local function c_clr(idx) return util.trinary(tank_types[tank_conns[idx]] == COOLANT_TYPE.WATER, colors.blue, colors.cyan) end
 
     -- determinte facility tank start/end from the definitions list
     ---@param start_idx integer start index of table iteration
@@ -81,11 +88,13 @@ local function init(main)
         for i = 1, facility.num_units do
             if units[i].has_tank then
                 local y = y_ofs(i)
-                table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
-                table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
+                local color = c_clr(i)
 
-                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
-                table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
+                table.insert(emcool_pipes, pipe(2, y, 2, y + 3, color, true))
+                table.insert(emcool_pipes, pipe(2, y, 21, y, color, true))
+
+                local x = util.trinary(tank_types[tank_conns[i]] == COOLANT_TYPE.WATER, 45, 84)
+                table.insert(emcool_pipes, pipe(21, y, x, y + 2, color, true, true))
             end
         end
     else
@@ -93,16 +102,17 @@ local function init(main)
         for i = 1, #tank_defs do
             if tank_defs[i] > 0 then
                 local y = y_ofs(i)
+                local color = c_clr(i)
 
                 if tank_defs[i] == 2 then
-                    table.insert(water_pipes, pipe(1, y, 21, y, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(1, y, 21, y, color, true))
                 else
-                    table.insert(water_pipes, pipe(2, y, 2, y + 3, colors.blue, true))
-                    table.insert(water_pipes, pipe(2, y, 21, y, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(2, y, 2, y + 3, color, true))
+                    table.insert(emcool_pipes, pipe(2, y, 21, y, color, true))
                 end
 
-                local x = util.trinary(units[i].num_boilers == 0, 45, 84)
-                table.insert(water_pipes, pipe(21, y, x, y + 2, colors.blue, true, true))
+                local x = util.trinary((tank_types[tank_conns[i]] == COOLANT_TYPE.SODIUM) or (units[i].num_boilers == 0), 45, 84)
+                table.insert(emcool_pipes, pipe(21, y, x, y + 2, color, true, true))
             end
         end
 
@@ -112,13 +122,15 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -128,17 +140,19 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -147,12 +161,12 @@ local function init(main)
             for _, a in pairs({ 1, 3 }) do
                 local b = a + 1
                 if tank_defs[a] == 2 then
-                    table.insert(water_pipes, pipe(0, y_ofs(a), 1, y_ofs(a) + 6, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y_ofs(a), 1, y_ofs(a) + 6, c_clr(a), true))
                     if tank_defs[b] == 2 then
-                        table.insert(water_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), c_clr(b), true))
                     end
                 elseif tank_defs[b] == 2 then
-                    table.insert(water_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, c_clr(b), true))
                 end
             end
         elseif facility.tank_mode == 4 then
@@ -161,17 +175,19 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == 1 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -181,17 +197,19 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == 3 or i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -201,17 +219,19 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == 1 or i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -221,17 +241,19 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
+                local color = c_clr(i)
+
                 if i == 1 or i == 2 then
                     if tank_defs[i] == 2 then
-                        table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                     end
                 elseif i == first_fdef then
-                    table.insert(water_pipes, pipe(0, y, 1, y + 5, colors.blue, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
                 elseif i > first_fdef then
                     if i == last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y, color, true))
                     elseif i < last_fdef then
-                        table.insert(water_pipes, pipe(0, y - 14, 0, y + 5, colors.blue, true))
+                        table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, color, true))
                     end
                 end
             end
@@ -239,14 +261,14 @@ local function init(main)
     end
 
     local flow_x = 3
-    if #water_pipes > 0 then
+    if #emcool_pipes > 0 then
         flow_x = 25
-        PipeNetwork{parent=main,x=2,y=3,pipes=water_pipes,bg=style.theme.bg}
+        PipeNetwork{parent=main,x=2,y=3,pipes=emcool_pipes,bg=style.theme.bg}
     end
 
     for i = 1, facility.num_units do
         local y_offset = y_ofs(i)
-        unit_flow(main, flow_x, 5 + y_offset, #water_pipes == 0, units[i])
+        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, units[i])
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
         util.nop()
     end
@@ -301,8 +323,8 @@ local function init(main)
             local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
             local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=s_field}
 
-            TextBox{parent=tank_box,x=2,y=6,text="Water Level",width=11,fg_bg=style.label}
-            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(colors.blue,colors.gray),height=1,width=16}
+            TextBox{parent=tank_box,x=2,y=6,text=util.trinary(tank_types[i]==COOLANT_TYPE.WATER,"Water","Sodium").." Level",width=11,fg_bg=style.label}
+            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(util.trinary(tank_types[i]==COOLANT_TYPE.WATER,colors.blue,colors.cyan),colors.gray),height=1,width=16}
 
             TextBox{parent=tank_box,x=2,y=9,text="In/Out Mode",width=11,fg_bg=style.label}
             local can_fill = IndicatorLight{parent=tank_box,x=2,y=10,label="FILL",colors=style.ind_wht}

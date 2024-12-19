@@ -418,6 +418,12 @@ types.AUTO_GROUP_NAMES = {
     "Backup"
 }
 
+---@enum COOLANT_TYPE
+types.COOLANT_TYPE = {
+    WATER = 0,
+    SODIUM = 1
+}
+
 ---@enum WASTE_MODE
 types.WASTE_MODE = {
     AUTO = 1,
