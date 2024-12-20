@@ -596,10 +596,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 val = ""
 
                 for idx = 1, #tank_name_list do
-                    if tank_name_list[i] == 1 then
-                        tank_name_list[i] = "U" .. idx
-                    elseif tank_name_list[i] == 2 then
-                        tank_name_list[i] = "F" .. next_f
+                    if tank_name_list[idx] == 1 then
+                        tank_name_list[idx] = "U" .. idx
+                    elseif tank_name_list[idx] == 2 then
+                        tank_name_list[idx] = "F" .. next_f
                         next_f = next_f + 1
                     end
                 end
@@ -607,9 +607,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 for idx = 1, #cfg.FacilityTankDefs do
                     local t_mode = "not connected to a tank"
                     if cfg.FacilityTankDefs[idx] == 1 then
-                        t_mode = "connected to its unit tank (" .. tank_name_list[cfg.FacilityTankConns[i]] .. ")"
+                        t_mode = "connected to its unit tank (" .. tank_name_list[cfg.FacilityTankConns[idx]] .. ")"
                     elseif cfg.FacilityTankDefs[idx] == 2 then
-                        t_mode = "connected to facility tank " .. tank_name_list[cfg.FacilityTankConns[i]]
+                        t_mode = "connected to facility tank " .. tank_name_list[cfg.FacilityTankConns[idx]]
                     end
 
                     val = val .. tri(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
@@ -628,12 +628,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 for idx = 1, #tank_list do
                     local prefix = "?"
                     local fluid = "water"
-                    local type = tmp_cfg.TankFluidTypes[idx]
+                    local type = cfg.TankFluidTypes[idx]
 
-                    if tank_list[i] > 0 then
-                        if tank_list[i] == 1 then
+                    if tank_list[idx] > 0 then
+                        if tank_list[idx] == 1 then
                             prefix = "U" .. idx
-                        elseif tank_list[i] == 2 then
+                        elseif tank_list[idx] == 2 then
                             prefix = "F" .. next_f
                             next_f = next_f + 1
                         end
