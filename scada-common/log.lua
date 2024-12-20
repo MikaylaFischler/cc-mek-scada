@@ -61,7 +61,6 @@ local function _log(msg_bits)
 
     -- if we don't have space, we need to create a new log file
     if check_out_of_space() then
-        assert(false)
         -- delete the old log file before opening a new one
         logger.file.close()
         fs.delete(logger.path)
@@ -73,7 +72,6 @@ local function _log(msg_bits)
         logger.file.writeLine(time_stamp .. WRN_TAG .. "recycled log file")
         logger.file.writeLine(stamped)
         logger.file.flush()
-        assert(false)
     elseif (not status) and (result ~= nil) then
         util.println("unexpected error writing to the log file: " .. result)
     end
