@@ -338,8 +338,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.warning(util.c("sys_config> failed to check if  '", name, "' is a formed boiler multiblock"))
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed boiler multiblock"))
                 end
             elseif type == "turbineValve" then
                 -- turbine multiblock
@@ -352,8 +352,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.warning(util.c("sys_config> failed to check if  '", name, "' is a formed turbine multiblock"))
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed turbine multiblock"))
                 end
             elseif type == "dynamicValve" then
                 -- dynamic tank multiblock
@@ -371,8 +371,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.warning(util.c("sys_config> failed to check if  '", name, "' is a formed dynamic tank multiblock"))
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed dynamic tank multiblock"))
                 end
             elseif type == "inductionPort" then
                 -- induction matrix multiblock
@@ -384,8 +384,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.warning(util.c("sys_config> failed to check if  '", name, "' is a formed induction matrix multiblock"))
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed induction matrix multiblock"))
                 end
             elseif type == "spsPort" then
                 -- SPS multiblock
@@ -397,8 +397,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.warning(util.c("sys_config> failed to check if  '", name, "' is a formed SPS multiblock"))
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed SPS multiblock"))
                 end
             elseif type == "solarNeutronActivator" then
                 -- SNA
@@ -428,7 +428,7 @@ local function main()
                 if not formed then
                     if formed == false then
                         log.info(util.c("sys_config> device '", name, "' is not formed"))
-                    end
+                    else formed = false end
                 elseif faulted then
                     -- sometimes there is a race condition on server boot where it reports formed, but
                     -- the other functions are not yet defined (that's the theory at least). mark as unformed to attempt connection later
@@ -458,7 +458,7 @@ local function main()
 
             table.insert(units, rtu_unit)
 
-            local for_message = "facility"
+            local for_message = "the facility"
             if for_reactor > 0 then
                 for_message = util.c("reactor ", for_reactor)
             end
