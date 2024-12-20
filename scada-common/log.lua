@@ -87,7 +87,7 @@ end
 ---@param include_debug boolean whether or not to include debug logs
 ---@param dmesg_redirect? Redirect terminal/window to direct dmesg to
 function log.init(path, write_mode, include_debug, dmesg_redirect)
-    local err_msg = nil
+    local err_msg
 
     logger.path = path
     logger.mode = write_mode
