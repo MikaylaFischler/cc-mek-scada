@@ -8,6 +8,10 @@ local util = require("scada-common.util")
 local DBG_TAG, INF_TAG, WRN_TAG, ERR_TAG, FTL_TAG = "[DBG] ", "[INF] ", "[WRN] ", "[ERR] ", "[FTL] "
 local COLON, FUNC, ARROW = ":", "():", " > "
 
+local MIN_SPACE    = 512
+local OUT_OF_SPACE = "Out of space"
+local TIME_FMT     = "%F %T "
+
 ---@class logger
 local log = {}
 
@@ -34,14 +38,20 @@ local free_space = fs.getFreeSpace
 -- PRIVATE FUNCTIONS --
 -----------------------
 
+-- check if the provided error indicates out of space or if insufficient space available
+---@param err_msg string|nil error message
+---@return boolean out_of_space
+local function check_out_of_space(err_msg)
+    return (free_space(logger.path) < MIN_SPACE) or ((err_msg ~= nil) and (string.find(err_msg, OUT_OF_SPACE) ~= nil))
+end
+
 -- private log write function
 ---@param msg_bits any[]
 local function _log(msg_bits)
     if logger.not_ready then return end
 
-    local out_of_space = false
-    local time_stamp   = os.date("%F %T ")
-    local stamped      = util.c(time_stamp, table.unpack(msg_bits))
+    local time_stamp = os.date(TIME_FMT)
+    local stamped    = util.c(time_stamp, table.unpack(msg_bits))
 
     -- attempt to write log
     local status, result = pcall(function ()
@@ -50,18 +60,8 @@ local function _log(msg_bits)
     end)
 
     -- if we don't have space, we need to create a new log file
-
-    if (not status) and (result ~= nil) then
-        out_of_space = string.find(result, "Out of space") ~= nil
-
-        if out_of_space then
-            -- will delete log file
-        else
-            util.println("unknown error writing to logfile: " .. result)
-        end
-    end
-
-    if out_of_space or (free_space(logger.path) < 512) then
+    if check_out_of_space() then
+        assert(false)
         -- delete the old log file before opening a new one
         logger.file.close()
         fs.delete(logger.path)
@@ -69,10 +69,13 @@ local function _log(msg_bits)
         -- re-init logger and pass dmesg_out so that it doesn't change
         log.init(logger.path, logger.mode, logger.debug, logger.dmesg_out)
 
-        -- leave a message
-        logger.file.writeLine(time_stamp .. "recycled log file")
+        -- log the message and recycle warning
+        logger.file.writeLine(time_stamp .. WRN_TAG .. "recycled log file")
         logger.file.writeLine(stamped)
         logger.file.flush()
+        assert(false)
+    elseif (not status) and (result ~= nil) then
+        util.println("unexpected error writing to the log file: " .. result)
     end
 end
 
@@ -86,20 +89,36 @@ end
 ---@param include_debug boolean whether or not to include debug logs
 ---@param dmesg_redirect? Redirect terminal/window to direct dmesg to
 function log.init(path, write_mode, include_debug, dmesg_redirect)
+    local err_msg = nil
+
     logger.path = path
     logger.mode = write_mode
     logger.debug = include_debug
-
-    if logger.mode == MODE.APPEND then
-        logger.file = fs.open(path, "a")
-    else
-        logger.file = fs.open(path, "w")
-    end
+    logger.file, err_msg = fs.open(path, util.trinary(logger.mode == MODE.APPEND, "a", "w"))
 
     if dmesg_redirect then
         logger.dmesg_out = dmesg_redirect
     else
         logger.dmesg_out = term.current()
+    end
+
+    -- check for space issues
+    local out_of_space = check_out_of_space(err_msg)
+
+    -- try to handle problems
+    if logger.file == nil or out_of_space then
+        if out_of_space then
+            if fs.exists(logger.path) then
+                fs.delete(logger.path)
+
+                logger.file, err_msg = fs.open(path, util.trinary(logger.mode == MODE.APPEND, "a", "w"))
+
+                if logger.file then
+                    logger.file.writeLine(os.date(TIME_FMT) .. WRN_TAG .. "init recycled log file")
+                    logger.file.flush()
+                else error("failed to setup the log file: " .. err_msg) end
+            else error("failed to make space for the log file, please delete unused files") end
+        else error("unexpected error setting up the log file: " .. err_msg) end
     end
 
     logger.not_ready = false
