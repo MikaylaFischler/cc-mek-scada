@@ -282,6 +282,10 @@ function configurator.configure(ask_config)
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
 
+    -- these need to be initialized as they are used before being set
+    tmp_cfg.FacilityTankMode = ini_cfg.FacilityTankMode
+    tmp_cfg.TankFluidTypes = { table.unpack(ini_cfg.TankFluidTypes) }
+
     reset_term()
 
     -- set overridden colors

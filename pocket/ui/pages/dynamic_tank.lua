@@ -56,7 +56,7 @@ return function (app, page, panes, tank_pane, tank_id, ps, update)
 
     local is_water = fac.tank_fluid_types[tank_id] == COOLANT_TYPE.WATER
 
-    TextBox{parent=tank_div,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=11,fg_bg=label}
+    TextBox{parent=tank_div,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=12,fg_bg=label}
     local level = HorizontalBar{parent=tank_div,y=7,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.cyan),colors.gray),height=1,width=21}
 
     TextBox{parent=tank_div,y=9,text="Tank Fill Mode",width=14,fg_bg=label}

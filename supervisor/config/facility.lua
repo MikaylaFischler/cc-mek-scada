@@ -196,6 +196,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_1,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     tool_ctl.num_units = NumberField{parent=fac_c_1,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_1,x=7,y=5,text="reactors"}
+    TextBox{parent=fac_c_1,x=1,y=7,height=3,text="If you already configured your coordinator, make sure you update the coordinator's configured unit count.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     local nu_error = TextBox{parent=fac_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -587,7 +588,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     --#endregion
     --#region Dynamic Tank Fluid Types
 
-    TextBox{parent=fac_c_7,height=3,text="Specify the type of coolant each tank will contain, for display use only. Water is the only option if one or more of the connected units is water cooled."}
+    TextBox{parent=fac_c_7,height=3,text="Specify each tank's coolant type, for display use only. Water is the only option if one or more of the connected units is water cooled."}
 
     local tank_fluid_list = Div{parent=fac_c_7,x=1,y=5,height=8}
 
@@ -601,6 +602,8 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
         for i = 1, #tank_list do
             local type = tmp_cfg.TankFluidTypes[i]
+
+            if type == 0 then type = 1 end
 
             self.tank_fluid_opts[i] = nil
 
