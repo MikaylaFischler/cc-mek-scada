@@ -40,7 +40,7 @@ local function _log(msg_bits)
     if logger.not_ready then return end
 
     local out_of_space = false
-    local time_stamp   = os.date("[%c] ")
+    local time_stamp   = os.date("%F %T ")
     local stamped      = util.c(time_stamp, table.unpack(msg_bits))
 
     -- attempt to write log
