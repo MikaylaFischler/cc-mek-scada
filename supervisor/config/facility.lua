@@ -34,7 +34,7 @@ local facility = {}
 ---@param defs table facility tank definitions
 ---@return table tank_list
 ---@return table tank_conns
-local function generate_tank_list_and_conns(mode, defs)
+function facility.generate_tank_list_and_conns(mode, defs)
     local tank_mode = mode
     local tank_defs = defs
     local tank_list = { table.unpack(tank_defs) }
@@ -313,7 +313,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                 tmp_cfg.FacilityTankDefs[i] = tri(tmp_cfg.CoolingConfig[i].TankConnection, 1, 0)
             end
 
-            tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
+            tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = facility.generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
 
             self.draw_fluid_ops()
 
@@ -563,7 +563,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     local function next_from_tank_mode()
         -- determine tank list and connections
-        tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
+        tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = facility.generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
 
         self.draw_fluid_ops()
 

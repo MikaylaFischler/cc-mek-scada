@@ -56,7 +56,6 @@ local function make(parent, x, y, wide, unit_id)
     local facility = iocontrol.get_db().facility
     local unit = iocontrol.get_db().units[unit_id]
 
-    local tank_defs  = facility.tank_defs
     local tank_conns = facility.tank_conns
     local tank_types = facility.tank_fluid_types
 

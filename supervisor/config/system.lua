@@ -1,5 +1,8 @@
 local log         = require("scada-common.log")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
+
+local facility    = require("supervisor.config.facility")
 
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
@@ -508,7 +511,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else
             tmp_cfg.FacilityTankMode = 0
             tmp_cfg.FacilityTankDefs = {}
+
+            -- on facility tank mode 0, setup tank defs to match unit tank option
+            for i = 1, tmp_cfg.UnitCount do
+                tmp_cfg.FacilityTankDefs[i] = tri(tmp_cfg.CoolingConfig[i].TankConnection, 1, 0)
+            end
         end
+
+        tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = facility.generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.PLC_Channel = config.PLC_CHANNEL
@@ -580,14 +590,26 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 if val == "" then val = "no facility tanks" end
             elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
             elseif f[1] == "FacilityTankDefs" and type(cfg.FacilityTankDefs) == "table" then
+                local tank_name_list = { table.unpack(cfg.FacilityTankList) } ---@type (string|integer)[]
+                local next_f = 1
+
                 val = ""
+
+                for idx = 1, #tank_name_list do
+                    if tank_name_list[i] == 1 then
+                        tank_name_list[i] = "U" .. idx
+                    elseif tank_name_list[i] == 2 then
+                        tank_name_list[i] = "F" .. next_f
+                        next_f = next_f + 1
+                    end
+                end
 
                 for idx = 1, #cfg.FacilityTankDefs do
                     local t_mode = "not connected to a tank"
                     if cfg.FacilityTankDefs[idx] == 1 then
-                        t_mode = "connected to its unit tank"
+                        t_mode = "connected to its unit tank (" .. tank_name_list[cfg.FacilityTankConns[i]] .. ")"
                     elseif cfg.FacilityTankDefs[idx] == 2 then
-                        t_mode = "connected to a facility tank"
+                        t_mode = "connected to facility tank " .. tank_name_list[cfg.FacilityTankConns[i]]
                     end
 
                     val = val .. tri(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
@@ -595,20 +617,33 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
                 if val == "" then val = "no facility tanks" end
             elseif f[1] == "FacilityTankList" or f[1] == "FacilityTankConns" then
-                -- hide
+                -- hide these since this info is available in the FacilityTankDefs list (connections) and TankFluidTypes list (list of tanks)
                 skip = true
-            elseif f[1] == "TankFluidTypes" and type(cfg.TankFluidTypes) == "table" and type(cfg.FacilityTankDefs) == "table" then
+            elseif f[1] == "TankFluidTypes" and type(cfg.TankFluidTypes) == "table" and type(cfg.FacilityTankList) == "table" then
+                local tank_list = cfg.FacilityTankList
+                local next_f = 1
+
                 val = ""
 
-                for idx = 1, #cfg.FacilityTankDefs do
-                    local t_mode = "not connected to a tank"
-                    if cfg.FacilityTankDefs[idx] == 1 then
-                        t_mode = "connected to its unit tank"
-                    elseif cfg.FacilityTankDefs[idx] == 2 then
-                        t_mode = "connected to a facility tank"
-                    end
+                for idx = 1, #tank_list do
+                    local prefix = "?"
+                    local fluid = "water"
+                    local type = tmp_cfg.TankFluidTypes[idx]
 
-                    val = val .. tri(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
+                    if tank_list[i] > 0 then
+                        if tank_list[i] == 1 then
+                            prefix = "U" .. idx
+                        elseif tank_list[i] == 2 then
+                            prefix = "F" .. next_f
+                            next_f = next_f + 1
+                        end
+
+                        if type == types.COOLANT_TYPE.SODIUM then
+                            fluid = "sodium"
+                        end
+
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 tank %s - %s", prefix, fluid)
+                    end
                 end
 
                 if val == "" then val = "no emergency coolant tanks" end

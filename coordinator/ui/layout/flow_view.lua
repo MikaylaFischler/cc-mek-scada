@@ -122,10 +122,9 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
-                local color = c_clr(i)
 
                 if i == first_fdef then
-                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
+                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
                 elseif i > first_fdef then
                     if i == last_fdef then
                         table.insert(emcool_pipes, pipe(0, y - 14, 0, y, c_clr(first_fdef), true))
@@ -140,11 +139,11 @@ local function init(main)
 
             for i = 1, #tank_defs do
                 local y = y_ofs(i)
-                local color = c_clr(i)
+                local color = c_clr(first_fdef)
 
                 if i == 4 then
                     if tank_defs[i] == 2 then
-                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
                     end
                 elseif i == first_fdef then
                     table.insert(emcool_pipes, pipe(0, y, 1, y + 5, color, true))
@@ -163,7 +162,7 @@ local function init(main)
                 if tank_defs[a] == 2 then
                     table.insert(emcool_pipes, pipe(0, y_ofs(a), 1, y_ofs(a) + 6, c_clr(a), true))
                     if tank_defs[b] == 2 then
-                        table.insert(emcool_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), c_clr(b), true))
+                        table.insert(emcool_pipes, pipe(0, y_ofs(b) - 13, 1, y_ofs(b), c_clr(a), true))
                     end
                 elseif tank_defs[b] == 2 then
                     table.insert(emcool_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, c_clr(b), true))
