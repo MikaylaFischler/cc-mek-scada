@@ -24,7 +24,8 @@ local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
 local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
 
 local MQ__RENDER_CMD = {
-    START_MAIN_UI = 1
+    START_MAIN_UI = 1,
+    CLOSE_MAIN_UI = 2
 }
 
 local MQ__RENDER_DATA = {
@@ -81,7 +82,7 @@ function threads.thread__main(smem)
                                 nic.connect(other_modem)
                             else
                                 -- close out main UI
-                                renderer.close_ui()
+                                smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
 
                                 -- alert user to status
                                 log_sys("awaiting comms modem reconnect...")
@@ -167,9 +168,9 @@ function threads.thread__main(smem)
                     -- supervisor watchdog timeout
                     log_comms("supervisor server timeout")
 
-                    -- close connection, main UI, and stop sounder
+                    -- close main UI, connection, and stop sounder
+                    smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                     coord_comms.close()
-                    renderer.close_ui()
                     sounder.stop()
                 else
                     -- a non-clock/main watchdog timer event
@@ -188,9 +189,9 @@ function threads.thread__main(smem)
                 if coord_comms.handle_packet(packet) then
                     log_comms("supervisor closed connection")
 
-                    -- close connection, main UI, and stop sounder
+                    -- close main UI, connection, and stop sounder
+                    smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                     coord_comms.close()
-                    renderer.close_ui()
                     sounder.stop()
                 end
             elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
@@ -301,6 +302,13 @@ function threads.thread__render(smem)
                                 log.fatal(util.c("main GUI render failed with error ", ui_message))
                             else
                                 log_render("main UI draw took " .. (util.time_ms() - draw_start) .. "ms")
+                            end
+                        elseif msg.message == MQ__RENDER_CMD.CLOSE_MAIN_UI then
+                            -- close the main UI if it has been drawn
+                            if renderer.ui_ready() then
+                                log_render("closing main UI...")
+                                renderer.close_ui()
+                                log_render("main UI closed")
                             end
                         end
                     elseif msg.qtype == mqueue.TYPE.DATA then
