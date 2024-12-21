@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.10.16"
+local RTU_VERSION = "v1.10.21"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
@@ -338,9 +338,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed boiler multiblock"))
-                    return false
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed boiler multiblock"))
                 end
             elseif type == "turbineValve" then
                 -- turbine multiblock
@@ -353,9 +352,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed turbine multiblock"))
-                    return false
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed turbine multiblock"))
                 end
             elseif type == "dynamicValve" then
                 -- dynamic tank multiblock
@@ -373,9 +371,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed dynamic tank multiblock"))
-                    return false
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed dynamic tank multiblock"))
                 end
             elseif type == "inductionPort" then
                 -- induction matrix multiblock
@@ -387,9 +384,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed induction matrix multiblock"))
-                    return false
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed induction matrix multiblock"))
                 end
             elseif type == "spsPort" then
                 -- SPS multiblock
@@ -401,9 +397,8 @@ local function main()
                 formed = device.isFormed()
 
                 if formed == ppm.ACCESS_FAULT then
-                    println_ts(util.c("sys_config> failed to check if  '", name, "' is formed"))
-                    log.fatal(util.c("sys_config> failed to check if  '", name, "' is a formed SPS multiblock"))
-                    return false
+                    println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
+                    log.warning(util.c("sys_config> failed to check if '", name, "' is a formed SPS multiblock"))
                 end
             elseif type == "solarNeutronActivator" then
                 -- SNA
@@ -431,7 +426,9 @@ local function main()
 
             if is_multiblock then
                 if not formed then
-                    log.info(util.c("sys_config> device '", name, "' is not formed"))
+                    if formed == false then
+                        log.info(util.c("sys_config> device '", name, "' is not formed"))
+                    else formed = false end
                 elseif faulted then
                     -- sometimes there is a race condition on server boot where it reports formed, but
                     -- the other functions are not yet defined (that's the theory at least). mark as unformed to attempt connection later
@@ -461,7 +458,7 @@ local function main()
 
             table.insert(units, rtu_unit)
 
-            local for_message = "facility"
+            local for_message = "the facility"
             if for_reactor > 0 then
                 for_message = util.c("reactor ", for_reactor)
             end

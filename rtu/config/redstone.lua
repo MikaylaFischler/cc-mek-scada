@@ -151,6 +151,10 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
             rs_pane.set_value(4)
+
+            -- for return to list from saved screen
+            tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
+            tool_ctl.gen_rs_summary()
         else
             rs_pane.set_value(5)
         end

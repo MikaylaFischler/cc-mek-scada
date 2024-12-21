@@ -90,6 +90,10 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
             peri_pane.set_value(5)
+
+            -- for return to list from saved screen
+            tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
+            tool_ctl.gen_peri_summary()
         else
             peri_pane.set_value(6)
         end

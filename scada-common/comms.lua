@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.2"
-comms.api_version = "0.0.7"
+comms.version = "3.0.3"
+comms.api_version = "0.0.8"
 
 ---@enum PROTOCOL
 local PROTOCOL = {

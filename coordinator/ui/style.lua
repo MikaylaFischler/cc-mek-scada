@@ -147,235 +147,102 @@ style.gray_white = cpair(colors.gray, colors.white)
 -- UI COMPONENTS --
 
 style.reactor = {
-    -- reactor states
+    -- reactor states<br>
+    ---@see REACTOR_STATE
     states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "PLC OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "PLC  FAULT"
-        },
-        {
-            color = cpair(colors.white, colors.gray),
-            text = "DISABLED"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ACTIVE"
-        },
-        {
-            color = cpair(colors.black, colors.red),
-            text = "SCRAMMED"
-        },
-        {
-            color = cpair(colors.black, colors.red),
-            text = "FORCE DISABLED"
-        }
+        { color = cpair(colors.black, colors.yellow), text = "PLC OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "PLC  FAULT" },
+        { color = cpair(colors.white, colors.gray),   text = "DISABLED" },
+        { color = cpair(colors.black, colors.green),  text = "ACTIVE" },
+        { color = cpair(colors.black, colors.red),    text = "SCRAMMED" },
+        { color = cpair(colors.black, colors.red),    text = "FORCE DISABLED" }
     }
 }
 
 style.boiler = {
-    -- boiler states
+    -- boiler states<br>
+    ---@see BOILER_STATE
     states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
-        },
-        {
-            color = cpair(colors.white, colors.gray),
-            text = "IDLE"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ACTIVE"
-        }
+        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
+        { color = cpair(colors.white, colors.gray),   text = "IDLE" },
+        { color = cpair(colors.black, colors.green),  text = "ACTIVE" }
     }
 }
 
 style.turbine = {
-    -- turbine states
+    -- turbine states<br>
+    ---@see TURBINE_STATE
     states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
-        },
-        {
-            color = cpair(colors.white, colors.gray),
-            text = "IDLE"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ACTIVE"
-        },
-        {
-            color = cpair(colors.black, colors.red),
-            text = "TRIP"
-        }
-    }
-}
-
-style.imatrix = {
-    -- induction matrix states
-    states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ONLINE"
-        },
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "LOW CHARGE"
-        },
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "HIGH  CHARGE"
-        }
-    }
-}
-
-style.sps = {
-    -- SPS states
-    states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
-        },
-        {
-            color = cpair(colors.white, colors.gray),
-            text = "IDLE"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ACTIVE"
-        }
+        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
+        { color = cpair(colors.white, colors.gray),   text = "IDLE" },
+        { color = cpair(colors.black, colors.green),  text = "ACTIVE" },
+        { color = cpair(colors.black, colors.red),    text = "TRIP" }
     }
 }
 
 style.dtank = {
-    -- dynamic tank states
+    -- dynamic tank states<br>
+    ---@see TANK_STATE
     states = {
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "OFF-LINE"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "NOT FORMED"
-        },
-        {
-            color = cpair(colors.black, colors.orange),
-            text = "RTU  FAULT"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "ONLINE"
-        },
-        {
-            color = cpair(colors.black, colors.yellow),
-            text = "LOW FILL"
-        },
-        {
-            color = cpair(colors.black, colors.green),
-            text = "FILLED"
-        },
+        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
+        { color = cpair(colors.black, colors.green),  text = "ONLINE" },
+        { color = cpair(colors.black, colors.yellow), text = "LOW FILL" },
+        { color = cpair(colors.black, colors.green),  text = "FILLED" }
+    }
+}
+
+style.imatrix = {
+    -- induction matrix states<br>
+    ---@see IMATRIX_STATE
+    states = {
+        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
+        { color = cpair(colors.black, colors.green),  text = "ONLINE" },
+        { color = cpair(colors.black, colors.yellow), text = "LOW CHARGE" },
+        { color = cpair(colors.black, colors.yellow), text = "HIGH  CHARGE" }
+    }
+}
+
+style.sps = {
+    -- SPS states<br>
+    ---@see SPS_STATE
+    states = {
+        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
+        { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
+        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
+        { color = cpair(colors.white, colors.gray),   text = "IDLE" },
+        { color = cpair(colors.black, colors.green),  text = "ACTIVE" }
     }
 }
 
 style.waste = {
     -- auto waste processing states
     states = {
-        {
-            color = cpair(colors.black, colors.green),
-            text = "PLUTONIUM"
-        },
-        {
-            color = cpair(colors.black, colors.cyan),
-            text = "POLONIUM"
-        },
-        {
-            color = cpair(colors.black, colors.purple),
-            text = "ANTI MATTER"
-        }
+        { color = cpair(colors.black, colors.green),  text = "PLUTONIUM" },
+        { color = cpair(colors.black, colors.cyan),   text = "POLONIUM" },
+        { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
     },
     states_abbrv = {
-        {
-            color = cpair(colors.black, colors.green),
-            text = "Pu"
-        },
-        {
-            color = cpair(colors.black, colors.cyan),
-            text = "Po"
-        },
-        {
-            color = cpair(colors.black, colors.purple),
-            text = "AM"
-        }
+        { color = cpair(colors.black, colors.green),  text = "Pu" },
+        { color = cpair(colors.black, colors.cyan),   text = "Po" },
+        { color = cpair(colors.black, colors.purple), text = "AM" }
     },
     -- process radio button options
     options = { "Plutonium", "Polonium", "Antimatter" },
     -- unit waste selection
     unit_opts = {
-        {
-            text = "Auto",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.white, colors.gray)
-        },
-        {
-            text = "Pu",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.green)
-        },
-        {
-            text = "Po",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.cyan)
-        },
-        {
-            text = "AM",
-            fg_bg = cpair(colors.black, colors.lightGray),
-            active_fg_bg = cpair(colors.black, colors.purple)
-        }
+        { text = "Auto", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.white, colors.gray) },
+        { text = "Pu", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.green) },
+        { text = "Po", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.cyan) },
+        { text = "AM", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.purple) }
     }
 }
 

@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.20"
+local CCMSI_VERSION = "v1.21"
 
 local install_dir = "/.install-cache"
 local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
@@ -321,23 +321,38 @@ if #opts == 0 or opts[1] == "help" then
     end
     return
 else
+
     mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
     if mode == nil then
         red();println("Unrecognized mode.");white()
         return
     end
 
-    app = get_opt(opts[2], { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket", "installer" })
+    local next_opt = 3
+    local apps = { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket", "installer" }
+    app = get_opt(opts[2], apps)
+    if app == nil then
+        for _, a in pairs(apps) do
+            if fs.exists(a) and fs.isDir(a) then
+                app = a
+                next_opt = 2
+                break
+            end
+        end
+    end
+
     if app == nil and mode ~= "check" then
         red();println("Unrecognized application.");white()
         return
+    elseif mode == "check" then
+        next_opt = 2
     elseif app == "installer" and mode ~= "update" then
         red();println("Installer app only supports 'update' option.");white()
         return
     end
 
     -- determine target
-    if mode == "check" then target = opts[2] else target = opts[3] end
+    target = opts[next_opt]
     if (target ~= "main") and (target ~= "devel") then
         if (target and target ~= "") then yellow();println("Unknown target, defaulting to 'main'");white() end
         target = "main"

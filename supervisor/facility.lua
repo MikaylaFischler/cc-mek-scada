@@ -51,7 +51,9 @@ function facility.new(config)
             r_cool = config.CoolingConfig,
             fac_tank_mode = config.FacilityTankMode,
             fac_tank_defs = config.FacilityTankDefs,
-            fac_tank_list = {}  ---@type integer[]
+            fac_tank_list = config.FacilityTankList,
+            fac_tank_conns = config.FacilityTankConns,
+            tank_fluid_types = config.TankFluidTypes
         },
         -- rtus
         rtu_gw_conn_count = 0,
@@ -146,99 +148,6 @@ function facility.new(config)
         table.insert(self.tone_states, false)
         table.insert(self.test_tone_states, false)
     end
-
-    --#region decode tank configuration
-
-    local cool_conf = self.cooling_conf
-
-    -- determine tank information
-    if cool_conf.fac_tank_mode == 0 then
-        cool_conf.fac_tank_defs = {}
-
-        -- on facility tank mode 0, setup tank defs to match unit tank option
-        for i = 1, config.UnitCount do
-            cool_conf.fac_tank_defs[i] = util.trinary(cool_conf.r_cool[i].TankConnection, 1, 0)
-        end
-
-        cool_conf.fac_tank_list = { table.unpack(cool_conf.fac_tank_defs) }
-    else
-        -- decode the layout of tanks from the connections definitions
-        local tank_mode = cool_conf.fac_tank_mode
-        local tank_defs = cool_conf.fac_tank_defs
-        local tank_list = { table.unpack(tank_defs) }
-
-        local function calc_fdef(start_idx, end_idx)
-            local first = 4
-            for i = start_idx, end_idx do
-                if tank_defs[i] == 2 then
-                    if i < first then first = i end
-                end
-            end
-            return first
-        end
-
-        if tank_mode == 1 then
-            -- (1) 1 total facility tank (A A A A)
-            local first_fdef = calc_fdef(1, #tank_defs)
-            for i = 1, #tank_defs do
-                if i > first_fdef and tank_defs[i] == 2 then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 2 then
-            -- (2) 2 total facility tanks (A A A B)
-            local first_fdef = calc_fdef(1, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if (i ~= 4) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 3 then
-            -- (3) 2 total facility tanks (A A B B)
-            for _, a in pairs({ 1, 3 }) do
-                local b = a + 1
-                if (tank_defs[a] == 2) and (tank_defs[b] == 2) then
-                    tank_list[b] = 0
-                end
-            end
-        elseif tank_mode == 4 then
-            -- (4) 2 total facility tanks (A B B B)
-            local first_fdef = calc_fdef(2, #tank_defs)
-            for i = 1, #tank_defs do
-                if (i ~= 1) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 5 then
-            -- (5) 3 total facility tanks (A A B C)
-            local first_fdef = calc_fdef(1, math.min(2, #tank_defs))
-            for i = 1, #tank_defs do
-                if (not (i == 3 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 6 then
-            -- (6) 3 total facility tanks (A B B C)
-            local first_fdef = calc_fdef(2, math.min(3, #tank_defs))
-            for i = 1, #tank_defs do
-                if (not (i == 1 or i == 4)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        elseif tank_mode == 7 then
-            -- (7) 3 total facility tanks (A B C C)
-            local first_fdef = calc_fdef(3, #tank_defs)
-            for i = 1, #tank_defs do
-                if (not (i == 1 or i == 2)) and (i > first_fdef) and (tank_defs[i] == 2) then
-                    tank_list[i] = 0
-                end
-            end
-        end
-
-        cool_conf.fac_tank_list = tank_list
-    end
-
-    --#endregion
 
     -- PUBLIC FUNCTIONS --
 

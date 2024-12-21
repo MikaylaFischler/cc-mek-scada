@@ -19,6 +19,7 @@ local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 ---@type rtu_config
+---@diagnostic disable-next-line: missing-fields
 local config = {}
 
 rtu.config = config

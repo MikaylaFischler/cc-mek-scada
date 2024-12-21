@@ -231,7 +231,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_2,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     tool_ctl.num_units = NumberField{parent=fac_c_2,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_2,x=7,y=5,text="reactors"}
-    TextBox{parent=fac_c_2,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_2,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
     TextBox{parent=fac_c_2,x=1,y=10,height=3,text="Since you skipped supervisor sync, the main monitor minimum height can't be determined precisely. It is marked with * on the next page.",fg_bg=g_lg_fg_bg}
 
     local nu_error = TextBox{parent=fac_c_2,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}

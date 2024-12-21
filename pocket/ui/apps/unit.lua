@@ -9,6 +9,7 @@ local pocket        = require("pocket.pocket")
 
 local style         = require("pocket.ui.style")
 
+local dyn_tank      = require("pocket.ui.pages.dynamic_tank")
 local boiler        = require("pocket.ui.pages.unit_boiler")
 local reactor       = require("pocket.ui.pages.unit_reactor")
 local turbine       = require("pocket.ui.pages.unit_turbine")
@@ -90,6 +91,10 @@ local function new_view(root)
 
         for i = 1, unit.num_turbines do
             table.insert(list, { label = "T-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].turbine[i] })
+        end
+
+        if #unit.tank_data_tbl > 0 then
+            table.insert(list, { label = "DYN", color = core.cpair(colors.black, colors.lightGray), callback = nav_links[id].d_tank })
         end
 
         app.set_sidebar(list)
@@ -359,6 +364,15 @@ local function new_view(root)
             for t_id = 1, unit.num_turbines do
                 local ps = unit.turbine_ps_tbl[t_id]
                 nav_links[i].turbine[t_id] = turbine(app, u_page, panes, tbn_pane, i, t_id, ps, update)
+            end
+
+            --#endregion
+
+            --#region Dynamic Tank Tab
+
+            if #unit.tank_data_tbl > 0 then
+                local tank_pane = Div{parent=page_div}
+                nav_links[i].d_tank = dyn_tank(app, u_page, panes, tank_pane, i, unit.tank_ps_tbl[1], update)
             end
 
             --#endregion

@@ -29,6 +29,7 @@ local PCALL_SCRAM_MSG = "Scram requires the reactor to be active."
 local PCALL_START_MSG = "Reactor is already active."
 
 ---@type plc_config
+---@diagnostic disable-next-line: missing-fields
 local config = {}
 
 plc.config = config

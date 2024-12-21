@@ -255,6 +255,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                     elseif cmd == FAC_COMMAND.START then
                         if pkt.length == 6 then
                             ---@type sys_auto_config
+---@diagnostic disable-next-line: missing-fields
                             local config = {
                                 mode = pkt.data[2],
                                 burn_target = pkt.data[3],

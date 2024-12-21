@@ -286,6 +286,7 @@ function process.create_handle()
     handle.unit_ack = {}
 
     for u = 1, pctl.io.facility.num_units do
+---@diagnostic disable-next-line: missing-fields
         handle.unit_ack[u] = {}
 
         ---@class process_unit_ack

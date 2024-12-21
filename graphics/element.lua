@@ -2,7 +2,6 @@
 -- Generic Graphics Element
 --
 
--- local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
 local core = require("graphics.core")
@@ -476,10 +475,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
         if args.parent ~= nil then
             -- remove self from parent
-            -- log.debug("removing " .. self.id .. " from parent")
             args.parent.__remove_child(self.id)
-        else
-            -- log.debug("no parent for " .. self.id .. " on delete attempt")
         end
     end
 
@@ -502,9 +498,12 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
             self.next_id = self.next_id + 1
         end
 
-        table.insert(protected.children, child)
+        -- see #539 on GitHub
+        -- using #protected.children after inserting may give the wrong index, since if it inserts in a hole that completes the list then
+        -- the length will jump up to the full length of the list, possibly making two map entries point to the same child
+        protected.child_id_map[id] = #protected.children + 1
 
-        protected.child_id_map[id] = #protected.children
+        table.insert(protected.children, child)
 
         return id
     end

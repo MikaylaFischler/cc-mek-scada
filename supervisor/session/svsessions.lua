@@ -46,12 +46,14 @@ local self = {
     config = nil,           ---@type svr_config
     facility = nil,         ---@type facility|nil
     -- lists of connected sessions
+---@diagnostic disable: missing-fields
     sessions = {
         rtu = {},           ---@type rtu_session_struct
         plc = {},           ---@type plc_session_struct
         crd = {},           ---@type crd_session_struct
         pdg = {}            ---@type pdg_session_struct
     },
+---@diagnostic enable: missing-fields
     -- next session IDs
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
     -- rtu device tracking and invalid assignment detection

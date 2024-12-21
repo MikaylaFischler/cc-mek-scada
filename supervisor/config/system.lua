@@ -1,5 +1,8 @@
 local log         = require("scada-common.log")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
+
+local facility    = require("supervisor.config.facility")
 
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
@@ -508,7 +511,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else
             tmp_cfg.FacilityTankMode = 0
             tmp_cfg.FacilityTankDefs = {}
+
+            -- on facility tank mode 0, setup tank defs to match unit tank option
+            for i = 1, tmp_cfg.UnitCount do
+                tmp_cfg.FacilityTankDefs[i] = tri(tmp_cfg.CoolingConfig[i].TankConnection, 1, 0)
+            end
         end
+
+        tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = facility.generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.PLC_Channel = config.PLC_CHANNEL
@@ -557,6 +567,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             local val_max_w = (inner_width - label_w) + 1
             local raw = cfg[f[1]]
             local val = util.strval(raw)
+            local skip = false
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = tri(raw == log.MODE.APPEND, "append", "replace")
@@ -579,43 +590,88 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 if val == "" then val = "no facility tanks" end
             elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
             elseif f[1] == "FacilityTankDefs" and type(cfg.FacilityTankDefs) == "table" then
+                local tank_name_list = { table.unpack(cfg.FacilityTankList) } ---@type (string|integer)[]
+                local next_f = 1
+
                 val = ""
+
+                for idx = 1, #tank_name_list do
+                    if tank_name_list[idx] == 1 then
+                        tank_name_list[idx] = "U" .. idx
+                    elseif tank_name_list[idx] == 2 then
+                        tank_name_list[idx] = "F" .. next_f
+                        next_f = next_f + 1
+                    end
+                end
 
                 for idx = 1, #cfg.FacilityTankDefs do
                     local t_mode = "not connected to a tank"
                     if cfg.FacilityTankDefs[idx] == 1 then
-                        t_mode = "connected to its unit tank"
+                        t_mode = "connected to its unit tank (" .. tank_name_list[cfg.FacilityTankConns[idx]] .. ")"
                     elseif cfg.FacilityTankDefs[idx] == 2 then
-                        t_mode = "connected to a facility tank"
+                        t_mode = "connected to facility tank " .. tank_name_list[cfg.FacilityTankConns[idx]]
                     end
 
                     val = val .. tri(idx == 1, "", "\n") .. util.sprintf(" \x07 unit %d - %s", idx, t_mode)
                 end
 
                 if val == "" then val = "no facility tanks" end
+            elseif f[1] == "FacilityTankList" or f[1] == "FacilityTankConns" then
+                -- hide these since this info is available in the FacilityTankDefs list (connections) and TankFluidTypes list (list of tanks)
+                skip = true
+            elseif f[1] == "TankFluidTypes" and type(cfg.TankFluidTypes) == "table" and type(cfg.FacilityTankList) == "table" then
+                local tank_list = cfg.FacilityTankList
+                local next_f = 1
+
+                val = ""
+
+                for idx = 1, #tank_list do
+                    local prefix = "?"
+                    local fluid = "water"
+                    local type = cfg.TankFluidTypes[idx]
+
+                    if tank_list[idx] > 0 then
+                        if tank_list[idx] == 1 then
+                            prefix = "U" .. idx
+                        elseif tank_list[idx] == 2 then
+                            prefix = "F" .. next_f
+                            next_f = next_f + 1
+                        end
+
+                        if type == types.COOLANT_TYPE.SODIUM then
+                            fluid = "sodium"
+                        end
+
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 tank %s - %s", prefix, fluid)
+                    end
+                end
+
+                if val == "" then val = "no emergency coolant tanks" end
             end
 
-            if val == "nil" then val = "<not set>" end
+            if not skip then
+                if val == "nil" then val = "<not set>" end
 
-            local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
-            alternate = not alternate
+                local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
+                alternate = not alternate
 
-            if string.len(val) > val_max_w then
-                local lines = util.strwrap(val, inner_width)
-                height = #lines + 1
+                if string.len(val) > val_max_w then
+                    local lines = util.strwrap(val, inner_width)
+                    height = #lines + 1
+                end
+
+                local line = Div{parent=setting_list,height=height,fg_bg=c}
+                TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+
+                local textbox
+                if height > 1 then
+                    textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
+                else
+                    textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
+                end
+
+                if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
             end
-
-            local line = Div{parent=setting_list,height=height,fg_bg=c}
-            TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
-
-            local textbox
-            if height > 1 then
-                textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
-            else
-                textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
-            end
-
-            if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
         end
     end
 

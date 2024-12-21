@@ -253,6 +253,61 @@ types.ENERGY_SCALE_UNITS = {
     "RF"
 }
 
+local GENERIC_STATE = {
+    OFFLINE = 1,
+    UNFORMED = 2,
+    FAULT = 3,
+    IDLE = 4,
+    ACTIVE = 5
+}
+
+---@enum REACTOR_STATE
+types.REACTOR_STATE = {
+    OFFLINE = 1,
+    UNFORMED = 2,
+    FAULT = 3,
+    DISABLED = 4,
+    ACTIVE = 5,
+    SCRAMMED = 6,
+    FORCE_DISABLED = 7
+}
+
+---@enum BOILER_STATE
+types.BOILER_STATE = GENERIC_STATE
+
+---@enum TURBINE_STATE
+types.TURBINE_STATE = {
+    OFFLINE = 1,
+    UNFORMED = 2,
+    FAULT = 3,
+    IDLE = 4,
+    ACTIVE = 5,
+    TRIPPED = 6
+}
+
+---@enum TANK_STATE
+types.TANK_STATE = {
+    OFFLINE = 1,
+    UNFORMED = 2,
+    FAULT = 3,
+    ONLINE = 4,
+    LOW_FILL = 5,
+    HIGH_FILL = 6
+}
+
+---@enum IMATRIX_STATE
+types.IMATRIX_STATE = {
+    OFFLINE = 1,
+    UNFORMED = 2,
+    FAULT = 3,
+    ONLINE = 4,
+    LOW_CHARGE = 5,
+    HIGH_CHARGE = 6
+}
+
+---@enum SPS_STATE
+types.SPS_STATE = GENERIC_STATE
+
 ---@enum PANEL_LINK_STATE
 types.PANEL_LINK_STATE = {
     LINKED = 1,
@@ -361,6 +416,12 @@ types.AUTO_GROUP_NAMES = {
     "Secondary",
     "Tertiary",
     "Backup"
+}
+
+---@enum COOLANT_TYPE
+types.COOLANT_TYPE = {
+    WATER = 1,
+    SODIUM = 2
 }
 
 ---@enum WASTE_MODE

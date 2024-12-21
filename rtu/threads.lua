@@ -466,6 +466,9 @@ end
 ---@param smem rtu_shared_memory
 ---@param unit rtu_registry_entry
 function threads.thread__unit_comms(smem, unit)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println_ts(message) if not smem.rtu_state.fp_ok then util.println_ts(message) end end
+
     ---@class parallel_thread
     local public = {}
 
@@ -483,7 +486,9 @@ function threads.thread__unit_comms(smem, unit)
 
         local last_f_check = 0
 
-        local detail_name  = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
+        local detail_name  = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ") ",
+                                util.trinary(unit.index == false, "", util.c("[", unit.index, "] ")), "for ",
+                                util.trinary(unit.reactor == 0, "the facility", util.c("reactor ", unit.reactor)))
         local short_name   = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ")")
 
         if packet_queue == nil then
@@ -538,6 +543,15 @@ function threads.thread__unit_comms(smem, unit)
                     rtu_comms.send_remounted(unit.uid)
                 elseif (is_formed == false) and unit.formed then
                     log.warning(util.c(detail_name, " is no longer formed"))
+                elseif (is_formed == nil) and (unit.hw_state ~= RTU_HW_STATE.OFFLINE) then
+                    log.error(util.c(detail_name, " failed to check if formed, attempting remount..."))
+
+                    local type, dev = ppm.remount(unit.name)
+                    if type and dev then
+                        handle_unit_mount(smem, println_ts, unit.name, type, dev, unit)
+                    else
+                        log.error(util.c(detail_name, " failed to remount"))
+                    end
                 end
 
                 unit.formed = is_formed
