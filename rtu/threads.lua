@@ -486,7 +486,9 @@ function threads.thread__unit_comms(smem, unit)
 
         local last_f_check = 0
 
-        local detail_name  = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ") [", unit.index, "] for reactor ", unit.reactor)
+        local detail_name  = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ") ",
+                                util.trinary(unit.index == false, "", util.c("[", unit.index, "] ")), "for ",
+                                util.trinary(unit.reactor == 0, "the facility", util.c("reactor ", unit.reactor)))
         local short_name   = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ")")
 
         if packet_queue == nil then
