@@ -211,7 +211,7 @@ local function config_view(display)
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text=msg,fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     elseif tool_ctl.start_fail > 0 then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device had no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the coordinator. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 
