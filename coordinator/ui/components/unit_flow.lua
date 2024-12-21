@@ -2,7 +2,10 @@
 -- Basic Unit Flow Overview
 --
 
+local types             = require("scada-common.types")
 local util              = require("scada-common.util")
+
+local iocontrol         = require("coordinator.iocontrol")
 
 local style             = require("coordinator.ui.style")
 
@@ -18,6 +21,8 @@ local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
 
 local IndicatorLight    = require("graphics.elements.indicators.IndicatorLight")
 local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
+
+local COOLANT_TYPE = types.COOLANT_TYPE
 
 local ALIGN = core.ALIGN
 
@@ -35,8 +40,8 @@ local lg_gray = style.lg_gray
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version
----@param unit ioctl_unit unit database entry
-local function make(parent, x, y, wide, unit)
+---@param unit_id integer unit index
+local function make(parent, x, y, wide, unit_id)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -47,6 +52,12 @@ local function make(parent, x, y, wide, unit)
     local ind_wht = style.ind_wht
 
     local height = 16
+
+    local facility = iocontrol.get_db().facility
+    local unit = iocontrol.get_db().units[unit_id]
+
+    local tank_conns = facility.tank_conns
+    local tank_types = facility.tank_fluid_types
 
     local v_start = 1 + ((unit.unit_id - 1) * 5)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
@@ -80,21 +91,22 @@ local function make(parent, x, y, wide, unit)
 
     local rc_pipes = {}
 
-    local emc_x = 42    -- emergency coolant connection x point
-
     if unit.num_boilers > 0 then
         table.insert(rc_pipes, pipe(0, 1, _wide(28, 19), 1, colors.lightBlue, true))
         table.insert(rc_pipes, pipe(0, 3, _wide(28, 19), 3, colors.orange, true))
         table.insert(rc_pipes, pipe(_wide(46 ,39), 1, _wide(72,58), 1, colors.blue, true))
         table.insert(rc_pipes, pipe(_wide(46,39), 3, _wide(72,58), 3, colors.white, true))
     else
-        emc_x = 3
         table.insert(rc_pipes, pipe(0, 1, _wide(72,58), 1, colors.blue, true))
         table.insert(rc_pipes, pipe(0, 3, _wide(72,58), 3, colors.white, true))
     end
 
     if unit.has_tank then
-        table.insert(rc_pipes, pipe(emc_x, 1, emc_x, 0, colors.blue, true, true))
+        local is_water = tank_types[tank_conns[unit_id]] == COOLANT_TYPE.WATER
+        -- emergency coolant connection x point
+        local emc_x = util.trinary(is_water and (unit.num_boilers > 0), 42, 3)
+
+        table.insert(rc_pipes, pipe(emc_x, 1, emc_x, 0, util.trinary(is_water, colors.blue, colors.lightBlue), true, true))
     end
 
     local prv_yo = math.max(3 - unit.num_turbines, 0)

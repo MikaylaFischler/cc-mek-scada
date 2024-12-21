@@ -30,7 +30,8 @@ local CENTER = core.ALIGN.CENTER
 -- changes to the config data/format to let the user know
 local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
+    { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
+    { "v1.6.0", { "Added sodium emergency coolant option" } }
 }
 
 ---@class svr_configurator
@@ -78,8 +79,11 @@ local tool_ctl = {
 local tmp_cfg = {
     UnitCount = 1,
     CoolingConfig = {},     ---@type { TurbineCount: integer, BoilerCount: integer, TankConnection: boolean }[]
-    FacilityTankMode = 0,
-    FacilityTankDefs = {},  ---@type integer[]
+    FacilityTankMode = 0,   -- dynamic tank emergency coolant layout
+    FacilityTankDefs = {},  ---@type integer[] each unit's tank connection target (0 = disconnected, 1 = unit, 2 = facility)
+    FacilityTankList = {},  ---@type integer[] list of tanks by slot (0 = none or covered by an above tank, 1 = unit tank, 2 = facility tank)
+    FacilityTankConns = {}, ---@type integer[] map of unit tank connections (indicies are units, values are tank indicies in the tank list)
+    TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     ExtChargeIdling = false,
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
@@ -110,6 +114,9 @@ local fields = {
     { "CoolingConfig", "Cooling Configuration", {} },
     { "FacilityTankMode", "Facility Tank Mode", 0 },
     { "FacilityTankDefs", "Facility Tank Definitions", {} },
+    { "FacilityTankList", "Facility Tank List", {} },         -- hidden
+    { "FacilityTankConns", "Facility Tank Connections", {} }, -- hidden
+    { "TankFluidTypes", "Tank Fluid Types", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
@@ -176,7 +183,7 @@ local function config_view(display)
     TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Supervisor configurator! Please select one of the following options."}
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device had no valid config so the configurator has been automatically started. If you previously had a valid config, you may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the supervisor. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 
@@ -274,6 +281,10 @@ function configurator.configure(ask_config)
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
+
+    -- these need to be initialized as they are used before being set
+    tmp_cfg.FacilityTankMode = ini_cfg.FacilityTankMode
+    tmp_cfg.TankFluidTypes = { table.unpack(ini_cfg.TankFluidTypes) }
 
     reset_term()
 

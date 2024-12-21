@@ -138,6 +138,9 @@ function iocontrol.init_fac(conf)
         num_units = conf.num_units,
         tank_mode = conf.cooling.fac_tank_mode,
         tank_defs = conf.cooling.fac_tank_defs,
+        tank_list = conf.cooling.fac_tank_list,
+        tank_conns = conf.cooling.fac_tank_conns,
+        tank_fluid_types = conf.cooling.tank_fluid_types,
         all_sys_ok = false,
         rtu_count = 0,
 
