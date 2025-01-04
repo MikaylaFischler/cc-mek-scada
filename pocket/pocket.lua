@@ -88,16 +88,17 @@ local APP_ID = {
     LOADER = 2,
     -- main app pages
     UNITS = 3,
-    CONTROL = 4,
-    PROCESS = 5,
-    WASTE = 6,
-    GUIDE = 7,
-    ABOUT = 8,
+    FACILITY = 4,
+    CONTROL = 5,
+    PROCESS = 6,
+    WASTE = 7,
+    GUIDE = 8,
+    ABOUT = 9,
     -- diagnostic app pages
-    ALARMS = 9,
+    ALARMS = 10,
     -- other
-    DUMMY = 10,
-    NUM_APPS = 10
+    DUMMY = 11,
+    NUM_APPS = 11
 }
 
 pocket.APP_ID = APP_ID

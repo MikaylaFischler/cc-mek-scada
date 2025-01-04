@@ -192,6 +192,14 @@ function iocontrol.init_fac(conf)
     table.insert(io.facility.sps_ps_tbl, psil.create())
     table.insert(io.facility.sps_data_tbl, {})
 
+    -- create facility tank tables
+    for i = 1, #io.facility.tank_list do
+        if io.facility.tank_list[i] == 2 then
+            table.insert(io.facility.tank_ps_tbl, psil.create())
+            table.insert(io.facility.tank_data_tbl, {})
+        end
+    end
+
     -- create unit data structures
     io.units = {}   ---@type pioctl_unit[]
     for i = 1, conf.num_units do
