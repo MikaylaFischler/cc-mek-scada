@@ -1,5 +1,5 @@
 --
--- Waste Control Page
+-- Waste Control App
 --
 
 local util           = require("scada-common.util")
@@ -264,8 +264,8 @@ local function new_view(root)
         --#endregion
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
-        app.set_root_pane(u_pane)
+        local w_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        app.set_root_pane(w_pane)
 
         -- setup sidebar
 

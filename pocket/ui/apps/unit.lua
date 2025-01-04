@@ -1,5 +1,5 @@
 --
--- Unit Overview Page
+-- Unit Overview App
 --
 
 local util          = require("scada-common.util")
