@@ -651,6 +651,10 @@ function iorx.record_waste_data(data)
     fac.ps.publish("sps_process_rate", f_data[9])
 end
 
+function iorx.record_fac_detail_data(data)
+
+end
+
 return function (io_obj)
     io = io_obj
     return iorx
