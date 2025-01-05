@@ -33,9 +33,7 @@ local APP_ID = pocket.APP_ID
 
 local label_fg_bg = style.label
 local text_fg     = style.text_fg
-
 local lu_col      = style.label_unit_pair
-
 local yel_ind_s   = style.icon_states.yel_ind_s
 local wht_ind_s   = style.icon_states.wht_ind_s
 
