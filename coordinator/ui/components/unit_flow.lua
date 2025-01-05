@@ -72,7 +72,7 @@ local function make(parent, x, y, wide, unit_id)
         sprintf("PRV%02d", prv_start + 2)
     }
 
-    assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())
+    assert(parent.get_height() >= (y + height), "monitor de fluxo tem uma resolução vertical insuficiente (adicione uma linha extra de monitores) " .. y .. "," .. parent.get_height())
 
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
@@ -84,8 +84,8 @@ local function make(parent, x, y, wide, unit_id)
     ------------------
 
     local reactor = Rectangle{parent=root,x=1,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
-    TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=ALIGN.CENTER}
-    TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER}
+    TextBox{parent=reactor,y=1,text="REATOR DE FISS\xc3O",alignment=ALIGN.CENTER}
+    TextBox{parent=reactor,y=3,text="UNIDADE #"..unit.unit_id,alignment=ALIGN.CENTER}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
     TextBox{parent=root,x=3,y=5,text="\x19",width=1,fg_bg=lg_gray}
 
@@ -125,8 +125,8 @@ local function make(parent, x, y, wide, unit_id)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
         local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
-        TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=ALIGN.CENTER}
-        TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=ALIGN.CENTER}
+        TextBox{parent=boiler,y=1,text="TERMOEL\xc9TRICA",alignment=ALIGN.CENTER}
+        TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"CALDEIRAS","CALDEIRA"),alignment=ALIGN.CENTER}
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
@@ -144,8 +144,8 @@ local function make(parent, x, y, wide, unit_id)
     end
 
     local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
-    TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=ALIGN.CENTER}
-    TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER}
+    TextBox{parent=turbine,y=1,text="TURBINA DE VAPOR",alignment=ALIGN.CENTER}
+    TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GERADORES","GERADOR"),alignment=ALIGN.CENTER}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
     for i = 1, unit.num_turbines do
@@ -186,7 +186,7 @@ local function make(parent, x, y, wide, unit_id)
     local function _valve(vx, vy, n)
         TextBox{parent=waste,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
         local conn = IndicatorLight{parent=waste,x=vx-3,y=vy+1,label=v_names[n],colors=ind_grn}
-        local open = IndicatorLight{parent=waste,x=vx-3,y=vy+2,label="OPEN",colors=ind_wht}
+        local open = IndicatorLight{parent=waste,x=vx-3,y=vy+2,label="ABERTO",colors=ind_wht}
         conn.register(unit.unit_ps, util.c("V_", v_fields[n], "_conn"), conn.update)
         open.register(unit.unit_ps, util.c("V_", v_fields[n], "_state"), open.update)
     end
@@ -216,16 +216,16 @@ local function make(parent, x, y, wide, unit_id)
     _valve(_wide(73, 62), 5, 3)
     _valve(_wide(73, 62), 9, 4)
 
-    _machine(_wide(51, 45), 1, "CENTRIFUGE \x1a");
+    _machine(_wide(51, 45), 1, "CENTR\xcdFUGA \x1a");
     _machine(_wide(97, 83), 1, "PRC [Pu] \x1a");
     _machine(_wide(97, 83), 4, "PRC [Po] \x1a");
-    _machine(_wide(116, 94), 6, "SPENT WASTE \x1b")
+    _machine(_wide(116, 94), 6, "RES\xcdDUO USADO \x1b")
 
     TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
     local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=7,thin=true,fg_bg=style.theme.highlight_box_bright}
-    local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=ind_grn}
+    local sna_act = IndicatorLight{parent=sna_po,label="ATIVO",colors=ind_grn}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c_d,label="CNT",unit="",format="%2d",value=0,width=7}
-    local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c_d,label="PEAK",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c_d,label="PICO",unit="mB/t",format="%7.2f",value=0,width=17}
     local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="MAX",unit="mB/t",format="%8.2f",value=0,width=17}
     local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="IN",unit="mB/t",format="%9.2f",value=0,width=17}
 
