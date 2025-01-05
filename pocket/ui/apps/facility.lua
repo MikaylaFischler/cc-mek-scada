@@ -10,6 +10,7 @@ local pocket        = require("pocket.pocket")
 local style         = require("pocket.ui.style")
 
 local dyn_tank      = require("pocket.ui.pages.dynamic_tank")
+local induction_mtx = require("pocket.ui.pages.facility_matrix")
 
 local core          = require("graphics.core")
 
@@ -63,7 +64,7 @@ local function new_view(root)
     local btn_fg_bg = cpair(colors.orange, colors.black)
     local btn_active = cpair(colors.white, colors.black)
 
-    local tank_pages = {}
+    local tank_page_navs = {}
     local page_div = nil ---@type Div|nil
 
     -- load the app (create the elements)
@@ -134,14 +135,7 @@ local function new_view(root)
 
         --#region induction matrix
 
-        local m_pane = Div{parent=page_div}
-        local m_div = Div{parent=m_pane,x=2,width=main.get_width()-2}
-        table.insert(panes, m_pane)
-
-        local mtx_page = app.new_page(nil, #panes)
-        mtx_page.tasks = { update }
-
-        TextBox{parent=m_div,y=1,text="Induction Matrix",alignment=ALIGN.CENTER}
+        local mtx_page_nav = induction_mtx(app, panes, Div{parent=page_div}, fac.induction_ps_tbl[1], update)
 
         --#endregion
 
@@ -184,7 +178,7 @@ local function new_view(root)
         TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
 
         for i = 1, fac.tank_data_tbl do
-            tank_pages[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
+            tank_page_navs[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
         end
 
         --#endregion
@@ -198,13 +192,13 @@ local function new_view(root)
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = f_annunc.nav_to },
-            { label = "MTX", color = core.cpair(colors.black, colors.white), callback = mtx_page.nav_to },
+            { label = "MTX", color = core.cpair(colors.black, colors.white), callback = mtx_page_nav },
             { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page.nav_to },
             { label = "TNK", tall = true, color = core.cpair(colors.white, colors.gray), callback = tank_page.nav_to }
         }
 
         for i = 1, #fac.tank_data_tbl do
-            table.insert(list, { label = "F-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = tank_pages[i].nav_to })
+            table.insert(list, { label = "F-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = tank_page_navs[i] })
         end
 
         app.set_sidebar(list)

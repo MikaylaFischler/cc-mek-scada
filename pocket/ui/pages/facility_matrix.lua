@@ -28,18 +28,17 @@ local mode_ind_s = {
 
 -- create an induction matrix view for the facility app
 ---@param app pocket_app
----@param page nav_tree_page|nil parent page, if applicable
 ---@param panes Div[]
 ---@param tank_pane Div
 ---@param ps psil
 ---@param update function
-return function (app, page, panes, tank_pane, ps, update)
+return function (app, panes, tank_pane, ps, update)
     local fac = iocontrol.get_db().facility
 
     local mtx_div = Div{parent=tank_pane,x=2,width=tank_pane.get_width()-2}
     table.insert(panes, mtx_div)
 
-    local matrix_page = app.new_page(page, #panes)
+    local matrix_page = app.new_page(nil, #panes)
     matrix_page.tasks = { update }
 
     TextBox{parent=mtx_div,y=1,text="I Matrix",width=9}
