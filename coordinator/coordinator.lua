@@ -24,7 +24,6 @@ local LINK_TIMEOUT = 60.0
 local coordinator = {}
 
 ---@type crd_config
----@diagnostic disable-next-line: missing-fields
 local config = {}
 
 coordinator.config = config
@@ -135,7 +134,7 @@ function coordinator.load_config()
             local w, h, _
 
             if not util.table_contains(names, config.MainDisplay) then
-                return 2, "Main monitor is not connected."
+                return 2, "Tela Primaria desconectada."
             end
 
             monitors.main = ppm.get_periph(config.MainDisplay)
@@ -144,12 +143,12 @@ function coordinator.load_config()
             monitors.main.setTextScale(0.5)
             w, _ = ppm.monitor_block_size(monitors.main.getSize())
             if w ~= 8 then
-                return 2, util.c("Main monitor width is incorrect (was ", w, ", must be 8).")
+                return 2, util.c("Largura da Tela Prim incorreta (era ", w, ", exige 8).")
             end
 
             if not config.DisableFlowView then
                 if not util.table_contains(names, config.FlowDisplay) then
-                    return 2, "Flow monitor is not connected."
+                    return 2, "Tela de Fluxo desconectada."
                 end
 
                 monitors.flow = ppm.get_periph(config.FlowDisplay)
@@ -158,14 +157,14 @@ function coordinator.load_config()
                 monitors.flow.setTextScale(0.5)
                 w, _ = ppm.monitor_block_size(monitors.flow.getSize())
                 if w ~= 8 then
-                    return 2, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
+                    return 2, util.c("Largura da Tela de Fluxo incorreta (era ", w, ", exige 8).")
                 end
             end
 
             for i = 1, config.UnitCount do
                 local display = config.UnitDisplays[i]
                 if type(display) ~= "string" or not util.table_contains(names, display) then
-                    return 2, "Unit " .. i .. " monitor is not connected."
+                    return 2, "Unidade " .. i .. " monitor disconectado."
                 end
 
                 monitors.unit_displays[i] = ppm.get_periph(display)
@@ -174,15 +173,15 @@ function coordinator.load_config()
                 monitors.unit_displays[i].setTextScale(0.5)
                 w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
                 if w ~= 4 or h ~= 4 then
-                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
+                    return 2, util.c("Unidade ", i, " largura da tela incorreta (era ", w, " por ", h,", exige ser 4 x 4).")
                 end
             end
-        else return 2, "Monitor configuration invalid." end
+        else return 2, "Configura\xe7\xe3o da tela invalida." end
     end
 
     if cfv.valid() then
         local ok, result, message = pcall(setup_monitors)
-        assert(ok, util.c("fatal error while trying to verify monitors: ", result))
+        assert(ok, util.c("erro fatal enquanto verificava telas:", result))
         if result == 2 then return 2, message end
     else return 1 end
 
@@ -325,7 +324,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                 self.est_last = self.est_start
 
                 self.est_tick_waiting, self.est_task_done =
-                    coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_Channel)
+                    coordinator.log_comms_connecting("tentando conectar em um supervisor configurado no canal " .. config.SVR_Channel)
 
                 _send_establish()
             else
@@ -336,25 +335,25 @@ function coordinator.comms(version, nic, sv_watchdog)
                 self.est_task_done(false)
 
                 if abort then
-                    coordinator.log_comms("supervisor connection attempt cancelled by user")
+                    coordinator.log_comms("tentativa de conex\xe3o com supervisor cancelado por usuario")
                 elseif self.sv_config_err then
-                    coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
+                    coordinator.log_comms("contador de unidade do supervisor n\xe3o corresponde com as do coordenador, cheque as configura\xe7\xd5es")
                 elseif not self.sv_linked then
                     if self.last_est_ack == ESTABLISH_ACK.DENY then
-                        coordinator.log_comms("supervisor connection attempt denied")
+                        coordinator.log_comms("conex\xe3o com supervisor negado")
                     elseif self.last_est_ack == ESTABLISH_ACK.COLLISION then
-                        coordinator.log_comms("supervisor connection failed due to collision")
+                        coordinator.log_comms("conex\xe3o com supervisor falha por colis\xe3o")
                     elseif self.last_est_ack == ESTABLISH_ACK.BAD_VERSION then
-                        coordinator.log_comms("supervisor connection failed due to version mismatch")
+                        coordinator.log_comms("conex\xe3o com supervisor falha por vers\xe3o incompatível")
                     else
-                        coordinator.log_comms("supervisor connection failed with no valid response")
+                        coordinator.log_comms("conex\xe3o com supervisor falha por n\xe3o ter resposta valida")
                     end
                 end
 
                 ok = false
             elseif self.sv_config_err then
                 self.est_task_done(false)
-                coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
+                coordinator.log_comms("contador de unidade do supervisor n\xe3o corresponde com as do coordenador, cheque as configura\xe7\xd5es")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
                 _send_establish()
@@ -732,17 +731,17 @@ function coordinator.comms(version, nic, sv_watchdog)
                             if est_ack == ESTABLISH_ACK.DENY then
                                 if self.last_est_ack ~= est_ack then
                                     iocontrol.fp_link_state(types.PANEL_LINK_STATE.DENIED)
-                                    log.info("supervisor connection denied")
+                                    log.info("conex\xe3o com supervisor negado")
                                 end
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 if self.last_est_ack ~= est_ack then
                                     iocontrol.fp_link_state(types.PANEL_LINK_STATE.COLLISION)
-                                    log.warning("supervisor connection denied due to collision")
+                                    log.warning("conex\xe3o com supervisor negado por colis\xe3o")
                                 end
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 if self.last_est_ack ~= est_ack then
                                     iocontrol.fp_link_state(types.PANEL_LINK_STATE.BAD_VERSION)
-                                    log.warning("supervisor comms version mismatch")
+                                    log.warning("supervisor comms version mismatch/vers\xe3o do su")
                                 end
                             else
                                 log.debug("SCADA_MGMT establish packet reply (len = 1) unsupported")
