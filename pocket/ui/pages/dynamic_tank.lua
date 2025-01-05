@@ -31,7 +31,7 @@ local mode_ind_s = {
 
 -- create a dynamic tank view for the unit or facility app
 ---@param app pocket_app
----@param page nav_tree_page
+---@param page nav_tree_page|nil parent page, if applicable
 ---@param panes Div[]
 ---@param tank_pane Div
 ---@param tank_id integer global facility tank ID (as used for tank list, etc)

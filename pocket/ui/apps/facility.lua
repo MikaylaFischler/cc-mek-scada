@@ -18,25 +18,27 @@ local ListBox       = require("graphics.elements.ListBox")
 local MultiPane     = require("graphics.elements.MultiPane")
 local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.Waiting")
+local WaitingAnim    = require("graphics.elements.animations.Waiting")
 
-local PushButton    = require("graphics.elements.controls.PushButton")
-
-local DataIndicator = require("graphics.elements.indicators.DataIndicator")
-local IconIndicator = require("graphics.elements.indicators.IconIndicator")
+local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
--- local label        = style.label
-local lu_col       = style.label_unit_pair
 local text_fg      = style.text_fg
+local label_fg_bg  = style.label
+local lu_col       = style.label_unit_pair
+
 local basic_states = style.icon_states.basic_states
 local mode_states  = style.icon_states.mode_states
 local red_ind_s    = style.icon_states.red_ind_s
 local yel_ind_s    = style.icon_states.yel_ind_s
+local grn_ind_s    = style.icon_states.grn_ind_s
+local wht_ind_s    = style.icon_states.wht_ind_s
 
 -- new unit page view
 ---@param root Container parent
@@ -66,6 +68,8 @@ local function new_view(root)
 
     -- load the app (create the elements)
     local function load()
+        local f_ps = fac.ps
+
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
         local panes = {} ---@type Div[]
@@ -79,120 +83,111 @@ local function new_view(root)
             end
         end
 
-        for i = 1, db.facility.num_units do
-            local u_pane = panes[i]
-            local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i]
-            local u_ps = unit.unit_ps
+        --#region facility annunciator
 
-            --#region Main Unit Overview
+        local a_pane = Div{parent=page_div}
+        local a_div = Div{parent=a_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, a_pane)
 
-            local f_page = app.new_page(nil, i)
-            f_page.tasks = { update }
+        local f_annunc = app.new_page(nil, #panes)
+        f_annunc.tasks = { update }
 
-            TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
-            PushButton{parent=u_div,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()prev(i)end}
-            PushButton{parent=u_div,x=21,y=1,text=">",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()next(i)end}
+        TextBox{parent=a_div,y=1,text="Annunciator",alignment=ALIGN.CENTER}
 
-            local type = util.trinary(unit.num_boilers > 0, "Sodium Cooled Reactor", "Boiling Water Reactor")
-            TextBox{parent=u_div,y=3,text=type,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.black)}
+        local all_ok  = IconIndicator{parent=a_div,y=3,label="Unit Systems Online",states=grn_ind_s}
+        local ind_mat = IconIndicator{parent=a_div,label="Induction Matrix",states=grn_ind_s}
+        local sps     = IconIndicator{parent=a_div,label="SPS Connected",states=grn_ind_s}
 
-            local rate = DataIndicator{parent=u_div,y=5,lu_colors=lu_col,label="Burn",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
-            local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
+        all_ok.register(f_ps, "all_sys_ok", all_ok.update)
+        ind_mat.register(fac.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
+        sps.register(fac.sps_ps_tbl[1], "computed_status", function (status) sps.update(status > 1) end)
 
-            local ctrl = IconIndicator{parent=u_div,x=1,y=8,label="Control State",states=mode_states}
+        a_div.line_break()
 
-            rate.register(u_ps, "act_burn_rate", rate.update)
-            temp.register(u_ps, "temp", function (t) temp.update(db.temp_convert(t)) end)
-            ctrl.register(u_ps, "U_ControlStatus", ctrl.update)
+        local auto_ready = IconIndicator{parent=a_div,label="Configured Units Ready",states=grn_ind_s}
+        local auto_act   = IconIndicator{parent=a_div,label="Process Active",states=grn_ind_s}
+        local auto_ramp  = IconIndicator{parent=a_div,label="Process Ramping",states=wht_ind_s}
+        local auto_sat   = IconIndicator{parent=a_div,label="Min/Max Burn Rate",states=yel_ind_s}
 
-            u_div.line_break()
+        auto_ready.register(f_ps, "auto_ready", auto_ready.update)
+        auto_act.register(f_ps, "auto_active", auto_act.update)
+        auto_ramp.register(f_ps, "auto_ramping", auto_ramp.update)
+        auto_sat.register(f_ps, "auto_saturated", auto_sat.update)
 
-            local rct = IconIndicator{parent=u_div,x=1,label="Fission Reactor",states=basic_states}
-            local rps = IconIndicator{parent=u_div,x=1,label="Protection System",states=basic_states}
+        a_div.line_break()
 
-            rct.register(u_ps, "U_ReactorStatus", rct.update)
-            rps.register(u_ps, "U_RPS", rps.update)
+        local auto_scram  = IconIndicator{parent=a_div,label="Automatic SCRAM",states=red_ind_s}
+        local matrix_flt  = IconIndicator{parent=a_div,label="Induction Matrix Fault",states=yel_ind_s}
+        local matrix_fill = IconIndicator{parent=a_div,label="Matrix Charge High",states=red_ind_s}
+        local unit_crit   = IconIndicator{parent=a_div,label="Unit Critical Alarm",states=red_ind_s}
+        local fac_rad_h   = IconIndicator{parent=a_div,label="Facility Radiation High",states=red_ind_s}
+        local gen_fault   = IconIndicator{parent=a_div,label="Gen. Control Fault",states=yel_ind_s}
 
-            u_div.line_break()
+        auto_scram.register(f_ps, "auto_scram", auto_scram.update)
+        matrix_flt.register(f_ps, "as_matrix_fault", matrix_flt.update)
+        matrix_fill.register(f_ps, "as_matrix_fill", matrix_fill.update)
+        unit_crit.register(f_ps, "as_crit_alarm", unit_crit.update)
+        fac_rad_h.register(f_ps, "as_radiation", fac_rad_h.update)
+        gen_fault.register(f_ps, "as_gen_fault", gen_fault.update)
 
-            local rcs = IconIndicator{parent=u_div,x=1,label="Coolant System",states=basic_states}
-            rcs.register(u_ps, "U_RCS", rcs.update)
+        --#endregion
 
-            for b = 1, unit.num_boilers do
-                local blr = IconIndicator{parent=u_div,x=1,label="Boiler "..b,states=basic_states}
-                blr.register(unit.boiler_ps_tbl[b], "BoilerStatus", blr.update)
-            end
+        --#region induction matrix
 
-            for t = 1, unit.num_turbines do
-                local tbn = IconIndicator{parent=u_div,x=1,label="Turbine "..t,states=basic_states}
-                tbn.register(unit.turbine_ps_tbl[t], "TurbineStatus", tbn.update)
-            end
+        local m_pane = Div{parent=page_div}
+        local m_div = Div{parent=m_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, m_pane)
 
-            --#endregion
+        local mtx_page = app.new_page(nil, #panes)
+        mtx_page.tasks = { update }
 
-            util.nop()
+        TextBox{parent=m_div,y=1,text="Induction Matrix",alignment=ALIGN.CENTER}
 
-            --#region RPS Tab
+        --#endregion
 
-            local rps_pane = Div{parent=page_div}
-            local rps_div = Div{parent=rps_pane,x=2,width=main.get_width()-2}
-            table.insert(panes, rps_div)
+        --#region SPS page
 
-            local rps_page = app.new_page(f_page, #panes)
-            rps_page.tasks = { update }
-            nav_links[i].rps = rps_page.nav_to
+        local s_pane = Div{parent=page_div}
+        local s_div = Div{parent=s_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, s_pane)
 
-            TextBox{parent=rps_div,y=1,text="Protection System",alignment=ALIGN.CENTER}
+        local sps_page = app.new_page(nil, #panes)
+        sps_page.tasks = { update }
 
-            local r_trip = IconIndicator{parent=rps_div,y=3,label="RPS Trip",states=basic_states}
-            r_trip.register(u_ps, "U_RPS", r_trip.update)
+        TextBox{parent=s_div,y=1,text="Facility SPS",alignment=ALIGN.CENTER}
 
-            local r_mscrm = IconIndicator{parent=rps_div,y=5,label="Manual SCRAM",states=red_ind_s}
-            local r_ascrm = IconIndicator{parent=rps_div,label="Automatic SCRAM",states=red_ind_s}
-            local rps_tmo = IconIndicator{parent=rps_div,label="Timeout",states=yel_ind_s}
-            local rps_flt = IconIndicator{parent=rps_div,label="PPM Fault",states=yel_ind_s}
-            local rps_sfl = IconIndicator{parent=rps_div,label="Not Formed",states=red_ind_s}
+        local sps_status = StateIndicator{parent=s_div,x=5,y=3,states=style.sps.states,value=1,min_width=12}
 
-            r_mscrm.register(u_ps, "manual", r_mscrm.update)
-            r_ascrm.register(u_ps, "automatic", r_ascrm.update)
-            rps_tmo.register(u_ps, "timeout", rps_tmo.update)
-            rps_flt.register(u_ps, "fault", rps_flt.update)
-            rps_sfl.register(u_ps, "sys_fail", rps_sfl.update)
+        sps_status.register(f_ps, "sps_computed_status", sps_status.update)
 
-            rps_div.line_break()
-            local rps_dmg = IconIndicator{parent=rps_div,label="Reactor Damage Hi",states=red_ind_s}
-            local rps_tmp = IconIndicator{parent=rps_div,label="Temp. Critical",states=red_ind_s}
-            local rps_nof = IconIndicator{parent=rps_div,label="Fuel Level Lo",states=yel_ind_s}
-            local rps_exw = IconIndicator{parent=rps_div,label="Waste Level Hi",states=yel_ind_s}
-            local rps_loc = IconIndicator{parent=rps_div,label="Coolant Lo Lo",states=yel_ind_s}
-            local rps_exh = IconIndicator{parent=rps_div,label="Heated Coolant Hi",states=yel_ind_s}
+        TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=label_fg_bg}
+        local sps_in = DataIndicator{parent=s_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-            rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
-            rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
-            rps_nof.register(u_ps, "no_fuel", rps_nof.update)
-            rps_exw.register(u_ps, "ex_waste", rps_exw.update)
-            rps_loc.register(u_ps, "low_cool", rps_loc.update)
-            rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
+        sps_in.register(f_ps, "po_am_rate", sps_in.update)
 
-            --#endregion
+        TextBox{parent=s_div,y=8,text="Production Rate",width=15,fg_bg=label_fg_bg}
+        local sps_rate = DataIndicator{parent=s_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
-            --#region Dynamic Tank Tabs
+        sps_rate.register(f_ps, "sps_process_rate", function (r) sps_rate.update(r * 1000) end)
 
-            local next_tank = 1
+        --#endregion
 
-            for id = 1, #fac.tank_list do
-                if fac.tank_list[id] == 2 then
-                    local tank_pane = Div{parent=page_div}
-                    tank_pages[next_tank] = dyn_tank(app, f_page, panes, tank_pane, id, fac.tank_ps_tbl[next_tank], update)
-                    next_tank = next_tank + 1
-                end
-            end
+        --#region facility tank pages
 
-            --#endregion
+        local t_pane = Div{parent=page_div}
+        local t_div = Div{parent=t_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, t_pane)
 
-            util.nop()
+        local tank_page = app.new_page(nil, #panes)
+        tank_page.tasks = { update }
+
+        TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
+
+        for i = 1, fac.tank_data_tbl do
+            tank_pages[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
         end
+
+        --#endregion
 
         -- setup multipane
         local f_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
@@ -209,7 +204,7 @@ local function new_view(root)
         }
 
         for i = 1, #fac.tank_data_tbl do
-            table.insert(list, { label = "F-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = tank_pages[i] })
+            table.insert(list, { label = "F-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = tank_pages[i].nav_to })
         end
 
         app.set_sidebar(list)
