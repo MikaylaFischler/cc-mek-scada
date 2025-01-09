@@ -40,21 +40,21 @@ return function (app, panes, sps_pane, ps, update)
     local status = StateIndicator{parent=sps_div,x=5,y=3,states=style.sps.states,value=1,min_width=12}
     status.register(ps, "sps_computed_status", status.update)
 
-    TextBox{parent=sps_div,text="Polonium",x=1,y=5,fg_bg=label}
-    local po_bar = HorizontalBar{parent=sps_div,x=1,y=6,fg_bg=cpair(colors.cyan,colors.gray)}
-    TextBox{parent=sps_div,text="Antimatter",x=1,y=8,fg_bg=label}
-    local am_bar = HorizontalBar{parent=sps_div,x=1,y=9,fg_bg=cpair(colors.purple,colors.gray)}
-    TextBox{parent=sps_div,text="Energy Storage",x=21,y=11,fg_bg=label}
-    local energy_bar = HorizontalBar{parent=sps_div,x=1,y=12,fg_bg=cpair(colors.green,colors.gray)}
+    TextBox{parent=sps_div,text="Po",y=5,fg_bg=label}
+    local po_bar = HorizontalBar{parent=sps_div,x=4,y=5,fg_bg=cpair(colors.cyan,colors.gray),height=1}
+    TextBox{parent=sps_div,text="AM",y=7,fg_bg=label}
+    local am_bar = HorizontalBar{parent=sps_div,x=4,y=7,fg_bg=cpair(colors.purple,colors.gray),height=1}
+    TextBox{parent=sps_div,text="En",y=9,fg_bg=label}
+    local energy_bar = HorizontalBar{parent=sps_div,x=4,y=9,fg_bg=cpair(colors.green,colors.gray),height=1}
 
     po_bar.register(ps, "input_fill", po_bar.update)
     am_bar.register(ps, "output_fill", am_bar.update)
     energy_bar.register(ps, "energy_fill", energy_bar.update)
 
-    TextBox{parent=sps_div,text="Input Rate",x=3,y=14,width=17,fg_bg=label}
-    local input_rate = DataIndicator{parent=sps_div,x=3,y=15,lu_colors=lu_col,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=17,fg_bg=text_fg}
-    TextBox{parent=sps_div,text="Production",x=3,y=17,width=17,fg_bg=label}
-    local proc_rate = DataIndicator{parent=sps_div,x=3,y=18,lu_colors=lu_col,label="",unit="\xb5B/t",format="%11d",value=0,width=17,fg_bg=text_fg}
+    TextBox{parent=sps_div,y=11,text="Input Rate",width=10,fg_bg=label}
+    local input_rate = DataIndicator{parent=sps_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+    TextBox{parent=sps_div,y=14,text="Production Rate",width=15,fg_bg=label}
+    local proc_rate = DataIndicator{parent=sps_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
     proc_rate.register(ps, "process_rate", function (r) proc_rate.update(r * 1000) end)
     input_rate.register(db.facility.ps, "po_am_rate", input_rate.update)
@@ -70,23 +70,23 @@ return function (app, panes, sps_pane, ps, update)
 
     TextBox{parent=sps_ext_div,y=1,text="More SPS Info",alignment=ALIGN.CENTER}
 
-    TextBox{parent=sps_ext_div,text="Polonium Tank",x=1,y=3,width=13,fg_bg=label}
+    TextBox{parent=sps_ext_div,text="Polonium",x=1,y=3,width=13,fg_bg=label}
     local input_p = DataIndicator{parent=sps_ext_div,x=14,y=3,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
     local input_amnt = DataIndicator{parent=sps_ext_div,x=1,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     input_p.register(ps, "input_fill", function (x) input_p.update(x * 100) end)
     input_amnt.register(ps, "input", function (x) input_amnt.update(x.amount) end)
 
-    TextBox{parent=sps_ext_div,text="Antimatter Tank",x=1,y=6,width=15,fg_bg=label}
+    TextBox{parent=sps_ext_div,text="Antimatter",x=1,y=6,width=15,fg_bg=label}
     local output_p = DataIndicator{parent=sps_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local output_amnt = DataIndicator{parent=sps_ext_div,x=1,y=7,lu_colors=lu_col,label="",unit="mB",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local output_amnt = DataIndicator{parent=sps_ext_div,x=1,y=7,lu_colors=lu_col,label="",unit="\xb5B",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     output_p.register(ps, "output_fill", function (x) output_p.update(x * 100) end)
     output_amnt.register(ps, "output", function (x) output_amnt.update(x.amount) end)
 
-    TextBox{parent=sps_ext_div,text="Energy Fill",x=1,y=8,width=11,fg_bg=label}
-    local energy_p = DataIndicator{parent=sps_ext_div,x=14,y=8,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local energy_amnt = PowerIndicator{parent=sps_ext_div,x=1,y=9,lu_colors=lu_col,label="",unit=db.energy_label,format="%17.4f",value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=sps_ext_div,text="Energy Fill",x=1,y=9,width=11,fg_bg=label}
+    local energy_p = DataIndicator{parent=sps_ext_div,x=14,y=9,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local energy_amnt = PowerIndicator{parent=sps_ext_div,x=1,y=10,lu_colors=lu_col,label="",unit=db.energy_label,format="%17.4f",value=0,width=21,fg_bg=text_fg}
 
     energy_p.register(ps, "energy_fill", function (x) energy_p.update(x * 100) end)
     energy_amnt.register(ps, "energy", function (val) energy_amnt.update(db.energy_convert(val)) end)

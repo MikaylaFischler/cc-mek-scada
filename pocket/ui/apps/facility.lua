@@ -145,7 +145,7 @@ local function new_view(root)
 
         TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
 
-        for i = 1, fac.tank_data_tbl do
+        for i = 1, #fac.tank_data_tbl do
             tank_page_navs[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
         end
 
