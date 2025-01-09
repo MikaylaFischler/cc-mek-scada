@@ -88,7 +88,7 @@ local function init(main)
 
     util.nop()
 
-    imatrix(main, 131, cnc_bottom_align_start, facility.induction_data_tbl[1], facility.induction_ps_tbl[1])
+    imatrix(main, 131, cnc_bottom_align_start, facility.induction_ps_tbl[1])
 end
 
 return init
