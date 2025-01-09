@@ -46,7 +46,6 @@ local wht_ind_s    = style.icon_states.wht_ind_s
 ---@param root Container parent
 local function new_view(root)
     local db  = iocontrol.get_db()
-    local fac = db.facility
 
     local frame = Div{parent=root,x=1,y=1}
 
@@ -70,6 +69,7 @@ local function new_view(root)
 
     -- load the app (create the elements)
     local function load()
+        local fac  = db.facility
         local f_ps = fac.ps
 
         page_div = Div{parent=main,y=2,width=main.get_width()}
