@@ -85,14 +85,70 @@ local function new_view(root)
             end
         end
 
+        --#region facility overview
+
+        local f_pane = Div{parent=page_div}
+        local f_div = Div{parent=f_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, f_pane)
+
+        local fac_page = app.new_page(nil, #panes)
+        fac_page.tasks = { update }
+
+        TextBox{parent=f_div,y=1,text="Facility",alignment=ALIGN.CENTER}
+
+        local eta = TextBox{parent=f_div,x=1,y=17,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
+
+        eta.register(fac.induction_ps_tbl[1], "eta_ms", function (eta_ms)
+            local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")
+
+            local seconds = math.abs(eta_ms) / 1000
+            local minutes = seconds / 60
+            local hours   = minutes / 60
+            local days    = hours / 24
+
+            if math.abs(eta_ms) < 1000 or (eta_ms ~= eta_ms) then
+                -- really small or NaN
+                str = "No ETA"
+            elseif days < 1000 then
+                days    = math.floor(days)
+                hours   = math.floor(hours % 24)
+                minutes = math.floor(minutes % 60)
+                seconds = math.floor(seconds % 60)
+
+                if days > 0 then
+                    str = days .. "d"
+                elseif hours > 0 then
+                    str = hours .. "h " .. minutes .. "m"
+                elseif minutes > 0 then
+                    str = minutes .. "m " .. seconds .. "s"
+                elseif seconds > 0 then
+                    str = seconds .. "s"
+                end
+
+                str = pre .. str
+            else
+                local years = math.floor(days / 365.25)
+
+                if years <= 99999999 then
+                    str = pre .. years .. "y"
+                else
+                    str = pre .. "eras"
+                end
+            end
+
+            eta.set_value(str)
+        end)
+
+        --#endregion
+
         --#region facility annunciator
 
         local a_pane = Div{parent=page_div}
         local a_div = Div{parent=a_pane,x=2,width=main.get_width()-2}
         table.insert(panes, a_pane)
 
-        local f_annunc = app.new_page(nil, #panes)
-        f_annunc.tasks = { update }
+        local annunc_page = app.new_page(nil, #panes)
+        annunc_page.tasks = { update }
 
         TextBox{parent=a_div,y=1,text="Annunciator",alignment=ALIGN.CENTER}
 
@@ -159,7 +215,8 @@ local function new_view(root)
 
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
-            { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = f_annunc.nav_to },
+            { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = fac_page.nav_to },
+            { label = "ANN", color = core.cpair(colors.black, colors.yellow), callback = annunc_page.nav_to },
             { label = "MTX", color = core.cpair(colors.black, colors.white), callback = mtx_page_nav },
             { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page_nav },
             { label = "TNK", tall = true, color = core.cpair(colors.white, colors.gray), callback = tank_page.nav_to }
