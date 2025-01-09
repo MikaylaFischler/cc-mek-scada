@@ -58,9 +58,12 @@ function envd.new(session_id, unit_id, advert, out_queue)
     -- PRIVATE FUNCTIONS --
 
     -- query the radiation readings of the device
-    local function _request_radiation()
+    ---@param time_now integer
+    local function _request_radiation(time_now)
         -- read input registers 1 and 2 (start = 1, count = 2)
-        self.session.send_request(TXN_TYPES.RAD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 2 })
+        if self.session.send_request(TXN_TYPES.RAD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 2 }) ~= false then
+            self.periodics.next_rad_req = time_now + PERIODICS.RAD
+        end
     end
 
     -- PUBLIC FUNCTIONS --
@@ -90,10 +93,7 @@ function envd.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if self.periodics.next_rad_req <= time_now then
-            _request_radiation()
-            self.periodics.next_rad_req = time_now + PERIODICS.RAD
-        end
+        if self.periodics.next_rad_req <= time_now then _request_radiation(time_now) end
 
         self.session.post_update()
     end
