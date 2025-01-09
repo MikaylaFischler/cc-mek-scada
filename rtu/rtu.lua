@@ -481,16 +481,14 @@ function rtu.comms(version, nic, conn_watchdog)
                             -- check validity then pass off to unit comms thread
                             return_code, reply = unit.modbus_io.check_request(packet)
                             if return_code then
-                                -- check if there are more than 3 active transactions
-                                -- still queue the packet, but this may indicate a problem
+                                -- check if there are more than 3 active transactions, which will be treated as busy
                                 if unit.pkt_queue.length() > 3 then
                                     reply = modbus.reply__srv_device_busy(packet)
-                                    log.debug("queueing new request with " .. unit.pkt_queue.length() ..
-                                        " transactions already in the queue" .. unit_dbg_tag)
+                                    log.warning("device busy, discarding new request" .. unit_dbg_tag)
+                                else
+                                    -- queue the command if not busy
+                                    unit.pkt_queue.push_packet(packet)
                                 end
-
-                                -- always queue the command even if busy
-                                unit.pkt_queue.push_packet(packet)
                             else
                                 log.warning("cannot perform requested MODBUS operation" .. unit_dbg_tag)
                             end
