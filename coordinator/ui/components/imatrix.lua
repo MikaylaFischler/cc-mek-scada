@@ -25,10 +25,9 @@ local ALIGN = core.ALIGN
 ---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
----@param data imatrix_session_db matrix data
 ---@param ps psil ps interface
 ---@param id number? matrix ID
-local function new_view(root, x, y, data, ps, id)
+local function new_view(root, x, y, ps, id)
     local label_fg = style.theme.label_fg
     local text_fg = style.theme.text_fg
     local lu_col = style.lu_colors
@@ -94,6 +93,7 @@ local function new_view(root, x, y, data, ps, id)
     TextBox{parent=rect,text="FILL I/O",x=2,y=20,width=8,fg_bg=label_fg}
 
     local function calc_saturation(val)
+        local data = db.facility.induction_data_tbl[id or 1]
         if (type(data.build) == "table") and (type(data.build.transfer_cap) == "number") and (data.build.transfer_cap > 0) then
             return val / data.build.transfer_cap
         else return 0 end
