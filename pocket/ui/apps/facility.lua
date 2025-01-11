@@ -87,9 +87,9 @@ local function new_view(root)
 
         --#region facility overview
 
-        local f_pane = Div{parent=page_div}
-        local f_div = Div{parent=f_pane,x=2,width=main.get_width()-2}
-        table.insert(panes, f_pane)
+        local main_pane = Div{parent=page_div}
+        local f_div = Div{parent=main_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, main_pane)
 
         local fac_page = app.new_page(nil, #panes)
         fac_page.tasks = { update }
@@ -162,8 +162,18 @@ local function new_view(root)
 
         TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
 
+        -- for i = 1, #fac.tank_list do
+        --     if fac.tank_list[i] == 2 then
+        --         table.insert(io.facility.tank_ps_tbl, psil.create())
+        --         table.insert(io.facility.tank_data_tbl, {})
+        --     end
+        -- end
+
         for i = 1, #fac.tank_data_tbl do
             tank_page_navs[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
+
+            t_div.line_break()
+            TextBox{parent=t_div,y=1,text="Facility Tank ",alignment=ALIGN.CENTER}
         end
 
         --#endregion
