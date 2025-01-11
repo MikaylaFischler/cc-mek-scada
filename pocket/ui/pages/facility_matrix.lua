@@ -121,10 +121,10 @@ return function (app, panes, matrix_pane, ps, update)
     in_util.register(ps, "last_input", function (x) in_util.update(calc_saturation(x) * 100) end)
     out_util.register(ps, "last_output", function (x) out_util.update(calc_saturation(x) * 100) end)
 
-    TextBox{parent=mtx_ext_div,text="Capacity",x=1,y=13,width=13,fg_bg=label}
-    local capacity  = PowerIndicator{parent=mtx_ext_div,y=14,lu_colors=lu_col,label="",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
-    TextBox{parent=mtx_ext_div,text="Maximum In/Out Rate",x=1,y=15,width=13,fg_bg=label}
-    local trans_cap = PowerIndicator{parent=mtx_ext_div,y=16,lu_colors=lu_col,label="",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=mtx_ext_div,text="Capacity ("..db.energy_label..")",x=1,y=13,fg_bg=label}
+    local capacity  = DataIndicator{parent=mtx_ext_div,y=14,lu_colors=lu_col,label="",unit="",format="%21d",value=1000000000000,width=21,fg_bg=text_fg}
+    TextBox{parent=mtx_ext_div,text="Max In/Out ("..db.energy_label.."/t)",x=1,y=15,fg_bg=label}
+    local trans_cap = DataIndicator{parent=mtx_ext_div,y=16,lu_colors=lu_col,label="",unit="",format="%21d",rate=true,value=0,width=21,fg_bg=text_fg}
 
     capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert(val)) end)
     trans_cap.register(ps, "transfer_cap", function (val) trans_cap.update(db.energy_convert(val)) end)
