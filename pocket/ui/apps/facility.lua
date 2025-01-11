@@ -98,46 +98,7 @@ local function new_view(root)
 
         local eta = TextBox{parent=f_div,x=1,y=17,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
 
-        eta.register(fac.induction_ps_tbl[1], "eta_ms", function (eta_ms)
-            local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")
-
-            local seconds = math.abs(eta_ms) / 1000
-            local minutes = seconds / 60
-            local hours   = minutes / 60
-            local days    = hours / 24
-
-            if math.abs(eta_ms) < 1000 or (eta_ms ~= eta_ms) then
-                -- really small or NaN
-                str = "No ETA"
-            elseif days < 1000 then
-                days    = math.floor(days)
-                hours   = math.floor(hours % 24)
-                minutes = math.floor(minutes % 60)
-                seconds = math.floor(seconds % 60)
-
-                if days > 0 then
-                    str = days .. "d"
-                elseif hours > 0 then
-                    str = hours .. "h " .. minutes .. "m"
-                elseif minutes > 0 then
-                    str = minutes .. "m " .. seconds .. "s"
-                elseif seconds > 0 then
-                    str = seconds .. "s"
-                end
-
-                str = pre .. str
-            else
-                local years = math.floor(days / 365.25)
-
-                if years <= 99999999 then
-                    str = pre .. years .. "y"
-                else
-                    str = pre .. "eras"
-                end
-            end
-
-            eta.set_value(str)
-        end)
+        eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
 
         --#endregion
 
