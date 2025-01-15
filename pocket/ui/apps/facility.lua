@@ -162,18 +162,40 @@ local function new_view(root)
 
         TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
 
-        -- for i = 1, #fac.tank_list do
-        --     if fac.tank_list[i] == 2 then
-        --         table.insert(io.facility.tank_ps_tbl, psil.create())
-        --         table.insert(io.facility.tank_data_tbl, {})
-        --     end
-        -- end
+        t_div.line_break()
 
-        for i = 1, #fac.tank_data_tbl do
-            tank_page_navs[i] = dyn_tank(app, nil, panes, Div{parent=page_div}, i, fac.tank_ps_tbl[i], update)
+        local f_tank_id = 1
+        for t = 1, #fac.tank_list do
+            if fac.tank_list[t] == 1 then
+                t_div.line_break()
 
-            t_div.line_break()
-            TextBox{parent=t_div,y=1,text="Facility Tank ",alignment=ALIGN.CENTER}
+                local tank = IconIndicator{parent=t_div,x=1,label="Unit Tank "..t.." (U-"..t..")",states=basic_states}
+                tank.register(db.units[t].tank_ps_tbl[1], "DynamicTankStatus", tank.update)
+
+                TextBox{parent=t_div,text="Unit "..t,fg_bg=label_fg_bg}
+            elseif fac.tank_list[t] == 2 then
+                tank_page_navs[f_tank_id] = dyn_tank(app, nil, panes, Div{parent=page_div}, t, fac.tank_ps_tbl[f_tank_id], update)
+
+                t_div.line_break()
+
+                local tank = IconIndicator{parent=t_div,x=1,label="Facility Tank "..f_tank_id.." (F-"..f_tank_id..")",states=basic_states}
+                tank.register(fac.tank_ps_tbl[f_tank_id], "DynamicTankStatus", tank.update)
+
+                local connections
+                for i = 1, #fac.tank_conns do
+                    if fac.tank_conns[i] == t then
+                        if connections then
+                            connections = "Unit " .. i
+                        else
+                            connections = connections .. ", Unit " .. i
+                        end
+                    end
+                end
+
+                TextBox{parent=t_div,text=connections,fg_bg=label_fg_bg}
+
+                f_tank_id = f_tank_id + 1
+            end
         end
 
         --#endregion
