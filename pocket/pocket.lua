@@ -913,7 +913,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.tone_buttons[i] ~= nil then
@@ -932,7 +932,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.alarm_buttons[i] ~= nil then
