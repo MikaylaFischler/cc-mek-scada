@@ -96,9 +96,20 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility",alignment=ALIGN.CENTER}
 
-        local eta = TextBox{parent=f_div,x=1,y=17,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
+        TextBox{parent=f_div,y=3,text="Induction Matrix",alignment=ALIGN.CENTER}
 
+        local eta = TextBox{parent=f_div,x=1,y=5,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
         eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
+
+        TextBox{parent=f_div,y=7,text="Unit Statuses",alignment=ALIGN.CENTER}
+
+        f_div.line_break()
+
+        for i = 1, fac.num_units do
+            local ctrl = IconIndicator{parent=f_div,label="U"..i.." Control State",states=mode_states}
+            ctrl.register(db.units[i].unit_ps, "U_ControlStatus", ctrl.update)
+            f_div.line_break();
+        end
 
         --#endregion
 
@@ -162,8 +173,6 @@ local function new_view(root)
 
         TextBox{parent=t_div,y=1,text="Facility Tanks",alignment=ALIGN.CENTER}
 
-        t_div.line_break()
-
         local f_tank_id = 1
         for t = 1, #fac.tank_list do
             if fac.tank_list[t] == 1 then
@@ -172,27 +181,27 @@ local function new_view(root)
                 local tank = IconIndicator{parent=t_div,x=1,label="Unit Tank "..t.." (U-"..t..")",states=basic_states}
                 tank.register(db.units[t].tank_ps_tbl[1], "DynamicTankStatus", tank.update)
 
-                TextBox{parent=t_div,text="Unit "..t,fg_bg=label_fg_bg}
+                TextBox{parent=t_div,x=5,text="\x07 Unit "..t,fg_bg=label_fg_bg}
             elseif fac.tank_list[t] == 2 then
                 tank_page_navs[f_tank_id] = dyn_tank(app, nil, panes, Div{parent=page_div}, t, fac.tank_ps_tbl[f_tank_id], update)
 
                 t_div.line_break()
 
-                local tank = IconIndicator{parent=t_div,x=1,label="Facility Tank "..f_tank_id.." (F-"..f_tank_id..")",states=basic_states}
+                local tank = IconIndicator{parent=t_div,x=1,label="Fac. Tank "..f_tank_id.." (F-"..f_tank_id..")",states=basic_states}
                 tank.register(fac.tank_ps_tbl[f_tank_id], "DynamicTankStatus", tank.update)
 
-                local connections
+                local connections = ""
                 for i = 1, #fac.tank_conns do
                     if fac.tank_conns[i] == t then
-                        if connections then
-                            connections = "Unit " .. i
+                        if connections ~= "" then
+                            connections = connections .. "\n\x07 Unit " .. i
                         else
-                            connections = connections .. ", Unit " .. i
+                            connections = "\x07 Unit " .. i
                         end
                     end
                 end
 
-                TextBox{parent=t_div,text=connections,fg_bg=label_fg_bg}
+                TextBox{parent=t_div,x=5,text=connections,fg_bg=label_fg_bg}
 
                 f_tank_id = f_tank_id + 1
             end
@@ -208,11 +217,11 @@ local function new_view(root)
 
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
-            { label = "FAC", color = core.cpair(colors.black, colors.orange), callback = fac_page.nav_to },
+            { label = "FAC", tall = true, color = core.cpair(colors.black, colors.orange), callback = fac_page.nav_to },
             { label = "ANN", color = core.cpair(colors.black, colors.yellow), callback = annunc_page.nav_to },
             { label = "MTX", color = core.cpair(colors.black, colors.white), callback = mtx_page_nav },
             { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page_nav },
-            { label = "TNK", tall = true, color = core.cpair(colors.white, colors.gray), callback = tank_page.nav_to }
+            { label = "TNK", tall = true, color = core.cpair(colors.black, colors.blue), callback = tank_page.nav_to }
         }
 
         for i = 1, #fac.tank_data_tbl do
