@@ -266,23 +266,20 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
             elseif pkt.type == CRDN_TYPE.API_GET_FAC_DTL then
-                local units = {}
+                local fac = db.facility
+                local mtx_sps = fac.induction_ps_tbl[1]
 
+                local units = {}
                 local tank_statuses = {}
 
                 for i = 1, #db.units do
                     local u = db.units[i]
-
                     units[i] = { u.connected, u.annunciator, u.reactor_data, u.tank_data_tbl }
-
                     for t = 1, #u.tank_ps_tbl do table.insert(tank_statuses, u.tank_ps_tbl[t].get("computed_status")) end
                 end
 
-                local fac = db.facility
-
                 for i = 1, #fac.tank_ps_tbl do table.insert(tank_statuses, fac.tank_ps_tbl[i].get("computed_status")) end
 
-                local mtx_sps = fac.induction_ps_tbl[1]
                 local matrix_data = {
                     mtx_sps.get("eta_string"),
                     mtx_sps.get("avg_charge"),
