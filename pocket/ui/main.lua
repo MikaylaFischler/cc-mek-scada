@@ -10,6 +10,7 @@ local pocket      = require("pocket.pocket")
 local control_app = require("pocket.ui.apps.control")
 local diag_apps   = require("pocket.ui.apps.diag_apps")
 local dummy_app   = require("pocket.ui.apps.dummy_app")
+local facil_app   = require("pocket.ui.apps.facility")
 local guide_app   = require("pocket.ui.apps.guide")
 local loader_app  = require("pocket.ui.apps.loader")
 local process_app = require("pocket.ui.apps.process")
@@ -45,7 +46,7 @@ local function init(main)
     local db = iocontrol.get_db()
 
     -- window header message and connection status
-    TextBox{parent=main,y=1,text="EARLY ACCESS ALPHA S   C  ",fg_bg=style.header}
+    TextBox{parent=main,y=1,text="                   S   C  ",fg_bg=style.header}
     local svr_conn = SignalBar{parent=main,y=1,x=22,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
     local crd_conn = SignalBar{parent=main,y=1,x=26,compact=true,colors_low_med=cpair(colors.red,colors.yellow),disconnect_color=colors.lightGray,fg_bg=cpair(colors.green,colors.gray)}
 
@@ -65,6 +66,7 @@ local function init(main)
     -- create all the apps & pages
     home_page(page_div)
     unit_app(page_div)
+    facil_app(page_div)
     control_app(page_div)
     process_app(page_div)
     waste_app(page_div)

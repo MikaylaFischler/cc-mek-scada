@@ -18,6 +18,7 @@ local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 local CONTAINER_MODE = types.CONTAINER_MODE
 local COOLANT_TYPE = types.COOLANT_TYPE
 
+local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 local label   = style.label
@@ -31,7 +32,7 @@ local mode_ind_s = {
 
 -- create a dynamic tank view for the unit or facility app
 ---@param app pocket_app
----@param page nav_tree_page
+---@param page nav_tree_page|nil parent page, if applicable
 ---@param panes Div[]
 ---@param tank_pane Div
 ---@param tank_id integer global facility tank ID (as used for tank list, etc)
@@ -46,22 +47,35 @@ return function (app, page, panes, tank_pane, tank_id, ps, update)
     local tank_page = app.new_page(page, #panes)
     tank_page.tasks = { update }
 
-    TextBox{parent=tank_div,y=1,text="Dyn Tank",width=9}
-    local status = StateIndicator{parent=tank_div,x=10,y=1,states=style.dtank.states,value=1,min_width=12}
+    local tank_assign = ""
+    local f_tank_count = 0
+
+    for i = 1, #fac.tank_list do
+        local is_fac = fac.tank_list[i] == 2
+        if is_fac then f_tank_count = f_tank_count + 1 end
+
+        if i == tank_id then
+            tank_assign = util.trinary(is_fac, "F-" .. f_tank_count, "U-" .. i)
+            break
+        end
+    end
+
+    TextBox{parent=tank_div,y=1,text="Dynamic Tank "..tank_assign,alignment=ALIGN.CENTER}
+    local status = StateIndicator{parent=tank_div,x=5,y=3,states=style.dtank.states,value=1,min_width=12}
     status.register(ps, "DynamicTankStateStatus", status.update)
 
-    TextBox{parent=tank_div,y=3,text="Fill",width=10,fg_bg=label}
-    local tank_pcnt = DataIndicator{parent=tank_div,x=14,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_fg}
+    TextBox{parent=tank_div,y=5,text="Fill",width=10,fg_bg=label}
+    local tank_pcnt = DataIndicator{parent=tank_div,x=14,y=5,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_fg}
     local tank_amnt = DataIndicator{parent=tank_div,label="",format="%18d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
     local is_water = fac.tank_fluid_types[tank_id] == COOLANT_TYPE.WATER
 
-    TextBox{parent=tank_div,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=12,fg_bg=label}
-    local level = HorizontalBar{parent=tank_div,y=7,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.lightBlue),colors.gray),height=1,width=21}
+    TextBox{parent=tank_div,y=8,text=util.trinary(is_water,"Water","Sodium").." Level",width=12,fg_bg=label}
+    local level = HorizontalBar{parent=tank_div,y=9,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.lightBlue),colors.gray),height=1,width=21}
 
-    TextBox{parent=tank_div,y=9,text="Tank Fill Mode",width=14,fg_bg=label}
-    local can_fill = IconIndicator{parent=tank_div,y=10,label="Fill",states=mode_ind_s}
-    local can_empty = IconIndicator{parent=tank_div,y=11,label="Empty",states=mode_ind_s}
+    TextBox{parent=tank_div,y=11,text="Tank Fill Mode",width=14,fg_bg=label}
+    local can_fill = IconIndicator{parent=tank_div,y=12,label="Fill",states=mode_ind_s}
+    local can_empty = IconIndicator{parent=tank_div,y=13,label="Empty",states=mode_ind_s}
 
     local function _can_fill(mode)
         can_fill.update((mode == CONTAINER_MODE.BOTH) or (mode == CONTAINER_MODE.FILL))
