@@ -16,15 +16,13 @@ local induction_mtx = require("pocket.ui.pages.facility_matrix")
 local core          = require("graphics.core")
 
 local Div           = require("graphics.elements.Div")
-local ListBox       = require("graphics.elements.ListBox")
 local MultiPane     = require("graphics.elements.MultiPane")
 local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim    = require("graphics.elements.animations.Waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
-local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
-local StateIndicator = require("graphics.elements.indicators.StateIndicator")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local IconIndicator = require("graphics.elements.indicators.IconIndicator")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
