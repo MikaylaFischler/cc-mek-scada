@@ -94,6 +94,7 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
     -- API access
     ---@class pocket_ioctl_api
     io.api = {
+        get_fac = function () comms.api__get_facility() end,
         get_unit = function (unit) comms.api__get_unit(unit) end,
         get_ctrl = function () comms.api__get_control() end,
         get_proc = function () comms.api__get_process() end,

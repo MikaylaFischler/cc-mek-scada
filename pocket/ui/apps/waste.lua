@@ -247,7 +247,7 @@ local function new_view(root)
 
         local sps_status = StateIndicator{parent=s_div,x=5,y=3,states=style.sps.states,value=1,min_width=12}
 
-        sps_status.register(f_ps, "sps_computed_status", sps_status.update)
+        sps_status.register(db.facility.sps_ps_tbl[1], "SPSStateStatus", sps_status.update)
 
         TextBox{parent=s_div,y=5,text="Input Rate",width=10,fg_bg=label_fg_bg}
         local sps_in = DataIndicator{parent=s_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}

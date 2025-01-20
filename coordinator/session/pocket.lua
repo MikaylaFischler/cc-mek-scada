@@ -266,24 +266,46 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
             elseif pkt.type == CRDN_TYPE.API_GET_FAC_DTL then
-                local fac = db.facility
+                local units = {}
 
                 local tank_statuses = {}
 
+                for i = 1, #db.units do
+                    local u = db.units[i]
+
+                    units[i] = { u.connected, u.annunciator, u.reactor_data, u.tank_data_tbl }
+
+                    for t = 1, #u.tank_ps_tbl do table.insert(tank_statuses, u.tank_ps_tbl[t].get("computed_status")) end
+                end
+
+                local fac = db.facility
+
                 for i = 1, #fac.tank_ps_tbl do table.insert(tank_statuses, fac.tank_ps_tbl[i].get("computed_status")) end
+
+                local mtx_sps = fac.induction_ps_tbl[1]
+                local matrix_data = {
+                    mtx_sps.get("eta_string"),
+                    mtx_sps.get("avg_charge"),
+                    mtx_sps.get("avg_inflow"),
+                    mtx_sps.get("avg_outflow"),
+                    mtx_sps.get("is_charging"),
+                    mtx_sps.get("is_discharging"),
+                    mtx_sps.get("at_max_io")
+                }
 
                 local data = {
                     fac.all_sys_ok,
                     fac.rtu_count,
-                    { fac.auto_current_waste_product, fac.auto_pu_fallback_active },
                     fac.auto_scram,
                     fac.ascram_status,
                     tank_statuses,
                     fac.tank_data_tbl,
                     fac.induction_ps_tbl[1].get("computed_status") or types.IMATRIX_STATE.OFFLINE,
                     fac.induction_data_tbl[1],
+                    matrix_data,
                     fac.sps_ps_tbl[1].get("computed_status") or types.SPS_STATE.OFFLINE,
-                    fac.sps_data_tbl[1]
+                    fac.sps_data_tbl[1],
+                    units
                 }
 
                 _send(CRDN_TYPE.API_GET_FAC_DTL, data)

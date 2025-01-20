@@ -1,6 +1,3 @@
-local types          = require("scada-common.types")
-local util           = require("scada-common.util")
-
 local iocontrol      = require("pocket.iocontrol")
 
 local style          = require("pocket.ui.style")
@@ -25,17 +22,8 @@ local label   = style.label
 local lu_col  = style.label_unit_pair
 local text_fg = style.text_fg
 
-local basic_states = style.icon_states.basic_states
-local mode_states  = style.icon_states.mode_states
-local red_ind_s    = style.icon_states.red_ind_s
-local yel_ind_s    = style.icon_states.yel_ind_s
-local grn_ind_s    = style.icon_states.grn_ind_s
-local wht_ind_s    = style.icon_states.wht_ind_s
-
-local mode_ind_s = {
-    { color = cpair(colors.black, colors.lightGray), symbol = "-" },
-    { color = cpair(colors.black, colors.white), symbol = "+" }
-}
+local yel_ind_s = style.icon_states.yel_ind_s
+local wht_ind_s = style.icon_states.wht_ind_s
 
 -- create an induction matrix view for the facility app
 ---@param app pocket_app
@@ -75,12 +63,12 @@ return function (app, panes, matrix_pane, ps, update)
     in_bar.register(ps, "last_input", function (val) in_bar.update(calc_saturation(val)) end)
     out_bar.register(ps, "last_output", function (val) out_bar.update(calc_saturation(val)) end)
 
-    local energy  = PowerIndicator{parent=mtx_div,x=1,y=11,lu_colors=lu_col,label="Chg:   ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
-    local avg_chg = PowerIndicator{parent=mtx_div,x=1,lu_colors=lu_col,label="\xb7Avg:  ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
-    local input   = PowerIndicator{parent=mtx_div,x=1,lu_colors=lu_col,label="In:    ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
-    local avg_in  = PowerIndicator{parent=mtx_div,x=1,lu_colors=lu_col,label="\xb7Avg:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
-    local output  = PowerIndicator{parent=mtx_div,x=1,lu_colors=lu_col,label="Out:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
-    local avg_out = PowerIndicator{parent=mtx_div,x=1,lu_colors=lu_col,label="\xb7Avg:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local energy  = PowerIndicator{parent=mtx_div,y=11,lu_colors=lu_col,label="Chg:  ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
+    local avg_chg = PowerIndicator{parent=mtx_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
+    local input   = PowerIndicator{parent=mtx_div,lu_colors=lu_col,label="In:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local avg_in  = PowerIndicator{parent=mtx_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local output  = PowerIndicator{parent=mtx_div,lu_colors=lu_col,label="Out:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local avg_out = PowerIndicator{parent=mtx_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
 
     energy.register(ps, "energy", function (val) energy.update(db.energy_convert(val)) end)
     avg_chg.register(ps, "avg_charge", avg_chg.update)
@@ -122,7 +110,7 @@ return function (app, panes, matrix_pane, ps, update)
     out_util.register(ps, "last_output", function (x) out_util.update(calc_saturation(x) * 100) end)
 
     TextBox{parent=mtx_ext_div,text="Capacity ("..db.energy_label..")",x=1,y=13,fg_bg=label}
-    local capacity  = DataIndicator{parent=mtx_ext_div,y=14,lu_colors=lu_col,label="",unit="",format="%21d",value=1000000000000,width=21,fg_bg=text_fg}
+    local capacity  = DataIndicator{parent=mtx_ext_div,y=14,lu_colors=lu_col,label="",unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
     TextBox{parent=mtx_ext_div,text="Max In/Out ("..db.energy_label.."/t)",x=1,y=15,fg_bg=label}
     local trans_cap = DataIndicator{parent=mtx_ext_div,y=16,lu_colors=lu_col,label="",unit="",format="%21d",rate=true,value=0,width=21,fg_bg=text_fg}
 

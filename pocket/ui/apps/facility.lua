@@ -31,7 +31,6 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
-local text_fg      = style.text_fg
 local label_fg_bg  = style.label
 local lu_col       = style.label_unit_pair
 
@@ -40,7 +39,6 @@ local mode_states  = style.icon_states.mode_states
 local red_ind_s    = style.icon_states.red_ind_s
 local yel_ind_s    = style.icon_states.yel_ind_s
 local grn_ind_s    = style.icon_states.grn_ind_s
-local wht_ind_s    = style.icon_states.wht_ind_s
 
 -- new unit page view
 ---@param root Container parent
@@ -61,9 +59,6 @@ local function new_view(root)
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
-    local btn_fg_bg = cpair(colors.orange, colors.black)
-    local btn_active = cpair(colors.white, colors.black)
-
     local tank_page_navs = {}
     local page_div = nil ---@type Div|nil
 
@@ -80,7 +75,7 @@ local function new_view(root)
         local last_update = 0
         local function update()
             if util.time_ms() - last_update >= 500 then
-                -- db.api.get_fac()
+                db.api.get_fac()
                 last_update = util.time_ms()
             end
         end
@@ -96,19 +91,27 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility",alignment=ALIGN.CENTER}
 
-        TextBox{parent=f_div,y=3,text="Induction Matrix",alignment=ALIGN.CENTER}
+        local mtx_state = IconIndicator{parent=f_div,y=3,label="Matrix Status",states=basic_states}
+        local sps_state = IconIndicator{parent=f_div,label="SPS Status",states=basic_states}
+        mtx_state.register(fac.induction_ps_tbl[1], "InductionMatrixStatus", mtx_state.update)
+        sps_state.register(fac.sps_ps_tbl[1], "SPSStatus", sps_state.update)
 
-        local eta = TextBox{parent=f_div,x=1,y=5,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
+        TextBox{parent=f_div,y=6,text="RTU Gateways",fg_bg=label_fg_bg}
+        local rtu_count = DataIndicator{parent=f_div,x=19,y=6,label="",format="%3d",value=0,lu_colors=lu_col,width=3}
+        rtu_count.register(f_ps, "rtu_count", rtu_count.update)
+
+        TextBox{parent=f_div,y=8,text="Induction Matrix",alignment=ALIGN.CENTER}
+
+        local eta = TextBox{parent=f_div,x=1,y=10,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
         eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
 
-        TextBox{parent=f_div,y=7,text="Unit Statuses",alignment=ALIGN.CENTER}
+        TextBox{parent=f_div,y=12,text="Unit Statuses",alignment=ALIGN.CENTER}
 
         f_div.line_break()
 
         for i = 1, fac.num_units do
             local ctrl = IconIndicator{parent=f_div,label="U"..i.." Control State",states=mode_states}
             ctrl.register(db.units[i].unit_ps, "U_ControlStatus", ctrl.update)
-            f_div.line_break();
         end
 
         --#endregion
@@ -129,8 +132,8 @@ local function new_view(root)
         local sps     = IconIndicator{parent=a_div,label="SPS Connected",states=grn_ind_s}
 
         all_ok.register(f_ps, "all_sys_ok", all_ok.update)
-        -- ind_mat.register(fac.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
-        -- sps.register(fac.sps_ps_tbl[1], "computed_status", function (status) sps.update(status > 1) end)
+        ind_mat.register(fac.induction_ps_tbl[1], "InductionMatrixStateStatus", function (status) ind_mat.update(status > 1) end)
+        sps.register(fac.sps_ps_tbl[1], "SPSStateStatus", function (status) sps.update(status > 1) end)
 
         a_div.line_break()
 

@@ -554,6 +554,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.sv.linked then _send_sv(MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
     end
 
+    -- coordinator get facility app data
+    function public.api__get_facility()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_FAC_DTL, {}) end
+    end
+
     -- coordinator get unit data
     function public.api__get_unit(unit)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
@@ -729,6 +734,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_FAC then
                             if _check_length(packet, 11) then
                                 iocontrol.rx.record_facility_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_FAC_DTL then
+                            if _check_length(packet, 12) then
+                                iocontrol.rx.record_fac_detail_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
                             if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
