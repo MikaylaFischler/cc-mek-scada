@@ -189,7 +189,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
     local function _request_tanks(time_now)
         -- read input registers 20 through 25 (start = 20, count = 6)
         if self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 20, 6 }) ~= false then
-            self.periodic.next_tanks_req = time_now + PERIODICS.TANKS
+            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
         end
     end
 
