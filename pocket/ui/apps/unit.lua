@@ -1,5 +1,5 @@
 --
--- Unit Overview Page
+-- Unit Overview App
 --
 
 local util          = require("scada-common.util")
@@ -33,9 +33,8 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
--- local label        = style.label
-local lu_col       = style.label_unit_pair
 local text_fg      = style.text_fg
+local lu_col       = style.label_unit_pair
 local basic_states = style.icon_states.basic_states
 local mode_states  = style.icon_states.mode_states
 local red_ind_s    = style.icon_states.red_ind_s

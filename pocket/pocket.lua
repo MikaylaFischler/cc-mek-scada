@@ -88,16 +88,17 @@ local APP_ID = {
     LOADER = 2,
     -- main app pages
     UNITS = 3,
-    CONTROL = 4,
-    PROCESS = 5,
-    WASTE = 6,
-    GUIDE = 7,
-    ABOUT = 8,
+    FACILITY = 4,
+    CONTROL = 5,
+    PROCESS = 6,
+    WASTE = 7,
+    GUIDE = 8,
+    ABOUT = 9,
     -- diagnostic app pages
-    ALARMS = 9,
+    ALARMS = 10,
     -- other
-    DUMMY = 10,
-    NUM_APPS = 10
+    DUMMY = 11,
+    NUM_APPS = 11
 }
 
 pocket.APP_ID = APP_ID
@@ -553,6 +554,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.sv.linked then _send_sv(MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
     end
 
+    -- coordinator get facility app data
+    function public.api__get_facility()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_FAC_DTL, {}) end
+    end
+
     -- coordinator get unit data
     function public.api__get_unit(unit)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_UNIT, { unit }) end
@@ -729,6 +735,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             if _check_length(packet, 11) then
                                 iocontrol.rx.record_facility_data(packet.data)
                             end
+                        elseif packet.type == CRDN_TYPE.API_GET_FAC_DTL then
+                            if _check_length(packet, 12) then
+                                iocontrol.rx.record_fac_detail_data(packet.data)
+                            end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
                             if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
                                 iocontrol.rx.record_unit_data(packet.data)
@@ -903,7 +913,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.tone_buttons[i] ~= nil then
@@ -922,7 +932,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not ready"))
+                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.alarm_buttons[i] ~= nil then
