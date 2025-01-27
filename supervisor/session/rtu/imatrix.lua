@@ -89,27 +89,39 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
     -- PRIVATE FUNCTIONS --
 
     -- query if the multiblock is formed
-    local function _request_formed()
+    ---@param time_now integer
+    local function _request_formed(time_now)
         -- read discrete input 1 (start = 1, count = 1)
-        self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 })
+        if self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 }) ~= false then
+            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
+        end
     end
 
     -- query the build of the device
-    local function _request_build()
+    ---@param time_now integer
+    local function _request_build(time_now)
         -- read input registers 1 through 9 (start = 1, count = 9)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 })
+        if self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 9 }) ~= false then
+            self.periodics.next_build_req = time_now + PERIODICS.BUILD
+        end
     end
 
     -- query the state of the device
-    local function _request_state()
+    ---@param time_now integer
+    local function _request_state(time_now)
         -- read input register 10 through 11 (start = 10, count = 2)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 2 })
+        if self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 10, 2 }) ~= false then
+            self.periodics.next_state_req = time_now + PERIODICS.STATE
+        end
     end
 
     -- query the tanks of the device
-    local function _request_tanks()
+    ---@param time_now integer
+    local function _request_tanks(time_now)
         -- read input registers 12 through 15 (start = 12, count = 3)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 12, 3 })
+        if self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 12, 3 }) ~= false then
+            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+        end
     end
 
     -- PUBLIC FUNCTIONS --
@@ -181,26 +193,12 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if self.periodics.next_formed_req <= time_now then
-            _request_formed()
-            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
-        end
+        if self.periodics.next_formed_req <= time_now then _request_formed(time_now) end
 
         if self.db.formed then
-            if not self.has_build and self.periodics.next_build_req <= time_now then
-                _request_build()
-                self.periodics.next_build_req = time_now + PERIODICS.BUILD
-            end
-
-            if self.periodics.next_state_req <= time_now then
-                _request_state()
-                self.periodics.next_state_req = time_now + PERIODICS.STATE
-            end
-
-            if self.periodics.next_tanks_req <= time_now then
-                _request_tanks()
-                self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
-            end
+            if not self.has_build and self.periodics.next_build_req <= time_now then _request_build(time_now) end
+            if self.periodics.next_state_req <= time_now then _request_state(time_now) end
+            if self.periodics.next_tanks_req <= time_now then _request_tanks(time_now) end
         end
 
         self.session.post_update()
