@@ -12,6 +12,8 @@ local ALARM_STATE = types.ALARM_STATE
 local BLR_STATE = types.BOILER_STATE
 local TRB_STATE = types.TURBINE_STATE
 local TNK_STATE = types.TANK_STATE
+local MTX_STATE = types.IMATRIX_STATE
+local SPS_STATE = types.SPS_STATE
 
 local io        ---@type pocket_ioctl
 local iorx = {} ---@class iorx
@@ -54,6 +56,11 @@ local function tripped(state) return state == ALARM_STATE.TRIPPED or state == AL
 local function _record_multiblock_status(faulted, data, ps)
     ps.publish("formed", data.formed)
     ps.publish("faulted", faulted)
+
+    ---@todo revisit this
+    if data.build then
+        for key, val in pairs(data.build) do ps.publish(key, val) end
+    end
 
     for key, val in pairs(data.state) do ps.publish(key, val) end
     for key, val in pairs(data.tanks) do ps.publish(key, val) end
@@ -647,8 +654,169 @@ function iorx.record_waste_data(data)
     fac.ps.publish("po_am_rate", fac.waste_stats[5])
     fac.ps.publish("spent_waste_rate", fac.waste_stats[6])
 
-    fac.ps.publish("sps_computed_status", f_data[8])
+    fac.sps_ps_tbl[1].publish("SPSStateStatus", f_data[8])
     fac.ps.publish("sps_process_rate", f_data[9])
+end
+
+
+-- update facility app with facility and unit data from API_GET_FAC_DTL
+---@param data table
+function iorx.record_fac_detail_data(data)
+    local fac = io.facility
+
+    local tank_statuses = data[5]
+    local next_t_stat = 1
+
+    -- annunciator
+
+    fac.all_sys_ok = data[1]
+    fac.rtu_count = data[2]
+    fac.auto_scram = data[3]
+    fac.ascram_status = data[4]
+
+    fac.ps.publish("all_sys_ok", fac.all_sys_ok)
+    fac.ps.publish("rtu_count", fac.rtu_count)
+    fac.ps.publish("auto_scram", fac.auto_scram)
+    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
+    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
+    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+
+    -- unit data
+
+    local units = data[12]
+
+    for i = 1, io.facility.num_units do
+        local unit = io.units[i]
+        local u_rx = units[i]
+
+        unit.connected    = u_rx[1]
+        unit.annunciator  = u_rx[2]
+        unit.reactor_data = u_rx[3]
+
+        local control_status = 1
+        if unit.connected then
+            if unit.reactor_data.rps_tripped then control_status = 2 end
+            if unit.reactor_data.mek_status.status then
+                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+            end
+        end
+
+        unit.unit_ps.publish("U_ControlStatus", control_status)
+
+        unit.tank_data_tbl = u_rx[4]
+
+        for id = 1, #unit.tank_data_tbl do
+            local tank   = unit.tank_data_tbl[id]
+            local ps     = unit.tank_ps_tbl[id]
+            local c_stat = tank_statuses[next_t_stat]
+
+            local tank_status = 1
+
+            if c_stat ~= TNK_STATE.OFFLINE then
+                if c_stat == TNK_STATE.FAULT then
+                    tank_status = 3
+                elseif tank.formed then
+                    tank_status = 4
+                else
+                    tank_status = 2
+                end
+            end
+
+            ps.publish("DynamicTankStatus", tank_status)
+            ps.publish("DynamicTankStateStatus", c_stat)
+
+            next_t_stat = next_t_stat + 1
+        end
+    end
+
+    -- facility dynamic tank data
+
+    fac.tank_data_tbl = data[6]
+
+    for id = 1, #fac.tank_data_tbl do
+        local tank   = fac.tank_data_tbl[id]
+        local ps     = fac.tank_ps_tbl[id]
+        local c_stat = tank_statuses[next_t_stat]
+
+        local tank_status = 1
+
+        if c_stat ~= TNK_STATE.OFFLINE then
+            if c_stat == TNK_STATE.FAULT then
+                tank_status = 3
+            elseif tank.formed then
+                tank_status = 4
+            else
+                tank_status = 2
+            end
+
+            _record_multiblock_status(c_stat == TNK_STATE.FAULT, tank, ps)
+        end
+
+        ps.publish("DynamicTankStatus", tank_status)
+        ps.publish("DynamicTankStateStatus", c_stat)
+
+        next_t_stat = next_t_stat + 1
+    end
+
+    -- induction matrix data
+
+    fac.induction_data_tbl[1] = data[8]
+
+    local matrix = fac.induction_data_tbl[1]
+    local m_ps   = fac.induction_ps_tbl[1]
+    local m_stat = data[7]
+
+    local mtx_status = 1
+
+    if m_stat ~= MTX_STATE.OFFLINE then
+        if m_stat == MTX_STATE.FAULT then
+            mtx_status = 3
+        elseif matrix.formed then
+            mtx_status = 4
+        else
+            mtx_status = 2
+        end
+
+        _record_multiblock_status(m_stat == MTX_STATE.FAULT, matrix, m_ps)
+    end
+
+    m_ps.publish("InductionMatrixStatus", mtx_status)
+    m_ps.publish("InductionMatrixStateStatus", m_stat)
+
+    m_ps.publish("eta_string", data[9][1])
+    m_ps.publish("avg_charge", data[9][2])
+    m_ps.publish("avg_inflow", data[9][3])
+    m_ps.publish("avg_outflow", data[9][4])
+    m_ps.publish("is_charging", data[9][5])
+    m_ps.publish("is_discharging", data[9][6])
+    m_ps.publish("at_max_io", data[9][7])
+
+    -- sps data
+
+    fac.sps_data_tbl[1] = data[11]
+
+    local sps    = fac.sps_data_tbl[1]
+    local s_ps   = fac.sps_ps_tbl[1]
+    local s_stat = data[10]
+
+    local sps_status = 1
+
+    if s_stat ~= SPS_STATE.OFFLINE then
+        if s_stat == SPS_STATE.FAULT then
+            sps_status = 3
+        elseif sps.formed then
+            sps_status = 4
+        else
+            sps_status = 2
+        end
+
+        _record_multiblock_status(s_stat == SPS_STATE.FAULT, sps, s_ps)
+    end
+
+    s_ps.publish("SPSStatus", sps_status)
+    s_ps.publish("SPSStateStatus", s_stat)
 end
 
 return function (io_obj)

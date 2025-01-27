@@ -1,5 +1,5 @@
 --
--- Unit Control Page
+-- Facility & Unit Control App
 --
 
 local types         = require("scada-common.types")

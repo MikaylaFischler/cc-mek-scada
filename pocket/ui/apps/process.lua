@@ -1,5 +1,5 @@
 --
--- Process Control Page
+-- Process Control App
 --
 
 local types         = require("scada-common.types")

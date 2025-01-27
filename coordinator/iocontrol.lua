@@ -495,6 +495,49 @@ end
 
 --#region Statuses
 
+-- generate the text string for the induction matrix charge/discharge ETA
+---@param eta_ms number eta in milliseconds
+local function gen_eta_text(eta_ms)
+    local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")
+
+    local seconds = math.abs(eta_ms) / 1000
+    local minutes = seconds / 60
+    local hours   = minutes / 60
+    local days    = hours / 24
+
+    if math.abs(eta_ms) < 1000 or (eta_ms ~= eta_ms) then
+        -- really small or NaN
+        str = "No ETA"
+    elseif days < 1000 then
+        days    = math.floor(days)
+        hours   = math.floor(hours % 24)
+        minutes = math.floor(minutes % 60)
+        seconds = math.floor(seconds % 60)
+
+        if days > 0 then
+            str = days .. "d"
+        elseif hours > 0 then
+            str = hours .. "h " .. minutes .. "m"
+        elseif minutes > 0 then
+            str = minutes .. "m " .. seconds .. "s"
+        elseif seconds > 0 then
+            str = seconds .. "s"
+        end
+
+        str = pre .. str
+    else
+        local years = math.floor(days / 365.25)
+
+        if years <= 99999999 then
+            str = pre .. years .. "y"
+        else
+            str = pre .. "eras"
+        end
+    end
+
+    return str
+end
+
 -- record and publish multiblock status data
 ---@param entry any
 ---@param data imatrix_session_db|sps_session_db|dynamicv_session_db|turbinev_session_db|boilerv_session_db
@@ -616,6 +659,7 @@ function iocontrol.update_facility_status(status)
                 ps.publish("avg_inflow", in_f)
                 ps.publish("avg_outflow", out_f)
                 ps.publish("eta_ms", eta)
+                ps.publish("eta_string", gen_eta_text(eta or 0))
 
                 ps.publish("is_charging", in_f > out_f)
                 ps.publish("is_discharging", out_f > in_f)

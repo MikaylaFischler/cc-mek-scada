@@ -42,6 +42,8 @@ local PERIODICS = {
     TANKS = 500
 }
 
+local WRITE_BUSY_WAIT = 1000
+
 -- create a new dynamicv rtu session runner
 ---@nodiscard
 ---@param session_id integer RTU gateway session ID
@@ -63,6 +65,8 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
+        mode_cmd = nil, ---@type container_mode|nil
+        resend_mode = false,
         periodics = {
             next_formed_req = 0,
             next_build_req = 0,
@@ -101,45 +105,77 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
 
     -- increment the container mode
     local function _inc_cont_mode()
+        -- set mode command
+        if self.mode_cmd == "BOTH" then self.mode_cmd = "FILL"
+        elseif self.mode_cmd == "FILL" then self.mode_cmd = "EMPTY"
+        elseif self.mode_cmd == "EMPTY" then self.mode_cmd = "BOTH"
+        end
+
         -- write coil 1 with unused value 0
-        self.session.send_request(TXN_TYPES.INC_CONT, MODBUS_FCODE.WRITE_SINGLE_COIL, { 1, 0 })
+        if self.session.send_request(TXN_TYPES.INC_CONT, MODBUS_FCODE.WRITE_SINGLE_COIL, { 1, 0 }, WRITE_BUSY_WAIT) == false then
+            self.resend_mode = true
+        end
     end
 
     -- decrement the container mode
     local function _dec_cont_mode()
+        -- set mode command
+        if self.mode_cmd == "BOTH" then self.mode_cmd = "EMPTY"
+        elseif self.mode_cmd == "EMPTY" then self.mode_cmd = "FILL"
+        elseif self.mode_cmd == "FILL" then self.mode_cmd = "BOTH"
+        end
+
         -- write coil 2 with unused value 0
-        self.session.send_request(TXN_TYPES.DEC_CONT, MODBUS_FCODE.WRITE_SINGLE_COIL, { 2, 0 })
+        if self.session.send_request(TXN_TYPES.DEC_CONT, MODBUS_FCODE.WRITE_SINGLE_COIL, { 2, 0 , WRITE_BUSY_WAIT}) == false then
+            self.resend_mode = false
+        end
     end
 
     -- set the container mode
     ---@param mode container_mode
     local function _set_cont_mode(mode)
+        self.mode_cmd = mode
+
         -- write holding register 1
-        self.session.send_request(TXN_TYPES.SET_CONT, MODBUS_FCODE.WRITE_SINGLE_HOLD_REG, { 1, mode })
+        if self.session.send_request(TXN_TYPES.SET_CONT, MODBUS_FCODE.WRITE_SINGLE_HOLD_REG, { 1, mode }, WRITE_BUSY_WAIT) == false then
+            self.resend_mode = false
+        end
     end
 
     -- query if the multiblock is formed
-    local function _request_formed()
+    ---@param time_now integer
+    local function _request_formed(time_now)
         -- read discrete input 1 (start = 1, count = 1)
-        self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 })
+        if self.session.send_request(TXN_TYPES.FORMED, MODBUS_FCODE.READ_DISCRETE_INPUTS, { 1, 1 }) ~= false then
+            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
+        end
     end
 
     -- query the build of the device
-    local function _request_build()
+    ---@param time_now integer
+    local function _request_build(time_now)
         -- read input registers 1 through 7 (start = 1, count = 7)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 })
+        if self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 7 }) ~= false then
+            self.periodics.next_build_req = time_now + PERIODICS.BUILD
+        end
     end
 
     -- query the state of the device
-    local function _request_state()
+    ---@param time_now integer
+    local function _request_state(time_now)
         -- read holding register 1 (start = 1, count = 1)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_MUL_HOLD_REGS, { 1, 1 })
+        if self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_MUL_HOLD_REGS, { 1, 1 }) ~= false then
+            self.periodics.next_state_req = time_now + PERIODICS.STATE
+        end
     end
 
     -- query the tanks of the device
-    local function _request_tanks()
+    ---@param time_now integer
+    local function _request_tanks(time_now)
         -- read input registers 8 through 9 (start = 8, count = 2)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 8, 2 })
+        if self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 8, 2 }) ~= false then
+            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+        end
     end
 
     -- PUBLIC FUNCTIONS --
@@ -182,6 +218,10 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             if m_pkt.length == 1 then
                 self.db.state.last_update    = util.time_ms()
                 self.db.state.container_mode = m_pkt.data[1]
+
+                if self.mode_cmd == nil then
+                    self.mode_cmd = self.db.state.container_mode
+                end
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
@@ -247,30 +287,22 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             end
         end
 
+        -- try to resend mode if needed
+        if self.resend_mode then
+            self.resend_mode = false
+            _set_cont_mode(self.mode_cmd)
+        end
+
         time_now = util.time()
 
         -- handle periodics
 
-        if self.periodics.next_formed_req <= time_now then
-            _request_formed()
-            self.periodics.next_formed_req = time_now + PERIODICS.FORMED
-        end
+        if self.periodics.next_formed_req <= time_now then _request_formed(time_now) end
 
         if self.db.formed then
-            if not self.has_build and self.periodics.next_build_req <= time_now then
-                _request_build()
-                self.periodics.next_build_req = time_now + PERIODICS.BUILD
-            end
-
-            if self.periodics.next_state_req <= time_now then
-                _request_state()
-                self.periodics.next_state_req = time_now + PERIODICS.STATE
-            end
-
-            if self.periodics.next_tanks_req <= time_now then
-                _request_tanks()
-                self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
-            end
+            if not self.has_build and self.periodics.next_build_req <= time_now then _request_build(time_now) end
+            if self.periodics.next_state_req <= time_now then _request_state(time_now) end
+            if self.periodics.next_tanks_req <= time_now then _request_tanks(time_now) end
         end
 
         self.session.post_update()

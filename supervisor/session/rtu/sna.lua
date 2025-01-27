@@ -80,21 +80,30 @@ function sna.new(session_id, unit_id, advert, out_queue)
     -- PRIVATE FUNCTIONS --
 
     -- query the build of the device
-    local function _request_build()
+    ---@param time_now integer
+    local function _request_build(time_now)
         -- read input registers 1 through 2 (start = 1, count = 2)
-        self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 2 })
+        if self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 2 }) ~= false then
+            self.periodics.next_build_req = time_now + PERIODICS.BUILD
+        end
     end
 
     -- query the state of the device
-    local function _request_state()
+    ---@param time_now integer
+    local function _request_state(time_now)
         -- read input registers 3 through 4 (start = 3, count = 2)
-        self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 3, 2 })
+        if self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 3, 2 }) ~= false then
+            self.periodics.next_state_req = time_now + PERIODICS.STATE
+        end
     end
 
     -- query the tanks of the device
-    local function _request_tanks()
+    ---@param time_now integer
+    local function _request_tanks(time_now)
         -- read input registers 5 through 10 (start = 5, count = 6)
-        self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 5, 6 })
+        if self.session.send_request(TXN_TYPES.TANKS, MODBUS_FCODE.READ_INPUT_REGS, { 5, 6 }) ~= false then
+            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
+        end
     end
 
     -- PUBLIC FUNCTIONS --
@@ -152,20 +161,9 @@ function sna.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if not self.has_build and self.periodics.next_build_req <= time_now then
-            _request_build()
-            self.periodics.next_build_req = time_now + PERIODICS.BUILD
-        end
-
-        if self.periodics.next_state_req <= time_now then
-            _request_state()
-            self.periodics.next_state_req = time_now + PERIODICS.STATE
-        end
-
-        if self.periodics.next_tanks_req <= time_now then
-            _request_tanks()
-            self.periodics.next_tanks_req = time_now + PERIODICS.TANKS
-        end
+        if not self.has_build and self.periodics.next_build_req <= time_now then _request_build(time_now) end
+        if self.periodics.next_state_req <= time_now then _request_state(time_now) end
+        if self.periodics.next_tanks_req <= time_now then _request_tanks(time_now) end
 
         self.session.post_update()
     end

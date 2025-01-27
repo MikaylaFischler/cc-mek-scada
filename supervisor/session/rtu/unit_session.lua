@@ -22,6 +22,8 @@ local RTU_US_DATA = {
 unit_session.RTU_US_CMDS = RTU_US_CMDS
 unit_session.RTU_US_DATA = RTU_US_DATA
 
+local DEFAULT_BUSY_WAIT = 3000
+
 -- create a new unit session runner
 ---@nodiscard
 ---@param session_id integer RTU gateway session ID
@@ -36,7 +38,8 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         reactor = advert.reactor,
         transaction_controller = txnctrl.new(),
         connected = true,
-        device_fail = false
+        device_fail = false,
+        last_busy = 0
     }
 
     ---@class _unit_session
@@ -53,14 +56,21 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     ---@param txn_type integer transaction type
     ---@param f_code MODBUS_FCODE function code
     ---@param register_param (number|string)[] register range or register and values
-    ---@return integer txn_id transaction ID of this transaction
-    function protected.send_request(txn_type, f_code, register_param)
-        local m_pkt = comms.modbus_packet()
-        local txn_id = self.transaction_controller.create(txn_type)
+    ---@param busy_wait integer|nil milliseconds to wait (>0), or uses the default
+    ---@return integer|false txn_id transaction ID of this transaction or false if not sent due to being busy
+    function protected.send_request(txn_type, f_code, register_param, busy_wait)
+        local txn_id = false ---@type integer|false
 
-        m_pkt.make(txn_id, unit_id, f_code, register_param)
+        busy_wait = busy_wait or DEFAULT_BUSY_WAIT
 
-        out_queue.push_packet(m_pkt)
+        if (util.time_ms() - self.last_busy) >= busy_wait then
+            local m_pkt = comms.modbus_packet()
+            txn_id = self.transaction_controller.create(txn_type)
+
+            m_pkt.make(txn_id, unit_id, f_code, register_param)
+
+            out_queue.push_packet(m_pkt)
+        end
 
         return txn_id
     end
@@ -99,9 +109,9 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
                         -- will have to wait on reply, renew the transaction
                         self.transaction_controller.renew(m_pkt.txn_id, txn_type)
                     elseif ex == MODBUS_EXCODE.SERVER_DEVICE_BUSY then
-                        -- will have to wait on reply, renew the transaction
-                        self.transaction_controller.renew(m_pkt.txn_id, txn_type)
-                        log.debug(log_tag .. "MODBUS: device busy" .. txn_tag)
+                        -- will have to try again later
+                        self.last_busy = util.time_ms()
+                        log.warning(log_tag .. "MODBUS: device busy" .. txn_tag)
                     elseif ex == MODBUS_EXCODE.NEG_ACKNOWLEDGE then
                         -- general failure
                         log.error(log_tag .. "MODBUS: negative acknowledge (bad request)" .. txn_tag)
