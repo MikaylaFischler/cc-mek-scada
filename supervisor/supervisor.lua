@@ -19,9 +19,20 @@ local config = {}
 
 supervisor.config = config
 
--- load the supervisor configuration
+-- load the supervisor configuration and startup state
 function supervisor.load_config()
     if not settings.load("/supervisor.settings") then return false end
+
+    ---@class sv_control_state
+    local boot_state = {
+        mode = settings.get("LastProcessState"),     ---@type PROCESS
+        unit_states = settings.get("LastUnitStates") ---@type boolean[]
+    }
+
+    -- only record boot state if likely valid
+    if type(boot_state.mode) == "number" and type(boot_state.unit_states) == "table" then
+        supervisor.boot_state = boot_state
+    end
 
     config.UnitCount = settings.get("UnitCount")
     config.CoolingConfig = settings.get("CoolingConfig")

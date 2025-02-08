@@ -61,7 +61,6 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     local log_tag = "plc_session(" .. id .. "): "
 
     local self = {
-        commanded_state = false,
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
         ramping_rate = false,

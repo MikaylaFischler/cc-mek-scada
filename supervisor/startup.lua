@@ -147,6 +147,9 @@ local function main()
     -- halve the rate heartbeat LED flash
     local heartbeat_toggle = true
 
+    -- init startup recovery
+    sv_facility.startup_recovery_init(supervisor.boot_state)
+
     -- event loop
     while true do
         local event, param1, param2, param3, param4, param5 = util.pull_event()

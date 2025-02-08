@@ -5,6 +5,7 @@ local util       = require("scada-common.util")
 local unit       = require("supervisor.unit")
 local fac_update = require("supervisor.facility_update")
 
+local plc        = require("supervisor.session.plc")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
@@ -30,6 +31,17 @@ local START_STATUS = {
     NO_UNITS = 1,
     BLADE_MISMATCH = 2
 }
+
+---@enum RECOVERY_STATE
+local RCV_STATE = {
+    INACTIVE = 0,
+    PRIMED = 1,
+    RUNNING = 2,
+    STOPPED = 3
+}
+
+local CHARGE_SCALER = 1000000   -- convert MFE to FE
+local GEN_SCALER    = 1000      -- convert kFE to FE
 
 ---@class facility_management
 local facility = {}
@@ -66,12 +78,15 @@ function facility.new(config)
         -- redstone I/O control
         io_ctl = nil,   ---@type rs_controller
         -- process control
+        recovery = RCV_STATE.INACTIVE,  ---@type RECOVERY_STATE
+        recovery_boot_state = nil,      ---@type sv_control_state|nil
+        last_unit_states = nil,         ---@type boolean[]
         units_ready = false,
-        mode = PROCESS.INACTIVE,
-        last_mode = PROCESS.INACTIVE,
-        return_mode = PROCESS.INACTIVE,
-        mode_set = PROCESS.MAX_BURN,
-        start_fail = START_STATUS.OK,
+        mode = PROCESS.INACTIVE,        ---@type PROCESS
+        last_mode = PROCESS.INACTIVE,   ---@type PROCESS
+        return_mode = PROCESS.INACTIVE, ---@type PROCESS
+        mode_set = PROCESS.MAX_BURN,    ---@type PROCESS
+        start_fail = START_STATUS.OK,   ---@type START_STATUS
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
         burn_target = 0.1,              -- burn rate target for aggregate burn mode
         charge_setpoint = 0,            -- FE charge target setpoint
@@ -101,8 +116,8 @@ function facility.new(config)
         last_error = 0.0,
         last_time = 0.0,
         -- waste processing
-        waste_product = WASTE.PLUTONIUM,
-        current_waste_product = WASTE.PLUTONIUM,
+        waste_product = WASTE.PLUTONIUM,         ---@type WASTE_PRODUCT
+        current_waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         pu_fallback = false,
         sps_low_power = false,
         disabled_sps = false,
@@ -126,14 +141,16 @@ function facility.new(config)
         imtx_faulted_times = { 0, 0, 0 }
     }
 
+    --#region SETUP
+
     -- provide self to facility update functions
     local f_update = fac_update(self)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units,
-            unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
+        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
+        table.insert(self.last_unit_states, false)
     end
 
     -- list for RTU session management
@@ -147,6 +164,62 @@ function facility.new(config)
     for _ = 1, 8 do
         table.insert(self.tone_states, false)
         table.insert(self.test_tone_states, false)
+    end
+
+    --#endregion
+
+    -- PRIVATE FUNCTIONS --
+
+    ---@param auto_cfg start_auto_config configuration
+    ---@return boolean ready, number[] unit_limits
+    local function _auto_check_and_save(auto_cfg)
+        local ready = false
+
+        -- load up current limits
+        local limits = {}
+        for i = 1, config.UnitCount do
+            limits[i] = self.units[i].get_control_inf().lim_br100 * 100
+        end
+
+        -- only allow changes if not running
+        if self.mode == PROCESS.INACTIVE then
+            if (type(auto_cfg.mode) == "number") and (auto_cfg.mode > PROCESS.INACTIVE) and (auto_cfg.mode <= PROCESS.GEN_RATE) then
+                self.mode_set = auto_cfg.mode
+            end
+
+            if (type(auto_cfg.burn_target) == "number") and auto_cfg.burn_target >= 0.1 then
+                self.burn_target = auto_cfg.burn_target
+            end
+
+            if (type(auto_cfg.charge_target) == "number") and auto_cfg.charge_target >= 0 then
+                self.charge_setpoint = auto_cfg.charge_target * CHARGE_SCALER
+            end
+
+            if (type(auto_cfg.gen_target) == "number") and auto_cfg.gen_target >= 0 then
+                self.gen_rate_setpoint = auto_cfg.gen_target * GEN_SCALER
+            end
+
+            if (type(auto_cfg.limits) == "table") and (#auto_cfg.limits == config.UnitCount) then
+                for i = 1, config.UnitCount do
+                    local limit = auto_cfg.limits[i]
+
+                    if (type(limit) == "number") and (limit >= 0.1) then
+                        limits[i] = limit
+                        self.units[i].set_burn_limit(limit)
+                    end
+                end
+            end
+
+            ready = self.mode_set > 0
+
+            if ((self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0)) or
+               ((self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0)) or
+               ((self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1)) then
+                ready = false
+            end
+        end
+
+        return ready, limits
     end
 
     -- PUBLIC FUNCTIONS --
@@ -239,6 +312,42 @@ function facility.new(config)
 
     -- update (iterate) the facility management
     function public.update()
+        -- attempt reboot recovery if in progress
+        if self.recovery == RCV_STATE.RUNNING then
+            -- try to start auto control
+            if self.recovery_boot_state.mode ~= nil and self.units_ready then
+                self.recovery_boot_state.mode = nil
+                self.mode = self.mode_set
+                log.info("FAC: process startup resume initiated")
+            end
+
+            local recovered = self.recovery_boot_state.mode == nil
+
+            -- restore manual control reactors
+            for i = 1, #self.units do
+                if self.recovery_boot_state.unit_states[i] and self.group_map[i] == AUTO_GROUP.MANUAL then
+                    recovered = false
+
+                    if self.units[i].get_control_inf().ready then
+                        local plc_s = svsessions.get_reactor_session(i)
+                        if plc_s ~= nil then
+                            plc_s.in_queue.push_command(plc.PLC_S_CMDS.ENABLE)
+                            log.info("FAC: startup resume enabling manually controlled reactor unit #" .. i)
+
+                            -- only execute once
+                            self.recovery_boot_state.unit_states[i] = nil
+                        end
+                    end
+                end
+            end
+
+            if recovered then
+                self.recovery = RCV_STATE.STOPPED
+                self.recovery_boot_state = nil
+                log.info("FAC: startup resume complete")
+            end
+        end
+
         -- run process control and evaluate automatic SCRAM
         f_update.pre_auto()
         f_update.auto_control(config.ExtChargeIdling)
@@ -267,6 +376,35 @@ function facility.new(config)
 
     --#endregion
 
+    --#region Startup Recovery
+
+    ---@param state sv_control_state
+    function public.startup_recovery_init(state)
+        if self.recovery == RCV_STATE.INACTIVE then
+            self.recovery_boot_state = state
+            self.recovery = RCV_STATE.PRIMED
+        end
+    end
+
+    -- attempt startup recovery
+    ---@param auto_cfg start_auto_config configuration
+    function public.startup_recovery_start(auto_cfg)
+        if self.recovery == RCV_STATE.PRIMED and self.recovery_boot_state and
+         self.recovery_boot_state.mode ~= PROCESS.INACTIVE and self.recovery_boot_state.mode ~= PROCESS.SYSTEM_ALARM_IDLE then
+            self.recovery = util.trinary(_auto_check_and_save(auto_cfg), RCV_STATE.RUNNING, RCV_STATE.STOPPED)
+            log.info(util.c("FAC: startup resume ", util.trinary(self.recovery == RCV_STATE.RUNNING, "ready", "failed")))
+        else self.recovery = RCV_STATE.STOPPED end
+    end
+
+    -- used on certain coordinator commands to end reboot recovery (remain in current operational state)
+    function public.cancel_recovery()
+        self.recovery = RCV_STATE.STOPPED
+        self.recovery_boot_state = nil
+        log.info("FAC: process startup resume cancelled by user operation")
+    end
+
+    --#endregion
+
     --#region Commands
 
     -- SCRAM all reactor units
@@ -290,59 +428,13 @@ function facility.new(config)
     function public.auto_stop() self.mode = PROCESS.INACTIVE end
 
     -- set automatic control configuration and start the process
-    ---@param auto_cfg sys_auto_config configuration
+    ---@param auto_cfg start_auto_config configuration
     ---@return table response ready state (successfully started) and current configuration (after updating)
     function public.auto_start(auto_cfg)
-        local charge_scaler = 1000000   -- convert MFE to FE
-        local gen_scaler    = 1000      -- convert kFE to FE
-        local ready         = false
+        local ready, limits = _auto_check_and_save(auto_cfg)
 
-        -- load up current limits
-        local limits = {}
-        for i = 1, config.UnitCount do
-            limits[i] = self.units[i].get_control_inf().lim_br100 * 100
-        end
-
-        -- only allow changes if not running
-        if self.mode == PROCESS.INACTIVE then
-            if (type(auto_cfg.mode) == "number") and (auto_cfg.mode > PROCESS.INACTIVE) and (auto_cfg.mode <= PROCESS.GEN_RATE) then
-                self.mode_set = auto_cfg.mode
-            end
-
-            if (type(auto_cfg.burn_target) == "number") and auto_cfg.burn_target >= 0.1 then
-                self.burn_target = auto_cfg.burn_target
-            end
-
-            if (type(auto_cfg.charge_target) == "number") and auto_cfg.charge_target >= 0 then
-                self.charge_setpoint = auto_cfg.charge_target * charge_scaler
-            end
-
-            if (type(auto_cfg.gen_target) == "number") and auto_cfg.gen_target >= 0 then
-                self.gen_rate_setpoint = auto_cfg.gen_target * gen_scaler
-            end
-
-            if (type(auto_cfg.limits) == "table") and (#auto_cfg.limits == config.UnitCount) then
-                for i = 1, config.UnitCount do
-                    local limit = auto_cfg.limits[i]
-
-                    if (type(limit) == "number") and (limit >= 0.1) then
-                        limits[i] = limit
-                        self.units[i].set_burn_limit(limit)
-                    end
-                end
-            end
-
-            ready = self.mode_set > 0
-
-            if ((self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0)) or
-               ((self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0)) or
-               ((self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1)) then
-                ready = false
-            end
-
-            ready = ready and self.units_ready
-
-            if ready then self.mode = self.mode_set end
+        if ready and self.units_ready then
+            self.mode = self.mode_set
         end
 
         log.debug(util.c("FAC: process start ", util.trinary(ready, "accepted", "rejected")))
@@ -351,8 +443,8 @@ function facility.new(config)
             ready,
             self.mode_set,
             self.burn_target,
-            self.charge_setpoint / charge_scaler,
-            self.gen_rate_setpoint / gen_scaler,
+            self.charge_setpoint / CHARGE_SCALER,
+            self.gen_rate_setpoint / GEN_SCALER,
             limits
         }
     end

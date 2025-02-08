@@ -650,8 +650,16 @@ function update.auto_safety()
     end
 end
 
--- update last mode and set next mode
+-- update last mode, set next mode, and update saved state as needed
 function update.post_auto()
+    if self.mode ~= next_mode then
+        settings.set("LastProcessState", next_mode)
+        local saved = settings.save("/supervisor.settings")
+        if not saved then
+            log.warning("facility_update.post_auto(): failed to save supervisor settings file")
+        end
+    end
+
     self.last_mode = self.mode
     self.mode = next_mode
 end
@@ -792,6 +800,7 @@ end
 function update.unit_mgmt()
     local insufficent_po_rate = false
     local need_emcool = false
+    local write_state = false
 
     for i = 1, #self.units do
         local u = self.units[i]
@@ -806,6 +815,22 @@ function update.unit_mgmt()
         -- check if unit activated emergency coolant & uses facility tanks
         if (self.cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (self.cooling_conf.fac_tank_defs[i] == 2) then
             need_emcool = true
+        end
+
+        -- check for control state changes to save
+        if self.last_unit_states[i] ~= u.get_control_state() then
+            self.last_unit_states[i] = u.get_control_state()
+            write_state = true
+        end
+    end
+
+    -- record unit control states
+
+    if write_state then
+        settings.set("LastUnitStates", self.last_unit_states)
+        local saved = settings.save("/supervisor.settings")
+        if not saved then
+            log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
         end
     end
 

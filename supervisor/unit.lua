@@ -917,6 +917,12 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         return status
     end
 
+    -- check the commanded control state of the reactor (if connected)
+    ---@nodiscard
+    function public.get_control_state()
+        if self.plc_i ~= nil then return self.plc_i.get_db().control_state else return false end
+    end
+
     -- get the current burn rate (actual rate)
     ---@nodiscard
     function public.get_burn_rate()
