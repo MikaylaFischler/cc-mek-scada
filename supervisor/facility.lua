@@ -395,8 +395,7 @@ function facility.new(config)
         settings.unset("LastProcessState")
         settings.unset("LastUnitStates")
 
-        local saved = settings.save("/supervisor.settings")
-        if not saved then
+        if not settings.save("/supervisor.settings") then
             log.warning("facility.clear_boot_state(): failed to save supervisor settings file")
         else
             log.debug("FAC: cleared boot state on exit")
@@ -404,9 +403,9 @@ function facility.new(config)
     end
 
     -- initialize startup recovery
-    ---@param state sv_control_state
+    ---@param state sv_control_state|nil
     function public.startup_recovery_init(state)
-        if self.recovery == RCV_STATE.INACTIVE then
+        if self.recovery == RCV_STATE.INACTIVE and state then
             self.recovery_boot_state = state
             self.recovery = RCV_STATE.PRIMED
             log.info("FAC: startup resume ready")

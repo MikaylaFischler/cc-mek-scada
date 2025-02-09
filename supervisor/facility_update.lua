@@ -243,6 +243,11 @@ function update.auto_control(ExtChargeIdling)
 
         log.debug(util.c("FAC: state changed from ", PROCESS_NAMES[self.last_mode + 1], " to ", PROCESS_NAMES[self.mode + 1]))
 
+        settings.set("LastProcessState", self.mode)
+        if not settings.save("/supervisor.settings") then
+            log.warning("facility_update.auto_control(): failed to save supervisor settings file")
+        end
+
         if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
             self.start_fail = START_STATUS.OK
 
@@ -653,14 +658,6 @@ end
 
 -- update last mode, set next mode, and update saved state as needed
 function update.post_auto()
-    if self.mode ~= next_mode then
-        settings.set("LastProcessState", next_mode)
-        local saved = settings.save("/supervisor.settings")
-        if not saved then
-            log.warning("facility_update.post_auto(): failed to save supervisor settings file")
-        end
-    end
-
     self.last_mode = self.mode
     self.mode = next_mode
 end
