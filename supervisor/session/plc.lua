@@ -53,15 +53,15 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
+---@param initial_reset boolean[] initial PLC reset on timeout flags, indexed by reactor_id
 ---@param fp_ok boolean if the front panel UI is running
-function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue, timeout, fp_ok)
+function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue, timeout, initial_reset, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
     local log_tag = "plc_session(" .. id .. "): "
 
     local self = {
-        initial_reset = true,
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
         ramping_rate = false,
@@ -381,8 +381,8 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK, try initial reset if applicable
-                        if self.initial_reset then
-                            self.initial_reset = false
+                        if initial_reset[reactor_id] then
+                            initial_reset[reactor_id] = false
                             if self.sDB.rps_trip_cause == "timeout" then
                                 _send(RPLC_TYPE.RPS_AUTO_RESET, {})
                                 log.debug(log_tag .. "initial RPS reset on timeout status sent")
@@ -401,8 +401,8 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                     local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
                     if status then
                         -- copied in RPS status data OK, try initial reset if applicable
-                        if self.initial_reset then
-                            self.initial_reset = false
+                        if initial_reset[reactor_id] then
+                            initial_reset[reactor_id] = false
                             if self.sDB.rps_trip_cause == "timeout" then
                                 _send(RPLC_TYPE.RPS_AUTO_RESET, {})
                                 log.debug(log_tag .. "initial RPS reset on timeout alarm sent")
