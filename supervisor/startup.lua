@@ -148,7 +148,7 @@ local function main()
     local heartbeat_toggle = true
 
     -- init startup recovery
-    sv_facility.startup_recovery_init(supervisor.boot_state)
+    sv_facility.boot_recovery_init(supervisor.boot_state)
 
     -- event loop
     while true do

@@ -145,7 +145,7 @@ function update.boot_recovery()
 
         -- try to start auto control
         if self.recovery_boot_state.mode ~= nil and self.units_ready then
-            if was_inactive then
+            if not was_inactive then
                 self.mode = self.mode_set
                 log.info("FAC: process startup resume initiated")
             end

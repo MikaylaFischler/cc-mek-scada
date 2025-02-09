@@ -364,9 +364,9 @@ function facility.new(config)
         end
     end
 
-    -- initialize startup recovery
+    -- initialize facility resume boot recovery
     ---@param state sv_boot_state|nil
-    function public.startup_recovery_init(state)
+    function public.boot_recovery_init(state)
         if self.recovery == RCV_STATE.INACTIVE and state then
             self.recovery_boot_state = state
             self.recovery = RCV_STATE.PRIMED
@@ -374,9 +374,9 @@ function facility.new(config)
         end
     end
 
-    -- attempt startup recovery
+    -- attempt facility resume boot recovery
     ---@param auto_cfg start_auto_config configuration
-    function public.startup_recovery_start(auto_cfg)
+    function public.boot_recovery_start(auto_cfg)
         if self.recovery == RCV_STATE.PRIMED then
             self.recovery = util.trinary(_auto_check_and_save(auto_cfg), RCV_STATE.RUNNING, RCV_STATE.STOPPED)
             log.info(util.c("FAC: startup resume ", util.trinary(self.recovery == RCV_STATE.RUNNING, "started", "failed")))

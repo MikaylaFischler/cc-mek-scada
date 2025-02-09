@@ -247,7 +247,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         limits = pkt.data[5]
                     }
 
-                    facility.startup_recovery_start(config)
+                    facility.boot_recovery_start(config)
                 else
                     log.debug(log_tag .. "CRDN process ready packet length mismatch")
                 end
