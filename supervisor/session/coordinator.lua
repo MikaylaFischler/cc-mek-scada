@@ -240,11 +240,11 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     ---@type start_auto_config
                     local config = {
-                        mode = pkt.data[1],          ---@type PROCESS
-                        burn_target = pkt.data[2],   ---@type number
-                        charge_target = pkt.data[3], ---@type number
-                        gen_target = pkt.data[4],    ---@type number
-                        limits = pkt.data[5]         ---@type number[]
+                        mode = pkt.data[1],
+                        burn_target = pkt.data[2],
+                        charge_target = pkt.data[3],
+                        gen_target = pkt.data[4],
+                        limits = pkt.data[5]
                     }
 
                     facility.startup_recovery_start(config)

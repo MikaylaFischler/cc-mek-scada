@@ -79,7 +79,7 @@ function facility.new(config)
         io_ctl = nil,   ---@type rs_controller
         -- process control
         recovery = RCV_STATE.INACTIVE,  ---@type RECOVERY_STATE
-        recovery_boot_state = nil,      ---@type sv_control_state|nil
+        recovery_boot_state = nil,      ---@type sv_boot_state|nil
         last_unit_states = {},          ---@type boolean[]
         units_ready = false,
         mode = PROCESS.INACTIVE,        ---@type PROCESS
@@ -403,7 +403,7 @@ function facility.new(config)
     end
 
     -- initialize startup recovery
-    ---@param state sv_control_state|nil
+    ---@param state sv_boot_state|nil
     function public.startup_recovery_init(state)
         if self.recovery == RCV_STATE.INACTIVE and state then
             self.recovery_boot_state = state

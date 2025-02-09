@@ -19,11 +19,14 @@ local config = {}
 
 supervisor.config = config
 
+-- control state from last unexpected shutdown
+supervisor.boot_state = nil ---@type sv_boot_state|nil
+
 -- load the supervisor configuration and startup state
 function supervisor.load_config()
     if not settings.load("/supervisor.settings") then return false end
 
-    ---@class sv_control_state
+    ---@class sv_boot_state
     local boot_state = {
         mode = settings.get("LastProcessState"),     ---@type PROCESS
         unit_states = settings.get("LastUnitStates") ---@type boolean[]

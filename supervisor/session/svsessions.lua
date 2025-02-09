@@ -392,9 +392,8 @@ function svsessions.init(nic, fp_ok, config, facility)
             conns.tanks[1] = true
         end
 
-        self.dev_dbg.connected.units[i] = conns
-
         self.plc_ini_reset[i] = true
+        self.dev_dbg.connected.units[i] = conns
     end
 end
 
