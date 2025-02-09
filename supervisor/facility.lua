@@ -5,7 +5,6 @@ local util       = require("scada-common.util")
 local unit       = require("supervisor.unit")
 local fac_update = require("supervisor.facility_update")
 
-local plc        = require("supervisor.session.plc")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
@@ -53,7 +52,7 @@ function facility.new(config)
     ---@class _facility_self
     local self = {
         units = {},     ---@type reactor_unit[]
-        types = { AUTO_SCRAM = AUTO_SCRAM, START_STATUS = START_STATUS },
+        types = { AUTO_SCRAM = AUTO_SCRAM, START_STATUS = START_STATUS, RCV_STATE = RCV_STATE },
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
         allow_testing = false,
@@ -177,6 +176,7 @@ function facility.new(config)
 
     -- PRIVATE FUNCTIONS --
 
+    -- check an auto process control configuration and save it if its valid (does not start the process)
     ---@param auto_cfg start_auto_config configuration
     ---@return boolean ready, number[] unit_limits
     local function _auto_check_and_save(auto_cfg)
@@ -319,46 +319,8 @@ function facility.new(config)
 
     -- update (iterate) the facility management
     function public.update()
-        -- attempt reboot recovery if in progress
-        if self.recovery == RCV_STATE.RUNNING then
-            -- try to start auto control
-            if self.recovery_boot_state.mode ~= nil and self.units_ready then
-                if self.recovery_boot_state.mode ~= PROCESS.INACTIVE and self.recovery_boot_state.mode ~= PROCESS.SYSTEM_ALARM_IDLE then
-                    self.mode = self.mode_set
-                    log.info("FAC: process startup resume initiated")
-                end
-
-                self.recovery_boot_state.mode = nil
-            end
-
-            local recovered = self.recovery_boot_state.mode == nil or self.recovery_boot_state.mode == PROCESS.INACTIVE
-
-            -- restore manual control reactors
-            for i = 1, #self.units do
-                local u = self.units[i]
-
-                if self.recovery_boot_state.unit_states[i] and self.group_map[i] == AUTO_GROUP.MANUAL then
-                    recovered = false
-
-                    if u.get_control_inf().ready then
-                        local plc_s = svsessions.get_reactor_session(i)
-                        if plc_s ~= nil then
-                            plc_s.in_queue.push_command(plc.PLC_S_CMDS.ENABLE)
-                            log.info("FAC: startup resume enabling manually controlled reactor unit #" .. i)
-
-                            -- only execute once
-                            self.recovery_boot_state.unit_states[i] = nil
-                        end
-                    end
-                end
-            end
-
-            if recovered then
-                self.recovery = RCV_STATE.STOPPED
-                self.recovery_boot_state = nil
-                log.info("FAC: startup resume sequence completed")
-            end
-        end
+        -- run reboot recovery routine if needed
+        f_update.boot_recovery()
 
         -- run process control and evaluate automatic SCRAM
         f_update.pre_auto()
