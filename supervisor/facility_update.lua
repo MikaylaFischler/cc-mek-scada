@@ -1,17 +1,21 @@
-local audio  = require("scada-common.audio")
-local const  = require("scada-common.constants")
-local log    = require("scada-common.log")
-local rsio   = require("scada-common.rsio")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local audio      = require("scada-common.audio")
+local const      = require("scada-common.constants")
+local log        = require("scada-common.log")
+local rsio       = require("scada-common.rsio")
+local types      = require("scada-common.types")
+local util       = require("scada-common.util")
 
-local qtypes = require("supervisor.session.rtu.qtypes")
+local plc        = require("supervisor.session.plc")
+local svsessions = require("supervisor.session.svsessions")
+
+local qtypes     = require("supervisor.session.rtu.qtypes")
 
 local TONE           = audio.TONE
 
 local ALARM          = types.ALARM
 local PRIO           = types.ALARM_PRIORITY
 local ALARM_STATE    = types.ALARM_STATE
+local AUTO_GROUP     = types.AUTO_GROUP
 local CONTAINER_MODE = types.CONTAINER_MODE
 local PROCESS        = types.PROCESS
 local PROCESS_NAMES  = types.PROCESS_NAMES
@@ -131,6 +135,54 @@ end
 
 --#region PUBLIC FUNCTIONS
 
+-- run reboot recovery routine if needed
+function update.boot_recovery()
+    local RCV_STATE = self.types.RCV_STATE
+
+    -- attempt reboot recovery if in progress
+    if self.recovery == RCV_STATE.RUNNING then
+        local was_inactive = self.recovery_boot_state.mode == PROCESS.INACTIVE or self.recovery_boot_state.mode == PROCESS.SYSTEM_ALARM_IDLE
+
+        -- try to start auto control
+        if self.recovery_boot_state.mode ~= nil and self.units_ready then
+            if not was_inactive then
+                self.mode = self.mode_set
+                log.info("FAC: process startup resume initiated")
+            end
+
+            self.recovery_boot_state.mode = nil
+        end
+
+        local recovered = self.recovery_boot_state.mode == nil or was_inactive
+
+        -- restore manual control reactors
+        for i = 1, #self.units do
+            local u = self.units[i]
+
+            if self.recovery_boot_state.unit_states[i] and self.group_map[i] == AUTO_GROUP.MANUAL then
+                recovered = false
+
+                if u.get_control_inf().ready then
+                    local plc_s = svsessions.get_reactor_session(i)
+                    if plc_s ~= nil then
+                        plc_s.in_queue.push_command(plc.PLC_S_CMDS.ENABLE)
+                        log.info("FAC: startup resume enabling manually controlled reactor unit #" .. i)
+
+                        -- only execute once
+                        self.recovery_boot_state.unit_states[i] = nil
+                    end
+                end
+            end
+        end
+
+        if recovered then
+            self.recovery = RCV_STATE.STOPPED
+            self.recovery_boot_state = nil
+            log.info("FAC: startup resume sequence completed")
+        end
+    end
+end
+
 -- automatic control pre-update logic
 function update.pre_auto()
     -- unlink RTU sessions if they are closed
@@ -242,6 +294,11 @@ function update.auto_control(ExtChargeIdling)
         self.saturated = false
 
         log.debug(util.c("FAC: state changed from ", PROCESS_NAMES[self.last_mode + 1], " to ", PROCESS_NAMES[self.mode + 1]))
+
+        settings.set("LastProcessState", self.mode)
+        if not settings.save("/supervisor.settings") then
+            log.warning("facility_update.auto_control(): failed to save supervisor settings file")
+        end
 
         if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
             self.start_fail = START_STATUS.OK
@@ -642,15 +699,16 @@ function update.auto_safety()
             self.ascram_reason = AUTO_SCRAM.NONE
 
             -- reset PLC RPS trips if we should
-            for i = 1, #self.units do
-                local u = self.units[i]
-                u.auto_cond_rps_reset()
+            for i = 1, #self.prio_defs do
+                for _, u in pairs(self.prio_defs[i]) do
+                    u.auto_cond_rps_reset()
+                end
             end
         end
     end
 end
 
--- update last mode and set next mode
+-- update last mode, set next mode, and update saved state as needed
 function update.post_auto()
     self.last_mode = self.mode
     self.mode = next_mode
@@ -792,6 +850,7 @@ end
 function update.unit_mgmt()
     local insufficent_po_rate = false
     local need_emcool = false
+    local write_state = false
 
     for i = 1, #self.units do
         local u = self.units[i]
@@ -806,6 +865,21 @@ function update.unit_mgmt()
         -- check if unit activated emergency coolant & uses facility tanks
         if (self.cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (self.cooling_conf.fac_tank_defs[i] == 2) then
             need_emcool = true
+        end
+
+        -- check for enabled state changes to save
+        if self.last_unit_states[i] ~= u.is_reactor_enabled() then
+            self.last_unit_states[i] = u.is_reactor_enabled()
+            write_state = true
+        end
+    end
+
+    -- record unit control states
+
+    if write_state then
+        settings.set("LastUnitStates", self.last_unit_states)
+        if not settings.save("/supervisor.settings") then
+            log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
         end
     end
 

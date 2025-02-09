@@ -22,7 +22,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.6.2"
+local SUPERVISOR_VERSION = "v1.6.3"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -147,6 +147,9 @@ local function main()
     -- halve the rate heartbeat LED flash
     local heartbeat_toggle = true
 
+    -- init startup recovery
+    sv_facility.boot_recovery_init(supervisor.boot_state)
+
     -- event loop
     while true do
         local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -236,6 +239,8 @@ local function main()
             break
         end
     end
+
+    sv_facility.clear_boot_state()
 
     renderer.close_ui()
 

@@ -840,6 +840,12 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         return false
     end
 
+    -- check the active state of the reactor (if connected)
+    ---@nodiscard
+    function public.is_reactor_enabled()
+        if self.plc_i ~= nil then return self.plc_i.get_status().status else return false end
+    end
+
     -- check if the reactor is connected, is stopped, the RPS is not tripped, and no alarms are active
     ---@nodiscard
     function public.is_safe_idle()
