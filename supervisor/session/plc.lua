@@ -72,6 +72,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         connected = true,
         received_struct = false,
         received_status_cache = false,
+        received_rps_status = false,
         conn_watchdog = util.new_watchdog(timeout),
         last_rtt = 0,
         -- periodic messages
@@ -380,7 +381,10 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 if pkt.length == 14 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
-                        -- copied in RPS status data OK, try initial reset if applicable
+                        -- copied in RPS status data OK
+                        self.received_rps_status = true
+
+                        -- try initial reset if needed
                         if initial_reset[reactor_id] then
                             initial_reset[reactor_id] = false
                             if self.sDB.rps_trip_cause == "timeout" then
@@ -400,7 +404,10 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 if pkt.length == 13 then
                     local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
                     if status then
-                        -- copied in RPS status data OK, try initial reset if applicable
+                        -- copied in RPS status data OK
+                        self.received_rps_status = true
+
+                        -- try initial reset if needed
                         if initial_reset[reactor_id] then
                             initial_reset[reactor_id] = false
                             if self.sDB.rps_trip_cause == "timeout" then
@@ -500,6 +507,10 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     -- get the session database
     ---@nodiscard
     function public.get_db() return self.sDB end
+
+    -- check if the reactor structure, status, and RPS status have been received
+    ---@nodiscard
+    function public.check_received_all_data() return self.received_struct and self.received_status_cache and self.received_rps_status end
 
     -- check if ramping is completed by first verifying auto command token ack
     ---@nodiscard

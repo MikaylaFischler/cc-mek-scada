@@ -67,11 +67,10 @@ function logic.update_annunciator(self)
         local plc_db = self.plc_i.get_db()
 
         -- update ready state
-        --  - can't be tripped
-        --  - must have received status at least once
-        --  - must have received struct at least once
-        plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and
-                    (next(self.plc_i.get_status()) ~= nil) and (next(self.plc_i.get_struct()) ~= nil)
+        --  - must be connected to a formed reactor
+        --  - can't have a tripped RPS
+        --  - must have received status, struct, and RPS status at least once
+        plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and self.plc_i.check_received_all_data()
 
         -- update auto control limit
         if (plc_db.mek_struct.max_burn > 0) and ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
