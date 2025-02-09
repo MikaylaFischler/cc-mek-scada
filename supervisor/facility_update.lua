@@ -642,9 +642,10 @@ function update.auto_safety()
             self.ascram_reason = AUTO_SCRAM.NONE
 
             -- reset PLC RPS trips if we should
-            for i = 1, #self.units do
-                local u = self.units[i]
-                u.auto_cond_rps_reset()
+            for i = 1, #self.prio_defs do
+                for _, u in pairs(self.prio_defs[i]) do
+                    u.auto_cond_rps_reset()
+                end
             end
         end
     end
