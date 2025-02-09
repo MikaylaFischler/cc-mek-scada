@@ -817,9 +817,9 @@ function update.unit_mgmt()
             need_emcool = true
         end
 
-        -- check for control state changes to save
-        if self.last_unit_states[i] ~= u.get_control_state() then
-            self.last_unit_states[i] = u.get_control_state()
+        -- check for enabled state changes to save
+        if self.last_unit_states[i] ~= u.is_reactor_enabled() then
+            self.last_unit_states[i] = u.is_reactor_enabled()
             write_state = true
         end
     end
@@ -828,8 +828,7 @@ function update.unit_mgmt()
 
     if write_state then
         settings.set("LastUnitStates", self.last_unit_states)
-        local saved = settings.save("/supervisor.settings")
-        if not saved then
+        if not settings.save("/supervisor.settings") then
             log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
         end
     end

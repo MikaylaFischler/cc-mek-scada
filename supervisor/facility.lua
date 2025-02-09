@@ -80,7 +80,7 @@ function facility.new(config)
         -- process control
         recovery = RCV_STATE.INACTIVE,  ---@type RECOVERY_STATE
         recovery_boot_state = nil,      ---@type sv_control_state|nil
-        last_unit_states = nil,         ---@type boolean[]
+        last_unit_states = {},          ---@type boolean[]
         units_ready = false,
         mode = PROCESS.INACTIVE,        ---@type PROCESS
         last_mode = PROCESS.INACTIVE,   ---@type PROCESS
@@ -164,6 +164,13 @@ function facility.new(config)
     for _ = 1, 8 do
         table.insert(self.tone_states, false)
         table.insert(self.test_tone_states, false)
+    end
+
+    -- init next boot state
+    settings.set("LastProcessState", PROCESS.INACTIVE)
+    settings.set("LastUnitStates", self.last_unit_states)
+    if not settings.save("/supervisor.settings") then
+        log.warning("FAC: failed to save initial control state into supervisor settings file")
     end
 
     --#endregion
@@ -316,19 +323,24 @@ function facility.new(config)
         if self.recovery == RCV_STATE.RUNNING then
             -- try to start auto control
             if self.recovery_boot_state.mode ~= nil and self.units_ready then
+                if self.recovery_boot_state.mode ~= PROCESS.INACTIVE and self.recovery_boot_state.mode ~= PROCESS.SYSTEM_ALARM_IDLE then
+                    self.mode = self.mode_set
+                    log.info("FAC: process startup resume initiated")
+                end
+
                 self.recovery_boot_state.mode = nil
-                self.mode = self.mode_set
-                log.info("FAC: process startup resume initiated")
             end
 
-            local recovered = self.recovery_boot_state.mode == nil
+            local recovered = self.recovery_boot_state.mode == nil or self.recovery_boot_state.mode == PROCESS.INACTIVE
 
             -- restore manual control reactors
             for i = 1, #self.units do
+                local u = self.units[i]
+
                 if self.recovery_boot_state.unit_states[i] and self.group_map[i] == AUTO_GROUP.MANUAL then
                     recovered = false
 
-                    if self.units[i].get_control_inf().ready then
+                    if u.get_control_inf().ready then
                         local plc_s = svsessions.get_reactor_session(i)
                         if plc_s ~= nil then
                             plc_s.in_queue.push_command(plc.PLC_S_CMDS.ENABLE)
@@ -344,7 +356,7 @@ function facility.new(config)
             if recovered then
                 self.recovery = RCV_STATE.STOPPED
                 self.recovery_boot_state = nil
-                log.info("FAC: startup resume complete")
+                log.info("FAC: startup resume sequence completed")
             end
         end
 
@@ -378,29 +390,45 @@ function facility.new(config)
 
     --#region Startup Recovery
 
+    -- on exit, use this to clear the boot state so we don't resume when exiting cleanly
+    function public.clear_boot_state()
+        settings.unset("LastProcessState")
+        settings.unset("LastUnitStates")
+
+        local saved = settings.save("/supervisor.settings")
+        if not saved then
+            log.warning("facility.clear_boot_state(): failed to save supervisor settings file")
+        else
+            log.debug("FAC: cleared boot state on exit")
+        end
+    end
+
+    -- initialize startup recovery
     ---@param state sv_control_state
     function public.startup_recovery_init(state)
         if self.recovery == RCV_STATE.INACTIVE then
             self.recovery_boot_state = state
             self.recovery = RCV_STATE.PRIMED
+            log.info("FAC: startup resume ready")
         end
     end
 
     -- attempt startup recovery
     ---@param auto_cfg start_auto_config configuration
     function public.startup_recovery_start(auto_cfg)
-        if self.recovery == RCV_STATE.PRIMED and self.recovery_boot_state and
-         self.recovery_boot_state.mode ~= PROCESS.INACTIVE and self.recovery_boot_state.mode ~= PROCESS.SYSTEM_ALARM_IDLE then
+        if self.recovery == RCV_STATE.PRIMED then
             self.recovery = util.trinary(_auto_check_and_save(auto_cfg), RCV_STATE.RUNNING, RCV_STATE.STOPPED)
-            log.info(util.c("FAC: startup resume ", util.trinary(self.recovery == RCV_STATE.RUNNING, "ready", "failed")))
+            log.info(util.c("FAC: startup resume ", util.trinary(self.recovery == RCV_STATE.RUNNING, "started", "failed")))
         else self.recovery = RCV_STATE.STOPPED end
     end
 
     -- used on certain coordinator commands to end reboot recovery (remain in current operational state)
     function public.cancel_recovery()
-        self.recovery = RCV_STATE.STOPPED
-        self.recovery_boot_state = nil
-        log.info("FAC: process startup resume cancelled by user operation")
+        if self.recovery == RCV_STATE.RUNNING then
+            self.recovery = RCV_STATE.STOPPED
+            self.recovery_boot_state = nil
+            log.info("FAC: process startup resume cancelled by user operation")
+        end
     end
 
     --#endregion

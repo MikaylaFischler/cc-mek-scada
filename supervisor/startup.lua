@@ -22,7 +22,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.6.2"
+local SUPERVISOR_VERSION = "v1.6.3"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -239,6 +239,8 @@ local function main()
             break
         end
     end
+
+    sv_facility.clear_boot_state()
 
     renderer.close_ui()
 
