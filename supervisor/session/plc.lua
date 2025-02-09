@@ -61,6 +61,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     local log_tag = "plc_session(" .. id .. "): "
 
     local self = {
+        initial_reset = true,
         commanded_burn_rate = 0.0,
         auto_cmd_token = 0,
         ramping_rate = false,
@@ -379,7 +380,14 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 if pkt.length == 14 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
-                        -- copied in RPS status data OK
+                        -- copied in RPS status data OK, try initial reset if applicable
+                        if self.initial_reset then
+                            self.initial_reset = false
+                            if self.sDB.rps_trip_cause == "timeout" then
+                                _send(RPLC_TYPE.RPS_AUTO_RESET, {})
+                                log.debug(log_tag .. "initial RPS reset on timeout status sent")
+                            end
+                        end
                     else
                         -- error copying RPS status data
                         log.error(log_tag .. "failed to parse RPS status packet data")
@@ -392,7 +400,14 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 if pkt.length == 13 then
                     local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
                     if status then
-                        -- copied in RPS status data OK
+                        -- copied in RPS status data OK, try initial reset if applicable
+                        if self.initial_reset then
+                            self.initial_reset = false
+                            if self.sDB.rps_trip_cause == "timeout" then
+                                _send(RPLC_TYPE.RPS_AUTO_RESET, {})
+                                log.debug(log_tag .. "initial RPS reset on timeout alarm sent")
+                            end
+                        end
                     else
                         -- error copying RPS status data
                         log.error(log_tag .. "failed to parse RPS alarm status data")

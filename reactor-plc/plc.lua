@@ -23,8 +23,7 @@ local AUTO_ACK = comms.PLC_AUTO_ACK
 
 local RPS_LIMITS = const.RPS_LIMITS
 
--- I sure hope the devs don't change this error message, not that it would have safety implications
--- I wish they didn't change it to be like this
+-- specific errors thrown when scram/start is used that still count as success
 local PCALL_SCRAM_MSG = "Scram requires the reactor to be active."
 local PCALL_START_MSG = "Reactor is already active."
 
