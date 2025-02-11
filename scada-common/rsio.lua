@@ -78,6 +78,7 @@ local IO_PORT = {
     -- unit outputs
     U_ALARM       = 25, -- active high, unit alarm
     U_EMER_COOL   = 26, -- active low, emergency coolant control
+    U_AUX_COOL    = 30, -- active low, auxiliary coolant control
 
     -- analog outputs --
 
@@ -90,8 +91,8 @@ rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
 
-rsio.NUM_PORTS = 29
-rsio.NUM_DIG_PORTS = 28
+rsio.NUM_PORTS = 30
+rsio.NUM_DIG_PORTS = 29
 rsio.NUM_ANA_PORTS = 1
 
 -- self checks
