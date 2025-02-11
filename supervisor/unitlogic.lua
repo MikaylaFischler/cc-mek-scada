@@ -728,7 +728,7 @@ function logic.update_status_text(self)
         self.status_text = { "RCS TRANSIENT", "check coolant system" }
     -- elseif is_active(self.alarms.RPSTransient) then
         -- RPS status handled when checking reactor status
-    elseif self.emcool_opened then
+    elseif self.em_cool_opened then
         self.status_text = { "EMERGENCY COOLANT OPENED", "reset RPS to close valve" }
     -- connection dependent states
     elseif self.plc_i ~= nil then
@@ -886,7 +886,7 @@ function logic.handle_redstone(self)
         (annunc.CoolantLevelLow or (boiler_water_low and rps.ex_hcool)) and
         is_active(self.alarms.ReactorOverTemp))
 
-    if enable_emer_cool and not self.emcool_opened then
+    if enable_emer_cool and not self.em_cool_opened then
         log.debug(util.c(">> Emergency Coolant Enable Detail Report (Unit ", self.r_id, ") <<"))
         log.debug(util.c("| CoolantLevelLow[", annunc.CoolantLevelLow, "] CoolantLevelLowLow[", rps.low_cool, "] ExcessHeatedCoolant[", rps.ex_hcool, "]"))
         log.debug(util.c("| ReactorOverTemp[", AISTATE_NAMES[self.alarms.ReactorOverTemp.state], "]"))
@@ -910,13 +910,13 @@ function logic.handle_redstone(self)
             end
         end
 
-        if annunc.EmergencyCoolant > 1 and self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and self.em_cool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve closed"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to not dump steam"))
         end
 
-        self.emcool_opened = false
-    elseif enable_emer_cool or self.emcool_opened then
+        self.em_cool_opened = false
+    elseif enable_emer_cool or self.em_cool_opened then
         -- set turbines to dump excess steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]
@@ -937,16 +937,33 @@ function logic.handle_redstone(self)
             end
         end
 
-        if annunc.EmergencyCoolant > 1 and not self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and not self.em_cool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve opened"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to dump excess steam"))
         end
 
-        self.emcool_opened = true
+        self.em_cool_opened = true
     end
 
     -- set valve state always
-    if self.emcool_opened then self.valves.emer_cool.open() else self.valves.emer_cool.close() end
+    if self.em_cool_opened then self.valves.emer_cool.open() else self.valves.emer_cool.close() end
+
+    -----------------------
+    -- Auxiliary Coolant --
+    -----------------------
+
+    local enable_aux_cool = boiler_water_low or (annunc.CoolantLevelLow and self.num_boilers == 0)
+
+    if enable_aux_cool and not self.aux_cool_opened then
+        log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve opened"))
+        self.aux_cool_opened = true
+    elseif self.aux_cool_opened and self.turbine_flow_stable and not enable_aux_cool then
+        log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve closed"))
+        self.aux_cool_opened = false
+    end
+
+    -- set valve state always
+    if self.aux_cool_opened then self.valves.aux_cool.open() else self.valves.aux_cool.close() end
 end
 
 return logic

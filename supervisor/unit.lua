@@ -92,7 +92,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         io_ctl = nil,   ---@type rs_controller
 ---@diagnostic disable-next-line: missing-fields
         valves = {},    ---@type unit_valves
-        emcool_opened = false,
+        em_cool_opened = false,
+        aux_cool_opened = false,
         -- auto control
         auto_engaged = false,
         auto_idle = false,
@@ -373,6 +374,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     local waste_po  = _make_valve_iface(IO.WASTE_POPL)
     local waste_sps = _make_valve_iface(IO.WASTE_AM)
     local emer_cool = _make_valve_iface(IO.U_EMER_COOL)
+    local aux_cool  = _make_valve_iface(IO.U_AUX_COOL)
 
     ---@class unit_valves
     self.valves = {
@@ -380,7 +382,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         waste_sna = waste_sna,
         waste_po = waste_po,
         waste_sps = waste_sps,
-        emer_cool = emer_cool
+        emer_cool = emer_cool,
+        aux_cool = aux_cool
     }
 
     -- route reactor waste for a given waste product
@@ -606,7 +609,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         if #self.redstone > 0 then
             logic.handle_redstone(self)
         elseif not self.plc_cache.rps_trip then
-            self.emcool_opened = false
+            self.em_cool_opened = false
         end
     end
 
@@ -724,7 +727,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
     -- queue a command to clear timeout/auto-scram if set
     function public.auto_cond_rps_reset()
-        if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.emcool_opened) then
+        if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.em_cool_opened) then
             local rps = self.plc_i.get_rps()
             if rps.timeout or rps.automatic then
                 self.plc_i.auto_lock(true)  -- if it timed out/restarted, auto lock was lost, so re-lock it
@@ -865,7 +868,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
     -- check if emergency coolant activation has been tripped
     ---@nodiscard
-    function public.is_emer_cool_tripped() return self.emcool_opened end
+    function public.is_emer_cool_tripped() return self.em_cool_opened end
 
     -- get build properties of machines
     --
