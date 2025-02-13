@@ -183,19 +183,21 @@ function coordinator.load_config()
                 end
             end
 
-            for i = 1, config.UnitCount do
-                local display = config.MachineDisplays[i]
-                if type(display) ~= "string" or not util.table_contains(names, display) then
-                    return 2, "Machine " .. i .. " monitor is not connected."
-                end
-
-                monitors.machine_displays[i] = ppm.get_periph(display)
-                monitors.machine_name_map[i] = display
-
-                monitors.unit_displays[i].setTextScale(0.5)
-                w, h = ppm.monitor_block_size(monitors.machine_displays[i].getSize())
-                if w ~= 4 or h ~= 4 then
-                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
+            if config.UseMachineDisplays then 
+                for i = 1, config.UnitCount do
+                    local display = config.MachineDisplays[i]
+                    if type(display) ~= "string" or not util.table_contains(names, display) then
+                        return 2, "Machine " .. i .. " monitor is not connected."
+                    end
+    
+                    monitors.machine_displays[i] = ppm.get_periph(display)
+                    monitors.machine_name_map[i] = display
+    
+                    monitors.machine_displays[i].setTextScale(0.5)
+                    w, h = ppm.monitor_block_size(monitors.machine_displays[i].getSize())
+                    if w ~= 4 or h ~= 4 then
+                        return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
+                    end
                 end
             end
         else return 2, "Monitor configuration invalid." end

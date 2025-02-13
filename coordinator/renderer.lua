@@ -207,7 +207,7 @@ function renderer.try_start_ui()
             -- show main view on main monitor
             if engine.monitors.main ~= nil then
                 engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
-                main_view(engine.ui.main_display)
+                main_view(engine.ui.main_display, engine)
                 util.nop()
             end
 
@@ -438,7 +438,7 @@ function renderer.handle_resize(name)
             local draw_start = util.time_ms()
             local ok = pcall(function ()
                 ui.main_display = DisplayBox{window=device,fg_bg=style.root}
-                main_view(ui.main_display)
+                main_view(ui.main_display, engine)
             end)
 
             if ok then
