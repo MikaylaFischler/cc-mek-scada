@@ -15,6 +15,7 @@ local flow_view   = require("coordinator.ui.layout.flow_view")
 local panel_view  = require("coordinator.ui.layout.front_panel")
 local main_view   = require("coordinator.ui.layout.main_view")
 local unit_view   = require("coordinator.ui.layout.unit_view")
+local machine_view   = require("coordinator.ui.layout.machine_view")
 
 local core        = require("graphics.core")
 local flasher     = require("graphics.flasher")
@@ -37,9 +38,11 @@ local engine = {
         front_panel = nil,  ---@type DisplayBox|nil
         main_display = nil, ---@type DisplayBox|nil
         flow_display = nil, ---@type DisplayBox|nil
-        unit_displays = {}  ---@type (DisplayBox|nil)[]
+        unit_displays = {},  ---@type (DisplayBox|nil)[]
+        machine_displays = {}  ---@type (DisplayBox|nil)[]
     },
-    disable_flow_view = false
+    disable_flow_view = false,
+    enable_machine_view = false
 }
 
 -- init a display to the "default", but set text scale to 0.5
@@ -80,6 +83,7 @@ function renderer.configure(config)
 
     engine.color_mode = config.ColorMode
     engine.disable_flow_view = config.DisableFlowView
+    engine.enable_machine_view = config.UseMachineDisplays
 end
 
 -- link to the monitor peripherals
@@ -91,6 +95,7 @@ function renderer.set_displays(monitors)
     iocontrol.fp_monitor_state("main", engine.monitors.main ~= nil)
     iocontrol.fp_monitor_state("flow", engine.monitors.flow ~= nil)
     for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
+    for i = 1, #engine.monitors.machine_displays do iocontrol.fp_monitor_state(i, true) end
 end
 
 -- init all displays in use by the renderer
@@ -101,6 +106,10 @@ function renderer.init_displays()
 
     -- init unit displays
     for _, monitor in ipairs(engine.monitors.unit_displays) do
+        _init_display(monitor)
+    end
+    -- init machine displays
+    for _, monitor in ipairs(engine.monitors.machine_displays) do
         _init_display(monitor)
     end
 
@@ -215,6 +224,12 @@ function renderer.try_start_ui()
                 unit_view(engine.ui.unit_displays[idx], idx)
                 util.nop()
             end
+            -- show unit_overview  on machine displays
+            for idx, display in pairs(engine.monitors.machine_displays) do
+                engine.ui.machine_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
+                machine_view(engine.ui.machine_displays[idx], idx)
+                util.nop()
+            end
         end)
 
         if status then
@@ -242,7 +257,7 @@ function renderer.close_ui()
     if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
     if engine.ui.flow_display ~= nil then engine.ui.flow_display.delete() end
     for _, display in pairs(engine.ui.unit_displays) do display.delete() end
-
+    for _, display in pairs(engine.ui.machine_displays) do display.delete() end
     -- report ui as not ready
     engine.ui_ready = false
 
@@ -250,9 +265,11 @@ function renderer.close_ui()
     engine.ui.main_display = nil
     engine.ui.flow_display = nil
     engine.ui.unit_displays = {}
+    engine.ui.machine_displays = {}
 
     -- clear unit monitors
     for _, monitor in ipairs(engine.monitors.unit_displays) do monitor.clear() end
+    for _, monitor in ipairs(engine.monitors.machine_displays) do monitor.clear() end
 
     if not engine.disable_flow_view then
         -- clear flow monitor
@@ -319,6 +336,20 @@ function renderer.handle_disconnect(device)
                 break
             end
         end
+        for idx, monitor in pairs(engine.monitors.machine_displays) do
+            if monitor == device then
+                if engine.ui.machine_displays[idx] ~= nil then
+                    engine.ui.machine_displays[idx].delete()
+                end
+
+                is_used = true
+                engine.monitors.machine_displays[idx] = nil
+                engine.ui.machine_displays[idx] = nil
+
+                iocontrol.fp_monitor_state(idx, false)
+                break
+            end
+        end
     end
 
     return is_used
@@ -351,6 +382,15 @@ function renderer.handle_reconnect(name, device)
             if monitor == name then
                 is_used = true
                 engine.monitors.unit_displays[idx] = device
+
+                renderer.handle_resize(name)
+                break
+            end
+        end
+        for idx, monitor in ipairs(engine.monitors.machine_name_map) do
+            if monitor == name then
+                is_used = true
+                engine.monitors.machine_displays[idx] = device
 
                 renderer.handle_resize(name)
                 break
@@ -481,6 +521,47 @@ function renderer.handle_resize(name)
                         if ui.unit_displays[idx] then
                             ui.unit_displays[idx].delete()
                             ui.unit_displays[idx] = nil
+                        end
+
+                        _print_too_small(device)
+
+                        iocontrol.fp_monitor_state(idx, false)
+                        is_ok = false
+                    end
+                end
+
+                break
+            end
+        end
+        for idx, monitor in ipairs(engine.monitors.machine_name_map) do
+            local device = engine.monitors.machine_displays[idx]
+
+            if monitor == name and device then
+                -- this is necessary if the bottom left block was broken and on reconnect
+                _init_display(device)
+
+                is_used = true
+
+                if ui.machine_displays[idx] then
+                    ui.machine_displays[idx].delete()
+                    ui.machine_displays[idx] = nil
+                end
+
+                iocontrol.fp_monitor_state(idx, true)
+
+                if engine.ui_ready then
+                    local draw_start = util.time_ms()
+                    local ok = pcall(function ()
+                        ui.machine_displays[idx] = DisplayBox{window=device,fg_bg=style.root}
+                        machine_view(ui.machine_displays[idx], idx)
+                    end)
+
+                    if ok then
+                        log_render("machine " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+                    else
+                        if ui.machine_displays[idx] then
+                            ui.machine_displays[idx].delete()
+                            ui.machine_displays[idx] = nil
                         end
 
                         _print_too_small(device)

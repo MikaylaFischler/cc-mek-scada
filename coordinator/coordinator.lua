@@ -41,10 +41,12 @@ function coordinator.load_config()
     config.TempScale = settings.get("TempScale")
     config.EnergyScale = settings.get("EnergyScale")
 
+    config.UseMachineDisplays = settings.get("UseMachineDisplays")
     config.DisableFlowView = settings.get("DisableFlowView")
     config.MainDisplay = settings.get("MainDisplay")
     config.FlowDisplay = settings.get("FlowDisplay")
     config.UnitDisplays = settings.get("UnitDisplays")
+    config.MachineDisplays = settings.get("MachineDisplays")
 
     config.SVR_Channel = settings.get("SVR_Channel")
     config.CRD_Channel = settings.get("CRD_Channel")
@@ -74,6 +76,7 @@ function coordinator.load_config()
 
     cfv.assert_type_bool(config.DisableFlowView)
     cfv.assert_type_table(config.UnitDisplays)
+    cfv.assert_type_table(config.MachineDisplays)
 
     cfv.assert_type_num(config.SpeakerVolume)
     cfv.assert_range(config.SpeakerVolume, 0, 3)
@@ -117,7 +120,9 @@ function coordinator.load_config()
         flow = nil,         ---@type Monitor|nil
         flow_name = "",
         unit_displays = {}, ---@type Monitor[]
-        unit_name_map = {}  ---@type string[]
+        unit_name_map = {},  ---@type string[]
+        machine_displays = {}, ---@type Monitor[]
+        machine_name_map = {}  ---@type string[]
     }
 
     local mon_cfv = util.new_validator()
@@ -173,6 +178,22 @@ function coordinator.load_config()
 
                 monitors.unit_displays[i].setTextScale(0.5)
                 w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
+                if w ~= 4 or h ~= 4 then
+                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
+                end
+            end
+
+            for i = 1, config.UnitCount do
+                local display = config.MachineDisplays[i]
+                if type(display) ~= "string" or not util.table_contains(names, display) then
+                    return 2, "Machine " .. i .. " monitor is not connected."
+                end
+
+                monitors.machine_displays[i] = ppm.get_periph(display)
+                monitors.machine_name_map[i] = display
+
+                monitors.unit_displays[i].setTextScale(0.5)
+                w, h = ppm.monitor_block_size(monitors.machine_displays[i].getSize())
                 if w ~= 4 or h ~= 4 then
                     return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
                 end

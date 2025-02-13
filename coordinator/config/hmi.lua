@@ -62,13 +62,13 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local function next_from_reqs()
         -- unassign unit monitors above the unit count
         for i = tmp_cfg.UnitCount + 1, 4 do tmp_cfg.UnitDisplays[i] = nil end
-
+        for i = tmp_cfg.UnitCount + 1, 4 do tmp_cfg.MachineDisplays[i] = nil end
         tool_ctl.gen_mon_list()
         mon_pane.set_value(2)
     end
 
     PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=mon_c_1,x=8,y=14,text="Legacy Options",min_width=16,callback=function()mon_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,x=8,y=14,text="Advanced Options",min_width=16,callback=function()mon_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
@@ -85,6 +85,13 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         elseif util.table_len(tmp_cfg.UnitDisplays) ~= tmp_cfg.UnitCount then
             for i = 1, tmp_cfg.UnitCount do
                 if tmp_cfg.UnitDisplays[i] == nil then
+                    assign_err.set_value("Please assign the unit " .. i .. " monitor.")
+                    break
+                end
+            end
+        elseif util.table_len(tmp_cfg.MachineDisplays) ~= tmp_cfg.UnitCount and tmp_cfg.UseMachineDisplays then
+            for i = 1, tmp_cfg.UnitCount do
+                if tmp_cfg.MachineDisplays[i] == nil then
                     assign_err.set_value("Please assign the unit " .. i .. " monitor.")
                     break
                 end
@@ -122,7 +129,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
             mon_warn.hide(true)
         end
 
-        if val == 3 then
+        if val == 3 or val == 4 then
             mon_unit_l.show()
             mon_unit.show()
         else
@@ -136,12 +143,20 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     end
 
     TextBox{parent=mon_c_3,x=1,y=6,width=10,text="Assignment"}
-    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
 
+    if ini_cfg.UseMachineDisplays  then
+        mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor", "Machine Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
+    else 
+
+        mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
+    end
+        
     mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,text="Unit ID"}
     mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
     local mon_u_err = TextBox{parent=mon_c_3,x=8,y=14,width=35,text="Please provide a unit ID.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+
 
     -- purge all assignments for a given monitor
     ---@param iface string
@@ -153,6 +168,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         else
             for i = 1, tmp_cfg.UnitCount do
                 if tmp_cfg.UnitDisplays[i] == iface then tmp_cfg.UnitDisplays[i] = nil end
+                if tmp_cfg.MachineDisplays[i] == iface then tmp_cfg.MachineDisplays[i] = nil end
             end
         end
     end
@@ -168,9 +184,12 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         elseif type == 2 then
             purge_assignments(iface)
             tmp_cfg.FlowDisplay = iface
-        elseif u_id and u_id > 0 then
+        elseif u_id and u_id > 0 and type == 3 then
             purge_assignments(iface)
             tmp_cfg.UnitDisplays[u_id] = iface
+        elseif u_id and u_id > 0 and type == 4 then
+            purge_assignments(iface)
+            tmp_cfg.MachineDisplays[u_id] = iface
         else
             mon_u_err.show()
             return
@@ -188,9 +207,11 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     TextBox{parent=mon_c_4,x=1,y=5,height=3,text="Please be aware that THIS OPTION WILL BE REMOVED ON RELEASE. Disabling it will only be available for the remainder of the beta."}
 
     tool_ctl.dis_flow_view = Checkbox{parent=mon_c_4,x=1,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
+    tool_ctl.enable_machine_view = Checkbox{parent=mon_c_4,x=1,y=11,default=ini_cfg.UseMachineDisplays,label="Enable extra boilers and Turbines",box_fg_bg=cpair(colors.blue,colors.black)}
 
     local function back_from_legacy()
         tmp_cfg.DisableFlowView = tool_ctl.dis_flow_view.get_value()
+        tmp_cfg.UseMachineDisplays = tool_ctl.enable_machine_view.get_value()
         tool_ctl.update_mon_reqs()
         mon_pane.set_value(1)
     end
@@ -317,9 +338,14 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         mon_unit.set_value(0)
 
         if w == 4 and h == 4 then
-            msg = "This could work as a unit display. Please configure below."
-            self.mon_expect = { 3 }
-            mon_assign.set_value(3)
+            if tmp_cfg.UseMachineDisplays then
+                msg = "This could work as a unit display or machine display. Please configure below."
+                self.mon_expect = {3, 4}
+            else            
+                msg = "This could work as a unit display. Please configure below."
+                self.mon_expect = {3}
+                mon_assign.set_value(3)
+            end
         elseif w == 8 then
             if h >= tool_ctl.main_mon_h and h >= tool_ctl.flow_mon_h then
                 msg = "This could work as either your main monitor or flow monitor. Please configure below."
@@ -347,6 +373,11 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
                     mon_unit.set_value(i)
                     break
                 end
+                if tmp_cfg.MachineDisplays[i] == iface then
+                    mon_assign.set_value(4)
+                    mon_unit.set_value(i)
+                    break
+                end
             end
         end
 
@@ -360,9 +391,9 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     function tool_ctl.gen_mon_list()
         mon_list.remove_all()
 
-        local missing = { main = tmp_cfg.MainDisplay ~= nil, flow = tmp_cfg.FlowDisplay ~= nil, unit = {} }
+        local missing = { main = tmp_cfg.MainDisplay ~= nil, flow = tmp_cfg.FlowDisplay ~= nil, unit = {}, machine = {} }
         for i = 1, tmp_cfg.UnitCount do missing.unit[i] = tmp_cfg.UnitDisplays[i] ~= nil end
-
+        for i = 1, tmp_cfg.UnitCount do missing.machine[i] = tmp_cfg.MachineDisplays[i] ~= nil end
         -- list connected monitors
         local monitors = ppm.get_monitor_list()
         for iface, device in pairs(monitors) do
@@ -394,6 +425,11 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
                         assignment = "Unit " .. i
                         break
                     end
+                    if tmp_cfg.MachineDisplays[i] == iface then
+                        missing.machine[i] = false
+                        assignment = "Machine " .. i
+                        break
+                    end
                 end
             end
 
@@ -422,6 +458,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         if missing.flow then table.insert(dc_list, { "Flow", tmp_cfg.FlowDisplay }) end
         for i = 1, tmp_cfg.UnitCount do
             if missing.unit[i] then table.insert(dc_list, { "Unit " .. i, tmp_cfg.UnitDisplays[i] }) end
+            if missing.machine[i] then table.insert(dc_list, { "Machine " .. i, tmp_cfg.MachineDisplays[i] }) end
         end
 
         -- add monitors that are assigned but not connected

@@ -76,6 +76,7 @@ local tool_ctl = {
 
     -- settings elements from hmi
     dis_flow_view = nil,      ---@type Checkbox
+    enable_machine_view = nil,      ---@type Checkbox
     s_vol = nil,              ---@type NumberField
     clock_fmt = nil,          ---@type RadioButton
     temp_scale = nil,         ---@type RadioButton
@@ -101,6 +102,8 @@ local tmp_cfg = {
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
+    MachineDisplays = {},      ---@type string[]
+    UseMachineDisplays = false,
     SVR_Channel = nil,      ---@type integer
     CRD_Channel = nil,      ---@type integer
     PKT_Channel = nil,      ---@type integer
@@ -127,6 +130,8 @@ local fields = {
     { "MainDisplay", "Main Monitor", nil },
     { "FlowDisplay", "Flow Monitor", nil },
     { "UnitDisplays", "Unit Monitors", {} },
+    { "MachineDisplays", "Machine Monitors", {} },
+    { "UseMachineDisplays", "Please changhe this later ", false },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
     { "Time24Hour", "Use 24-hour Time Format", true },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
@@ -150,11 +155,14 @@ local fields = {
 -- load tmp_cfg fields from ini_cfg fields for displays
 local function preset_monitor_fields()
     tmp_cfg.DisableFlowView = ini_cfg.DisableFlowView
-
+    tmp_cfg.UseMachineDisplays = ini_cfg.UseMachineDisplays
     tmp_cfg.MainDisplay = ini_cfg.MainDisplay
     tmp_cfg.FlowDisplay = ini_cfg.FlowDisplay
     for i = 1, ini_cfg.UnitCount do
         tmp_cfg.UnitDisplays[i] = ini_cfg.UnitDisplays[i]
+    end
+    for i = 1, ini_cfg.UnitCount do
+        tmp_cfg.MachineDisplays[i] = ini_cfg.MachineDisplays[i]
     end
 end
 

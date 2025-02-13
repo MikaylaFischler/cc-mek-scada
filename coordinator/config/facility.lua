@@ -87,7 +87,7 @@ local function handle_packet(packet)
                                 local num_b = config[2].r_cool[i].BoilerCount
                                 local num_t = config[2].r_cool[i].TurbineCount
                                 self.tool_ctl.sv_cool_conf[i] = { num_b, num_t }
-                                cool_ok = cool_ok and is_int_min_max(num_b, 0, 2) and is_int_min_max(num_t, 1, 3)
+                                cool_ok = cool_ok and is_int_min_max(num_b, 0, 5) and is_int_min_max(num_t, 1, 6)
                             end
                         end
 
