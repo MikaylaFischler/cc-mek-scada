@@ -236,8 +236,8 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         local line = Div{parent=fac_c_2,x=1,y=7+i,height=1}
 
         TextBox{parent=line,text="Unit "..i,width=6}
-        local turbines = NumberField{parent=line,x=9,y=1,width=5,max_chars=2,default=num_t,min=1,max=3,fg_bg=bw_fg_bg}
-        local boilers = NumberField{parent=line,x=20,y=1,width=5,max_chars=2,default=num_b,min=0,max=2,fg_bg=bw_fg_bg}
+        local turbines = NumberField{parent=line,x=9,y=1,width=5,max_chars=2,default=num_t,min=1,max=6,fg_bg=bw_fg_bg}
+        local boilers = NumberField{parent=line,x=20,y=1,width=5,max_chars=2,default=num_b,min=0,max=5,fg_bg=bw_fg_bg}
         local tank = Checkbox{parent=line,x=30,y=1,label="Is Connected",default=has_t,box_fg_bg=cpair(colors.yellow,colors.black)}
 
         tool_ctl.cooling_elems[i] = { line = line, turbines = turbines, boilers = boilers, tank = tank }
