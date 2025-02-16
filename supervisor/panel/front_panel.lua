@@ -41,6 +41,8 @@ local function init(panel)
     local label_fg = style.fp.label_fg
     local label_d_fg = style.fp.label_d_fg
 
+    local term_w, term_h = term.getSize()
+
     TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
@@ -73,9 +75,9 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
+    local about   = Div{parent=main_page,width=15,height=2,y=term_h-3,fg_bg=style.fp.disabled_fg}
+    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -87,7 +89,7 @@ local function init(panel)
     -- plc sessions page
 
     local plc_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local plc_list = Div{parent=plc_page,x=2,y=2,width=49}
+    local plc_list = Div{parent=plc_page,x=2,y=2,width=term_w-2}
 
     for i = 1, supervisor.config.UnitCount do
         local ps_prefix = "plc_" .. i .. "_"
@@ -103,13 +105,13 @@ local function init(panel)
         local plc_addr = TextBox{parent=plc_entry,x=17,y=2,text=" --- ",width=5,fg_bg=label_d_fg}
         plc_addr.register(databus.ps, ps_prefix .. "addr", plc_addr.set_value)
 
-        TextBox{parent=plc_entry,x=23,y=2,text="FW:",width=3}
-        local plc_fw_v = TextBox{parent=plc_entry,x=27,y=2,text=" ------- ",width=9,fg_bg=label_fg}
+        TextBox{parent=plc_entry,x=term_w-28,y=2,text="FW:",width=3}
+        local plc_fw_v = TextBox{parent=plc_entry,x=term_w-24,y=2,text=" ------- ",width=9,fg_bg=label_fg}
         plc_fw_v.register(databus.ps, ps_prefix .. "fw", plc_fw_v.set_value)
 
-        TextBox{parent=plc_entry,x=37,y=2,text="RTT:",width=4}
-        local plc_rtt = DataIndicator{parent=plc_entry,x=42,y=2,label="",unit="",format="%4d",value=0,width=4,fg_bg=label_fg}
-        TextBox{parent=plc_entry,x=47,y=2,text="ms",width=4,fg_bg=label_fg}
+        TextBox{parent=plc_entry,x=term_w-14,y=2,text="RTT:",width=4}
+        local plc_rtt = DataIndicator{parent=plc_entry,x=term_w-9,y=2,label="",unit="",format="%4d",value=0,width=4,fg_bg=label_fg}
+        TextBox{parent=plc_entry,x=term_w-4,y=2,text="ms",width=4,fg_bg=label_fg}
         plc_rtt.register(databus.ps, ps_prefix .. "rtt", plc_rtt.update)
         plc_rtt.register(databus.ps, ps_prefix .. "rtt_color", plc_rtt.recolor)
 
@@ -119,13 +121,13 @@ local function init(panel)
     -- rtu sessions page
 
     local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local rtu_list = ListBox{parent=rtu_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=rtu_list,height=1} -- padding
 
     -- coordinator session page
 
     local crd_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local crd_box = Div{parent=crd_page,x=2,y=2,width=49,height=4,fg_bg=s_hi_bright}
+    local crd_box = Div{parent=crd_page,x=2,y=2,width=term_w-2,height=4,fg_bg=s_hi_bright}
 
     local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green_hc,colors.green_off)}
     crd_conn.register(databus.ps, "crd_conn", crd_conn.update)
@@ -138,27 +140,27 @@ local function init(panel)
     local crd_fw_v = TextBox{parent=crd_box,x=26,y=2,text=" ------- ",width=9,fg_bg=label_fg}
     crd_fw_v.register(databus.ps, "crd_fw", crd_fw_v.set_value)
 
-    TextBox{parent=crd_box,x=36,y=2,text="RTT:",width=4}
-    local crd_rtt = DataIndicator{parent=crd_box,x=41,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
-    TextBox{parent=crd_box,x=47,y=2,text="ms",width=4,fg_bg=label_fg}
+    TextBox{parent=crd_box,x=term_w-15,y=2,text="RTT:",width=4}
+    local crd_rtt = DataIndicator{parent=crd_box,x=term_w-10,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
+    TextBox{parent=crd_box,x=term_w-4,y=2,text="ms",width=4,fg_bg=label_fg}
     crd_rtt.register(databus.ps, "crd_rtt", crd_rtt.update)
     crd_rtt.register(databus.ps, "crd_rtt_color", crd_rtt.recolor)
 
     -- pocket sessions page
 
-    local pkt_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local pdg_list = ListBox{parent=pkt_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local pkt_page = Div{parent=page_div,y=1,hidden=true}
+    local pdg_list = ListBox{parent=pkt_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=pdg_list,height=1} -- padding
 
     -- RTU device ID check/diagnostics page
 
-    local chk_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local chk_list = ListBox{parent=chk_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local chk_page = Div{parent=page_div,y=1,hidden=true}
+    local chk_list = ListBox{parent=chk_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=chk_list,height=1} -- padding
 
     -- info page
 
-    local info_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local info_page = Div{parent=page_div,y=1,hidden=true}
     local info = Div{parent=info_page,height=6,x=2,y=2}
 
     TextBox{parent=info,text="SVR \x1a Supervisor Status"}
@@ -168,7 +170,7 @@ local function init(panel)
     TextBox{parent=info,text="PKT \x1a Pocket Connections"}
     TextBox{parent=info,text="DEV \x1a RTU Device/Configuration Alerts"}
 
-    local notes = Div{parent=info_page,width=49,height=8,x=2,y=9,fg_bg=style.fp.disabled_fg}
+    local notes = Div{parent=info_page,width=term_w-2,height=8,x=2,y=9,fg_bg=style.fp.disabled_fg}
 
     TextBox{parent=notes,text="The DEV tab will show missing devices and devices that connected with incorrect information. Missing entries will indicate how the configuration should be, duplicate entries will indicate what is a duplicate, and out-of-range entries will indicate the invalid entry. An out-of-range example is a #2 turbine when you should only have 1 turbine for that unit."}
 
