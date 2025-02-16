@@ -137,7 +137,7 @@ function renderer.try_start_fp()
     if not engine.fp_ready then
         -- show front panel view on terminal
         status, msg = pcall(function ()
-            engine.ui.front_panel = DisplayBox{window=term.native(),fg_bg=style.fp.root}
+            engine.ui.front_panel = DisplayBox{window=term.current(),fg_bg=style.fp.root}
             panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
         end)
 
