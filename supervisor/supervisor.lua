@@ -265,7 +265,7 @@ function supervisor.comms(_version, nic, fp_ok, facility)
                                 if reactor_id < 1 or reactor_id > config.UnitCount then
                                     -- reactor index out of range
                                     if last_ack ~= ESTABLISH_ACK.DENY then
-                                        log.warning(util.c("PLC_ESTABLISH: assignment ", reactor_id, " outside of configured unit count ", config.UnitCount))
+                                        log.warning(util.c("PLC_ESTABLISH: denied assignment ", reactor_id, " outside of configured unit count ", config.UnitCount))
                                     end
 
                                     _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
