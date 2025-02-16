@@ -110,7 +110,7 @@ local function init(panel, units)
     -- about label
     --
 
-    local about   = Div{parent=panel,width=15,height=2,x=1,y=term_h-1,fg_bg=disabled_fg}
+    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
     local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
     local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
 
