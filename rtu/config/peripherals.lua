@@ -149,7 +149,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
             self.p_idx.hide()
             self.p_assign_btn.hide(true)
-            self.p_desc_ext.set_value("Before adding lots of SNAs: multiply the \"PEAK\" rate on the flow monitor (after connecting at least 1 SNA) by 10 to get the mB/t of waste that they can process. Enough SNAs to provide 2x to 3x of your max burn rate should be a good margin to catch up after night or cloudy weather. Too many devices (such as SNAs) on one RTU can cause lag.")
+            self.p_desc_ext.set_value("Warning: too many devices on one RTU Gateway can cause lag. Note that 10x the \"PEAK\x1a\" rate on the flow monitor gives you the mB/t of waste that the SNA(s) can process. Enough SNAs to provide 2x to 3x of that unit's max burn rate should be a good margin to catch up after night or cloudy weather.")
         elseif type == "dynamicValve" then
             reposition("This is the below system's #     dynamic tank.", 29, 4, 17, 6, 8)
             self.p_assign_btn.show()
