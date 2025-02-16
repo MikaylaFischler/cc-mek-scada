@@ -138,13 +138,13 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         end
 
         if type == "boilerValve" then
-            reposition("This is reactor unit #    's #     boiler.", 31, 2, 23, 4, 7)
+            reposition("This is reactor unit #    's #     boiler.", 31, 5, 23, 4, 7)
             self.p_assign_btn.hide(true)
-            self.p_desc.set_value("Each unit can have at most 2 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. The numberings are per unit (unit 1 and unit 2 would both have a boiler #1 if each had one boiler) and can be split amongst multiple RTUs (one has #1, another has #2).")
+            self.p_desc.set_value("Each unit can have at most 5 boilers. Boiler #1 shows up first on the main display, followed by boiler #2 below it. The numberings are per unit (unit 1 and unit 2 would both have a boiler #1 if each had one boiler) and can be split amongst multiple RTUs (one has #1, another has #2).")
         elseif type == "turbineValve" then
-            reposition("This is reactor unit #    's #     turbine.", 31, 3, 23, 4, 7)
+            reposition("This is reactor unit #    's #     turbine.", 31, 6, 23, 4, 7)
             self.p_assign_btn.hide(true)
-            self.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. The numberings are per unit (unit 1 and unit 2 would both have a turbine #1) and can be split amongst multiple RTUs (one has #1, another has #2).")
+            self.p_desc.set_value("Each unit can have at most 6 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. The numberings are per unit (unit 1 and unit 2 would both have a turbine #1) and can be split amongst multiple RTUs (one has #1, another has #2).")
         elseif type == "solarNeutronActivator" then
             reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
             self.p_idx.hide()
@@ -291,14 +291,14 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         end
 
         if peri_type == "boilerValve" then
-            if not (idx == 1 or idx == 2) then
-                self.p_err.set_value("Index must be 1 or 2.")
+            if not (idx <= 5 or idx > 0 ) then
+                self.p_err.set_value("Index must be less then 5 and greater then 0.")
                 self.p_err.show()
                 return
             else index = idx end
         elseif peri_type == "turbineValve" then
-            if not (idx == 1 or idx == 2 or idx == 3) then
-                self.p_err.set_value("Index must be 1, 2, or 3.")
+            if not (idx <= 6 or idx > 0) then
+                self.p_err.set_value("Index must be less then 6 and greater then 0.")
                 self.p_err.show()
                 return
             else index = idx end
