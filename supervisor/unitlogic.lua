@@ -35,6 +35,7 @@ local FLOW_STABILITY_DELAY_MS = const.FLOW_STABILITY_DELAY_MS
 
 local ANNUNC_LIMS = const.ANNUNCIATOR_LIMITS
 local ALARM_LIMS = const.ALARM_LIMITS
+local RS_THRESH = const.RS_THRESHOLDS
 
 ---@class unit_logic_extension
 local logic = {}
@@ -53,6 +54,10 @@ function logic.update_annunciator(self)
 
     -- variables for boiler, or reactor if no boilers used
     local total_boil_rate = 0.0
+
+    -- auxiliary coolant control
+    local need_aux_cool = false
+    local dis_aux_cool = true
 
     --#region Reactor
 
@@ -148,6 +153,9 @@ function logic.update_annunciator(self)
         -- if no boilers, use reactor heating rate to check for boil rate mismatch
         if num_boilers == 0 then
             total_boil_rate = plc_db.mek_status.heating_rate
+
+            need_aux_cool = plc_db.mek_status.ccool_fill <= RS_THRESH.AUX_COOL_ENABLE
+            dis_aux_cool = plc_db.mek_status.ccool_fill >= RS_THRESH.AUX_COOL_DISABLE
         end
     else
         self.plc_cache.ok = false
@@ -215,6 +223,9 @@ function logic.update_annunciator(self)
 
             annunc.BoilerOnline[idx] = true
             annunc.WaterLevelLow[idx] = boiler.tanks.water_fill < ANNUNC_LIMS.WaterLevelLow
+
+            need_aux_cool = need_aux_cool or (boiler.tanks.water_fill <= RS_THRESH.AUX_COOL_ENABLE)
+            dis_aux_cool = dis_aux_cool and (boiler.tanks.water_fill >= RS_THRESH.AUX_COOL_DISABLE)
         end
 
         -- check heating rate low
@@ -406,6 +417,12 @@ function logic.update_annunciator(self)
 
     -- update auto control ready state for this unit
     self.db.control.ready = plc_ready and boilers_ready and turbines_ready
+
+    -- update auxiliary coolant command
+    if plc_ready then
+        self.enable_aux_cool = self.plc_i.get_db().mek_status.status and
+                              (self.enable_aux_cool or need_aux_cool) and not (dis_aux_cool and self.turbine_flow_stable)
+    else self.enable_aux_cool = false end
 end
 
 -- update an alarm state given conditions
@@ -953,12 +970,10 @@ function logic.handle_redstone(self)
     -----------------------
 
     if self.aux_coolant then
-        local enable_aux_cool = boiler_water_low or (annunc.CoolantLevelLow and self.num_boilers == 0)
-
-        if enable_aux_cool and not self.aux_cool_opened then
+        if self.enable_aux_cool and (not self.aux_cool_opened) then
             log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve opened"))
             self.aux_cool_opened = true
-        elseif self.aux_cool_opened and self.turbine_flow_stable and not enable_aux_cool then
+        elseif (not self.enable_aux_cool) and self.aux_cool_opened then
             log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve closed"))
             self.aux_cool_opened = false
         end

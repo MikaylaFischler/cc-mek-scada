@@ -114,6 +114,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         damage_est_last = 0,
         waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
+        enable_aux_cool = false,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
