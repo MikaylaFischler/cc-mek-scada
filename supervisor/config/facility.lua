@@ -299,6 +299,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                 tmp_cfg.FacilityTankDefs = {}
                 tmp_cfg.FacilityTankList = {}
                 tmp_cfg.FacilityTankConns = {}
+                tmp_cfg.TankFluidTypes = {}
             end
 
             if any_has_tank then fac_pane.set_value(3) else main_pane.set_value(3) end
