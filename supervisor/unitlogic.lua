@@ -341,11 +341,11 @@ function logic.update_annunciator(self)
             end
 
             if rotation_stable then
-                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached rotational stability (", rotation, ")"))
+                log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reached rotational stability (", rotation, ")"))
             end
 
             if flow_stable then
-                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached flow stability (", turbine.state.flow_rate, " mB/t)"))
+                log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reached flow stability (", turbine.state.flow_rate, " mB/t)"))
             end
 
             turbines_stable = turbines_stable and (rotation_stable or flow_stable)
@@ -357,7 +357,7 @@ function logic.update_annunciator(self)
 
             turbines_stable = false
 
-            log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reset stability (new rate ", turbine.state.steam_input_rate, " != ", last.input_rate," mB/t)"))
+            log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reset stability (new rate ", turbine.state.steam_input_rate, " != ", last.input_rate," mB/t)"))
         end
 
         last.input_rate = turbine.state.steam_input_rate
@@ -952,18 +952,20 @@ function logic.handle_redstone(self)
     -- Auxiliary Coolant --
     -----------------------
 
-    local enable_aux_cool = boiler_water_low or (annunc.CoolantLevelLow and self.num_boilers == 0)
+    if self.aux_coolant then
+        local enable_aux_cool = boiler_water_low or (annunc.CoolantLevelLow and self.num_boilers == 0)
 
-    if enable_aux_cool and not self.aux_cool_opened then
-        log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve opened"))
-        self.aux_cool_opened = true
-    elseif self.aux_cool_opened and self.turbine_flow_stable and not enable_aux_cool then
-        log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve closed"))
-        self.aux_cool_opened = false
+        if enable_aux_cool and not self.aux_cool_opened then
+            log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve opened"))
+            self.aux_cool_opened = true
+        elseif self.aux_cool_opened and self.turbine_flow_stable and not enable_aux_cool then
+            log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve closed"))
+            self.aux_cool_opened = false
+        end
+
+        -- set valve state always
+        if self.aux_cool_opened then self.valves.aux_cool.open() else self.valves.aux_cool.close() end
     end
-
-    -- set valve state always
-    if self.aux_cool_opened then self.valves.aux_cool.open() else self.valves.aux_cool.close() end
 end
 
 return logic

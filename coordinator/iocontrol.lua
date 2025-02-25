@@ -164,6 +164,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             num_turbines = 0,
             num_snas = 0,
             has_tank = conf.cooling.r_cool[i].TankConnection,
+            aux_cool = conf.cooling.aux_coolant[i],
 
             status_lines = { "", "" },
 
@@ -1214,7 +1215,7 @@ function iocontrol.update_unit_statuses(statuses)
                 local valve_states = status[6]
 
                 if type(valve_states) == "table" then
-                    if #valve_states == 5 then
+                    if #valve_states == 6 then
                         unit.unit_ps.publish("V_pu_conn", valve_states[1] > 0)
                         unit.unit_ps.publish("V_pu_state", valve_states[1] == 2)
                         unit.unit_ps.publish("V_po_conn", valve_states[2] > 0)
@@ -1225,6 +1226,8 @@ function iocontrol.update_unit_statuses(statuses)
                         unit.unit_ps.publish("V_am_state", valve_states[4] == 2)
                         unit.unit_ps.publish("V_emc_conn", valve_states[5] > 0)
                         unit.unit_ps.publish("V_emc_state", valve_states[5] == 2)
+                        unit.unit_ps.publish("V_aux_conn", valve_states[6] > 0)
+                        unit.unit_ps.publish("V_aux_state", valve_states[6] == 2)
                     else
                         log.debug(log_header .. "valve states length mismatch")
                         valid = false

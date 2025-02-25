@@ -72,7 +72,8 @@ local tool_ctl = {
     load_legacy = nil,    ---@type function
 
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
-    tank_elems = {}       ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
+    tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
+    aux_cool_elems = {}   ---@type { line: Div, enable: Checkbox }[]
 }
 
 ---@class svr_config
@@ -84,6 +85,7 @@ local tmp_cfg = {
     FacilityTankList = {},  ---@type integer[] list of tanks by slot (0 = none or covered by an above tank, 1 = unit tank, 2 = facility tank)
     FacilityTankConns = {}, ---@type integer[] map of unit tank connections (indicies are units, values are tank indicies in the tank list)
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
+    AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
@@ -117,6 +119,7 @@ local fields = {
     { "FacilityTankList", "Facility Tank List", {} },         -- hidden
     { "FacilityTankConns", "Facility Tank Connections", {} }, -- hidden
     { "TankFluidTypes", "Tank Fluid Types", {} },
+    { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },

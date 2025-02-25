@@ -59,7 +59,7 @@ local function make(parent, x, y, wide, unit_id)
     local tank_conns = facility.tank_conns
     local tank_types = facility.tank_fluid_types
 
-    local v_start = 1 + ((unit.unit_id - 1) * 5)
+    local v_start = 1 + ((unit.unit_id - 1) * 6)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
     local v_fields = { "pu", "po", "pl", "am" }
     local v_names = {
@@ -94,11 +94,19 @@ local function make(parent, x, y, wide, unit_id)
     if unit.num_boilers > 0 then
         table.insert(rc_pipes, pipe(0, 1, _wide(28, 19), 1, colors.lightBlue, true))
         table.insert(rc_pipes, pipe(0, 3, _wide(28, 19), 3, colors.orange, true))
-        table.insert(rc_pipes, pipe(_wide(46 ,39), 1, _wide(72,58), 1, colors.blue, true))
-        table.insert(rc_pipes, pipe(_wide(46,39), 3, _wide(72,58), 3, colors.white, true))
+        table.insert(rc_pipes, pipe(_wide(46, 39), 1, _wide(72, 58), 1, colors.blue, true))
+        table.insert(rc_pipes, pipe(_wide(46, 39), 3, _wide(72, 58), 3, colors.white, true))
+
+        if unit.aux_cool then
+            table.insert(rc_pipes, pipe(_wide(51, 41), 0, _wide(51, 41), 1, colors.blue, true))
+        end
     else
-        table.insert(rc_pipes, pipe(0, 1, _wide(72,58), 1, colors.blue, true))
-        table.insert(rc_pipes, pipe(0, 3, _wide(72,58), 3, colors.white, true))
+        table.insert(rc_pipes, pipe(0, 1, _wide(72, 58), 1, colors.blue, true))
+        table.insert(rc_pipes, pipe(0, 3, _wide(72, 58), 3, colors.white, true))
+
+        if unit.aux_cool then
+            table.insert(rc_pipes, pipe(8, 0, 8, 1, colors.blue, true))
+        end
     end
 
     if unit.has_tank then

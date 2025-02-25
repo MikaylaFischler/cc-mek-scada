@@ -74,11 +74,12 @@ local PORT_DESC_MAP = {
     { IO.R_PLC_FAULT, "RPS PLC Fault" },
     { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" },
     { IO.U_ALARM, "Unit Alarm" },
-    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" }
+    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" },
+    { IO.U_AUX_COOL, "Unit Auxiliary Cool. Valve" }
 }
 
 -- designation (0 = facility, 1 = unit)
-local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0 }
+local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1 }
 
 assert(#PORT_DESC_MAP == rsio.NUM_PORTS)
 assert(#PORT_DSGN == rsio.NUM_PORTS)

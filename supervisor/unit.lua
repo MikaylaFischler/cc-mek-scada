@@ -66,7 +66,8 @@ local unit = {}
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
 ---@param ext_idle boolean extended idling mode
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
+---@param aux_coolant boolean if this unit has auxiliary coolant
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
 
@@ -79,6 +80,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         plc_i = nil,    ---@type plc_session
         num_boilers = num_boilers,
         num_turbines = num_turbines,
+        aux_coolant = aux_coolant,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         -- rtus
         rtu_list = {},  ---@type unit_session[][]
@@ -1062,7 +1064,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             v.waste_sna.check(),
             v.waste_po.check(),
             v.waste_sps.check(),
-            v.emer_cool.check()
+            v.emer_cool.check(),
+            v.aux_cool.check()
         }
     end
 
