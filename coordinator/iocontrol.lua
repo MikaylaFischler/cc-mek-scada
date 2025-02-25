@@ -164,7 +164,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             num_turbines = 0,
             num_snas = 0,
             has_tank = conf.cooling.r_cool[i].TankConnection,
-            aux_cool = conf.cooling.aux_coolant[i],
+            aux_coolant = conf.cooling.aux_coolant[i],
 
             status_lines = { "", "" },
 

@@ -299,7 +299,7 @@ local function init(main)
     ------------------------------
 
     for i = 1, facility.num_units do
-        if units[i].aux_cool then
+        if units[i].aux_coolant then
             local vx
             local vy = 3 + y_ofs(i)
 

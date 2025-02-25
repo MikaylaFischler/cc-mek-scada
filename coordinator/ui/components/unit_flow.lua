@@ -97,14 +97,14 @@ local function make(parent, x, y, wide, unit_id)
         table.insert(rc_pipes, pipe(_wide(46, 39), 1, _wide(72, 58), 1, colors.blue, true))
         table.insert(rc_pipes, pipe(_wide(46, 39), 3, _wide(72, 58), 3, colors.white, true))
 
-        if unit.aux_cool then
+        if unit.aux_coolant then
             table.insert(rc_pipes, pipe(_wide(51, 41), 0, _wide(51, 41), 1, colors.blue, true))
         end
     else
         table.insert(rc_pipes, pipe(0, 1, _wide(72, 58), 1, colors.blue, true))
         table.insert(rc_pipes, pipe(0, 3, _wide(72, 58), 3, colors.white, true))
 
-        if unit.aux_cool then
+        if unit.aux_coolant then
             table.insert(rc_pipes, pipe(8, 0, 8, 1, colors.blue, true))
         end
     end
