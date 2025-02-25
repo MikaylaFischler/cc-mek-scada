@@ -72,6 +72,8 @@ local rs = {}
 
 rs.IMATRIX_CHARGE_LOW  = 0.05   -- activation threshold (less than) for F_MATRIX_LOW
 rs.IMATRIX_CHARGE_HIGH = 0.95   -- activation threshold (greater than) for F_MATRIX_HIGH
+rs.AUX_COOL_ENABLE     = 0.60   -- actiation threshold (less than or equal) for U_AUX_COOL
+rs.AUX_COOL_DISABLE    = 1.00   -- deactivation threshold (greater than or equal) for U_AUX_COOL
 
 constants.RS_THRESHOLDS = rs
 

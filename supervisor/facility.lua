@@ -64,7 +64,8 @@ function facility.new(config)
             fac_tank_defs = config.FacilityTankDefs,
             fac_tank_list = config.FacilityTankList,
             fac_tank_conns = config.FacilityTankConns,
-            tank_fluid_types = config.TankFluidTypes
+            tank_fluid_types = config.TankFluidTypes,
+            aux_coolant = config.AuxiliaryCoolant
         },
         -- rtus
         rtu_gw_conn_count = 0,
@@ -147,7 +148,7 @@ function facility.new(config)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling))
+        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling, self.cooling_conf.aux_coolant[i]))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
         table.insert(self.last_unit_states, false)
     end

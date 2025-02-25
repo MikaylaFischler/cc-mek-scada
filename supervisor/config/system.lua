@@ -402,6 +402,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 try_set(tool_ctl.tank_elems[i].tank_opt, ini_cfg.FacilityTankDefs[i])
             end
 
+            for i = 1, #ini_cfg.AuxiliaryCoolant do
+                try_set(tool_ctl.aux_cool_elems[i].enable, ini_cfg.AuxiliaryCoolant[i])
+            end
+
             tool_ctl.en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
 
             tool_ctl.view_cfg.enable()
@@ -588,7 +592,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 end
 
                 if val == "" then val = "no facility tanks" end
-            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "0 (n/a, unit mode)"
+            elseif f[1] == "FacilityTankMode" and raw == 0 then val = "no facility tanks"
             elseif f[1] == "FacilityTankDefs" and type(cfg.FacilityTankDefs) == "table" then
                 local tank_name_list = { table.unpack(cfg.FacilityTankList) } ---@type (string|integer)[]
                 local next_f = 1
@@ -647,6 +651,16 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 end
 
                 if val == "" then val = "no emergency coolant tanks" end
+            elseif f[1] == "AuxiliaryCoolant" then
+                val = ""
+
+                for idx = 1, #cfg.AuxiliaryCoolant do
+                    if cfg.AuxiliaryCoolant[idx] then
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 auxiliary coolant for unit %d", idx)
+                    end
+                end
+
+                if val == "" then val = "no auxiliary coolant" end
             end
 
             if not skip then

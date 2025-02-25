@@ -185,8 +185,9 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local fac_c_6 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_7 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_8 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_9 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=fac_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7, fac_c_8}}
+    local fac_pane = MultiPane{parent=fac_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9}}
 
     TextBox{parent=fac_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -205,10 +206,18 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
             nu_error.hide(true)
             tmp_cfg.UnitCount = count
 
-            local confs = tool_ctl.cooling_elems
-            if count >= 2 then confs[2].line.show() else confs[2].line.hide(true) end
-            if count >= 3 then confs[3].line.show() else confs[3].line.hide(true) end
-            if count == 4 then confs[4].line.show() else confs[4].line.hide(true) end
+            local c_confs = tool_ctl.cooling_elems
+            local a_confs = tool_ctl.aux_cool_elems
+
+            for i = 2, 4 do
+                if count >= i then
+                    c_confs[i].line.show()
+                    a_confs[i].line.show()
+                else
+                    c_confs[i].line.hide(true)
+                    a_confs[i].line.hide(true)
+                end
+            end
 
             fac_pane.set_value(2)
         else nu_error.show() end
@@ -283,6 +292,14 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                         elem.no_tank.show()
                     end
                 else elem.div.hide(true) end
+            end
+
+            if not any_has_tank then
+                tmp_cfg.FacilityTankMode = 0
+                tmp_cfg.FacilityTankDefs = {}
+                tmp_cfg.FacilityTankList = {}
+                tmp_cfg.FacilityTankConns = {}
+                tmp_cfg.TankFluidTypes = {}
             end
 
             if any_has_tank then fac_pane.set_value(3) else main_pane.set_value(3) end
@@ -673,24 +690,47 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     PushButton{parent=fac_c_7,x=44,y=14,text="Next \x1a",callback=submit_tank_fluids,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
+    --#region Auxiliary Coolant
+
+    TextBox{parent=fac_c_8,height=5,text="Auxiliary water coolant can be enabled for units to provide extra water during turbine ramp-up. For water cooled reactors, this goes to the reactor. For sodium cooled reactors, water goes to the boiler."}
+
+    for i = 1, 4 do
+        local line = Div{parent=fac_c_8,x=1,y=7+i,height=1}
+
+        TextBox{parent=line,text="Unit "..i.." -",width=8}
+        local aux_cool = Checkbox{parent=line,x=10,y=1,label="Has Auxiliary Coolant",default=ini_cfg.AuxiliaryCoolant[i],box_fg_bg=cpair(colors.yellow,colors.black)}
+
+        tool_ctl.aux_cool_elems[i] = { line = line, enable = aux_cool }
+    end
+
+    local function submit_aux_cool()
+        tmp_cfg.AuxiliaryCoolant = {}
+
+        for i = 1, tmp_cfg.UnitCount do
+            tmp_cfg.AuxiliaryCoolant[i] = tool_ctl.aux_cool_elems[i].enable.get_value()
+        end
+
+        fac_pane.set_value(9)
+    end
+
+    PushButton{parent=fac_c_8,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_8,x=44,y=14,text="Next \x1a",callback=submit_aux_cool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
     --#region Extended Idling
 
-    TextBox{parent=fac_c_8,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
-    TextBox{parent=fac_c_8,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
+    TextBox{parent=fac_c_9,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
+    TextBox{parent=fac_c_9,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
 
-    local ext_idling = Checkbox{parent=fac_c_8,x=1,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
-
-    local function back_from_idling()
-        fac_pane.set_value(tri(tmp_cfg.FacilityTankMode == 0, 3, 7))
-    end
+    local ext_idling = Checkbox{parent=fac_c_9,x=1,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
 
     local function submit_idling()
         tmp_cfg.ExtChargeIdling = ext_idling.get_value()
         main_pane.set_value(3)
     end
 
-    PushButton{parent=fac_c_8,x=1,y=14,text="\x1b Back",callback=back_from_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=fac_c_8,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_9,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_9,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
