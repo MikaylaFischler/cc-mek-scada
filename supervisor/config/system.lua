@@ -629,6 +629,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
                 val = ""
 
+                local count = 0
+                for idx = 1, #tank_list do
+                    if tank_list[idx] > 0 then count = count + 1 end
+                end
+
+                local bullet = tri(count < 2, "", " \x07 ")
+
                 for idx = 1, #tank_list do
                     local prefix = "?"
                     local fluid = "water"
@@ -646,7 +653,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                             fluid = "sodium"
                         end
 
-                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 tank %s - %s", prefix, fluid)
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(bullet .. "tank %s - %s", prefix, fluid)
                     end
                 end
 
@@ -654,9 +661,16 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             elseif f[1] == "AuxiliaryCoolant" then
                 val = ""
 
+                local count = 0
+                for idx = 1, #cfg.AuxiliaryCoolant do
+                    if cfg.AuxiliaryCoolant[idx] then count = count + 1 end
+                end
+
+                local bullet = tri(count < 2, "", " \x07 ")
+
                 for idx = 1, #cfg.AuxiliaryCoolant do
                     if cfg.AuxiliaryCoolant[idx] then
-                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 auxiliary coolant for unit %d", idx)
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(bullet .. "unit %d", idx)
                     end
                 end
 
@@ -669,7 +683,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
                 alternate = not alternate
 
-                if string.len(val) > val_max_w then
+                if (string.len(val) > val_max_w) or string.find(val, "\n") then
                     local lines = util.strwrap(val, inner_width)
                     height = #lines + 1
                 end
