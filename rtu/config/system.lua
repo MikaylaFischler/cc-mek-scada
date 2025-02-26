@@ -646,7 +646,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
 
-            if string.len(val) > val_max_w then
+            if (string.len(val) > val_max_w) or string.find(val, "\n") then
                 local lines = util.strwrap(val, inner_width)
                 height = #lines + 1
             end

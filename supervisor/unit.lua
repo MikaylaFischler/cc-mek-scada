@@ -66,7 +66,8 @@ local unit = {}
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
 ---@param ext_idle boolean extended idling mode
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
+---@param aux_coolant boolean if this unit has auxiliary coolant
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
 
@@ -79,6 +80,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         plc_i = nil,    ---@type plc_session
         num_boilers = num_boilers,
         num_turbines = num_turbines,
+        aux_coolant = aux_coolant,
         types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
         -- rtus
         rtu_list = {},  ---@type unit_session[][]
@@ -92,7 +94,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         io_ctl = nil,   ---@type rs_controller
 ---@diagnostic disable-next-line: missing-fields
         valves = {},    ---@type unit_valves
-        emcool_opened = false,
+        em_cool_opened = false,
+        aux_cool_opened = false,
         -- auto control
         auto_engaged = false,
         auto_idle = false,
@@ -111,6 +114,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         damage_est_last = 0,
         waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
+        enable_aux_cool = false,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -373,6 +377,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
     local waste_po  = _make_valve_iface(IO.WASTE_POPL)
     local waste_sps = _make_valve_iface(IO.WASTE_AM)
     local emer_cool = _make_valve_iface(IO.U_EMER_COOL)
+    local aux_cool  = _make_valve_iface(IO.U_AUX_COOL)
 
     ---@class unit_valves
     self.valves = {
@@ -380,7 +385,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         waste_sna = waste_sna,
         waste_po = waste_po,
         waste_sps = waste_sps,
-        emer_cool = emer_cool
+        emer_cool = emer_cool,
+        aux_cool = aux_cool
     }
 
     -- route reactor waste for a given waste product
@@ -606,7 +612,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         if #self.redstone > 0 then
             logic.handle_redstone(self)
         elseif not self.plc_cache.rps_trip then
-            self.emcool_opened = false
+            self.em_cool_opened = false
         end
     end
 
@@ -724,7 +730,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
     -- queue a command to clear timeout/auto-scram if set
     function public.auto_cond_rps_reset()
-        if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.emcool_opened) then
+        if self.plc_s ~= nil and self.plc_i ~= nil and (not self.auto_was_alarmed) and (not self.em_cool_opened) then
             local rps = self.plc_i.get_rps()
             if rps.timeout or rps.automatic then
                 self.plc_i.auto_lock(true)  -- if it timed out/restarted, auto lock was lost, so re-lock it
@@ -840,6 +846,12 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
         return false
     end
 
+    -- check the active state of the reactor (if connected)
+    ---@nodiscard
+    function public.is_reactor_enabled()
+        if self.plc_i ~= nil then return self.plc_i.get_status().status else return false end
+    end
+
     -- check if the reactor is connected, is stopped, the RPS is not tripped, and no alarms are active
     ---@nodiscard
     function public.is_safe_idle()
@@ -859,7 +871,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
 
     -- check if emergency coolant activation has been tripped
     ---@nodiscard
-    function public.is_emer_cool_tripped() return self.emcool_opened end
+    function public.is_emer_cool_tripped() return self.em_cool_opened end
 
     -- get build properties of machines
     --
@@ -1053,7 +1065,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle)
             v.waste_sna.check(),
             v.waste_po.check(),
             v.waste_sps.check(),
-            v.emer_cool.check()
+            v.emer_cool.check(),
+            v.aux_cool.check()
         }
     end
 

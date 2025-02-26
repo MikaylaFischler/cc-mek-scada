@@ -234,6 +234,23 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
             if pkt.type == CRDN_TYPE.INITIAL_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
+            elseif pkt.type == CRDN_TYPE.PROCESS_READY then
+                if pkt.length == 5 then
+                    -- coordinator has sent all initial process data, power-on recovery is now possible
+
+                    ---@type start_auto_config
+                    local config = {
+                        mode = pkt.data[1],
+                        burn_target = pkt.data[2],
+                        charge_target = pkt.data[3],
+                        gen_target = pkt.data[4],
+                        limits = pkt.data[5]
+                    }
+
+                    facility.boot_recovery_start(config)
+                else
+                    log.debug(log_tag .. "CRDN process ready packet length mismatch")
+                end
             elseif pkt.type == CRDN_TYPE.FAC_BUILDS then
                 -- acknowledgement to coordinator receiving builds
                 self.acks.fac_builds = true
@@ -243,8 +260,11 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                     if cmd == FAC_COMMAND.SCRAM_ALL then
                         facility.scram_all()
+                        facility.cancel_recovery()
                         _send(CRDN_TYPE.FAC_CMD, { cmd, true })
                     elseif cmd == FAC_COMMAND.STOP then
+                        facility.cancel_recovery()
+
                         local was_active = facility.auto_is_active()
 
                         if was_active then
@@ -253,15 +273,16 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
 
                         _send(CRDN_TYPE.FAC_CMD, { cmd, was_active })
                     elseif cmd == FAC_COMMAND.START then
+                        facility.cancel_recovery()
+
                         if pkt.length == 6 then
-                            ---@type sys_auto_config
----@diagnostic disable-next-line: missing-fields
+                            ---@class start_auto_config
                             local config = {
-                                mode = pkt.data[2],
-                                burn_target = pkt.data[3],
-                                charge_target = pkt.data[4],
-                                gen_target = pkt.data[5],
-                                limits = pkt.data[6]
+                                mode = pkt.data[2],          ---@type PROCESS
+                                burn_target = pkt.data[3],   ---@type number
+                                charge_target = pkt.data[4], ---@type number
+                                gen_target = pkt.data[5],    ---@type number
+                                limits = pkt.data[6]         ---@type number[]
                             }
 
                             _send(CRDN_TYPE.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })
@@ -313,8 +334,11 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         local manual = facility.get_group(uid) == AUTO_GROUP.MANUAL
 
                         if cmd == UNIT_COMMAND.SCRAM then
+                            facility.cancel_recovery()
                             out_queue.push_data(SV_Q_DATA.SCRAM, data)
                         elseif cmd == UNIT_COMMAND.START then
+                            facility.cancel_recovery()
+
                             if manual then
                                 out_queue.push_data(SV_Q_DATA.START, data)
                             else
@@ -324,6 +348,8 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                         elseif cmd == UNIT_COMMAND.RESET_RPS then
                             out_queue.push_data(SV_Q_DATA.RESET_RPS, data)
                         elseif cmd == UNIT_COMMAND.SET_BURN then
+                            facility.cancel_recovery()
+
                             if pkt.length == 3 then
                                 if manual then
                                     out_queue.push_data(SV_Q_DATA.SET_BURN, data)
@@ -354,6 +380,8 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                                 log.debug(log_tag .. "CRDN unit command reset alarm missing alarm id")
                             end
                         elseif cmd == UNIT_COMMAND.SET_GROUP then
+                            facility.cancel_recovery()
+
                             if (pkt.length == 3) and (type(pkt.data[3]) == "number") and
                                (pkt.data[3] >= AUTO_GROUP.MANUAL) and (pkt.data[3] <= AUTO_GROUP.BACKUP) then
                                 facility.set_group(unit.get_id(), pkt.data[3])

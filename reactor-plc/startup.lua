@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.8.14"
+local R_PLC_VERSION = "v1.8.19"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -169,12 +169,12 @@ local function main()
     -- PLC init<br>
     --- EVENT_CONSUMER: this function consumes events
     local function init()
-        -- just booting up, no fission allowed (neutrons stay put thanks)
-        if (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
+        -- scram on boot if networked, otherwise leave the reactor be
+        if __shared_memory.networked and (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
             smem_dev.reactor.scram()
         end
 
-        -- front panel time!
+        -- setup front panel
         if not renderer.ui_ready() then
             local message
             plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
