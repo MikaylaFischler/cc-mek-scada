@@ -35,6 +35,7 @@ local FLOW_STABILITY_DELAY_MS = const.FLOW_STABILITY_DELAY_MS
 
 local ANNUNC_LIMS = const.ANNUNCIATOR_LIMITS
 local ALARM_LIMS = const.ALARM_LIMITS
+local RS_THRESH = const.RS_THRESHOLDS
 
 ---@class unit_logic_extension
 local logic = {}
@@ -54,6 +55,10 @@ function logic.update_annunciator(self)
     -- variables for boiler, or reactor if no boilers used
     local total_boil_rate = 0.0
 
+    -- auxiliary coolant control
+    local need_aux_cool = false
+    local dis_aux_cool = true
+
     --#region Reactor
 
     annunc.AutoControl = self.auto_engaged
@@ -67,11 +72,10 @@ function logic.update_annunciator(self)
         local plc_db = self.plc_i.get_db()
 
         -- update ready state
-        --  - can't be tripped
-        --  - must have received status at least once
-        --  - must have received struct at least once
-        plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and
-                    (next(self.plc_i.get_status()) ~= nil) and (next(self.plc_i.get_struct()) ~= nil)
+        --  - must be connected to a formed reactor
+        --  - can't have a tripped RPS
+        --  - must have received status, struct, and RPS status at least once
+        plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and self.plc_i.check_received_all_data()
 
         -- update auto control limit
         if (plc_db.mek_struct.max_burn > 0) and ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
@@ -149,6 +153,9 @@ function logic.update_annunciator(self)
         -- if no boilers, use reactor heating rate to check for boil rate mismatch
         if num_boilers == 0 then
             total_boil_rate = plc_db.mek_status.heating_rate
+
+            need_aux_cool = plc_db.mek_status.ccool_fill <= RS_THRESH.AUX_COOL_ENABLE
+            dis_aux_cool = plc_db.mek_status.ccool_fill >= RS_THRESH.AUX_COOL_DISABLE
         end
     else
         self.plc_cache.ok = false
@@ -216,6 +223,9 @@ function logic.update_annunciator(self)
 
             annunc.BoilerOnline[idx] = true
             annunc.WaterLevelLow[idx] = boiler.tanks.water_fill < ANNUNC_LIMS.WaterLevelLow
+
+            need_aux_cool = need_aux_cool or (boiler.tanks.water_fill <= RS_THRESH.AUX_COOL_ENABLE)
+            dis_aux_cool = dis_aux_cool and (boiler.tanks.water_fill >= RS_THRESH.AUX_COOL_DISABLE)
         end
 
         -- check heating rate low
@@ -342,11 +352,11 @@ function logic.update_annunciator(self)
             end
 
             if rotation_stable then
-                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached rotational stability (", rotation, ")"))
+                log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reached rotational stability (", rotation, ")"))
             end
 
             if flow_stable then
-                log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reached flow stability (", turbine.state.flow_rate, " mB/t)"))
+                log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reached flow stability (", turbine.state.flow_rate, " mB/t)"))
             end
 
             turbines_stable = turbines_stable and (rotation_stable or flow_stable)
@@ -358,7 +368,7 @@ function logic.update_annunciator(self)
 
             turbines_stable = false
 
-            log.debug(util.c("UNIT ", self.r_id, ": turbine ", idx, " reset stability (new rate ", turbine.state.steam_input_rate, " != ", last.input_rate," mB/t)"))
+            log.debug(util.c("UNIT ", self.r_id, " turbine ", idx, " reset stability (new rate ", turbine.state.steam_input_rate, " != ", last.input_rate," mB/t)"))
         end
 
         last.input_rate = turbine.state.steam_input_rate
@@ -407,6 +417,12 @@ function logic.update_annunciator(self)
 
     -- update auto control ready state for this unit
     self.db.control.ready = plc_ready and boilers_ready and turbines_ready
+
+    -- update auxiliary coolant command
+    if plc_ready then
+        self.enable_aux_cool = self.plc_i.get_db().mek_status.status and
+                              (self.enable_aux_cool or need_aux_cool) and not (dis_aux_cool and self.turbine_flow_stable)
+    else self.enable_aux_cool = false end
 end
 
 -- update an alarm state given conditions
@@ -729,7 +745,7 @@ function logic.update_status_text(self)
         self.status_text = { "RCS TRANSIENT", "check coolant system" }
     -- elseif is_active(self.alarms.RPSTransient) then
         -- RPS status handled when checking reactor status
-    elseif self.emcool_opened then
+    elseif self.em_cool_opened then
         self.status_text = { "EMERGENCY COOLANT OPENED", "reset RPS to close valve" }
     -- connection dependent states
     elseif self.plc_i ~= nil then
@@ -887,7 +903,7 @@ function logic.handle_redstone(self)
         (annunc.CoolantLevelLow or (boiler_water_low and rps.ex_hcool)) and
         is_active(self.alarms.ReactorOverTemp))
 
-    if enable_emer_cool and not self.emcool_opened then
+    if enable_emer_cool and not self.em_cool_opened then
         log.debug(util.c(">> Emergency Coolant Enable Detail Report (Unit ", self.r_id, ") <<"))
         log.debug(util.c("| CoolantLevelLow[", annunc.CoolantLevelLow, "] CoolantLevelLowLow[", rps.low_cool, "] ExcessHeatedCoolant[", rps.ex_hcool, "]"))
         log.debug(util.c("| ReactorOverTemp[", AISTATE_NAMES[self.alarms.ReactorOverTemp.state], "]"))
@@ -911,13 +927,13 @@ function logic.handle_redstone(self)
             end
         end
 
-        if annunc.EmergencyCoolant > 1 and self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and self.em_cool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve closed"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to not dump steam"))
         end
 
-        self.emcool_opened = false
-    elseif enable_emer_cool or self.emcool_opened then
+        self.em_cool_opened = false
+    elseif enable_emer_cool or self.em_cool_opened then
         -- set turbines to dump excess steam
         for i = 1, #self.turbines do
             local session = self.turbines[i]
@@ -938,16 +954,33 @@ function logic.handle_redstone(self)
             end
         end
 
-        if annunc.EmergencyCoolant > 1 and not self.emcool_opened then
+        if annunc.EmergencyCoolant > 1 and not self.em_cool_opened then
             log.info(util.c("UNIT ", self.r_id, " emergency coolant valve opened"))
             log.info(util.c("UNIT ", self.r_id, " turbines set to dump excess steam"))
         end
 
-        self.emcool_opened = true
+        self.em_cool_opened = true
     end
 
     -- set valve state always
-    if self.emcool_opened then self.valves.emer_cool.open() else self.valves.emer_cool.close() end
+    if self.em_cool_opened then self.valves.emer_cool.open() else self.valves.emer_cool.close() end
+
+    -----------------------
+    -- Auxiliary Coolant --
+    -----------------------
+
+    if self.aux_coolant then
+        if self.enable_aux_cool and (not self.aux_cool_opened) then
+            log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve opened"))
+            self.aux_cool_opened = true
+        elseif (not self.enable_aux_cool) and self.aux_cool_opened then
+            log.info(util.c("UNIT ", self.r_id, " auxiliary coolant valve closed"))
+            self.aux_cool_opened = false
+        end
+
+        -- set valve state always
+        if self.aux_cool_opened then self.valves.aux_cool.open() else self.valves.aux_cool.close() end
+    end
 end
 
 return logic

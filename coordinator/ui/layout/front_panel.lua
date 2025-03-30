@@ -39,6 +39,8 @@ local led_grn = style.led_grn
 local function init(panel, num_units)
     local ps = iocontrol.get_db().fp.ps
 
+    local term_w, term_h = term.getSize()
+
     TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,fg_bg=style.fp_theme.header}
 
     local page_div = Div{parent=panel,x=1,y=3}
@@ -61,7 +63,7 @@ local function init(panel, num_units)
     local modem = LED{parent=system,label="MODEM",colors=led_grn}
 
     if not style.colorblind then
-        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.fp_ind_bkg}}
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.fp_ind_bkg}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(ps, "link_state", network.update)
     else
@@ -131,9 +133,9 @@ local function init(panel, num_units)
     -- about footer
     --
 
-    local about   = Div{parent=main_page,width=15,height=3,x=1,y=16,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
+    local about   = Div{parent=main_page,width=15,height=2,y=term_h-3,fg_bg=style.fp.disabled_fg}
+    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
 
     fw_v.register(ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -145,7 +147,7 @@ local function init(panel, num_units)
     -- API page
 
     local api_page = Div{parent=page_div,x=1,y=1,hidden=true}
-    local api_list = ListBox{parent=api_page,x=1,y=1,height=17,width=51,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local api_list = ListBox{parent=api_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=api_list,height=1} -- padding
 
     -- assemble page panes

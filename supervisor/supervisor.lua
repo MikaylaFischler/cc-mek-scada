@@ -19,9 +19,23 @@ local config = {}
 
 supervisor.config = config
 
--- load the supervisor configuration
+-- control state from last unexpected shutdown
+supervisor.boot_state = nil ---@type sv_boot_state|nil
+
+-- load the supervisor configuration and startup state
 function supervisor.load_config()
     if not settings.load("/supervisor.settings") then return false end
+
+    ---@class sv_boot_state
+    local boot_state = {
+        mode = settings.get("LastProcessState"),     ---@type PROCESS
+        unit_states = settings.get("LastUnitStates") ---@type boolean[]
+    }
+
+    -- only record boot state if likely valid
+    if type(boot_state.mode) == "number" and type(boot_state.unit_states) == "table" then
+        supervisor.boot_state = boot_state
+    end
 
     config.UnitCount = settings.get("UnitCount")
     config.CoolingConfig = settings.get("CoolingConfig")
@@ -30,6 +44,7 @@ function supervisor.load_config()
     config.FacilityTankList = settings.get("FacilityTankList")
     config.FacilityTankConns = settings.get("FacilityTankConns")
     config.TankFluidTypes = settings.get("TankFluidTypes")
+    config.AuxiliaryCoolant = settings.get("AuxiliaryCoolant")
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
 
     config.SVR_Channel = settings.get("SVR_Channel")
@@ -64,6 +79,7 @@ function supervisor.load_config()
     cfv.assert_type_table(config.FacilityTankList)
     cfv.assert_type_table(config.FacilityTankConns)
     cfv.assert_type_table(config.TankFluidTypes)
+    cfv.assert_type_table(config.AuxiliaryCoolant)
     cfv.assert_range(config.FacilityTankMode, 0, 8)
 
     cfv.assert_type_bool(config.ExtChargeIdling)
@@ -246,20 +262,32 @@ function supervisor.comms(_version, nic, fp_ok, facility)
                             -- PLC linking request
                             if packet.length == 4 and type(packet.data[4]) == "number" then
                                 local reactor_id = packet.data[4]
-                                local plc_id = svsessions.establish_plc_session(src_addr, i_seq_num, reactor_id, firmware_v)
 
-                                if plc_id == false then
-                                    -- reactor already has a PLC assigned
-                                    if last_ack ~= ESTABLISH_ACK.COLLISION then
-                                        log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
+                                -- check ID validity
+                                if reactor_id < 1 or reactor_id > config.UnitCount then
+                                    -- reactor index out of range
+                                    if last_ack ~= ESTABLISH_ACK.DENY then
+                                        log.warning(util.c("PLC_ESTABLISH: denied assignment ", reactor_id, " outside of configured unit count ", config.UnitCount))
                                     end
 
-                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.COLLISION)
+                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.DENY)
                                 else
-                                    -- got an ID; assigned to a reactor successfully
-                                    println(util.c("PLC (", firmware_v, ") [@", src_addr, "] \xbb reactor ", reactor_id, " connected"))
-                                    log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [@", src_addr, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id))
-                                    _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                                    -- try to establish the session
+                                    local plc_id = svsessions.establish_plc_session(src_addr, i_seq_num, reactor_id, firmware_v)
+
+                                    if plc_id == false then
+                                        -- reactor already has a PLC assigned
+                                        if last_ack ~= ESTABLISH_ACK.COLLISION then
+                                            log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
+                                        end
+
+                                        _send_establish(packet.scada_frame, ESTABLISH_ACK.COLLISION)
+                                    else
+                                        -- got an ID; assigned to a reactor successfully
+                                        println(util.c("PLC (", firmware_v, ") [@", src_addr, "] \xbb reactor ", reactor_id, " connected"))
+                                        log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [@", src_addr, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id))
+                                        _send_establish(packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                                    end
                                 end
                             else
                                 log.debug("PLC_ESTABLISH: packet length mismatch/bad parameter type")

@@ -10,6 +10,7 @@ local log        = require("scada-common.log")
 local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
 local tcd        = require("scada-common.tcd")
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
@@ -22,7 +23,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.6.1"
+local SUPERVISOR_VERSION = "v1.6.8"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -72,6 +73,21 @@ if config.FacilityTankMode > 0 then
         cfv.assert_type_int(def)
         cfv.assert_range(def, 0, 2)
         assert(cfv.valid(), "startup> invalid facility tank definition for reactor unit " .. i)
+
+        local entry = config.FacilityTankList[i]
+        cfv.assert_type_int(entry)
+        cfv.assert_range(entry, 0, 2)
+        assert(cfv.valid(), "startup> invalid facility tank list entry for tank " .. i)
+
+        local conn = config.FacilityTankConns[i]
+        cfv.assert_type_int(conn)
+        cfv.assert_range(conn, 0, #config.FacilityTankDefs)
+        assert(cfv.valid(), "startup> invalid facility tank connection for reactor unit " .. i)
+
+        local type = config.TankFluidTypes[i]
+        cfv.assert_type_int(type)
+        cfv.assert_range(type, 0, types.COOLANT_TYPE.SODIUM)
+        assert(cfv.valid(), "startup> invalid tank fluid type for tank " .. i)
     end
 end
 
@@ -146,6 +162,9 @@ local function main()
 
     -- halve the rate heartbeat LED flash
     local heartbeat_toggle = true
+
+    -- init startup recovery
+    sv_facility.boot_recovery_init(supervisor.boot_state)
 
     -- event loop
     while true do
@@ -236,6 +255,8 @@ local function main()
             break
         end
     end
+
+    sv_facility.clear_boot_state()
 
     renderer.close_ui()
 

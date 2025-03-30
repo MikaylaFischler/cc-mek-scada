@@ -25,10 +25,9 @@ local ALIGN = core.ALIGN
 ---@param root Container parent
 ---@param x integer top left x
 ---@param y integer top left y
----@param data imatrix_session_db matrix data
 ---@param ps psil ps interface
 ---@param id number? matrix ID
-local function new_view(root, x, y, data, ps, id)
+local function new_view(root, x, y, ps, id)
     local label_fg = style.theme.label_fg
     local text_fg = style.theme.text_fg
     local lu_col = style.lu_colors
@@ -94,6 +93,7 @@ local function new_view(root, x, y, data, ps, id)
     TextBox{parent=rect,text="FILL I/O",x=2,y=20,width=8,fg_bg=label_fg}
 
     local function calc_saturation(val)
+        local data = db.facility.induction_data_tbl[id or 1]
         if (type(data.build) == "table") and (type(data.build.transfer_cap) == "number") and (data.build.transfer_cap > 0) then
             return val / data.build.transfer_cap
         else return 0 end
@@ -105,46 +105,7 @@ local function new_view(root, x, y, data, ps, id)
 
     local eta = TextBox{parent=rect,x=11,y=20,width=20,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=style.theme.field_box}
 
-    eta.register(ps, "eta_ms", function (eta_ms)
-        local str, pre = "", util.trinary(eta_ms >= 0, "Full in ", "Empty in ")
-
-        local seconds = math.abs(eta_ms) / 1000
-        local minutes = seconds / 60
-        local hours   = minutes / 60
-        local days    = hours / 24
-
-        if math.abs(eta_ms) < 1000 or (eta_ms ~= eta_ms) then
-            -- really small or NaN
-            str = "No ETA"
-        elseif days < 1000 then
-            days    = math.floor(days)
-            hours   = math.floor(hours % 24)
-            minutes = math.floor(minutes % 60)
-            seconds = math.floor(seconds % 60)
-
-            if days > 0 then
-                str = days .. "d"
-            elseif hours > 0 then
-                str = hours .. "h " .. minutes .. "m"
-            elseif minutes > 0 then
-                str = minutes .. "m " .. seconds .. "s"
-            elseif seconds > 0 then
-                str = seconds .. "s"
-            end
-
-            str = pre .. str
-        else
-            local years = math.floor(days / 365.25)
-
-            if years <= 99999999 then
-                str = pre .. years .. "y"
-            else
-                str = pre .. "eras"
-            end
-        end
-
-        eta.set_value(str)
-    end)
+    eta.register(ps, "eta_string", eta.set_value)
 end
 
 return new_view

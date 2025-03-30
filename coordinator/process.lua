@@ -139,6 +139,11 @@ function process.init(iocontrol, coord_comms)
 
         log.info("PROCESS: loaded priority groups settings")
     end
+
+    -- report to the supervisor all initial configuration data has been sent
+    -- startup resume can occur if needed
+    local p = ctl_proc
+    pctl.comms.send_ready(p.mode, p.burn_target, p.charge_target, p.gen_target, p.limits)
 end
 
 -- create a handle to process control for usage of commands that get acknowledgements

@@ -40,6 +40,8 @@ local function init(panel)
 
     local disabled_fg = style.fp.disabled_fg
 
+    local term_w, term_h = term.getSize()
+
     local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 
@@ -60,7 +62,7 @@ local function init(panel)
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
 
     if not style.colorblind then
-        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.ind_bkg}}
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.ind_bkg}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(databus.ps, "link_state", network.update)
     else
@@ -121,7 +123,7 @@ local function init(panel)
     -- status & controls
     --
 
-    local status = Div{parent=panel,width=19,height=18,x=17,y=3}
+    local status = Div{parent=panel,width=term_w-32,height=18,x=17,y=3}
 
     local active = LED{parent=status,x=2,width=12,label="RCT ACTIVE",colors=ind_grn}
 
@@ -131,14 +133,15 @@ local function init(panel)
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
-    local status_trip_rct = Rectangle{parent=status,width=20,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
-    local status_trip = Div{parent=status_trip_rct,width=18,height=1,fg_bg=s_hi_box}
+    local status_trip_rct = Rectangle{parent=status,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local status_trip = Div{parent=status_trip_rct,height=1,fg_bg=s_hi_box}
     local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=ind_red,flash=true,period=flasher.PERIOD.BLINK_250_MS}
 
-    local controls_rct = Rectangle{parent=status,width=17,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
-    local controls = Div{parent=controls_rct,width=15,height=1,fg_bg=s_hi_box}
-    PushButton{parent=controls,x=1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
-    PushButton{parent=controls,x=9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
+    local controls_rct = Rectangle{parent=status,width=status.get_width()-2,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local controls = Div{parent=controls_rct,width=controls_rct.get_width()-2,height=1,fg_bg=s_hi_box}
+    local button_padding = math.floor((controls.get_width() - 14) / 3)
+    PushButton{parent=controls,x=button_padding+1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
+    PushButton{parent=controls,x=(2*button_padding)+9,y=1,min_width=7,text="RESET",callback=databus.rps_reset,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=cpair(colors.black,colors.yellow_off)}
 
     active.register(databus.ps, "reactor_active", active.update)
     scram.register(databus.ps, "rps_scram", scram.update)
@@ -147,9 +150,9 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
+    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
+    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -158,7 +161,7 @@ local function init(panel)
     -- rps list
     --
 
-    local rps = Rectangle{parent=panel,width=16,height=16,x=36,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
+    local rps = Rectangle{parent=panel,width=16,height=16,x=term_w-15,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=ind_red}
     local rps_auto = LED{parent=rps,label="AUTOMATIC",colors=ind_red}
     local rps_tmo  = LED{parent=rps,label="TIMEOUT",colors=ind_red}

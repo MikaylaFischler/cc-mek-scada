@@ -379,6 +379,18 @@ function coordinator.comms(version, nic, sv_watchdog)
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
     end
 
+    -- send the resume ready state to the supervisor
+    ---@param mode PROCESS process control mode
+    ---@param burn_target number burn rate target
+    ---@param charge_target number charge level target
+    ---@param gen_target number generation rate target
+    ---@param limits number[] unit burn rate limits
+    function public.send_ready(mode, burn_target, charge_target, gen_target, limits)
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, {
+            mode, burn_target, charge_target, gen_target, limits
+        })
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)

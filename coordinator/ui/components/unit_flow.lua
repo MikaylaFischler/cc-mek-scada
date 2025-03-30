@@ -59,7 +59,7 @@ local function make(parent, x, y, wide, unit_id)
     local tank_conns = facility.tank_conns
     local tank_types = facility.tank_fluid_types
 
-    local v_start = 1 + ((unit.unit_id - 1) * 5)
+    local v_start = 1 + ((unit.unit_id - 1) * 6)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
     local v_fields = { "pu", "po", "pl", "am" }
     local v_names = {
@@ -94,11 +94,21 @@ local function make(parent, x, y, wide, unit_id)
     if unit.num_boilers > 0 then
         table.insert(rc_pipes, pipe(0, 1, _wide(28, 19), 1, colors.lightBlue, true))
         table.insert(rc_pipes, pipe(0, 3, _wide(28, 19), 3, colors.orange, true))
-        table.insert(rc_pipes, pipe(_wide(46 ,39), 1, _wide(72,58), 1, colors.blue, true))
-        table.insert(rc_pipes, pipe(_wide(46,39), 3, _wide(72,58), 3, colors.white, true))
+        table.insert(rc_pipes, pipe(_wide(46, 39), 1, _wide(72, 58), 1, colors.blue, true))
+        table.insert(rc_pipes, pipe(_wide(46, 39), 3, _wide(72, 58), 3, colors.white, true))
+
+        if unit.aux_coolant then
+            local em_water = facility.tank_fluid_types[facility.tank_conns[unit_id]] == COOLANT_TYPE.WATER
+            local offset = util.trinary(unit.has_tank and em_water, 3, 0)
+            table.insert(rc_pipes, pipe(_wide(51, 41) + offset, 0, _wide(51, 41) + offset, 0, colors.blue, true))
+        end
     else
-        table.insert(rc_pipes, pipe(0, 1, _wide(72,58), 1, colors.blue, true))
-        table.insert(rc_pipes, pipe(0, 3, _wide(72,58), 3, colors.white, true))
+        table.insert(rc_pipes, pipe(0, 1, _wide(72, 58), 1, colors.blue, true))
+        table.insert(rc_pipes, pipe(0, 3, _wide(72, 58), 3, colors.white, true))
+
+        if unit.aux_coolant then
+            table.insert(rc_pipes, pipe(8, 0, 8, 0, colors.blue, true))
+        end
     end
 
     if unit.has_tank then
@@ -222,17 +232,22 @@ local function make(parent, x, y, wide, unit_id)
     _machine(_wide(116, 94), 6, "RES\xcdDUO USADO \x1b")
 
     TextBox{parent=waste,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=7,thin=true,fg_bg=style.theme.highlight_box_bright}
+
+    local sna_po  = Rectangle{parent=waste,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=8,thin=true,fg_bg=style.theme.highlight_box_bright}
     local sna_act = IndicatorLight{parent=sna_po,label="ATIVO",colors=ind_grn}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c_d,label="CNT",unit="",format="%2d",value=0,width=7}
-    local sna_pk = DataIndicator{parent=sna_po,y=3,lu_colors=lu_c_d,label="PICO",unit="mB/t",format="%7.2f",value=0,width=17}
-    local sna_max = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="MAX",unit="mB/t",format="%8.2f",value=0,width=17}
-    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="IN",unit="mB/t",format="%9.2f",value=0,width=17}
+    TextBox{parent=sna_po,y=3,text="PICO\x1a",width=5,fg_bg=cpair(style.theme.label_dark,colors._INHERIT)}
+    TextBox{parent=sna_po,text="MAX \x1a",width=5,fg_bg=cpair(style.theme.label_dark,colors._INHERIT)}
+    local sna_pk = DataIndicator{parent=sna_po,x=6,y=3,lu_colors=lu_c_d,label="",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_max_o = DataIndicator{parent=sna_po,x=6,lu_colors=lu_c_d,label="",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_max_i = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="\x1aMAX",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="\x1aIN",unit="mB/t",format="%8.2f",value=0,width=17}
 
     sna_act.register(unit.unit_ps, "po_rate", function (r) sna_act.update(r > 0) end)
     sna_cnt.register(unit.unit_ps, "sna_count", sna_cnt.update)
     sna_pk.register(unit.unit_ps, "sna_peak_rate", sna_pk.update)
-    sna_max.register(unit.unit_ps, "sna_max_rate", sna_max.update)
+    sna_max_o.register(unit.unit_ps, "sna_max_rate", sna_max_o.update)
+    sna_max_i.register(unit.unit_ps, "sna_max_rate", function (r) sna_max_i.update(r * 10) end)
     sna_in.register(unit.unit_ps, "sna_in", sna_in.update)
 
     return root

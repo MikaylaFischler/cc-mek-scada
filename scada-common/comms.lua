@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.3"
-comms.api_version = "0.0.8"
+comms.version = "3.0.5"
+comms.api_version = "0.0.9"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -60,17 +60,19 @@ local MGMT_TYPE = {
 ---@enum CRDN_TYPE
 local CRDN_TYPE = {
     INITIAL_BUILDS = 0,  -- initial, complete builds packet to the coordinator
-    FAC_BUILDS = 1,      -- facility RTU builds
-    FAC_STATUS = 2,      -- state of facility and facility devices
-    FAC_CMD = 3,         -- faility command
-    UNIT_BUILDS = 4,     -- build of each reactor unit (reactor + RTUs)
-    UNIT_STATUSES = 5,   -- state of each of the reactor units
-    UNIT_CMD = 6,        -- command a reactor unit
-    API_GET_FAC = 7,     -- API: get all the facility data
-    API_GET_UNIT = 8,    -- API: get reactor unit data
-    API_GET_CTRL = 9,    -- API: get data for the control app
-    API_GET_PROC = 10,   -- API: get data for the process app
-    API_GET_WASTE = 11   -- API: get data for the waste app
+    PROCESS_READY = 1,   -- process init is complete + last set of info for supervisor startup recovery
+    FAC_BUILDS = 2,      -- facility RTU builds
+    FAC_STATUS = 3,      -- state of facility and facility devices
+    FAC_CMD = 4,         -- faility command
+    UNIT_BUILDS = 5,     -- build of each reactor unit (reactor + RTUs)
+    UNIT_STATUSES = 6,   -- state of each of the reactor units
+    UNIT_CMD = 7,        -- command a reactor unit
+    API_GET_FAC = 8,     -- API: get the facility general data
+    API_GET_FAC_DTL = 9, -- API: get (detailed) data for the facility app
+    API_GET_UNIT = 10,   -- API: get reactor unit data
+    API_GET_CTRL = 11,   -- API: get data for the control app
+    API_GET_PROC = 12,   -- API: get data for the process app
+    API_GET_WASTE = 13   -- API: get data for the waste app
 }
 
 ---@enum ESTABLISH_ACK

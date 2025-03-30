@@ -78,6 +78,7 @@ local IO_PORT = {
     -- unit outputs
     U_ALARM       = 25, -- active high, unit alarm
     U_EMER_COOL   = 26, -- active low, emergency coolant control
+    U_AUX_COOL    = 30, -- active low, auxiliary coolant control
 
     -- analog outputs --
 
@@ -90,8 +91,8 @@ rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
 
-rsio.NUM_PORTS = 29
-rsio.NUM_DIG_PORTS = 28
+rsio.NUM_PORTS = 30
+rsio.NUM_DIG_PORTS = 29
 rsio.NUM_ANA_PORTS = 1
 
 -- self checks
@@ -149,6 +150,7 @@ local MODES = {
     [IO.R_PLC_TIMEOUT] = IO_MODE.DIGITAL_OUT,
     [IO.U_ALARM]       = IO_MODE.DIGITAL_OUT,
     [IO.U_EMER_COOL]   = IO_MODE.DIGITAL_OUT,
+    [IO.U_AUX_COOL]    = IO_MODE.DIGITAL_OUT,
     [IO.F_MATRIX_CHG]  = IO_MODE.ANALOG_OUT
 }
 
@@ -208,10 +210,11 @@ local RS_DIO_MAP = {
     [IO.R_PLC_TIMEOUT] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
     [IO.U_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    [IO.U_EMER_COOL]   = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
+    [IO.U_EMER_COOL]   = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.U_AUX_COOL]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
 }
 
-assert(rsio.NUM_DIG_PORTS == #RS_DIO_MAP, "RS_DIO_MAP length incorrect")
+assert(rsio.NUM_DIG_PORTS == util.table_len(RS_DIO_MAP), "RS_DIO_MAP length incorrect")
 
 -- get the I/O direction of a port
 ---@nodiscard

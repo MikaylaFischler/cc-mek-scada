@@ -45,6 +45,7 @@ local self = {
     fp_ok = false,
     config = nil,           ---@type svr_config
     facility = nil,         ---@type facility|nil
+    plc_ini_reset = {},
     -- lists of connected sessions
 ---@diagnostic disable: missing-fields
     sessions = {
@@ -391,6 +392,7 @@ function svsessions.init(nic, fp_ok, config, facility)
             conns.tanks[1] = true
         end
 
+        self.plc_ini_reset[i] = true
         self.dev_dbg.connected.units[i] = conns
     end
 end
@@ -486,7 +488,7 @@ function svsessions.establish_plc_session(source_addr, i_seq_num, for_reactor, v
 
         local id = self.next_ids.plc
 
-        plc_s.instance = plc.new_session(id, source_addr, i_seq_num, for_reactor, plc_s.in_queue, plc_s.out_queue, self.config.PLC_Timeout, self.fp_ok)
+        plc_s.instance = plc.new_session(id, source_addr, i_seq_num, for_reactor, plc_s.in_queue, plc_s.out_queue, self.config.PLC_Timeout, self.plc_ini_reset, self.fp_ok)
         table.insert(self.sessions.plc, plc_s)
 
         local units = self.facility.get_units()

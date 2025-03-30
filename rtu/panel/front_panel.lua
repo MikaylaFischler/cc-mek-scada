@@ -35,13 +35,15 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 local function init(panel, units)
     local disabled_fg = style.fp.disabled_fg
 
+    local term_w, term_h = term.getSize()
+
     TextBox{parent=panel,y=1,text="RTU GATEWAY",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
     --
     -- system indicators
     --
 
-    local system = Div{parent=panel,width=14,height=18,x=2,y=3}
+    local system = Div{parent=panel,width=14,height=term_h-5,x=2,y=3}
 
     local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
@@ -53,7 +55,7 @@ local function init(panel, units)
     local modem = LED{parent=system,label="MODEM",colors=ind_grn}
 
     if not style.colorblind then
-        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.orange,colors.yellow,style.ind_bkg}}
+        local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.ind_bkg}}
         network.update(types.PANEL_LINK_STATE.DISCONNECTED)
         network.register(databus.ps, "link_state", network.update)
     else
@@ -100,17 +102,17 @@ local function init(panel, units)
     local comp_id = util.sprintf("(%d)", os.getComputerID())
     TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=disabled_fg}
 
-    TextBox{parent=system,x=1,y=14,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
-    local speaker_count = DataIndicator{parent=system,x=10,y=14,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
+    TextBox{parent=system,y=term_h-5,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
+    local speaker_count = DataIndicator{parent=system,x=10,y=term_h-5,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
     speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
 
     --
     -- about label
     --
 
-    local about   = Div{parent=panel,width=15,height=3,x=1,y=18,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,x=1,y=1,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,x=1,y=2,text="NT: v00.00.00"}
+    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
+    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
+    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
 
     fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
     comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
@@ -119,10 +121,10 @@ local function init(panel, units)
     -- unit status list
     --
 
-    local threads = Div{parent=panel,width=8,height=18,x=17,y=3}
+    local threads = Div{parent=panel,width=8,height=term_h-3,x=17,y=3}
 
-    -- display up to 16 units
-    local list_length = math.min(#units, 16)
+    -- display as many units as we can with 1 line of padding above and below
+    local list_length = math.min(#units, term_h - 3)
 
     -- show routine statuses
     for i = 1, list_length do
@@ -131,7 +133,7 @@ local function init(panel, units)
         rt_unit.register(databus.ps, "routine__unit_" .. i, rt_unit.update)
     end
 
-    local unit_hw_statuses = Div{parent=panel,height=18,x=25,y=3}
+    local unit_hw_statuses = Div{parent=panel,height=term_h-3,x=25,y=3}
 
     -- show hardware statuses
     for i = 1, list_length do
@@ -150,7 +152,7 @@ local function init(panel, units)
 
         -- assignment (unit # or facility)
         local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
-        TextBox{parent=unit_hw_statuses,y=i,x=19,text=for_unit,fg_bg=disabled_fg}
+        TextBox{parent=unit_hw_statuses,y=i,x=term_w-32,text=for_unit,fg_bg=disabled_fg}
     end
 end
 

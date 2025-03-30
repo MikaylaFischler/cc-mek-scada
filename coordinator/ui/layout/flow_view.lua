@@ -286,11 +286,40 @@ local function init(main)
 
             TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
 
-            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", i * 5),colors=style.ind_grn}
+            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", (i * 6) - 1),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
             open.register(units[i].unit_ps, "V_emc_state", open.update)
+        end
+    end
+
+    ------------------------------
+    -- auxiliary coolant valves --
+    ------------------------------
+
+    for i = 1, facility.num_units do
+        if units[i].aux_coolant then
+            local vx
+            local vy = 3 + y_ofs(i)
+
+            if #emcool_pipes == 0 then
+                vx = util.trinary(units[i].num_boilers == 0, 36, 79)
+            else
+                local em_water = tank_types[tank_conns[i]] == COOLANT_TYPE.WATER
+                vx = util.trinary(units[i].num_boilers == 0, 58, util.trinary(units[i].has_tank and em_water, 94, 91))
+            end
+
+            PipeNetwork{parent=main,x=vx-6,y=vy,pipes={pipe(0,1,9,0,colors.blue,true)},bg=style.theme.bg}
+
+            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
+            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_col.bkg),width=1}
+
+            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", i * 6),colors=style.ind_grn}
+            local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
+
+            conn.register(units[i].unit_ps, "V_aux_conn", conn.update)
+            open.register(units[i].unit_ps, "V_aux_state", open.update)
         end
     end
 
