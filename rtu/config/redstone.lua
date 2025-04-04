@@ -107,6 +107,15 @@ end
 
 local redstone = {}
 
+-- validate a redstone entry
+---@param def rtu_rs_definition
+function redstone.validate(def)
+    return tri(PORT_DSGN[def.port] == 1, util.is_int(def.unit) and def.unit > 0 and def.unit <= 4, def.unit == nil) and
+           rsio.is_valid_port(def.port) and
+           rsio.is_valid_side(def.side) and
+           (def.color == nil or (rsio.is_digital(def.port) and rsio.is_color(def.color)))
+end
+
 -- create the redstone configuration view
 ---@param tool_ctl _rtu_cfg_tool_ctl
 ---@param main_pane MultiPane

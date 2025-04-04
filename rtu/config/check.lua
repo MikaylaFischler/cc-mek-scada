@@ -1,10 +1,13 @@
 local comms      = require("scada-common.comms")
 local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
+local rsio       = require("scada-common.rsio")
 local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
 local rtu        = require("rtu.rtu")
+
+local redstone   = require("rtu.config.redstone")
 
 local core       = require("graphics.core")
 
@@ -109,6 +112,13 @@ local function handle_timeout()
     self.self_check_msg(nil, false, "make sure your supervisor is running, your channels are correct, trusted ranges are set properly (if enabled), facility keys match (if set), and if you are using wireless modems rather than ender modems, that your devices are close together in the same dimension")
 end
 
+
+-- check if a value is an integer within a range (inclusive)
+---@param x any
+---@param min integer
+---@param max integer
+local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min and x <= max end
+
 -- execute the self-check
 local function self_check()
     self.run_test_btn.disable()
@@ -123,12 +133,53 @@ local function self_check()
     local valid_cfg = rtu.validate_config(cfg)
 
     self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the RTU gateway")
-    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones (you may need to re-apply Peripheral and Redstone configurations as well)")
+    self.self_check_msg("> check gateway configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones")
 
-    -- check configured peripherals
+    -- check redstone configurations
+    local ifaces = {}
+    for i = 1, #cfg.Redstone do
+        local entry = cfg.Redstone[i]
+        local ident = entry.side .. tri(entry.color, ":" .. rsio.color_name(entry.color), "")
+        local dupe  = util.table_contains(ifaces, ident)
+
+        self.self_check_msg("> check redstone " .. ident .. " unique...", not dupe, "only one port should be set to a side/color combination")
+        self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
+
+        table.insert(ifaces, ident)
+    end
+
+    -- check peripheral configurations
     for i = 1, #cfg.Peripherals do
-        local peri = cfg.Peripherals[i]
-        self.self_check_msg("> check " .. peri.name .. " connected...", ppm.get_device(peri.name), "please connect this device via a wired modem or direct contact and ensure the configuration matches what it connects as")
+        local entry = cfg.Peripherals[i]
+        local valid = false
+
+        if type(entry.name) == "string" then
+            self.self_check_msg("> check " .. entry.name .. " connected...", ppm.get_periph(entry.name), "please connect this device via a wired modem or direct contact and ensure the configuration matches what it connects as")
+
+            local p_type = ppm.get_type(entry.name)
+
+            if p_type == "boilerValve" then
+                valid = is_int_min_max(entry.index, 0, 2) and is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "turbineValve" then
+                valid = is_int_min_max(entry.index, 1, 3) and is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "solarNeutronActivator" then
+                valid = is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "dynamicValve" then
+                valid = (entry.unit == 0 and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "environmentDetector" then
+                valid = is_int_min_max(entry.unit, 0, 4) and util.is_int(entry.index)
+            else
+                valid = true
+
+                if p_type ~= nil and not (p_type == "inductionPort" or p_type == "spsPort") then
+                    self.self_check_msg("> check " .. entry.name .. " valid...", false, "unrecognized device type")
+                end
+            end
+        end
+
+        if not valid then
+            self.self_check_msg("> check " .. entry.name .. " valid...", false, "configuration invalid, please re-configure peripheral entry")
+        end
     end
 
     if valid_cfg and modem then
