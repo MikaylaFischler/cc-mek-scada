@@ -120,11 +120,12 @@ local function self_check()
 
     self.self_check_pass = true
 
+    local cfg = self.settings
     local modem = ppm.get_wireless_modem()
     local reactor = ppm.get_fission_reactor()
-    local valid_cfg = plc.validate_config(self.settings)
+    local valid_cfg = plc.validate_config(cfg)
 
-    if self.settings.Networked then
+    if cfg.Networked then
         self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
     end
 
@@ -135,12 +136,12 @@ local function self_check()
 
     self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
 
-    if self.settings.Networked and valid_cfg and modem then
+    if cfg.Networked and valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
 
         -- init mac as needed
-        if self.settings.AuthKey and string.len(self.settings.AuthKey) >= 8 then
-            network.init_mac(self.settings.AuthKey)
+        if cfg.AuthKey and string.len(cfg.AuthKey) >= 8 then
+            network.init_mac(cfg.AuthKey)
         else
             network.deinit_mac()
         end
@@ -148,12 +149,12 @@ local function self_check()
         self.nic = network.nic(modem)
 
         self.nic.closeAll()
-        self.nic.open(self.settings.PLC_Channel)
+        self.nic.open(cfg.PLC_Channel)
 
         self.sv_addr = comms.BROADCAST
         self.net_listen = true
 
-        send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.PLC, self.settings.UnitID })
+        send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.PLC, cfg.UnitID })
 
         tcd.dispatch_unique(8, handle_timeout)
     else
