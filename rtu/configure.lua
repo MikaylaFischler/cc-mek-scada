@@ -7,6 +7,7 @@ local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
+local check       = require("rtu.config.check")
 local peripherals = require("rtu.config.peripherals")
 local redstone    = require("rtu.config.redstone")
 local system      = require("rtu.config.system")
@@ -169,8 +170,9 @@ local function config_view(display)
     local changelog = Div{parent=root_pane_div,x=1,y=1}
     local peri_cfg = Div{parent=root_pane_div,x=1,y=1}
     local rs_cfg = Div{parent=root_pane_div,x=1,y=1}
+    local check_sys = Div{parent=root_pane_div,x=1,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,spkr_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,peri_cfg,rs_cfg}}
+    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,spkr_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,peri_cfg,rs_cfg,check_sys}}
 
     --#region Main Page
 
@@ -226,8 +228,9 @@ local function config_view(display)
 
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     local start_btn = PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=y_start,min_width=12,text="Self-Check",callback=function()main_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start+2,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    PushButton{parent=main_page,x=39,y=y_start+4,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     if tool_ctl.ask_config then start_btn.disable() end
 
@@ -283,6 +286,12 @@ local function config_view(display)
     PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
+
+    --#region Self-Check
+
+    check.create(main_pane, settings_cfg, check_sys, style)
+
+    --#endregion
 end
 
 -- reset terminal screen
@@ -317,7 +326,7 @@ function configurator.configure(ask_config)
         config_view(display)
 
         while true do
-            local event, param1, param2, param3 = util.pull_event()
+            local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
             if event == "timer" then
@@ -330,6 +339,8 @@ function configurator.configure(ask_config)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
                 display.handle_paste(param1)
+            elseif event == "modem_message" then
+                check.receive_sv(param1, param2, param3, param4, param5)
             elseif event == "peripheral_detach" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.handle_unmount(param1)
