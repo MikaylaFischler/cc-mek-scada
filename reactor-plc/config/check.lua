@@ -84,7 +84,7 @@ local function handle_packet(packet)
                 elseif est_ack == ESTABLISH_ACK.COLLISION then
                     error_msg = "another reactor PLC is connected with this reactor unit ID"
                 elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                    error_msg = "reactor PLC comms version does not match supervisor comms version, make sure both devices are up-to-date (ccmsi update ...)"
+                    error_msg = "reactor PLC comms version does not match supervisor comms version, make sure both devices are up-to-date (ccmsi update)"
                 else
                     error_msg = "error: invalid reply from supervisor"
                 end
@@ -124,7 +124,10 @@ local function self_check()
     local reactor = ppm.get_fission_reactor()
     local valid_cfg = plc.validate_config(self.settings)
 
-    self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
+    if self.settings.Networked then
+        self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
+    end
+
     self.self_check_msg("> check fission reactor connected...", reactor ~= nil, "please connect the reactor PLC to the reactor's fission reactor logic adapter")
     self.self_check_msg("> check fission reactor formed...")
     -- this consumes events, but that is fine here
@@ -132,7 +135,7 @@ local function self_check()
 
     self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
 
-    if valid_cfg and modem then
+    if self.settings.Networked and valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
 
         -- init mac as needed
