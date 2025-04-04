@@ -118,19 +118,25 @@ local function self_check()
 
     self.self_check_pass = true
 
+    local cfg = self.settings
     local modem = ppm.get_wireless_modem()
-    local valid_cfg = rtu.validate_config(self.settings)
+    local valid_cfg = rtu.validate_config(cfg)
 
     self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the RTU gateway")
+    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones (you may need to re-apply Peripheral and Redstone configurations as well)")
 
-    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
+    -- check configured peripherals
+    for i = 1, #cfg.Peripherals do
+        local peri = cfg.Peripherals[i]
+        self.self_check_msg("> check " .. peri.name .. " connected...", ppm.get_device(peri.name), "please connect this device via a wired modem or direct contact and ensure the configuration matches what it connects as")
+    end
 
     if valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
 
         -- init mac as needed
-        if self.settings.AuthKey and string.len(self.settings.AuthKey) >= 8 then
-            network.init_mac(self.settings.AuthKey)
+        if cfg.AuthKey and string.len(cfg.AuthKey) >= 8 then
+            network.init_mac(cfg.AuthKey)
         else
             network.deinit_mac()
         end
@@ -138,7 +144,7 @@ local function self_check()
         self.nic = network.nic(modem)
 
         self.nic.closeAll()
-        self.nic.open(self.settings.RTU_Channel)
+        self.nic.open(cfg.RTU_Channel)
 
         self.sv_addr = comms.BROADCAST
         self.net_listen = true
