@@ -49,7 +49,7 @@ function rtu.load_config()
     return rtu.validate_config(config)
 end
 
--- validate a RTU gateway configuration
+-- validate an RTU gateway configuration
 ---@param cfg rtu_config
 function rtu.validate_config(cfg)
     local cfv = util.new_validator()

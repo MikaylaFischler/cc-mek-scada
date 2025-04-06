@@ -137,14 +137,20 @@ local function self_check()
 
     -- check redstone configurations
     local ifaces = {}
+    local bundled_sides = {}
     for i = 1, #cfg.Redstone do
         local entry = cfg.Redstone[i]
         local ident = entry.side .. tri(entry.color, ":" .. rsio.color_name(entry.color), "")
         local dupe  = util.table_contains(ifaces, ident)
+        local mixed = (bundled_sides[entry.side] and (entry.color == nil)) or (bundled_sides[entry.side] == false and (entry.color ~= nil))
+
+        local mixed_msg = util.trinary(bundled_sides[entry.side], "this side has bundled entry(s) but this entry is not bundled", "this side has non-bundled entry(s) but this entry is bundled")
 
         self.self_check_msg("> check redstone " .. ident .. " unique...", not dupe, "only one port should be set to a side/color combination")
+        self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, mixed_msg .. ", which will not work")
         self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
 
+        bundled_sides[entry.side] = bundled_sides[entry.side] or entry.color ~= nil
         table.insert(ifaces, ident)
     end
 
