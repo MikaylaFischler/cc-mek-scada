@@ -159,15 +159,15 @@ local function self_check()
             local p_type = ppm.get_type(entry.name)
 
             if p_type == "boilerValve" then
-                valid = is_int_min_max(entry.index, 0, 2) and is_int_min_max(entry.unit, 1, 4)
+                valid = is_int_min_max(entry.index, 1, 2) and is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "turbineValve" then
                 valid = is_int_min_max(entry.index, 1, 3) and is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "solarNeutronActivator" then
                 valid = is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "dynamicValve" then
-                valid = (entry.unit == 0 and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
+                valid = (entry.unit == nil and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "environmentDetector" then
-                valid = is_int_min_max(entry.unit, 0, 4) and util.is_int(entry.index)
+                valid = (entry.unit == nil or is_int_min_max(entry.unit, 1, 4)) and util.is_int(entry.index)
             else
                 valid = true
 
