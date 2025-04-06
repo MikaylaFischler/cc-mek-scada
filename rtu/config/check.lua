@@ -144,10 +144,10 @@ local function self_check()
         local dupe  = util.table_contains(ifaces, ident)
         local mixed = (bundled_sides[entry.side] and (entry.color == nil)) or (bundled_sides[entry.side] == false and (entry.color ~= nil))
 
-        local mixed_msg = util.trinary(bundled_sides[entry.side], "this side has bundled entry(s) but this entry is not bundled", "this side has non-bundled entry(s) but this entry is bundled")
+        local mixed_msg = util.trinary(bundled_sides[entry.side], "bundled entry(s) but this entry is not", "non-bundled entry(s) but this entry is")
 
         self.self_check_msg("> check redstone " .. ident .. " unique...", not dupe, "only one port should be set to a side/color combination")
-        self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, mixed_msg .. ", which will not work")
+        self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, "this side has " .. mixed_msg .. " bundled, which will not work")
         self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
 
         bundled_sides[entry.side] = bundled_sides[entry.side] or entry.color ~= nil
@@ -245,7 +245,7 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     TextBox{parent=check_sys,x=1,y=2,text=" RTU Gateway Self-Check",fg_bg=bw_fg_bg}
 
-    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=500,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local last_check = { nil, nil }
 
