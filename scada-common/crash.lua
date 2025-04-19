@@ -124,7 +124,7 @@ end
 -- final error print on failed xpcall, app exits here
 function crash.exit()
     local handled, run = false, true
-    local display      = nil ---@type DisplayBox
+    local display   ---@type DisplayBox
 
     -- special graphical crash screen
     if has_graphics then
