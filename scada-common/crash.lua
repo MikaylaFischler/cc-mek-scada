@@ -86,17 +86,19 @@ local function draw_pocket_crash(exit)
     local display = DisplayBox{window=term.current(),fg_bg=core.cpair(colors.white,colors.lightGray)}
 
     local warning = Div{parent=display,x=2,y=1}
-    TextBox{parent=warning,x=3,y=1,text="\x9f\x8b",width=2,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
-    TextBox{parent=warning,x=2,text="\x9f  \x8a",width=4,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
-    TextBox{parent=warning,text="\x9f    \x8a",width=6,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
-    TextBox{parent=warning,text="\x8f\x8f\x8f\x8f\x8f\x8f\x85",width=7,fg_bg=core.cpair(colors.yellow,colors.lightGray)}
-    TextBox{parent=warning,x=4,y=2,text="\x94",width=1,fg_bg=core.cpair(colors.white,colors.yellow)}
-    TextBox{parent=warning,x=4,y=3,text="\x91",width=1,fg_bg=core.cpair(colors.white,colors.yellow)}
+    TextBox{parent=warning,x=4,y=1,text="\x90",width=1,fg_bg=core.cpair(colors.yellow,colors.lightGray)}
+    TextBox{parent=warning,x=3,text="\x81 ",width=2,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
+    TextBox{parent=warning,x=5,y=2,text="\x94",width=1,fg_bg=core.cpair(colors.yellow,colors.lightGray)}
+    TextBox{parent=warning,x=2,text="\x81   ",width=4,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
+    TextBox{parent=warning,x=6,y=3,text="\x94",width=1,fg_bg=core.cpair(colors.yellow,colors.lightGray)}
+    TextBox{parent=warning,text="\x8e\x8f\x8f\x8e\x8f\x8f\x84",width=7,fg_bg=core.cpair(colors.yellow,colors.lightGray)}
+    TextBox{parent=warning,x=4,y=2,text="\x90",width=1,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
+    TextBox{parent=warning,x=4,y=3,text="\x85",width=1,fg_bg=core.cpair(colors.lightGray,colors.yellow)}
 
     TextBox{parent=display,x=10,y=2,text=" Critical Software Fault",width=16,alignment=core.ALIGN.CENTER,fg_bg=core.cpair(colors.yellow,colors._INHERIT)}
     TextBox{parent=display,x=2,y=5,text="Consider reporting this on the cc-mek-scada Discord or GitHub.",width=36,alignment=core.ALIGN.CENTER}
 
-    local box = Rectangle{parent=display,y=9,width=display.get_width(),height=8,border=core.border(1,colors.gray,true),thin=true,fg_bg=core.cpair(colors.black,colors.white)}
+    local box = Rectangle{parent=display,y=9,width=display.get_width(),height=8,fg_bg=core.cpair(colors.black,colors.white)}
     TextBox{parent=box,text=err}
 
     PushButton{parent=display,x=11,y=18,text=" Exit ",callback=exit,active_fg_bg=core.cpair(colors.white,colors.gray),fg_bg=core.cpair(colors.black,colors.red)}
