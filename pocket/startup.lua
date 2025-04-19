@@ -2,8 +2,10 @@
 -- SCADA System Access on a Pocket Computer
 --
 
----@diagnostic disable-next-line: undefined-global
-local _is_pocket_env = pocket or periphemu  -- luacheck: ignore pocket
+---@diagnostic disable-next-line: undefined-global, lowercase-global
+pocket = pocket or periphemu    -- luacheck: ignore pocket
+
+local _is_pocket_env = pocket
 
 require("/initenv").init_env()
 
