@@ -365,8 +365,7 @@ function pocket.init_nav(smem)
         self.help_return = self.cur_app
 
         nav.open_app(APP_ID.GUIDE, function ()
-            local show = self.help_map[key]
-            if show then show() end
+            if self.help_map[key] then self.help_map[key]() end
         end)
     end
 
