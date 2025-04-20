@@ -217,6 +217,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 self.rs_cfg_bundled.set_value(false)
                 self.rs_cfg_bundled.disable()
                 self.rs_cfg_color.disable()
+                self.rs_cfg_inverted.set_value(false)
                 self.rs_cfg_advanced.disable()
             else
                 self.rs_cfg_bundled.enable()
