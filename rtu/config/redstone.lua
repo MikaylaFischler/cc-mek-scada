@@ -20,6 +20,7 @@ local NumberField = require("graphics.elements.form.NumberField")
 ---@field port IO_PORT
 ---@field side side
 ---@field color color|nil
+---@field invert true|nil
 
 local tri = util.trinary
 
