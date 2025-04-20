@@ -35,7 +35,8 @@ local changes = {
     { "v1.7.9", { "ConnTimeout can now have a fractional part" } },
     { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.9.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
-    { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } }
+    { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } },
+    { "v1.11.8", { "Added advanced option to invert digital redstone signals" } }
 }
 
 ---@class rtu_configurator
@@ -116,6 +117,7 @@ local fields = {
 }
 
 -- deep copy peripherals defs
+---@param data rtu_peri_definition[]
 function tool_ctl.deep_copy_peri(data)
     local array = {}
     for _, d in ipairs(data) do table.insert(array, { unit = d.unit, index = d.index, name = d.name }) end
@@ -123,9 +125,10 @@ function tool_ctl.deep_copy_peri(data)
 end
 
 -- deep copy redstone defs
+---@param data rtu_rs_definition[]
 function tool_ctl.deep_copy_rs(data)
     local array = {}
-    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color }) end
+    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color, invert = d.invert }) end
     return array
 end
 
