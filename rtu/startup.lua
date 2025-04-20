@@ -197,10 +197,10 @@ local function main()
                         println(message)
                         log.warning(message)
                     else
-                        rs_rtu.link_di(entry.side, entry.color)
+                        rs_rtu.link_di(entry.side, entry.color, entry.invert)
                     end
                 elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                    rs_rtu.link_do(entry.side, entry.color)
+                    rs_rtu.link_do(entry.side, entry.color, entry.invert)
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(capabilities, entry.port) then

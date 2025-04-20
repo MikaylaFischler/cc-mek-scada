@@ -42,7 +42,9 @@ local self = {
     rs_cfg_side_l = nil,    ---@type TextBox
     rs_cfg_bundled = nil,   ---@type Checkbox
     rs_cfg_color = nil,     ---@type Radio2D
-    rs_cfg_shortcut = nil   ---@type TextBox
+    rs_cfg_inverted = nil,  ---@type Checkbox
+    rs_cfg_shortcut = nil,  ---@type TextBox
+    rs_cfg_advanced = nil   ---@type PushButton
 }
 
 -- rsio port descriptions
@@ -142,8 +144,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_c_5 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_6 = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_7 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_8 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7}}
+    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8}}
 
     TextBox{parent=rs_cfg,x=1,y=2,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
@@ -176,9 +179,6 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     PushButton{parent=rs_c_1,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     local rs_apply_btn = PushButton{parent=rs_c_1,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
-    TextBox{parent=rs_c_6,x=1,y=1,height=5,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
-    PushButton{parent=rs_c_6,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
     TextBox{parent=rs_c_2,x=1,y=1,text="Select one of the below ports to use."}
 
     local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
@@ -201,6 +201,8 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             self.rs_cfg_color.hide(true)
             self.rs_cfg_shortcut.show()
             self.rs_cfg_side_l.set_value("Output Side")
+            self.rs_cfg_bundled.enable()
+            self.rs_cfg_advanced.disable()
             text = "You selected the ALL_WASTE shortcut."
         else
             self.rs_cfg_shortcut.hide(true)
@@ -215,9 +217,12 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 self.rs_cfg_bundled.set_value(false)
                 self.rs_cfg_bundled.disable()
                 self.rs_cfg_color.disable()
+                self.rs_cfg_advanced.disable()
             else
                 self.rs_cfg_bundled.enable()
                 if self.rs_cfg_bundled.get_value() then self.rs_cfg_color.enable() else self.rs_cfg_color.disable() end
+                self.rs_cfg_inverted.set_value(false)
+                self.rs_cfg_advanced.enable()
             end
 
             if io_mode == IO_MODE.DIGITAL_IN then
@@ -270,11 +275,6 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     PushButton{parent=rs_c_3,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_7,x=1,y=1,height=4,text="(Normal) Digital Input: On if there is a redstone signal, off otherwise\nInverted Digital Input: On without a redstone signal, off otherwise"}
-    TextBox{parent=rs_c_7,x=1,y=6,height=4,text="(Normal) Digital Output: Redstone signal to 'turn it on', none to 'turn it off'\nInverted Digital Output: No redstone signal to 'turn it on', redstone signal to 'turn it off'"}
-    TextBox{parent=rs_c_7,x=1,y=11,height=2,text="Analog Input: 0-15 redstone power level input\nAnalog Output: 0-15 scaled redstone power level output"}
-    PushButton{parent=rs_c_7,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
     self.rs_cfg_side_l = TextBox{parent=rs_c_3,x=1,y=4,width=11,text="Output Side"}
     local side = Radio2D{parent=rs_c_3,x=1,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
 
@@ -313,7 +313,8 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     unit = tri(PORT_DSGN[port] == 1, u, nil),
                     port = port,
                     side = side_options_map[side.get_value()],
-                    color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil)
+                    color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil),
+                    invert = self.rs_cfg_inverted.get_value() or nil
                 }
 
                 if self.rs_cfg_editing == false then
@@ -342,10 +343,13 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             self.rs_cfg_bundled.set_value(false)
             self.rs_cfg_color.set_value(1)
             self.rs_cfg_color.disable()
+            self.rs_cfg_inverted.set_value(false)
+            self.rs_cfg_advanced.disable()
         else rs_err.show() end
     end
 
     PushButton{parent=rs_c_3,x=1,y=14,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    self.rs_cfg_advanced = PushButton{parent=rs_c_3,x=30,y=14,min_width=10,text="Advanced",callback=function()rs_pane.set_value(8)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=rs_c_3,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_4,x=1,y=1,text="Settings saved!"}
@@ -355,6 +359,19 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     TextBox{parent=rs_c_5,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
     PushButton{parent=rs_c_5,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_6,x=1,y=1,height=5,text="You already configured this input. There can only be one entry for each input.\n\nPlease select a different port."}
+    PushButton{parent=rs_c_6,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_7,x=1,y=1,height=4,text="(Normal) Digital Input: On if there is a redstone signal, off otherwise\nInverted Digital Input: On without a redstone signal, off otherwise"}
+    TextBox{parent=rs_c_7,x=1,y=6,height=4,text="(Normal) Digital Output: Redstone signal to 'turn it on', none to 'turn it off'\nInverted Digital Output: No redstone signal to 'turn it on', redstone signal to 'turn it off'"}
+    TextBox{parent=rs_c_7,x=1,y=11,height=2,text="Analog Input: 0-15 redstone power level input\nAnalog Output: 0-15 scaled redstone power level output"}
+    PushButton{parent=rs_c_7,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_8,x=1,y=1,height=5,text="Advanced Options"}
+    self.rs_cfg_inverted = Checkbox{parent=rs_c_8,x=1,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=function()end,disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=rs_c_8,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    PushButton{parent=rs_c_8,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -384,9 +401,11 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         if rsio.is_analog(def.port) then
             self.rs_cfg_bundled.set_value(false)
             self.rs_cfg_bundled.disable()
+            self.rs_cfg_advanced.disable()
         else
             self.rs_cfg_bundled.enable()
             self.rs_cfg_bundled.set_value(def.color ~= nil)
+            self.rs_cfg_advanced.enable()
         end
 
         local value = 1
@@ -401,6 +420,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         self.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
         self.rs_cfg_color.set_value(value)
+        self.rs_cfg_inverted.set_value(def.invert or false)
         rs_pane.set_value(3)
     end
 
@@ -419,14 +439,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             local def = tmp_cfg.Redstone[i]
 
             local name = rsio.to_string(def.port)
-            local io_dir = tri(rsio.get_io_mode(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+            local io_dir = tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
+            local io_c = tri(rsio.is_digital(def.port), colors.blue, colors.purple)
             local conn = def.side
             local unit = util.strval(def.unit or "F")
 
             if def.color ~= nil then conn = def.side .. "/" .. rsio.color_name(def.color) end
 
             local entry = Div{parent=rs_list,height=1}
-            TextBox{parent=entry,x=1,y=1,width=1,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+            TextBox{parent=entry,x=1,y=1,width=1,text=io_dir,fg_bg=cpair(tri(def.invert,colors.orange,io_c),colors.white)}
             TextBox{parent=entry,x=2,y=1,width=14,text=name}
             TextBox{parent=entry,x=16,y=1,width=string.len(conn),text=conn,fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=entry,x=33,y=1,width=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}
@@ -437,7 +458,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 local a = ini_cfg.Redstone[i]
                 local b = tmp_cfg.Redstone[i]
 
-                modified = (a.unit ~= b.unit) or (a.port ~= b.port) or (a.side ~= b.side) or (a.color ~= b.color)
+                modified = (a.unit ~= b.unit) or (a.port ~= b.port) or (a.side ~= b.side) or (a.color ~= b.color) or (a.invert ~= b.invert)
             end
         end
 
