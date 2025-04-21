@@ -268,7 +268,7 @@ local function init(main)
     for i = 1, facility.num_units do
         local y_offset = y_ofs(i)
         unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, i)
-        table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.cyan, true, true))
+        table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
         util.nop()
     end
 
