@@ -143,34 +143,53 @@ local function main()
     -- configure RTU gateway based on settings file definitions
     local function sys_config()
         -- redstone interfaces
-        local rs_rtus = {}  ---@type { rtu: rtu_rs_device, capabilities: IO_PORT[] }[]
+        local rs_rtus = {}  ---@type { name: string, rtu: rtu_rs_device, phy: table|nil, banks: IO_PORT[][] }[]
 
         -- go through redstone definitions list
         for entry_idx = 1, #rtu_redstone do
             local entry = rtu_redstone[entry_idx]
+
             local assignment
             local for_reactor = entry.unit
-            local iface_name = util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
+            local phy         = entry.relay or 0
+            local iface_name  = util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
 
             if util.is_int(entry.unit) and entry.unit > 0 and entry.unit < 5 then
                 ---@cast for_reactor integer
                 assignment = "reactor unit " .. entry.unit
-                if rs_rtus[for_reactor] == nil then
-                    log.debug(util.c("sys_config> allocated redstone RTU for reactor unit ", entry.unit))
-                    rs_rtus[for_reactor] = { rtu = redstone_rtu.new(), capabilities = {} }
-                end
             elseif entry.unit == nil then
                 assignment = "facility"
                 for_reactor = 0
-                if rs_rtus[for_reactor] == nil then
-                    log.debug(util.c("sys_config> allocated redstone RTU for the facility"))
-                    rs_rtus[for_reactor] = { rtu = redstone_rtu.new(), capabilities = {} }
-                end
             else
                 local message = util.c("sys_config> invalid unit assignment at block index #", entry_idx)
                 println(message)
                 log.fatal(message)
                 return false
+            end
+
+            -- create the appropriate RTU if it doesn't exist and check relay name validity
+            if entry.relay then
+                if type(entry.relay) ~= "string" then
+                    local message = util.c("sys_config> invalid redstone relay '", entry.relay, '"')
+                    println(message)
+                    log.fatal(message)
+                    return false
+                elseif not rs_rtus[entry.relay] then
+                    log.debug(util.c("sys_config> allocated relay redstone RTU for interface ", entry.relay))
+
+                    local relay = ppm.get_device(entry.relay)
+
+                    if not relay then
+                        log.warning(util.c("sys_config> redstone relay ", entry.relay, " not connected"))
+                    elseif ppm.get_type(entry.relay) ~= "redstone_relay" then
+                        log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not a redstone relay"))
+                    end
+
+                    rs_rtus[entry.relay] = { name = entry.relay, rtu = redstone_rtu.new(relay), phy = relay, banks = {} }
+                end
+            elseif rs_rtus[0] == nil then
+                log.debug(util.c("sys_config> allocated local redstone RTU"))
+                rs_rtus[0] = { name = "redstone_local", rtu = redstone_rtu.new(), phy = rs, banks = {} }
             end
 
             -- verify configuration
@@ -180,7 +199,7 @@ local function main()
             end
 
             local rs_rtu = rs_rtus[for_reactor].rtu
-            local capabilities = rs_rtus[for_reactor].capabilities
+            local conns  = rs_rtus[phy].banks[for_reactor]
 
             if not valid then
                 local message = util.c("sys_config> invalid redstone definition at block index #", entry_idx)
@@ -192,7 +211,7 @@ local function main()
                 local mode = rsio.get_io_mode(entry.port)
                 if mode == rsio.IO_MODE.DIGITAL_IN then
                     -- can't have duplicate inputs
-                    if util.table_contains(capabilities, entry.port) then
+                    if util.table_contains(conns, entry.port) then
                         local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name)
                         println(message)
                         log.warning(message)
@@ -203,7 +222,7 @@ local function main()
                     rs_rtu.link_do(entry.side, entry.color, entry.invert)
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
-                    if util.table_contains(capabilities, entry.port) then
+                    if util.table_contains(conns, entry.port) then
                         local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name)
                         println(message)
                         log.warning(message)
@@ -219,25 +238,28 @@ local function main()
                     return false
                 end
 
-                table.insert(capabilities, entry.port)
+                table.insert(conns, entry.port)
 
-                log.debug(util.c("sys_config> linked redstone ", #capabilities, ": ", rsio.to_string(entry.port), " (", iface_name, ") for ", assignment))
+                log.debug(util.c("sys_config> linked redstone ", #conns, ": ", rsio.to_string(entry.port), " (", iface_name, ") for ", assignment))
             end
         end
 
         -- create unit entries for redstone RTUs
-        for for_reactor, def in pairs(rs_rtus) do
+        for _, def in pairs(rs_rtus) do
+            local hw_state = util.trinary(def.phy, RTU_HW_STATE.OK, RTU_HW_STATE.OFFLINE)
+
             ---@class rtu_registry_entry
             local unit = {
                 uid = 0,                        ---@type integer
-                name = "redstone_io",           ---@type string
+                name = def.name,                ---@type string
                 type = RTU_UNIT_TYPE.REDSTONE,  ---@type RTU_UNIT_TYPE
                 index = false,                  ---@type integer|false
-                reactor = for_reactor,          ---@type integer
-                device = def.capabilities,      ---@type IO_PORT[] use device field for redstone ports
+                reactor = nil,                  ---@type nil
+                device = def.phy,               ---@type table|nil
+                banks = def.banks,              ---@type IO_PORT[][]
                 is_multiblock = false,          ---@type boolean
                 formed = nil,                   ---@type boolean|nil
-                hw_state = RTU_HW_STATE.OK,     ---@type RTU_HW_STATE
+                hw_state = hw_state,            ---@type RTU_HW_STATE
                 rtu = def.rtu,                  ---@type rtu_device|rtu_rs_device
                 modbus_io = modbus.new(def.rtu, false),
                 pkt_queue = nil,                ---@type mqueue|nil
@@ -246,12 +268,7 @@ local function main()
 
             table.insert(units, unit)
 
-            local for_message = "facility"
-            if util.is_int(for_reactor) then
-                for_message = util.c("reactor unit ", for_reactor)
-            end
-
-            log.info(util.c("sys_config> initialized RTU unit #", #units, ": redstone_io (redstone) [1] for ", for_message))
+            log.info(util.c("sys_config> initialized RTU unit #", #units, ": ", unit.name, " (redstone)"))
 
             unit.uid = #units
 

@@ -18,6 +18,7 @@ local NumberField = require("graphics.elements.form.NumberField")
 ---@class rtu_rs_definition
 ---@field unit integer|nil
 ---@field port IO_PORT
+---@field relay string|nil
 ---@field side side
 ---@field color color|nil
 ---@field invert true|nil
