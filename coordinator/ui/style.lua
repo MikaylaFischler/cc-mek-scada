@@ -2,15 +2,19 @@
 -- Graphics Style Options
 --
 
-local util   = require("scada-common.util")
+local util        = require("scada-common.util")
 
-local core   = require("graphics.core")
-local themes = require("graphics.themes")
+local core        = require("graphics.core")
+local themes      = require("graphics.themes")
+
+local coordinator = require("coordinator.coordinator")
 
 ---@class crd_style
 local style = {}
 
 local cpair = core.cpair
+
+local config = coordinator.config
 
 -- front panel styling
 
@@ -223,16 +227,19 @@ style.sps = {
     }
 }
 
+local pu_color = util.trinary(config.GreenPuPellet, colors.green, colors.cyan)
+local po_color = util.trinary(config.GreenPuPellet, colors.cyan, colors.green)
+
 style.waste = {
     -- auto waste processing states
     states = {
-        { color = cpair(colors.black, colors.green),  text = "PLUTONIUM" },
-        { color = cpair(colors.black, colors.cyan),   text = "POLONIUM" },
+        { color = cpair(colors.black, pu_color),      text = "PLUTONIUM" },
+        { color = cpair(colors.black, po_color),      text = "POLONIUM" },
         { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
     },
     states_abbrv = {
-        { color = cpair(colors.black, colors.green),  text = "Pu" },
-        { color = cpair(colors.black, colors.cyan),   text = "Po" },
+        { color = cpair(colors.black, pu_color),      text = "Pu" },
+        { color = cpair(colors.black, po_color),      text = "Po" },
         { color = cpair(colors.black, colors.purple), text = "AM" }
     },
     -- process radio button options
@@ -240,8 +247,8 @@ style.waste = {
     -- unit waste selection
     unit_opts = {
         { text = "Auto", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.white, colors.gray) },
-        { text = "Pu", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.green) },
-        { text = "Po", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.cyan) },
+        { text = "Pu", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, pu_color) },
+        { text = "Po", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, po_color) },
         { text = "AM", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.purple) }
     }
 }

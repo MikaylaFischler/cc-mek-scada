@@ -234,16 +234,19 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     TextBox{parent=crd_cfg,x=1,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=crd_c_1,x=1,y=1,height=3,text="Configure the UI interface options below if you wish to customize formats."}
+    TextBox{parent=crd_c_1,x=1,y=1,height=2,text="You can customize the UI with the interface options below."}
 
     TextBox{parent=crd_c_1,x=1,y=4,text="Clock Time Format"}
     tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
+    TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
+    tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
     TextBox{parent=crd_c_1,x=1,y=8,text="Temperature Scale"}
     tool_ctl.temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
-    TextBox{parent=crd_c_1,x=24,y=8,text="Energy Scale"}
-    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=24,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
+    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_opts()
         tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1

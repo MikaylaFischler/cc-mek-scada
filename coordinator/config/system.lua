@@ -528,6 +528,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
 
             if f[1] == "AuthKey" then val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "GreenPuPellet" then
+                val = tri(raw, "Green Pu/Cyan Po", "Cyan Pu/Green Po")
             elseif f[1] == "TempScale" then
                 val = util.strval(types.TEMP_SCALE_NAMES[raw])
             elseif f[1] == "EnergyScale" then

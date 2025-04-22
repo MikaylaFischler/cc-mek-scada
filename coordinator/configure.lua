@@ -35,7 +35,8 @@ local changes = {
     { "v1.2.4", { "Added temperature scale options" } },
     { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
-    { "v1.5.1", { "Added energy scale options" } }
+    { "v1.5.1", { "Added energy scale options" } },
+    { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } }
 }
 
 ---@class crd_configurator
@@ -95,6 +96,7 @@ local tmp_cfg = {
     UnitCount = 1,
     SpeakerVolume = 1.0,
     Time24Hour = true,
+    GreenPuPellet = false,
     TempScale = 1,          ---@type TEMP_SCALE
     EnergyScale = 1,        ---@type ENERGY_SCALE
     DisableFlowView = false,
@@ -129,6 +131,7 @@ local fields = {
     { "UnitDisplays", "Unit Monitors", {} },
     { "SpeakerVolume", "Speaker Volume", 1.0 },
     { "Time24Hour", "Use 24-hour Time Format", true },
+    { "GreenPuPellet", "Pellet Colors", false },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
