@@ -95,8 +95,8 @@ local function new_view(root)
 
             local function set_waste(mode) process.set_unit_waste(i, mode) end
 
-            local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.waste.states_abbrv,value=1,min_width=6}
-            local waste_mode = RadioButton{parent=u_div,y=3,options=style.waste.unit_opts,callback=set_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+            local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.get_waste().states_abbrv,value=1,min_width=6}
+            local waste_mode = RadioButton{parent=u_div,y=3,options=style.get_waste().unit_opts,callback=set_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
             waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
             waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
@@ -159,8 +159,8 @@ local function new_view(root)
 
         TextBox{parent=c_div,y=1,text="Waste Control",alignment=ALIGN.CENTER}
 
-        local status = StateIndicator{parent=c_div,x=3,y=3,states=style.waste.states,value=1,min_width=17}
-        local waste_prod = RadioButton{parent=c_div,y=5,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+        local status = StateIndicator{parent=c_div,x=3,y=3,states=style.get_waste().states,value=1,min_width=17}
+        local waste_prod = RadioButton{parent=c_div,y=5,options=style.get_waste().options,callback=process.set_process_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
 
         status.register(f_ps, "current_waste_product", status.update)
         waste_prod.register(f_ps, "process_waste_product", waste_prod.set_value)

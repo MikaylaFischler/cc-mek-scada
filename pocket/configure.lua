@@ -29,7 +29,8 @@ local CENTER = core.ALIGN.CENTER
 -- changes to the config data/format to let the user know
 local changes = {
     { "v0.9.2", { "Added temperature scale options" } },
-    { "v0.11.3", { "Added energy scale options" } }
+    { "v0.11.3", { "Added energy scale options" } },
+    { "v0.13.2", { "Added option for Po/Pu pellet green/cyan pairing" } }
 }
 
 ---@class pkt_configurator
@@ -64,6 +65,7 @@ local tool_ctl = {
 
 ---@class pkt_config
 local tmp_cfg = {
+    GreenPuPellet = false,
     TempScale = 1,      ---@type TEMP_SCALE
     EnergyScale = 1,    ---@type ENERGY_SCALE
     SVR_Channel = nil,  ---@type integer
@@ -84,6 +86,7 @@ local settings_cfg = {}
 
 -- all settings fields, their nice names, and their default values
 local fields = {
+    { "GreenPuPellet", "Pellet Colors", false },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "SVR_Channel", "SVR Channel", 16240 },
