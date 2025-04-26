@@ -398,7 +398,7 @@ local function init(parent, id)
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
-    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=style.waste.unit_opts,callback=unit.set_waste,min_width=6}
+    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=style.get_waste().unit_opts,callback=unit.set_waste,min_width=6}
 
     waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
 

@@ -325,7 +325,7 @@ local function new_view(root, x, y)
 
         TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8}
         local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
-        local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.waste.states_abbrv,value=1,min_width=6}
+        local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.get_waste().states_abbrv,value=1,min_width=6}
 
         a_waste.register(unit.unit_ps, "U_AutoWaste", a_waste.update)
         waste_m.register(unit.unit_ps, "U_WasteProduct", waste_m.update)
@@ -339,11 +339,11 @@ local function new_view(root, x, y)
     TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,x=1,y=2,fg_bg=cutout_fg_bg}
 
     local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
-    local status = StateIndicator{parent=rect,x=2,y=1,states=style.waste.states,value=1,min_width=17}
+    local status = StateIndicator{parent=rect,x=2,y=1,states=style.get_waste().states,value=1,min_width=17}
 
     status.register(facility.ps, "current_waste_product", status.update)
 
-    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.waste.options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
+    local waste_prod = RadioButton{parent=rect,x=2,y=3,options=style.get_waste().options,callback=process.set_process_waste,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.brown}
 
     waste_prod.register(facility.ps, "process_waste_product", waste_prod.set_value)
 

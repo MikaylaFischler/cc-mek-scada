@@ -227,30 +227,34 @@ style.sps = {
     }
 }
 
-local pu_color = util.trinary(config.GreenPuPellet, colors.green, colors.cyan)
-local po_color = util.trinary(config.GreenPuPellet, colors.cyan, colors.green)
+-- get waste styling, which depends on the configuration
+---@return { states: { color: color, text: string }, states_abbrv: { color: color, text: string }, options: string[], unit_opts: { text: string, fg_bg: cpair, active_fg_bg:cpair } }
+function style.get_waste()
+    local pu_color = util.trinary(config.GreenPuPellet, colors.green, colors.cyan)
+    local po_color = util.trinary(config.GreenPuPellet, colors.cyan, colors.green)
 
-style.waste = {
-    -- auto waste processing states
-    states = {
-        { color = cpair(colors.black, pu_color),      text = "PLUTONIUM" },
-        { color = cpair(colors.black, po_color),      text = "POLONIUM" },
-        { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
-    },
-    states_abbrv = {
-        { color = cpair(colors.black, pu_color),      text = "Pu" },
-        { color = cpair(colors.black, po_color),      text = "Po" },
-        { color = cpair(colors.black, colors.purple), text = "AM" }
-    },
-    -- process radio button options
-    options = { "Plutonium", "Polonium", "Antimatter" },
-    -- unit waste selection
-    unit_opts = {
-        { text = "Auto", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.white, colors.gray) },
-        { text = "Pu", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, pu_color) },
-        { text = "Po", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, po_color) },
-        { text = "AM", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.purple) }
+    return {
+        -- auto waste processing states
+        states = {
+            { color = cpair(colors.black, pu_color),      text = "PLUTONIUM" },
+            { color = cpair(colors.black, po_color),      text = "POLONIUM" },
+            { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
+        },
+        states_abbrv = {
+            { color = cpair(colors.black, pu_color),      text = "Pu" },
+            { color = cpair(colors.black, po_color),      text = "Po" },
+            { color = cpair(colors.black, colors.purple), text = "AM" }
+        },
+        -- process radio button options
+        options = { "Plutonium", "Polonium", "Antimatter" },
+        -- unit waste selection
+        unit_opts = {
+            { text = "Auto", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.white, colors.gray) },
+            { text = "Pu", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, pu_color) },
+            { text = "Po", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, po_color) },
+            { text = "AM", fg_bg = cpair(colors.black, colors.lightGray), active_fg_bg = cpair(colors.black, colors.purple) }
+        }
     }
-}
+end
 
 return style

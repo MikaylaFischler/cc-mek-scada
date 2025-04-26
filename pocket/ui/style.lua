@@ -2,11 +2,17 @@
 -- Graphics Style Options
 --
 
-local core = require("graphics.core")
+local util   = require("scada-common.util")
+
+local core   = require("graphics.core")
+
+local pocket = require("pocket.pocket")
 
 local style = {}
 
 local cpair = core.cpair
+
+local config = pocket.config
 
 -- GLOBAL --
 
@@ -171,22 +177,29 @@ style.sps = {
     }
 }
 
-style.waste = {
-    -- auto waste processing states
-    states = {
-        { color = cpair(colors.black, colors.green),  text = "PLUTONIUM" },
-        { color = cpair(colors.black, colors.cyan),   text = "POLONIUM" },
-        { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
-    },
-    states_abbrv = {
-        { color = cpair(colors.black, colors.green),  text = "Pu" },
-        { color = cpair(colors.black, colors.cyan),   text = "Po" },
-        { color = cpair(colors.black, colors.purple), text = "AM" }
-    },
-    -- process radio button options
-    options = { "Plutonium", "Polonium", "Antimatter" },
-    -- unit waste selection
-    unit_opts = { "Auto", "Plutonium", "Polonium", "Antimatter" }
-}
+-- get waste styling, which depends on the configuration
+---@return { states: { color: color, text: string }, states_abbrv: { color: color, text: string }, options: string[], unit_opts: string[] }
+function style.get_waste()
+    local pu_color = util.trinary(config.GreenPuPellet, colors.green, colors.cyan)
+    local po_color = util.trinary(config.GreenPuPellet, colors.cyan, colors.green)
+
+    return {
+        -- auto waste processing states
+        states = {
+            { color = cpair(colors.black, pu_color),      text = "PLUTONIUM" },
+            { color = cpair(colors.black, po_color),      text = "POLONIUM" },
+            { color = cpair(colors.black, colors.purple), text = "ANTI MATTER" }
+        },
+        states_abbrv = {
+            { color = cpair(colors.black, pu_color),      text = "Pu" },
+            { color = cpair(colors.black, po_color),      text = "Po" },
+            { color = cpair(colors.black, colors.purple), text = "AM" }
+        },
+        -- process radio button options
+        options = { "Plutonium", "Polonium", "Antimatter" },
+        -- unit waste selection
+        unit_opts = { "Auto", "Plutonium", "Polonium", "Antimatter" }
+    }
+end
 
 return style

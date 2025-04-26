@@ -38,6 +38,7 @@ pocket.config = config
 function pocket.load_config()
     if not settings.load("/pocket.settings") then return false end
 
+    config.GreenPuPellet = settings.get("GreenPuPellet")
     config.TempScale = settings.get("TempScale")
     config.EnergyScale = settings.get("EnergyScale")
 
@@ -54,6 +55,7 @@ function pocket.load_config()
 
     local cfv = util.new_validator()
 
+    cfv.assert_type_bool(config.GreenPuPellet)
     cfv.assert_type_int(config.TempScale)
     cfv.assert_range(config.TempScale, 1, 4)
     cfv.assert_type_int(config.EnergyScale)
