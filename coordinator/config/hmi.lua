@@ -250,6 +250,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     local function submit_ui_opts()
         tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1
+        tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
         tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
         tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
         main_pane.set_value(7)

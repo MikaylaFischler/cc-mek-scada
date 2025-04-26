@@ -78,6 +78,7 @@ local tool_ctl = {
     -- settings elements from hmi
     dis_flow_view = nil,      ---@type Checkbox
     s_vol = nil,              ---@type NumberField
+    pellet_color = nil,       ---@type RadioButton
     clock_fmt = nil,          ---@type RadioButton
     temp_scale = nil,         ---@type RadioButton
     energy_scale = nil,       ---@type RadioButton
