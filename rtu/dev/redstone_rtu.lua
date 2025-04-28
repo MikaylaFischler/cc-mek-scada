@@ -36,7 +36,7 @@ function redstone_rtu.new(relay)
 
     -- change the phy in use (a relay or rs)
     ---@param new_phy table
-    function public.change_phy(new_phy) phy = new_phy end
+    function public.remount_phy(new_phy) phy = new_phy end
 
     -- NOTE: for runtime speed, inversion logic results in extra code here but less code when functions are called
 
@@ -49,15 +49,15 @@ function redstone_rtu.new(relay)
 
         if color then
             if invert then
-                f_read = function () return digital_read(not rs.testBundledInput(side, color)) end
+                f_read = function () return digital_read(not phy.testBundledInput(side, color)) end
             else
-                f_read = function () return digital_read(rs.testBundledInput(side, color)) end
+                f_read = function () return digital_read(phy.testBundledInput(side, color)) end
             end
         else
             if invert then
-                f_read = function () return digital_read(not rs.getInput(side)) end
+                f_read = function () return digital_read(not phy.getInput(side)) end
             else
-                f_read = function () return digital_read(rs.getInput(side)) end
+                f_read = function () return digital_read(phy.getInput(side)) end
             end
         end
 
@@ -74,50 +74,50 @@ function redstone_rtu.new(relay)
 
         if color then
             if invert then
-                f_read = function () return digital_read(not colors.test(rs.getBundledOutput(side), color)) end
+                f_read = function () return digital_read(not colors.test(phy.getBundledOutput(side), color)) end
 
                 f_write = function (level)
                     if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
-                        local output = rs.getBundledOutput(side)
+                        local output = phy.getBundledOutput(side)
 
                         -- inverted conditions
                         if digital_write(level) then
                             output = colors.subtract(output, color)
                         else output = colors.combine(output, color) end
 
-                        rs.setBundledOutput(side, output)
+                        phy.setBundledOutput(side, output)
                     end
                 end
             else
-                f_read = function () return digital_read(colors.test(rs.getBundledOutput(side), color)) end
+                f_read = function () return digital_read(colors.test(phy.getBundledOutput(side), color)) end
 
                 f_write = function (level)
                     if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
-                        local output = rs.getBundledOutput(side)
+                        local output = phy.getBundledOutput(side)
 
                         if digital_write(level) then
                             output = colors.combine(output, color)
                         else output = colors.subtract(output, color) end
 
-                        rs.setBundledOutput(side, output)
+                        phy.setBundledOutput(side, output)
                     end
                 end
             end
         else
             if invert then
-                f_read = function () return digital_read(not rs.getOutput(side)) end
+                f_read = function () return digital_read(not phy.getOutput(side)) end
 
                 f_write = function (level)
                     if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
-                        rs.setOutput(side, not digital_write(level))
+                        phy.setOutput(side, not digital_write(level))
                     end
                 end
             else
-                f_read = function () return digital_read(rs.getOutput(side)) end
+                f_read = function () return digital_read(phy.getOutput(side)) end
 
                 f_write = function (level)
                     if level ~= IO_LVL.FLOATING and level ~= IO_LVL.DISCONNECT then
-                        rs.setOutput(side, digital_write(level))
+                        phy.setOutput(side, digital_write(level))
                     end
                 end
             end
@@ -129,15 +129,15 @@ function redstone_rtu.new(relay)
     -- link analog input
     ---@param side string
     function public.link_ai(side)
-        unit.connect_input_reg(function () return rs.getAnalogInput(side) end)
+        unit.connect_input_reg(function () return phy.getAnalogInput(side) end)
     end
 
     -- link analog output
     ---@param side string
     function public.link_ao(side)
         unit.connect_holding_reg(
-            function () return rs.getAnalogOutput(side) end,
-            function (value) rs.setAnalogOutput(side, value) end
+            function () return phy.getAnalogOutput(side) end,
+            function (value) phy.setAnalogOutput(side, value) end
         )
     end
 

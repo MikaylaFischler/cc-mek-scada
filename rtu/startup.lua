@@ -140,10 +140,19 @@ local function main()
     local rtu_redstone = config.Redstone
     local rtu_devices = config.Peripherals
 
+    -- get a string representation of a port interface
+    ---@param entry rtu_rs_definition
+    ---@return string
+    local function entry_iface_name(entry)
+        return util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
+    end
+
     -- configure RTU gateway based on settings file definitions
     local function sys_config()
         -- redstone interfaces
-        local rs_rtus = {}  ---@type { name: string, rtu: rtu_rs_device, phy: table|nil, banks: IO_PORT[][] }[]
+        local rs_rtus = {}  ---@type { name: string, rtu: rtu_rs_device, phy: table|nil, banks: rtu_rs_definition[][] }[]
+
+        local all_conns = {}
 
         -- go through redstone definitions list
         for entry_idx = 1, #rtu_redstone do
@@ -152,7 +161,7 @@ local function main()
             local assignment
             local for_reactor = entry.unit
             local phy         = entry.relay or 0
-            local iface_name  = util.trinary(entry.color ~= nil, util.c(entry.side, "/", rsio.color_name(entry.color)), entry.side)
+            local iface_name  = entry_iface_name(entry)
 
             if util.is_int(entry.unit) and entry.unit > 0 and entry.unit < 5 then
                 ---@cast for_reactor integer
@@ -175,12 +184,12 @@ local function main()
                     log.fatal(message)
                     return false
                 elseif not rs_rtus[entry.relay] then
-                    log.debug(util.c("sys_config> allocated relay redstone RTU for interface ", entry.relay))
+                    log.debug(util.c("sys_config> allocated relay redstone RTU on interface ", entry.relay))
 
                     local relay = ppm.get_device(entry.relay)
 
                     if not relay then
-                        log.warning(util.c("sys_config> redstone relay ", entry.relay, " not connected"))
+                        log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not connected"))
                     elseif ppm.get_type(entry.relay) ~= "redstone_relay" then
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not a redstone relay"))
                     end
@@ -198,8 +207,9 @@ local function main()
                 valid = util.trinary(entry.color == nil, true, rsio.is_color(entry.color))
             end
 
-            local rs_rtu = rs_rtus[for_reactor].rtu
-            local conns  = rs_rtus[phy].banks[for_reactor]
+            -- local rs_rtu = rs_rtus[phy].rtu
+            local bank   = rs_rtus[phy].banks[for_reactor]
+            local conns  = all_conns[for_reactor]
 
             if not valid then
                 local message = util.c("sys_config> invalid redstone definition at block index #", entry_idx)
@@ -216,10 +226,12 @@ local function main()
                         println(message)
                         log.warning(message)
                     else
-                        rs_rtu.link_di(entry.side, entry.color, entry.invert)
+                        table.insert(bank, entry)
+                        -- rs_rtu.link_di(entry.side, entry.color, entry.invert)
                     end
                 elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                    rs_rtu.link_do(entry.side, entry.color, entry.invert)
+                    table.insert(bank, entry)
+                    -- rs_rtu.link_do(entry.side, entry.color, entry.invert)
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(conns, entry.port) then
@@ -227,25 +239,55 @@ local function main()
                         println(message)
                         log.warning(message)
                     else
-                        rs_rtu.link_ai(entry.side)
+                        table.insert(bank, entry)
+                        -- rs_rtu.link_ai(entry.side)
                     end
                 elseif mode == rsio.IO_MODE.ANALOG_OUT then
-                    rs_rtu.link_ao(entry.side)
+                    table.insert(bank, entry)
+                    -- rs_rtu.link_ao(entry.side)
                 else
                     -- should be unreachable code, we already validated ports
-                    log.error("sys_config> fell through if chain attempting to identify IO mode at block index #" .. entry_idx, true)
+                    log.error("sys_config> failed to identify IO mode at block index #" .. entry_idx, true)
                     println("sys_config> encountered a software error, check logs")
                     return false
                 end
 
                 table.insert(conns, entry.port)
 
-                log.debug(util.c("sys_config> linked redstone ", #conns, ": ", rsio.to_string(entry.port), " (", iface_name, ") for ", assignment))
+                log.debug(util.c("sys_config> banked redstone ", #conns, ": ", rsio.to_string(entry.port), " (", iface_name, ") for ", assignment))
             end
         end
 
         -- create unit entries for redstone RTUs
         for _, def in pairs(rs_rtus) do
+            local rtu_conns = { [0] = {}, {}, {}, {}, {}}
+
+            -- connect the IO banks
+            for for_reactor = 0, #def.banks do
+                local bank  = def.banks[for_reactor]
+                local conns = rtu_conns[for_reactor]
+
+                -- link redstone to the RTU
+                for i = 1, #bank do
+                    local conn = bank[i]
+
+                    local mode = rsio.get_io_mode(conn.port)
+                    if mode == rsio.IO_MODE.DIGITAL_IN then
+                        def.rtu.link_di(conn.side, conn.color, conn.invert)
+                    elseif mode == rsio.IO_MODE.DIGITAL_OUT then
+                        def.rtu.link_do(conn.side, conn.color, conn.invert)
+                    elseif mode == rsio.IO_MODE.ANALOG_IN then
+                        def.rtu.link_ai(conn.side)
+                    elseif mode == rsio.IO_MODE.ANALOG_OUT then
+                        def.rtu.link_ao(conn.side)
+                    end
+
+                    table.insert(conns, conn.port)
+
+                    log.debug(util.c("sys_config> linked redstone ", for_reactor, ".", #conns, ": ", rsio.to_string(conn.port), " (", entry_iface_name(conn), ")"))
+                end
+            end
+
             local hw_state = util.trinary(def.phy, RTU_HW_STATE.OK, RTU_HW_STATE.OFFLINE)
 
             ---@class rtu_registry_entry
@@ -256,7 +298,7 @@ local function main()
                 index = false,                  ---@type integer|false
                 reactor = nil,                  ---@type nil
                 device = def.phy,               ---@type table|nil
-                banks = def.banks,              ---@type IO_PORT[][]
+                rs_conns = rtu_conns,           ---@type IO_PORT[][]|nil
                 is_multiblock = false,          ---@type boolean
                 formed = nil,                   ---@type boolean|nil
                 hw_state = hw_state,            ---@type RTU_HW_STATE
