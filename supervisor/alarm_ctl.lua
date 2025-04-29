@@ -35,7 +35,7 @@ local alarm_ctl = {}
 alarm_ctl.AISTATE = AISTATE
 alarm_ctl.AISTATE_NAMES = AISTATE_NAMES
 
--- update an alarm state given conditions
+-- update an alarm state based on its current status and if it is tripped
 ---@param caller_tag string tag to use in log messages
 ---@param alarm_states { [ALARM]: ALARM_STATE } unit instance
 ---@param tripped boolean if the alarm condition is sti ll active

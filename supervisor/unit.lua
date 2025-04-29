@@ -3,14 +3,14 @@ local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
-local alarmctl   = require("supervisor.alarm_ctl")
+local alarm_ctl  = require("supervisor.alarm_ctl")
 local logic      = require("supervisor.unitlogic")
 
 local plc        = require("supervisor.session.plc")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
-local AISTATE       = alarmctl.AISTATE
+local AISTATE       = alarm_ctl.AISTATE
 
 local ALARM         = types.ALARM
 local ALARM_STATE   = types.ALARM_STATE
