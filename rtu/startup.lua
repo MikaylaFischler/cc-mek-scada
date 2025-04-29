@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.11.7"
+local RTU_VERSION = "v1.11.8"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
@@ -197,10 +197,10 @@ local function main()
                         println(message)
                         log.warning(message)
                     else
-                        rs_rtu.link_di(entry.side, entry.color)
+                        rs_rtu.link_di(entry.side, entry.color, entry.invert)
                     end
                 elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                    rs_rtu.link_do(entry.side, entry.color)
+                    rs_rtu.link_do(entry.side, entry.color, entry.invert)
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(capabilities, entry.port) then
