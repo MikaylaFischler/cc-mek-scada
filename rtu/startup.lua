@@ -149,9 +149,9 @@ local function main()
 
     -- configure RTU gateway based on settings file definitions
     local function sys_config()
-        -- redstone interfaces
-        local rs_rtus = {}  ---@type { name: string, rtu: rtu_rs_device, phy: table|nil, banks: rtu_rs_definition[][] }[]
+        --#region Redstone Interfaces
 
+        local rs_rtus   = {} ---@type { name: string, rtu: rtu_rs_device, phy: table, banks: rtu_rs_definition[][] }[]
         local all_conns = {}
 
         -- go through redstone definitions list
@@ -161,6 +161,7 @@ local function main()
             local assignment
             local for_reactor = entry.unit
             local phy         = entry.relay or 0
+            local phy_name    = entry.relay or "local"
             local iface_name  = entry_iface_name(entry)
 
             if util.is_int(entry.unit) and entry.unit > 0 and entry.unit < 5 then
@@ -186,10 +187,12 @@ local function main()
                 elseif not rs_rtus[entry.relay] then
                     log.debug(util.c("sys_config> allocated relay redstone RTU on interface ", entry.relay))
 
-                    local relay = ppm.get_device(entry.relay)
+                    local relay  = ppm.get_device(entry.relay)
 
                     if not relay then
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not connected"))
+                        local _, v_device = ppm.mount_virtual()
+                        relay = v_device
                     elseif ppm.get_type(entry.relay) ~= "redstone_relay" then
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not a redstone relay"))
                     end
@@ -208,8 +211,8 @@ local function main()
             end
 
             -- local rs_rtu = rs_rtus[phy].rtu
-            local bank   = rs_rtus[phy].banks[for_reactor]
-            local conns  = all_conns[for_reactor]
+            local bank  = rs_rtus[phy].banks[for_reactor]
+            local conns = all_conns[for_reactor]
 
             if not valid then
                 local message = util.c("sys_config> invalid redstone definition at block index #", entry_idx)
@@ -222,54 +225,50 @@ local function main()
                 if mode == rsio.IO_MODE.DIGITAL_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(conns, entry.port) then
-                        local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name)
+                        local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name, " @ ", phy_name)
                         println(message)
                         log.warning(message)
                     else
                         table.insert(bank, entry)
-                        -- rs_rtu.link_di(entry.side, entry.color, entry.invert)
                     end
-                elseif mode == rsio.IO_MODE.DIGITAL_OUT then
-                    table.insert(bank, entry)
-                    -- rs_rtu.link_do(entry.side, entry.color, entry.invert)
                 elseif mode == rsio.IO_MODE.ANALOG_IN then
                     -- can't have duplicate inputs
                     if util.table_contains(conns, entry.port) then
-                        local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name)
+                        local message = util.c("sys_config> skipping duplicate input for port ", rsio.to_string(entry.port), " on side ", iface_name, " @ ", phy_name)
                         println(message)
                         log.warning(message)
                     else
                         table.insert(bank, entry)
-                        -- rs_rtu.link_ai(entry.side)
                     end
-                elseif mode == rsio.IO_MODE.ANALOG_OUT then
+                elseif (mode == rsio.IO_MODE.DIGITAL_OUT) or (mode == rsio.IO_MODE.ANALOG_OUT) then
                     table.insert(bank, entry)
-                    -- rs_rtu.link_ao(entry.side)
                 else
                     -- should be unreachable code, we already validated ports
-                    log.error("sys_config> failed to identify IO mode at block index #" .. entry_idx, true)
+                    log.fatal("sys_config> failed to identify IO mode at block index #" .. entry_idx)
                     println("sys_config> encountered a software error, check logs")
                     return false
                 end
 
                 table.insert(conns, entry.port)
 
-                log.debug(util.c("sys_config> banked redstone ", #conns, ": ", rsio.to_string(entry.port), " (", iface_name, ") for ", assignment))
+                log.debug(util.c("sys_config> banked redstone ", #conns, ": ", rsio.to_string(entry.port), " (", iface_name, " @ ", phy_name, ") for ", assignment))
             end
         end
 
         -- create unit entries for redstone RTUs
         for _, def in pairs(rs_rtus) do
-            local rtu_conns = { [0] = {}, {}, {}, {}, {}}
+            local rtu_conns = { [0] = {}, {}, {}, {}, {} }
 
             -- connect the IO banks
             for for_reactor = 0, #def.banks do
-                local bank  = def.banks[for_reactor]
-                local conns = rtu_conns[for_reactor]
+                local bank   = def.banks[for_reactor]
+                local conns  = rtu_conns[for_reactor]
+                local assign = util.trinary(for_reactor > 0, "reactor unit " .. for_reactor, "the facility")
 
                 -- link redstone to the RTU
                 for i = 1, #bank do
-                    local conn = bank[i]
+                    local conn     = bank[i]
+                    local phy_name = conn.relay or "local"
 
                     local mode = rsio.get_io_mode(conn.port)
                     if mode == rsio.IO_MODE.DIGITAL_IN then
@@ -280,44 +279,52 @@ local function main()
                         def.rtu.link_ai(conn.side)
                     elseif mode == rsio.IO_MODE.ANALOG_OUT then
                         def.rtu.link_ao(conn.side)
+                    else
+                        log.fatal(util.c("sys_config> failed to identify IO mode of ", rsio.to_string(conn.port), " (", entry_iface_name(conn), " @ ", phy_name, ") for ", assign))
+                        println("sys_config> encountered a software error, check logs")
+                        return false
                     end
 
                     table.insert(conns, conn.port)
 
-                    log.debug(util.c("sys_config> linked redstone ", for_reactor, ".", #conns, ": ", rsio.to_string(conn.port), " (", entry_iface_name(conn), ")"))
+                    log.debug(util.c("sys_config> linked redstone ", for_reactor, ".", #conns, ": ", rsio.to_string(conn.port), " (", entry_iface_name(conn), ")", " @ ", phy_name, ") for ", assign))
                 end
             end
 
             local hw_state = util.trinary(def.phy, RTU_HW_STATE.OK, RTU_HW_STATE.OFFLINE)
 
-            ---@class rtu_registry_entry
+            ---@type rtu_registry_entry
             local unit = {
-                uid = 0,                        ---@type integer
-                name = def.name,                ---@type string
-                type = RTU_UNIT_TYPE.REDSTONE,  ---@type RTU_UNIT_TYPE
-                index = false,                  ---@type integer|false
-                reactor = nil,                  ---@type nil
-                device = def.phy,               ---@type table|nil
-                rs_conns = rtu_conns,           ---@type IO_PORT[][]|nil
-                is_multiblock = false,          ---@type boolean
-                formed = nil,                   ---@type boolean|nil
-                hw_state = hw_state,            ---@type RTU_HW_STATE
-                rtu = def.rtu,                  ---@type rtu_device|rtu_rs_device
+                uid = 0,
+                name = def.name,
+                type = RTU_UNIT_TYPE.REDSTONE,
+                index = false,
+                reactor = nil,
+                device = def.phy,
+                rs_conns = rtu_conns,
+                is_multiblock = false,
+                formed = nil,
+                hw_state = hw_state,
+                rtu = def.rtu,
                 modbus_io = modbus.new(def.rtu, false),
-                pkt_queue = nil,                ---@type mqueue|nil
-                thread = nil                    ---@type parallel_thread|nil
+                pkt_queue = nil,
+                thread = nil
             }
 
             table.insert(units, unit)
 
-            log.info(util.c("sys_config> initialized RTU unit #", #units, ": ", unit.name, " (redstone)"))
+            local type = util.trinary(def.phy == rs, "redstone", "redstone_relay")
+
+            log.info(util.c("sys_config> initialized RTU unit #", #units, ": ", unit.name, " (", type, ")"))
 
             unit.uid = #units
 
             databus.tx_unit_hw_status(unit.uid, unit.hw_state)
         end
 
-        -- mounted peripherals
+        --#endregion
+        --#region Mounted Peripherals
+
         for i = 1, #rtu_devices do
             local entry = rtu_devices[i]   ---@type rtu_peri_definition
             local name = entry.name
@@ -498,19 +505,20 @@ local function main()
 
             ---@class rtu_registry_entry
             local rtu_unit = {
-                uid = 0,                            ---@type integer
-                name = name,                        ---@type string
-                type = rtu_type,                    ---@type RTU_UNIT_TYPE
-                index = index or false,             ---@type integer|false
-                reactor = for_reactor,              ---@type integer
-                device = device,                    ---@type table peripheral reference
-                is_multiblock = is_multiblock,      ---@type boolean
-                formed = formed,                    ---@type boolean|nil
-                hw_state = RTU_HW_STATE.OFFLINE,    ---@type RTU_HW_STATE
-                rtu = rtu_iface,                    ---@type rtu_device|rtu_rs_device
-                modbus_io = modbus.new(rtu_iface, true),
-                pkt_queue = mqueue.new(),           ---@type mqueue|nil
-                thread = nil                        ---@type parallel_thread|nil
+                uid = 0,                                 ---@type integer RTU unit ID
+                name = name,                             ---@type string unit name
+                type = rtu_type,                         ---@type RTU_UNIT_TYPE unit type
+                index = index or false,                  ---@type integer|false device index
+                reactor = for_reactor,                   ---@type integer|nil unit/facility assignment
+                device = device,                         ---@type table peripheral reference
+                rs_conns = nil,                          ---@type IO_PORT[][]|nil available redstone connections
+                is_multiblock = is_multiblock,           ---@type boolean if this is for a multiblock peripheral
+                formed = formed,                         ---@type boolean|nil if this peripheral is currently formed
+                hw_state = RTU_HW_STATE.OFFLINE,         ---@type RTU_HW_STATE hardware device status
+                rtu = rtu_iface,                         ---@type rtu_device|rtu_rs_device RTU hardware interface
+                modbus_io = modbus.new(rtu_iface, true), ---@type modbus MODBUS interface
+                pkt_queue = mqueue.new(),                ---@type mqueue|nil packet queue
+                thread = nil                             ---@type parallel_thread|nil associated RTU thread
             }
 
             rtu_unit.thread = threads.thread__unit_comms(__shared_memory, rtu_unit)
@@ -543,6 +551,8 @@ local function main()
             -- report hardware status
             databus.tx_unit_hw_status(rtu_unit.uid, rtu_unit.hw_state)
         end
+
+        --#endregion
 
         return true
     end
@@ -612,7 +622,7 @@ local function main()
         -- run threads
         parallel.waitForAll(table.unpack(_threads))
     else
-        println("configuration failed, exiting...")
+        println("system initialization failed, exiting...")
     end
 
     renderer.close_ui()

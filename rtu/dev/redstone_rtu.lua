@@ -44,8 +44,9 @@ function redstone_rtu.new(relay)
     ---@param side string
     ---@param color integer
     ---@param invert boolean|nil
+    ---@return integer count count of digital inputs
     function public.link_di(side, color, invert)
-        local f_read    ---@type function
+        local f_read ---@type function
 
         if color then
             if invert then
@@ -61,16 +62,17 @@ function redstone_rtu.new(relay)
             end
         end
 
-        unit.connect_di(f_read)
+        return unit.connect_di(f_read)
     end
 
     -- link digital output
     ---@param side string
     ---@param color integer
     ---@param invert boolean|nil
+    ---@return integer count count of digital outputs
     function public.link_do(side, color, invert)
-        local f_read    ---@type function
-        local f_write   ---@type function
+        local f_read  ---@type function
+        local f_write ---@type function
 
         if color then
             if invert then
@@ -123,19 +125,21 @@ function redstone_rtu.new(relay)
             end
         end
 
-        unit.connect_coil(f_read, f_write)
+        return unit.connect_coil(f_read, f_write)
     end
 
     -- link analog input
     ---@param side string
+    ---@return integer count count of analog inputs
     function public.link_ai(side)
-        unit.connect_input_reg(function () return phy.getAnalogInput(side) end)
+        return unit.connect_input_reg(function () return phy.getAnalogInput(side) end)
     end
 
     -- link analog output
     ---@param side string
+    ---@return integer count count of analog outputs
     function public.link_ao(side)
-        unit.connect_holding_reg(
+        return unit.connect_holding_reg(
             function () return phy.getAnalogOutput(side) end,
             function (value) phy.setAnalogOutput(side, value) end
         )
