@@ -465,7 +465,8 @@ types.ALARM = {
     ReactorHighWaste = 9,
     RPSTransient = 10,
     RCSTransient = 11,
-    TurbineTrip = 12
+    TurbineTrip = 12,
+    FacilityRadiation = 13
 }
 
 types.ALARM_NAMES = {
@@ -480,7 +481,8 @@ types.ALARM_NAMES = {
     "ReactorHighWaste",
     "RPSTransient",
     "RCSTransient",
-    "TurbineTrip"
+    "TurbineTrip",
+    "FacilityRadiation"
 }
 
 ---@enum ALARM_PRIORITY
