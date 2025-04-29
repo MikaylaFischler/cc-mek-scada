@@ -26,18 +26,18 @@ local IO = rsio.IO
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
+local ANNUNC_LIMS             = const.ANNUNCIATOR_LIMITS
+local ALARM_LIMS              = const.ALARM_LIMITS
 local FLOW_STABILITY_DELAY_MS = const.FLOW_STABILITY_DELAY_MS
+local RS_THRESH               = const.RS_THRESHOLDS
 
-local ANNUNC_LIMS = const.ANNUNCIATOR_LIMITS
-local ALARM_LIMS = const.ALARM_LIMITS
-local RS_THRESH = const.RS_THRESHOLDS
+local self = nil    ---@type _unit_self
 
 ---@class unit_logic_extension
 local logic = {}
 
 -- update the annunciator
----@param self _unit_self
-function logic.update_annunciator(self)
+function logic.update_annunciator()
     local DT_KEYS = self.types.DT_KEYS
     local _get_dt = self._get_dt
 
@@ -421,23 +421,21 @@ function logic.update_annunciator(self)
 end
 
 -- update an alarm state given conditions
----@param self _unit_self unit instance
 ---@param tripped boolean if the alarm condition is still active
 ---@param alarm alarm_def alarm table
 ---@return boolean new_trip if the alarm just changed to being tripped
-local function _update_alarm_state(self, tripped, alarm)
+local function _update_alarm_state(tripped, alarm)
     return alarm_ctl.update_alarm_state("UNIT " .. self.r_id, self.db.alarm_states, tripped, alarm)
 end
 
 -- evaluate alarm conditions
----@param self _unit_self unit instance
-function logic.update_alarms(self)
+function logic.update_alarms()
     local annunc = self.db.annunciator
     local plc_cache = self.plc_cache
 
     -- Containment Breach
     -- lost plc with critical damage (rip plc, you will be missed)
-    _update_alarm_state(self, (not plc_cache.ok) and (plc_cache.damage > 99), self.alarms.ContainmentBreach)
+    _update_alarm_state((not plc_cache.ok) and (plc_cache.damage > 99), self.alarms.ContainmentBreach)
 
     -- Containment Radiation
     local rad_alarm = false
@@ -446,38 +444,38 @@ function logic.update_alarms(self)
         rad_alarm = self.last_radiation >= ALARM_LIMS.HIGH_RADIATION
         break
     end
-    _update_alarm_state(self, rad_alarm, self.alarms.ContainmentRadiation)
+    _update_alarm_state(rad_alarm, self.alarms.ContainmentRadiation)
 
     -- Reactor Lost
-    _update_alarm_state(self, self.had_reactor and self.plc_i == nil, self.alarms.ReactorLost)
+    _update_alarm_state(self.had_reactor and self.plc_i == nil, self.alarms.ReactorLost)
 
     -- Critical Damage
-    _update_alarm_state(self, plc_cache.damage >= 100, self.alarms.CriticalDamage)
+    _update_alarm_state(plc_cache.damage >= 100, self.alarms.CriticalDamage)
 
     -- Reactor Damage
     local rps_dmg_90 = plc_cache.rps_status.high_dmg and not self.last_rps_trips.high_dmg
-    if _update_alarm_state(self, (plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage) then
+    if _update_alarm_state((plc_cache.damage > 0) or rps_dmg_90, self.alarms.ReactorDamage) then
         log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorDamage.id]," <<"))
         log.debug(util.c("| plc_cache.damage[", plc_cache.damage, "] rps_dmg_90[", rps_dmg_90, "]"))
     end
 
     -- Over-Temperature
     local rps_high_temp = plc_cache.rps_status.high_temp and not self.last_rps_trips.high_temp
-    if _update_alarm_state(self, (plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp) then
+    if _update_alarm_state((plc_cache.temp >= 1200) or rps_high_temp, self.alarms.ReactorOverTemp) then
         log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorOverTemp.id]," <<"))
         log.debug(util.c("| plc_cache.temp[", plc_cache.temp, "] rps_high_temp[", rps_high_temp, "]"))
     end
 
     -- High Temperature
     local high_temp = math.min(math.max(self.plc_cache.high_temp_lim, 1100), 1199.995)
-    _update_alarm_state(self, plc_cache.temp >= high_temp, self.alarms.ReactorHighTemp)
+    _update_alarm_state(plc_cache.temp >= high_temp, self.alarms.ReactorHighTemp)
 
     -- Waste Leak
-    _update_alarm_state(self, plc_cache.waste >= 1.0, self.alarms.ReactorWasteLeak)
+    _update_alarm_state(plc_cache.waste >= 1.0, self.alarms.ReactorWasteLeak)
 
     -- High Waste
     local rps_high_waste = plc_cache.rps_status.ex_waste and not self.last_rps_trips.ex_waste
-    if _update_alarm_state(self, (plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste) then
+    if _update_alarm_state((plc_cache.waste > ALARM_LIMS.HIGH_WASTE) or rps_high_waste, self.alarms.ReactorHighWaste) then
         log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.ReactorHighWaste.id]," <<"))
         log.debug(util.c("| plc_cache.waste[", plc_cache.waste, "] rps_high_waste[", rps_high_waste, "]"))
     end
@@ -492,7 +490,7 @@ function logic.update_alarms(self)
         end
     end
 
-    _update_alarm_state(self, rps_alarm, self.alarms.RPSTransient)
+    _update_alarm_state(rps_alarm, self.alarms.RPSTransient)
 
     -- RCS Transient
     local any_low = annunc.CoolantLevelLow
@@ -525,7 +523,7 @@ function logic.update_alarms(self)
         end
     end
 
-    if _update_alarm_state(self, rcs_trans, self.alarms.RCSTransient) then
+    if _update_alarm_state(rcs_trans, self.alarms.RCSTransient) then
         log.debug(util.c(">> Trip Detail Report for ", types.ALARM_NAMES[self.alarms.RCSTransient.id]," <<"))
         log.debug(util.c("| any_low[", any_low, "] any_over[", any_over, "] gen_trip[", gen_trip, "]"))
         log.debug(util.c("| RCPTrip[", annunc.RCPTrip, "] MaxWaterReturnFeed[", annunc.MaxWaterReturnFeed, "]"))
@@ -536,7 +534,7 @@ function logic.update_alarms(self)
     -- Turbine Trip
     local any_trip = false
     for i = 1, #annunc.TurbineTrip do any_trip = any_trip or annunc.TurbineTrip[i] end
-    _update_alarm_state(self, any_trip, self.alarms.TurbineTrip)
+    _update_alarm_state(any_trip, self.alarms.TurbineTrip)
 
     -- update last trips table
     for key, val in pairs(plc_cache.rps_status) do self.last_rps_trips[key] = val end
@@ -544,8 +542,7 @@ end
 
 -- update the internal automatic safety control performed while in auto control mode
 ---@param public reactor_unit reactor unit public functions
----@param self _unit_self unit instance
-function logic.update_auto_safety(public, self)
+function logic.update_auto_safety(public)
     if self.auto_engaged then
         local alarmed = false
 
@@ -572,8 +569,7 @@ function logic.update_auto_safety(public, self)
 end
 
 -- update the two unit status text messages
----@param self _unit_self unit instance
-function logic.update_status_text(self)
+function logic.update_status_text()
     local annunc = self.db.annunciator
 
     -- check if an alarm is active (tripped or ack'd)
@@ -735,8 +731,7 @@ function logic.update_status_text(self)
 end
 
 -- handle unit redstone I/O
----@param self _unit_self unit instance
-function logic.handle_redstone(self)
+function logic.handle_redstone()
     local annunc = self.db.annunciator
     local cache = self.plc_cache
     local rps = cache.rps_status
@@ -893,4 +888,9 @@ function logic.handle_redstone(self)
     end
 end
 
-return logic
+-- link the self instance and return the logic interface
+---@param unit_self _unit_self
+return function (unit_self)
+    self = unit_self
+    return logic
+end

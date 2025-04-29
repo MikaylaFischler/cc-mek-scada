@@ -4,7 +4,7 @@ local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local alarm_ctl  = require("supervisor.alarm_ctl")
-local logic      = require("supervisor.unitlogic")
+local unit_logic = require("supervisor.unit_logic")
 
 local plc        = require("supervisor.session.plc")
 local rsctl      = require("supervisor.session.rsctl")
@@ -239,6 +239,9 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             }
         }
     }
+
+    -- provide self to unit logic functions
+    local logic = unit_logic(self)
 
     -- list for RTU session management
     self.rtu_list = { self.redstone, self.boilers, self.turbines, self.tanks, self.snas, self.envd }
@@ -583,20 +586,20 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         _dt__compute_all()
 
         -- update annunciator logic
-        logic.update_annunciator(self)
+        logic.update_annunciator()
 
         -- update alarm status
-        logic.update_alarms(self)
+        logic.update_alarms()
 
         -- if in auto mode, SCRAM on certain alarms
-        logic.update_auto_safety(public, self)
+        logic.update_auto_safety(public)
 
         -- update status text
-        logic.update_status_text(self)
+        logic.update_status_text()
 
         -- handle redstone I/O
         if #self.redstone > 0 then
-            logic.handle_redstone(self)
+            logic.handle_redstone()
         elseif not self.plc_cache.rps_trip then
             self.em_cool_opened = false
         end
