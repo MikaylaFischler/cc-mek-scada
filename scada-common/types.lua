@@ -125,7 +125,7 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 ---@field type RTU_UNIT_TYPE
 ---@field index integer|false
 ---@field reactor integer
----@field rsio IO_PORT[]|nil
+---@field rs_conns IO_PORT[][]|nil
 
 -- create a new reactor database
 ---@nodiscard

@@ -258,7 +258,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     self.rtu_list = { self.redstone, self.boilers, self.turbines, self.tanks, self.snas, self.envd }
 
     -- init redstone RTU I/O controller
-    self.io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone, reactor_id)
 
     -- init boiler table fields
     for _ = 1, num_boilers do
