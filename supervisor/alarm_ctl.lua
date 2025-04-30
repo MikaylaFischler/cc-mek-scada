@@ -89,6 +89,9 @@ function alarm_ctl.update_alarm_state(caller_tag, alarm_states, tripped, alarm, 
                 -- was acked by coordinator
                 alarm.state = AISTATE.ACKED
             end
+        elseif no_ring_back then
+            alarm.state = AISTATE.INACTIVE
+            alarm_states[alarm.id] = ALARM_STATE.INACTIVE
         else
             alarm.state = AISTATE.RING_BACK
             alarm_states[alarm.id] = ALARM_STATE.RING_BACK
