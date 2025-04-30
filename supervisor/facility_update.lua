@@ -645,7 +645,7 @@ function update.auto_safety()
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
+        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.radiation or astatus.gen_fault
 
         if scram and not self.ascram then
             -- SCRAM all units
