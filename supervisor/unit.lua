@@ -240,9 +240,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         }
     }
 
-    -- provide self to unit logic functions
-    local logic = unit_logic(self)
-
     -- list for RTU session management
     self.rtu_list = { self.redstone, self.boilers, self.turbines, self.tanks, self.snas, self.envd }
 
@@ -586,20 +583,20 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         _dt__compute_all()
 
         -- update annunciator logic
-        logic.update_annunciator()
+        unit_logic.update_annunciator(self)
 
         -- update alarm status
-        logic.update_alarms()
+        unit_logic.update_alarms(self)
 
         -- if in auto mode, SCRAM on certain alarms
-        logic.update_auto_safety(public)
+        unit_logic.update_auto_safety(self, public)
 
         -- update status text
-        logic.update_status_text()
+        unit_logic.update_status_text(self)
 
         -- handle redstone I/O
         if #self.redstone > 0 then
-            logic.handle_redstone()
+            unit_logic.handle_redstone(self)
         elseif not self.plc_cache.rps_trip then
             self.em_cool_opened = false
         end
