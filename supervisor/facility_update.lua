@@ -5,6 +5,8 @@ local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
+local alarm_ctl  = require("supervisor.alarm_ctl")
+
 local plc        = require("supervisor.session.plc")
 local svsessions = require("supervisor.session.svsessions")
 
@@ -643,7 +645,7 @@ function update.auto_safety()
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.gen_fault
+        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.radiation or astatus.gen_fault
 
         if scram and not self.ascram then
             -- SCRAM all units
@@ -714,11 +716,17 @@ function update.post_auto()
     self.mode = next_mode
 end
 
+-- update facility alarm states
+function update.update_alarms()
+    -- Facility Radiation
+    alarm_ctl.update_alarm_state("FAC", self.alarm_states, self.ascram_status.radiation, self.alarms.FacilityRadiation, true)
+end
+
 -- update alarm audio control
 function update.alarm_audio()
     local allow_test = self.allow_testing and self.test_tone_set
 
-    local alarms = { false, false, false, false, false, false, false, false, false, false, false, false }
+    local alarms = { false, false, false, false, false, false, false, false, false, false, false, false, false }
 
     -- reset tone states before re-evaluting
     for i = 1, #self.tone_states do self.tone_states[i] = false end
@@ -734,8 +742,11 @@ function update.alarm_audio()
             end
         end
 
+        -- record facility alarms
+        alarms[ALARM.FacilityRadiation] = self.alarm_states[ALARM.FacilityRadiation] == ALARM_STATE.TRIPPED
+
+        -- clear testing alarms if we aren't using them
         if not self.test_tone_reset then
-            -- clear testing alarms if we aren't using them
             for i = 1, #self.test_alarm_states do self.test_alarm_states[i] = false end
         end
     end
@@ -774,7 +785,7 @@ function update.alarm_audio()
     end
 
     -- radiation is a big concern, always play this CRITICAL level alarm if active
-    if alarms[ALARM.ContainmentRadiation] then
+    if alarms[ALARM.ContainmentRadiation] or alarms[ALARM.FacilityRadiation] then
         self.tone_states[TONE.T_800Hz_1000Hz_Alt] = true
         -- we are going to disable the RPS trip alarm audio due to conflict, and if it was enabled
         -- then we can re-enable the reactor lost alarm audio since it doesn't painfully combine with this one
