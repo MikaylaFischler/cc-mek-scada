@@ -36,6 +36,7 @@ function rtu.load_config()
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
+    config.WiredModem = settings.get("WiredModem")
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
 
@@ -61,6 +62,7 @@ function rtu.validate_config(cfg)
     cfv.assert_channel(cfg.RTU_Channel)
     cfv.assert_type_num(cfg.ConnTimeout)
     cfv.assert_min(cfg.ConnTimeout, 2)
+    cfv.assert((cfg.WiredModem == false) or (type(cfg.WiredModem) == "string"))
     cfv.assert_type_num(cfg.TrustedRange)
     cfv.assert_min(cfg.TrustedRange, 0)
     cfv.assert_type_str(cfg.AuthKey)
@@ -299,7 +301,9 @@ function rtu.comms(version, nic, conn_watchdog)
 
     local insert = table.insert
 
-    comms.set_trusted_range(config.TrustedRange)
+    if nic.isWireless() then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
     -- PRIVATE FUNCTIONS --
 

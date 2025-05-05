@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.11.8"
+local RTU_VERSION = "v1.12.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
@@ -108,7 +108,9 @@ local function main()
 
         -- RTU gateway devices (not RTU units)
         rtu_dev = {
-            modem = ppm.get_wireless_modem(),
+            modem_wired = type(config.WiredModem) == "string",
+            modem_iface = config.WiredModem,
+            modem = nil,
             sounders = {}        ---@type rtu_speaker_sounder[]
         },
 
@@ -131,8 +133,13 @@ local function main()
 
     local rtu_state = __shared_memory.rtu_state
 
+    -- get the configured modem
+    if smem_dev.modem_wired then
+        smem_dev.modem = ppm.get_wired_modem(smem_dev.modem_iface)
+    else smem_dev.modem = ppm.get_wireless_modem() end
+
     ----------------------------------------
-    -- interpret config and init units
+    -- interpret RTU configs and init units
     ----------------------------------------
 
     local units = __shared_memory.rtu_sys.units
@@ -506,10 +513,10 @@ local function main()
             log.info("startup> running in headless mode without front panel")
         end
 
-        -- check modem
+        -- check comms modem
         if smem_dev.modem == nil then
-            println("startup> wireless modem not found")
-            log.fatal("no wireless modem on startup")
+            println("startup> comms modem not found")
+            log.fatal("no comms modem on startup")
             return
         end
 

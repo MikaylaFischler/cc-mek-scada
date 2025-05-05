@@ -88,8 +88,9 @@ local tmp_cfg = {
     SVR_Channel = nil,   ---@type integer
     RTU_Channel = nil,   ---@type integer
     ConnTimeout = nil,   ---@type number
+    WiredModem = false,  ---@type string|false
     TrustedRange = nil,  ---@type number
-    AuthKey = nil,       ---@type string|nil
+    AuthKey = nil,       ---@type string
     LogMode = 0,         ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
@@ -107,6 +108,7 @@ local fields = {
     { "SVR_Channel", "SVR Channel", 16240 },
     { "RTU_Channel", "RTU Channel", 16242 },
     { "ConnTimeout", "Connection Timeout", 5 },
+    { "WiredModem", "Wired Modem", false },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key", "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },

@@ -167,7 +167,7 @@ function threads.thread__main(smem, init)
                                 end
                             end
                         else
-                            log.warning("a non-comms modem was disconnected")
+                            log.warning("non-comms modem disconnected")
                         end
                     end
                 end

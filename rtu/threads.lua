@@ -189,6 +189,7 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
+        local rtu_dev       = smem.rtu_dev
         local sounders      = smem.rtu_dev.sounders
         local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
@@ -246,11 +247,11 @@ function threads.thread__main(smem)
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
                         ---@cast device Modem
-                        -- we only care if this is our wireless modem
+                        -- we only care if this is our comms modem
                         if nic.is_modem(device) then
                             nic.disconnect()
 
-                            println_ts("wireless modem disconnected!")
+                            println_ts("comms modem disconnected!")
                             log.warning("comms modem disconnected")
 
                             local other_modem = ppm.get_wireless_modem()
@@ -301,18 +302,20 @@ function threads.thread__main(smem)
                 if type ~= nil and device ~= nil then
                     if type == "modem" then
                         ---@cast device Modem
-                        if device.isWireless() and not nic.is_connected() then
+                        local is_comms_modem = util.trinary(rtu_dev.modem_wired, rtu_dev.modem_iface == param1, device.isWireless())
+
+                        if is_comms_modem and not nic.is_connected() then
                             -- reconnected modem
                             nic.connect(device)
 
-                            println_ts("wireless modem reconnected.")
+                            println_ts("comms modem reconnected.")
                             log.info("comms modem reconnected")
 
                             databus.tx_hw_modem(true)
                         elseif device.isWireless() then
-                            log.info("unused wireless modem reconnected")
+                            log.info("unused wireless modem connected")
                         else
-                            log.info("wired modem reconnected")
+                            log.info("non-comms wired modem connected")
                         end
                     elseif type == "speaker" then
                         ---@cast device Speaker

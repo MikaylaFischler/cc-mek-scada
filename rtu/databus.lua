@@ -31,7 +31,7 @@ function databus.tx_versions(rtu_v, comms_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
--- transmit hardware status for modem connection state
+-- transmit hardware status for comms modem connection state
 ---@param has_modem boolean
 function databus.tx_hw_modem(has_modem)
     databus.ps.publish("has_modem", has_modem)
