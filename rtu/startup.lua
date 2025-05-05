@@ -564,17 +564,6 @@ local function main()
     log.debug("boot> running sys_config()")
 
     if sys_config() then
-        -- start UI
-        local message
-        rtu_state.fp_ok, message = renderer.try_start_ui(units, config.FrontPanelTheme, config.ColorMode)
-
-        if not rtu_state.fp_ok then
-            println_ts(util.c("UI error: ", message))
-            println("startup> running without front panel")
-            log.error(util.c("front panel GUI render failed with error ", message))
-            log.info("startup> running in headless mode without front panel")
-        end
-
         -- check modem
         if smem_dev.modem == nil then
             println("startup> wireless modem not found")
@@ -595,6 +584,17 @@ local function main()
         end
 
         databus.tx_hw_spkr_count(#smem_dev.sounders)
+
+        -- start UI
+        local message
+        rtu_state.fp_ok, message = renderer.try_start_ui(units, config.FrontPanelTheme, config.ColorMode)
+
+        if not rtu_state.fp_ok then
+            println_ts(util.c("UI error: ", message))
+            println("startup> running without front panel")
+            log.error(util.c("front panel GUI render failed with error ", message))
+            log.info("startup> running in headless mode without front panel")
+        end
 
         -- start connection watchdog
         smem_sys.conn_watchdog = util.new_watchdog(config.ConnTimeout)
