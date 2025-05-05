@@ -18,7 +18,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.8.20"
+local R_PLC_VERSION = "v1.9.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -106,7 +106,9 @@ local function main()
         -- core PLC devices
         plc_dev = {
             reactor = ppm.get_fission_reactor(),
-            modem = ppm.get_wireless_modem()
+            modem_wired = type(config.WiredModem) == "string",
+            modem_iface = config.WiredModem,
+            modem = nil
         },
 
         -- system objects
@@ -130,6 +132,11 @@ local function main()
 
     local plc_state = __shared_memory.plc_state
 
+    -- get the configured modem
+    if smem_dev.modem_wired then
+        smem_dev.modem = ppm.get_wired_modem(smem_dev.modem_iface)
+    else smem_dev.modem = ppm.get_wireless_modem() end
+
     -- initial state evaluation
     plc_state.no_reactor = smem_dev.reactor == nil
     plc_state.no_modem = smem_dev.modem == nil
@@ -149,10 +156,10 @@ local function main()
         plc_state.reactor_formed = false
     end
 
-    -- modem is required if networked
+    -- comms modem is required if networked
     if __shared_memory.networked and plc_state.no_modem then
-        println("init> wireless modem not found")
-        log.warning("init> no wireless modem on startup")
+        println("init> comms modem not found")
+        log.warning("init> no comms modem on startup")
 
         -- scram reactor if present and enabled
         if (smem_dev.reactor ~= nil) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then

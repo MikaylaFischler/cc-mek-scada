@@ -447,6 +447,19 @@ end
 ---@return table|nil reactor function table
 function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
 
+-- get the named wired modem
+---@nodiscard
+---@param iface string CC peripheral interface
+---@return Modem|nil modem function table
+function ppm.get_wired_modem(iface)
+    local modem  = nil
+    local device = ppm_sys.mounts[iface]
+
+    if device.type == "modem" then modem = device.dev end
+
+    return modem
+end
+
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@nodiscard

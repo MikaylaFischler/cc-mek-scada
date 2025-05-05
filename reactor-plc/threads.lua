@@ -145,7 +145,7 @@ function threads.thread__main(smem, init)
                         plc_state.degraded = true
                     elseif networked and type == "modem" then
                         ---@cast device Modem
-                        -- we only care if this is our wireless modem
+                        -- we only care if this is our comms modem
                         -- note, check init_ok first since nic will be nil if it is false
                         if plc_state.init_ok and nic.is_modem(device) then
                             nic.disconnect()
@@ -154,7 +154,7 @@ function threads.thread__main(smem, init)
                             log.warning("comms modem disconnected")
 
                             local other_modem = ppm.get_wireless_modem()
-                            if other_modem then
+                            if other_modem and not plc_dev.modem_wired then
                                 log.info("found another wireless modem, using it for comms")
                                 nic.connect(other_modem)
                             else
@@ -167,7 +167,7 @@ function threads.thread__main(smem, init)
                                 end
                             end
                         else
-                            log.warning("a modem was disconnected")
+                            log.warning("a non-comms modem was disconnected")
                         end
                     end
                 end
@@ -210,15 +210,17 @@ function threads.thread__main(smem, init)
                         end
                     elseif networked and type == "modem" then
                         ---@cast device Modem
-                        -- note, check init_ok first since nic will be nil if it is false
-                        if device.isWireless() and not (plc_state.init_ok and nic.is_connected()) then
+                        local is_comms_modem = util.trinary(plc_dev.modem_wired, plc_dev.modem_iface == param1, device.isWireless())
+
+                        -- note, check init_ok since nic will be nil if it is false
+                        if is_comms_modem and not (plc_state.init_ok and nic.is_connected()) then
                             -- reconnected modem
                             plc_dev.modem = device
                             plc_state.no_modem = false
 
                             if plc_state.init_ok then nic.connect(device) end
 
-                            println_ts("wireless modem reconnected.")
+                            println_ts("comms modem reconnected.")
                             log.info("comms modem reconnected")
 
                             -- determine if we are still in a degraded state
@@ -226,9 +228,9 @@ function threads.thread__main(smem, init)
                                 plc_state.degraded = false
                             end
                         elseif device.isWireless() then
-                            log.info("unused wireless modem reconnected")
+                            log.info("unused wireless modem connected")
                         else
-                            log.info("wired modem reconnected")
+                            log.info("non-comms wired modem connected")
                         end
                     end
                 end
