@@ -76,6 +76,7 @@ local tool_ctl = {
     gen_summary = nil,        ---@type function
     load_legacy = nil,        ---@type function
     update_peri_list = nil,   ---@type function
+    update_relay_list = nil,  ---@type function
     gen_peri_summary = nil,   ---@type function
     gen_rs_summary = nil,     ---@type function
 }
@@ -128,7 +129,7 @@ end
 ---@param data rtu_rs_definition[]
 function tool_ctl.deep_copy_rs(data)
     local array = {}
-    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color, invert = d.invert }) end
+    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color, invert = d.invert, relay = d.relay }) end
     return array
 end
 
@@ -208,7 +209,6 @@ local function config_view(display)
     end
 
     local function show_rs_conns()
-        tool_ctl.gen_rs_summary()
         main_pane.set_value(9)
     end
 
@@ -348,10 +348,12 @@ function configurator.configure(ask_config)
 ---@diagnostic disable-next-line: discard-returns
                 ppm.handle_unmount(param1)
                 tool_ctl.update_peri_list()
+                tool_ctl.update_relay_list()
             elseif event == "peripheral" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.mount(param1)
                 tool_ctl.update_peri_list()
+                tool_ctl.update_relay_list()
             end
 
             if event == "terminate" then return end

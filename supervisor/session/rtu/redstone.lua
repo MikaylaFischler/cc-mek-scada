@@ -10,7 +10,6 @@ local redstone = {}
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local MODBUS_FCODE = types.MODBUS_FCODE
 
-local IO_PORT = rsio.IO
 local IO_LVL = rsio.IO_LVL
 local IO_MODE = rsio.IO_MODE
 
