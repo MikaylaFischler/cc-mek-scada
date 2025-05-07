@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.11.8"
+local RTU_VERSION = "v1.12.0"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
@@ -152,7 +152,7 @@ local function main()
         --#region Redstone Interfaces
 
         local rs_rtus   = {} ---@type { name: string, rtu: rtu_rs_device, phy: table, banks: rtu_rs_definition[][] }[]
-        local all_conns = {}
+        local all_conns = { [0] = {}, {}, {}, {}, {} }
 
         -- go through redstone definitions list
         for entry_idx = 1, #rtu_redstone do
@@ -197,11 +197,11 @@ local function main()
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not a redstone relay"))
                     end
 
-                    rs_rtus[entry.relay] = { name = entry.relay, rtu = redstone_rtu.new(relay), phy = relay, banks = {} }
+                    rs_rtus[entry.relay] = { name = entry.relay, rtu = redstone_rtu.new(relay), phy = relay, banks = { [0] = {}, {}, {}, {}, {} } }
                 end
             elseif rs_rtus[0] == nil then
                 log.debug(util.c("sys_config> allocated local redstone RTU"))
-                rs_rtus[0] = { name = "redstone_local", rtu = redstone_rtu.new(), phy = rs, banks = {} }
+                rs_rtus[0] = { name = "redstone_local", rtu = redstone_rtu.new(), phy = rs, banks = { [0] = {}, {}, {}, {}, {} } }
             end
 
             -- verify configuration

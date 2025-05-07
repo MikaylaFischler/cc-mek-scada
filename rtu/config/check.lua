@@ -136,22 +136,45 @@ local function self_check()
     self.self_check_msg("> check gateway configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones")
 
     -- check redstone configurations
-    local ifaces = {}
-    local bundled_sides = {}
+
+    local phys = {} ---@type rtu_rs_definition[][]
+    local inputs = { [0] = {}, {}, {}, {}, {} }
+
     for i = 1, #cfg.Redstone do
         local entry = cfg.Redstone[i]
-        local ident = entry.side .. tri(entry.color, ":" .. rsio.color_name(entry.color), "")
-        local dupe  = util.table_contains(ifaces, ident)
-        local mixed = (bundled_sides[entry.side] and (entry.color == nil)) or (bundled_sides[entry.side] == false and (entry.color ~= nil))
+        local name = entry.relay or "local"
 
-        local mixed_msg = util.trinary(bundled_sides[entry.side], "bundled entry(s) but this entry is not", "non-bundled entry(s) but this entry is")
+        if phys[name] == nil then phys[name] = {} end
+        table.insert(phys[entry.relay or "local"], entry)
+    end
 
-        self.self_check_msg("> check redstone " .. ident .. " unique...", not dupe, "only one port should be set to a side/color combination")
-        self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, "this side has " .. mixed_msg .. " bundled, which will not work")
-        self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
+    for name, entries in pairs(phys) do
+        TextBox{parent=self.sc_log,text="> checking redstone @ "..name.."...",fg_bg=cpair(colors.blue,colors.white)}
 
-        bundled_sides[entry.side] = bundled_sides[entry.side] or entry.color ~= nil
-        table.insert(ifaces, ident)
+        local ifaces = {}
+        local bundled_sides = {}
+
+        for i = 1, #entries do
+            local entry = entries[i]
+            local ident = entry.side .. tri(entry.color, ":" .. rsio.color_name(entry.color), "")
+
+            local sc_dupe  = util.table_contains(ifaces, ident)
+            local mixed = (bundled_sides[entry.side] and (entry.color == nil)) or (bundled_sides[entry.side] == false and (entry.color ~= nil))
+
+            local mixed_msg = util.trinary(bundled_sides[entry.side], "bundled entry(s) but this entry is not", "non-bundled entry(s) but this entry is")
+
+            self.self_check_msg("> check redstone " .. ident .. " unique...", not sc_dupe, "only one port should be set to a side/color combination")
+            self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, "this side has " .. mixed_msg .. " bundled, which will not work")
+            self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
+
+            if rsio.get_io_dir(entry.port) == rsio.IO_DIR.IN then
+                local in_dupe = util.table_contains(inputs[entry.unit or 0], entry.port)
+                self.self_check_msg("> check redstone " .. ident .. " input...", not in_dupe, "you cannot have multiple of the same input for a given unit or the facility ("..rsio.to_string(entry.port)..")")
+            end
+
+            bundled_sides[entry.side] = bundled_sides[entry.side] or entry.color ~= nil
+            table.insert(ifaces, ident)
+        end
     end
 
     -- check peripheral configurations
@@ -245,7 +268,7 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     TextBox{parent=check_sys,x=1,y=2,text=" RTU Gateway Self-Check",fg_bg=bw_fg_bg}
 
-    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=500,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local last_check = { nil, nil }
 

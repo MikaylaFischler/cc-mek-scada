@@ -36,7 +36,8 @@ local changes = {
     { "v1.7.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.9.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } },
-    { "v1.11.8", { "Added advanced option to invert digital redstone signals" } }
+    { "v1.11.8", { "Added advanced option to invert digital redstone signals" } },
+    { "v1.12.0", { "Added support for redstone relays" } }
 }
 
 ---@class rtu_configurator
