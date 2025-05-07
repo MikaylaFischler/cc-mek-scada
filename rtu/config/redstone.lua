@@ -185,15 +185,6 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_ports = ListBox{parent=rs_c_2,x=1,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function new_rs(port)
-        if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
-            for i = 1, #tmp_cfg.Redstone do
-                if tmp_cfg.Redstone[i].port == port then
-                    rs_pane.set_value(6)
-                    return
-                end
-            end
-        end
-
         self.rs_cfg_editing = false
 
         local text
@@ -316,8 +307,16 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     port = port,
                     side = side_options_map[side.get_value()],
                     color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil),
-                    invert = self.rs_cfg_inverted.get_value() or nil
-                }
+
+                -- check for duplicate inputs for this unit/facility
+                if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
+                    for i = 1, #tmp_cfg.Redstone do
+                        if tmp_cfg.Redstone[i].port == port and tmp_cfg.Redstone[i].unit == def.unit then
+                            rs_pane.set_value(7)
+                            return
+                        end
+                    end
+                end
 
                 if self.rs_cfg_editing == false then
                     table.insert(tmp_cfg.Redstone, def)
