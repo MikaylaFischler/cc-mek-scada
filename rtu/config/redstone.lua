@@ -263,6 +263,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             -- this will delete unsaved changes for other phy's, which is acceptable
             tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
             tool_ctl.gen_rs_summary()
+            tool_ctl.update_relay_list()
         else
             rs_pane.set_value(6)
         end
