@@ -151,7 +151,7 @@ local function main()
     local function sys_config()
         --#region Redstone Interfaces
 
-        local rs_rtus   = {} ---@type { name: string, rtu: rtu_rs_device, phy: table, banks: rtu_rs_definition[][] }[]
+        local rs_rtus   = {} ---@type { name: string, hw_state: RTU_HW_STATE, rtu: rtu_rs_device, phy: table, banks: rtu_rs_definition[][] }[]
         local all_conns = { [0] = {}, {}, {}, {}, {} }
 
         -- go through redstone definitions list
@@ -187,21 +187,24 @@ local function main()
                 elseif not rs_rtus[entry.relay] then
                     log.debug(util.c("sys_config> allocated relay redstone RTU on interface ", entry.relay))
 
-                    local relay  = ppm.get_device(entry.relay)
+                    local hw_state = RTU_HW_STATE.OK
+                    local relay    = ppm.get_periph(entry.relay)
 
                     if not relay then
+                        hw_state = RTU_HW_STATE.OFFLINE
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not connected"))
                         local _, v_device = ppm.mount_virtual()
                         relay = v_device
                     elseif ppm.get_type(entry.relay) ~= "redstone_relay" then
+                        hw_state = RTU_HW_STATE.FAULTED
                         log.warning(util.c("sys_config> redstone relay ", entry.relay, " is not a redstone relay"))
                     end
 
-                    rs_rtus[entry.relay] = { name = entry.relay, rtu = redstone_rtu.new(relay), phy = relay, banks = { [0] = {}, {}, {}, {}, {} } }
+                    rs_rtus[entry.relay] = { name = entry.relay, hw_state = hw_state, rtu = redstone_rtu.new(relay), phy = relay, banks = { [0] = {}, {}, {}, {}, {} } }
                 end
             elseif rs_rtus[0] == nil then
                 log.debug(util.c("sys_config> allocated local redstone RTU"))
-                rs_rtus[0] = { name = "redstone_local", rtu = redstone_rtu.new(), phy = rs, banks = { [0] = {}, {}, {}, {}, {} } }
+                rs_rtus[0] = { name = "redstone_local", hw_state = RTU_HW_STATE.OK, rtu = redstone_rtu.new(), phy = rs, banks = { [0] = {}, {}, {}, {}, {} } }
             end
 
             -- verify configuration
@@ -291,8 +294,6 @@ local function main()
                 end
             end
 
-            local hw_state = util.trinary(def.phy, RTU_HW_STATE.OK, RTU_HW_STATE.OFFLINE)
-
             ---@type rtu_registry_entry
             local unit = {
                 uid = 0,
@@ -304,7 +305,7 @@ local function main()
                 rs_conns = rtu_conns,
                 is_multiblock = false,
                 formed = nil,
-                hw_state = hw_state,
+                hw_state = def.hw_state,
                 rtu = def.rtu,
                 modbus_io = modbus.new(def.rtu, false),
                 pkt_queue = nil,
