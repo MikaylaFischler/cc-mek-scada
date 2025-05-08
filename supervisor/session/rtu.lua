@@ -140,13 +140,15 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
 
                         -- link this to any subsystems this RTU provides connections for
                         if type(unit) ~= "nil" then
-                            for assignment, _ in pairs(unit_advert.rs_conns) do
-                                if assignment == 0 then
-                                    facility.add_redstone(unit)
-                                elseif assignment > 0 and assignment < #self.fac_units then
-                                    self.fac_units[assignment].add_redstone(unit)
-                                else
-                                    log.warning(util.c(log_tag, "_handle_advertisement(): unrecognized redstone RTU assignment ", assignment, " ", type_string))
+                            for assignment, conns in pairs(unit_advert.rs_conns) do
+                                if #conns > 0 then
+                                    if assignment == 0 then
+                                        facility.add_redstone(unit)
+                                    elseif assignment > 0 and assignment <= #self.fac_units then
+                                        self.fac_units[assignment].add_redstone(unit)
+                                    else
+                                        log.warning(util.c(log_tag, "_handle_advertisement(): unrecognized redstone RTU assignment ", assignment, " ", type_string))
+                                    end
                                 end
                             end
                         end

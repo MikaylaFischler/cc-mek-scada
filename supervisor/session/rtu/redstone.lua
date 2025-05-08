@@ -127,7 +127,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                         write = function () end
                     }
 
-                    self.db.io[port] = io_f
+                    self.db.io[bank][port] = io_f
                 elseif mode == IO_MODE.DIGITAL_OUT then
                     self.has_do = true
                     table.insert(self.io_map.digital_out, io_entry)
@@ -145,7 +145,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                         end
                     }
 
-                    self.db.io[port] = io_f
+                    self.db.io[bank][port] = io_f
                 elseif mode == IO_MODE.ANALOG_IN then
                     self.has_ai = true
                     table.insert(self.io_map.analog_in, io_entry)
@@ -160,7 +160,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                         write = function () end
                     }
 
-                    self.db.io[port] = io_f
+                    self.db.io[bank][port] = io_f
                 elseif mode == IO_MODE.ANALOG_OUT then
                     self.has_ao = true
                     table.insert(self.io_map.analog_out, io_entry)
@@ -180,7 +180,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                         end
                     }
 
-                    self.db.io[port] = io_f
+                    self.db.io[bank][port] = io_f
                 else
                     -- should be unreachable code, we already validated ports
                     log.error(util.c(log_tag, "failed to identify advertisement port IO mode (", bank, ":", port, ")"), true)
@@ -396,9 +396,10 @@ function redstone.new(session_id, unit_id, advert, out_queue)
         self.session.post_update()
     end
 
-    -- invalidate build cache
+    -- force a re-read of cached outputs
     function public.invalidate_cache()
-        -- no build cache for this device
+        _read_coils()
+        _read_holding_registers()
     end
 
     -- get the unit session database
