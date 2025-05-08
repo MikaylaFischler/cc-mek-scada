@@ -173,12 +173,8 @@ function logic.update_annunciator(self)
 
     annunc.EmergencyCoolant = 1
 
-    for i = 1, #self.redstone do
-        local io = self.redstone[i].get_db().io[IO.U_EMER_COOL]
-        if io ~= nil then
-            annunc.EmergencyCoolant = util.trinary(io.read(), 3, 2)
-            break
-        end
+    if self.io_ctl.is_connected(IO.U_EMER_COOL) then
+        annunc.EmergencyCoolant = util.trinary(self.io_ctl.digital_read(IO.U_EMER_COOL), 3, 2)
     end
 
     --#endregion
