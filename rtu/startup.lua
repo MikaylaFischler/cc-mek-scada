@@ -213,7 +213,6 @@ local function main()
                 valid = util.trinary(entry.color == nil, true, rsio.is_color(entry.color))
             end
 
-            -- local rs_rtu = rs_rtus[phy].rtu
             local bank  = rs_rtus[phy].banks[for_reactor]
             local conns = all_conns[for_reactor]
 

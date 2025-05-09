@@ -413,10 +413,10 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 local def = {
                     unit = tri(PORT_DSGN[port] == 1, u, nil),
                     port = port,
+                    relay = self.rs_cfg_phy,
                     side = side_options_map[side.get_value()],
                     color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil),
-                    invert = self.rs_cfg_inverted.get_value() or nil,
-                    relay = self.rs_cfg_phy
+                    invert = self.rs_cfg_inverted.get_value() or nil
                 }
 
                 if self.rs_cfg_editing == false then
@@ -442,9 +442,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     table.insert(tmp_cfg.Redstone, {
                         unit = tri(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
                         port = IO.WASTE_PU + i,
+                        relay = self.rs_cfg_phy,
                         side = tri(self.rs_cfg_bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
-                        color = tri(self.rs_cfg_bundled.get_value(), default_colors[i + 1], nil),
-                        relay = self.rs_cfg_phy
+                        color = tri(self.rs_cfg_bundled.get_value(), default_colors[i + 1], nil)
                     })
                 end
             end
@@ -582,7 +582,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     local a = ini_cfg.Redstone[i]
                     local b = tmp_cfg.Redstone[i]
 
-                    modified = (a.unit ~= b.unit) or (a.port ~= b.port) or (a.side ~= b.side) or (a.color ~= b.color) or (a.invert ~= b.invert)
+                    modified = (a.unit ~= b.unit) or (a.port ~= b.port) or (a.relay ~= b.relay) or (a.side ~= b.side) or (a.color ~= b.color) or (a.invert ~= b.invert)
                 end
             end
         end

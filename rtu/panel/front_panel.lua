@@ -154,7 +154,7 @@ local function init(panel, units)
             if is_rs then
                 local is_local = unit.name == "redstone_local"
                 relay_counter = relay_counter + util.trinary(is_local, 0, 1)
-                return util.c("REDSTONE", util.trinary(is_local, "", " RELAY "..relay_counter))
+                return util.c("REDSTONE", util.trinary(is_local, "", " RELAY " .. relay_counter))
             else
                 return util.c(UNIT_TYPE_LABELS[unit.type + 1], " ", util.trinary(util.is_int(unit.index), unit.index, ""))
             end

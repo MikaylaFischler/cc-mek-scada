@@ -130,7 +130,7 @@ end
 ---@param data rtu_rs_definition[]
 function tool_ctl.deep_copy_rs(data)
     local array = {}
-    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, side = d.side, color = d.color, invert = d.invert, relay = d.relay }) end
+    for _, d in ipairs(data) do table.insert(array, { unit = d.unit, port = d.port, relay = d.relay, side = d.side, color = d.color, invert = d.invert }) end
     return array
 end
 

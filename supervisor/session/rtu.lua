@@ -104,14 +104,11 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             advert_validator.assert(util.is_int(unit_advert.index) or (unit_advert.index == false))
             advert_validator.assert_type_int(unit_advert.reactor)
 
-            if u_type == RTU_UNIT_TYPE.REDSTONE then
-                advert_validator.assert_type_table(unit_advert.rs_conns)
-            end
-
             if advert_validator.valid() then
                 if util.is_int(unit_advert.index) then advert_validator.assert_min(unit_advert.index, 1) end
 
-                if unit_advert.reactor == -1 then
+                if (unit_advert.reactor == -1) or (u_type == RTU_UNIT_TYPE.REDSTONE) then
+                    advert_validator.assert((unit_advert.reactor == -1) and (u_type == RTU_UNIT_TYPE.REDSTONE))
                     advert_validator.assert_type_table(unit_advert.rs_conns)
                 else
                     advert_validator.assert_min(unit_advert.reactor, 0)
@@ -147,7 +144,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                                     elseif assignment > 0 and assignment <= #self.fac_units then
                                         self.fac_units[assignment].add_redstone(unit)
                                     else
-                                        log.warning(util.c(log_tag, "_handle_advertisement(): unrecognized redstone RTU assignment ", assignment, " ", type_string))
+                                        log.warning(util.c(log_tag, "_handle_advertisement(): invalid redstone RTU assignment ", assignment))
                                     end
                                 end
                             end
