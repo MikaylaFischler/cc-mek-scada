@@ -19,7 +19,8 @@ local LED           = require("graphics.elements.indicators.LED")
 local LEDPair       = require("graphics.elements.indicators.LEDPair")
 local RGBLED        = require("graphics.elements.indicators.RGBLED")
 
-local LINK_STATE = types.PANEL_LINK_STATE
+local LINK_STATE    = types.PANEL_LINK_STATE
+local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
 local ALIGN = core.ALIGN
 
@@ -129,15 +130,19 @@ local function init(panel, units)
     -- show routine statuses
     for i = 1, list_length do
         TextBox{parent=threads,x=1,y=i,text=util.sprintf("%02d",i)}
-        local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=ind_grn}
+        local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=util.trinary(units[i].type~=RTU_UNIT_TYPE.REDSTONE,ind_grn,cpair(style.ind_bkg,style.ind_bkg))}
         rt_unit.register(databus.ps, "routine__unit_" .. i, rt_unit.update)
     end
 
     local unit_hw_statuses = Div{parent=panel,height=term_h-3,x=25,y=3}
 
+    local relay_counter = 0
+
     -- show hardware statuses
     for i = 1, list_length do
         local unit = units[i]
+
+        local is_rs = unit.type == RTU_UNIT_TYPE.REDSTONE
 
         -- hardware status
         local unit_hw = RGBLED{parent=unit_hw_statuses,y=i,label="",colors={colors.red,colors.orange,colors.yellow,colors.green}}
@@ -145,14 +150,25 @@ local function init(panel, units)
         unit_hw.register(databus.ps, "unit_hw_" .. i, unit_hw.update)
 
         -- unit name identifier (type + index)
-        local function get_name(t) return util.c(UNIT_TYPE_LABELS[t + 1], " ", util.trinary(util.is_int(unit.index), unit.index, "")) end
-        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(unit.type),width=15}
+        local function get_name()
+            if is_rs then
+                local is_local = unit.name == "redstone_local"
+                relay_counter = relay_counter + util.trinary(is_local, 0, 1)
+                return util.c("REDSTONE", util.trinary(is_local, "", " RELAY " .. relay_counter))
+            else
+                return util.c(UNIT_TYPE_LABELS[unit.type + 1], " ", util.trinary(util.is_int(unit.index), unit.index, ""))
+            end
+        end
 
-        name_box.register(databus.ps, "unit_type_" .. i, function (t) name_box.set_value(get_name(t)) end)
+        local name_box = TextBox{parent=unit_hw_statuses,y=i,x=3,text=get_name(),width=util.trinary(is_rs,24,15)}
+
+        name_box.register(databus.ps, "unit_type_" .. i, function () name_box.set_value(get_name()) end)
 
         -- assignment (unit # or facility)
-        local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
-        TextBox{parent=unit_hw_statuses,y=i,x=term_w-32,text=for_unit,fg_bg=disabled_fg}
+        if unit.reactor then
+            local for_unit = util.trinary(unit.reactor == 0, "\x1a FACIL ", "\x1a UNIT " .. unit.reactor)
+            TextBox{parent=unit_hw_statuses,y=i,x=term_w-32,text=for_unit,fg_bg=disabled_fg}
+        end
     end
 end
 

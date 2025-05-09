@@ -173,7 +173,7 @@ function facility.new(config)
     self.rtu_list = { self.redstone, self.induction, self.sps, self.tanks, self.envd }
 
     -- init redstone RTU I/O controller
-    self.io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone, 0)
 
     -- fill blank alarm/tone states
     for _ = 1, 12 do table.insert(self.test_alarm_states, false) end

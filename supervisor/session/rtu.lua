@@ -93,7 +93,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 type = self.advert[i][1],
                 index = self.advert[i][2],
                 reactor = self.advert[i][3],
-                rsio = self.advert[i][4]
+                rs_conns = self.advert[i][4]
             }
 
             local u_type = unit_advert.type ---@type RTU_UNIT_TYPE|boolean
@@ -104,14 +104,17 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             advert_validator.assert(util.is_int(unit_advert.index) or (unit_advert.index == false))
             advert_validator.assert_type_int(unit_advert.reactor)
 
-            if u_type == RTU_UNIT_TYPE.REDSTONE then
-                advert_validator.assert_type_table(unit_advert.rsio)
-            end
-
             if advert_validator.valid() then
                 if util.is_int(unit_advert.index) then advert_validator.assert_min(unit_advert.index, 1) end
-                advert_validator.assert_min(unit_advert.reactor, 0)
-                advert_validator.assert_max(unit_advert.reactor, #self.fac_units)
+
+                if (unit_advert.reactor == -1) or (u_type == RTU_UNIT_TYPE.REDSTONE) then
+                    advert_validator.assert((unit_advert.reactor == -1) and (u_type == RTU_UNIT_TYPE.REDSTONE))
+                    advert_validator.assert_type_table(unit_advert.rs_conns)
+                else
+                    advert_validator.assert_min(unit_advert.reactor, 0)
+                    advert_validator.assert_max(unit_advert.reactor, #self.fac_units)
+                end
+
                 if not advert_validator.valid() then u_type = false end
             else
                 u_type = false
@@ -126,15 +129,34 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 -- validation fail
                 log.debug(log_tag .. "_handle_advertisement(): advertisement unit validation failure")
             else
-                if unit_advert.reactor > 0 then
-                    local target_unit = self.fac_units[unit_advert.reactor]
-
-                    -- unit RTUs
+                if unit_advert.reactor == -1 then
+                    -- redstone RTUs can be used in multiple different assignments
                     if u_type == RTU_UNIT_TYPE.REDSTONE then
                         -- redstone
                         unit = svrs_redstone.new(id, i, unit_advert, self.modbus_q)
-                        if type(unit) ~= "nil" then target_unit.add_redstone(unit) end
-                    elseif u_type == RTU_UNIT_TYPE.BOILER_VALVE then
+
+                        -- link this to any subsystems this RTU provides connections for
+                        if type(unit) ~= "nil" then
+                            for assignment, conns in pairs(unit_advert.rs_conns) do
+                                if #conns > 0 then
+                                    if assignment == 0 then
+                                        facility.add_redstone(unit)
+                                    elseif assignment > 0 and assignment <= #self.fac_units then
+                                        self.fac_units[assignment].add_redstone(unit)
+                                    else
+                                        log.warning(util.c(log_tag, "_handle_advertisement(): invalid redstone RTU assignment ", assignment))
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        log.warning(util.c(log_tag, "_handle_advertisement(): encountered unsupported multi-assignment RTU type ", type_string))
+                    end
+                elseif unit_advert.reactor > 0 then
+                    local target_unit = self.fac_units[unit_advert.reactor]
+
+                    -- unit RTUs
+                    if u_type == RTU_UNIT_TYPE.BOILER_VALVE then
                         -- boiler
                         unit = svrs_boilerv.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then target_unit.add_boiler(unit) end
