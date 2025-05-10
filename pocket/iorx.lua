@@ -314,7 +314,7 @@ function iorx.record_unit_data(data)
     local function blue(text) return { text = text, color = colors.blue } end
 
     -- if unit.reactor_data.rps_status then
-    --     for k, v in pairs(unit.alarms) do
+    --     for k, _ in pairs(unit.alarms) do
     --         unit.alarms[k] = ALARM_STATE.TRIPPED
     --     end
     -- end
