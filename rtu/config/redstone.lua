@@ -226,7 +226,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             count = #redstone_subset(ini_cfg.Redstone, name)
             TextBox{parent=line,x=33,y=2,width=16,alignment=core.ALIGN.RIGHT,text=count.." connections",fg_bg=cpair(colors.gray,colors.white)}
 
-            PushButton{parent=line,x=41,y=1,min_width=8,height=1,text="CONFIG",callback=function()config_rs(name)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+            PushButton{parent=line,x=41,y=1,min_width=8,height=1,text="CONFIG",callback=function()config_rs(name)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
         end
     end
 
