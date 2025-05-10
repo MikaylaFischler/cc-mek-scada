@@ -338,13 +338,7 @@ function rtu.comms(version, nic, conn_watchdog)
             local unit = units[i]
 
             if unit.type ~= nil then
-                local advert = { unit.type, unit.index, unit.reactor }
-
-                if unit.type == RTU_UNIT_TYPE.REDSTONE then
-                    insert(advert, unit.device)
-                end
-
-                insert(advertisement, advert)
+                insert(advertisement, { unit.type, unit.index, unit.reactor or -1, unit.rs_conns })
             end
         end
 
@@ -477,9 +471,10 @@ function rtu.comms(version, nic, conn_watchdog)
                         local unit = units[packet.unit_id]
                         local unit_dbg_tag = " (unit " .. packet.unit_id .. ")"
 
-                        if unit.name == "redstone_io" then
+                        if unit.type == RTU_UNIT_TYPE.REDSTONE then
                             -- immediately execute redstone RTU requests
                             return_code, reply = unit.modbus_io.handle_packet(packet)
+
                             if not return_code then
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
                             end
@@ -496,7 +491,7 @@ function rtu.comms(version, nic, conn_watchdog)
                                     unit.pkt_queue.push_packet(packet)
                                 end
                             else
-                                log.warning("cannot perform requested MODBUS operation" .. unit_dbg_tag)
+                                log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
                             end
                         end
                     else

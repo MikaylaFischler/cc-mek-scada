@@ -1,12 +1,16 @@
-local const  = require("scada-common.constants")
-local log    = require("scada-common.log")
-local rsio   = require("scada-common.rsio")
-local types  = require("scada-common.types")
-local util   = require("scada-common.util")
+local const     = require("scada-common.constants")
+local log       = require("scada-common.log")
+local rsio      = require("scada-common.rsio")
+local types     = require("scada-common.types")
+local util      = require("scada-common.util")
 
-local plc    = require("supervisor.session.plc")
+local alarm_ctl = require("supervisor.alarm_ctl")
 
-local qtypes = require("supervisor.session.rtu.qtypes")
+local plc       = require("supervisor.session.plc")
+
+local qtypes    = require("supervisor.session.rtu.qtypes")
+
+local AISTATE        = alarm_ctl.AISTATE
 
 local RPS_TRIP_CAUSE = types.RPS_TRIP_CAUSE
 local TRI_FAIL       = types.TRI_FAIL
@@ -22,20 +26,10 @@ local IO = rsio.IO
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
-local AISTATE_NAMES = {
-    "INACTIVE",
-    "TRIPPING",
-    "TRIPPED",
-    "ACKED",
-    "RING_BACK",
-    "RING_BACK_TRIPPING"
-}
-
+local ANNUNC_LIMS             = const.ANNUNCIATOR_LIMITS
+local ALARM_LIMS              = const.ALARM_LIMITS
 local FLOW_STABILITY_DELAY_MS = const.FLOW_STABILITY_DELAY_MS
-
-local ANNUNC_LIMS = const.ANNUNCIATOR_LIMITS
-local ALARM_LIMS = const.ALARM_LIMITS
-local RS_THRESH = const.RS_THRESHOLDS
+local RS_THRESH               = const.RS_THRESHOLDS
 
 ---@class unit_logic_extension
 local logic = {}
@@ -179,12 +173,8 @@ function logic.update_annunciator(self)
 
     annunc.EmergencyCoolant = 1
 
-    for i = 1, #self.redstone do
-        local io = self.redstone[i].get_db().io[IO.U_EMER_COOL]
-        if io ~= nil then
-            annunc.EmergencyCoolant = util.trinary(io.read(), 3, 2)
-            break
-        end
+    if self.io_ctl.is_connected(IO.U_EMER_COOL) then
+        annunc.EmergencyCoolant = util.trinary(self.io_ctl.digital_read(IO.U_EMER_COOL), 3, 2)
     end
 
     --#endregion
@@ -426,97 +416,16 @@ function logic.update_annunciator(self)
 end
 
 -- update an alarm state given conditions
----@param self _unit_self unit instance
+---@param self _unit_self
 ---@param tripped boolean if the alarm condition is still active
 ---@param alarm alarm_def alarm table
 ---@return boolean new_trip if the alarm just changed to being tripped
 local function _update_alarm_state(self, tripped, alarm)
-    local AISTATE = self.types.AISTATE
-    local int_state = alarm.state
-    local ext_state = self.db.alarm_states[alarm.id]
-
-    -- alarm inactive
-    if int_state == AISTATE.INACTIVE then
-        if tripped then
-            alarm.trip_time = util.time_ms()
-            if alarm.hold_time > 0 then
-                alarm.state = AISTATE.TRIPPING
-                self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
-            else
-                alarm.state = AISTATE.TRIPPED
-                self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
-            end
-        else
-            alarm.trip_time = util.time_ms()
-            self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
-        end
-    -- alarm condition met, but not yet for required hold time
-    elseif (int_state == AISTATE.TRIPPING) or (int_state == AISTATE.RING_BACK_TRIPPING) then
-        if tripped then
-            local elapsed = util.time_ms() - alarm.trip_time
-            if elapsed > (alarm.hold_time * 1000) then
-                alarm.state = AISTATE.TRIPPED
-                self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-                log.info(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): TRIPPED [PRIORITY ",
-                    types.ALARM_PRIORITY_NAMES[alarm.tier],"]"))
-            end
-        elseif int_state == AISTATE.RING_BACK_TRIPPING then
-            alarm.trip_time = 0
-            alarm.state = AISTATE.RING_BACK
-            self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
-        else
-            alarm.trip_time = 0
-            alarm.state = AISTATE.INACTIVE
-            self.db.alarm_states[alarm.id] = ALARM_STATE.INACTIVE
-        end
-    -- alarm tripped and alarming
-    elseif int_state == AISTATE.TRIPPED then
-        if tripped then
-            if ext_state == ALARM_STATE.ACKED then
-                -- was acked by coordinator
-                alarm.state = AISTATE.ACKED
-            end
-        else
-            alarm.state = AISTATE.RING_BACK
-            self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
-        end
-    -- alarm acknowledged but still tripped
-    elseif int_state == AISTATE.ACKED then
-        if not tripped then
-            alarm.state = AISTATE.RING_BACK
-            self.db.alarm_states[alarm.id] = ALARM_STATE.RING_BACK
-        end
-    -- alarm no longer tripped, operator must reset to clear
-    elseif int_state == AISTATE.RING_BACK then
-        if tripped then
-            alarm.trip_time = util.time_ms()
-            if alarm.hold_time > 0 then
-                alarm.state = AISTATE.RING_BACK_TRIPPING
-            else
-                alarm.state = AISTATE.TRIPPED
-                self.db.alarm_states[alarm.id] = ALARM_STATE.TRIPPED
-            end
-        elseif ext_state == ALARM_STATE.INACTIVE then
-            -- was reset by coordinator
-            alarm.state = AISTATE.INACTIVE
-            alarm.trip_time = 0
-        end
-    else
-        log.error(util.c("invalid alarm state for unit ", self.r_id, " alarm ", alarm.id), true)
-    end
-
-    -- check for state change
-    if alarm.state ~= int_state then
-        local change_str = util.c(AISTATE_NAMES[int_state], " -> ", AISTATE_NAMES[alarm.state])
-        log.debug(util.c("UNIT ", self.r_id, " ALARM ", alarm.id, " (", types.ALARM_NAMES[alarm.id], "): ", change_str))
-        return alarm.state == AISTATE.TRIPPED
-    else return false end
+    return alarm_ctl.update_alarm_state("UNIT " .. self.r_id, self.db.alarm_states, tripped, alarm)
 end
 
 -- evaluate alarm conditions
----@param self _unit_self unit instance
+---@param self _unit_self
 function logic.update_alarms(self)
     local annunc = self.db.annunciator
     local plc_cache = self.plc_cache
@@ -629,11 +538,9 @@ function logic.update_alarms(self)
 end
 
 -- update the internal automatic safety control performed while in auto control mode
+---@param self _unit_self
 ---@param public reactor_unit reactor unit public functions
----@param self _unit_self unit instance
-function logic.update_auto_safety(public, self)
-    local AISTATE = self.types.AISTATE
-
+function logic.update_auto_safety(self, public)
     if self.auto_engaged then
         local alarmed = false
 
@@ -660,9 +567,8 @@ function logic.update_auto_safety(public, self)
 end
 
 -- update the two unit status text messages
----@param self _unit_self unit instance
+---@param self _unit_self
 function logic.update_status_text(self)
-    local AISTATE = self.types.AISTATE
     local annunc = self.db.annunciator
 
     -- check if an alarm is active (tripped or ack'd)
@@ -824,9 +730,8 @@ function logic.update_status_text(self)
 end
 
 -- handle unit redstone I/O
----@param self _unit_self unit instance
+---@param self _unit_self
 function logic.handle_redstone(self)
-    local AISTATE = self.types.AISTATE
     local annunc = self.db.annunciator
     local cache = self.plc_cache
     local rps = cache.rps_status
@@ -906,7 +811,7 @@ function logic.handle_redstone(self)
     if enable_emer_cool and not self.em_cool_opened then
         log.debug(util.c(">> Emergency Coolant Enable Detail Report (Unit ", self.r_id, ") <<"))
         log.debug(util.c("| CoolantLevelLow[", annunc.CoolantLevelLow, "] CoolantLevelLowLow[", rps.low_cool, "] ExcessHeatedCoolant[", rps.ex_hcool, "]"))
-        log.debug(util.c("| ReactorOverTemp[", AISTATE_NAMES[self.alarms.ReactorOverTemp.state], "]"))
+        log.debug(util.c("| ReactorOverTemp[", alarm_ctl.AISTATE_NAMES[self.alarms.ReactorOverTemp.state], "]"))
 
         for i = 1, #annunc.WaterLevelLow do
             log.debug(util.c("| WaterLevelLow(", i, ")[", annunc.WaterLevelLow[i], "]"))

@@ -2,13 +2,19 @@ local log        = require("scada-common.log")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
+local alarm_ctl  = require("supervisor.alarm_ctl")
 local unit       = require("supervisor.unit")
 local fac_update = require("supervisor.facility_update")
 
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
+local AISTATE       = alarm_ctl.AISTATE
+
+local ALARM         = types.ALARM
+local ALARM_STATE   = types.ALARM_STATE
 local AUTO_GROUP    = types.AUTO_GROUP
+local PRIO          = types.ALARM_PRIORITY
 local PROCESS       = types.PROCESS
 local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
@@ -138,7 +144,17 @@ function facility.new(config)
         imtx_last_charge = 0,
         imtx_last_charge_t = 0,
         -- track faulted induction matrix update times to reject
-        imtx_faulted_times = { 0, 0, 0 }
+        imtx_faulted_times = { 0, 0, 0 },
+        -- facility alarms
+        ---@type { [string]: alarm_def }
+        alarms = {
+            -- radiation monitor alarm for the facility
+            FacilityRadiation = { state = AISTATE.INACTIVE, trip_time = 0, hold_time = 0, id = ALARM.FacilityRadiation, tier = PRIO.CRITICAL },
+        },
+        ---@type { [ALARM]: ALARM_STATE }
+        alarm_states = {
+            [ALARM.FacilityRadiation] = ALARM_STATE.INACTIVE
+        }
     }
 
     --#region SETUP
@@ -157,7 +173,7 @@ function facility.new(config)
     self.rtu_list = { self.redstone, self.induction, self.sps, self.tanks, self.envd }
 
     -- init redstone RTU I/O controller
-    self.io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone, 0)
 
     -- fill blank alarm/tone states
     for _ = 1, 12 do table.insert(self.test_alarm_states, false) end
@@ -335,6 +351,9 @@ function facility.new(config)
         -- unit tasks
         f_update.unit_mgmt()
 
+        -- update alarm states right before updating the audio
+        f_update.update_alarms()
+
         -- update alarm tones
         f_update.alarm_audio()
     end
@@ -404,10 +423,14 @@ function facility.new(config)
         end
     end
 
-    -- ack all alarms on all reactor units
+    -- ack all alarms on all reactor units and the facility
     function public.ack_all()
-        for i = 1, #self.units do
-            self.units[i].ack_all()
+        -- unit alarms
+        for i = 1, #self.units do self.units[i].ack_all() end
+
+        -- facility alarms
+        for id, state in pairs(self.alarm_states) do
+            if state == ALARM_STATE.TRIPPED then self.alarm_states[id] = ALARM_STATE.ACKED end
         end
     end
 

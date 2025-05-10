@@ -269,8 +269,8 @@ function pocket.init_nav(smem)
 
     -- open an app
     ---@param app_id POCKET_APP_ID
-    ---@param on_loaded? function
-    function nav.open_app(app_id, on_loaded)
+    ---@param on_ready? function
+    function nav.open_app(app_id, on_ready)
         -- reset help return on navigating out of an app
         if app_id == APP_ID.ROOT then self.help_return = nil end
 
@@ -283,7 +283,7 @@ function pocket.init_nav(smem)
                 app = self.apps[app_id]
             else self.loader_return = nil end
 
-            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, { app_id, on_loaded }) end
+            if not app.loaded then smem.q.mq_render.push_data(MQ__RENDER_DATA.LOAD_APP, { app_id, on_ready }) end
 
             self.cur_app = app_id
             self.pane.set_value(app_id)
@@ -291,6 +291,8 @@ function pocket.init_nav(smem)
             if #app.sidebar_items > 0 then
                 self.sidebar.update(app.sidebar_items)
             end
+
+            if app.loaded and on_ready then on_ready() end
         else
             log.debug("tried to open unknown app")
         end

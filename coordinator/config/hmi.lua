@@ -240,6 +240,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
+    TextBox{parent=crd_c_1,x=39,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=crd_c_1,x=1,y=8,text="Temperature Scale"}
