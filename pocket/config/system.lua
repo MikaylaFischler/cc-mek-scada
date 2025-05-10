@@ -53,25 +53,44 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     --#region Pocket UI
 
     local ui_c_1 = Div{parent=ui_cfg,x=2,y=4,width=24}
+    local ui_c_2 = Div{parent=ui_cfg,x=2,y=4,width=24}
+
+    local ui_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={ui_c_1,ui_c_2}}
 
     TextBox{parent=ui_cfg,x=1,y=2,text=" Pocket UI",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may customize units below."}
+    TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may customize UI options below."}
 
-    TextBox{parent=ui_c_1,x=1,y=4,text="Temperature Scale"}
-    local temp_scale = RadioButton{parent=ui_c_1,x=1,y=5,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=ui_c_1,y=4,text="Po/Pu Pellet Color"}
+    TextBox{parent=ui_c_1,x=20,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+    local pellet_color = RadioButton{parent=ui_c_1,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
-    TextBox{parent=ui_c_1,x=1,y=10,text="Energy Scale"}
-    local energy_scale = RadioButton{parent=ui_c_1,x=1,y=11,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=ui_c_1,y=8,height=4,text="In Mekanism 10.4 and later, pellet colors now match gas colors (Cyan Pu/Green Po).",fg_bg=g_lg_fg_bg}
 
     local function submit_ui_opts()
+        tmp_cfg.GreenPuPellet = pellet_color.get_value() == 1
+        ui_pane.set_value(2)
+    end
+
+    PushButton{parent=ui_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=ui_c_1,x=19,y=15,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=ui_c_2,x=1,y=1,height=3,text="You may customize units below."}
+
+    TextBox{parent=ui_c_2,x=1,y=4,text="Temperature Scale"}
+    local temp_scale = RadioButton{parent=ui_c_2,x=1,y=5,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=ui_c_2,x=1,y=10,text="Energy Scale"}
+    local energy_scale = RadioButton{parent=ui_c_2,x=1,y=11,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    local function submit_ui_units()
         tmp_cfg.TempScale = temp_scale.get_value()
         tmp_cfg.EnergyScale = energy_scale.get_value()
         main_pane.set_value(3)
     end
 
-    PushButton{parent=ui_c_1,x=1,y=15,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=ui_c_1,x=19,y=15,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=ui_c_2,x=1,y=15,text="\x1b Back",callback=function()ui_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=ui_c_2,x=19,y=15,text="Next \x1a",callback=submit_ui_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -266,6 +285,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             load_settings(settings_cfg, true)
             load_settings(ini_cfg)
 
+            try_set(pellet_color, ini_cfg.GreenPuPellet)
             try_set(temp_scale, ini_cfg.TempScale)
             try_set(energy_scale, ini_cfg.EnergyScale)
             try_set(svr_chan, ini_cfg.SVR_Channel)
@@ -374,6 +394,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
                 val = string.rep("*", string.len(val))
             elseif f[1] == "LogMode" then
                 val = tri(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "GreenPuPellet" then
+                val = tri(raw, "Green Pu/Cyan Po", "Cyan Pu/Green Po")
             elseif f[1] == "TempScale" then
                 val = util.strval(types.TEMP_SCALE_NAMES[raw])
             elseif f[1] == "EnergyScale" then

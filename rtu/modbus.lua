@@ -399,43 +399,41 @@ function modbus.new(rtu_dev, use_parallel_read)
     return public
 end
 
+-- create an error reply
+---@nodiscard
+---@param packet modbus_frame MODBUS packet frame
+---@param code MODBUS_EXCODE exception code
+---@return modbus_packet reply
+local function excode_reply(packet, code)
+    -- reply back with error flag and exception code
+    local reply = comms.modbus_packet()
+    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+    reply.make(packet.txn_id, packet.unit_id, fcode, { code })
+    return reply
+end
+
+-- return a SERVER_DEVICE_FAIL error reply
+---@nodiscard
+---@param packet modbus_frame MODBUS packet frame
+---@return modbus_packet reply
+function modbus.reply__srv_device_fail(packet) return excode_reply(packet, MODBUS_EXCODE.SERVER_DEVICE_FAIL) end
+
 -- return a SERVER_DEVICE_BUSY error reply
 ---@nodiscard
 ---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
-function modbus.reply__srv_device_busy(packet)
-    -- reply back with error flag and exception code
-    local reply = comms.modbus_packet()
-    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-    local data = { MODBUS_EXCODE.SERVER_DEVICE_BUSY }
-    reply.make(packet.txn_id, packet.unit_id, fcode, data)
-    return reply
-end
+function modbus.reply__srv_device_busy(packet) return excode_reply(packet, MODBUS_EXCODE.SERVER_DEVICE_BUSY) end
 
 -- return a NEG_ACKNOWLEDGE error reply
 ---@nodiscard
 ---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
-function modbus.reply__neg_ack(packet)
-    -- reply back with error flag and exception code
-    local reply = comms.modbus_packet()
-    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-    local data = { MODBUS_EXCODE.NEG_ACKNOWLEDGE }
-    reply.make(packet.txn_id, packet.unit_id, fcode, data)
-    return reply
-end
+function modbus.reply__neg_ack(packet) return excode_reply(packet, MODBUS_EXCODE.NEG_ACKNOWLEDGE) end
 
 -- return a GATEWAY_PATH_UNAVAILABLE error reply
 ---@nodiscard
 ---@param packet modbus_frame MODBUS packet frame
 ---@return modbus_packet reply
-function modbus.reply__gw_unavailable(packet)
-    -- reply back with error flag and exception code
-    local reply = comms.modbus_packet()
-    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-    local data = { MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE }
-    reply.make(packet.txn_id, packet.unit_id, fcode, data)
-    return reply
-end
+function modbus.reply__gw_unavailable(packet) return excode_reply(packet, MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE) end
 
 return modbus

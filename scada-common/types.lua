@@ -125,7 +125,7 @@ function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
 ---@field type RTU_UNIT_TYPE
 ---@field index integer|false
 ---@field reactor integer
----@field rsio IO_PORT[]|nil
+---@field rs_conns IO_PORT[][]|nil
 
 -- create a new reactor database
 ---@nodiscard
@@ -465,7 +465,8 @@ types.ALARM = {
     ReactorHighWaste = 9,
     RPSTransient = 10,
     RCSTransient = 11,
-    TurbineTrip = 12
+    TurbineTrip = 12,
+    FacilityRadiation = 13
 }
 
 types.ALARM_NAMES = {
@@ -480,7 +481,8 @@ types.ALARM_NAMES = {
     "ReactorHighWaste",
     "RPSTransient",
     "RCSTransient",
-    "TurbineTrip"
+    "TurbineTrip",
+    "FacilityRadiation"
 }
 
 ---@enum ALARM_PRIORITY

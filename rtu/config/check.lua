@@ -1,10 +1,13 @@
 local comms      = require("scada-common.comms")
 local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
+local rsio       = require("scada-common.rsio")
 local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
-local plc        = require("reactor-plc.plc")
+local rtu        = require("rtu.rtu")
+
+local redstone   = require("rtu.config.redstone")
 
 local core       = require("graphics.core")
 
@@ -31,7 +34,7 @@ local self = {
 
     self_check_pass = true,
 
-    settings = nil,      ---@type plc_config
+    settings = nil,      ---@type rtu_config
 
     run_test_btn = nil,  ---@type PushButton
     sc_log = nil,        ---@type ListBox
@@ -58,7 +61,7 @@ local function send_sv(msg_type, msg)
     pkt.make(msg_type, msg)
     s_pkt.make(self.sv_addr, self.sv_seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-    self.nic.transmit(self.settings.SVR_Channel, self.settings.PLC_Channel, s_pkt)
+    self.nic.transmit(self.settings.SVR_Channel, self.settings.RTU_Channel, s_pkt)
     self.sv_seq_num = self.sv_seq_num + 1
 end
 
@@ -67,7 +70,7 @@ end
 local function handle_packet(packet)
     local error_msg = nil
 
-    if packet.scada_frame.local_channel() ~= self.settings.PLC_Channel then
+    if packet.scada_frame.local_channel() ~= self.settings.RTU_Channel then
         error_msg = "error: unknown receive channel"
     elseif packet.scada_frame.remote_channel() == self.settings.SVR_Channel and packet.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
         if packet.type == MGMT_TYPE.ESTABLISH then
@@ -81,10 +84,8 @@ local function handle_packet(packet)
                     if self.self_check_pass then check_complete() end
                 elseif est_ack == ESTABLISH_ACK.DENY then
                     error_msg = "error: supervisor connection denied"
-                elseif est_ack == ESTABLISH_ACK.COLLISION then
-                    error_msg = "another reactor PLC is connected with this reactor unit ID"
                 elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
-                    error_msg = "reactor PLC comms version does not match supervisor comms version, make sure both devices are up-to-date (ccmsi update)"
+                    error_msg = "RTU gateway comms version does not match supervisor comms version, make sure both devices are up-to-date (ccmsi update)"
                 else
                     error_msg = "error: invalid reply from supervisor"
                 end
@@ -111,6 +112,13 @@ local function handle_timeout()
     self.self_check_msg(nil, false, "make sure your supervisor is running, your channels are correct, trusted ranges are set properly (if enabled), facility keys match (if set), and if you are using wireless modems rather than ender modems, that your devices are close together in the same dimension")
 end
 
+
+-- check if a value is an integer within a range (inclusive)
+---@param x any
+---@param min integer
+---@param max integer
+local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min and x <= max end
+
 -- execute the self-check
 local function self_check()
     self.run_test_btn.disable()
@@ -122,21 +130,88 @@ local function self_check()
 
     local cfg = self.settings
     local modem = ppm.get_wireless_modem()
-    local reactor = ppm.get_fission_reactor()
-    local valid_cfg = plc.validate_config(cfg)
+    local valid_cfg = rtu.validate_config(cfg)
 
-    if cfg.Networked then
-        self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the reactor PLC")
+    self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the RTU gateway")
+    self.self_check_msg("> check gateway configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones")
+
+    -- check redstone configurations
+
+    local phys = {} ---@type rtu_rs_definition[][]
+    local inputs = { [0] = {}, {}, {}, {}, {} }
+
+    for i = 1, #cfg.Redstone do
+        local entry = cfg.Redstone[i]
+        local name = entry.relay or "local"
+
+        if phys[name] == nil then phys[name] = {} end
+        table.insert(phys[entry.relay or "local"], entry)
     end
 
-    self.self_check_msg("> check fission reactor connected...", reactor ~= nil, "please connect the reactor PLC to the reactor's fission reactor logic adapter")
-    self.self_check_msg("> check fission reactor formed...")
-    -- this consumes events, but that is fine here
-    self.self_check_msg(nil, reactor and reactor.isFormed(), "ensure the fission reactor multiblock is formed")
+    for name, entries in pairs(phys) do
+        TextBox{parent=self.sc_log,text="> checking redstone @ "..name.."...",fg_bg=cpair(colors.blue,colors.white)}
 
-    self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
+        local ifaces = {}
+        local bundled_sides = {}
 
-    if cfg.Networked and valid_cfg and modem then
+        for i = 1, #entries do
+            local entry = entries[i]
+            local ident = entry.side .. tri(entry.color, ":" .. rsio.color_name(entry.color), "")
+
+            local sc_dupe  = util.table_contains(ifaces, ident)
+            local mixed = (bundled_sides[entry.side] and (entry.color == nil)) or (bundled_sides[entry.side] == false and (entry.color ~= nil))
+
+            local mixed_msg = util.trinary(bundled_sides[entry.side], "bundled entry(s) but this entry is not", "non-bundled entry(s) but this entry is")
+
+            self.self_check_msg("> check redstone " .. ident .. " unique...", not sc_dupe, "only one port should be set to a side/color combination")
+            self.self_check_msg("> check redstone " .. ident .. " bundle...", not mixed, "this side has " .. mixed_msg .. " bundled, which will not work")
+            self.self_check_msg("> check redstone " .. ident .. " valid...", redstone.validate(entry), "configuration invalid, please re-configure redstone entry")
+
+            if rsio.get_io_dir(entry.port) == rsio.IO_DIR.IN then
+                local in_dupe = util.table_contains(inputs[entry.unit or 0], entry.port)
+                self.self_check_msg("> check redstone " .. ident .. " input...", not in_dupe, "you cannot have multiple of the same input for a given unit or the facility ("..rsio.to_string(entry.port)..")")
+            end
+
+            bundled_sides[entry.side] = bundled_sides[entry.side] or entry.color ~= nil
+            table.insert(ifaces, ident)
+        end
+    end
+
+    -- check peripheral configurations
+    for i = 1, #cfg.Peripherals do
+        local entry = cfg.Peripherals[i]
+        local valid = false
+
+        if type(entry.name) == "string" then
+            self.self_check_msg("> check " .. entry.name .. " connected...", ppm.get_periph(entry.name), "please connect this device via a wired modem or direct contact and ensure the configuration matches what it connects as")
+
+            local p_type = ppm.get_type(entry.name)
+
+            if p_type == "boilerValve" then
+                valid = is_int_min_max(entry.index, 1, 2) and is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "turbineValve" then
+                valid = is_int_min_max(entry.index, 1, 3) and is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "solarNeutronActivator" then
+                valid = is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "dynamicValve" then
+                valid = (entry.unit == nil and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
+            elseif p_type == "environmentDetector" then
+                valid = (entry.unit == nil or is_int_min_max(entry.unit, 1, 4)) and util.is_int(entry.index)
+            else
+                valid = true
+
+                if p_type ~= nil and not (p_type == "inductionPort" or p_type == "spsPort") then
+                    self.self_check_msg("> check " .. entry.name .. " valid...", false, "unrecognized device type")
+                end
+            end
+        end
+
+        if not valid then
+            self.self_check_msg("> check " .. entry.name .. " valid...", false, "configuration invalid, please re-configure peripheral entry")
+        end
+    end
+
+    if valid_cfg and modem then
         self.self_check_msg("> check supervisor connection...")
 
         -- init mac as needed
@@ -149,12 +224,12 @@ local function self_check()
         self.nic = network.nic(modem)
 
         self.nic.closeAll()
-        self.nic.open(cfg.PLC_Channel)
+        self.nic.open(cfg.RTU_Channel)
 
         self.sv_addr = comms.BROADCAST
         self.net_listen = true
 
-        send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.PLC, cfg.UnitID })
+        send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.RTU, {} })
 
         tcd.dispatch_unique(8, handle_timeout)
     else
@@ -177,7 +252,7 @@ local check = {}
 
 -- create the self-check view
 ---@param main_pane MultiPane
----@param settings_cfg plc_config
+---@param settings_cfg rtu_config
 ---@param check_sys Div
 ---@param style { [string]: cpair }
 function check.create(main_pane, settings_cfg, check_sys, style)
@@ -191,9 +266,9 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     local sc = Div{parent=check_sys,x=2,y=4,width=49}
 
-    TextBox{parent=check_sys,x=1,y=2,text=" Reactor PLC Self-Check",fg_bg=bw_fg_bg}
+    TextBox{parent=check_sys,x=1,y=2,text=" RTU Gateway Self-Check",fg_bg=bw_fg_bg}
 
-    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local last_check = { nil, nil }
 

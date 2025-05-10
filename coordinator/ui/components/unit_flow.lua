@@ -179,12 +179,12 @@ local function make(parent, x, y, wide, unit_id)
         pipe(_wide(22, 19), 1, _wide(49, 45), 1, colors.brown, true),
         pipe(_wide(22, 19), 5, _wide(28, 24), 5, colors.brown, true),
 
-        pipe(_wide(64, 53), 1, _wide(95, 81), 1, colors.green, true),
+        pipe(_wide(64, 53), 1, _wide(95, 81), 1, colors.cyan, true),
 
-        pipe(_wide(48, 43), 4, _wide(71, 61), 4, colors.cyan, true),
-        pipe(_wide(66, 57), 4, _wide(71, 61), 8, colors.cyan, true),
-        pipe(_wide(74, 63), 4, _wide(95, 81), 4, colors.cyan, true),
-        pipe(_wide(74, 63), 8, _wide(133, 111), 8, colors.cyan, true),
+        pipe(_wide(48, 43), 4, _wide(71, 61), 4, colors.green, true),
+        pipe(_wide(66, 57), 4, _wide(71, 61), 8, colors.green, true),
+        pipe(_wide(74, 63), 4, _wide(95, 81), 4, colors.green, true),
+        pipe(_wide(74, 63), 8, _wide(133, 111), 8, colors.green, true),
 
         pipe(_wide(108, 94), 1, _wide(132, 110), 6, waste_c, true, true),
         pipe(_wide(108, 94), 4, _wide(111, 95), 1, waste_c, true, true),
