@@ -132,6 +132,8 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
             unit.rtu, faulted = sna_rtu.new(device)
         elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
             unit.rtu, faulted = envd_rtu.new(device)
+        elseif unit.type == RTU_UNIT_TYPE.REDSTONE then
+            unit.rtu.remount_phy(device)
         else
             unknown = true
             log.error(util.c("failed to identify reconnected RTU unit type (", unit.name, ")"), true)

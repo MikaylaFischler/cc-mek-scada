@@ -62,6 +62,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=ui_c_1,x=1,y=1,height=3,text="You may customize UI options below."}
 
     TextBox{parent=ui_c_1,y=4,text="Po/Pu Pellet Color"}
+    TextBox{parent=ui_c_1,x=20,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     local pellet_color = RadioButton{parent=ui_c_1,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=ui_c_1,y=8,height=4,text="In Mekanism 10.4 and later, pellet colors now match gas colors (Cyan Pu/Green Po).",fg_bg=g_lg_fg_bg}

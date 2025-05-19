@@ -3,20 +3,23 @@ local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
-local logic      = require("supervisor.unitlogic")
+local alarm_ctl  = require("supervisor.alarm_ctl")
+local unit_logic = require("supervisor.unit_logic")
 
 local plc        = require("supervisor.session.plc")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
-local WASTE_MODE    = types.WASTE_MODE
-local WASTE         = types.WASTE_PRODUCT
+local AISTATE       = alarm_ctl.AISTATE
+
 local ALARM         = types.ALARM
-local PRIO          = types.ALARM_PRIORITY
 local ALARM_STATE   = types.ALARM_STATE
-local TRI_FAIL      = types.TRI_FAIL
+local PRIO          = types.ALARM_PRIORITY
 local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+local TRI_FAIL      = types.TRI_FAIL
+local WASTE_MODE    = types.WASTE_MODE
+local WASTE         = types.WASTE_PRODUCT
 
 local PLC_S_CMDS = plc.PLC_S_CMDS
 
@@ -36,23 +39,6 @@ local DT_KEYS = {
     TurbineSteam = "TST",
     TurbinePower = "TPR"
 }
-
----@enum ALARM_INT_STATE
-local AISTATE = {
-    INACTIVE = 1,
-    TRIPPING = 2,
-    TRIPPED = 3,
-    ACKED = 4,
-    RING_BACK = 5,
-    RING_BACK_TRIPPING = 6
-}
-
----@class alarm_def
----@field state ALARM_INT_STATE internal alarm state
----@field trip_time integer time (ms) when first tripped
----@field hold_time integer time (s) to hold before tripping
----@field id ALARM alarm ID
----@field tier integer alarm urgency tier (0 = highest)
 
 -- burn rate to idle at
 local IDLE_RATE = 0.01
@@ -81,7 +67,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         num_boilers = num_boilers,
         num_turbines = num_turbines,
         aux_coolant = aux_coolant,
-        types = { DT_KEYS = DT_KEYS, AISTATE = AISTATE },
+        types = { DT_KEYS = DT_KEYS },
         -- rtus
         rtu_list = {},  ---@type unit_session[][]
         redstone = {},  ---@type redstone_session[]
@@ -258,7 +244,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     self.rtu_list = { self.redstone, self.boilers, self.turbines, self.tanks, self.snas, self.envd }
 
     -- init redstone RTU I/O controller
-    self.io_ctl = rsctl.new(self.redstone)
+    self.io_ctl = rsctl.new(self.redstone, reactor_id)
 
     -- init boiler table fields
     for _ = 1, num_boilers do
@@ -597,20 +583,20 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         _dt__compute_all()
 
         -- update annunciator logic
-        logic.update_annunciator(self)
+        unit_logic.update_annunciator(self)
 
         -- update alarm status
-        logic.update_alarms(self)
+        unit_logic.update_alarms(self)
 
         -- if in auto mode, SCRAM on certain alarms
-        logic.update_auto_safety(public, self)
+        unit_logic.update_auto_safety(self, public)
 
         -- update status text
-        logic.update_status_text(self)
+        unit_logic.update_status_text(self)
 
         -- handle redstone I/O
         if #self.redstone > 0 then
-            logic.handle_redstone(self)
+            unit_logic.handle_redstone(self)
         elseif not self.plc_cache.rps_trip then
             self.em_cool_opened = false
         end
@@ -775,10 +761,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
     -- acknowledge all alarms (if possible)
     function public.ack_all()
-        for i = 1, #self.db.alarm_states do
-            if self.db.alarm_states[i] == ALARM_STATE.TRIPPED then
-                self.db.alarm_states[i] = ALARM_STATE.ACKED
-            end
+        for id, state in pairs(self.db.alarm_states) do
+            if state == ALARM_STATE.TRIPPED then self.db.alarm_states[id] = ALARM_STATE.ACKED end
         end
     end
 
