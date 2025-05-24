@@ -76,12 +76,17 @@ local function compute_hmac(message)
 end
 
 -- NIC: Network Interface Controller<br>
--- utilizes HMAC-MD5 for message authentication, if enabled
+-- utilizes HMAC-MD5 for message authentication, if enabled and this is wireless
+---@param iface string peripheral interface name
 ---@param modem Modem modem to use
-function network.nic(modem)
+function network.nic(iface, modem)
     local self = {
-        connected = true, -- used to avoid costly MAC calculations if modem isn't even present
-        channels = {}
+        -- used to quickly return out of tx/rx functions if there is nothing to do
+        connected = true,
+        -- used to avoid costly MAC calculations if not required
+        use_hash  = c_eng.hmac and modem.isWireless(),
+        -- open channels
+        channels  = {}
     }
 
     ---@class nic:Modem
@@ -165,7 +170,7 @@ function network.nic(modem)
         if self.connected then
             local tx_packet = packet ---@type authd_packet|scada_packet
 
-            if c_eng.hmac ~= nil then
+            if self.use_hash then
                 -- local start = util.time_ms()
                 tx_packet = comms.authd_packet()
 
@@ -190,10 +195,10 @@ function network.nic(modem)
     function public.receive(side, sender, reply_to, message, distance)
         local packet = nil
 
-        if self.connected then
+        if self.connected and side == iface then
             local s_packet = comms.scada_packet()
 
-            if c_eng.hmac ~= nil then
+            if self.use_hash then
                 -- parse packet as an authenticated SCADA packet
                 local a_packet = comms.authd_packet()
                 a_packet.receive(side, sender, reply_to, message, distance)
