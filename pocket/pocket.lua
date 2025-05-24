@@ -96,11 +96,12 @@ local APP_ID = {
     WASTE = 7,
     GUIDE = 8,
     ABOUT = 9,
+    RADMON = 10,
     -- diagnostic app pages
-    ALARMS = 10,
+    ALARMS = 11,
     -- other
-    DUMMY = 11,
-    NUM_APPS = 11
+    DUMMY = 12,
+    NUM_APPS = 12
 }
 
 pocket.APP_ID = APP_ID
