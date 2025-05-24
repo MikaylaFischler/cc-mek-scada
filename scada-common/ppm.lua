@@ -463,19 +463,20 @@ end
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@nodiscard
----@return Modem|nil modem function table
+---@return Modem|nil modem, string|nil iface
 function ppm.get_wireless_modem()
-    local w_modem = nil
+    local w_modem, w_iface = nil, nil
     local emulated_env = periphemu ~= nil
 
-    for _, device in pairs(ppm_sys.mounts) do
+    for iface, device in pairs(ppm_sys.mounts) do
         if device.type == "modem" and (emulated_env or device.dev.isWireless()) then
+            w_iface = iface
             w_modem = device.dev
             break
         end
     end
 
-    return w_modem
+    return w_modem, w_iface
 end
 
 -- list all connected monitors
