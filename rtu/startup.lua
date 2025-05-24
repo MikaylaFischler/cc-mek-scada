@@ -147,6 +147,13 @@ local function main()
     local rtu_redstone = config.Redstone
     local rtu_devices = config.Peripherals
 
+    -- print and log a fatal error during startup
+    ---@param msg string
+    local function log_fail(msg)
+        println(msg)
+        log.fatal(msg)
+    end
+
     -- get a string representation of a port interface
     ---@param entry rtu_rs_definition
     ---@return string
@@ -178,18 +185,14 @@ local function main()
                 assignment = "facility"
                 for_reactor = 0
             else
-                local message = util.c("sys_config> invalid unit assignment at block index #", entry_idx)
-                println(message)
-                log.fatal(message)
+                log_fail(util.c("sys_config> invalid unit assignment at block index #", entry_idx))
                 return false
             end
 
             -- create the appropriate RTU if it doesn't exist and check relay name validity
             if entry.relay then
                 if type(entry.relay) ~= "string" then
-                    local message = util.c("sys_config> invalid redstone relay '", entry.relay, '"')
-                    println(message)
-                    log.fatal(message)
+                    log_fail(util.c("sys_config> invalid redstone relay '", entry.relay, '"'))
                     return false
                 elseif not rs_rtus[entry.relay] then
                     log.debug(util.c("sys_config> allocated relay redstone RTU on interface ", entry.relay))
@@ -224,9 +227,7 @@ local function main()
             local conns = all_conns[for_reactor]
 
             if not valid then
-                local message = util.c("sys_config> invalid redstone definition at block index #", entry_idx)
-                println(message)
-                log.fatal(message)
+                log_fail(util.c("sys_config> invalid redstone definition at block index #", entry_idx))
                 return false
             else
                 -- link redstone in RTU
@@ -340,17 +341,13 @@ local function main()
 
             -- CHECK: name is a string
             if type(name) ~= "string" then
-                local message = util.c("sys_config> device entry #", i, ": device ", name, " isn't a string")
-                println(message)
-                log.fatal(message)
+                log_fail(util.c("sys_config> device entry #", i, ": device ", name, " isn't a string"))
                 return false
             end
 
             -- CHECK: index type
             if (index ~= nil) and (not util.is_int(index)) then
-                local message = util.c("sys_config> device entry #", i, ": index ", index, " isn't valid")
-                println(message)
-                log.fatal(message)
+                log_fail(util.c("sys_config> device entry #", i, ": index ", index, " isn't valid"))
                 return false
             end
 
@@ -359,8 +356,7 @@ local function main()
                 if (not util.is_int(index)) or ((index < min) and (max ~= nil and index > max)) then
                     local message = util.c("sys_config> device entry #", i, ": index ", index, " isn't >= ", min)
                     if max ~= nil then message = util.c(message, " and <= ", max) end
-                    println(message)
-                    log.fatal(message)
+                    log_fail(message)
                     return false
                 else return true end
             end
@@ -368,14 +364,10 @@ local function main()
             -- CHECK: reactor is an integer >= 0
             local function validate_assign(for_facility)
                 if for_facility and for_reactor ~= 0 then
-                    local message = util.c("sys_config> device entry #", i, ": must only be for the facility")
-                    println(message)
-                    log.fatal(message)
+                    log_fail(util.c("sys_config> device entry #", i, ": must only be for the facility"))
                     return false
                 elseif (not for_facility) and ((not util.is_int(for_reactor)) or (for_reactor < 1) or (for_reactor > 4)) then
-                    local message = util.c("sys_config> device entry #", i, ": unit assignment ", for_reactor, " isn't vaild")
-                    println(message)
-                    log.fatal(message)
+                    log_fail(util.c("sys_config> device entry #", i, ": unit assignment ", for_reactor, " isn't vaild"))
                     return false
                 else return true end
             end
@@ -491,9 +483,7 @@ local function main()
                 rtu_type = RTU_UNIT_TYPE.VIRTUAL
                 rtu_iface = rtu.init_unit().interface()
             else
-                local message = util.c("sys_config> device '", name, "' is not a known type (", type, ")")
-                println_ts(message)
-                log.fatal(message)
+                log_fail(util.c("sys_config> device '", name, "' is not a known type (", type, ")"))
                 return false
             end
 
