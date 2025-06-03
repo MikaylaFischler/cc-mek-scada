@@ -132,7 +132,9 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
         sps_data_tbl = {},       ---@type sps_session_db[]
 
         tank_ps_tbl = {},        ---@type psil[]
-        tank_data_tbl = {}       ---@type dynamicv_session_db[]
+        tank_data_tbl = {},      ---@type dynamicv_session_db[]
+
+        rad_monitors = {}        ---@type { radiation: radiation_reading, raw: number }[]
     }
 
     -- create induction and SPS tables (currently only 1 of each is supported)
@@ -242,7 +244,9 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
             turbine_data_tbl = {},  ---@type turbinev_session_db[]
 
             tank_ps_tbl = {},       ---@type psil[]
-            tank_data_tbl = {}      ---@type dynamicv_session_db[]
+            tank_data_tbl = {},     ---@type dynamicv_session_db[]
+
+            rad_monitors = {}       ---@type { radiation: radiation_reading, raw: number }[]
         }
 
         -- on other facility modes, overwrite unit TANK option with facility tank defs
@@ -797,7 +801,9 @@ function iocontrol.update_facility_status(status)
             if type(rtu_statuses.envds) == "table" then
                 local max_rad, max_reading, any_conn, any_faulted = 0, types.new_zero_radiation_reading(), false, false
 
-                for _, envd in pairs(rtu_statuses.envds) do
+                fac.rad_monitors = {}
+
+                for id, envd in pairs(rtu_statuses.envds) do
                     local rtu_faulted = envd[1] ---@type boolean
                     local radiation   = envd[2] ---@type radiation_reading
                     local rad_raw     = envd[3] ---@type number
@@ -809,6 +815,8 @@ function iocontrol.update_facility_status(status)
                         max_rad = rad_raw
                         max_reading = radiation
                     end
+
+                    fac.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
                 end
 
                 if any_conn then
@@ -1099,7 +1107,9 @@ function iocontrol.update_unit_statuses(statuses)
                     if type(rtu_statuses.envds) == "table" then
                         local max_rad, max_reading, any_conn = 0, types.new_zero_radiation_reading(), false
 
-                        for _, envd in pairs(rtu_statuses.envds) do
+                        unit.rad_monitors = {}
+
+                        for id, envd in pairs(rtu_statuses.envds) do
                             local radiation = envd[2] ---@type radiation_reading
                             local rad_raw   = envd[3] ---@type number
 
@@ -1109,6 +1119,8 @@ function iocontrol.update_unit_statuses(statuses)
                                 max_rad = rad_raw
                                 max_reading = radiation
                             end
+
+                            unit.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
                         end
 
                         if any_conn then

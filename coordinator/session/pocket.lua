@@ -427,6 +427,13 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 }
 
                 _send(CRDN_TYPE.API_GET_WASTE, data)
+            elseif pkt.type == CRDN_TYPE.API_GET_RAD then
+                local data = {}
+
+                for i = 1, #db.units do data[i] = db.units[i].rad_monitors end
+                data[#db.units + 1] = db.facility.rad_monitors
+
+                _send(CRDN_TYPE.API_GET_RAD, data)
             else
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

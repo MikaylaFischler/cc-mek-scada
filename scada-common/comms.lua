@@ -72,7 +72,8 @@ local CRDN_TYPE = {
     API_GET_UNIT = 10,   -- API: get reactor unit data
     API_GET_CTRL = 11,   -- API: get data for the control app
     API_GET_PROC = 12,   -- API: get data for the process app
-    API_GET_WASTE = 13   -- API: get data for the waste app
+    API_GET_WASTE = 13,  -- API: get data for the waste app
+    API_GET_RAD = 14     -- API: get data for the radiation monitor app
 }
 
 ---@enum ESTABLISH_ACK

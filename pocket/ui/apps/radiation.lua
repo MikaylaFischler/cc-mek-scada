@@ -86,7 +86,7 @@ local function new_view(root)
         -- refresh data callback, every 500ms it will re-send the query
         local function update()
             if util.time_ms() - last_update >= 500 then
-                -- db.api.get_rad()
+                db.api.get_rad()
                 last_update = util.time_ms()
             end
         end
