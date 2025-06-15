@@ -62,8 +62,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_3 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_4 = Div{parent=net_cfg,x=2,y=4,width=49}
+    local net_c_5 = Div{parent=net_cfg,x=2,y=4,width=49}
+    local net_c_6 = Div{parent=net_cfg,x=2,y=4,width=49}
 
-    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
+    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4,net_c_5,net_c_6}}
 
     TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
@@ -137,40 +139,54 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,text="Please set the trusted range below."}
-    TextBox{parent=net_c_3,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=1,text="Please set the modem configuration below."}
+    TextBox{parent=net_c_3,x=1,y=3,height=3,text="Communications with the coordinator,",fg_bg=g_lg_fg_bg}
+    -- TextBox{parent=net_c_3,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
-    local range = NumberField{parent=net_c_3,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    local use_wired = Checkbox{parent=net_c_3,x=1,y=12,label="Use Wired Modem",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
 
-    local tr_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local function submit_modems()
+        -- tmp_cfg. = use_wired.get_value()
+        net_pane.set_value(4)
+    end
+
+    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_modems,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=net_c_5,x=1,y=1,text="Please set the trusted range below."}
+    TextBox{parent=net_c_5,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_5,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
+
+    local range = NumberField{parent=net_c_5,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
+
+    local tr_err = TextBox{parent=net_c_5,x=8,y=14,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_tr()
         local range_val = tonumber(range.get_value())
         if range_val ~= nil then
             tmp_cfg.TrustedRange = range_val
-            net_pane.set_value(4)
+            net_pane.set_value(6)
             tr_err.hide(true)
         else tr_err.show() end
     end
 
-    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_5,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_5,x=44,y=14,text="Next \x1a",callback=submit_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_6,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
+    TextBox{parent=net_c_6,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=11,text="Facility Auth Key"}
-    local key, _ = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_6,x=1,y=11,text="Facility Auth Key"}
+    local key, _ = TextField{parent=net_c_6,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
 
-    local hide_key = Checkbox{parent=net_c_4,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+    local hide_key = Checkbox{parent=net_c_6,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_4,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_6,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -181,8 +197,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_4,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_4,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_6,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_6,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

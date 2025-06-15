@@ -6,6 +6,7 @@ local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local types       = require("scada-common.types")
 local util        = require("scada-common.util")
+local pcie        = require("supervisor.pcie")
 
 local databus     = require("supervisor.databus")
 
@@ -41,20 +42,17 @@ svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
     -- references to supervisor state and other data
-    nic = nil,              ---@type nic|nil
     fp_ok = false,
-    config = nil,           ---@type svr_config
+    config = nil,           ---@type svr_config|nil
     facility = nil,         ---@type facility|nil
     plc_ini_reset = {},
     -- lists of connected sessions
----@diagnostic disable: missing-fields
     sessions = {
-        rtu = {},           ---@type rtu_session_struct
-        plc = {},           ---@type plc_session_struct
-        crd = {},           ---@type crd_session_struct
-        pdg = {}            ---@type pdg_session_struct
+        rtu = {},           ---@type rtu_session_struct[]
+        plc = {},           ---@type plc_session_struct[]
+        crd = {},           ---@type crd_session_struct[]
+        pdg = {}            ---@type pdg_session_struct[]
     },
----@diagnostic enable: missing-fields
     -- next session IDs
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
     -- rtu device tracking and invalid assignment detection
@@ -83,7 +81,9 @@ local function _sv_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
+                if session.r_chan == self.config.PKT_Channel then
+                    pcie.nic.pocket.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
+                else pcie.nic.core.transmit(session.r_chan, self.config.SVR_Channel, msg.message) end
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -139,12 +139,9 @@ end
 local function _iterate(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
-
         if session.open and session.instance.iterate() then
             _sv_handle_outq(session)
-        else
-            session.open = false
-        end
+        else session.open = false end
     end
 end
 
@@ -158,7 +155,9 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
+            if session.r_chan == self.config.PKT_Channel then
+                pcie.nic.pocket.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
+            else pcie.nic.core.transmit(session.r_chan, self.config.SVR_Channel, msg.message) end
         end
     end
 
@@ -358,12 +357,10 @@ function svsessions.check_rtu_id(unit, list, max)
 end
 
 -- initialize svsessions
----@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param config svr_config supervisor configuration
 ---@param facility facility
-function svsessions.init(nic, fp_ok, config, facility)
-    self.nic = nic
+function svsessions.init(fp_ok, config, facility)
     self.fp_ok = fp_ok
     self.config = config
     self.facility = facility

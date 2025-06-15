@@ -34,7 +34,8 @@ local ind_grn = style.ind_grn
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
-local function init(panel)
+---@param wl_modem boolean if there is a separate wireless modem
+local function init(panel, wl_modem)
     local s_hi_box = style.theme.highlight_box
     local s_hi_bright = style.theme.highlight_box_bright
 
@@ -53,7 +54,7 @@ local function init(panel)
 
     local main_page = Div{parent=page_div,x=1,y=1}
 
-    local system = Div{parent=main_page,width=14,height=17,x=2,y=2}
+    local system = Div{parent=main_page,width=18,height=17,x=2,y=2}
 
     local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
@@ -62,14 +63,21 @@ local function init(panel)
 
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
-    local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+    local c_modem = LED{parent=system,label="MODEM"..util.trinary(wl_modem," A",""),colors=ind_grn}
     system.line_break()
 
-    modem.register(databus.ps, "has_modem", modem.update)
+    c_modem.register(databus.ps, "has_modem_a", c_modem.update)
+
+    if wl_modem then
+        local p_modem = LED{parent=system,label="MODEM B",colors=ind_grn}
+        system.line_break()
+
+        p_modem.register(databus.ps, "has_modem_b", p_modem.update)
+    end
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
+    TextBox{parent=system,x=11,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
 
     --
     -- about footer

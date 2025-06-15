@@ -19,10 +19,11 @@ local ui = {
 }
 
 -- try to start the UI
+---@param wl_modem boolean if there is a separate wireless modem to display the status of
 ---@param theme FP_THEME front panel theme
 ---@param color_mode COLOR_MODE color mode
 ---@return boolean success, any error_msg
-function renderer.try_start_ui(theme, color_mode)
+function renderer.try_start_ui(wl_modem, theme, color_mode)
     local status, msg = true, nil
 
     if ui.display == nil then
@@ -49,7 +50,7 @@ function renderer.try_start_ui(theme, color_mode)
         -- init front panel view
         status, msg = pcall(function ()
             ui.display = DisplayBox{window=term.current(),fg_bg=style.fp.root}
-            panel_view(ui.display)
+            panel_view(ui.display, wl_modem)
         end)
 
         if status then

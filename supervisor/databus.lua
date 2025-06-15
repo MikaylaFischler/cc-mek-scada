@@ -27,10 +27,16 @@ function databus.tx_versions(sv_v, comms_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
--- transmit hardware status for modem connection state
+-- transmit hardware status for the core comms modem connection state
 ---@param has_modem boolean
-function databus.tx_hw_modem(has_modem)
-    databus.ps.publish("has_modem", has_modem)
+function databus.tx_hw_c_modem(has_modem)
+    databus.ps.publish("has_c_modem", has_modem)
+end
+
+-- transmit hardware status for the pocket modem connection state
+---@param has_modem boolean
+function databus.tx_hw_p_modem(has_modem)
+    databus.ps.publish("has_p_modem", has_modem)
 end
 
 -- transmit PLC firmware version and session connection state

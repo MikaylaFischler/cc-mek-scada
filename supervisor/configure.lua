@@ -3,6 +3,7 @@
 --
 
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
@@ -96,8 +97,11 @@ local tmp_cfg = {
     RTU_Timeout = nil,      ---@type number
     CRD_Timeout = nil,      ---@type number
     PKT_Timeout = nil,      ---@type number
+    WiredModem = false,     ---@type string|false
+    WirelessModem = false,  ---@type boolean
     TrustedRange = nil,     ---@type number
     AuthKey = nil,          ---@type string|nil
+    PocketTest = true,      ---@type boolean
     LogMode = 0,            ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
@@ -130,8 +134,11 @@ local fields = {
     { "RTU_Timeout", "RTU Connection Timeout", 5 },
     { "CRD_Timeout", "CRD Connection Timeout", 5 },
     { "PKT_Timeout", "PKT Connection Timeout", 5 },
+    { "WiredModem", "Wired Modem", false },
+    { "WirelessModem", "Pocket Wireless/Ender Modem", true },
     { "TrustedRange", "Trusted Range", 0 },
-    { "AuthKey", "Facility Auth Key" , ""},
+    { "AuthKey", "Facility Auth Key" , "" },
+    { "PocketTest", "Pocket Testing Features", true },
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },
@@ -314,6 +321,14 @@ function configurator.configure(ask_config)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
                 display.handle_paste(param1)
+            elseif event == "peripheral_detach" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.handle_unmount(param1)
+                tool_ctl.gen_modem_list()
+            elseif event == "peripheral" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.mount(param1)
+                tool_ctl.gen_modem_list()
             end
 
             if event == "terminate" then return end
