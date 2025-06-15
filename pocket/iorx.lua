@@ -836,6 +836,9 @@ function iorx.record_radiation_data(data)
                 unit.radiation = mon.radiation
             end
         end
+
+        unit.unit_ps.publish("radiation", unit.radiation)
+        unit.unit_ps.publish("radiation_monitors", textutils.serialize(unit.rad_monitors))
     end
 
     -- facility radiation monitors
@@ -852,6 +855,9 @@ function iorx.record_radiation_data(data)
             fac.radiation = mon.radiation
         end
     end
+
+    fac.ps.publish("radiation", fac.radiation)
+    fac.ps.publish("radiation_monitors", textutils.serialize(fac.rad_monitors))
 end
 
 return function (io_obj)
