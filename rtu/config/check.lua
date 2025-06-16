@@ -195,7 +195,7 @@ local function self_check()
                 valid = is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "dynamicValve" then
                 valid = (entry.unit == nil and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
-            elseif p_type == "environmentDetector" then
+            elseif p_type == "environmentDetector" or p_type == "environment_detector"  then
                 valid = (entry.unit == nil or is_int_min_max(entry.unit, 1, 4)) and util.is_int(entry.index)
             else
                 valid = true
