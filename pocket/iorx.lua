@@ -824,13 +824,18 @@ function iorx.record_radiation_data(data)
     -- unit radiation monitors
 
     for u_id = 1, #io.units do
-        local unit = io.units[u_id]
+        local unit      = io.units[u_id]
+        local max_rad   = 0
+        local connected = {}
 
         unit.radiation = types.new_zero_radiation_reading()
         unit.rad_monitors = data[u_id]
 
-        local max_rad = 0
-        for _, mon in pairs(unit.rad_monitors) do
+        for id, mon in pairs(unit.rad_monitors) do
+            table.insert(connected, id)
+
+            unit.unit_ps.publish("radiation@" .. id, mon.radiation)
+
             if mon.raw > max_rad then
                 max_rad = mon.raw
                 unit.radiation = mon.radiation
@@ -838,7 +843,7 @@ function iorx.record_radiation_data(data)
         end
 
         unit.unit_ps.publish("radiation", unit.radiation)
-        unit.unit_ps.publish("radiation_monitors", textutils.serialize(unit.rad_monitors))
+        unit.unit_ps.publish("radiation_monitors", textutils.serialize(connected))
     end
 
     -- facility radiation monitors
@@ -849,7 +854,13 @@ function iorx.record_radiation_data(data)
     fac.rad_monitors = data[#io.units + 1]
 
     local max_rad = 0
-    for _, mon in pairs(fac.rad_monitors) do
+    local connected = {}
+
+    for id, mon in pairs(fac.rad_monitors) do
+        table.insert(connected, id)
+
+        fac.ps.publish("radiation@" .. id, mon.radiation)
+
         if mon.raw > max_rad then
             max_rad = mon.raw
             fac.radiation = mon.radiation
@@ -857,7 +868,7 @@ function iorx.record_radiation_data(data)
     end
 
     fac.ps.publish("radiation", fac.radiation)
-    fac.ps.publish("radiation_monitors", textutils.serialize(fac.rad_monitors))
+    fac.ps.publish("radiation_monitors", textutils.serialize(connected))
 end
 
 return function (io_obj)

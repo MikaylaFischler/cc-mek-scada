@@ -75,6 +75,39 @@ local function new_view(root)
             end
         end
 
+        -- create a new radiation monitor list
+        ---@param parent Container
+        ---@param ps psil
+        local function new_mon_list(parent, ps)
+            local mon_list = ListBox{parent=parent,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+
+            local elem_list = {}    ---@type graphics_element[]
+
+            mon_list.register(ps, "radiation", function (data)
+                local ids = textutils.unserialize(data)
+
+                -- delete any disconnected monitors
+                for id, elem in pairs(elem_list) do
+                    if util.table_contains(ids, id) then
+                        elem.delete()
+                        elem_list[id] = nil
+                    end
+                end
+
+                -- add newly connected monitors
+                for _, id in pairs(ids) do
+                    if not elem_list[id] then
+                        elem_list[id] = Div{parent=mon_list,height=4}
+                        local mon_rect = Rectangle{parent=elem_list[id],height=5,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+
+                        TextBox{parent=mon_rect,text="Env. Detector "..id}
+                        local mon_rad = RadIndicator{parent=mon_rect,x=2,label="",format="%13.3f",lu_colors=cpair(colors.gray,colors.gray),width=18}
+                        mon_rad.register(ps, "radiation@" .. id, mon_rad.update)
+                    end
+                end
+            end)
+        end
+
         --#region unit radiation monitors
 
         for i = 1, db.facility.num_units do
@@ -92,29 +125,7 @@ local function new_view(root)
             local radiation = RadIndicator{parent=u_div,x=2,label="",format="%17.3f",lu_colors=lu_col,width=21}
             radiation.register(u_ps, "radiation", radiation.update)
 
-            local mon_list = ListBox{parent=u_div,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-
-            -- local last_list = {}
-            -- local new_list  = {}
-
-            mon_list.register(u_ps, "radiation", function ()
-                -- for k, _ in pairs(unit.rad_monitors) do
-                --     if last_list[k] then last_list[k] = nil end
-                -- end
-
-                -- re-create due to new items
-                -- if util.table_len(last_list) > 0 then
-                    mon_list.remove_all()
-
-                    for k, v in pairs(unit.rad_monitors) do
-                        local mon_div = Div{parent=mon_list,height=4}
-                        local mon_rect = Rectangle{parent=mon_div,height=5,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
-                        TextBox{parent=mon_rect,text="Env. Detector "..k}
-                        local mon_rad = RadIndicator{parent=mon_rect,x=2,label="",format="%13.3f",value=v.radiation,lu_colors=cpair(colors.gray,colors.gray),width=18}
-                        -- radiation.register(u_ps, "radiation", mon_rad.update)
-                    end
-                -- end
-            end)
+            new_mon_list(u_div, u_ps)
         end
 
         --#endregion
@@ -159,7 +170,7 @@ local function new_view(root)
         local f_rad = RadIndicator{parent=f_div,x=2,label="",format="%17.3f",lu_colors=lu_col,width=21}
         f_rad.register(f_ps, "radiation", f_rad.update)
 
-        local f_mon_list = ListBox{parent=f_div,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        new_mon_list(f_div, f_ps)
 
         --#endregion
 
