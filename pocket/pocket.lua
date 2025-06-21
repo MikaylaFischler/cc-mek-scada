@@ -96,11 +96,12 @@ local APP_ID = {
     WASTE = 7,
     GUIDE = 8,
     ABOUT = 9,
+    RADMON = 10,
     -- diagnostic app pages
-    ALARMS = 10,
+    ALARMS = 11,
     -- other
-    DUMMY = 11,
-    NUM_APPS = 11
+    DUMMY = 12,
+    NUM_APPS = 12
 }
 
 pocket.APP_ID = APP_ID
@@ -369,8 +370,7 @@ function pocket.init_nav(smem)
         self.help_return = self.cur_app
 
         nav.open_app(APP_ID.GUIDE, function ()
-            local show = self.help_map[key]
-            if show then show() end
+            if self.help_map[key] then self.help_map[key]() end
         end)
     end
 
@@ -583,6 +583,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_WASTE, {}) end
     end
 
+    -- coordinator get radiation app data
+    function public.api__get_rad()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_RAD, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
@@ -758,6 +763,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_WASTE then
                             if _check_length(packet, #iocontrol.get_db().units + 1) then
                                 iocontrol.rx.record_waste_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_RAD then
+                            if _check_length(packet, #iocontrol.get_db().units + 1) then
+                                iocontrol.rx.record_radiation_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else
