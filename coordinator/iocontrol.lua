@@ -816,7 +816,9 @@ function iocontrol.update_facility_status(status)
                         max_reading = radiation
                     end
 
-                    fac.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
+                    if not rtu_faulted then
+                        fac.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
+                    end
                 end
 
                 if any_conn then
