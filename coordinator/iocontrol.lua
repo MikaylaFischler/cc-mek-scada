@@ -1112,8 +1112,9 @@ function iocontrol.update_unit_statuses(statuses)
                         unit.rad_monitors = {}
 
                         for id, envd in pairs(rtu_statuses.envds) do
-                            local radiation = envd[2] ---@type radiation_reading
-                            local rad_raw   = envd[3] ---@type number
+                            local rtu_faulted = envd[1] ---@type boolean
+                            local radiation   = envd[2] ---@type radiation_reading
+                            local rad_raw     = envd[3] ---@type number
 
                             any_conn = true
 
@@ -1122,7 +1123,9 @@ function iocontrol.update_unit_statuses(statuses)
                                 max_reading = radiation
                             end
 
-                            unit.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
+                            if not rtu_faulted then
+                                unit.rad_monitors[id] = { radiation = radiation, raw = rad_raw }
+                            end
                         end
 
                         if any_conn then

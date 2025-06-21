@@ -2,24 +2,24 @@
 -- Radiation Monitor App
 --
 
-local util          = require("scada-common.util")
+local util         = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
-local pocket        = require("pocket.pocket")
+local iocontrol    = require("pocket.iocontrol")
+local pocket       = require("pocket.pocket")
 
-local style         = require("pocket.ui.style")
+local style        = require("pocket.ui.style")
 
-local core          = require("graphics.core")
+local core         = require("graphics.core")
 
-local Div           = require("graphics.elements.Div")
+local Div          = require("graphics.elements.Div")
 local ListBox      = require("graphics.elements.ListBox")
-local MultiPane     = require("graphics.elements.MultiPane")
-local Rectangle     = require("graphics.elements.Rectangle")
-local TextBox       = require("graphics.elements.TextBox")
+local MultiPane    = require("graphics.elements.MultiPane")
+local Rectangle    = require("graphics.elements.Rectangle")
+local TextBox      = require("graphics.elements.TextBox")
 
-local WaitingAnim   = require("graphics.elements.animations.Waiting")
+local WaitingAnim  = require("graphics.elements.animations.Waiting")
 
-local RadIndicator  = require("graphics.elements.indicators.RadIndicator")
+local RadIndicator = require("graphics.elements.indicators.RadIndicator")
 
 local ALIGN  = core.ALIGN
 local cpair  = core.cpair
