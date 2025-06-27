@@ -43,6 +43,7 @@ function plc.load_config()
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
     config.EmerCoolSide = settings.get("EmerCoolSide")
     config.EmerCoolColor = settings.get("EmerCoolColor")
+    config.EmerCoolInvert = settings.get("EmerCoolInvert")
 
     config.SVR_Channel = settings.get("SVR_Channel")
     config.PLC_Channel = settings.get("PLC_Channel")
@@ -98,6 +99,7 @@ function plc.validate_config(cfg)
     if cfg.EmerCoolEnable then
         cfv.assert_eq(rsio.is_valid_side(cfg.EmerCoolSide), true)
         cfv.assert_eq(cfg.EmerCoolColor == nil or rsio.is_color(cfg.EmerCoolColor), true)
+        cfv.assert_type_bool(cfg.EmerCoolInvert)
     end
 
     return cfv.valid()
@@ -166,7 +168,8 @@ function plc.rps_init(reactor, is_formed)
     local function _set_emer_cool(state)
         -- check if this was configured: if it's a table, fields have already been validated.
         if config.EmerCoolEnable then
-            local level = rsio.digital_write_active(rsio.IO.U_EMER_COOL, state)
+            -- use ~= as XOR for simple inversion
+            local level = rsio.digital_write_active(rsio.IO.U_EMER_COOL, config.EmerCoolInvert ~= state)
 
             if level ~= false then
                 if rsio.is_color(config.EmerCoolColor) then
