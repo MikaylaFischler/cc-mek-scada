@@ -59,6 +59,16 @@ function supervisor.load_config()
     config.CRD_Timeout = settings.get("CRD_Timeout")
     config.PKT_Timeout = settings.get("PKT_Timeout")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+
+    config.PLC_Listen = settings.get("PLC_Listen")
+    config.RTU_Listen = settings.get("RTU_Listen")
+    config.CRD_Listen = settings.get("CRD_Listen")
+
+    config.PocketEnabled = settings.get("PocketEnabled")
+    config.PocketTest = settings.get("PocketTest")
+
     config.TrustedRange = settings.get("TrustedRange")
     config.AuthKey = settings.get("AuthKey")
 
@@ -99,6 +109,19 @@ function supervisor.load_config()
     cfv.assert_min(config.CRD_Timeout, 2)
     cfv.assert_type_num(config.PKT_Timeout)
     cfv.assert_min(config.PKT_Timeout, 2)
+
+    cfv.assert_type_bool(config.WirelessModem)
+    cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
+
+    cfv.assert_type_num(config.PLC_Listen)
+    cfv.assert_range(config.PLC_Listen, 0, 2)
+    cfv.assert_type_num(config.RTU_Listen)
+    cfv.assert_range(config.RTU_Listen, 0, 2)
+    cfv.assert_type_num(config.CRD_Listen)
+    cfv.assert_range(config.CRD_Listen, 0, 2)
+
+    cfv.assert_type_bool(config.PocketEnabled)
+    cfv.assert_type_bool(config.PocketTest)
 
     cfv.assert_type_num(config.TrustedRange)
     cfv.assert_min(config.TrustedRange, 0)
