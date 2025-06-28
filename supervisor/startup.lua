@@ -127,7 +127,7 @@ local function main()
     end
 
     -- hardware bus initialization
-    pcie.init(config, println)
+    if not pcie.init(config, println) then return end
 
     -- start UI
     local fp_ok, message = renderer.try_start_ui(pcie.has_pocket_nic(), config.FrontPanelTheme, config.ColorMode)
@@ -167,7 +167,7 @@ local function main()
         if event == "peripheral_detach" then
             local type, device = ppm.handle_unmount(param1)
             if type ~= nil and device ~= nil then
-                pcie.remove(type, device, println_ts)
+                pcie.remove(param1, type, device, println_ts)
             end
         elseif event == "peripheral" then
             local type, device = ppm.mount(param1)

@@ -81,9 +81,7 @@ local function _sv_handle_outq(session)
         if msg ~= nil then
             if msg.qtype == mqueue.TYPE.PACKET then
                 -- handle a packet to be sent
-                if session.r_chan == self.config.PKT_Channel then
-                    pcie.nic.pocket.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
-                else pcie.nic.core.transmit(session.r_chan, self.config.SVR_Channel, msg.message) end
+                session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
             elseif msg.qtype == mqueue.TYPE.COMMAND then
                 -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
@@ -155,9 +153,7 @@ local function _shutdown(session)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
         if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            if session.r_chan == self.config.PKT_Channel then
-                pcie.nic.pocket.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
-            else pcie.nic.core.transmit(session.r_chan, self.config.SVR_Channel, msg.message) end
+            session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
         end
     end
 
@@ -463,12 +459,13 @@ end
 
 -- establish a new PLC session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer PLC computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param for_reactor integer unit ID
 ---@param version string PLC version
 ---@return integer|false session_id
-function svsessions.establish_plc_session(source_addr, i_seq_num, for_reactor, version)
+function svsessions.establish_plc_session(nic, source_addr, i_seq_num, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
         ---@class plc_session_struct
         local plc_s = {
@@ -476,6 +473,7 @@ function svsessions.establish_plc_session(source_addr, i_seq_num, for_reactor, v
             open = true,
             reactor = for_reactor,
             version = version,
+            nic = nic,
             r_chan = self.config.PLC_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
@@ -513,17 +511,19 @@ end
 
 -- establish a new RTU gateway session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer RTU gateway computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param advertisement table RTU capability advertisement
 ---@param version string RTU gateway version
 ---@return integer session_id
-function svsessions.establish_rtu_session(source_addr, i_seq_num, advertisement, version)
+function svsessions.establish_rtu_session(nic, source_addr, i_seq_num, advertisement, version)
     ---@class rtu_session_struct
     local rtu_s = {
         s_type = "rtu",
         open = true,
         version = version,
+        nic = nic,
         r_chan = self.config.RTU_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),
@@ -554,17 +554,19 @@ end
 
 -- establish a new coordinator session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer coordinator computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string coordinator version
 ---@return integer|false session_id
-function svsessions.establish_crd_session(source_addr, i_seq_num, version)
+function svsessions.establish_crd_session(nic, source_addr, i_seq_num, version)
     if svsessions.get_crd_session() == nil then
         ---@class crd_session_struct
         local crd_s = {
             s_type = "crd",
             open = true,
             version = version,
+            nic = nic,
             r_chan = self.config.CRD_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
@@ -599,16 +601,18 @@ end
 
 -- establish a new pocket diagnostics session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer pocket computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string pocket version
 ---@return integer|false session_id
-function svsessions.establish_pdg_session(source_addr, i_seq_num, version)
+function svsessions.establish_pdg_session(nic, source_addr, i_seq_num, version)
     ---@class pdg_session_struct
     local pdg_s = {
         s_type = "pkt",
         open = true,
         version = version,
+        nic = nic,
         r_chan = self.config.PKT_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),

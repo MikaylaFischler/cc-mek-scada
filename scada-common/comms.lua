@@ -250,6 +250,8 @@ function comms.scada_packet()
     function public.raw_sendable() return self.raw end
 
     ---@nodiscard
+    function public.interface() return self.modem_msg_in.iface end
+    ---@nodiscard
     function public.local_channel() return self.modem_msg_in.s_channel end
     ---@nodiscard
     function public.remote_channel() return self.modem_msg_in.r_channel end

@@ -5,6 +5,7 @@
 local log         = require("scada-common.log")
 local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local facility    = require("supervisor.config.facility")
@@ -97,11 +98,15 @@ local tmp_cfg = {
     RTU_Timeout = nil,      ---@type number
     CRD_Timeout = nil,      ---@type number
     PKT_Timeout = nil,      ---@type number
+    WirelessModem = true,   ---@type boolean
     WiredModem = false,     ---@type string|false
-    WirelessModem = false,  ---@type boolean
+    PLC_Listen = 0,         ---@type LISTEN_MODE
+    RTU_Listen = 0,         ---@type LISTEN_MODE
+    CRD_Listen = 0,         ---@type LISTEN_MODE
+    PocketEnabled = true,   ---@type boolean
+    PocketTest = true,      ---@type boolean
     TrustedRange = nil,     ---@type number
     AuthKey = nil,          ---@type string|nil
-    PocketTest = true,      ---@type boolean
     LogMode = 0,            ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
@@ -134,11 +139,15 @@ local fields = {
     { "RTU_Timeout", "RTU Connection Timeout", 5 },
     { "CRD_Timeout", "CRD Connection Timeout", 5 },
     { "PKT_Timeout", "PKT Connection Timeout", 5 },
-    { "WiredModem", "Wired Modem", false },
-    { "WirelessModem", "Pocket Wireless/Ender Modem", true },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "RTU_Listen", "RTU Gateway Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "CRD_Listen", "Coordinator Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "PocketEnabled", "Pocket Connectivity", true },
+    { "PocketTest", "Pocket Testing Features", true },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key" , "" },
-    { "PocketTest", "Pocket Testing Features", true },
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },

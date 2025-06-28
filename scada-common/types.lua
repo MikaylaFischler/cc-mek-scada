@@ -212,6 +212,13 @@ end
 
 --#region ENUMERATION TYPES
 
+---@enum LISTEN_MODE
+types.LISTEN_MODE = {
+    WIRELESS = 0,
+    WIRED = 1,
+    ALL = 2
+}
+
 ---@enum TEMP_SCALE
 types.TEMP_SCALE = {
     KELVIN = 1,
