@@ -4,6 +4,7 @@
 
 local comms  = require("scada-common.comms")
 local log    = require("scada-common.log")
+local ppm    = require("scada-common.ppm")
 local util   = require("scada-common.util")
 
 local md5    = require("lockbox.digest.md5")
@@ -77,10 +78,11 @@ end
 
 -- NIC: Network Interface Controller<br>
 -- utilizes HMAC-MD5 for message authentication, if enabled and this is wireless
----@param iface string peripheral interface name
 ---@param modem Modem modem to use
-function network.nic(iface, modem)
+function network.nic(modem)
     local self = {
+        -- modem interface name
+        iface = ppm.get_iface(modem),
         -- used to quickly return out of tx/rx functions if there is nothing to do
         connected = true,
         -- used to avoid costly MAC calculations if not required
@@ -195,7 +197,7 @@ function network.nic(iface, modem)
     function public.receive(side, sender, reply_to, message, distance)
         local packet = nil
 
-        if self.connected and side == iface then
+        if self.connected and side == self.iface then
             local s_packet = comms.scada_packet()
 
             if self.use_hash then

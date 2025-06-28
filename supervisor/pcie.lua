@@ -76,7 +76,7 @@ function pcie_bus.init(config, println)
             return false
         end
 
-        bus.wd_nic = network.nic(bus.wired_modem, wired_modem)
+        bus.wd_nic = network.nic(wired_modem)
         pcie_bus.nic.cards[bus.wired_modem] = bus.wd_nic
     end
 
@@ -89,7 +89,7 @@ function pcie_bus.init(config, println)
             return false
         end
 
-        bus.wl_nic = network.nic(wireless_iface, wireless_modem)
+        bus.wl_nic = network.nic(wireless_modem)
         pcie_bus.nic.cards[wireless_iface] = bus.wl_nic
     end
 
