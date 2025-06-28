@@ -130,7 +130,7 @@ local function main()
     if not pcie.init(config, println) then return end
 
     -- start UI
-    local fp_ok, message = renderer.try_start_ui(pcie.has_pocket_nic(), config.FrontPanelTheme, config.ColorMode)
+    local fp_ok, message = renderer.try_start_ui(config)
 
     if not fp_ok then
         println_ts(util.c("UI error: ", message))
