@@ -98,7 +98,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
         get_unit = function (unit) comms.api__get_unit(unit) end,
         get_ctrl = function () comms.api__get_control() end,
         get_proc = function () comms.api__get_process() end,
-        get_waste = function () comms.api__get_waste() end
+        get_waste = function () comms.api__get_waste() end,
+        get_rad = function () comms.api__get_rad() end
     }
 end
 
@@ -184,7 +185,9 @@ function iocontrol.init_fac(conf)
         sps_data_tbl = {},       ---@type sps_session_db[]
 
         tank_ps_tbl = {},        ---@type psil[]
-        tank_data_tbl = {}       ---@type dynamicv_session_db[]
+        tank_data_tbl = {},      ---@type dynamicv_session_db[]
+
+        rad_monitors = {}        ---@type { radiation: radiation_reading, raw: number }[]
     }
 
     -- create induction and SPS tables (currently only 1 of each is supported)
@@ -264,7 +267,9 @@ function iocontrol.init_fac(conf)
             turbine_data_tbl = {},  ---@type turbinev_session_db[]
 
             tank_ps_tbl = {},       ---@type psil[]
-            tank_data_tbl = {}      ---@type dynamicv_session_db[]
+            tank_data_tbl = {},     ---@type dynamicv_session_db[]
+
+            rad_monitors = {}       ---@type { radiation: radiation_reading, raw: number }[]
         }
 
         -- on other facility modes, overwrite unit TANK option with facility tank defs

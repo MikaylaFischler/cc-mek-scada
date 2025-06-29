@@ -32,7 +32,8 @@ local changes = {
     { "v1.6.2", { "AuthKey minimum length is now 8 (if set)" } },
     { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
-    { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } }
+    { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
+    { "v1.8.21", { "Added option to invert emergency coolant redstone control" } }
 }
 
 ---@class plc_configurator
@@ -76,6 +77,7 @@ local tmp_cfg = {
     EmerCoolEnable = false,
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
+    EmerCoolInvert = false, ---@type boolean
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
     ConnTimeout = nil,      ---@type number
@@ -100,6 +102,7 @@ local fields = {
     { "EmerCoolEnable", "Emergency Coolant", false },
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },
+    { "EmerCoolInvert", "Emergency Coolant Invert", false },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
     { "ConnTimeout", "Connection Timeout", 5 },

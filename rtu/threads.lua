@@ -89,7 +89,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
                 if unit.reactor < 1 or unit.reactor > 4 then fail(util.c("SNA '", unit.name, "' cannot init, not assigned to a valid unit")) end
 
                 unit.type = RTU_UNIT_TYPE.SNA
-            elseif type == "environmentDetector" then
+            elseif type == "environmentDetector" or type == "environment_detector"  then
                 -- advanced peripherals environment detector
                 if unit.reactor < 0 or unit.reactor > 4 then fail(util.c("environment detector '", unit.name, "' cannot init, no valid assignment provided")) end
                 if (unit.index == false) or unit.index < 1 then fail(util.c("environment detector '", unit.name, "' cannot init, invalid index provided")) end

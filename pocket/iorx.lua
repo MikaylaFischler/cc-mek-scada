@@ -658,7 +658,6 @@ function iorx.record_waste_data(data)
     fac.ps.publish("sps_process_rate", f_data[9])
 end
 
-
 -- update facility app with facility and unit data from API_GET_FAC_DTL
 ---@param data table
 function iorx.record_fac_detail_data(data)
@@ -817,6 +816,59 @@ function iorx.record_fac_detail_data(data)
 
     s_ps.publish("SPSStatus", sps_status)
     s_ps.publish("SPSStateStatus", s_stat)
+end
+
+-- update the radiation monitor app with radiation monitor data from API_GET_RAD
+---@param data table
+function iorx.record_radiation_data(data)
+    -- unit radiation monitors
+
+    for u_id = 1, #io.units do
+        local unit      = io.units[u_id]
+        local max_rad   = 0
+        local connected = {}
+
+        unit.radiation = types.new_zero_radiation_reading()
+        unit.rad_monitors = data[u_id]
+
+        for id, mon in pairs(unit.rad_monitors) do
+            table.insert(connected, id)
+
+            unit.unit_ps.publish("radiation@" .. id, mon.radiation)
+
+            if mon.raw > max_rad then
+                max_rad = mon.raw
+                unit.radiation = mon.radiation
+            end
+        end
+
+        unit.unit_ps.publish("radiation", unit.radiation)
+        unit.unit_ps.publish("radiation_monitors", textutils.serialize(connected))
+    end
+
+    -- facility radiation monitors
+
+    local fac = io.facility
+
+    fac.radiation = types.new_zero_radiation_reading()
+    fac.rad_monitors = data[#io.units + 1]
+
+    local max_rad = 0
+    local connected = {}
+
+    for id, mon in pairs(fac.rad_monitors) do
+        table.insert(connected, id)
+
+        fac.ps.publish("radiation@" .. id, mon.radiation)
+
+        if mon.raw > max_rad then
+            max_rad = mon.raw
+            fac.radiation = mon.radiation
+        end
+    end
+
+    fac.ps.publish("radiation", fac.radiation)
+    fac.ps.publish("radiation_monitors", textutils.serialize(connected))
 end
 
 return function (io_obj)

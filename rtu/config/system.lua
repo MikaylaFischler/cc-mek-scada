@@ -506,7 +506,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
                 local u, idx = def.unit, def.index
 
                 if util.table_contains(NEEDS_UNIT, mount.type) then
-                    if (mount.type == "dynamicValve" or mount.type == "environmentDetector") and for_facility then
+                    if (mount.type == "dynamicValve" or mount.type == "environmentDetector" or mount.type == "environment_detector") and for_facility then
                         -- skip
                     elseif not (util.is_int(u) and u > 0 and u < 5) then
                         err = true
@@ -527,7 +527,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
                     else index = idx end
                 elseif mount.type == "dynamicValve" then
                     index = 1
-                elseif mount.type == "environmentDetector" then
+                elseif mount.type == "environmentDetector" or mount.type == "environment_detector" then
                     if not (util.is_int(idx) and idx > 0) then
                         err = true
                     else index = idx end

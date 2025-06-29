@@ -82,8 +82,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local plc_c_2 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_3 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_4 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_5 = Div{parent=plc_cfg,x=2,y=4,width=49}
 
-    local plc_pane = MultiPane{parent=plc_cfg,x=1,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4}}
+    local plc_pane = MultiPane{parent=plc_cfg,x=1,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5}}
 
     TextBox{parent=plc_cfg,x=1,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
@@ -152,13 +153,21 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     function self.bundled_emcool(en) if en then color.enable() else color.disable() end end
 
+    TextBox{parent=plc_c_5,x=1,y=1,height=5,text="Advanced Options"}
+    local invert = Checkbox{parent=plc_c_5,x=1,y=3,label="Invert",default=ini_cfg.EmerCoolInvert,box_fg_bg=cpair(colors.orange,colors.black),callback=function()end}
+    TextBox{parent=plc_c_5,x=10,y=3,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+    TextBox{parent=plc_c_5,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
+    PushButton{parent=plc_c_5,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
     local function submit_emcool()
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
         tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
+        tmp_cfg.EmerCoolInvert = invert.get_value()
         next_from_plc()
     end
 
     PushButton{parent=plc_c_4,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_4,x=33,y=14,min_width=10,text="Advanced",callback=function()plc_pane.set_value(5)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=plc_c_4,x=44,y=14,text="Next \x1a",callback=submit_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -461,6 +470,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(side, side_to_idx(ini_cfg.EmerCoolSide))
             try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
             if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
+            try_set(invert, ini_cfg.EmerCoolInvert)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(plc_chan, ini_cfg.PLC_Channel)
             try_set(timeout, ini_cfg.ConnTimeout)
@@ -533,9 +543,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         if tmp_cfg.EmerCoolEnable then
             tmp_cfg.EmerCoolSide = config.EMERGENCY_COOL.side
             tmp_cfg.EmerCoolColor = config.EMERGENCY_COOL.color
+            tmp_cfg.EmerCoolInvert = false
         else
             tmp_cfg.EmerCoolSide = nil
             tmp_cfg.EmerCoolColor = nil
+            tmp_cfg.EmerCoolInvert = false
         end
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL

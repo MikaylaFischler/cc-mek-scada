@@ -43,8 +43,8 @@ local self = {
 
 local peripherals = {}
 
-local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
-local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
+local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector", "environment_detector" }
+local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector", "environment_detector" }
 
 -- create the peripherals configuration view
 ---@param tool_ctl _rtu_cfg_tool_ctl
@@ -165,7 +165,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             end
 
             self.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
-        elseif type == "environmentDetector" then
+        elseif type == "environmentDetector" or type == "environment_detector" then
             reposition("This is the below system's #     env. detector.", 29, 99, 17, 6, 8)
             self.p_assign_btn.show()
             self.p_assign_btn.redraw()
@@ -281,7 +281,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         local idx = tonumber(self.p_idx.get_value())
 
         if util.table_contains(NEEDS_UNIT, peri_type) then
-            if (peri_type == "dynamicValve" or peri_type == "environmentDetector") and for_facility then
+            if (peri_type == "dynamicValve" or peri_type == "environmentDetector" or peri_type == "environment_detector") and for_facility then
                 -- skip
             elseif not (util.is_int(u) and u > 0 and u < 5) then
                 self.p_err.set_value("Unit ID must be within 1 to 4.")
@@ -310,7 +310,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             else index = idx end
         elseif peri_type == "dynamicValve" then
             index = 1
-        elseif peri_type == "environmentDetector" then
+        elseif peri_type == "environmentDetector" or peri_type == "environment_detector" then
             if not (util.is_int(idx) and idx > 0) then
                 self.p_err.set_value("Index must be greater than 0.")
                 self.p_err.show()
