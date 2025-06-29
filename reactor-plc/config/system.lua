@@ -155,6 +155,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     TextBox{parent=plc_c_5,x=1,y=1,height=5,text="Advanced Options"}
     local invert = Checkbox{parent=plc_c_5,x=1,y=3,label="Invert",default=ini_cfg.EmerCoolInvert,box_fg_bg=cpair(colors.orange,colors.black),callback=function()end}
+    TextBox{parent=plc_c_5,x=10,y=3,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=plc_c_5,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
     PushButton{parent=plc_c_5,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
