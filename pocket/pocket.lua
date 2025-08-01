@@ -99,9 +99,10 @@ local APP_ID = {
     RADMON = 10,
     -- diagnostic app pages
     ALARMS = 11,
+    COMPS = 12,
     -- other
-    DUMMY = 12,
-    NUM_APPS = 12
+    DUMMY = 13,
+    NUM_APPS = 13
 }
 
 pocket.APP_ID = APP_ID
@@ -960,6 +961,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             else
                                 log.debug("supervisor SCADA diag alarm set packet length/type mismatch")
                             end
+                        elseif packet.type == MGMT_TYPE.INFO_LIST_CMP then
+                            iocontrol.rx.record_network_data(packet.data)
                         else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established

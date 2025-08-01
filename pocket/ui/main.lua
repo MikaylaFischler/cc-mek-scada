@@ -7,6 +7,7 @@ local util        = require("scada-common.util")
 local iocontrol   = require("pocket.iocontrol")
 local pocket      = require("pocket.pocket")
 
+local comps_app   = require("pocket.ui.apps.comps")
 local control_app = require("pocket.ui.apps.control")
 local diag_apps   = require("pocket.ui.apps.diag_apps")
 local dummy_app   = require("pocket.ui.apps.dummy_app")
@@ -76,6 +77,7 @@ local function init(main)
     loader_app(page_div)
     sys_apps(page_div)
     diag_apps(page_div)
+    comps_app(page_div)
     dummy_app(page_div)
 
     -- verify all apps were created

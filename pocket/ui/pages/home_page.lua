@@ -59,9 +59,8 @@ local function new_view(root)
 
     TextBox{parent=apps_3,text="Diagnostic Apps",x=1,y=2,alignment=ALIGN.CENTER}
 
-    App{parent=apps_3,x=2,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
-    App{parent=apps_3,x=9,y=4,text="@",title="Comps",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
-    App{parent=apps_3,x=16,y=4,text="R",title="RS Test",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
+    App{parent=apps_3,x=2,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
+    App{parent=apps_3,x=9,y=4,text="@",title="Comps",callback=function()open(APP_ID.COMPS)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
 
     return main
 end
