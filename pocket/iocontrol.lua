@@ -35,8 +35,8 @@ iocontrol.LINK_STATE = LINK_STATE
 
 ---@class pocket_ioctl
 local io = {
-    version = "unknown",
-    ps = psil.create()
+    version = "unknown", -- pocket version
+    ps = psil.create()   -- pocket PSIL
 }
 
 local config = nil  ---@type pkt_config
@@ -90,6 +90,9 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
         alarm_buttons = {},     ---@type Checkbox[]
         tone_indicators = {}    ---@type IndicatorLight[] indicators to update from supervisor tone states
     }
+
+    -- computer list
+    io.diag.get_comps = function () comms.diag__get_computers() end
 
     -- API access
     ---@class pocket_ioctl_api

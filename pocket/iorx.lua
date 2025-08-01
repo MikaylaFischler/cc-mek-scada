@@ -871,6 +871,52 @@ function iorx.record_radiation_data(data)
     fac.ps.publish("radiation_monitors", textutils.serialize(connected))
 end
 
+local comp_record = {}
+
+-- update the computers app with the network data from INFO_LIST_CMP
+---@param data table
+function iorx.record_network_data(data)
+    local ps        = io.facility.ps
+    local connected = {}
+
+    -- add/update connected computers
+    for i = 1, #data do
+        local entry = data[i]
+        local id    = entry[2]
+        local pfx   = "comp_" .. id
+
+        connected[id] = true
+
+        ps.publish(pfx .. "_type", entry[1])
+        ps.publish(pfx .. "_addr", id)
+        ps.publish(pfx .. "_fw", entry[3])
+        ps.publish(pfx .. "_rtt", entry[4])
+
+        if not comp_record[id] then
+            comp_record[id] = true
+
+            -- trigger the app to create the new element
+            ps.publish("comp_connect", id)
+        end
+    end
+
+    -- reset the published value
+    ps.publish("comp_connect", false)
+
+    -- remove disconnected computers
+    for id, state in pairs(comp_record) do
+        if state and not connected[id] then
+            comp_record[id] = false
+
+            -- trigger the app to delete the element
+            ps.publish("comp_disconnect", id)
+        end
+    end
+
+    -- reset the published value
+    ps.publish("comp_disconnect", false)
+end
+
 return function (io_obj)
     io = io_obj
     return iorx

@@ -558,6 +558,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.sv.linked then _send_sv(MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
     end
 
+    -- supervisor get connected computers
+    function public.diag__get_computers()
+        if self.sv.linked then _send_sv(MGMT_TYPE.INFO_LIST_CMP, {}) end
+    end
+
     -- coordinator get facility app data
     function public.api__get_facility()
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_FAC_DTL, {}) end
