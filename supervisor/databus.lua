@@ -8,6 +8,7 @@ local util = require("scada-common.util")
 local pgi  = require("supervisor.panel.pgi")
 
 -- nominal RTT is ping (0ms to 10ms usually) + 150ms for SV main loop tick
+-- ensure in sync with pocket computer list app
 local WARN_RTT = 300    -- 2x as long as expected w/ 0 ping
 local HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 

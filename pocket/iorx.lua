@@ -2,9 +2,12 @@
 -- I/O Control's Data Receive (Rx) Handlers
 --
 
+local comms = require("scada-common.comms")
 local const = require("scada-common.constants")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
+
+local DEV_TYPE = comms.DEVICE_TYPE
 
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
@@ -878,26 +881,49 @@ local comp_record = {}
 function iorx.record_network_data(data)
     local ps        = io.facility.ps
     local connected = {}
+    local crd_online = false
+
+    ps.publish("comp_online", #data)
 
     -- add/update connected computers
     for i = 1, #data do
         local entry = data[i]
+        local type  = entry[1]
         local id    = entry[2]
         local pfx   = "comp_" .. id
 
         connected[id] = true
 
-        ps.publish(pfx .. "_type", entry[1])
-        ps.publish(pfx .. "_addr", id)
-        ps.publish(pfx .. "_fw", entry[3])
-        ps.publish(pfx .. "_rtt", entry[4])
+        if type == DEV_TYPE.SVR then
+            ps.publish("comp_svr_addr", id)
+            ps.publish("comp_svr_fw", entry[3])
+        elseif type == DEV_TYPE.CRD then
+            crd_online = true
+            ps.publish("comp_crd_addr", id)
+            ps.publish("comp_crd_fw", entry[3])
+            ps.publish("comp_crd_rtt", entry[4])
+        else
+            ps.publish(pfx .. "_type", entry[1])
+            ps.publish(pfx .. "_addr", id)
+            ps.publish(pfx .. "_fw", entry[3])
+            ps.publish(pfx .. "_rtt", entry[4])
 
-        if not comp_record[id] then
-            comp_record[id] = true
+            if not comp_record[id] then
+                comp_record[id] = true
 
-            -- trigger the app to create the new element
-            ps.publish("comp_connect", id)
+                -- trigger the app to create the new element
+                ps.publish("comp_connect", id)
+            end
         end
+    end
+
+    -- handle the coordinator being online or not
+    -- no need to worry about the supervisor since this data is from the supervisor, so it has to be 'online' if received
+    ps.publish("comp_crd_online", crd_online)
+    if not crd_online then
+        ps.publish("comp_crd_addr", "---")
+        ps.publish("comp_crd_fw", "---")
+        ps.publish("comp_crd_rtt", "---")
     end
 
     -- reset the published value
