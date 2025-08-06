@@ -252,18 +252,16 @@ local function new_view(root)
 
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
-            { label = " \x1e ", color = core.cpair(colors.black, colors.blue), callback = stat_page.nav_to },
-            { label = "FAC", color = core.cpair(colors.black, colors.yellow), callback = fac_page.nav_to }
+            { label = " \x1e ", color = core.cpair(colors.black, colors.blue), callback = main_page.nav_to },
+            { label = "PLC", color = core.cpair(colors.black, colors.red), callback = plc_page.nav_to },
+            { label = "RTU", color = core.cpair(colors.black, colors.orange), callback = rtu_page.nav_to },
+            { label = "PKT", color = core.cpair(colors.black, colors.gray), callback = pkt_page.nav_to }
         }
-
-        for i = 1, db.facility.num_units do
-            table.insert(list, { label = "U-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = function () app.switcher(i) end })
-        end
 
         app.set_sidebar(list)
 
         -- done, show the app
-        stat_page.nav_to()
+        main_page.nav_to()
         load_pane.set_value(2)
     end
 
