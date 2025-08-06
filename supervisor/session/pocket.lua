@@ -199,7 +199,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 for i = 1, #facility.get_units() do
                     local tag = "plc_" .. i
                     if read(tag .. "_conn") then
-                        table.insert(devices, { DEV_TYPE.CRD, read(tag .. "_addr"), read(tag .. "_fw"), read(tag .. "_rtt") })
+                        table.insert(devices, { DEV_TYPE.CRD, read(tag .. "_addr"), read(tag .. "_fw"), read(tag .. "_rtt"), i })
                     end
                 end
 

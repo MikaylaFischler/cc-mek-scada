@@ -908,6 +908,10 @@ function iorx.record_network_data(data)
             ps.publish(pfx .. "_fw", entry[3])
             ps.publish(pfx .. "_rtt", entry[4])
 
+            if type == DEV_TYPE.PLC then
+                ps.publish(pfx .. "_unit", entry[5])
+            end
+
             if not comp_record[id] then
                 comp_record[id] = true
 
