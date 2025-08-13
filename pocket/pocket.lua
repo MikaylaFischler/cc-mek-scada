@@ -278,7 +278,14 @@ function pocket.init_nav(smem)
 
         local app = self.apps[app_id]
         if app then
-            if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
+            local p_comms = smem.pkt_sys.pocket_comms
+            local req_sv, req_api = app.check_requires()
+
+            if (req_sv and not p_comms.is_sv_linked()) or (req_api and not p_comms.is_api_linked()) then
+                -- report required connction(s)
+                iocontrol.get_db().loader_require = { sv = req_sv, api = req_api }
+                iocontrol.get_db().ps.toggle("loader_reqs")
+
                 -- bring up the app loader
                 self.loader_return = app_id
                 app_id = APP_ID.LOADER

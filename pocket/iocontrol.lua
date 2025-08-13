@@ -36,7 +36,8 @@ iocontrol.LINK_STATE = LINK_STATE
 ---@class pocket_ioctl
 local io = {
     version = "unknown", -- pocket version
-    ps = psil.create()   -- pocket PSIL
+    ps = psil.create(),  -- pocket PSIL
+    loader_require = { sv = false, api = false }
 }
 
 local config = nil  ---@type pkt_config
