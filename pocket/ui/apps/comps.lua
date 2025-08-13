@@ -176,7 +176,7 @@ local function new_view(root)
 
         --#endregion
 
-        --#region RTU page
+        --#region RTU gateway page
 
         local r_div = Div{parent=panes[3],width=main.get_width()}
 
@@ -190,7 +190,7 @@ local function new_view(root)
 
         --#endregion
 
-        --#region RTU page
+        --#region pocket computer page
 
         local pk_div = Div{parent=panes[4],width=main.get_width()}
 
