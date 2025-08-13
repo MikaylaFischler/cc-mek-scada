@@ -947,6 +947,9 @@ function iorx.record_network_data(data)
     ps.publish("comp_disconnect", false)
 end
 
+-- clear the tracked connected computer record
+function iorx.clear_comp_record() comp_record = {} end
+
 return function (io_obj)
     io = io_obj
     return iorx

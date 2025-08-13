@@ -90,7 +90,7 @@ local function new_view(root)
         local function create_common_indicators(pfx, rect)
             local first = TextBox{parent=rect,text="Computer",fg_bg=box_label}
             TextBox{parent=rect,text="Firmware",fg_bg=box_label}
-            TextBox{parent=rect,text="RTT",fg_bg=box_label}
+            TextBox{parent=rect,text="RTT (ms)",fg_bg=box_label}
 
             local y = first.get_y()
             local addr = TextBox{parent=rect,x=10,y=y,text="---"}
@@ -171,35 +171,35 @@ local function new_view(root)
 
         TextBox{parent=p_div,y=1,text="PLC Devices",alignment=ALIGN.CENTER}
 
-        local plc_list = ListBox{parent=p_div,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local plc_list = ListBox{parent=p_div,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
         local plc_elems = {}    ---@type graphics_element[]
 
         --#endregion
 
         --#region RTU page
 
-        local r_div = Div{parent=panes[2],width=main.get_width()}
+        local r_div = Div{parent=panes[3],width=main.get_width()}
 
         local rtu_page = app.new_page(nil, 3)
         rtu_page.tasks = { update }
 
         TextBox{parent=r_div,y=1,text="RTU Gateway Devices",alignment=ALIGN.CENTER}
 
-        local rtu_list = ListBox{parent=p_div,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local rtu_list = ListBox{parent=r_div,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
         local rtu_elems = {}    ---@type graphics_element[]
 
         --#endregion
 
         --#region RTU page
 
-        local pk_div = Div{parent=panes[2],width=main.get_width()}
+        local pk_div = Div{parent=panes[4],width=main.get_width()}
 
         local pkt_page = app.new_page(nil, 4)
         pkt_page.tasks = { update }
 
         TextBox{parent=pk_div,y=1,text="Pocket Devices",alignment=ALIGN.CENTER}
 
-        local pkt_list = ListBox{parent=p_div,y=6,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local pkt_list = ListBox{parent=pk_div,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
         local pkt_elems = {}    ---@type graphics_element[]
 
         --#endregion
@@ -213,25 +213,25 @@ local function new_view(root)
             local type = ps.get(pfx .. "_type")
 
             if type == DEV_TYPE.PLC then
-                plc_elems[id] = Div{parent=plc_list,height=5}
-                local rect = Rectangle{parent=plc_elems[id],height=6,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+                plc_elems[id] = Div{parent=plc_list,height=8}
+                local rect = Rectangle{parent=plc_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
-                local title = TextBox{parent=rect,text="PLC (Unit ?) @ "..id}
+                local title = TextBox{parent=rect,text="PLC (Unit ?)"}
                 title.register(ps, pfx .. "_unit", function (unit) title.set_value("PLC (Unit " .. unit .. ") @ " .. id) end)
 
                 create_common_indicators(pfx, rect)
             elseif type == DEV_TYPE.RTU then
-                rtu_elems[id] = Div{parent=rtu_list,height=5}
-                local rect = Rectangle{parent=rtu_elems[id],height=6,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+                rtu_elems[id] = Div{parent=rtu_list,height=8}
+                local rect = Rectangle{parent=rtu_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
-                TextBox{parent=rect,text="RTU Gateway @ "..id}
+                TextBox{parent=rect,text="RTU Gateway"}
 
                 create_common_indicators(pfx, rect)
             elseif type == DEV_TYPE.PKT then
-                pkt_elems[id] = Div{parent=pkt_list,height=5}
-                local rect = Rectangle{parent=pkt_elems[id],height=6,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
+                pkt_elems[id] = Div{parent=pkt_list,height=8}
+                local rect = Rectangle{parent=pkt_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
-                TextBox{parent=rect,text="Pocket @ "..id}
+                TextBox{parent=rect,text="Pocket Computer"}
 
                 create_common_indicators(pfx, rect)
             end
@@ -267,7 +267,7 @@ local function new_view(root)
             { label = " @ ", color = core.cpair(colors.black, colors.blue), callback = main_page.nav_to },
             { label = "PLC", color = core.cpair(colors.black, colors.red), callback = plc_page.nav_to },
             { label = "RTU", color = core.cpair(colors.black, colors.orange), callback = rtu_page.nav_to },
-            { label = "PKT", color = core.cpair(colors.black, colors.gray), callback = pkt_page.nav_to }
+            { label = "PKT", color = core.cpair(colors.black, colors.lightGray), callback = pkt_page.nav_to }
         }
 
         app.set_sidebar(list)
@@ -289,6 +289,9 @@ local function new_view(root)
 
         -- show loading screen
         load_pane.set_value(1)
+
+        -- clear the list of connected computers so that connections re-appear on reload of this app
+        iocontrol.rx.clear_comp_record()
     end
 
     app.set_load(load)

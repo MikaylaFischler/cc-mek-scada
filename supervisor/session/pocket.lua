@@ -206,13 +206,13 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 -- add connected RTUs
                 for i = 1, #sessions.rtu do
                     local s = sessions.rtu[i]
-                    table.insert(devices, { DEV_TYPE.RTU, s.s_addr, s.version, get(s.instance.get_id() .. "_rtt") })
+                    table.insert(devices, { DEV_TYPE.RTU, s.s_addr, s.version, get("rtu_" .. s.instance.get_id() .. "_rtt") })
                 end
 
                 -- add connected pocket computers
                 for i = 1, #sessions.pdg do
                     local s = sessions.pdg[i]
-                    table.insert(devices, { DEV_TYPE.PKT, s.s_addr, s.version, get(s.instance.get_id() .. "_rtt") })
+                    table.insert(devices, { DEV_TYPE.PKT, s.s_addr, s.version, get("pdg_" .. s.instance.get_id() .. "_rtt") })
                 end
 
                 _send_mgmt(MGMT_TYPE.INFO_LIST_CMP, devices)
