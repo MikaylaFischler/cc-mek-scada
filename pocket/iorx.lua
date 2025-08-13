@@ -879,7 +879,7 @@ local comp_record = {}
 -- update the computers app with the network data from INFO_LIST_CMP
 ---@param data table
 function iorx.record_network_data(data)
-    local ps        = io.facility.ps
+    local ps        = io.ps
     local connected = {}
     local crd_online = false
 

@@ -185,34 +185,34 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { false }) end
             elseif pkt.type == MGMT_TYPE.INFO_LIST_CMP then
-                local read = databus.ps.get
+                local get = databus.ps.get
 
 ---@diagnostic disable-next-line: undefined-field
-                local devices = { { DEV_TYPE.SVR, os.getComputerID(), read("version"), 0 } }
+                local devices = { { DEV_TYPE.SVR, os.getComputerID(), get("version"), 0 } }
 
                 -- add the coordinator if connected
-                if read("crd_conn") then
-                    table.insert(devices, { DEV_TYPE.CRD, read("crd_addr"), read("crd_fw"), databus.read("crd_rtt") })
+                if get("crd_conn") then
+                    table.insert(devices, { DEV_TYPE.CRD, get("crd_addr"), get("crd_fw"), databus.read("crd_rtt") })
                 end
 
                 -- add the PLCs if connected
                 for i = 1, #facility.get_units() do
                     local tag = "plc_" .. i
-                    if read(tag .. "_conn") then
-                        table.insert(devices, { DEV_TYPE.CRD, read(tag .. "_addr"), read(tag .. "_fw"), read(tag .. "_rtt"), i })
+                    if get(tag .. "_conn") then
+                        table.insert(devices, { DEV_TYPE.CRD, get(tag .. "_addr"), get(tag .. "_fw"), get(tag .. "_rtt"), i })
                     end
                 end
 
                 -- add connected RTUs
                 for i = 1, #sessions.rtu do
                     local s = sessions.rtu[i]
-                    table.insert(devices, { DEV_TYPE.RTU, s.s_addr, s.version, read(s.instance.get_id() .. "_rtt") })
+                    table.insert(devices, { DEV_TYPE.RTU, s.s_addr, s.version, get(s.instance.get_id() .. "_rtt") })
                 end
 
                 -- add connected pocket computers
                 for i = 1, #sessions.pdg do
                     local s = sessions.pdg[i]
-                    table.insert(devices, { DEV_TYPE.PKT, s.s_addr, s.version, read(s.instance.get_id() .. "_rtt") })
+                    table.insert(devices, { DEV_TYPE.PKT, s.s_addr, s.version, get(s.instance.get_id() .. "_rtt") })
                 end
 
                 _send_mgmt(MGMT_TYPE.INFO_LIST_CMP, devices)

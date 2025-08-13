@@ -86,6 +86,13 @@ return function (args)
         e.redraw()
     end
 
+    -- change the foreground color of the text
+    ---@param c color
+    function e.recolor(c)
+        e.w_set_fgd(c)
+        e.redraw()
+    end
+
     ---@class TextBox:graphics_element
     local TextBox, id = e.complete(true)
 
