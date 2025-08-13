@@ -192,7 +192,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
                 -- add the coordinator if connected
                 if get("crd_conn") then
-                    table.insert(devices, { DEV_TYPE.CRD, get("crd_addr"), get("crd_fw"), databus.read("crd_rtt") })
+                    table.insert(devices, { DEV_TYPE.CRD, get("crd_addr"), get("crd_fw"), get("crd_rtt") })
                 end
 
                 -- add the PLCs if connected
