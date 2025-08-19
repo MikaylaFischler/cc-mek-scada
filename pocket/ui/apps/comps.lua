@@ -76,9 +76,9 @@ local function new_view(root)
         end
 
         local last_update = 0
-        -- refresh data callback, every 500ms it will re-send the query
+        -- refresh data callback, every 1s it will re-send the query
         local function update()
-            if util.time_ms() - last_update >= 500 then
+            if util.time_ms() - last_update >= 1000 then
                 db.diag.get_comps()
                 last_update = util.time_ms()
             end
