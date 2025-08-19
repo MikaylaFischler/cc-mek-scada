@@ -2,23 +2,24 @@
 -- Computer List App
 --
 
-local comms        = require("scada-common.comms")
-local util         = require("scada-common.util")
+local comms         = require("scada-common.comms")
+local const         = require("scada-common.constants")
+local util          = require("scada-common.util")
 
-local iocontrol    = require("pocket.iocontrol")
-local pocket       = require("pocket.pocket")
+local iocontrol     = require("pocket.iocontrol")
+local pocket        = require("pocket.pocket")
 
-local style        = require("pocket.ui.style")
+local style         = require("pocket.ui.style")
 
-local core         = require("graphics.core")
+local core          = require("graphics.core")
 
-local Div          = require("graphics.elements.Div")
-local ListBox      = require("graphics.elements.ListBox")
-local MultiPane    = require("graphics.elements.MultiPane")
-local Rectangle    = require("graphics.elements.Rectangle")
-local TextBox      = require("graphics.elements.TextBox")
+local Div           = require("graphics.elements.Div")
+local ListBox       = require("graphics.elements.ListBox")
+local MultiPane     = require("graphics.elements.MultiPane")
+local Rectangle     = require("graphics.elements.Rectangle")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim  = require("graphics.elements.animations.Waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 
@@ -30,15 +31,9 @@ local border = core.border
 
 local APP_ID = pocket.APP_ID
 
-local label_fg_bg = style.label
-local lu_col      = style.label_unit_pair
+local lu_col    = style.label_unit_pair
 
-local box_label   = cpair(colors.lightGray, colors.gray)
-
--- nominal RTT is ping (0ms to 10ms usually) + 150ms for SV main loop tick
--- ensure in sync with supervisor databus file
-local WARN_RTT = 300    -- 2x as long as expected w/ 0 ping
-local HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
+local box_label = cpair(colors.lightGray, colors.gray)
 
 -- new computer list page view
 ---@param root Container parent
@@ -105,9 +100,9 @@ local function new_view(root)
 
                 if value == "---" then
                     rtt.recolor(colors.white)
-                elseif value > HIGH_RTT then
+                elseif value > const.HIGH_RTT then
                     rtt.recolor(colors.red)
-                elseif value > WARN_RTT then
+                elseif value > const.WARN_RTT then
                     rtt.recolor(colors.yellow)
                 else
                     rtt.recolor(colors.green)
