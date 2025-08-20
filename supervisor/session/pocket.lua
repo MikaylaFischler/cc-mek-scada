@@ -2,6 +2,7 @@ local comms   = require("scada-common.comms")
 local log     = require("scada-common.log")
 local mqueue  = require("scada-common.mqueue")
 local util    = require("scada-common.util")
+
 local databus = require("supervisor.databus")
 
 local pocket = {}
@@ -198,8 +199,17 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 -- add the PLCs if connected
                 for i = 1, #facility.get_units() do
                     local tag = "plc_" .. i
+
+                    local addr = -1
+                    for _, s in ipairs(sessions.plc) do
+                        if s.reactor == i then
+                            addr = s.s_addr
+                            break
+                        end
+                    end
+
                     if get(tag .. "_conn") then
-                        table.insert(devices, { DEV_TYPE.CRD, get(tag .. "_addr"), get(tag .. "_fw"), get(tag .. "_rtt"), i })
+                        table.insert(devices, { DEV_TYPE.PLC, addr, get(tag .. "_fw"), get(tag .. "_rtt"), i })
                     end
                 end
 

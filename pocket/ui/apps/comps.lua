@@ -136,7 +136,7 @@ local function new_view(root)
         svr_addr.register(ps, "comp_svr_addr", function (v) svr_addr.set_value(util.strval(v)) end)
         svr_fw.register(ps, "comp_svr_fw", function (v) svr_fw.set_value(util.strval(v)) end)
 
-        local crd_div = Div{parent=m_div,y=11,height=9}
+        local crd_div = Div{parent=m_div,y=11,height=7}
         local crd_rect = Rectangle{parent=crd_div,height=7,width=21,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
         TextBox{parent=crd_rect,text="Coordinator"}
@@ -208,22 +208,22 @@ local function new_view(root)
             local type = ps.get(pfx .. "_type")
 
             if type == DEV_TYPE.PLC then
-                plc_elems[id] = Div{parent=plc_list,height=8}
+                plc_elems[id] = Div{parent=plc_list,height=7}
                 local rect = Rectangle{parent=plc_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
                 local title = TextBox{parent=rect,text="PLC (Unit ?)"}
-                title.register(ps, pfx .. "_unit", function (unit) title.set_value("PLC (Unit " .. unit .. ") @ " .. id) end)
+                title.register(ps, pfx .. "_unit", function (unit) title.set_value("PLC (Unit " .. unit .. ")") end)
 
                 create_common_indicators(pfx, rect)
             elseif type == DEV_TYPE.RTU then
-                rtu_elems[id] = Div{parent=rtu_list,height=8}
+                rtu_elems[id] = Div{parent=rtu_list,height=7}
                 local rect = Rectangle{parent=rtu_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
                 TextBox{parent=rect,text="RTU Gateway"}
 
                 create_common_indicators(pfx, rect)
             elseif type == DEV_TYPE.PKT then
-                pkt_elems[id] = Div{parent=pkt_list,height=8}
+                pkt_elems[id] = Div{parent=pkt_list,height=7}
                 local rect = Rectangle{parent=pkt_elems[id],height=6,x=2,width=20,border=border(1,colors.white,true),thin=true,fg_bg=cpair(colors.white,colors.gray)}
 
                 TextBox{parent=rect,text="Pocket Computer"}
