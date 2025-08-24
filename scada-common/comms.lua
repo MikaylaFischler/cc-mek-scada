@@ -55,7 +55,8 @@ local MGMT_TYPE = {
     DIAG_TONE_GET = 6,   -- (API) diagnostic: get alarm tones
     DIAG_TONE_SET = 7,   -- (API) diagnostic: set alarm tones
     DIAG_ALARM_SET = 8,  -- (API) diagnostic: set alarm to simulate audio for
-    INFO_LIST_CMP = 9    -- (API) info: list all computers on the network
+    INFO_LIST_CMP = 9,   -- (API) info: list all computers on the network
+    INFO_LIST_PERI = 10  -- (API) info: list all peripherals on the network
 }
 
 ---@enum CRDN_TYPE

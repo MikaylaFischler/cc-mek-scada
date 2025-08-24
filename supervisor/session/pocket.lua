@@ -226,6 +226,46 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 end
 
                 _send_mgmt(MGMT_TYPE.INFO_LIST_CMP, devices)
+            elseif pkt.type == MGMT_TYPE.INFO_LIST_PERI then
+                local data = {}
+
+                local fac = db.facility
+                local proc = process.get_control_states().process
+
+                -- unit data
+                for i = 1, #db.units do
+                    local u = db.units[i]
+
+                    data[i] = {}
+
+                    data[i].boilers = {}
+                    for idx, blr in ipairs(u.boiler_data_tbl) do
+                        data[i].boilers[idx] = {}
+
+                        if blr.formed ~= nil then
+                            data[i].boilers[idx] = { blr.formed, blr.build.min_pos, blr.build.max_pos, blr.build.length, blr.build.width, blr.build.height }
+                        end
+                    end
+
+                    data[i].turbines = {}
+                    for idx, trb in ipairs(u.turbine_data_tbl) do
+                        data[i].turbines[idx] = {}
+
+                        if trb.formed ~= nil then
+                            data[i].turbines[idx] = { trb.formed, trb.build.min_pos, trb.build.max_pos, trb.build.length, trb.build.width, trb.build.height }
+                        end
+                    end
+
+                    data[i].tanks = {}
+                    for idx, trb in ipairs(u.tank_data_tbl) do
+                        data[i].turbines[idx] = {}
+
+                        if trb.formed ~= nil then
+                            data[i].turbines[idx] = { trb.formed, trb.build.min_pos, trb.build.max_pos, trb.build.length, trb.build.width, trb.build.height }
+                        end
+                    end
+                end
+
             else
                 log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end
