@@ -213,15 +213,16 @@ local function new_view(root)
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 100)
-        local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 180)
+        local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 190)
         local fp_rtu_page = guide_section(sect_construct_data, fps_page, "RTU Gateway", docs.fp.rtu_gw, 100)
         local fp_supervisor_page = guide_section(sect_construct_data, fps_page, "Supervisor", docs.fp.supervisor, 160)
+        local fp_coordinator_page = guide_section(sect_construct_data, fps_page, "Coordinator", docs.fp.coordinator, 80)
 
         PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_common_page.nav_to}
         PushButton{parent=fps,text="Reactor PLC         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rplc_page.nav_to}
         PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rtu_page.nav_to}
         PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_supervisor_page.nav_to}
-        PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_coordinator_page.nav_to}
 
         TextBox{parent=gls,y=1,text="Glossary",alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}

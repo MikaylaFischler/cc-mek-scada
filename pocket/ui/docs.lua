@@ -67,7 +67,7 @@ docs.alarms = {}
 target = docs.alarms
 doc("ContainmentBreach", "Containment Breach", "Reactor disconnected or indicated unformed while being at or above 100% damage; explosion assumed.")
 doc("ContainmentRadiation", "Containment Radiation", "Environment detector(s) assigned to the unit have observed high levels of radiation.")
-doc("ReactorLost", "Reactor Lost", "Reactor PLC has stopped communicating with the supervisor.")
+doc("ReactorLost", "Reactor Lost", "Reactor PLC has stopped communicating with the Supervisor.")
 doc("CriticalDamage", "Damage Critical", "Reactor damage has reached or exceeded 100%, so it will explode at any moment.")
 doc("ReactorDamage", "Reactor Damage", "Reactor temperature causing increasing damage to the reactor casing.")
 doc("ReactorOverTemp", "Reactor Over Temp", "Reactor temperature is at or above maximum safe temperature, so it is now taking damage.")
@@ -89,8 +89,8 @@ docs.annunc = {
 
 target = docs.annunc.unit.main_section
 sect("Unit Status")
-doc("PLCOnline", "PLC Online", "Indicates if the fission reactor PLC is connected. If it isn't, check that your PLC is on and configured properly.")
-doc("PLCHeartbeat", "PLC Heartbeat", "An indicator of status data being live. As status messages are received from the PLC, this light will turn on and off. If it gets stuck, the supervisor has stopped receiving data or a screen has frozen.")
+doc("PLCOnline", "PLC Online", "Indicates if the fission Reactor PLC is connected. If it isn't, check that your PLC is on and configured properly.")
+doc("PLCHeartbeat", "PLC Heartbeat", "An indicator of status data being live. As status messages are received from the PLC, this light will turn on and off. If it gets stuck, the Supervisor has stopped receiving data or a screen has frozen.")
 doc("RadiationMonitor", "Radiation Monitor", "On if at least one environment detector is connected and assigned to this unit.")
 doc("AutoControl", "Automatic Control", "On if the reactor is under the control of one of the automatic control modes.")
 sect("Safety Status")
@@ -118,7 +118,7 @@ doc("high_temp", "Temperature High", "Indicates if the RPS tripped due to reachi
 doc("low_cool", "Coolant Level Low Low", "Indicates if the RPS tripped due to very low coolant levels that result in the temperature uncontrollably rising. Ensure that the cooling system can provide sufficient cooled coolant flow.")
 doc("no_fuel", "No Fuel", "Indicates if the RPS tripped due to no fuel being available. Check fuel input.")
 doc("fault", "PPM Fault", "Indicates if the RPS tripped due to a peripheral access fault. Something went wrong interfacing with the reactor, try restarting the PLC.")
-doc("timeout", "Connection Timeout", "Indicates if the RPS tripped due to losing connection with the supervisory computer. Check that your PLC and supervisor remain chunk loaded.")
+doc("timeout", "Connection Timeout", "Indicates if the RPS tripped due to losing connection with the supervisory computer. Check that your PLC and Supervisor remain chunk loaded.")
 doc("sys_fail", "System Failure", "Indicates if the RPS tripped due to the reactor not being formed. Ensure that the multi-block is formed.")
 
 target = docs.annunc.unit.rcs_section
@@ -130,7 +130,7 @@ doc("SteamFeedMismatch", "Steam Feed Mismatch", "There is an above tolerance dif
 doc("MaxWaterReturnFeed", "Max Water Return Feed", "The turbines are condensing the max rate of water that they can per the structure build. If water return is insufficient, add more saturating condensers to your turbine(s).")
 doc("WaterLevelLow", "Water Level Low", "The water level in the boiler is low. A larger boiler water tank may help, or you can feed additional water into the boiler from elsewhere.")
 doc("HeatingRateLow", "Heating Rate Low", "The boiler is not hot enough to boil water, but it is receiving heated coolant. This is almost never a safety concern.")
-doc("SteamDumpOpen", "Steam Relief Valve Open", "This turns yellow if the turbine is set to dumping excess and red if it is set to dumping [all]. 'Relief Valve' in this case is that setting allowing the venting of steam. You should never have this set to dumping [all]. Emergency coolant activation from the supervisor will automatically set it to dumping excess to ensure there is no backup of steam as water is added.")
+doc("SteamDumpOpen", "Steam Relief Valve Open", "This turns yellow if the turbine is set to dumping excess and red if it is set to dumping [all]. 'Relief Valve' in this case is that setting allowing the venting of steam. You should never have this set to dumping [all]. Emergency coolant activation from the Supervisor will automatically set it to dumping excess to ensure there is no backup of steam as water is added.")
 doc("TurbineOverSpeed", "Turbine Over Speed", "The turbine is at steam capacity, but not tripped. You may need more turbines if they can't keep up.")
 doc("GeneratorTrip", "Generator Trip", "The turbine is no longer outputting power due to it having nowhere to go. Likely due to full power storage. This will lead to a Turbine Trip if not addressed.")
 doc("TurbineTrip", "Turbine Trip", "The turbine has reached its maximum power charge and has stopped rotating, and as a result stopped cooling steam to water. Ensure the turbine has somewhere to output power, as this is the most common cause of reactor meltdowns. However, the likelihood of a meltdown with this system in place is much lower, especially with emergency coolant helping during turbine trips.")
@@ -155,7 +155,7 @@ doc("as_radiation", "Facility Radiation High", "Automatic SCRAM occurred due to 
 doc("as_gen_fault", "Gen. Control Fault", "Automatic SCRAM occurred due to assigned units being degraded/no longer ready during generation mode. The system will automatically resume (starting with initial ramp) once the problem is resolved.")
 
 docs.fp = {
-    common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}
+    common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}, coordinator = {}
 }
 
 --comp id "This must never be the identical between devices, and that can only happen if you duplicate a computer (such as middle-click on it and place it elsewhere in creative mode)."
@@ -165,17 +165,19 @@ sect("Core Status")
 doc("fp_status", "STATUS", "This is always lit, except on the Reactor PLC (see Reactor PLC section).")
 doc("fp_heartbeat", "HEARTBEAT", "This alternates between lit and unlit as the main loop on the device runs. If this freezes, something is wrong and the logs will indicate why.")
 sect("Hardware & Network")
-doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the supervisor's connection lists.")
+doc("fp_modem", "MODEM", "This lights up if the wireless/ender modem is connected. In parentheses is the unique computer ID of this device, which will show up in places such as the Supervisor's connection lists.")
 doc("fp_modem", "NETWORK", "This is present when in standard color modes and indicates the network status using multiple colors.")
 list(DOC_LIST_TYPE.LED, { "not linked", "linked", "link denied", "bad comms version", "duplicate PLC" }, { colors.gray, colors.green, colors.red, colors.orange, colors.yellow })
 text("You can fix \"bad comms version\" by ensuring all devices are up-to-date, as this indicates a communications protocol version mismatch. Note that yellow is Reactor PLC-specific, indicating duplicate unit IDs in use.")
-doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only)", "This indicates the device is linked to the supervisor.")
-doc("fp_nt_version", "NT VERSION", "(color accessibility modes only)", "This indicates the communications versions of the supervisor and this device do not match. Make sure everything is up-to-date.")
+doc("fp_nt_linked", "NT LINKED", "(color accessibility modes only)", "This indicates the device is linked to the Supervisor.")
+doc("fp_nt_version", "NT VERSION", "(color accessibility modes only)", "This indicates the communications versions of the Supervisor and this device do not match. Make sure everything is up-to-date.")
 sect("Versions")
 doc("fp_fw", "FW", "Firmware application version of this device.")
 doc("fp_nt", "NT", "Network (comms) version this device has. These must match between devices in order for them to connect.")
 
 target = docs.fp.r_plc
+sect("Overview")
+text("Documentation for Reactor PLC-specific front panel items are below. Refer to 'Common Items' for the items not covered in this section.")
 sect("Core Status")
 doc("fp_status", "STATUS", "This is green once the PLC is initialized and OK (has all its peripherals) and red if something is wrong, in which case you should refer to the other indicator lights (REACTOR & MODEM).")
 sect("Hardware & Network")
@@ -194,8 +196,8 @@ doc("fp_emer_cool", "EMER COOLANT", "This is only present if PLC-controlled emer
 doc("fp_rps_trip", "RPS TRIP", "Flashes when the RPS has SCRAM'd the reactor due to a safety trip.")
 sect("RPS Conditions")
 doc("fp_rps_man", "MANUAL", "The RPS was tripped manually (SCRAM by user, not via the Mekanism Reactor UI).")
-doc("fp_rps_auto", "AUTOMATIC", "The RPS was tripped by the supervisor automatically.")
-doc("fp_rps_to", "TIMEOUT", "The RPS tripped due to losing the supervisor connection.")
+doc("fp_rps_auto", "AUTOMATIC", "The RPS was tripped by the Supervisor automatically.")
+doc("fp_rps_to", "TIMEOUT", "The RPS tripped due to losing the Supervisor connection.")
 doc("fp_rps_pflt", "PLC FAULT", "The RPS tripped due to a peripheral error.")
 doc("fp_rps_rflt", "RCT FAULT", "The RPS tripped due to the reactor not being formed.")
 doc("fp_rps_temp", "HI DAMAGE", "The RPS tripped due to being >=" .. const.RPS_LIMITS.MAX_DAMAGE_PERCENT .. "% damaged.")
@@ -206,6 +208,9 @@ doc("fp_rps_ccool", "LO CCOOLANT", "The RPS tripped due to having low levels of 
 doc("fp_rps_ccool", "HI HCOOLANT", "The RPS tripped due to having high levels of heated coolant (>" .. (const.RPS_LIMITS.MAX_HEATED_COLLANT_FILL * 100) .. "%).")
 
 target = docs.fp.rtu_gw
+sect("Overview")
+text("Documentation for RTU Gateway-specific front panel items are below. Refer to 'Common Items' for the items not covered in this section.")
+doc("fp_rtu_spkr", "SPEAKERS", "This is the count of speaker peripherals connected to this RTU Gateway.")
 sect("Co-Routine States")
 doc("fp_rtu_rt_main", "RT MAIN", "This indicates if the device's main loop co-routine is running.")
 doc("fp_rtu_rt_comms", "RT COMMS", "This indicates if the communications handler co-routine is running.")
@@ -218,29 +223,44 @@ doc("fp_rtu_rt", "Device Assignment", "In each RTU entry row, the device identif
 
 target = docs.fp.supervisor
 sect("Round Trip Times")
-doc("fp_sv_fw", "RTT", "Each connection has a round trip time, or RTT. Since the supervisor updates at a rate of 150ms, RTTs from ~150ms to ~300ms are typical. Higher RTTs indicate lag, and if they end up in the thousands there will be performance problems.")
+doc("fp_sv_rtt", "RTT", "Each connection has a round trip time, or RTT. Since the Supervisor updates at a rate of 150ms, RTTs from ~150ms to ~300ms are typical. Higher RTTs indicate lag, and if they end up in the thousands there will be performance problems.")
 list(DOC_LIST_TYPE.BULLET, { "green: <=300ms", "yellow: <=500ms ", "red: >500ms" })
 sect("SVR Tab")
-text("This tab includes information about the supervisor, covered by 'Common Items'.")
+text("This tab includes information about the Supervisor, covered by 'Common Items'.")
 sect("PLC Tab")
 text("This tab lists the expected PLC connections based on the number of configured units. Status information about each connection is shown when linked.")
-doc("fp_sv_link", "LINK", "This indicates if the reactor PLC is linked.")
-doc("fp_sv_p_cmpid", "PLC Computer ID", "This shows the computer ID of the reactor PLC, or --- if disconnected.")
-doc("fp_sv_p_fw", "PLC FW", "This shows the firmware version of the reactor PLC.")
+doc("fp_sv_link", "LINK", "This indicates if the Reactor PLC is linked.")
+doc("fp_sv_p_cmpid", "PLC Computer ID", "This shows the computer ID of the Reactor PLC, or --- if disconnected.")
+doc("fp_sv_p_fw", "PLC FW", "This shows the firmware version of the Reactor PLC.")
 sect("RTU Tab")
-text("As RTU gateways connect to the supervisor, they will show up here along with some information.")
-doc("fp_sv_r_cmpid", "RTU Computer ID", "At the start of the entry is an @ sign followed by the computer ID of the RTU gateway.")
-doc("fp_sv_r_units", "UNITS", "This is a count of the number of RTUs configured on the RTU gateway (each line on the RTU gateway's front panel).")
-doc("fp_sv_r_fw", "RTU FW", "This shows the firmware version of the RTU gateway.")
+text("As RTU gateways connect to the Supervisor, they will show up here along with some information.")
+doc("fp_sv_r_cmpid", "RTU Computer ID", "At the start of the entry is an @ sign followed by the computer ID of the RTU Gateway.")
+doc("fp_sv_r_units", "UNITS", "This is a count of the number of RTUs configured on the RTU Gateway (each line on the RTU Gateway's front panel).")
+doc("fp_sv_r_fw", "RTU FW", "This shows the firmware version of the RTU Gateway.")
 sect("PKT Tab")
-text("As pocket computers connect to the supervisor, they will show up here along with some information. The properties listed are the same as with RTU gateways (except for UNITS), so they will not be further described here.")
+text("As pocket computers connect to the Supervisor, they will show up here along with some information. The properties listed are the same as with RTU gateways (except for UNITS), so they will not be further described here.")
 sect("DEV Tab")
 text("If nothing is connected, this will list all the expected RTU devices that aren't found. This page should be blank if everything is connected and configured correctly. If not, it will list certain types of detectable problems.")
 doc("fp_sv_d_miss", "MISSING", "These items list missing devices, with the details that should be used in the RTU's configuration.")
-doc("fp_sv_d_oor", "BAD INDEX", "If you have a configuration entry that has an index outside of the maximum number of devices configured on the supervisor, this will show up indicating what entry is incorrect. For example, if you specified a unit has 2 turbines and a #3 connected, it would show up here as out of range.")
+doc("fp_sv_d_oor", "BAD INDEX", "If you have a configuration entry that has an index outside of the maximum number of devices configured on the Supervisor, this will show up indicating what entry is incorrect. For example, if you specified a unit has 2 turbines and a #3 connected, it would show up here as out of range.")
 doc("fp_sv_d_dupe", "DUPLICATE", "If a device tries to connect that is configured the same as another, it will be rejected and show up here. If you try to connect two #1 turbines for a unit, that would fail and one would appear here.")
 sect("INF Tab")
 text("This tab gives information about the other tabs, along with extra details on the DEV tab.")
+
+target = docs.fp.coordinator
+sect("Round Trip Times")
+doc("fp_crd_rtt", "RTT", "Each connection has a round trip time, or RTT. Since the Coordinator updates at a rate of 500ms, RTTs ~500ms - ~1000ms are typical. Higher RTTs indicate lag, which results in performance problems.")
+list(DOC_LIST_TYPE.BULLET, { "green: <=1000ms", "yellow: <=1500ms ", "red: >1500ms" })
+sect("CRD Tab")
+text("This tab includes information about the Coordinator, partially covered by 'Common Items'.")
+doc("fp_crd_spkr", "SPEAKER", "This indicates if the speaker is connected.")
+doc("fp_crd_rt_main", "RT MAIN", "This indicates that the device's main loop co-routine is running.")
+doc("fp_crd_rt_render", "RT RENDER", "This indicates that the Coordinator graphics renderer co-routine is running.")
+doc("fp_crd_mon_main", "MAIN MONITOR", "The connection status of the main display monitor.")
+doc("fp_crd_mon_flow", "FLOW MONITOR", "The connection status of the coolant and waste flow display monitor.")
+doc("fp_crd_mon_unit", "UNIT X MONITOR", "The connection status of the monitor associated with a given unit.")
+sect("API Tab")
+text("This tab lists connected pocket computers. Refer to the Supervisor PKT tab documentation for details on fields.")
 
 docs.glossary = {
     abbvs = {}, terms = {}
@@ -249,8 +269,8 @@ docs.glossary = {
 target = docs.glossary.abbvs
 doc("G_ACK", "ACK", "Alarm ACKnowledge. Pressing this acknowledges that you understand an alarm occurred and would like to stop the audio tone(s).")
 doc("G_Auto", "Auto", "Automatic.")
-doc("G_CRD", "CRD", "Coordinator. Abbreviation for the coordinator computer.")
-doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket computers found on the supervisor's front panel.")
+doc("G_CRD", "CRD", "Coordinator. Abbreviation for the Coordinator computer.")
+doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket computers found on the Supervisor's front panel.")
 doc("G_FP", "FP", "Front Panel. See Terminology.")
 doc("G_Hi", "Hi", "High.")
 doc("G_Lo", "Lo", "Low.")
@@ -260,7 +280,7 @@ doc("G_PLC", "PLC", "Programmable Logic Controller. A device that not only repor
 doc("G_PPM", "PPM", "Protected Peripheral Manager. This is an abstraction layer created for this project that prevents peripheral calls from crashing applications.")
 doc("G_RCP", "RCP", "Reactor Coolant Pump. This is from real-world terminology with water-cooled (boiling water and pressurized water) reactors, but in this system it just reflects to the functioning of reactor coolant flow. See the annunciator page on it for more information.")
 doc("G_RCS", "RCS", "Reactor Cooling System. The combination of all machines used to cool the reactor (turbines, boilers, dynamic tanks).")
-doc("G_RPS", "RPS", "Reactor Protection System. A component of the reactor PLC responsible for keeping the reactor safe.")
+doc("G_RPS", "RPS", "Reactor Protection System. A component of the Reactor PLC responsible for keeping the reactor safe.")
 doc("G_RTU", "RT", "co-RouTine. This is used to identify the status of core Lua co-routines on front panels.")
 doc("G_RTU", "RTU", "Remote Terminal Unit. Provides monitoring to and basic output from a SCADA system, interfacing with various types of devices/interfaces.")
 doc("G_SCADA", "SCADA", "Supervisory Control and Data Acquisition. A control systems architecture used in a wide variety process control applications.")
