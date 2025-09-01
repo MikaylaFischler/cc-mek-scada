@@ -215,8 +215,8 @@ local function new_view(root)
         PushButton{parent=coord_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
         local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 300)
-        local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.annunc.unit.rps_section, 100)
-        local unit_disp_page = guide_section(sect_construct_data, coord_page, "Unit Display", docs.annunc.unit.rcs_section, 170)
+        local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.c_ui.flow, 300)
+        local unit_disp_page = guide_section(sect_construct_data, coord_page, "Unit Display", docs.c_ui.unit, 150)
 
         PushButton{parent=coord_div,y=3,text="Main Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_disp_page.nav_to}
         PushButton{parent=coord_div,text="Flow Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=flow_disp_page.nav_to}

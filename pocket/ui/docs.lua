@@ -182,7 +182,7 @@ sect("Facility Status")
 note("The annunciator here is described in Operator UIs > Annunciators.")
 doc("ui_fac_scram", "FAC SCRAM", "This SCRAMs all units in the facility.")
 doc("ui_fac_ack", "ACK \x13", "This acknowledges (mutes) all alarms for all units in the facility.")
-doc("ui_fac_rad", "Radiation", "The facility radiation, which is the maximum of all connected facility radiation monitors (excludes unit monitors).")
+doc("ui_fac_rad", "Radiation", "The facility radiation, which is the current maximum of all connected facility radiation monitors (excludes unit monitors).")
 doc("ui_fac_linked", "Linked RTUs", "The number of RTU Gateways connected.")
 sect("Automatic Control")
 text("This interface is used for managing automatic facility control, which only applies to units set via the unit display to be under auto control. This includes setpoints, status, configuration, and control.")
@@ -215,6 +215,32 @@ doc("ui_fac_im_charge", "Charging", "Charge is increasing (more input than outpu
 doc("ui_fac_im_charge", "Discharging", "Charge is draining (more output than input).")
 doc("ui_fac_im_charge", "Max I/O Rate", "The induction providers are at their maximum rate.")
 doc("ui_fac_eta", "ETA", "The ETA is based off a longer average so it may take a minute to stabilize, but will give a rough estimate of time to charge/discharge.")
+
+target = docs.c_ui.flow
+sect("Flow Diagram")
+text("TBD")
+
+target = docs.c_ui.unit
+sect("Data Display")
+text("The unit monitor contains extensive data information, including annunciator and alarm displays described in the associated sections in the Operator UIs section.")
+doc("ui_unit_core", "Core Map", "A core map diagram is shown at the top right, colored by core temperature. The layout is based off of the multiblock dimensions.")
+list(DOC_LIST_TYPE.BULLET, { "Gray <= 300\xb0C", "Blue <= 350\xb0C", "Green < 600\xb0C", "Yellow < 100\xb0C", "Orange < 1200\xb0C", "Red < 1300\xb0C", "Pink >= 1300\xb0C" })
+text("Internal tanks (fuel, cooled coolant, heated coolant, and waste) are displayed below the core map, labeled F, C, H, and W, respectively.")
+doc("ui_unit_rad", "Radiation", "The unit radiation, which is the current maximum of all connected radiation monitors assigned to this unit.")
+text("Multiple other data values are shown but should be self-explanatory.")
+sect("Controls")
+text("A set of buttons and the burn rate input are used for manual reactor control. When in auto mode, unavailable controls are disabled. The burn rate is only applied after SET is pressed.")
+doc("ui_unit_start", "START", "This starts the reactor at the requested burn rate.")
+doc("ui_unit_scram", "SCRAM", "This SCRAMs the reactor.")
+doc("ui_unit_ack", "ACK \x13", "This acknowledges alarms on this unit.")
+doc("ui_unit_reset", "RESET", "This resets the RPS for this unit.")
+sect("Auto Control")
+text("To put this unit under auto control, select an option other than Manual. You must press SET to apply this, but cannot change this while auto control is active. The priorities available are described in System Usage > Automatic Control.")
+doc("ui_unit_prio", "Prio. Group", "This displays the unit's auto control priority group.")
+doc("ui_unit_ready", "READY", "This indicates if the unit is ready for auto control. A unit is only ready for auto control if all multiblocks are formed, online with data received, and there is no RPS trip.")
+doc("ui_unit_standby", "STANDBY", "This indicates if the unit is set to auto control and that is active, but the auto control does not currently need this reactor to run at the moment, so it is idle.")
+sect("Waste Processing")
+text("The unit's waste output configuration can be set via these buttons. Auto will put this unit under control of the facility waste control, otherwise the system will always command the requested option for this unit.")
 
 docs.fp = {
     common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}, coordinator = {}
