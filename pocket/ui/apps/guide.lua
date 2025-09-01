@@ -196,7 +196,6 @@ local function new_view(root)
         PushButton{parent=uis,y=3,text="Alarms              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=alarms_page.nav_to}
         PushButton{parent=uis,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=annunc_page.nav_to}
         PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=coord_page.nav_to}
-        PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=annunc_div,y=1,text="Annunciators",alignment=ALIGN.CENTER}
         PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
@@ -215,7 +214,7 @@ local function new_view(root)
         PushButton{parent=coord_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
         local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 300)
-        local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.c_ui.flow, 300)
+        local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.c_ui.flow, 210)
         local unit_disp_page = guide_section(sect_construct_data, coord_page, "Unit Display", docs.c_ui.unit, 150)
 
         PushButton{parent=coord_div,y=3,text="Main Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_disp_page.nav_to}
