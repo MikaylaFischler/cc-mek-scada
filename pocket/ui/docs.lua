@@ -7,7 +7,9 @@ local DOC_ITEM_TYPE = {
     SECTION = 1,
     SUBSECTION = 2,
     TEXT = 3,
-    LIST = 4
+    NOTE = 4,
+    TIP = 5,
+    LIST = 6
 }
 
 ---@enum DOC_LIST_TYPE
@@ -51,6 +53,18 @@ local function text(body)
     table.insert(target, item)
 end
 
+local function note(body)
+    ---@class pocket_doc_note
+    local item = { type = DOC_ITEM_TYPE.NOTE, text = body }
+    table.insert(target, item)
+end
+
+local function tip(body)
+    ---@class pocket_doc_tip
+    local item = { type = DOC_ITEM_TYPE.TIP, text = body }
+    table.insert(target, item)
+end
+
 ---@param type DOC_LIST_TYPE
 ---@param items table
 ---@param colors table|nil colors for indicators or nil for normal lists
@@ -60,7 +74,7 @@ local function list(type, items, colors)
     table.insert(target, list_def)
 end
 
--- important to note in the future: The PLC should always be in a chunk with the reactor to ensure it can protect it on chunk load if you do not keep it all chunk loaded
+--- @todo important to note in the future: The PLC should always be in a chunk with the reactor to ensure it can protect it on chunk load if you do not keep it all chunk loaded
 
 docs.alarms = {}
 
@@ -154,11 +168,59 @@ doc("as_crit_alarm", "Unit Critical Alarm", "Automatic SCRAM occurred due to cri
 doc("as_radiation", "Facility Radiation High", "Automatic SCRAM occurred due to high facility radiation levels.")
 doc("as_gen_fault", "Gen. Control Fault", "Automatic SCRAM occurred due to assigned units being degraded/no longer ready during generation mode. The system will automatically resume (starting with initial ramp) once the problem is resolved.")
 
+docs.c_ui = {
+    main = {}, flow = {}, unit = {}
+}
+
+target = docs.c_ui.main
+sect("Facility Diagram")
+text("The facility overview diagram is made up of unit diagrams showing the reactor, boiler(s) if present, and turbine(s). This includes values of various key statistics such as temperatures along with bars showing the fill percentage of the tanks in each multiblock.")
+text("Boilers are shown under the reactor, listed in order of index (#1 then #2 below). Turbines are shown to the right, also listed in order of index (indexes are per unit and set in the RTU Gateway configuration).")
+text("Pipe connections are visualized with color-coded lines, which are primarily to indicate connections, as not all facilities may use pipes.")
+note("If a component you have is not showing up, ensure the Supervisor is configured for your actual cooling configuration.")
+sect("Facility Status")
+note("The annunciator here is described in Operator UIs > Annunciators.")
+doc("ui_fac_scram", "FAC SCRAM", "This SCRAMs all units in the facility.")
+doc("ui_fac_ack", "ACK \x13", "This acknowledges (mutes) all alarms for all units in the facility.")
+doc("ui_fac_rad", "Radiation", "The facility radiation, which is the maximum of all connected facility radiation monitors (excludes unit monitors).")
+doc("ui_fac_linked", "Linked RTUs", "The number of RTU Gateways connected.")
+sect("Automatic Control")
+text("This interface is used for managing automatic facility control, which only applies to units set via the unit display to be under auto control. This includes setpoints, status, configuration, and control.")
+doc("ui_fac_auto_bt", "Burn Target", "When set to Combined Burn Rate mode, assigned units will ramp up to meet this combined target.")
+doc("ui_fac_auto_ct", "Charge Target", "When set to Charge Level mode, assigned units will run to reach and maintain this induction matrix charge level.")
+doc("ui_fac_auto_gt", "Gen. Target", "When set to Generation Rate mode, assigned units will run to reach and maintain this continous power output, using the induction matrix input rate.")
+doc("ui_fac_save", "SAVE", "This saves your configuration without starting control.")
+doc("ui_fac_start", "START", "This starts the configured automatic control.")
+tip("START also includes the SAVE operation.")
+doc("ui_fac_stop", "STOP", "This terminates automatic control, stopping assigned units.")
+text("There are four automatic control modes, detailed further in System Usage > Automatic Control")
+doc("ui_fac_auto_mmb", "Monitored Max Burn", "This runs all assigned units at the maximum configured rate.")
+doc("ui_fac_auto_cbr", "Combined Burn Rate", "This runs assigned units to meet the target combined rate.")
+doc("ui_fac_auto_cl", "Charge Level", "This runs assigned units to maintain an induction matrix charge level.")
+doc("ui_fac_auto_gr", "Generation Rate", "This runs assigned units to meet a target induction matrix power input rate.")
+doc("ui_fac_auto_lim", "Unit Limit", "Each unit can have a limit set that auto control will never exceed.")
+doc("ui_fac_unit_ready", "Unit Status Ready", "A unit is only ready for auto control if all multiblocks are formed, online with data received, and there is no RPS trip.")
+doc("ui_fac_unit_degraded", "Unit Status Degraded", "A unit is degraded if the reactor, boiler(s), and/or turbine(s) are faulted or not connected.")
+sect("Waste Control")
+text("Above unit statuses are the unit waste statuses, showing which are set to the auto waste mode and the actual current waste production of that unit.")
+text("The facility automatic waste control interface is surrounded by a brown border and lets you configure that system, starting with the requested waste product.")
+doc("ui_fac_waste_pu_fall_act", "Fallback Active", "When the system is falling back to plutonium production while SNAs cannot keep up.")
+doc("ui_fac_waste_sps_lc_act", "SPS Disabled LC", "When the system is falling back to polonium production to prevent draining all power with the SPS while the induction matrix charge has dropped below 10% and not yet reached 15%.")
+doc("ui_fac_waste_pu_fall", "Pu Fallback", "Switch from Po or Antimatter when the SNAs can't keep up (like at night).")
+doc("ui_fac_waste_sps_lc", "Low Charge SPS", "Continue running antimatter production even at low induction matrix charge levels (<10%).")
+sect("Induction Matrix")
+text("The induction matrix statistics are shown at the bottom right, including fill bars for the FILL, I (input rate), and O (output rate).")
+text("Averages are computed by the system while other data is directly from the device.")
+doc("ui_fac_im_charge", "Charging", "Charge is increasing (more input than output).")
+doc("ui_fac_im_charge", "Discharging", "Charge is draining (more output than input).")
+doc("ui_fac_im_charge", "Max I/O Rate", "The induction providers are at their maximum rate.")
+doc("ui_fac_eta", "ETA", "The ETA is based off a longer average so it may take a minute to stabilize, but will give a rough estimate of time to charge/discharge.")
+
 docs.fp = {
     common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}, coordinator = {}
 }
 
---comp id "This must never be the identical between devices, and that can only happen if you duplicate a computer (such as middle-click on it and place it elsewhere in creative mode)."
+--- @todo comp id "This must never be the identical between devices, and that can only happen if you duplicate a computer (such as middle-click on it and place it elsewhere in creative mode)."
 
 target = docs.fp.common
 sect("Core Status")
@@ -270,7 +332,6 @@ target = docs.glossary.abbvs
 doc("G_ACK", "ACK", "Alarm ACKnowledge. Pressing this acknowledges that you understand an alarm occurred and would like to stop the audio tone(s).")
 doc("G_Auto", "Auto", "Automatic.")
 doc("G_CRD", "CRD", "Coordinator. Abbreviation for the Coordinator computer.")
-doc("G_DBG", "DBG", "Debug. Abbreviation for the debugging sessions from pocket computers found on the Supervisor's front panel.")
 doc("G_FP", "FP", "Front Panel. See Terminology.")
 doc("G_Hi", "Hi", "High.")
 doc("G_Lo", "Lo", "Low.")

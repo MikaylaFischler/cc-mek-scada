@@ -187,27 +187,40 @@ local function new_view(root)
         local annunc_div = Div{parent=page_div,x=2}
         table.insert(panes, annunc_div)
 
+        local coord_page = app.new_page(uis_page, #panes + 1)
+        local coord_div = Div{parent=page_div,x=2}
+        table.insert(panes, coord_div)
+
         local alarms_page = guide_section(sect_construct_data, uis_page, "Alarms", docs.alarms, 100)
 
         PushButton{parent=uis,y=3,text="Alarms              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=alarms_page.nav_to}
         PushButton{parent=uis,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=annunc_page.nav_to}
+        PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=coord_page.nav_to}
         PushButton{parent=uis,text="Pocket UI           >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
 
         TextBox{parent=annunc_div,y=1,text="Annunciators",alignment=ALIGN.CENTER}
         PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
+        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.facility.main_section, 110)
         local unit_gen_page = guide_section(sect_construct_data, annunc_page, "Unit General", docs.annunc.unit.main_section, 170)
         local unit_rps_page = guide_section(sect_construct_data, annunc_page, "Unit RPS", docs.annunc.unit.rps_section, 100)
         local unit_rcs_page = guide_section(sect_construct_data, annunc_page, "Unit RCS", docs.annunc.unit.rcs_section, 170)
 
-        local fac_annunc_page = guide_section(sect_construct_data, annunc_page, "Facility", docs.annunc.facility.main_section, 110)
-
-        PushButton{parent=annunc_div,y=3,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
+        PushButton{parent=annunc_div,y=3,text="Facility General    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fac_annunc_page.nav_to}
+        PushButton{parent=annunc_div,text="Unit General        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_gen_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RCS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rcs_page.nav_to}
-        PushButton{parent=annunc_div,text="Facility General    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fac_annunc_page.nav_to}
-        PushButton{parent=annunc_div,text="Waste & Valves      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+
+        TextBox{parent=coord_div,y=1,text="Coordinator UI",alignment=ALIGN.CENTER}
+        PushButton{parent=coord_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
+
+        local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 300)
+        local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.annunc.unit.rps_section, 100)
+        local unit_disp_page = guide_section(sect_construct_data, coord_page, "Unit Display", docs.annunc.unit.rcs_section, 170)
+
+        PushButton{parent=coord_div,y=3,text="Main Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_disp_page.nav_to}
+        PushButton{parent=coord_div,text="Flow Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=flow_disp_page.nav_to}
+        PushButton{parent=coord_div,text="Unit Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_disp_page.nav_to}
 
         TextBox{parent=fps,y=1,text="Front Panels",alignment=ALIGN.CENTER}
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}

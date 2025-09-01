@@ -49,7 +49,7 @@ return function (data, base_page, title, items, scroll_height)
     local page_end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_list
+        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_list
 
         if item.type == DOC_TYPE.SECTION then
             ---@cast item pocket_doc_sect
@@ -72,6 +72,8 @@ return function (data, base_page, title, items, scroll_height)
             if #name_list.get_children() > 0 then
                 local _ = Div{parent=name_list,height=1}
             end
+
+            table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
             local name_title = Div{parent=name_list,height=1}
             TextBox{parent=name_title,x=1,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
@@ -106,6 +108,19 @@ return function (data, base_page, title, items, scroll_height)
         elseif item.type == DOC_TYPE.TEXT then
             ---@cast item pocket_doc_text
 
+            TextBox{parent=def_list,text=item.text}
+
+            page_end = Div{parent=def_list,height=1,can_focus=true}
+        elseif item.type == DOC_TYPE.NOTE then
+            ---@cast item pocket_doc_note
+
+            TextBox{parent=def_list,text=item.text,fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+            page_end = Div{parent=def_list,height=1,can_focus=true}
+        elseif item.type == DOC_TYPE.TIP then
+            ---@cast item pocket_doc_tip
+
+            TextBox{parent=def_list,text="TIP!",fg_bg=cpair(colors.orange,colors._INHERIT)}
             TextBox{parent=def_list,text=item.text}
 
             page_end = Div{parent=def_list,height=1,can_focus=true}
