@@ -76,6 +76,29 @@ end
 
 --- @todo important to note in the future: The PLC should always be in a chunk with the reactor to ensure it can protect it on chunk load if you do not keep it all chunk loaded
 
+--#region System Usage
+
+docs.usage = {
+    manual = {}
+}
+
+target = docs.usage.manual
+sect("Overview")
+text("Manual reactor control still includes safety checks and monitoring, but the burn rate is not automatically controlled.")
+text("A unit is under manual control when the AUTO CTRL option Manual is selected on the unit display.")
+note("Specific UIs will not be discussed here. If you need help with the UI, refer to Operator UIs > Coordinator UI > Unit Displays.")
+sect("Manual Control")
+text("The unit display on the Coordinator is used to run manual control. You may also start/stop and set the burn rate via the Mekanism UI on the Fission Reactor.")
+tip("If some controls are grayed out on the unit display, that operation isn't currently available, such as due to the reactor being already started or being under auto control.")
+text("Manual control is started by the START button and runs at the commanded burn rate next to it, which can be modified before starting or after having started by selecting a value then pressing SET.")
+text("The reactor can be stopped via SCRAM, then the RPS needs to be reset via RESET.")
+
+--#endregion
+
+--#region Operator UIs
+
+--#region Alarms
+
 docs.alarms = {}
 
 target = docs.alarms
@@ -91,6 +114,10 @@ doc("ReactorHighWaste", "Reactor High Waste", "Reactor waste levels are high and
 doc("RPSTransient", "RPS Transient", "Reactor protection system was activated.")
 doc("RCSTransient", "RCS Transient", "Something is wrong with the reactor coolant system, check RCS indicators for details.")
 doc("TurbineTripAlarm", "Turbine Trip", "A turbine stopped rotating, likely due to having full energy storage. This will prevent cooling, so it needs to be resolved before using that unit.")
+
+--#endregion
+
+--#region Annunciators
 
 docs.annunc = {
     unit = {
@@ -167,6 +194,10 @@ doc("as_matrix_fill", "Matrix Charge High", "Automatic SCRAM occurred due to ind
 doc("as_crit_alarm", "Unit Critical Alarm", "Automatic SCRAM occurred due to critical level unit alarm(s).")
 doc("as_radiation", "Facility Radiation High", "Automatic SCRAM occurred due to high facility radiation levels.")
 doc("as_gen_fault", "Gen. Control Fault", "Automatic SCRAM occurred due to assigned units being degraded/no longer ready during generation mode. The system will automatically resume (starting with initial ramp) once the problem is resolved.")
+
+--#endregion
+
+--#region Coordinator UI
 
 docs.c_ui = {
     main = {}, flow = {}, unit = {}
@@ -273,6 +304,12 @@ doc("ui_unit_ready", "READY", "This indicates if the unit is ready for auto cont
 doc("ui_unit_standby", "STANDBY", "This indicates if the unit is set to auto control and that is active, but the auto control does not currently need this reactor to run at the moment, so it is idle.")
 sect("Waste Processing")
 text("The unit's waste output configuration can be set via these buttons. Auto will put this unit under control of the facility waste control, otherwise the system will always command the requested option for this unit.")
+
+--#endregion
+
+--#endregion
+
+--#region Front Panels
 
 docs.fp = {
     common = {}, r_plc = {}, rtu_gw = {}, supervisor = {}, coordinator = {}
@@ -382,6 +419,10 @@ doc("fp_crd_mon_unit", "UNIT X MONITOR", "The connection status of the monitor a
 sect("API Tab")
 text("This tab lists connected pocket computers. Refer to the Supervisor PKT tab documentation for details on fields.")
 
+--#endregion
+
+--#region Glossary
+
 docs.glossary = {
     abbvs = {}, terms = {}
 }
@@ -420,5 +461,7 @@ doc("G_Trip", "Trip", "A checked condition had occurred, see 'Tripped'.")
 doc("G_Tripped", "Tripped", "An alarm condition has been met, and is still met.")
 doc("G_Tripping", "Tripping", "Alarm condition(s) is/are met, but has/have not reached the minimum time before the condition(s) is/are deemed a problem.")
 doc("G_TurbineTrip", "Turbine Trip", "The turbine stopped, which prevents heated coolant from being cooled. In Mekanism, this would occur when a turbine cannot generate any more energy due to filling its buffer and having no output with any remaining energy capacity.")
+
+--#endregion
 
 return docs
