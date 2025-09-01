@@ -47,8 +47,16 @@ local function new_view(root)
     local load_div = Div{parent=frame,x=1,y=1}
     local main = Div{parent=frame,x=1,y=1}
 
-    TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.cyan,colors._INHERIT)}
+    TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
+    local load_text_1 = TextBox{parent=load_div,y=14,text="",alignment=ALIGN.CENTER,fg_bg=cpair(colors.lightGray,colors._INHERIT)}
+    local load_text_2 = TextBox{parent=load_div,y=15,text="",alignment=ALIGN.CENTER,fg_bg=cpair(colors.lightGray,colors._INHERIT)}
+
+    -- give more detailed information so the user doesn't give up
+    local function load_text(a, b)
+        if a then load_text_1.set_value(a) end
+        load_text_2.set_value(b or "")
+    end
 
     local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
 
@@ -171,6 +179,8 @@ local function new_view(root)
 
         util.nop()
 
+        load_text("System Usage")
+
         TextBox{parent=use,y=1,text="System Usage",alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
@@ -179,6 +189,8 @@ local function new_view(root)
         PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+
+        load_text("Operator UIs")
 
         TextBox{parent=uis,y=1,text="Operator UIs",alignment=ALIGN.CENTER}
         PushButton{parent=uis,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
@@ -191,11 +203,15 @@ local function new_view(root)
         local coord_div = Div{parent=page_div,x=2}
         table.insert(panes, coord_div)
 
+        load_text(false, "Alarms")
+
         local alarms_page = guide_section(sect_construct_data, uis_page, "Alarms", docs.alarms, 100)
 
         PushButton{parent=uis,y=3,text="Alarms              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=alarms_page.nav_to}
         PushButton{parent=uis,text="Annunciators        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=annunc_page.nav_to}
         PushButton{parent=uis,text="Coordinator UI      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=coord_page.nav_to}
+
+        load_text(false, "Annunciators")
 
         TextBox{parent=annunc_div,y=1,text="Annunciators",alignment=ALIGN.CENTER}
         PushButton{parent=annunc_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
@@ -210,24 +226,36 @@ local function new_view(root)
         PushButton{parent=annunc_div,text="Unit RPS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rps_page.nav_to}
         PushButton{parent=annunc_div,text="Unit RCS            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_rcs_page.nav_to}
 
+        load_text(false, "Coordinator UI")
+
         TextBox{parent=coord_div,y=1,text="Coordinator UI",alignment=ALIGN.CENTER}
         PushButton{parent=coord_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
+        load_text(false, "Main Display")
         local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 300)
+        load_text(false, "Flow Display")
         local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.c_ui.flow, 210)
+        load_text(false, "Unit Display")
         local unit_disp_page = guide_section(sect_construct_data, coord_page, "Unit Display", docs.c_ui.unit, 150)
 
         PushButton{parent=coord_div,y=3,text="Main Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_disp_page.nav_to}
         PushButton{parent=coord_div,text="Flow Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=flow_disp_page.nav_to}
         PushButton{parent=coord_div,text="Unit Display        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=unit_disp_page.nav_to}
 
+        load_text(false, "Front Panels")
+
         TextBox{parent=fps,y=1,text="Front Panels",alignment=ALIGN.CENTER}
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
+        load_text("Front Panels", "Common Items")
         local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 100)
+        load_text(false, "Reactor PLC")
         local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 190)
+        load_text(false, "RTU Gateway")
         local fp_rtu_page = guide_section(sect_construct_data, fps_page, "RTU Gateway", docs.fp.rtu_gw, 100)
+        load_text(false, "Supervisor")
         local fp_supervisor_page = guide_section(sect_construct_data, fps_page, "Supervisor", docs.fp.supervisor, 160)
+        load_text(false, "Coordinator")
         local fp_coordinator_page = guide_section(sect_construct_data, fps_page, "Coordinator", docs.fp.coordinator, 80)
 
         PushButton{parent=fps,y=3,text="Common Items        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_common_page.nav_to}
@@ -235,6 +263,8 @@ local function new_view(root)
         PushButton{parent=fps,text="RTU Gateway         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_rtu_page.nav_to}
         PushButton{parent=fps,text="Supervisor          >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_supervisor_page.nav_to}
         PushButton{parent=fps,text="Coordinator         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fp_coordinator_page.nav_to}
+
+        load_text("Glossary")
 
         TextBox{parent=gls,y=1,text="Glossary",alignment=ALIGN.CENTER}
         PushButton{parent=gls,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
@@ -244,6 +274,8 @@ local function new_view(root)
 
         PushButton{parent=gls,y=3,text="Abbreviations       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_abbv_page.nav_to}
         PushButton{parent=gls,text="Terminology         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_term_page.nav_to}
+
+        load_text("Links")
 
         TextBox{parent=lnk,y=1,text="Wiki and Discord",alignment=ALIGN.CENTER}
         PushButton{parent=lnk,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
