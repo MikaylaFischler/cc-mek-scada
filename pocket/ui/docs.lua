@@ -106,13 +106,15 @@ note("The Po and Pu colors are swapped in older versions of Mekanism.")
 sect("Unit Waste")
 text("Units can be set to specific waste products via buttons at the bottom right of a unit display.")
 note("Refer to Operator UIs > Coordinator UI > Unit Displays for details.")
-text("If a 'Auto' is selected instead of a waste product, that unit's waste will be processed per the facility waste control.")
+text("If 'Auto' is selected instead of a waste product, that unit's waste will be processed per the facility waste control.")
 sect("Facility Waste")
 text("Facility waste control adds additional functionality to waste processing through automatic control.")
 text("The waste control interface on the main display lets you set a target waste type along with options that can change that based on circumstances.")
 note("Refer to Operator UIs > Coordinator UI > Main Display for information on the display and control interface.")
 doc("usage_waste_fallback", "Pu Fallback", "This option switches facility waste control to plutonium when the SNAs cannot keep up, such as at night.")
 doc("usage_waste_sps_lc", "Low Charge SPS", "This option prevents the facility waste control from stopping antimatter production at low induction matrix charge (< 10%, resumes after reaching 15%).")
+text("With that option enabled, antimatter production will continue. With it disabled, it will switch to polonium if set to antimatter while charge is low.")
+note("Pu Fallback takes priority and will switch to plutonium when appropriate regardless of the Low Charge SPS setting.")
 
 --#endregion
 
