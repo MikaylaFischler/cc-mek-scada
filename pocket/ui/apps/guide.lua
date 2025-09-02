@@ -188,12 +188,16 @@ local function new_view(root)
 
         load_text(false, "Manual Control")
         local man_ctrl_page = guide_section(sect_construct_data, use_page, "Manual Control", docs.usage.manual, 100)
+        load_text(false, "Auto Control")
+        local auto_ctrl_page = guide_section(sect_construct_data, use_page, "Auto Control", docs.usage.auto, 200)
+        load_text(false, "Waste Control")
+        local waste_ctrl_page = guide_section(sect_construct_data, use_page, "Waste Control", docs.usage.waste, 100)
 
         PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=man_ctrl_page.nav_to}
-        PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=auto_ctrl_page.nav_to}
+        PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=waste_ctrl_page.nav_to}
 
         load_text("Operator UIs")
 

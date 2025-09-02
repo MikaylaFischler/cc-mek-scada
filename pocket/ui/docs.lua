@@ -79,7 +79,7 @@ end
 --#region System Usage
 
 docs.usage = {
-    manual = {}
+    manual = {}, auto = {}, waste = {}
 }
 
 target = docs.usage.manual
@@ -92,6 +92,17 @@ text("The unit display on the Coordinator is used to run manual control. You may
 tip("If some controls are grayed out on the unit display, that operation isn't currently available, such as due to the reactor being already started or being under auto control.")
 text("Manual control is started by the START button and runs at the commanded burn rate next to it, which can be modified before starting or after having started by selecting a value then pressing SET.")
 text("The reactor can be stopped via SCRAM, then the RPS needs to be reset via RESET.")
+
+target = docs.usage.auto
+sect("Overview")
+text("TBD")
+
+target = docs.usage.waste
+sect("Overview")
+text("When 'valves' are connected for routing waste, this system can manage which waste product(s) are made. The flow monitor shows the diagram of how valves are meant to be connected.")
+text("There are three waste products, listed below with the colors generally associated with them.")
+list(DOC_LIST_TYPE.LED, { "Pu - Plutonium", "Po - Polonium", "AM - Antimatter" }, { colors.cyan, colors.green, colors.purple })
+note("The Po and Pu colors are swapped in older versions of Mekanism.")
 
 --#endregion
 
