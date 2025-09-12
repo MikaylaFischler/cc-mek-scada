@@ -62,7 +62,6 @@ local function new_view(root)
 
     local btn_fg_bg = cpair(colors.cyan, colors.black)
     local btn_active = cpair(colors.white, colors.black)
-    local btn_disable = cpair(colors.gray, colors.black)
 
     app.set_sidebar({{ label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home }})
 
