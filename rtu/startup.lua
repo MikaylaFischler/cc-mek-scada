@@ -440,8 +440,8 @@ local function main()
                     println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
                     log.warning(util.c("sys_config> failed to check if '", name, "' is a formed dynamic tank multiblock"))
                 end
-            elseif type == "inductionPort" then
-                -- induction matrix multiblock
+            elseif type == "inductionPort" or type == "reinforcedInductionPort" then
+                -- induction matrix multiblock (reinforced or normal)
                 if not validate_assign(true) then return false end
 
                 rtu_type = RTU_UNIT_TYPE.IMATRIX

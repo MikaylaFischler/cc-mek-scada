@@ -74,7 +74,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
                 end
 
                 unit.type = RTU_UNIT_TYPE.DYNAMIC_VALVE
-            elseif type == "inductionPort" then
+            elseif type == "inductionPort" or type == "reinforcedInductionPort" then
                 -- induction matrix multiblock
                 if unit.reactor ~= 0 then fail(util.c("induction matrix '", unit.name, "' cannot init, not assigned to facility")) end
 
