@@ -79,7 +79,7 @@ end
 --#region System Usage
 
 docs.usage = {
-    config = {}, conn = {}, manual = {}, auto = {}, waste = {}
+    conn = {}, config = {}, manual = {}, auto = {}, waste = {}
 }
 
 target = docs.usage.conn
@@ -102,16 +102,32 @@ target = docs.usage.config
 sect("Overview")
 tip("For the best setup experience, see the Wiki on GitHub or the YouTube channel! This app does not contain all information.")
 text("All devices have a configurator program you can launch by running the 'configure' command.")
+sect("Networking")
+text("TBD")
+doc("usage_cfg_chan", "Channels", "TBD")
+doc("usage_cfg_to", "Conn Timeout", "TBD")
+doc("usage_cfg_tr", "Trusted Range", "TBD")
+doc("usage_cfg_auth", "Authentication", "TBD")
+sect("Logging")
+text("Logs are automatically saved to a log.txt file in the root of the computer. You can change the path to it, if it contains verbose debug messages, and if it is appended to or overwritten each time the program runs.")
+text("If you intend to be able to share logs, you should leave it to append.")
+doc("usage_cfg_log_upload", "Sharing Logs", "To share logs, you would run 'pastebin put log.txt' where your log file is then share the code.")
 sect("Reactor PLC")
-text("")
+text("The Reactor PLC must be connected to a single fission reactor that it will manage. Use the configurator to choose if you would like it to operate as networked or not.")
+doc("usage_cfg_plc_nonet", "Non-Networked", "This lets you use this device as an advanced standalone safety system rather than a basic redstone breaker for easier safety protection.")
+doc("usage_cfg_plc_net", "Networked", "This is the most commonly used mode. The Reactor PLC will require a connection to the Supervisor to operate and will allow usage through that for more advanced functionality.")
+doc("usage_cfg_plc_unit", "Unit ID", "When networked, you can set any unit ID ranging from 1 to 4. Multiple Reactor PLCs cannot share the same unit ID.")
 sect("RTU Gateway")
-text("")
+text("The RTU Gateway allows connecting multiple RTU interfaces to the SCADA system. These interfaces may be external peripherals or redstone.")
+text("All devices except for fission reactors must be connected via an RTU Gateway.")
 sect("Supervisor")
-text("")
+text("TBD")
 sect("Coordinator")
-text("")
+text("TBD")
 sect("Pocket")
-text("")
+text("TBD")
+sect("Self-Check")
+text("Most application configurators provide a self-check function that will check the validity of your configuration and the network connection. You should run this if you are having issues with that device.")
 
 target = docs.usage.manual
 sect("Overview")
