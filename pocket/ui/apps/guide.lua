@@ -191,7 +191,7 @@ local function new_view(root)
         load_text(false, "Auto Control")
         local auto_ctrl_page = guide_section(sect_construct_data, use_page, "Auto Control", docs.usage.auto, 200)
         load_text(false, "Waste Control")
-        local waste_ctrl_page = guide_section(sect_construct_data, use_page, "Waste Control", docs.usage.waste, 100)
+        local waste_ctrl_page = guide_section(sect_construct_data, use_page, "Waste Control", docs.usage.waste, 120)
 
         PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
         PushButton{parent=use,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
