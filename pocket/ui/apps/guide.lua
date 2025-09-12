@@ -186,6 +186,10 @@ local function new_view(root)
         TextBox{parent=use,y=1,text="System Usage",alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
+        load_text(false, "Connecting Devices")
+        local conn_dev_page = guide_section(sect_construct_data, use_page, "Connecting Devs", docs.usage.conn, 110)
+        load_text(false, "Configuring Devices")
+        local config_dev_page = guide_section(sect_construct_data, use_page, "Configuring Devs", docs.usage.config, 100)
         load_text(false, "Manual Control")
         local man_ctrl_page = guide_section(sect_construct_data, use_page, "Manual Control", docs.usage.manual, 100)
         load_text(false, "Auto Control")
@@ -193,8 +197,8 @@ local function new_view(root)
         load_text(false, "Waste Control")
         local waste_ctrl_page = guide_section(sect_construct_data, use_page, "Waste Control", docs.usage.waste, 120)
 
-        PushButton{parent=use,y=3,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
-        PushButton{parent=use,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,dis_fg_bg=btn_disable,callback=function()end}.disable()
+        PushButton{parent=use,y=3,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=conn_dev_page.nav_to}
+        PushButton{parent=use,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=config_dev_page.nav_to}
         PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=man_ctrl_page.nav_to}
         PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=auto_ctrl_page.nav_to}
         PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=waste_ctrl_page.nav_to}

@@ -79,8 +79,39 @@ end
 --#region System Usage
 
 docs.usage = {
-    manual = {}, auto = {}, waste = {}
+    config = {}, conn = {}, manual = {}, auto = {}, waste = {}
 }
+
+target = docs.usage.conn
+sect("Overview")
+tip("For the best setup experience, see the Wiki on GitHub or the YouTube channel! This app does not contain all information.")
+text("Mekanism devices are connected to ComputerCraft computers that form the SCADA control system.")
+sect("Mekanism Conns")
+text("Multiblocks and single block devices are both connected directly to a computer by touching it or via wired modems.")
+doc("usage_conn_mb", "Multiblocks", "For multiblocks, a logic adapter is used if it exists for that multiblock, otherwise a valve or port block is used.")
+text("A wired modem is only connected to the block when you right click it and it gets a red border and you see a message in the chat with the peripheral name.")
+tip("Do not connect all peripherals in the system on the same network cable, since Reactor PLCs will grab the first reactor they find and you may accidentally duplicate RTUs.")
+sect("Computer Conns")
+tip("It helps to be familiar with how ComputerCraft manages peripherals before using this system, though it is not necessary.")
+doc("usage_conn_network", "Network", "All computers in the system communicate with each other via wireless or ender modems. Ender modems are preferred due to the unlimited range.")
+text("Five different network channels are used and must have the same value for each name across all devices.")
+text("For example, the supervisor channel SVR_CHANNEL must be set to the same channel for all devices in your system. Two different named channels should not share the same value (such as SVR_CHANNEL vs CRD_CHANNEL).")
+doc("usage_conn_peri", "Peripherals", "ComputerCraft peripherals like monitors and speakers need to touch the computer or be connected via wired modems.")
+
+target = docs.usage.config
+sect("Overview")
+tip("For the best setup experience, see the Wiki on GitHub or the YouTube channel! This app does not contain all information.")
+text("All devices have a configurator program you can launch by running the 'configure' command.")
+sect("Reactor PLC")
+text("")
+sect("RTU Gateway")
+text("")
+sect("Supervisor")
+text("")
+sect("Coordinator")
+text("")
+sect("Pocket")
+text("")
 
 target = docs.usage.manual
 sect("Overview")
