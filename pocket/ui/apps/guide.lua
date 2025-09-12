@@ -79,7 +79,7 @@ local function new_view(root)
         app.set_sidebar(list)
 
         page_div = Div{parent=main,y=2}
-        local p_width = page_div.get_width() - 2
+        local p_width = page_div.get_width() - 1
 
         local main_page = app.new_page(nil, 1)
         local search_page = app.new_page(main_page, 2)
