@@ -312,8 +312,6 @@ local function new_view(root)
             c_emg.register(u_ps, "EmergencyCoolant", c_emg.update)
             c_mwrf.register(u_ps, "MaxWaterReturnFeed", c_mwrf.update)
 
-            -- rcs_div.line_break()
-            -- TextBox{parent=rcs_div,text="Mismatches",alignment=ALIGN.CENTER,fg_bg=label}
             local c_cfm = IconIndicator{parent=rcs_div,label="Coolant Feed",states=yel_ind_s}
             local c_brm = IconIndicator{parent=rcs_div,label="Boil Rate",states=yel_ind_s}
             local c_sfm = IconIndicator{parent=rcs_div,label="Steam Feed",states=yel_ind_s}
@@ -323,7 +321,6 @@ local function new_view(root)
             c_sfm.register(u_ps, "SteamFeedMismatch", c_sfm.update)
 
             rcs_div.line_break()
-            -- TextBox{parent=rcs_div,text="Aggregate Checks",alignment=ALIGN.CENTER,fg_bg=label}
 
             if unit.num_boilers > 0 then
                 local wll = IconIndicator{parent=rcs_div,label="Boiler Water Lo",states=red_ind_s}

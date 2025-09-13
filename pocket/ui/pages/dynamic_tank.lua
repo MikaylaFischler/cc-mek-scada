@@ -1,3 +1,7 @@
+--
+-- Dynamic Tank View
+--
+
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
@@ -16,7 +20,7 @@ local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
 local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 
 local CONTAINER_MODE = types.CONTAINER_MODE
-local COOLANT_TYPE = types.COOLANT_TYPE
+local COOLANT_TYPE   = types.COOLANT_TYPE
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair

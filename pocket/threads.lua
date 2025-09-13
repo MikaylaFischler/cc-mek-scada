@@ -14,7 +14,6 @@ local threads = {}
 local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
 local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
 
-local MQ__RENDER_CMD = pocket.MQ__RENDER_CMD
 local MQ__RENDER_DATA = pocket.MQ__RENDER_DATA
 
 -- main thread
@@ -58,8 +57,10 @@ function threads.thread__main(smem)
                     pocket_comms.link_update()
 
                     -- update any tasks for the active page
-                    local page_tasks = nav.get_current_page().tasks
-                    for i = 1, #page_tasks do page_tasks[i]() end
+                    if nav.get_current_page() then
+                        local page_tasks = nav.get_current_page().tasks
+                        for i = 1, #page_tasks do page_tasks[i]() end
+                    end
 
                     loop_clock.start()
                 elseif sv_wd.is_timer(param1) then
@@ -157,9 +158,6 @@ function threads.thread__render(smem)
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
-                        if msg.message == MQ__RENDER_CMD.UNLOAD_SV_APPS then
-                        elseif msg.message == MQ__RENDER_CMD.UNLOAD_API_APPS then
-                        end
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- received data
                         local cmd = msg.message ---@type queue_data

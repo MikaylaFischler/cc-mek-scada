@@ -200,7 +200,7 @@ local function self_check()
             else
                 valid = true
 
-                if p_type ~= nil and not (p_type == "inductionPort" or p_type == "spsPort") then
+                if p_type ~= nil and not (p_type == "inductionPort" or p_type == "reinforcedInductionPort" or p_type == "spsPort") then
                     self.self_check_msg("> check " .. entry.name .. " valid...", false, "unrecognized device type")
                 end
             end
