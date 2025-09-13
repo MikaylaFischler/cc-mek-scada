@@ -1,5 +1,5 @@
 --
--- System Apps
+-- About Page
 --
 
 local comms      = require("scada-common.comms")
@@ -24,25 +24,21 @@ local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
 
--- create system app pages
+-- create about page view
 ---@param root Container parent
 local function create_pages(root)
     local db = iocontrol.get_db()
 
-    ----------------
-    -- About Page --
-    ----------------
+    local frame = Div{parent=root,x=1,y=1}
 
-    local about_root = Div{parent=root,x=1,y=1}
+    local app = db.nav.register_app(APP_ID.ABOUT, frame)
 
-    local about_app = db.nav.register_app(APP_ID.ABOUT, about_root)
+    local about_page = app.new_page(nil, 1)
+    local nt_page = app.new_page(about_page, 2)
+    local fw_page = app.new_page(about_page, 3)
+    local hw_page = app.new_page(about_page, 4)
 
-    local about_page = about_app.new_page(nil, 1)
-    local nt_page = about_app.new_page(about_page, 2)
-    local fw_page = about_app.new_page(about_page, 3)
-    local hw_page = about_app.new_page(about_page, 4)
-
-    local about = Div{parent=about_root,x=1,y=2}
+    local about = Div{parent=frame,x=1,y=2}
 
     TextBox{parent=about,y=1,text="System Information",alignment=ALIGN.CENTER}
 
@@ -58,7 +54,7 @@ local function create_pages(root)
 
     local config = pocket.config
 
-    local nt_div = Div{parent=about_root,x=1,y=2}
+    local nt_div = Div{parent=frame,x=1,y=2}
     TextBox{parent=nt_div,y=1,text="Network Details",alignment=ALIGN.CENTER}
 
     PushButton{parent=nt_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
@@ -87,7 +83,7 @@ local function create_pages(root)
 
     --#region Firmware Versions
 
-    local fw_div = Div{parent=about_root,x=1,y=2}
+    local fw_div = Div{parent=frame,x=1,y=2}
     TextBox{parent=fw_div,y=1,text="Firmware Versions",alignment=ALIGN.CENTER}
 
     PushButton{parent=fw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
@@ -123,7 +119,7 @@ local function create_pages(root)
 
     --#region Host Versions
 
-    local hw_div = Div{parent=about_root,x=1,y=2}
+    local hw_div = Div{parent=frame,x=1,y=2}
     TextBox{parent=hw_div,y=1,text="Host Versions",alignment=ALIGN.CENTER}
 
     PushButton{parent=hw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
@@ -138,9 +134,9 @@ local function create_pages(root)
 
     --#endregion
 
-    local root_pane = MultiPane{parent=about_root,x=1,y=1,panes={about,nt_div,fw_div,hw_div}}
+    local root_pane = MultiPane{parent=frame,x=1,y=1,panes={about,nt_div,fw_div,hw_div}}
 
-    about_app.set_root_pane(root_pane)
+    app.set_root_pane(root_pane)
 end
 
 return create_pages
