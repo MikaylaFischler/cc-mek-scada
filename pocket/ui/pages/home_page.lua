@@ -29,9 +29,8 @@ local function new_view(root)
 
     local apps_1 = Div{parent=main,x=1,y=1,height=15}
     local apps_2 = Div{parent=main,x=1,y=1,height=15}
-    local apps_3 = Div{parent=main,x=1,y=1,height=15}
 
-    local panes = { apps_1, apps_2, apps_3 }
+    local panes = { apps_1, apps_2 }
 
     local app_pane = AppMultiPane{parent=main,x=1,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=app.switcher}
 
@@ -54,13 +53,9 @@ local function new_view(root)
     App{parent=apps_1,x=16,y=7,text="\xb6",title="Guide",callback=function()open(APP_ID.GUIDE)end,app_fg_bg=cpair(colors.black,colors.cyan),active_fg_bg=active_fg_bg}
     App{parent=apps_1,x=2,y=12,text="?",title="About",callback=function()open(APP_ID.ABOUT)end,app_fg_bg=cpair(colors.black,colors.white),active_fg_bg=active_fg_bg}
 
-    App{parent=apps_2,x=2,y=2,text="\x08",title="Devices",callback=function()open(APP_ID.DUMMY)end,app_fg_bg=cpair(colors.black,colors.lightGray),active_fg_bg=active_fg_bg}
-    App{parent=apps_2,x=9,y=2,text="\x1e",title="Rad",callback=function()open(APP_ID.RADMON)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
-
-    TextBox{parent=apps_3,text="Diagnostic Apps",x=1,y=2,alignment=ALIGN.CENTER}
-
-    App{parent=apps_3,x=2,y=4,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
-    App{parent=apps_3,x=9,y=4,text="@",title="Comps",callback=function()open(APP_ID.COMPS)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=2,y=2,text="\x0f",title="Alarm",callback=function()open(APP_ID.ALARMS)end,app_fg_bg=cpair(colors.black,colors.red),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=9,y=2,text="@",title="Comps",callback=function()open(APP_ID.COMPS)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
+    App{parent=apps_2,x=16,y=2,text="\x1e",title="Rad",callback=function()open(APP_ID.RADMON)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
 
     return main
 end
