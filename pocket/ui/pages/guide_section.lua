@@ -1,3 +1,7 @@
+--
+-- A Guide App Subsection
+--
+
 local log            = require("scada-common.log")
 local util           = require("scada-common.util")
 
@@ -17,7 +21,7 @@ local LED            = require("graphics.elements.indicators.LED")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local DOC_TYPE = docs.DOC_ITEM_TYPE
+local DOC_TYPE  = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section

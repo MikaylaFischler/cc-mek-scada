@@ -32,7 +32,6 @@ local border = core.border
 local APP_ID = pocket.APP_ID
 
 local lu_col    = style.label_unit_pair
-
 local box_label = cpair(colors.lightGray, colors.gray)
 
 -- new computer list page view

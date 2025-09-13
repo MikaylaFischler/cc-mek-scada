@@ -88,7 +88,7 @@ local APP_ID = {
     -- core UI
     ROOT = 1,
     LOADER = 2,
-    -- main app pages
+    -- main apps
     UNITS = 3,
     FACILITY = 4,
     CONTROL = 5,
@@ -97,12 +97,11 @@ local APP_ID = {
     GUIDE = 8,
     ABOUT = 9,
     RADMON = 10,
-    -- diagnostic app pages
+    -- diagnostic apps
     ALARMS = 11,
     COMPS = 12,
-    -- other
-    DUMMY = 13,
-    NUM_APPS = 13
+    -- count
+    NUM_APPS = 12
 }
 
 pocket.APP_ID = APP_ID

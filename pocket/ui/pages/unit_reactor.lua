@@ -1,3 +1,7 @@
+--
+-- Unit Reactor View
+--
+
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
@@ -13,8 +17,8 @@ local TextBox        = require("graphics.elements.TextBox")
 local PushButton     = require("graphics.elements.controls.PushButton")
 
 local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
-local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 local IconIndicator  = require("graphics.elements.indicators.IconIndicator")
+local StateIndicator = require("graphics.elements.indicators.StateIndicator")
 local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN

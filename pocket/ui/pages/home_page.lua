@@ -9,11 +9,9 @@ local core         = require("graphics.core")
 
 local AppMultiPane = require("graphics.elements.AppMultiPane")
 local Div          = require("graphics.elements.Div")
-local TextBox      = require("graphics.elements.TextBox")
 
 local App          = require("graphics.elements.controls.App")
 
-local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID

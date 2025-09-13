@@ -194,7 +194,7 @@ local function new_view(root)
 
         TextBox{parent=c_div,y=1,text="Process Control",alignment=ALIGN.CENTER}
 
-        local u_stat = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,x=1,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
+        local u_stat      = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,x=1,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
         local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
         local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
 
@@ -210,7 +210,7 @@ local function new_view(root)
         end
 
         local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
-        local stop = HazardButton{parent=c_div,x=13,y=9,text="STOP",accent=colors.red,callback=process.process_stop,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
+        local stop  = HazardButton{parent=c_div,x=13,y=9,text="STOP",accent=colors.red,callback=process.process_stop,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
 
         db.facility.start_ack = start.on_response
         db.facility.stop_ack = stop.on_response

@@ -17,7 +17,6 @@ local ENERGY_UNITS = types.ENERGY_SCALE_UNITS
 local TEMP_SCALE = types.TEMP_SCALE
 local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
----@todo nominal trip time is ping (0ms to 10ms usually)
 local WARN_TT = 40
 local HIGH_TT = 80
 
