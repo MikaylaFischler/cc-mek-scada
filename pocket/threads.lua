@@ -159,9 +159,6 @@ function threads.thread__render(smem)
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
-                        if msg.message == MQ__RENDER_CMD.UNLOAD_SV_APPS then
-                        elseif msg.message == MQ__RENDER_CMD.UNLOAD_API_APPS then
-                        end
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- received data
                         local cmd = msg.message ---@type queue_data

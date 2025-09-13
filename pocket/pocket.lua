@@ -17,8 +17,6 @@ local LINK_STATE = iocontrol.LINK_STATE
 local pocket = {}
 
 local MQ__RENDER_CMD = {
-    UNLOAD_SV_APPS = 1,
-    UNLOAD_API_APPS = 2
 }
 
 local MQ__RENDER_DATA = {
