@@ -88,7 +88,7 @@ local APP_ID = {
     -- core UI
     ROOT = 1,
     LOADER = 2,
-    -- main app pages
+    -- main apps
     UNITS = 3,
     FACILITY = 4,
     CONTROL = 5,
@@ -97,10 +97,10 @@ local APP_ID = {
     GUIDE = 8,
     ABOUT = 9,
     RADMON = 10,
-    -- diagnostic app pages
+    -- diagnostic apps
     ALARMS = 11,
-    -- other
-    DUMMY = 12,
+    COMPS = 12,
+    -- count
     NUM_APPS = 12
 }
 
@@ -277,7 +277,14 @@ function pocket.init_nav(smem)
 
         local app = self.apps[app_id]
         if app then
-            if app.requires_conn() and not smem.pkt_sys.pocket_comms.is_linked() then
+            local p_comms = smem.pkt_sys.pocket_comms
+            local req_sv, req_api = app.check_requires()
+
+            if (req_sv and not p_comms.is_sv_linked()) or (req_api and not p_comms.is_api_linked()) then
+                -- report required connction(s)
+                iocontrol.get_db().loader_require = { sv = req_sv, api = req_api }
+                iocontrol.get_db().ps.toggle("loader_reqs")
+
                 -- bring up the app loader
                 self.loader_return = app_id
                 app_id = APP_ID.LOADER
@@ -558,6 +565,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.sv.linked then _send_sv(MGMT_TYPE.DIAG_ALARM_SET, { id, state }) end
     end
 
+    -- supervisor get connected computers
+    function public.diag__get_computers()
+        if self.sv.linked then _send_sv(MGMT_TYPE.INFO_LIST_CMP, {}) end
+    end
+
     -- coordinator get facility app data
     function public.api__get_facility()
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_FAC_DTL, {}) end
@@ -664,6 +676,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param packet mgmt_frame|crdn_frame|nil
     function public.handle_packet(packet)
         local diag = iocontrol.get_db().diag
+        local ps   = iocontrol.get_db().ps
 
         if packet ~= nil then
             local l_chan   = packet.scada_frame.local_channel()
@@ -915,23 +928,23 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_GET then
                             if _check_length(packet, 8) then
                                 for i = 1, #packet.data do
-                                    diag.tone_test.tone_indicators[i].update(packet.data[i] == true)
+                                    ps.publish("alarm_tone_" .. i, packet.data[i] == true)
                                 end
                             end
                         elseif packet.type == MGMT_TYPE.DIAG_TONE_SET then
                             if packet.length == 1 and packet.data[1] == false then
-                                diag.tone_test.ready_warn.set_value("testing denied")
+                                ps.publish("alarm_ready_warn", "testing denied")
                                 log.debug("supervisor SCADA diag tone set failed")
                             elseif packet.length == 2 and type(packet.data[2]) == "table" then
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
+                                ps.publish("alarm_ready_warn", util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.tone_buttons[i] ~= nil then
                                         diag.tone_test.tone_buttons[i].set_value(states[i] == true)
-                                        diag.tone_test.tone_indicators[i].update(states[i] == true)
+                                        ps.publish("alarm_tone_" .. i, states[i] == true)
                                     end
                                 end
                             else
@@ -939,13 +952,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             end
                         elseif packet.type == MGMT_TYPE.DIAG_ALARM_SET then
                             if packet.length == 1 and packet.data[1] == false then
-                                diag.tone_test.ready_warn.set_value("testing denied")
+                                ps.publish("alarm_ready_warn", "testing denied")
                                 log.debug("supervisor SCADA diag alarm set failed")
                             elseif packet.length == 2 and type(packet.data[2]) == "table" then
                                 local ready = packet.data[1]
                                 local states = packet.data[2]
 
-                                diag.tone_test.ready_warn.set_value(util.trinary(ready, "", "system not idle"))
+                                ps.publish("alarm_ready_warn", util.trinary(ready, "", "system not idle"))
 
                                 for i = 1, #states do
                                     if diag.tone_test.alarm_buttons[i] ~= nil then
@@ -955,6 +968,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             else
                                 log.debug("supervisor SCADA diag alarm set packet length/type mismatch")
                             end
+                        elseif packet.type == MGMT_TYPE.INFO_LIST_CMP then
+                            iocontrol.rx.record_network_data(packet.data)
                         else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
