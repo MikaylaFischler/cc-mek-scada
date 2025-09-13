@@ -9,7 +9,6 @@ local iocontrol     = require("pocket.iocontrol")
 local pocket        = require("pocket.pocket")
 
 local docs          = require("pocket.ui.docs")
--- local style         = require("pocket.ui.style")
 
 local guide_section = require("pocket.ui.pages.guide_section")
 
@@ -30,10 +29,6 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 
 local APP_ID = pocket.APP_ID
-
--- local label   = style.label
--- local lu_col  = style.label_unit_pair
--- local text_fg = style.text_fg
 
 -- new system guide view
 ---@param root Container parent

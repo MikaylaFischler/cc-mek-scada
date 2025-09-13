@@ -60,7 +60,6 @@ local function _record_multiblock_status(faulted, data, ps)
     ps.publish("formed", data.formed)
     ps.publish("faulted", faulted)
 
-    ---@todo revisit this
     if data.build then
         for key, val in pairs(data.build) do ps.publish(key, val) end
     end

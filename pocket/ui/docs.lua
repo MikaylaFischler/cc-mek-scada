@@ -1,3 +1,7 @@
+--
+-- All the text documentation used in the Guide app is defined in this file.
+--
+
 local const = require("scada-common.constants")
 
 local docs = {}

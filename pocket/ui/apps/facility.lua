@@ -41,7 +41,7 @@ local grn_ind_s    = style.icon_states.grn_ind_s
 -- new unit page view
 ---@param root Container parent
 local function new_view(root)
-    local db  = iocontrol.get_db()
+    local db = iocontrol.get_db()
 
     local frame = Div{parent=root,x=1,y=1}
 

@@ -17,7 +17,6 @@ local ENERGY_UNITS = types.ENERGY_SCALE_UNITS
 local TEMP_SCALE = types.TEMP_SCALE
 local TEMP_UNITS = types.TEMP_SCALE_UNITS
 
----@todo nominal trip time is ping (0ms to 10ms usually)
 local WARN_TT = 40
 local HIGH_TT = 80
 
@@ -86,10 +85,8 @@ function iocontrol.init_core(pkt_comms, nav, cfg)
 
         get_tone_states = function () comms.diag__get_alarm_tones() end,
 
-        ready_warn = nil,       ---@type TextBox
-        tone_buttons = {},      ---@type SwitchButton[]
-        alarm_buttons = {},     ---@type Checkbox[]
-        tone_indicators = {}    ---@type IndicatorLight[] indicators to update from supervisor tone states
+        tone_buttons = {}, ---@type SwitchButton[]
+        alarm_buttons = {} ---@type Checkbox[]
     }
 
     -- computer list
