@@ -554,6 +554,8 @@ doc("G_UI", "UI", "User Interface.")
 
 target = docs.glossary.terms
 doc("G_AssignedUnit", "Assigned Unit", "A unit that is assigned to an automatic control group (not assigned to Manual).")
+doc("G_AuxCoolant", "Auxiliary Coolant", "A separate water input to the reactor or boiler to supplement return water from a turbine during initial ramp-up.")
+doc("G_EmerCoolant", "Emergency Coolant", "A dynamic tank or other water supply used when a reactor or boiler does not have enough water to stop a runaway reactor overheat.")
 doc("G_Fault", "Fault", "Something has gone wrong and/or failed to function.")
 doc("G_FrontPanel", "Front Panel", "A basic interface on the front of a device for viewing and sometimes modifying its state. This is what you see when looking at a computer running one of the SCADA applications.")
 doc("G_HighHigh", "High High", "Very High.")
