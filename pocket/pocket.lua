@@ -16,14 +16,10 @@ local LINK_STATE = iocontrol.LINK_STATE
 
 local pocket = {}
 
-local MQ__RENDER_CMD = {
-}
-
 local MQ__RENDER_DATA = {
     LOAD_APP = 1
 }
 
-pocket.MQ__RENDER_CMD = MQ__RENDER_CMD
 pocket.MQ__RENDER_DATA = MQ__RENDER_DATA
 
 ---@type pkt_config

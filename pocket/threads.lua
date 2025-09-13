@@ -14,7 +14,6 @@ local threads = {}
 local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
 local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
 
-local MQ__RENDER_CMD = pocket.MQ__RENDER_CMD
 local MQ__RENDER_DATA = pocket.MQ__RENDER_DATA
 
 -- main thread
