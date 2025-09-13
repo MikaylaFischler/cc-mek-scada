@@ -155,14 +155,27 @@ local function new_view(root)
 
     --#endregion
 
+    --#region info page
+
+    app.new_page(nil, 3)
+
+    local info_div = Div{parent=page_div}
+
+    TextBox{parent=info_div,x=2,y=1,text="This app provides tools to test alarm sounds by alarm and by tone (1-8)."}
+    TextBox{parent=info_div,x=2,y=6,text="The system must be idle (all units stopped with no alarms active) for testing to run."}
+    TextBox{parent=info_div,x=2,y=12,text="Currently, testing will be denied unless you have a Facility Authentication Key set (this will change in the future)."}
+
+    --#endregion
+
     -- setup multipane
-    local u_pane = MultiPane{parent=page_div,x=1,y=1,panes={alarms_div,tones_div}}
+    local u_pane = MultiPane{parent=page_div,x=1,y=1,panes={alarms_div,tones_div,info_div}}
     app.set_root_pane(u_pane)
 
     local list = {
         { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
         { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = function () app.switcher(1) end },
-        { label = " \x0f ", color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(2) end }
+        { label = " \x0f ", color = core.cpair(colors.black, colors.yellow), callback = function () app.switcher(2) end },
+        { label = " ? ", color = core.cpair(colors.black, colors.blue), callback = function () app.switcher(3) end }
     }
 
     app.set_sidebar(list)

@@ -58,8 +58,10 @@ function threads.thread__main(smem)
                     pocket_comms.link_update()
 
                     -- update any tasks for the active page
-                    local page_tasks = nav.get_current_page().tasks
-                    for i = 1, #page_tasks do page_tasks[i]() end
+                    if nav.get_current_page() then
+                        local page_tasks = nav.get_current_page().tasks
+                        for i = 1, #page_tasks do page_tasks[i]() end
+                    end
 
                     loop_clock.start()
                 elseif sv_wd.is_timer(param1) then

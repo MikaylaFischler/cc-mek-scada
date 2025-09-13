@@ -150,7 +150,7 @@ function pocket.init_nav(smem)
         ---@class pocket_app
         local app = {
             loaded = false,
-            cur_page = nil,    ---@type nav_tree_page
+            cur_page = nil,    ---@type nav_tree_page|nil
             pane = pane,
             paned_pages = {},  ---@type nav_tree_page[]
             sidebar_items = {} ---@type sidebar_entry[]
@@ -348,7 +348,7 @@ function pocket.init_nav(smem)
     function nav.get_containers() return self.containers end
 
     -- get the currently active page
-    ---@return nav_tree_page
+    ---@return nav_tree_page|nil
     function nav.get_current_page()
         return self.apps[self.cur_app].get_current_page()
     end
