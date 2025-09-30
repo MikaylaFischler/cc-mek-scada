@@ -1,3 +1,7 @@
+--
+-- A Guide App Subsection
+--
+
 local log            = require("scada-common.log")
 local util           = require("scada-common.util")
 
@@ -17,7 +21,7 @@ local LED            = require("graphics.elements.indicators.LED")
 local ALIGN = core.ALIGN
 local cpair = core.cpair
 
-local DOC_TYPE = docs.DOC_ITEM_TYPE
+local DOC_TYPE  = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
@@ -34,13 +38,13 @@ return function (data, base_page, title, items, scroll_height)
     local section_div = Div{parent=page_div,x=2}
     table.insert(panes, section_div)
     TextBox{parent=section_div,y=1,text=title,alignment=ALIGN.CENTER}
-    PushButton{parent=section_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=base_page.nav_to}
+    PushButton{parent=section_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=base_page.nav_to}
 
     local view_page = app.new_page(section_page, #panes + 1)
     local section_view_div = Div{parent=page_div,x=2}
     table.insert(panes, section_view_div)
     TextBox{parent=section_view_div,y=1,text=title,alignment=ALIGN.CENTER}
-    PushButton{parent=section_view_div,x=3,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=section_page.nav_to}
+    PushButton{parent=section_view_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=section_page.nav_to}
 
     local name_list = ListBox{parent=section_div,x=1,y=3,scroll_height=60,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
     local def_list = ListBox{parent=section_view_div,x=1,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
@@ -49,7 +53,7 @@ return function (data, base_page, title, items, scroll_height)
     local page_end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_list
+        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_list
 
         if item.type == DOC_TYPE.SECTION then
             ---@cast item pocket_doc_sect
@@ -72,6 +76,8 @@ return function (data, base_page, title, items, scroll_height)
             if #name_list.get_children() > 0 then
                 local _ = Div{parent=name_list,height=1}
             end
+
+            table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
             local name_title = Div{parent=name_list,height=1}
             TextBox{parent=name_title,x=1,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
@@ -106,6 +112,19 @@ return function (data, base_page, title, items, scroll_height)
         elseif item.type == DOC_TYPE.TEXT then
             ---@cast item pocket_doc_text
 
+            TextBox{parent=def_list,text=item.text}
+
+            page_end = Div{parent=def_list,height=1,can_focus=true}
+        elseif item.type == DOC_TYPE.NOTE then
+            ---@cast item pocket_doc_note
+
+            TextBox{parent=def_list,text=item.text,fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+            page_end = Div{parent=def_list,height=1,can_focus=true}
+        elseif item.type == DOC_TYPE.TIP then
+            ---@cast item pocket_doc_tip
+
+            TextBox{parent=def_list,text="TIP!",fg_bg=cpair(colors.orange,colors._INHERIT)}
             TextBox{parent=def_list,text=item.text}
 
             page_end = Div{parent=def_list,height=1,can_focus=true}

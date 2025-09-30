@@ -46,6 +46,8 @@ local self = {
     facility = nil,         ---@type facility|nil
     plc_ini_reset = {},
     -- lists of connected sessions
+    ---@class svsessions_list
+---@diagnostic disable: missing-fields
     sessions = {
         rtu = {},           ---@type rtu_session_struct[]
         plc = {},           ---@type plc_session_struct[]
@@ -621,7 +623,7 @@ function svsessions.establish_pdg_session(nic, source_addr, i_seq_num, version)
 
     local id = self.next_ids.pdg
 
-    pdg_s.instance = pocket.new_session(id, source_addr, i_seq_num, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.facility, self.fp_ok)
+    pdg_s.instance = pocket.new_session(id, source_addr, i_seq_num, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.sessions, self.facility, self.fp_ok)
     table.insert(self.sessions.pdg, pdg_s)
 
     local mt = {

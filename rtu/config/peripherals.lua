@@ -43,8 +43,8 @@ local self = {
 
 local peripherals = {}
 
-local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "environmentDetector" }
-local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector" }
+local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "reinforcedInductionPort", "spsPort", "solarNeutronActivator", "environmentDetector", "environment_detector" }
+local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector", "environment_detector" }
 
 -- create the peripherals configuration view
 ---@param tool_ctl _rtu_cfg_tool_ctl
@@ -165,14 +165,14 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             end
 
             self.p_desc.set_value("Each reactor unit can have at most 1 tank and the facility can have at most 4. Each facility tank must have a unique # 1 through 4, regardless of where it is connected. Only a total of 4 tanks can be displayed on the flow monitor.")
-        elseif type == "environmentDetector" then
+        elseif type == "environmentDetector" or type == "environment_detector" then
             reposition("This is the below system's #     env. detector.", 29, 99, 17, 6, 8)
             self.p_assign_btn.show()
             self.p_assign_btn.redraw()
             if self.p_assign_btn.get_value() == 1 then self.p_unit.disable() else self.p_unit.enable() end
             self.p_desc.set_value("You can connect more than one environment detector for a particular unit or the facility. In that case, the maximum radiation reading from those assigned to that particular unit or the facility will be used for alarms and display.")
-        elseif type == "inductionPort" or type == "spsPort" then
-            local dev = tri(type == "inductionPort", "induction matrix", "SPS")
+        elseif type == "inductionPort" or type == "reinforcedInductionPort" or type == "spsPort" then
+            local dev = tri(type == "inductionPort" or type == "reinforcedInductionPort", "induction matrix", "SPS")
             self.p_idx.hide(true)
             self.p_unit.hide(true)
             self.p_prompt.set_value("This is the " .. dev .. " for the facility.")
@@ -212,10 +212,10 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
 
     tool_ctl.update_peri_list()
 
-    TextBox{parent=peri_c_3,x=1,y=1,height=4,text="This feature is intended for advanced users. If you are clicking this just because your device is not shown, follow the connection instructions in 'I don't see my device!'."}
-    TextBox{parent=peri_c_3,x=1,y=6,height=4,text="Peripheral Name"}
-    local p_name = TextField{parent=peri_c_3,x=1,y=7,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
-    local p_type = Radio2D{parent=peri_c_3,x=1,y=9,rows=4,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    TextBox{parent=peri_c_3,x=1,y=1,height=4,text="This feature is intended for advanced users. If you just can't see your device, click 'I don't see my device!' instead."}
+    TextBox{parent=peri_c_3,x=1,y=5,height=4,text="Peripheral Name"}
+    local p_name = TextField{parent=peri_c_3,x=1,y=6,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
+    local p_type = Radio2D{parent=peri_c_3,x=1,y=8,rows=5,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
     local man_p_err = TextBox{parent=peri_c_3,x=8,y=14,width=35,text="Please enter a peripheral name.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     man_p_err.hide(true)
 
@@ -281,7 +281,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         local idx = tonumber(self.p_idx.get_value())
 
         if util.table_contains(NEEDS_UNIT, peri_type) then
-            if (peri_type == "dynamicValve" or peri_type == "environmentDetector") and for_facility then
+            if (peri_type == "dynamicValve" or peri_type == "environmentDetector" or peri_type == "environment_detector") and for_facility then
                 -- skip
             elseif not (util.is_int(u) and u > 0 and u < 5) then
                 self.p_err.set_value("Unit ID must be within 1 to 4.")
@@ -310,7 +310,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             else index = idx end
         elseif peri_type == "dynamicValve" then
             index = 1
-        elseif peri_type == "environmentDetector" then
+        elseif peri_type == "environmentDetector" or peri_type == "environment_detector" then
             if not (util.is_int(idx) and idx > 0) then
                 self.p_err.set_value("Index must be greater than 0.")
                 self.p_err.show()

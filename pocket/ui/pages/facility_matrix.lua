@@ -1,3 +1,7 @@
+--
+-- Induction Matrix View
+--
+
 local iocontrol      = require("pocket.iocontrol")
 
 local style          = require("pocket.ui.style")

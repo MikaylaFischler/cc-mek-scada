@@ -17,8 +17,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.6"
-comms.api_version = "0.0.9"
+comms.version = "3.0.8"
+comms.api_version = "0.0.10"
 
 ---@enum PROTOCOL
 local PROTOCOL = {
@@ -52,9 +52,10 @@ local MGMT_TYPE = {
     RTU_ADVERT = 3,      -- RTU capability advertisement
     RTU_DEV_REMOUNT = 4, -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
     RTU_TONE_ALARM = 5,  -- instruct RTUs to play specified alarm tones
-    DIAG_TONE_GET = 6,   -- diagnostic: get alarm tones
-    DIAG_TONE_SET = 7,   -- diagnostic: set alarm tones
-    DIAG_ALARM_SET = 8   -- diagnostic: set alarm to simulate audio for
+    DIAG_TONE_GET = 6,   -- (API) diagnostic: get alarm tones
+    DIAG_TONE_SET = 7,   -- (API) diagnostic: set alarm tones
+    DIAG_ALARM_SET = 8,  -- (API) diagnostic: set alarm to simulate audio for
+    INFO_LIST_CMP = 9    -- (API) info: list all computers on the network
 }
 
 ---@enum CRDN_TYPE
@@ -72,7 +73,8 @@ local CRDN_TYPE = {
     API_GET_UNIT = 10,   -- API: get reactor unit data
     API_GET_CTRL = 11,   -- API: get data for the control app
     API_GET_PROC = 12,   -- API: get data for the process app
-    API_GET_WASTE = 13   -- API: get data for the waste app
+    API_GET_WASTE = 13,  -- API: get data for the waste app
+    API_GET_RAD = 14     -- API: get data for the radiation monitor app
 }
 
 ---@enum ESTABLISH_ACK

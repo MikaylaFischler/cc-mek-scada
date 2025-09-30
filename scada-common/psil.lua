@@ -53,12 +53,12 @@ function psil.create()
         if ic[key] == nil then alloc(key) end
 
         if ic[key].value ~= value then
+            ic[key].value = value
+
             for i = 1, #ic[key].subscribers do
                 ic[key].subscribers[i].notify(value)
             end
         end
-
-        ic[key].value = value
     end
 
     -- publish a toggled boolean value to a given key, passing it to all subscribers if it has changed<br>

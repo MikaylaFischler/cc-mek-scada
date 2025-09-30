@@ -31,7 +31,7 @@ local sna_rtu      = require("rtu.dev.sna_rtu")
 local sps_rtu      = require("rtu.dev.sps_rtu")
 local turbinev_rtu = require("rtu.dev.turbinev_rtu")
 
-local RTU_VERSION = "v1.12.2"
+local RTU_VERSION = "v1.12.3"
 
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
@@ -439,8 +439,8 @@ local function main()
                     println_ts(util.c("sys_config> failed to check if '", name, "' is formed"))
                     log.warning(util.c("sys_config> failed to check if '", name, "' is a formed dynamic tank multiblock"))
                 end
-            elseif type == "inductionPort" then
-                -- induction matrix multiblock
+            elseif type == "inductionPort" or type == "reinforcedInductionPort" then
+                -- induction matrix multiblock (normal or reinforced)
                 if not validate_assign(true) then return false end
 
                 rtu_type = RTU_UNIT_TYPE.IMATRIX
@@ -471,7 +471,7 @@ local function main()
 
                 rtu_type = RTU_UNIT_TYPE.SNA
                 rtu_iface, faulted = sna_rtu.new(device)
-            elseif type == "environmentDetector" then
+            elseif type == "environmentDetector" or type == "environment_detector" then
                 -- advanced peripherals environment detector
                 if not validate_index(1) then return false end
                 if not validate_assign(entry.unit == nil) then return false end

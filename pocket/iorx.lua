@@ -2,9 +2,12 @@
 -- I/O Control's Data Receive (Rx) Handlers
 --
 
+local comms = require("scada-common.comms")
 local const = require("scada-common.constants")
 local types = require("scada-common.types")
 local util  = require("scada-common.util")
+
+local DEV_TYPE = comms.DEVICE_TYPE
 
 local ALARM = types.ALARM
 local ALARM_STATE = types.ALARM_STATE
@@ -57,7 +60,6 @@ local function _record_multiblock_status(faulted, data, ps)
     ps.publish("formed", data.formed)
     ps.publish("faulted", faulted)
 
-    ---@todo revisit this
     if data.build then
         for key, val in pairs(data.build) do ps.publish(key, val) end
     end
@@ -658,7 +660,6 @@ function iorx.record_waste_data(data)
     fac.ps.publish("sps_process_rate", f_data[9])
 end
 
-
 -- update facility app with facility and unit data from API_GET_FAC_DTL
 ---@param data table
 function iorx.record_fac_detail_data(data)
@@ -818,6 +819,135 @@ function iorx.record_fac_detail_data(data)
     s_ps.publish("SPSStatus", sps_status)
     s_ps.publish("SPSStateStatus", s_stat)
 end
+
+-- update the radiation monitor app with radiation monitor data from API_GET_RAD
+---@param data table
+function iorx.record_radiation_data(data)
+    -- unit radiation monitors
+
+    for u_id = 1, #io.units do
+        local unit      = io.units[u_id]
+        local max_rad   = 0
+        local connected = {}
+
+        unit.radiation = types.new_zero_radiation_reading()
+        unit.rad_monitors = data[u_id]
+
+        for id, mon in pairs(unit.rad_monitors) do
+            table.insert(connected, id)
+
+            unit.unit_ps.publish("radiation@" .. id, mon.radiation)
+
+            if mon.raw > max_rad then
+                max_rad = mon.raw
+                unit.radiation = mon.radiation
+            end
+        end
+
+        unit.unit_ps.publish("radiation", unit.radiation)
+        unit.unit_ps.publish("radiation_monitors", textutils.serialize(connected))
+    end
+
+    -- facility radiation monitors
+
+    local fac = io.facility
+
+    fac.radiation = types.new_zero_radiation_reading()
+    fac.rad_monitors = data[#io.units + 1]
+
+    local max_rad = 0
+    local connected = {}
+
+    for id, mon in pairs(fac.rad_monitors) do
+        table.insert(connected, id)
+
+        fac.ps.publish("radiation@" .. id, mon.radiation)
+
+        if mon.raw > max_rad then
+            max_rad = mon.raw
+            fac.radiation = mon.radiation
+        end
+    end
+
+    fac.ps.publish("radiation", fac.radiation)
+    fac.ps.publish("radiation_monitors", textutils.serialize(connected))
+end
+
+local comp_record = {}
+
+-- update the computers app with the network data from INFO_LIST_CMP
+---@param data table
+function iorx.record_network_data(data)
+    local ps        = io.ps
+    local connected = {}
+    local crd_online = false
+
+    ps.publish("comp_online", #data)
+
+    -- add/update connected computers
+    for i = 1, #data do
+        local entry = data[i]
+        local type  = entry[1]
+        local id    = entry[2]
+        local pfx   = "comp_" .. id
+
+        connected[id] = true
+
+        if type == DEV_TYPE.SVR then
+            ps.publish("comp_svr_addr", id)
+            ps.publish("comp_svr_fw", entry[3])
+        elseif type == DEV_TYPE.CRD then
+            crd_online = true
+            ps.publish("comp_crd_addr", id)
+            ps.publish("comp_crd_fw", entry[3])
+            ps.publish("comp_crd_rtt", entry[4])
+        else
+            ps.publish(pfx .. "_type", entry[1])
+            ps.publish(pfx .. "_addr", id)
+            ps.publish(pfx .. "_fw", entry[3])
+            ps.publish(pfx .. "_rtt", entry[4])
+
+            if type == DEV_TYPE.PLC then
+                ps.publish(pfx .. "_unit", entry[5])
+            end
+
+            if not comp_record[id] then
+                comp_record[id] = true
+
+                -- trigger the app to create the new element
+                ps.publish("comp_connect", id)
+            end
+        end
+    end
+
+    -- handle the coordinator being online or not
+    -- no need to worry about the supervisor since this data is from the supervisor, so it has to be 'online' if received
+    ps.publish("comp_crd_online", crd_online)
+    if not crd_online then
+        ps.publish("comp_crd_addr", "---")
+        ps.publish("comp_crd_fw", "---")
+        ps.publish("comp_crd_rtt", "---")
+    end
+
+    -- reset the published value
+    ps.publish("comp_connect", false)
+
+    -- remove disconnected computers
+    for id, state in pairs(comp_record) do
+        if state and not connected[id] then
+            comp_record[id] = false
+
+            -- trigger the app to delete the element
+            ps.publish("comp_disconnect", id)
+        end
+    end
+
+    -- reset the published value
+    ps.publish("comp_disconnect", false)
+end
+
+-- clear the tracked connected computer record
+function iorx.clear_comp_record() comp_record = {} end
 
 return function (io_obj)
     io = io_obj

@@ -88,12 +88,18 @@ constants.FLOW_STABILITY_DELAY_MS = 10000
 -- - background radiation 0.0000001 Sv/h (99.99 nSv/h)
 -- - "green tint" radiation 0.00001 Sv/h (10 uSv/h)
 -- - damaging radiation 0.00006 Sv/h (60 uSv/h)
+
 constants.LOW_RADIATION       = 0.00001
 constants.HAZARD_RADIATION    = 0.00006
 constants.HIGH_RADIATION      = 0.001
 constants.VERY_HIGH_RADIATION = 0.1
 constants.SEVERE_RADIATION    = 8.0
 constants.EXTREME_RADIATION   = 100.0
+
+-- nominal RTT is ping (0ms to 10ms usually) + 150ms for SV main loop tick
+
+constants.WARN_RTT = 300    -- 2x as long as expected w/ 0 ping
+constants.HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 
 --#endregion
 

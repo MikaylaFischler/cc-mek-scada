@@ -2,10 +2,12 @@ local comms   = require("scada-common.comms")
 local log     = require("scada-common.log")
 local mqueue  = require("scada-common.mqueue")
 local util    = require("scada-common.util")
+
 local databus = require("supervisor.databus")
 
 local pocket = {}
 
+local DEV_TYPE = comms.DEVICE_TYPE
 local PROTOCOL = comms.PROTOCOL
 local MGMT_TYPE = comms.MGMT_TYPE
 
@@ -34,9 +36,10 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
+---@param sessions svsessions_list list of computer sessions, read-only
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
-function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, facility, fp_ok)
+function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, sessions, facility, fp_ok)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -182,6 +185,47 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 end
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { false }) end
+            elseif pkt.type == MGMT_TYPE.INFO_LIST_CMP then
+                local get = databus.ps.get
+
+---@diagnostic disable-next-line: undefined-field
+                local devices = { { DEV_TYPE.SVR, os.getComputerID(), get("version"), 0 } }
+
+                -- add the coordinator if connected
+                if get("crd_conn") then
+                    table.insert(devices, { DEV_TYPE.CRD, get("crd_addr"), get("crd_fw"), get("crd_rtt") })
+                end
+
+                -- add the PLCs if connected
+                for i = 1, #facility.get_units() do
+                    local tag = "plc_" .. i
+
+                    local addr = -1
+                    for _, s in ipairs(sessions.plc) do
+                        if s.reactor == i then
+                            addr = s.s_addr
+                            break
+                        end
+                    end
+
+                    if get(tag .. "_conn") then
+                        table.insert(devices, { DEV_TYPE.PLC, addr, get(tag .. "_fw"), get(tag .. "_rtt"), i })
+                    end
+                end
+
+                -- add connected RTUs
+                for i = 1, #sessions.rtu do
+                    local s = sessions.rtu[i]
+                    table.insert(devices, { DEV_TYPE.RTU, s.s_addr, s.version, get("rtu_" .. s.instance.get_id() .. "_rtt") })
+                end
+
+                -- add connected pocket computers
+                for i = 1, #sessions.pdg do
+                    local s = sessions.pdg[i]
+                    table.insert(devices, { DEV_TYPE.PKT, s.s_addr, s.version, get("pdg_" .. s.instance.get_id() .. "_rtt") })
+                end
+
+                _send_mgmt(MGMT_TYPE.INFO_LIST_CMP, devices)
             else
                 log.debug(log_tag .. "handler received unsupported SCADA_MGMT packet type " .. pkt.type)
             end

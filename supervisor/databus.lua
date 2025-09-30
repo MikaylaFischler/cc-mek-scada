@@ -2,14 +2,11 @@
 -- Data Bus - Central Communication Linking for Supervisor Front Panel
 --
 
-local psil = require("scada-common.psil")
-local util = require("scada-common.util")
+local const = require("scada-common.constants")
+local psil  = require("scada-common.psil")
+local util  = require("scada-common.util")
 
 local pgi  = require("supervisor.panel.pgi")
-
--- nominal RTT is ping (0ms to 10ms usually) + 150ms for SV main loop tick
-local WARN_RTT = 300    -- 2x as long as expected w/ 0 ping
-local HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 
 local databus = {}
 
@@ -65,9 +62,9 @@ end
 function databus.tx_plc_rtt(reactor_id, rtt)
     databus.ps.publish("plc_" .. reactor_id .. "_rtt", rtt)
 
-    if rtt > HIGH_RTT then
+    if rtt > const.HIGH_RTT then
         databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.red)
-    elseif rtt > WARN_RTT then
+    elseif rtt > const.WARN_RTT then
         databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.yellow_hc)
     else
         databus.ps.publish("plc_" .. reactor_id .. "_rtt_color", colors.green_hc)
@@ -96,9 +93,9 @@ end
 function databus.tx_rtu_rtt(session_id, rtt)
     databus.ps.publish("rtu_" .. session_id .. "_rtt", rtt)
 
-    if rtt > HIGH_RTT then
+    if rtt > const.HIGH_RTT then
         databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.red)
-    elseif rtt > WARN_RTT then
+    elseif rtt > const.WARN_RTT then
         databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.yellow_hc)
     else
         databus.ps.publish("rtu_" .. session_id .. "_rtt_color", colors.green_hc)
@@ -135,9 +132,9 @@ end
 function databus.tx_crd_rtt(rtt)
     databus.ps.publish("crd_rtt", rtt)
 
-    if rtt > HIGH_RTT then
+    if rtt > const.HIGH_RTT then
         databus.ps.publish("crd_rtt_color", colors.red)
-    elseif rtt > WARN_RTT then
+    elseif rtt > const.WARN_RTT then
         databus.ps.publish("crd_rtt_color", colors.yellow_hc)
     else
         databus.ps.publish("crd_rtt_color", colors.green_hc)
@@ -166,9 +163,9 @@ end
 function databus.tx_pdg_rtt(session_id, rtt)
     databus.ps.publish("pdg_" .. session_id .. "_rtt", rtt)
 
-    if rtt > HIGH_RTT then
+    if rtt > const.HIGH_RTT then
         databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.red)
-    elseif rtt > WARN_RTT then
+    elseif rtt > const.WARN_RTT then
         databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.yellow_hc)
     else
         databus.ps.publish("pdg_" .. session_id .. "_rtt_color", colors.green_hc)

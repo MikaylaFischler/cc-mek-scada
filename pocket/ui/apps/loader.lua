@@ -32,16 +32,29 @@ local function create_pages(root)
 
     local root_pane = MultiPane{parent=main,x=1,y=1,panes={conn_sv_wait,conn_api_wait,main_pane}}
 
-    root_pane.register(db.ps, "link_state", function (state)
-        if state == LINK_STATE.UNLINKED or state == LINK_STATE.API_LINK_ONLY then
+    local function update()
+        local state = db.ps.get("link_state")
+
+        if state == LINK_STATE.UNLINKED then
             root_pane.set_value(1)
+        elseif state == LINK_STATE.API_LINK_ONLY then
+            if not db.loader_require.sv then
+                root_pane.set_value(3)
+                db.nav.on_loader_connected()
+            else root_pane.set_value(1) end
         elseif state == LINK_STATE.SV_LINK_ONLY then
-            root_pane.set_value(2)
+            if not db.loader_require.api then
+                root_pane.set_value(3)
+                db.nav.on_loader_connected()
+            else root_pane.set_value(2) end
         else
             root_pane.set_value(3)
             db.nav.on_loader_connected()
         end
-    end)
+    end
+
+    root_pane.register(db.ps, "link_state", update)
+    root_pane.register(db.ps, "loader_reqs", update)
 
     TextBox{parent=main_pane,text="Connected!",x=1,y=6,alignment=core.ALIGN.CENTER}
 end
