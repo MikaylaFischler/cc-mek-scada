@@ -212,7 +212,7 @@ function threads.thread__main(smem, init)
                         ---@cast device Modem
                         local is_comms_modem = util.trinary(plc_dev.modem_wired, plc_dev.modem_iface == param1, device.isWireless())
 
-                        -- note, check init_ok since nic will be nil if it is false
+                        -- note, check init_ok first since nic will be nil if it is false
                         if is_comms_modem and not (plc_state.init_ok and nic.is_connected()) then
                             -- reconnected modem
                             plc_dev.modem = device

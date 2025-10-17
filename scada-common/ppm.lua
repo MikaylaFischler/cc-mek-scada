@@ -447,7 +447,7 @@ end
 ---@return table|nil reactor function table
 function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
 
--- get the named wired modem
+-- get a wired modem by name
 ---@nodiscard
 ---@param iface string CC peripheral interface
 ---@return Modem|nil modem function table

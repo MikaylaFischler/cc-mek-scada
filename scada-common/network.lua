@@ -86,9 +86,9 @@ function network.nic(modem)
         -- used to quickly return out of tx/rx functions if there is nothing to do
         connected = true,
         -- used to avoid costly MAC calculations if not required
-        use_hash  = c_eng.hmac and modem.isWireless(),
+        use_hash = c_eng.hmac and modem.isWireless(),
         -- open channels
-        channels  = {}
+        channels = {}
     }
 
     ---@class nic:Modem
