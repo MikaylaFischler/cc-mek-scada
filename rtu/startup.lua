@@ -4,23 +4,24 @@
 
 require("/initenv").init_env()
 
-local audio        = require("scada-common.audio")
-local comms        = require("scada-common.comms")
-local crash        = require("scada-common.crash")
-local log          = require("scada-common.log")
-local mqueue       = require("scada-common.mqueue")
-local network      = require("scada-common.network")
-local ppm          = require("scada-common.ppm")
-local util         = require("scada-common.util")
+local audio     = require("scada-common.audio")
+local comms     = require("scada-common.comms")
+local crash     = require("scada-common.crash")
+local log       = require("scada-common.log")
+local mqueue    = require("scada-common.mqueue")
+local network   = require("scada-common.network")
+local ppm       = require("scada-common.ppm")
+local util      = require("scada-common.util")
 
-local configure    = require("rtu.configure")
-local databus      = require("rtu.databus")
-local renderer     = require("rtu.renderer")
-local rtu          = require("rtu.rtu")
-local threads      = require("rtu.threads")
-local uinit        = require("rtu.uinit")
+local backplane = require("rtu.backplane")
+local configure = require("rtu.configure")
+local databus   = require("rtu.databus")
+local renderer  = require("rtu.renderer")
+local rtu       = require("rtu.rtu")
+local threads   = require("rtu.threads")
+local uinit     = require("rtu.uinit")
 
-local RTU_VERSION = "v1.12.3"
+local RTU_VERSION = "v1.13.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -92,17 +93,9 @@ local function main()
             shutdown = false
         },
 
-        -- RTU gateway devices (not RTU units)
-        rtu_dev = {
-            modem_wired = type(config.WiredModem) == "string",
-            modem_iface = config.WiredModem,
-            modem = nil,
-            sounders = {}        ---@type rtu_speaker_sounder[]
-        },
-
         -- system objects
+        ---@class rtu_sys 
         rtu_sys = {
-            nic = nil,           ---@type nic
             rtu_comms = nil,     ---@type rtu_comms
             conn_watchdog = nil, ---@type watchdog
             units = {}           ---@type rtu_registry_entry[]
@@ -115,14 +108,8 @@ local function main()
     }
 
     local smem_sys  = __shared_memory.rtu_sys
-    local smem_dev  = __shared_memory.rtu_dev
     local rtu_state = __shared_memory.rtu_state
     local units     = __shared_memory.rtu_sys.units
-
-    -- get the configured modem
-    if smem_dev.modem_wired then
-        smem_dev.modem = ppm.get_wired_modem(smem_dev.modem_iface)
-    else smem_dev.modem = ppm.get_wireless_modem() end
 
     ----------------------------------------
     -- start system
@@ -131,26 +118,8 @@ local function main()
     log.debug("boot> running uinit()")
 
     if uinit(config, __shared_memory) then
-        -- check comms modem
-        if smem_dev.modem == nil then
-            println("startup> comms modem not found")
-            log.fatal("no comms modem on startup")
-            return
-        end
-
-        databus.tx_hw_modem(true)
-
-        -- find and setup all speakers
-        local speakers = ppm.get_all_devices("speaker")
-        for _, s in pairs(speakers) do
-            local sounder = rtu.init_sounder(s)
-
-            table.insert(smem_dev.sounders, sounder)
-
-            log.debug(util.c("startup> added speaker, attached as ", sounder.name))
-        end
-
-        databus.tx_hw_spkr_count(#smem_dev.sounders)
+        -- init backplane peripherals
+        backplane.init(config, __shared_memory)
 
         -- start UI
         local message
@@ -168,9 +137,13 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        smem_sys.nic = network.nic(smem_dev.modem)
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, smem_sys.nic, smem_sys.conn_watchdog)
-        log.debug("startup> comms init")
+        local nic = backplane.active_nic()
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, nic, smem_sys.conn_watchdog)
+        if nic then
+            log.debug("startup> comms init")
+        else
+            log.warning("startup> no comms modem on startup")
+        end
 
         -- init threads
         local main_thread  = threads.thread__main(__shared_memory)

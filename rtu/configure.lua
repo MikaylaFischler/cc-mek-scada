@@ -64,40 +64,42 @@ local tool_ctl = {
     viewing_config = false,
     jumped_to_color = false,
 
-    view_gw_cfg = nil,        ---@type PushButton
-    dev_cfg = nil,            ---@type PushButton
-    rs_cfg = nil,             ---@type PushButton
-    color_cfg = nil,          ---@type PushButton
-    color_next = nil,         ---@type PushButton
-    color_apply = nil,        ---@type PushButton
-    settings_apply = nil,     ---@type PushButton
-    settings_confirm = nil,   ---@type PushButton
+    view_gw_cfg = nil,       ---@type PushButton
+    dev_cfg = nil,           ---@type PushButton
+    rs_cfg = nil,            ---@type PushButton
+    color_cfg = nil,         ---@type PushButton
+    color_next = nil,        ---@type PushButton
+    color_apply = nil,       ---@type PushButton
+    settings_apply = nil,    ---@type PushButton
+    settings_confirm = nil,  ---@type PushButton
 
-    go_home = nil,            ---@type function
-    gen_summary = nil,        ---@type function
-    load_legacy = nil,        ---@type function
-    update_peri_list = nil,   ---@type function
-    update_relay_list = nil,  ---@type function
-    gen_peri_summary = nil,   ---@type function
-    gen_rs_summary = nil,     ---@type function
+    go_home = nil,           ---@type function
+    gen_summary = nil,       ---@type function
+    load_legacy = nil,       ---@type function
+    update_peri_list = nil,  ---@type function
+    update_relay_list = nil, ---@type function
+    gen_peri_summary = nil,  ---@type function
+    gen_rs_summary = nil,    ---@type function
 }
 
 ---@class rtu_config
 local tmp_cfg = {
     SpeakerVolume = 1.0,
-    Peripherals = {},    ---@type rtu_peri_definition[]
-    Redstone = {},       ---@type rtu_rs_definition[]
-    SVR_Channel = nil,   ---@type integer
-    RTU_Channel = nil,   ---@type integer
-    ConnTimeout = nil,   ---@type number
-    WiredModem = false,  ---@type string|false
-    TrustedRange = nil,  ---@type number
-    AuthKey = nil,       ---@type string
-    LogMode = 0,         ---@type LOG_MODE
+    Peripherals = {},     ---@type rtu_peri_definition[]
+    Redstone = {},        ---@type rtu_rs_definition[]
+    SVR_Channel = nil,    ---@type integer
+    RTU_Channel = nil,    ---@type integer
+    ConnTimeout = nil,    ---@type number
+    WirelessModem = true,
+    WiredModem = false,   ---@type string|false
+    PreferWireless = true,
+    TrustedRange = nil,   ---@type number
+    AuthKey = nil,        ---@type string
+    LogMode = 0,          ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
-    FrontPanelTheme = 1, ---@type FP_THEME
-    ColorMode = 1        ---@type COLOR_MODE
+    FrontPanelTheme = 1,  ---@type FP_THEME
+    ColorMode = 1         ---@type COLOR_MODE
 }
 
 ---@class rtu_config

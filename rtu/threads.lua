@@ -5,10 +5,10 @@ local tcd          = require("scada-common.tcd")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
 
+local backplane    = require("rtu.backplane")
 local databus      = require("rtu.databus")
 local modbus       = require("rtu.modbus")
 local renderer     = require("rtu.renderer")
-local rtu          = require("rtu.rtu")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
 local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
@@ -191,12 +191,11 @@ function threads.thread__main(smem)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
-        local rtu_dev       = smem.rtu_dev
-        local sounders      = smem.rtu_dev.sounders
-        local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
         local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
+
+        local sounders      = backplane.sounders()
 
         -- start unlinked (in case of restart)
         rtu_comms.unlink(rtu_state)
@@ -247,38 +246,8 @@ function threads.thread__main(smem)
                 local type, device = ppm.handle_unmount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        -- we only care if this is our comms modem
-                        if nic.is_modem(device) then
-                            nic.disconnect()
-
-                            println_ts("comms modem disconnected!")
-                            log.warning("comms modem disconnected")
-
-                            local other_modem = ppm.get_wireless_modem()
-                            if other_modem then
-                                log.info("found another wireless modem, using it for comms")
-                                nic.connect(other_modem)
-                            else
-                                databus.tx_hw_modem(false)
-                            end
-                        else
-                            log.warning("non-comms modem disconnected")
-                        end
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        for i = 1, #sounders do
-                            if sounders[i].speaker == device then
-                                table.remove(sounders, i)
-
-                                log.warning(util.c("speaker ", param1, " disconnected"))
-                                println_ts("speaker disconnected")
-
-                                databus.tx_hw_spkr_count(#sounders)
-                                break
-                            end
-                        end
+                    if type == "modem" or type == "speaker" then
+                        backplane.detach(type, device, param1)
                     else
                         for i = 1, #units do
                             -- find disconnected device
@@ -302,31 +271,8 @@ function threads.thread__main(smem)
                 local type, device = ppm.mount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        local is_comms_modem = util.trinary(rtu_dev.modem_wired, rtu_dev.modem_iface == param1, device.isWireless())
-
-                        if is_comms_modem and not nic.is_connected() then
-                            -- reconnected modem
-                            nic.connect(device)
-
-                            println_ts("comms modem reconnected.")
-                            log.info("comms modem reconnected")
-
-                            databus.tx_hw_modem(true)
-                        elseif device.isWireless() then
-                            log.info("unused wireless modem connected")
-                        else
-                            log.info("non-comms wired modem connected")
-                        end
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        table.insert(sounders, rtu.init_sounder(device))
-
-                        println_ts("speaker connected")
-                        log.info(util.c("connected speaker ", param1))
-
-                        databus.tx_hw_spkr_count(#sounders)
+                    if type == "modem" or type == "speaker" then
+                        backplane.attach(type, device, param1)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do
@@ -394,11 +340,11 @@ function threads.thread__comms(smem)
 
         -- load in from shared memory
         local rtu_state   = smem.rtu_state
-        local sounders    = smem.rtu_dev.sounders
         local rtu_comms   = smem.rtu_sys.rtu_comms
         local units       = smem.rtu_sys.units
-
         local comms_queue = smem.q.mq_comms
+
+        local sounders    = backplane.sounders()
 
         local last_update = util.time()
 
