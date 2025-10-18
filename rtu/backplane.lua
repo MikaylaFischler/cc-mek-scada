@@ -41,7 +41,7 @@ function backplane.init(config, __shared_memory)
 
     -- init wired NIC
     if _bp.lan_en then
-        local modem = ppm.get_wired_modem(_bp.lan_iface)
+        local modem = ppm.get_modem(_bp.lan_iface)
 
         if modem then
             _bp.wd_nic = network.nic(modem)
@@ -62,7 +62,7 @@ function backplane.init(config, __shared_memory)
     -- grab the preferred active NIC
     if _bp.wlan_pref then
         _bp.wl_act = true
-        _bp.act_nic = _bp.wl_nics[1]
+        _bp.act_nic = _bp.wl_nic
     else
         _bp.wl_act = false
         _bp.act_nic = _bp.wd_nic
@@ -110,11 +110,11 @@ function backplane.detach(type, device, iface)
         local was_wl     = wl_nic and wl_nic.is_modem(device)
 
         if wd_nic and was_wd then
-            log.info("BKPLN: WIRED PHY_DOWN " .. iface)
             wd_nic.disconnect()
+            log.info("BKPLN: WIRED PHY_DOWN " .. iface)
         elseif wl_nic and was_wl then
-            log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
             wl_nic.disconnect()
+            log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
         end
 
         -- we only care if this is our active comms modem

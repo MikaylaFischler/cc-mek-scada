@@ -37,7 +37,8 @@ local changes = {
     { "v1.9.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } },
     { "v1.11.8", { "Added advanced option to invert digital redstone signals" } },
-    { "v1.12.0", { "Added support for redstone relays" } }
+    { "v1.12.0", { "Added support for redstone relays" } },
+    { "v1.13.0", { "Added support for wired communications modems" } }
 }
 
 ---@class rtu_configurator
@@ -80,6 +81,8 @@ local tool_ctl = {
     update_relay_list = nil, ---@type function
     gen_peri_summary = nil,  ---@type function
     gen_rs_summary = nil,    ---@type function
+
+    gen_modem_list = function (_) end
 }
 
 ---@class rtu_config
@@ -112,7 +115,9 @@ local fields = {
     { "SVR_Channel", "SVR Channel", 16240 },
     { "RTU_Channel", "RTU Channel", 16242 },
     { "ConnTimeout", "Connection Timeout", 5 },
+    { "WirelessModem", "Wireless Modem", true },
     { "WiredModem", "Wired Modem", false },
+    { "PreferWireless", "Prefer Wireless Modem", true },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key", "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
@@ -317,8 +322,11 @@ function configurator.configure(ask_config)
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
+
+    -- set tmp_cfg so interface lists are correct
     tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
     tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
 
     reset_term()
 
@@ -332,6 +340,8 @@ function configurator.configure(ask_config)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_modem_list(ini_cfg.WiredModem ~= false)
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -354,11 +364,13 @@ function configurator.configure(ask_config)
                 ppm.handle_unmount(param1)
                 tool_ctl.update_peri_list()
                 tool_ctl.update_relay_list()
+                tool_ctl.gen_modem_list()
             elseif event == "peripheral" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.mount(param1)
                 tool_ctl.update_peri_list()
                 tool_ctl.update_relay_list()
+                tool_ctl.gen_modem_list()
             end
 
             if event == "terminate" then return end

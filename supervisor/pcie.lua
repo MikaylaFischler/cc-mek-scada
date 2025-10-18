@@ -68,7 +68,7 @@ function pcie_bus.init(config, println)
     if type(config.WiredModem) == "string" then
         bus.wired_modem = config.WiredModem
 
-        local wired_modem = ppm.get_wired_modem(bus.wired_modem)
+        local wired_modem = ppm.get_modem(bus.wired_modem)
 
         if not (wired_modem and bus.wired_modem) then
             println("startup> wired comms modem not found")

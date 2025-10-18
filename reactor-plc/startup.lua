@@ -134,7 +134,7 @@ local function main()
 
     -- get the configured modem
     if smem_dev.modem_wired then
-        smem_dev.modem = ppm.get_wired_modem(smem_dev.modem_iface)
+        smem_dev.modem = ppm.get_modem(smem_dev.modem_iface)
     else smem_dev.modem = ppm.get_wireless_modem() end
 
     -- initial state evaluation
