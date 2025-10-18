@@ -479,6 +479,19 @@ function ppm.get_wireless_modem()
     return w_modem, w_iface
 end
 
+-- list all connected wired modems
+---@nodiscard
+---@return { [string]: ppm_entry } modems
+function ppm.get_wired_modem_list()
+    local list = {}
+
+    for iface, device in pairs(ppm_sys.mounts) do
+        if device.type == "modem" and not device.dev.isWireless() then list[iface] = device end
+    end
+
+    return list
+end
+
 -- list all connected monitors
 ---@nodiscard
 ---@return { [string]: ppm_entry } monitors
