@@ -102,7 +102,7 @@ return function (args)
     end
 
     -- set the value
-    ---@param val integer new value
+    ---@param val boolean new value
     function e.set_value(val)
         e.value = val
         draw()
