@@ -82,7 +82,9 @@ end
 function network.nic(modem)
     local self = {
         -- modem interface name
-        iface = ppm.get_iface(modem),
+        iface = "?",
+        -- phy name
+        name = "?",
         -- used to quickly return out of tx/rx functions if there is nothing to do
         connected = true,
         -- used to avoid costly MAC calculations if not required
@@ -94,6 +96,10 @@ function network.nic(modem)
     ---@class nic:Modem
     local public = {}
 
+    -- get the phy name
+    ---@nodiscard
+    function public.phy_name() return self.name end
+
     -- check if this NIC has a connected modem
     ---@nodiscard
     function public.is_connected() return self.connected end
@@ -102,11 +108,14 @@ function network.nic(modem)
     ---@param reconnected_modem Modem
     function public.connect(reconnected_modem)
         modem = reconnected_modem
+
+        self.iface     = ppm.get_iface(modem)
+        self.name      = util.c(util.trinary(modem.isWireless(), "WLAN_PHY", "ETH_PHY"), "{", self.iface, "}")
         self.connected = true
+        self.use_hash  = c_eng.hmac and modem.isWireless()
 
+        -- open only previously opened channels
         modem.closeAll()
-
-        -- open previously opened channels
         for _, channel in ipairs(self.channels) do
             modem.open(channel)
         end

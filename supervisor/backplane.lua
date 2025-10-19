@@ -18,7 +18,7 @@ local _bp = {
 
     wd_nic = nil,       ---@type nic|nil wired nic
     wl_nic = nil,       ---@type nic|nil wireless nic
-    nic_map = {}
+    nic_map = {}        ---@type nic[] connected nics
 }
 
 backplane.nics = _bp.nic_map
