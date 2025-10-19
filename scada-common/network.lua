@@ -104,6 +104,8 @@ function network.nic(modem)
         modem = reconnected_modem
         self.connected = true
 
+        modem.closeAll()
+
         -- open previously opened channels
         for _, channel in ipairs(self.channels) do
             modem.open(channel)

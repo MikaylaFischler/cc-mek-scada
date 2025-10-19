@@ -1,9 +1,10 @@
 local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
 local util       = require("scada-common.util")
-local pcie       = require("supervisor.pcie")
 
 local themes     = require("graphics.themes")
+
+local backplane  = require("supervisor.backplane")
 
 local svsessions = require("supervisor.session.svsessions")
 
@@ -198,8 +199,11 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param distance integer
     ---@return modbus_frame|rplc_frame|mgmt_frame|crdn_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, nic = nil, pcie.nic.cards[side]
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local pkt, s_pkt, nic = nil, nil, backplane.nics[side]
+
+        if nic then
+            s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        end
 
         if s_pkt then
             -- get as MODBUS TCP packet
@@ -229,7 +233,7 @@ function supervisor.comms(_version, fp_ok, facility)
     -- handle a packet
     ---@param packet modbus_frame|rplc_frame|mgmt_frame|crdn_frame
     function public.handle_packet(packet)
-        local nic       = pcie.nic.get(packet.scada_frame.interface())
+        local nic       = backplane.nics[packet.scada_frame.interface()]
         local l_chan    = packet.scada_frame.local_channel()
         local r_chan    = packet.scada_frame.remote_channel()
         local src_addr  = packet.scada_frame.src_addr()

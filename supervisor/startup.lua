@@ -3,7 +3,6 @@
 --
 
 require("/initenv").init_env()
-local pcie = require("supervisor.pcie")
 
 local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
@@ -16,6 +15,7 @@ local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
 
+local backplane  = require("supervisor.backplane")
 local configure  = require("supervisor.configure")
 local databus    = require("supervisor.databus")
 local facility   = require("supervisor.facility")
@@ -24,7 +24,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.7.1"
+local SUPERVISOR_VERSION = "v1.8.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -126,8 +126,8 @@ local function main()
         network.init_mac(config.AuthKey)
     end
 
-    -- hardware bus initialization
-    if not pcie.init(config, println) then return end
+    -- hardware backplane initialization
+    if not backplane.init(config, println) then return end
 
     -- start UI
     local fp_ok, message = renderer.try_start_ui(config)
@@ -167,12 +167,12 @@ local function main()
         if event == "peripheral_detach" then
             local type, device = ppm.handle_unmount(param1)
             if type ~= nil and device ~= nil then
-                pcie.remove(param1, type, device, println_ts)
+                backplane.detach(param1, type, device, println_ts)
             end
         elseif event == "peripheral" then
             local type, device = ppm.mount(param1)
             if type ~= nil and device ~= nil then
-                pcie.connect(param1, type, device, println_ts)
+                backplane.attach(param1, type, device, println_ts)
             end
         elseif event == "timer" and loop_clock.is_clock(param1) then
             -- main loop tick
