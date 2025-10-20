@@ -82,7 +82,7 @@ local tool_ctl = {
     gen_peri_summary = nil,  ---@type function
     gen_rs_summary = nil,    ---@type function
 
-    gen_modem_list = function (_) end
+    gen_modem_list = function () end
 }
 
 ---@class rtu_config
@@ -115,8 +115,8 @@ local fields = {
     { "SVR_Channel", "SVR Channel", 16240 },
     { "RTU_Channel", "RTU Channel", 16242 },
     { "ConnTimeout", "Connection Timeout", 5 },
-    { "WirelessModem", "Wireless Modem", true },
-    { "WiredModem", "Wired Modem", false },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key", "" },
@@ -341,7 +341,7 @@ function configurator.configure(ask_config)
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
 
-        tool_ctl.gen_modem_list(ini_cfg.WiredModem ~= false)
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()

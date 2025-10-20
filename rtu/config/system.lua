@@ -110,9 +110,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
 
     dis_pref(ini_cfg.WirelessModem)
 
-    local function on_wired_change(value)
-        tool_ctl.gen_modem_list(value)
-    end
+    local function on_wired_change(_) tool_ctl.gen_modem_list() end
 
     local wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=dis_pref}
     local wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
@@ -212,7 +210,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
     TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for wireless security on multiplayer servers. All devices on the same wireless network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=11,text="Auth Key (Wireless Only, Not Used when Wired)"}
+    TextBox{parent=net_c_4,x=1,y=11,text="Auth Key (Wireless Only, Not Used for Wired)"}
     local key, _ = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
@@ -720,12 +718,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     end
 
     -- generate the list of available/assigned wired modems
-    function tool_ctl.gen_modem_list(enable)
+    function tool_ctl.gen_modem_list()
         modem_list.remove_all()
+
+        local enable = wired.get_value()
 
         local function select(iface)
             tmp_cfg.WiredModem = iface
-            tool_ctl.gen_modem_list(true)
+            tool_ctl.gen_modem_list()
         end
 
         local modems  = ppm.get_wired_modem_list()

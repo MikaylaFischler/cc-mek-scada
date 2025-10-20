@@ -75,7 +75,9 @@ local tool_ctl = {
 
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
-    aux_cool_elems = {}   ---@type { line: Div, enable: Checkbox }[]
+    aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
+
+    gen_modem_list = function () end
 }
 
 ---@class svr_config
@@ -302,10 +304,13 @@ function configurator.configure(ask_config)
     tool_ctl.has_config = load_settings(ini_cfg)
 
     -- these need to be initialized as they are used before being set
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
     tmp_cfg.FacilityTankMode = ini_cfg.FacilityTankMode
     tmp_cfg.TankFluidTypes = { table.unpack(ini_cfg.TankFluidTypes) }
 
     reset_term()
+
+    ppm.mount_all()
 
     -- set overridden colors
     for i = 1, #style.colors do
@@ -315,6 +320,8 @@ function configurator.configure(ask_config)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3 = util.pull_event()
