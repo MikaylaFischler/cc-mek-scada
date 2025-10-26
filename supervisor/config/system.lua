@@ -463,6 +463,17 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 try_set(tool_ctl.aux_cool_elems[i].enable, ini_cfg.AuxiliaryCoolant[i])
             end
 
+            for i = 1, #ini_cfg.TankFluidTypes do
+                if tool_ctl.tank_fluid_opts[i] then
+                    if (ini_cfg.TankFluidTypes[i] > 0) then
+                        tool_ctl.tank_fluid_opts[i].enable()
+                        tool_ctl.tank_fluid_opts[i].set_value(ini_cfg.TankFluidTypes[i])
+                    else
+                        tool_ctl.tank_fluid_opts[i].disable()
+                    end
+                end
+            end
+
             tool_ctl.en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
 
             tool_ctl.view_cfg.enable()
@@ -580,6 +591,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
 
         tmp_cfg.FacilityTankList, tmp_cfg.FacilityTankConns = facility.generate_tank_list_and_conns(tmp_cfg.FacilityTankMode, tmp_cfg.FacilityTankDefs)
+
+        for i = 1, tmp_cfg.UnitCount do tmp_cfg.AuxiliaryCoolant[i] = false end
+        for i = 1, tmp_cfg.FacilityTankList do tmp_cfg.TankFluidTypes[i] = types.COOLANT_TYPE.WATER end
 
         tmp_cfg.SVR_Channel = config.SVR_CHANNEL
         tmp_cfg.PLC_Channel = config.PLC_CHANNEL
