@@ -127,7 +127,7 @@ local function main()
     end
 
     -- hardware backplane initialization
-    if not backplane.init(config, println) then return end
+    if not backplane.init(config) then return end
 
     -- start UI
     local fp_ok, message = renderer.try_start_ui(config)

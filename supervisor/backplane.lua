@@ -12,6 +12,8 @@ local databus = require("supervisor.databus")
 
 local LISTEN_MODE = types.LISTEN_MODE
 
+local println = util.println
+
 ---@class supervisor_backplane
 local backplane = {}
 
@@ -28,9 +30,8 @@ backplane.nics = _bp.nic_map
 
 -- initialize the system peripheral backplane
 ---@param config svr_config
----@param println function
 ---@return boolean success
-function backplane.init(config, println)
+function backplane.init(config)
     -- setup the wired modem, if configured
     if type(config.WiredModem) == "string" then
         _bp.lan_iface = config.WiredModem
@@ -38,7 +39,7 @@ function backplane.init(config, println)
         local modem = ppm.get_modem(_bp.lan_iface)
         if not (modem and _bp.lan_iface) then
             println("startup> wired comms modem not found")
-            log.fatal("no wired comms modem on startup")
+            log.fatal("BKPLN: no wired comms modem on startup")
             return false
         end
 
@@ -60,7 +61,7 @@ function backplane.init(config, println)
         local modem, iface = ppm.get_wireless_modem()
         if not (modem and iface) then
             println("startup> wireless comms modem not found")
-            log.fatal("no wireless comms modem on startup")
+            log.fatal("BKPLN: no wireless comms modem on startup")
             return false
         end
 
@@ -80,7 +81,7 @@ function backplane.init(config, println)
 
     if not ((type(config.WiredModem) == "string" or config.WirelessModem)) then
         println("startup> no modems configured")
-        log.fatal("no modems configured")
+        log.fatal("BKPLN: no modems configured")
         return false
     end
 
@@ -91,8 +92,8 @@ end
 ---@param iface string
 ---@param type string
 ---@param device table
----@param println function
-function backplane.attach(iface, type, device, println)
+---@param print_no_fp function
+function backplane.attach(iface, type, device, print_no_fp)
     if type == "modem" then
         ---@cast device Modem
 
@@ -108,7 +109,7 @@ function backplane.attach(iface, type, device, println)
             _bp.wd_nic.connect(device)
 
             log.info("BKPLN: WIRED PHY_UP " .. iface)
-            println("wired comms modem reconnected")
+            print_no_fp("wired comms modem reconnected")
 
             databus.tx_hw_wd_modem(true)
         elseif is_wl then
@@ -117,15 +118,15 @@ function backplane.attach(iface, type, device, println)
             _bp.nic_map[iface] = _bp.wl_nic
 
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
-            println("wireless comms modem reconnected")
+            print_no_fp("wireless comms modem reconnected")
 
             databus.tx_hw_wl_modem(true)
         elseif _bp.wl_nic and m_is_wl then
             -- the wireless NIC already has a modem
-            println("standby wireless modem connected")
+            print_no_fp("standby wireless modem connected")
             log.info("BKPLN: standby wireless modem connected")
         else
-            println("unassigned modem connected")
+            print_no_fp("unassigned modem connected")
             log.warning("BKPLN: unassigned modem connected")
         end
     end
@@ -135,8 +136,8 @@ end
 ---@param iface string
 ---@param type string
 ---@param device table
----@param println function
-function backplane.detach(iface, type, device, println)
+---@param print_no_fp function
+function backplane.detach(iface, type, device, print_no_fp)
     if type == "modem" then
         ---@cast device Modem
 
@@ -152,7 +153,7 @@ function backplane.detach(iface, type, device, println)
             _bp.wd_nic.disconnect()
             log.info("BKPLN: WIRED PHY_DOWN " .. iface)
 
-            println("wired modem disconnected")
+            print_no_fp("wired modem disconnected")
             log.warning("BKPLN: wired comms modem disconnected")
 
             databus.tx_hw_wd_modem(false)
@@ -160,7 +161,7 @@ function backplane.detach(iface, type, device, println)
             _bp.wl_nic.disconnect()
             log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
 
-            println("wireless comms modem disconnected")
+            print_no_fp("wireless comms modem disconnected")
             log.warning("BKPLN: wireless comms modem disconnected")
 
             local modem, m_iface = ppm.get_wireless_modem()
@@ -174,10 +175,10 @@ function backplane.detach(iface, type, device, println)
             end
         elseif _bp.wl_nic and m_is_wl then
             -- wireless, but not active
-            println("standby wireless modem disconnected")
+            print_no_fp("standby wireless modem disconnected")
             log.info("BKPLN: standby wireless modem disconnected")
         else
-            println("unassigned modem disconnected")
+            print_no_fp("unassigned modem disconnected")
             log.warning("BKPLN: unassigned modem disconnected")
         end
     end
