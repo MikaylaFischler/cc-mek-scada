@@ -732,11 +732,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
         local missing = { tmp = true, ini = true }
 
         for iface, _ in pairs(modems) do
-            if ini_cfg.WiredModem == iface then
-                missing.ini = false
-            elseif tmp_cfg.WiredModem == iface then
-                missing.tmp = false
-            end
+            if ini_cfg.WiredModem == iface then missing.ini = false end
+            if tmp_cfg.WiredModem == iface then missing.tmp = false end
         end
 
         if missing.tmp and tmp_cfg.WiredModem then

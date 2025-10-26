@@ -324,9 +324,9 @@ function configurator.configure(ask_config)
     tool_ctl.has_config = load_settings(ini_cfg)
 
     -- set tmp_cfg so interface lists are correct
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
     tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
     tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
-    tmp_cfg.WiredModem = ini_cfg.WiredModem
 
     reset_term()
 
