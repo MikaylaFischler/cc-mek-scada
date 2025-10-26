@@ -78,7 +78,7 @@ end
 
 -- NIC: Network Interface Controller<br>
 -- utilizes HMAC-MD5 for message authentication, if enabled and this is wireless
----@param modem Modem modem to use
+---@param modem Modem|nil modem to use
 function network.nic(modem)
     local self = {
         -- modem interface name
@@ -86,9 +86,9 @@ function network.nic(modem)
         -- phy name
         name = "?",
         -- used to quickly return out of tx/rx functions if there is nothing to do
-        connected = true,
+        connected = false,
         -- used to avoid costly MAC calculations if not required
-        use_hash = c_eng.hmac and modem.isWireless(),
+        use_hash = false,
         -- open channels
         channels = {}
     }
@@ -135,13 +135,13 @@ function network.nic(modem)
     function public.is_modem(device) return device == modem end
 
     -- wrap modem functions, then create custom functions
-    public.connect(modem)
+    if modem then public.connect(modem) end
 
     -- open a channel on the modem<br>
     -- if disconnected *after* opening, previousy opened channels will be re-opened on reconnection
     ---@param channel integer
     function public.open(channel)
-        modem.open(channel)
+        if modem then modem.open(channel) end
 
         local already_open = false
         for i = 1, #self.channels do
@@ -159,7 +159,7 @@ function network.nic(modem)
     -- close a channel on the modem
     ---@param channel integer
     function public.close(channel)
-        modem.close(channel)
+        if modem then modem.close(channel) end
 
         for i = 1, #self.channels do
             if self.channels[i] == channel then
@@ -171,7 +171,7 @@ function network.nic(modem)
 
     -- close all channels on the modem
     function public.closeAll()
-        modem.closeAll()
+        if modem then modem.closeAll() end
         self.channels = {}
     end
 
@@ -193,7 +193,10 @@ function network.nic(modem)
                 -- log.debug("network.modem.transmit: data processing took " .. (util.time_ms() - start) .. "ms")
             end
 
+---@diagnostic disable-next-line: need-check-nil
             modem.transmit(dest_channel, local_channel, tx_packet.raw_sendable())
+        else
+            log.debug("network.transmit tx dropped, link is down")
         end
     end
 
