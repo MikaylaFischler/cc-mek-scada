@@ -22,7 +22,7 @@ ppm.VIRTUAL_DEVICE_TYPE   = VIRTUAL_DEVICE_TYPE
 
 local REPORT_FREQUENCY = 20 -- log every 20 faults per function
 
-local ppm_sys = {
+local _ppm = {
     mounts = {},    ---@type { [string]: ppm_entry }
     next_vid = 0,
     auto_cf = false,
@@ -66,7 +66,7 @@ local function peri_init(iface)
             if status then
                 -- auto fault clear
                 if self.auto_cf then self.faulted = false end
-                if ppm_sys.auto_cf then ppm_sys.faulted = false end
+                if _ppm.auto_cf then _ppm.faulted = false end
 
                 self.fault_counts[key] = 0
 
@@ -78,10 +78,10 @@ local function peri_init(iface)
                 self.faulted = true
                 self.last_fault = result
 
-                ppm_sys.faulted = true
-                ppm_sys.last_fault = result
+                _ppm.faulted = true
+                _ppm.last_fault = result
 
-                if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                if not _ppm.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
                     local count_str = ""
                     if self.fault_counts[key] > 0 then
                         count_str = " [" .. self.fault_counts[key] .. " total faults]"
@@ -92,7 +92,7 @@ local function peri_init(iface)
 
                 self.fault_counts[key] = self.fault_counts[key] + 1
 
-                if result == "Terminated" then ppm_sys.terminate = true end
+                if result == "Terminated" then _ppm.terminate = true end
 
                 return ACCESS_FAULT, result
             end
@@ -159,10 +159,10 @@ local function peri_init(iface)
                 self.faulted = true
                 self.last_fault = UNDEFINED_FIELD
 
-                ppm_sys.faulted = true
-                ppm_sys.last_fault = UNDEFINED_FIELD
+                _ppm.faulted = true
+                _ppm.last_fault = UNDEFINED_FIELD
 
-                if not ppm_sys.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
+                if not _ppm.mute and (self.fault_counts[key] % REPORT_FREQUENCY == 0) then
                     local count_str = ""
                     if self.fault_counts[key] > 0 then
                         count_str = " [" .. self.fault_counts[key] .. " total calls]"
@@ -193,35 +193,35 @@ end
 -- REPORTING --
 
 -- silence error prints
-function ppm.disable_reporting() ppm_sys.mute = true end
+function ppm.disable_reporting() _ppm.mute = true end
 
 -- allow error prints
-function ppm.enable_reporting() ppm_sys.mute = false end
+function ppm.enable_reporting() _ppm.mute = false end
 
 -- FAULT MEMORY --
 
 -- enable automatically clearing fault flag
-function ppm.enable_afc() ppm_sys.auto_cf = true end
+function ppm.enable_afc() _ppm.auto_cf = true end
 
 -- disable automatically clearing fault flag
-function ppm.disable_afc() ppm_sys.auto_cf = false end
+function ppm.disable_afc() _ppm.auto_cf = false end
 
 -- clear fault flag
-function ppm.clear_fault() ppm_sys.faulted = false end
+function ppm.clear_fault() _ppm.faulted = false end
 
 -- check fault flag
 ---@nodiscard
-function ppm.is_faulted() return ppm_sys.faulted end
+function ppm.is_faulted() return _ppm.faulted end
 
 -- get the last fault message
 ---@nodiscard
-function ppm.get_last_fault() return ppm_sys.last_fault end
+function ppm.get_last_fault() return _ppm.last_fault end
 
 -- TERMINATION --
 
 -- if a caught error was a termination request
 ---@nodiscard
-function ppm.should_terminate() return ppm_sys.terminate end
+function ppm.should_terminate() return _ppm.terminate end
 
 -- MOUNTING --
 
@@ -229,12 +229,12 @@ function ppm.should_terminate() return ppm_sys.terminate end
 function ppm.mount_all()
     local ifaces = peripheral.getNames()
 
-    ppm_sys.mounts = {}
+    _ppm.mounts = {}
 
     for i = 1, #ifaces do
-        ppm_sys.mounts[ifaces[i]] = peri_init(ifaces[i])
+        _ppm.mounts[ifaces[i]] = peri_init(ifaces[i])
 
-        log.info(util.c("PPM: found a ", ppm_sys.mounts[ifaces[i]].type, " (", ifaces[i], ")"))
+        log.info(util.c("PPM: found a ", _ppm.mounts[ifaces[i]].type, " (", ifaces[i], ")"))
     end
 
     if #ifaces == 0 then
@@ -253,10 +253,10 @@ function ppm.mount(iface)
 
     for i = 1, #ifaces do
         if iface == ifaces[i] then
-            ppm_sys.mounts[iface] = peri_init(iface)
+            _ppm.mounts[iface] = peri_init(iface)
 
-            pm_type = ppm_sys.mounts[iface].type
-            pm_dev = ppm_sys.mounts[iface].dev
+            pm_type = _ppm.mounts[iface].type
+            pm_dev = _ppm.mounts[iface].dev
 
             log.info(util.c("PPM: mount(", iface, ") -> found a ", pm_type))
             break
@@ -278,12 +278,12 @@ function ppm.remount(iface)
     for i = 1, #ifaces do
         if iface == ifaces[i] then
             log.info(util.c("PPM: remount(", iface, ") -> is a ", pm_type))
-            ppm.unmount(ppm_sys.mounts[iface].dev)
+            ppm.unmount(_ppm.mounts[iface].dev)
 
-            ppm_sys.mounts[iface] = peri_init(iface)
+            _ppm.mounts[iface] = peri_init(iface)
 
-            pm_type = ppm_sys.mounts[iface].type
-            pm_dev = ppm_sys.mounts[iface].dev
+            pm_type = _ppm.mounts[iface].type
+            pm_dev = _ppm.mounts[iface].dev
 
             log.info(util.c("PPM: remount(", iface, ") -> remounted a ", pm_type))
             break
@@ -297,24 +297,24 @@ end
 ---@nodiscard
 ---@return string type, table device
 function ppm.mount_virtual()
-    local iface = "ppm_vdev_" .. ppm_sys.next_vid
+    local iface = "ppm_vdev_" .. _ppm.next_vid
 
-    ppm_sys.mounts[iface] = peri_init("__virtual__")
-    ppm_sys.next_vid = ppm_sys.next_vid + 1
+    _ppm.mounts[iface] = peri_init("__virtual__")
+    _ppm.next_vid = _ppm.next_vid + 1
 
     log.info(util.c("PPM: mount_virtual() -> allocated new virtual device ", iface))
 
-    return ppm_sys.mounts[iface].type, ppm_sys.mounts[iface].dev
+    return _ppm.mounts[iface].type, _ppm.mounts[iface].dev
 end
 
 -- manually unmount a peripheral from the PPM
 ---@param device table device table
 function ppm.unmount(device)
     if device then
-        for iface, data in pairs(ppm_sys.mounts) do
+        for iface, data in pairs(_ppm.mounts) do
             if data.dev == device then
                 log.warning(util.c("PPM: manually unmounted ", data.type, " mounted to ", iface))
-                ppm_sys.mounts[iface] = nil
+                _ppm.mounts[iface] = nil
                 break
             end
         end
@@ -330,7 +330,7 @@ function ppm.handle_unmount(iface)
     local pm_type = nil
 
     -- what got disconnected?
-    local lost_dev = ppm_sys.mounts[iface]
+    local lost_dev = _ppm.mounts[iface]
 
     if lost_dev then
         pm_type = lost_dev.type
@@ -341,18 +341,18 @@ function ppm.handle_unmount(iface)
         log.error(util.c("PPM: lost device unknown to the PPM mounted to ", iface))
     end
 
-    ppm_sys.mounts[iface] = nil
+    _ppm.mounts[iface] = nil
 
     return pm_type, pm_dev
 end
 
 -- log all mounts, to be used if `ppm.mount_all` is called before logging is ready
 function ppm.log_mounts()
-    for iface, mount in pairs(ppm_sys.mounts) do
+    for iface, mount in pairs(_ppm.mounts) do
         log.info(util.c("PPM: had found a ", mount.type, " (", iface, ")"))
     end
 
-    if util.table_len(ppm_sys.mounts) == 0 then
+    if util.table_len(_ppm.mounts) == 0 then
         log.warning("PPM: no devices had been found")
     end
 end
@@ -369,7 +369,7 @@ function ppm.list_avail() return peripheral.getNames() end
 ---@return { [string]: ppm_entry } mounts
 function ppm.list_mounts()
     local list = {}
-    for k, v in pairs(ppm_sys.mounts) do list[k] = v end
+    for k, v in pairs(_ppm.mounts) do list[k] = v end
     return list
 end
 
@@ -379,7 +379,7 @@ end
 ---@return string|nil iface CC peripheral interface
 function ppm.get_iface(device)
     if device then
-        for iface, data in pairs(ppm_sys.mounts) do
+        for iface, data in pairs(_ppm.mounts) do
             if data.dev == device then return iface end
         end
     end
@@ -392,8 +392,8 @@ end
 ---@param iface string CC peripheral interface
 ---@return { [string]: function }|nil device function table
 function ppm.get_periph(iface)
-    if ppm_sys.mounts[iface] then
-        return ppm_sys.mounts[iface].dev
+    if _ppm.mounts[iface] then
+        return _ppm.mounts[iface].dev
     else return nil end
 end
 
@@ -402,8 +402,8 @@ end
 ---@param iface string CC peripheral interface
 ---@return string|nil type
 function ppm.get_type(iface)
-    if ppm_sys.mounts[iface] then
-        return ppm_sys.mounts[iface].type
+    if _ppm.mounts[iface] then
+        return _ppm.mounts[iface].type
     else return nil end
 end
 
@@ -414,7 +414,7 @@ end
 function ppm.get_all_devices(name)
     local devices = {}
 
-    for _, data in pairs(ppm_sys.mounts) do
+    for _, data in pairs(_ppm.mounts) do
         if data.type == name then
             table.insert(devices, data.dev)
         end
@@ -430,7 +430,7 @@ end
 function ppm.get_device(name)
     local device = nil
 
-    for _, data in pairs(ppm_sys.mounts) do
+    for _, data in pairs(_ppm.mounts) do
         if data.type == name then
             device = data.dev
             break
@@ -468,7 +468,7 @@ function ppm.get_wireless_modem()
     local w_modem, w_iface = nil, nil
     local emulated_env = periphemu ~= nil
 
-    for iface, device in pairs(ppm_sys.mounts) do
+    for iface, device in pairs(_ppm.mounts) do
         if device.type == "modem" and (emulated_env or device.dev.isWireless()) then
             w_iface = iface
             w_modem = device.dev
@@ -498,7 +498,7 @@ end
 function ppm.get_monitor_list()
     local list = {}
 
-    for iface, device in pairs(ppm_sys.mounts) do
+    for iface, device in pairs(_ppm.mounts) do
         if device.type == "monitor" then list[iface] = device end
     end
 

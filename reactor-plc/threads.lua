@@ -31,8 +31,7 @@ local MQ__COMM_CMD = {
 -- main thread
 ---@nodiscard
 ---@param smem plc_shared_memory
----@param init function
-function threads.thread__main(smem, init)
+function threads.thread__main(smem)
     -- print a log message to the terminal as long as the UI isn't running
     local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
 
@@ -42,7 +41,7 @@ function threads.thread__main(smem, init)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("main", true)
-        log.debug("main thread init, clock inactive")
+        log.debug("OS: main thread start")
 
         -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
         -- send link requests at 0.5Hz (every 40 server ticks) (every 8 loop ticks)
@@ -54,6 +53,9 @@ function threads.thread__main(smem, init)
         local networked = smem.networked
         local plc_state = smem.plc_state
         local plc_dev   = smem.plc_dev
+
+        -- start clock
+        loop_clock.start()
 
         -- event loop
         while true do
@@ -67,7 +69,6 @@ function threads.thread__main(smem, init)
 
             -- handle event
             if event == "timer" and loop_clock.is_clock(param1) then
-                -- note: loop clock is only running if init_ok = true
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
@@ -93,7 +94,7 @@ function threads.thread__main(smem, init)
                     -- reactor now formed
                     plc_state.reactor_formed = true
 
-                    println_ts("reactor is now formed.")
+                    println_ts("reactor is now formed")
                     log.info("reactor is now formed")
 
                     -- SCRAM newly formed reactor
@@ -106,10 +107,10 @@ function threads.thread__main(smem, init)
 
                     -- partial reset of RPS, specific to becoming formed
                     -- without this, auto control can't resume on chunk load
-                    rps.reset_formed()
-                elseif plc_state.reactor_formed and not rps.is_formed() then
+                    rps.reset_reattach()
+                elseif plc_state.reactor_formed and (rps.is_formed() == false) then
                     -- reactor no longer formed
-                    println_ts("reactor is no longer formed.")
+                    println_ts("reactor is no longer formed")
                     log.info("reactor is no longer formed")
 
                     plc_state.reactor_formed = false
@@ -118,14 +119,14 @@ function threads.thread__main(smem, init)
 
                 -- update indicators
                 databus.tx_hw_status(plc_state)
-            elseif event == "modem_message" and networked and plc_state.init_ok and nic.is_connected() then
+            elseif event == "modem_message" and networked and nic.is_connected() then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
                     smem.q.mq_comms_rx.push_packet(packet)
                 end
-            elseif event == "timer" and networked and plc_state.init_ok and conn_watchdog.is_timer(param1) then
+            elseif event == "timer" and networked and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? close connection and shutdown reactor
                 plc_comms.close()
                 smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
@@ -146,8 +147,7 @@ function threads.thread__main(smem, init)
                     elseif networked and type == "modem" then
                         ---@cast device Modem
                         -- we only care if this is our comms modem
-                        -- note, check init_ok first since nic will be nil if it is false
-                        if plc_state.init_ok and nic.is_modem(device) then
+                        if nic.is_modem(device) then
                             nic.disconnect()
 
                             println_ts("comms modem disconnected!")
@@ -161,10 +161,8 @@ function threads.thread__main(smem, init)
                                 plc_state.no_modem = true
                                 plc_state.degraded = true
 
-                                if plc_state.init_ok then
-                                    -- try to scram reactor if it is still connected
-                                    smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
-                                end
+                                -- try to scram reactor if it is still connected
+                                smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
                             end
                         else
                             log.warning("non-comms modem disconnected")
@@ -184,7 +182,7 @@ function threads.thread__main(smem, init)
                         plc_dev.reactor = device
                         plc_state.no_reactor = false
 
-                        println_ts("reactor reconnected.")
+                        println_ts("reactor reconnected")
                         log.info("reactor reconnected")
 
                         -- we need to assume formed here as we cannot check in this main loop
@@ -196,35 +194,33 @@ function threads.thread__main(smem, init)
                             plc_state.degraded = false
                         end
 
-                        if plc_state.init_ok then
-                            smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+                        smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
-                            rps.reconnect_reactor(plc_dev.reactor)
-                            if networked then
-                                plc_comms.reconnect_reactor(plc_dev.reactor)
-                            end
-
-                            -- partial reset of RPS, specific to becoming formed/reconnected
-                            -- without this, auto control can't resume on chunk load
-                            rps.reset_formed()
+                        rps.reconnect_reactor(plc_dev.reactor)
+                        if networked then
+                            plc_comms.reconnect_reactor(plc_dev.reactor)
                         end
+
+                        -- partial reset of RPS, specific to becoming formed/reconnected
+                        -- without this, auto control can't resume on chunk load
+                        rps.reset_reattach()
                     elseif networked and type == "modem" then
                         ---@cast device Modem
                         local is_comms_modem = util.trinary(plc_dev.modem_wired, plc_dev.modem_iface == param1, device.isWireless())
 
                         -- note, check init_ok first since nic will be nil if it is false
-                        if is_comms_modem and not (plc_state.init_ok and nic.is_connected()) then
+                        if is_comms_modem and not nic.is_connected() then
                             -- reconnected modem
                             plc_dev.modem = device
                             plc_state.no_modem = false
 
-                            if plc_state.init_ok then nic.connect(device) end
+                            nic.connect(device)
 
-                            println_ts("comms modem reconnected.")
+                            println_ts("comms modem reconnected")
                             log.info("comms modem reconnected")
 
                             -- determine if we are still in a degraded state
-                            if not plc_state.no_reactor then
+                            if plc_state.reactor_formed and not plc_state.no_reactor then
                                 plc_state.degraded = false
                             end
                         elseif device.isWireless() then
@@ -235,27 +231,17 @@ function threads.thread__main(smem, init)
                     end
                 end
 
-                -- if not init'd and no longer degraded, proceed to init
-                if not plc_state.init_ok and not plc_state.degraded then
-                    plc_state.init_ok = true
-                    init()
-                end
-
                 -- update indicators
                 databus.tx_hw_status(plc_state)
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
                    event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-            elseif event == "clock_start" then
-                -- start loop clock
-                loop_clock.start()
-                log.debug("main thread clock started")
             end
 
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
-                log.info("terminate requested, main thread exiting")
+                log.info("OS: terminate requested, main thread exiting")
                 -- rps handles reactor shutdown
                 plc_state.shutdown = true
                 break
@@ -279,8 +265,7 @@ function threads.thread__main(smem, init)
             -- if not, we need to restart the clock
             -- this thread cannot be slept because it will miss events (namely "terminate" otherwise)
             if not plc_state.shutdown then
-                log.info("main thread restarting now...")
-                util.push_event("clock_start")
+                log.info("OS: main thread restarting now...")
             end
         end
     end
@@ -301,7 +286,7 @@ function threads.thread__rps(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("rps", true)
-        log.debug("rps thread start")
+        log.debug("OS: rps thread start")
 
         -- load in from shared memory
         local networked   = smem.networked
@@ -318,49 +303,36 @@ function threads.thread__rps(smem)
             -- get plc_sys fields (may have been set late due to degraded boot)
             local rps       = smem.plc_sys.rps
             local plc_comms = smem.plc_sys.plc_comms
-            -- get reactor, may have changed do to disconnect/reconnect
+            -- get reactor, it may have changed due to a disconnect/reconnect
             local reactor   = plc_dev.reactor
 
-            -- RPS checks
-            if plc_state.init_ok then
-                -- SCRAM if no open connection
-                if networked and not plc_comms.is_linked() then
-                    if was_linked then
-                        was_linked = false
-                        rps.trip_timeout()
-                    end
-                else
-                    was_linked = true
+            -- SCRAM if no open connection
+            if networked and not plc_comms.is_linked() then
+                if was_linked then
+                    was_linked = false
+                    rps.trip_timeout()
                 end
+            else was_linked = true end
 
-                if (not plc_state.no_reactor) and rps.is_formed() then
-                    -- check reactor status
----@diagnostic disable-next-line: need-check-nil
-                    local reactor_status = reactor.getStatus()
-                    databus.tx_reactor_state(reactor_status)
+            -- check reactor status
+            if (not plc_state.no_reactor) and rps.is_formed() then
+                local reactor_status = reactor.getStatus()
+                databus.tx_reactor_state(reactor_status)
 
-                    -- if we tried to SCRAM but failed, keep trying
-                    -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
-                    if rps.is_tripped() and reactor_status then
-                        rps.scram()
-                    end
-                end
+                -- if we tried to SCRAM but failed, keep trying
+                -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
+                if rps.is_tripped() and reactor_status then rps.scram() end
+            end
 
-                -- if we are in standalone mode and the front panel isn't working, continuously reset RPS
-                -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
-                if not (networked or smem.plc_state.fp_ok) then rps.reset(true) end
+            -- if we are in standalone mode and the front panel isn't working, continuously reset RPS
+            -- RPS will trip again if there are faults, but if it isn't cleared, the user can't re-enable
+            if not (networked or smem.plc_state.fp_ok) then rps.reset(true) end
 
-                -- check safety (SCRAM occurs if tripped)
-                if not plc_state.no_reactor then
-                    local rps_tripped, rps_status_string, rps_first = rps.check()
-
-                    if rps_tripped and rps_first then
-                        println_ts("[RPS] SCRAM! safety trip: " .. rps_status_string)
-                        if networked and not plc_state.no_modem then
-                            plc_comms.send_rps_alarm(rps_status_string)
-                        end
-                    end
-                end
+            -- check safety (SCRAM occurs if tripped)
+            local rps_tripped, rps_status_string, rps_first = rps.check(not plc_state.no_reactor)
+            if rps_tripped and rps_first then
+                println_ts("RPS: SCRAM on safety trip (" .. rps_status_string .. ")")
+                if networked then plc_comms.send_rps_alarm(rps_status_string) end
             end
 
             -- check for messages in the message queue
@@ -370,19 +342,19 @@ function threads.thread__rps(smem)
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
-                        if plc_state.init_ok then
-                            if msg.message == MQ__RPS_CMD.SCRAM then
-                                -- SCRAM
-                                rps.scram()
-                            elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
-                                -- lost peripheral(s)
-                                rps.trip_fault()
-                            elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
-                                -- watchdog tripped
-                                rps.trip_timeout()
-                                println_ts("server timeout")
-                                log.warning("server timeout")
-                            end
+                        if msg.message == MQ__RPS_CMD.SCRAM then
+                            -- SCRAM
+                            log.info("RPS: OS requested SCRAM")
+                            rps.scram()
+                        elseif msg.message == MQ__RPS_CMD.DEGRADED_SCRAM then
+                            -- lost peripheral(s)
+                            log.info("RPS: received PLC degraded alert")
+                            rps.trip_fault()
+                        elseif msg.message == MQ__RPS_CMD.TRIP_TIMEOUT then
+                            -- watchdog tripped
+                            println_ts("RPS: supervisor timeout")
+                            log.warning("RPS: received supervisor timeout alert")
+                            rps.trip_timeout()
                         end
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- received data
@@ -398,17 +370,17 @@ function threads.thread__rps(smem)
             -- check for termination request
             if plc_state.shutdown then
                 -- safe exit
-                log.info("rps thread shutdown initiated")
-                if plc_state.init_ok then
-                    if rps.scram() then
-                        println_ts("reactor disabled")
-                        log.info("rps thread reactor SCRAM OK")
-                    else
-                        println_ts("exiting, reactor failed to disable")
-                        log.error("rps thread failed to SCRAM reactor on exit")
-                    end
+                log.info("OS: rps thread shutdown initiated")
+
+                if rps.scram() then
+                    println_ts("exiting, reactor disabled")
+                    log.info("OS: rps thread reactor SCRAM OK on exit")
+                else
+                    println_ts("exiting, reactor failed to disable")
+                    log.error("OS: rps thread failed to SCRAM reactor on exit")
                 end
-                log.info("rps thread exiting")
+
+                log.info("OS: rps thread exiting")
                 break
             end
 
@@ -430,8 +402,8 @@ function threads.thread__rps(smem)
             databus.tx_rt_status("rps", false)
 
             if not plc_state.shutdown then
-                if plc_state.init_ok then smem.plc_sys.rps.scram() end
-                log.info("rps thread restarting in 5 seconds...")
+                smem.plc_sys.rps.scram()
+                log.info("OS: rps thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -450,7 +422,7 @@ function threads.thread__comms_tx(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("comms_tx", true)
-        log.debug("comms tx thread start")
+        log.debug("OS: comms tx thread start")
 
         -- load in from shared memory
         local plc_state   = smem.plc_state
@@ -467,7 +439,7 @@ function threads.thread__comms_tx(smem)
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
 
-                if msg ~= nil and plc_state.init_ok then
+                if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
                         if msg.message == MQ__COMM_CMD.SEND_STATUS then
@@ -488,7 +460,7 @@ function threads.thread__comms_tx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log.info("comms tx thread exiting")
+                log.info("OS: comms tx thread exiting")
                 break
             end
 
@@ -510,7 +482,7 @@ function threads.thread__comms_tx(smem)
             databus.tx_rt_status("comms_tx", false)
 
             if not plc_state.shutdown then
-                log.info("comms tx thread restarting in 5 seconds...")
+                log.info("OS: comms tx thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -523,13 +495,16 @@ end
 ---@nodiscard
 ---@param smem plc_shared_memory
 function threads.thread__comms_rx(smem)
+    -- print a log message to the terminal as long as the UI isn't running
+    local function println_ts(message) if not smem.plc_state.fp_ok then util.println_ts(message) end end
+
     ---@class parallel_thread
     local public = {}
 
     -- execute thread
     function public.exec()
         databus.tx_rt_status("comms_rx", true)
-        log.debug("comms rx thread start")
+        log.debug("OS: comms rx thread start")
 
         -- load in from shared memory
         local plc_state   = smem.plc_state
@@ -548,7 +523,7 @@ function threads.thread__comms_rx(smem)
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
 
-                if msg ~= nil and plc_state.init_ok then
+                if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.COMMAND then
                         -- received a command
                     elseif msg.qtype == mqueue.TYPE.DATA then
@@ -557,7 +532,7 @@ function threads.thread__comms_rx(smem)
                         -- received a packet
                         -- handle the packet (setpoints passed to update burn rate setpoint)
                         --                   (plc_state passed to check if degraded)
-                        plc_comms.handle_packet(msg.message, plc_state, setpoints)
+                        plc_comms.handle_packet(msg.message, plc_state, setpoints, println_ts)
                     end
                 end
 
@@ -567,7 +542,7 @@ function threads.thread__comms_rx(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log.info("comms rx thread exiting")
+                log.info("OS: comms rx thread exiting")
                 break
             end
 
@@ -589,7 +564,7 @@ function threads.thread__comms_rx(smem)
             databus.tx_rt_status("comms_rx", false)
 
             if not plc_state.shutdown then
-                log.info("comms rx thread restarting in 5 seconds...")
+                log.info("OS: comms rx thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -608,7 +583,7 @@ function threads.thread__setpoint_control(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("spctl", true)
-        log.debug("setpoint control thread start")
+        log.debug("OS: setpoint control thread start")
 
         -- load in from shared memory
         local plc_state    = smem.plc_state
@@ -631,9 +606,7 @@ function threads.thread__setpoint_control(smem)
             -- get reactor, may have changed do to disconnect/reconnect
             local reactor = plc_dev.reactor
 
-            if plc_state.init_ok and (not plc_state.no_reactor) then
-                ---@cast reactor table won't be nil
-
+            if not plc_state.no_reactor then
                 -- check if we should start ramping
                 if setpoints.burn_rate_en and (setpoints.burn_rate ~= last_burn_sp) then
                     local cur_burn_rate = reactor.getBurnRate()
@@ -700,7 +673,7 @@ function threads.thread__setpoint_control(smem)
 
             -- check for termination request
             if plc_state.shutdown then
-                log.info("setpoint control thread exiting")
+                log.info("OS: setpoint control thread exiting")
                 break
             end
 
@@ -722,7 +695,7 @@ function threads.thread__setpoint_control(smem)
             databus.tx_rt_status("spctl", false)
 
             if not plc_state.shutdown then
-                log.info("setpoint control thread restarting in 5 seconds...")
+                log.info("OS: setpoint control thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end

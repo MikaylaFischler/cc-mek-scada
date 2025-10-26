@@ -53,7 +53,6 @@ function databus.tx_hw_status(plc_state)
     databus.ps.publish("reactor_dev_state", util.trinary(plc_state.no_reactor, 1, util.trinary(plc_state.reactor_formed, 3, 2)))
     databus.ps.publish("has_modem", not plc_state.no_modem)
     databus.ps.publish("degraded", plc_state.degraded)
-    databus.ps.publish("init_ok", plc_state.init_ok)
 end
 
 -- transmit thread (routine) statuses

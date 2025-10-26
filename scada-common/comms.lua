@@ -214,7 +214,7 @@ function comms.scada_packet()
 
         if (type(max_distance) == "number") and (type(distance) == "number") and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("comms.scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: comms.scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 5 then
@@ -337,7 +337,7 @@ function comms.authd_packet()
 
         if (type(max_distance) == "number") and ((type(distance) ~= "number") or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("comms.authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: comms.authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 4 then
@@ -423,7 +423,7 @@ function comms.modbus_packet()
             self.raw = { self.txn_id, self.unit_id, self.func_code }
             for i = 1, self.length do insert(self.raw, data[i]) end
         else
-            log.error("comms.modbus_packet.make(): data not a table")
+            log.error("COMMS: modbus_packet.make(): data not a table")
         end
     end
 
@@ -446,11 +446,11 @@ function comms.modbus_packet()
 
                 return size_ok and valid
             else
-                log.debug("attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("COMMS: attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log.debug("nil frame encountered", true)
+            log.debug("COMMS: nil frame encountered", true)
             return false
         end
     end
@@ -509,7 +509,7 @@ function comms.rplc_packet()
             self.raw = { self.id, self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.rplc_packet.make(): data not a table")
+            log.error("COMMS: rplc_packet.make(): data not a table")
         end
     end
 
@@ -532,11 +532,11 @@ function comms.rplc_packet()
 
                 return ok
             else
-                log.debug("attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("COMMS: attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log.debug("nil frame encountered", true)
+            log.debug("COMMS: nil frame encountered", true)
             return false
         end
     end
@@ -591,7 +591,7 @@ function comms.mgmt_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.mgmt_packet.make(): data not a table")
+            log.error("COMMS: mgmt_packet.make(): data not a table")
         end
     end
 
@@ -612,11 +612,11 @@ function comms.mgmt_packet()
 
                 return ok
             else
-                log.debug("attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("COMMS: attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log.debug("nil frame encountered", true)
+            log.debug("COMMS: nil frame encountered", true)
             return false
         end
     end
@@ -670,7 +670,7 @@ function comms.crdn_packet()
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
         else
-            log.error("comms.crdn_packet.make(): data not a table")
+            log.error("COMMS: crdn_packet.make(): data not a table")
         end
     end
 
@@ -691,11 +691,11 @@ function comms.crdn_packet()
 
                 return ok
             else
-                log.debug("attempted SCADA_CRDN parse of incorrect protocol " .. frame.protocol(), true)
+                log.debug("COMMS: attempted SCADA_CRDN parse of incorrect protocol " .. frame.protocol(), true)
                 return false
             end
         else
-            log.debug("nil frame encountered", true)
+            log.debug("COMMS: nil frame encountered", true)
             return false
         end
     end
