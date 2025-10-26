@@ -3,6 +3,7 @@
 --
 
 require("/initenv").init_env()
+local backplane = require("reactor-plc.backplane")
 
 local comms     = require("scada-common.comms")
 local crash     = require("scada-common.crash")
@@ -102,14 +103,10 @@ local function main()
             burn_rate = 0.0
         },
 
-        -- core PLC devices
+        -- global PLC devices, still initialized by the backplane
         ---@class plc_dev
         plc_dev = {
----@diagnostic disable-next-line: assign-type-mismatch
-            reactor = ppm.get_fission_reactor(),    ---@type table
-            modem = nil,                            ---@type Modem|nil
-            modem_wired = type(config.WiredModem) == "string",
-            modem_iface = config.WiredModem
+            reactor = nil       ---@type table
         },
 
         -- system objects
@@ -134,48 +131,8 @@ local function main()
 
     local plc_state = __shared_memory.plc_state
 
-    -- get the configured modem
-    if smem_dev.modem_wired then
-        smem_dev.modem = ppm.get_modem(smem_dev.modem_iface)
-    else smem_dev.modem = ppm.get_wireless_modem() end
-
-    -- initial state evaluation
-    plc_state.no_reactor = smem_dev.reactor == nil
-    plc_state.no_modem = smem_dev.modem == nil
-
-    -- we need a reactor, can at least do some things even if it isn't formed though
-    if plc_state.no_reactor then
-        println("startup> fission reactor not found")
-        log.warning("startup> no reactor on startup")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
-
-        -- mount a virtual peripheral to init the RPS with
-        local _, dev = ppm.mount_virtual()
-        smem_dev.reactor = dev
-
-        log.info("startup> mounted virtual device as reactor")
-    elseif not smem_dev.reactor.isFormed() then
-        println("startup> fission reactor is not formed")
-        log.warning("startup> reactor logic adapter present, but reactor is not formed")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
-    end
-
-    -- comms modem is required if networked
-    if __shared_memory.networked and plc_state.no_modem then
-        println("startup> comms modem not found")
-        log.warning("startup> no comms modem on startup")
-
-        -- scram reactor if present and enabled
-        if (smem_dev.reactor ~= nil) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
-            smem_dev.reactor.scram()
-        end
-
-        plc_state.degraded = true
-    end
+    -- reactor and modem initialization
+    backplane.init(config, __shared_memory)
 
     -- scram on boot if networked, otherwise leave the reactor be
     if __shared_memory.networked and (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
@@ -219,7 +176,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- create network interface then setup comms
-        smem_sys.nic = network.nic(smem_dev.modem)
+        smem_sys.nic = backplane.active_nic()
         smem_sys.plc_comms = plc.comms(R_PLC_VERSION, smem_sys.nic, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
     else

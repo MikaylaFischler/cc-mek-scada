@@ -81,7 +81,9 @@ local tmp_cfg = {
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
     ConnTimeout = nil,      ---@type number
+    WirelessModem = true,
     WiredModem = false,     ---@type string|false
+    PreferWireless = true,
     TrustedRange = nil,     ---@type number
     AuthKey = nil,          ---@type string|nil
     LogMode = 0,            ---@type LOG_MODE
@@ -107,7 +109,9 @@ local fields = {
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
     { "ConnTimeout", "Connection Timeout", 5 },
-    { "WiredModem", "Wired Modem", false },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PreferWireless", "Prefer Wireless Modem", true },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key" , ""},
     { "LogMode", "Log Mode", log.MODE.APPEND },
