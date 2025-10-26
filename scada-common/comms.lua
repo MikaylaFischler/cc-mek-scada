@@ -214,7 +214,7 @@ function comms.scada_packet()
 
         if (type(max_distance) == "number") and (type(distance) == "number") and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: comms.scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 5 then
@@ -337,7 +337,7 @@ function comms.authd_packet()
 
         if (type(max_distance) == "number") and ((type(distance) ~= "number") or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: comms.authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 4 then
