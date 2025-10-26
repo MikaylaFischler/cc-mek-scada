@@ -5,9 +5,12 @@
 local log     = require("scada-common.log")
 local network = require("scada-common.network")
 local ppm     = require("scada-common.ppm")
+local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
 local databus = require("supervisor.databus")
+
+local LISTEN_MODE = types.LISTEN_MODE
 
 ---@class supervisor_backplane
 local backplane = {}
@@ -45,9 +48,9 @@ function backplane.init(config, println)
 
         nic.closeAll()
 
-        if config.PLC_Listen > 0 then nic.open(config.PLC_Channel) end
-        if config.RTU_Listen > 0 then nic.open(config.RTU_Channel) end
-        if config.CRD_Listen > 0 then nic.open(config.CRD_Channel) end
+        if config.PLC_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.PLC_Channel) end
+        if config.RTU_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.RTU_Channel) end
+        if config.CRD_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.CRD_Channel) end
 
         databus.tx_hw_wd_modem(true)
     end
@@ -67,9 +70,9 @@ function backplane.init(config, println)
 
         nic.closeAll()
 
-        if config.PLC_Listen % 2 == 0 then nic.open(config.PLC_Channel) end
-        if config.RTU_Listen % 2 == 0 then nic.open(config.RTU_Channel) end
-        if config.CRD_Listen % 2 == 0 then nic.open(config.CRD_Channel) end
+        if config.PLC_Listen ~= LISTEN_MODE.WIRED then nic.open(config.PLC_Channel) end
+        if config.RTU_Listen ~= LISTEN_MODE.WIRED then nic.open(config.RTU_Channel) end
+        if config.CRD_Listen ~= LISTEN_MODE.WIRED then nic.open(config.CRD_Channel) end
         if config.PocketEnabled then nic.open(config.PKT_Channel) end
 
         databus.tx_hw_wl_modem(true)

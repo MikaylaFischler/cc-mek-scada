@@ -214,9 +214,9 @@ end
 
 ---@enum LISTEN_MODE
 types.LISTEN_MODE = {
-    WIRELESS = 0,
-    WIRED = 1,
-    ALL = 2
+    WIRELESS = 1,
+    WIRED = 2,
+    ALL = 3
 }
 
 ---@enum TEMP_SCALE

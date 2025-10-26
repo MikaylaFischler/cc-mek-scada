@@ -33,7 +33,8 @@ local CENTER = core.ALIGN.CENTER
 local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
-    { "v1.6.0", { "Added sodium emergency coolant option" } }
+    { "v1.6.0", { "Added sodium emergency coolant option" } },
+    { "v1.8.0", { "Added support for both wired and wireless networking" } }
 }
 
 ---@class svr_configurator
@@ -92,6 +93,13 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    WirelessModem = true,   ---@type boolean
+    WiredModem = false,     ---@type string|false
+    PLC_Listen = 1,         ---@type LISTEN_MODE
+    RTU_Listen = 1,         ---@type LISTEN_MODE
+    CRD_Listen = 1,         ---@type LISTEN_MODE
+    PocketEnabled = true,   ---@type boolean
+    PocketTest = true,      ---@type boolean
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
     RTU_Channel = nil,      ---@type integer
@@ -101,13 +109,6 @@ local tmp_cfg = {
     RTU_Timeout = nil,      ---@type number
     CRD_Timeout = nil,      ---@type number
     PKT_Timeout = nil,      ---@type number
-    WirelessModem = true,   ---@type boolean
-    WiredModem = false,     ---@type string|false
-    PLC_Listen = 0,         ---@type LISTEN_MODE
-    RTU_Listen = 0,         ---@type LISTEN_MODE
-    CRD_Listen = 0,         ---@type LISTEN_MODE
-    PocketEnabled = true,   ---@type boolean
-    PocketTest = true,      ---@type boolean
     TrustedRange = nil,     ---@type number
     AuthKey = nil,          ---@type string|nil
     LogMode = 0,            ---@type LOG_MODE
@@ -133,6 +134,13 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "RTU_Listen", "RTU Gateway Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "CRD_Listen", "Coordinator Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "PocketEnabled", "Pocket Connectivity", true },
+    { "PocketTest", "Pocket Testing Features", true },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
     { "RTU_Channel", "RTU Channel", 16242 },
@@ -142,13 +150,6 @@ local fields = {
     { "RTU_Timeout", "RTU Connection Timeout", 5 },
     { "CRD_Timeout", "CRD Connection Timeout", 5 },
     { "PKT_Timeout", "PKT Connection Timeout", 5 },
-    { "WirelessModem", "Wireless/Ender Comms Modem", true },
-    { "WiredModem", "Wired Comms Modem", false },
-    { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
-    { "RTU_Listen", "RTU Gateway Listen Mode", types.LISTEN_MODE.WIRELESS },
-    { "CRD_Listen", "Coordinator Listen Mode", types.LISTEN_MODE.WIRELESS },
-    { "PocketEnabled", "Pocket Connectivity", true },
-    { "PocketTest", "Pocket Testing Features", true },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key" , "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
