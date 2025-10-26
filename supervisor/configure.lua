@@ -69,6 +69,7 @@ local tool_ctl = {
     num_units = nil,      ---@type NumberField
     en_fac_tanks = nil,   ---@type Checkbox
     tank_mode = nil,      ---@type RadioButton
+    tank_fluid_opts = {}, ---@type Radio2D[]
 
     gen_summary = nil,    ---@type function
     load_legacy = nil,    ---@type function
