@@ -30,9 +30,10 @@ local self = {
     importing_legacy = false,
     importing_any_dc = false,
 
-    show_auth_key = nil,      ---@type function
-    show_key_btn = nil,       ---@type PushButton
-    auth_key_textbox = nil,   ---@type TextBox
+    wl_pref = nil,          ---@type Checkbox
+    show_auth_key = nil,    ---@type function
+    show_key_btn = nil,     ---@type PushButton
+    auth_key_textbox = nil, ---@type TextBox
     auth_key_value = ""
 }
 
@@ -99,13 +100,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     TextBox{parent=net_c_1,x=1,y=1,text="Please select the network interface(s)."}
     TextBox{parent=net_c_1,x=41,y=1,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
-    local wl_pref = Checkbox{parent=net_c_1,x=30,y=3,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
-
     local function dis_pref(value)
         if not value then
-            wl_pref.set_value(false)
-            wl_pref.disable()
-        else wl_pref.enable() end
+            self.wl_pref.set_value(false)
+            self.wl_pref.disable()
+        else self.wl_pref.enable() end
     end
 
     dis_pref(ini_cfg.WirelessModem)
@@ -113,6 +112,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local function on_wired_change(_) tool_ctl.gen_modem_list() end
 
     local wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=dis_pref}
+    self.wl_pref = Checkbox{parent=net_c_1,x=30,y=3,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
     local wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
     TextBox{parent=net_c_1,x=3,y=6,text="MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
     TextBox{parent=net_c_1,x=3,y=7,text="connecting to peripherals will cause problems",fg_bg=g_lg_fg_bg}
@@ -122,7 +122,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
 
     local function submit_interfaces()
         tmp_cfg.WirelessModem = wireless.get_value()
-        tmp_cfg.PreferWireless = wl_pref.get_value()
+        tmp_cfg.PreferWireless = self.wl_pref.get_value()
 
         if not wired.get_value() then
             tmp_cfg.WiredModem = false
@@ -433,7 +433,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             try_set(s_vol, ini_cfg.SpeakerVolume)
             try_set(wireless, ini_cfg.WirelessModem)
             try_set(wired, ini_cfg.WiredModem ~= false)
-            try_set(wl_pref, ini_cfg.PreferWireless)
+            try_set(self.wl_pref, ini_cfg.PreferWireless)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(rtu_chan, ini_cfg.RTU_Channel)
             try_set(timeout, ini_cfg.ConnTimeout)
