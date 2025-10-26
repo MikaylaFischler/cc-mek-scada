@@ -120,9 +120,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     TextBox{parent=net_c_2,x=1,y=1,text="Please assign device connection interfaces if you selected multiple network interfaces."}
     TextBox{parent=net_c_2,x=1,y=4,text="Reactor PLC\nRTU Gateway\nCoordinator",fg_bg=g_lg_fg_bg}
     local opts = { "Wireless", "Wired", "Both" }
-    local plc_listen = Radio2D{parent=net_c_2,x=14,y=4,rows=1,columns=3,default=ini_cfg.PLC_Listen+1,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-    local rtu_listen = Radio2D{parent=net_c_2,x=14,rows=1,columns=3,default=ini_cfg.RTU_Listen+1,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-    local crd_listen = Radio2D{parent=net_c_2,x=14,rows=1,columns=3,default=ini_cfg.CRD_Listen+1,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    local plc_listen = Radio2D{parent=net_c_2,x=14,y=4,rows=1,columns=3,default=ini_cfg.PLC_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    local rtu_listen = Radio2D{parent=net_c_2,x=14,rows=1,columns=3,default=ini_cfg.RTU_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    local crd_listen = Radio2D{parent=net_c_2,x=14,rows=1,columns=3,default=ini_cfg.CRD_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
 
     local function on_pocket_en(en)
         if not en then
@@ -614,9 +614,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             rtu_listen.enable()
             crd_listen.enable()
         else
-            plc_listen.set_value(tmp_cfg.PLC_Listen)
-            rtu_listen.set_value(tmp_cfg.RTU_Listen)
-            crd_listen.set_value(tmp_cfg.CRD_Listen)
             plc_listen.disable()
             rtu_listen.disable()
             crd_listen.disable()
