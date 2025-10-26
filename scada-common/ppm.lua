@@ -293,7 +293,7 @@ function ppm.remount(iface)
     return pm_type, pm_dev
 end
 
--- mount a virtual, placeholder device (specifically designed for RTU startup with missing devices)
+-- mount a virtual placeholder device
 ---@nodiscard
 ---@return string type, table device
 function ppm.mount_virtual()
