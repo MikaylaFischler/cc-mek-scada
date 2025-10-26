@@ -453,7 +453,7 @@ function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAda
 ---@return Modem|nil modem function table
 function ppm.get_modem(iface)
     local modem  = nil
-    local device = ppm_sys.mounts[iface]
+    local device = _ppm.mounts[iface]
 
     if device and device.type == "modem" then modem = device.dev end
 
@@ -485,7 +485,7 @@ end
 function ppm.get_wired_modem_list()
     local list = {}
 
-    for iface, device in pairs(ppm_sys.mounts) do
+    for iface, device in pairs(_ppm.mounts) do
         if device.type == "modem" and not device.dev.isWireless() then list[iface] = device end
     end
 
