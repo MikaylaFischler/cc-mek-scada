@@ -16,9 +16,7 @@ local backplane = {}
 local _bp = {
     smem = nil,     ---@type rtu_shared_memory
 
-    wlan_en = true,
     wlan_pref = true,
-    lan_en = false,
     lan_iface = "",
 
     act_nic = nil,  ---@type nic|nil
@@ -34,13 +32,11 @@ local _bp = {
 ---@param __shared_memory rtu_shared_memory
 function backplane.init(config, __shared_memory)
     _bp.smem      = __shared_memory
-    _bp.wlan_en   = config.WirelessModem
     _bp.wlan_pref = config.PreferWireless
-    _bp.lan_en    = type(config.WiredModem) == "string"
     _bp.lan_iface = config.WiredModem
 
     -- init wired NIC
-    if _bp.lan_en then
+    if type(config.WiredModem) == "string" then
         local modem = ppm.get_modem(_bp.lan_iface)
 
         if modem then
@@ -50,7 +46,7 @@ function backplane.init(config, __shared_memory)
     end
 
     -- init wireless NIC(s)
-    if _bp.wlan_en then
+    if config.WirelessModem then
         local modem, iface = ppm.get_wireless_modem()
 
         if modem then
@@ -105,9 +101,12 @@ function backplane.detach(type, device, iface)
     if type == "modem" then
         ---@cast device Modem
 
+        local m_is_wl    = device.isWireless()
         local was_active = _bp.act_nic and _bp.act_nic.is_modem(device)
         local was_wd     = wd_nic and wd_nic.is_modem(device)
         local was_wl     = wl_nic and wl_nic.is_modem(device)
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_DETACH ", iface))
 
         if wd_nic and was_wd then
             wd_nic.disconnect()
@@ -119,22 +118,22 @@ function backplane.detach(type, device, iface)
 
         -- we only care if this is our active comms modem
         if was_active then
-            println_ts("active comms modem disconnected!")
-            log.warning("active comms modem disconnected")
+            println_ts("active comms modem disconnected")
+            log.warning("BKPLN: active comms modem disconnected")
 
             -- failover and try to find a new comms modem
             if _bp.wl_act then
                 -- try to find another wireless modem, otherwise switch to wired
-                local other_modem = ppm.get_wireless_modem()
-                if other_modem then
-                    log.info("found another wireless modem, using it for comms")
+                local modem, m_iface = ppm.get_wireless_modem()
+                if modem then
+                    log.info("BKPLN: found another wireless modem, using it for comms")
 
                     -- note: must assign to self.wl_nic if creating a nic, otherwise it only changes locally
                     if wl_nic then
-                        wl_nic.connect(other_modem)
-                    else _bp.wl_nic = network.nic(other_modem) end
+                        wl_nic.connect(modem)
+                    else _bp.wl_nic = network.nic(modem) end
 
-                    log.info("BKPLN: WIRELESS PHY_UP " .. iface)
+                    log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
 
                     _bp.act_nic = wl_nic
                     comms.assign_nic(_bp.act_nic)
@@ -164,8 +163,11 @@ function backplane.detach(type, device, iface)
                     comms.unassign_nic()
                 end
             end
+        elseif _bp.wl_nic and m_is_wl then
+            -- wireless, but not active
+            log.info("BKPLN: standby wireless modem disconnected")
         else
-            log.warning("modem disconnected")
+            log.warning("BKPLN: unassigned modem disconnected")
         end
     elseif type == "speaker" then
         ---@cast device Speaker
@@ -173,7 +175,7 @@ function backplane.detach(type, device, iface)
             if _bp.sounders[i].speaker == device then
                 table.remove(_bp.sounders, i)
 
-                log.warning(util.c("speaker ", iface, " disconnected"))
+                log.warning(util.c("BKPLN: speaker ", iface, " disconnected"))
                 println_ts("speaker disconnected")
 
                 databus.tx_hw_spkr_count(#_bp.sounders)
@@ -195,8 +197,12 @@ function backplane.attach(type, device, iface)
     if type == "modem" then
         ---@cast device Modem
 
+        local m_is_wl = device.isWireless()
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
+
         local is_wd = _bp.lan_iface == iface
-        local is_wl = ((not _bp.wl_nic) or (not _bp.wl_nic.is_connected())) and device.isWireless()
+        local is_wl = ((not _bp.wl_nic) or (not _bp.wl_nic.is_connected())) and m_is_wl
 
         if is_wd then
             -- connect this as the wired NIC
@@ -213,7 +219,7 @@ function backplane.attach(type, device, iface)
 
                 comms.assign_nic(_bp.act_nic)
                 databus.tx_hw_modem(true)
-                println_ts("comms modem reconnected.")
+                println_ts("comms modem reconnected")
                 log.info("BKPLN: switched comms to wired modem")
             elseif _bp.wl_act and not _bp.wlan_pref then
                 -- switch back to preferred wired
@@ -238,7 +244,7 @@ function backplane.attach(type, device, iface)
 
                 comms.assign_nic(_bp.act_nic)
                 databus.tx_hw_modem(true)
-                println_ts("comms modem reconnected.")
+                println_ts("comms modem reconnected")
                 log.info("BKPLN: switched comms to wireless modem")
             elseif (not _bp.wl_act) and _bp.wlan_pref then
                 -- switch back to preferred wireless
@@ -248,7 +254,7 @@ function backplane.attach(type, device, iface)
                 comms.assign_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
             end
-        elseif device.isWireless() then
+        elseif m_is_wl then
             -- the wireless NIC already has a modem
             log.info("standby wireless modem connected")
         else
