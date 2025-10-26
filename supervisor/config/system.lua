@@ -138,9 +138,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     local function submit_net_cfg_opts()
         if tmp_cfg.WirelessModem and tmp_cfg.WiredModem then
-            tmp_cfg.PLC_Listen = plc_listen.get_value() - 1
-            tmp_cfg.RTU_Listen = rtu_listen.get_value() - 1
-            tmp_cfg.CRD_Listen = crd_listen.get_value() - 1
+            tmp_cfg.PLC_Listen = plc_listen.get_value()
+            tmp_cfg.RTU_Listen = rtu_listen.get_value()
+            tmp_cfg.CRD_Listen = crd_listen.get_value()
         else
             if tmp_cfg.WiredModem then
                 tmp_cfg.PLC_Listen = LISTEN_MODE.WIRED
@@ -489,9 +489,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             try_set(tool_ctl.tank_mode, ini_cfg.FacilityTankMode)
             try_set(wireless, ini_cfg.WirelessModem)
             try_set(wired, ini_cfg.WiredModem ~= false)
-            try_set(plc_listen, ini_cfg.PLC_Listen + 1)
-            try_set(rtu_listen, ini_cfg.RTU_Listen + 1)
-            try_set(crd_listen, ini_cfg.CRD_Listen + 1)
+            try_set(plc_listen, ini_cfg.PLC_Listen)
+            try_set(rtu_listen, ini_cfg.RTU_Listen)
+            try_set(crd_listen, ini_cfg.CRD_Listen)
             try_set(pkt_en, ini_cfg.PocketEnabled)
             try_set(self.pkt_test, ini_cfg.PocketTest)
             try_set(svr_chan, ini_cfg.SVR_Channel)
@@ -614,9 +614,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             rtu_listen.enable()
             crd_listen.enable()
         else
-            plc_listen.set_value(tmp_cfg.PLC_Listen + 1)
-            rtu_listen.set_value(tmp_cfg.RTU_Listen + 1)
-            crd_listen.set_value(tmp_cfg.CRD_Listen + 1)
+            plc_listen.set_value(tmp_cfg.PLC_Listen)
+            rtu_listen.set_value(tmp_cfg.RTU_Listen)
+            crd_listen.set_value(tmp_cfg.CRD_Listen)
             plc_listen.disable()
             rtu_listen.disable()
             crd_listen.disable()
