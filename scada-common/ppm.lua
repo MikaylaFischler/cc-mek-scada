@@ -409,13 +409,13 @@ end
 
 -- get all mounted peripherals by type
 ---@nodiscard
----@param name string type name
+---@param type string type name
 ---@return table devices device function tables
-function ppm.get_all_devices(name)
+function ppm.get_all_devices(type)
     local devices = {}
 
     for _, data in pairs(_ppm.mounts) do
-        if data.type == name then
+        if data.type == type then
             table.insert(devices, data.dev)
         end
     end
