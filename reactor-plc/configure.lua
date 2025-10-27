@@ -3,6 +3,7 @@
 --
 
 local log        = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
@@ -33,7 +34,8 @@ local changes = {
     { "v1.6.8", { "ConnTimeout can now have a fractional part" } },
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
-    { "v1.8.21", { "Added option to invert emergency coolant redstone control" } }
+    { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
+    { "v1.9.1", { "Added support for wired communications modems" } }
 }
 
 ---@class plc_configurator
@@ -68,6 +70,8 @@ local tool_ctl = {
 
     gen_summary = nil,      ---@type function
     load_legacy = nil,      ---@type function
+
+    gen_modem_list = function () end
 }
 
 ---@class plc_config
@@ -78,12 +82,12 @@ local tmp_cfg = {
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
     EmerCoolInvert = false, ---@type boolean
-    SVR_Channel = nil,      ---@type integer
-    PLC_Channel = nil,      ---@type integer
-    ConnTimeout = nil,      ---@type number
     WirelessModem = true,
     WiredModem = false,     ---@type string|false
     PreferWireless = true,
+    SVR_Channel = nil,      ---@type integer
+    PLC_Channel = nil,      ---@type integer
+    ConnTimeout = nil,      ---@type number
     TrustedRange = nil,     ---@type number
     AuthKey = nil,          ---@type string|nil
     LogMode = 0,            ---@type LOG_MODE
@@ -106,12 +110,12 @@ local fields = {
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },
     { "EmerCoolInvert", "Emergency Coolant Invert", false },
-    { "SVR_Channel", "SVR Channel", 16240 },
-    { "PLC_Channel", "PLC Channel", 16241 },
-    { "ConnTimeout", "Connection Timeout", 5 },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
+    { "SVR_Channel", "SVR Channel", 16240 },
+    { "PLC_Channel", "PLC Channel", 16241 },
+    { "ConnTimeout", "Connection Timeout", 5 },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key" , ""},
     { "LogMode", "Log Mode", log.MODE.APPEND },
@@ -267,7 +271,12 @@ function configurator.configure(ask_config)
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
 
+    -- set tmp_cfg so interface lists are correct
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
+
     reset_term()
+
+    ppm.mount_all()
 
     -- set overridden colors
     for i = 1, #style.colors do
@@ -277,6 +286,8 @@ function configurator.configure(ask_config)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -294,6 +305,14 @@ function configurator.configure(ask_config)
                 display.handle_paste(param1)
             elseif event == "modem_message" then
                 check.receive_sv(param1, param2, param3, param4, param5)
+            elseif event == "peripheral_detach" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.handle_unmount(param1)
+                tool_ctl.gen_modem_list()
+            elseif event == "peripheral" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.mount(param1)
+                tool_ctl.gen_modem_list()
             end
 
             if event == "terminate" then return end

@@ -31,6 +31,7 @@ local self = {
     importing_any_dc = false,
 
     wl_pref = nil,          ---@type Checkbox
+    range = nil,            ---@type NumberField
     show_auth_key = nil,    ---@type function
     show_key_btn = nil,     ---@type PushButton
     auth_key_textbox = nil, ---@type TextBox
@@ -107,8 +108,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
         else self.wl_pref.enable() end
     end
 
-    dis_pref(ini_cfg.WirelessModem)
-
     local function on_wired_change(_) tool_ctl.gen_modem_list() end
 
     local wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=dis_pref}
@@ -120,9 +119,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
 
     local modem_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
+    dis_pref(ini_cfg.WirelessModem)
+
     local function submit_interfaces()
         tmp_cfg.WirelessModem = wireless.get_value()
-        tmp_cfg.PreferWireless = self.wl_pref.get_value()
+        tmp_cfg.PreferWireless = tmp_cfg.WirelessModem and self.wl_pref.get_value()
 
         if not wired.get_value() then
             tmp_cfg.WiredModem = false
@@ -136,6 +137,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             modem_err.set_value("Please select a wired modem.")
             modem_err.show()
         else
+            if tmp_cfg.WirelessModem then
+                self.range.enable()
+            else
+                self.range.set_value(0)
+                self.range.disable()
+            end
+
             net_pane.set_value(2)
             modem_err.hide(true)
         end
@@ -182,25 +190,33 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     TextBox{parent=net_c_3,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=net_c_3,x=1,y=8,text="Trusted Range (Wireless Only)"}
-    local range = NumberField{parent=net_c_3,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_3,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    self.range = NumberField{parent=net_c_3,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=net_c_3,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents wireless connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
-    local p2_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local n3_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_ct_tr()
         local timeout_val = tonumber(timeout.get_value())
-        local range_val = tonumber(range.get_value())
-        if timeout_val ~= nil and range_val ~= nil then
-            tmp_cfg.ConnTimeout = timeout_val
-            tmp_cfg.TrustedRange = range_val
-            net_pane.set_value(4)
-            p2_err.hide(true)
-        elseif timeout_val == nil then
-            p2_err.set_value("Please set the connection timeout.")
-            p2_err.show()
+        local range_val = tonumber(self.range.get_value())
+
+        if timeout_val == nil then
+            n3_err.set_value("Please set the connection timeout.")
+            n3_err.show()
+        elseif tmp_cfg.WirelessModem and (range_val == nil) then
+            n3_err.set_value("Please set the trusted range.")
+            n3_err.show()
         else
-            p2_err.set_value("Please set the trusted range.")
-            p2_err.show()
+            tmp_cfg.ConnTimeout = timeout_val
+            tmp_cfg.TrustedRange = tri(tmp_cfg.WirelessModem, range_val, 0)
+
+            if tmp_cfg.WirelessModem then
+                net_pane.set_value(4)
+            else
+                main_pane.set_value(4)
+                tmp_cfg.AuthKey = ""
+            end
+
+            n3_err.hide(true)
         end
     end
 
@@ -437,7 +453,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(rtu_chan, ini_cfg.RTU_Channel)
             try_set(timeout, ini_cfg.ConnTimeout)
-            try_set(range, ini_cfg.TrustedRange)
+            try_set(self.range, ini_cfg.TrustedRange)
             try_set(key, ini_cfg.AuthKey)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)

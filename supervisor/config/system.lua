@@ -242,6 +242,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
                 net_pane.set_value(5)
                 ct_err.hide(true)
             else
+                tmp_cfg.TrustedRange = 0
+                tmp_cfg.AuthKey = ""
                 main_pane.set_value(4)
             end
         else ct_err.show() end

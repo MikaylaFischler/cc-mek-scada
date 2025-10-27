@@ -90,12 +90,12 @@ local tmp_cfg = {
     SpeakerVolume = 1.0,
     Peripherals = {},     ---@type rtu_peri_definition[]
     Redstone = {},        ---@type rtu_rs_definition[]
-    SVR_Channel = nil,    ---@type integer
-    RTU_Channel = nil,    ---@type integer
-    ConnTimeout = nil,    ---@type number
     WirelessModem = true,
     WiredModem = false,   ---@type string|false
     PreferWireless = true,
+    SVR_Channel = nil,    ---@type integer
+    RTU_Channel = nil,    ---@type integer
+    ConnTimeout = nil,    ---@type number
     TrustedRange = nil,   ---@type number
     AuthKey = nil,        ---@type string
     LogMode = 0,          ---@type LOG_MODE
@@ -112,12 +112,12 @@ local settings_cfg = {}
 
 local fields = {
     { "SpeakerVolume", "Speaker Volume", 1.0 },
-    { "SVR_Channel", "SVR Channel", 16240 },
-    { "RTU_Channel", "RTU Channel", 16242 },
-    { "ConnTimeout", "Connection Timeout", 5 },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
+    { "SVR_Channel", "SVR Channel", 16240 },
+    { "RTU_Channel", "RTU Channel", 16242 },
+    { "ConnTimeout", "Connection Timeout", 5 },
     { "TrustedRange", "Trusted Range", 0 },
     { "AuthKey", "Facility Auth Key", "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
