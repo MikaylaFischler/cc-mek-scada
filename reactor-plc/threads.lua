@@ -1,13 +1,14 @@
-local log      = require("scada-common.log")
-local mqueue   = require("scada-common.mqueue")
-local ppm      = require("scada-common.ppm")
-local tcd      = require("scada-common.tcd")
-local util     = require("scada-common.util")
+local log       = require("scada-common.log")
+local mqueue    = require("scada-common.mqueue")
+local ppm       = require("scada-common.ppm")
+local tcd       = require("scada-common.tcd")
+local util      = require("scada-common.util")
 
-local databus  = require("reactor-plc.databus")
-local renderer = require("reactor-plc.renderer")
+local backplane = require("reactor-plc.backplane")
+local databus   = require("reactor-plc.databus")
+local renderer  = require("reactor-plc.renderer")
 
-local core     = require("graphics.core")
+local core      = require("graphics.core")
 
 local threads = {}
 
@@ -17,16 +18,6 @@ local COMMS_SLEEP   = 150 -- 150ms, 3 ticks
 local SP_CTRL_SLEEP = 250 -- 250ms, 5 ticks
 
 local BURN_RATE_RAMP_mB_s = 5.0
-
-local MQ__RPS_CMD = {
-    SCRAM = 1,
-    DEGRADED_SCRAM = 2,
-    TRIP_TIMEOUT = 3
-}
-
-local MQ__COMM_CMD = {
-    SEND_STATUS = 1
-}
 
 -- main thread
 ---@nodiscard
@@ -50,9 +41,12 @@ function threads.thread__main(smem)
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
-        local networked = smem.networked
-        local plc_state = smem.plc_state
-        local plc_dev   = smem.plc_dev
+        local networked    = smem.networked
+        local plc_state    = smem.plc_state
+        local plc_dev      = smem.plc_dev
+
+        local MQ__RPS_CMD  = smem.q_cmds.MQ__RPS_CMD
+        local MQ__COMM_CMD = smem.q_cmds.MQ__COMM_CMD
 
         -- start clock
         loop_clock.start()
@@ -175,60 +169,8 @@ function threads.thread__main(smem)
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
-
                 if type ~= nil and device ~= nil then
-                    if plc_state.no_reactor and (type == "fissionReactorLogicAdapter") then
-                        -- reconnected reactor
-                        plc_dev.reactor = device
-                        plc_state.no_reactor = false
-
-                        println_ts("reactor reconnected")
-                        log.info("reactor reconnected")
-
-                        -- we need to assume formed here as we cannot check in this main loop
-                        -- RPS will identify if it isn't and this will get set false later
-                        plc_state.reactor_formed = true
-
-                        -- determine if we are still in a degraded state
-                        if (not networked or not plc_state.no_modem) and plc_state.reactor_formed then
-                            plc_state.degraded = false
-                        end
-
-                        smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
-                        rps.reconnect_reactor(plc_dev.reactor)
-                        if networked then
-                            plc_comms.reconnect_reactor(plc_dev.reactor)
-                        end
-
-                        -- partial reset of RPS, specific to becoming formed/reconnected
-                        -- without this, auto control can't resume on chunk load
-                        rps.reset_reattach()
-                    elseif networked and type == "modem" then
-                        ---@cast device Modem
-                        local is_comms_modem = util.trinary(plc_dev.modem_wired, plc_dev.modem_iface == param1, device.isWireless())
-
-                        -- note, check init_ok first since nic will be nil if it is false
-                        if is_comms_modem and not nic.is_connected() then
-                            -- reconnected modem
-                            plc_dev.modem = device
-                            plc_state.no_modem = false
-
-                            nic.connect(device)
-
-                            println_ts("comms modem reconnected")
-                            log.info("comms modem reconnected")
-
-                            -- determine if we are still in a degraded state
-                            if plc_state.reactor_formed and not plc_state.no_reactor then
-                                plc_state.degraded = false
-                            end
-                        elseif device.isWireless() then
-                            log.info("unused wireless modem connected")
-                        else
-                            log.info("non-comms wired modem connected")
-                        end
-                    end
+                    backplane.attach(param1, type, device, println_ts)
                 end
 
                 -- update indicators
@@ -294,6 +236,8 @@ function threads.thread__rps(smem)
         local plc_dev     = smem.plc_dev
 
         local rps_queue   = smem.q.mq_rps
+
+        local MQ__RPS_CMD = smem.q_cmds.MQ__RPS_CMD
 
         local was_linked  = false
         local last_update = util.time()
@@ -425,8 +369,10 @@ function threads.thread__comms_tx(smem)
         log.debug("OS: comms tx thread start")
 
         -- load in from shared memory
-        local plc_state   = smem.plc_state
-        local comms_queue = smem.q.mq_comms_tx
+        local plc_state    = smem.plc_state
+        local comms_queue  = smem.q.mq_comms_tx
+
+        local MQ__COMM_CMD = smem.q_cmds.MQ__COMM_CMD
 
         local last_update = util.time()
 

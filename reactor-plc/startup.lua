@@ -91,9 +91,10 @@ local function main()
             fp_ok = false,
             shutdown = false,
             degraded = true,
-            reactor_formed = true,
             no_reactor = true,
-            no_modem = true
+            reactor_formed = true,
+            wd_modem = false,
+            wl_modem = false
         },
 
         -- control setpoints
@@ -123,6 +124,18 @@ local function main()
             mq_rps = mqueue.new(),
             mq_comms_tx = mqueue.new(),
             mq_comms_rx = mqueue.new()
+        },
+
+        -- message queue commands
+        q_cmds = {
+            MQ__RPS_CMD = {
+                SCRAM = 1,
+                DEGRADED_SCRAM = 2,
+                TRIP_TIMEOUT = 3
+            },
+            MQ__COMM_CMD = {
+                SEND_STATUS = 1
+            }
         }
     }
 
@@ -142,7 +155,7 @@ local function main()
 
     -- setup front panel
     local message
-    plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
+    plc_state.fp_ok, message = renderer.try_start_ui(config)
 
     -- ...or not
     if not plc_state.fp_ok then

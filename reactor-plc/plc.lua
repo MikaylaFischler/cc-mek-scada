@@ -830,6 +830,22 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@class plc_comms
     local public = {}
 
+    -- switch the current active NIC
+    ---@param _nic nic
+    function public.switch_nic(_nic)
+        nic.closeAll()
+
+        if _nic.isWireless() then
+            comms.set_trusted_range(config.TrustedRange)
+        end
+
+        -- configure receive channels
+        _nic.closeAll()
+        _nic.open(config.PLC_Channel)
+
+        nic = _nic
+    end
+
     -- reconnect a newly connected reactor
     ---@param new_reactor table
     function public.reconnect_reactor(new_reactor)

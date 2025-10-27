@@ -49,6 +49,8 @@ function backplane.init(config, __shared_memory)
 
             log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
+            plc_state.wd_modem = _bp.wd_nic.is_connected()
+
             -- set this as active for now
             _bp.wl_act = false
             _bp.act_nic = _bp.wd_nic
@@ -61,6 +63,8 @@ function backplane.init(config, __shared_memory)
 
             log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
 
+            plc_state.wl_modem = _bp.wl_nic.is_connected()
+
             -- set this as active if connected or if both modems are disconnected and this is preferred
             if (modem and _bp.wlan_pref) or not (_bp.act_nic and _bp.act_nic.is_connected()) then
                 _bp.wl_act = true
@@ -68,12 +72,8 @@ function backplane.init(config, __shared_memory)
             end
         end
 
-        plc_state.no_modem = not _bp.act_nic.is_connected()
-
-        databus.tx_hw_modem(not plc_state.no_modem)
-
         -- comms modem is required if networked
-        if plc_state.no_modem then
+        if not (plc_state.wd_modem or plc_state.wl_modem) then
             println("startup> comms modem not found")
             log.warning("BKPLN: no comms modem on startup")
 
@@ -121,61 +121,106 @@ function backplane.active_nic() return _bp.act_nic end
 ---@param device table
 ---@param print_no_fp function
 function backplane.attach(iface, type, device, print_no_fp)
+    local MQ__RPS_CMD = _bp.smem.q_cmds.MQ__RPS_CMD
+
     local networked = _bp.smem.networked
     local state     = _bp.smem.plc_state
     local dev       = _bp.smem.plc_dev
     local sys       = _bp.smem.plc_sys
 
-    if state.no_reactor and (type == "fissionReactorLogicAdapter") then
-        -- reconnected reactor
-        dev.reactor = device
-        state.no_reactor = false
+    if type ~= nil and device ~= nil then
+        if state.no_reactor and (type == "fissionReactorLogicAdapter") then
+            -- reconnected reactor
+            dev.reactor = device
+            state.no_reactor = false
 
-        print_no_fp("reactor reconnected")
-        log.info("BKPLN: reactor reconnected")
+            print_no_fp("reactor reconnected")
+            log.info("BKPLN: reactor reconnected")
 
-        -- we need to assume formed here as we cannot check in this main loop
-        -- RPS will identify if it isn't and this will get set false later
-        state.reactor_formed = true
-
-        -- determine if we are still in a degraded state
-        if (not networked or not state.no_modem) and state.reactor_formed then
-            state.degraded = false
-        end
-
-        _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
-        sys.rps.reconnect_reactor(dev.reactor)
-        if networked then
-            sys.plc_comms.reconnect_reactor(dev.reactor)
-        end
-
-        -- partial reset of RPS, specific to becoming formed/reconnected
-        -- without this, auto control can't resume on chunk load
-        sys.rps.reset_formed()
-    elseif networked and type == "modem" then
-        ---@cast device Modem
-        local is_comms_modem = util.trinary(dev.modem_wired, dev.modem_iface == iface, device.isWireless())
-
-        -- note, check init_ok first since nic will be nil if it is false
-        if is_comms_modem and not (state.init_ok and nic.is_connected()) then
-            -- reconnected modem
-            dev.modem = device
-            state.no_modem = false
-
-            if state.init_ok then nic.connect(device) end
-
-            print_no_fp("comms modem reconnected")
-            log.info("comms modem reconnected")
+            -- we need to assume formed here as we cannot check in this main loop
+            -- RPS will identify if it isn't and this will get set false later
+            state.reactor_formed = true
 
             -- determine if we are still in a degraded state
-            if not state.no_reactor then
+            if ((not networked) or (state.wd_modem or state.wl_modem)) and state.reactor_formed then
                 state.degraded = false
             end
-        elseif device.isWireless() then
-            log.info("unused wireless modem connected")
-        else
-            log.info("non-comms wired modem connected")
+
+            _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+
+            sys.rps.reconnect_reactor(dev.reactor)
+            if networked then
+                sys.plc_comms.reconnect_reactor(dev.reactor)
+            end
+
+            -- partial reset of RPS, specific to becoming formed/reconnected
+            -- without this, auto control can't resume on chunk load
+            sys.rps.reset_reattach()
+        elseif networked and type == "modem" then
+            ---@cast device Modem
+
+            local m_is_wl = device.isWireless()
+
+            log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
+
+            local is_wd = _bp.wd_nic and (_bp.lan_iface == iface)
+            local is_wl = _bp.wl_nic and (not _bp.wl_nic.is_connected()) and m_is_wl
+
+            if is_wd then
+                -- connect this as the wired NIC
+                _bp.wd_nic.connect(device)
+
+                log.info("BKPLN: WIRED PHY_UP " .. iface)
+                print_no_fp("wired comms modem reconnected")
+
+                state.wd_modem = true
+
+                if _bp.act_nic == _bp.wd_nic then
+                    -- set as active
+                    _bp.wl_act  = false
+                    _bp.act_nic = _bp.wd_nic
+                elseif _bp.wl_act and not _bp.wlan_pref then
+                    -- switch back to preferred wired
+                    _bp.wl_act  = false
+                    _bp.act_nic = _bp.wd_nic
+
+                    sys.plc_comms.switch_nic(_bp.act_nic)
+                    log.info("BKPLN: switched comms to wired modem (preferred)")
+                end
+            elseif is_wl then
+                -- connect this as the wireless NIC
+                _bp.wl_nic.connect(device)
+
+                log.info("BKPLN: WIRELESS PHY_UP " .. iface)
+                print_no_fp("wireless comms modem reconnected")
+
+                state.wl_modem = true
+
+                if _bp.act_nic == _bp.wl_nic then
+                    -- set as active
+                    _bp.wl_act  = true
+                    _bp.act_nic = _bp.wl_nic
+                elseif (not _bp.wl_act) and _bp.wlan_pref then
+                    -- switch back to preferred wireless
+                    _bp.wl_act  = true
+                    _bp.act_nic = _bp.wl_nic
+
+                    sys.plc_comms.switch_nic(_bp.act_nic)
+                    log.info("BKPLN: switched comms to wireless modem (preferred)")
+                end
+            elseif _bp.wl_nic and m_is_wl then
+                -- the wireless NIC already has a modem
+                print_no_fp("standby wireless modem connected")
+                log.info("BKPLN: standby wireless modem connected")
+            else
+                print_no_fp("unassigned modem connected")
+                log.warning("BKPLN: unassigned modem connected")
+            end
+
+            -- determine if we are still in a degraded state
+            if (state.wd_modem or state.wl_modem) and state.reactor_formed and not state.no_reactor then
+                state.degraded = false
+            end
         end
     end
 end
