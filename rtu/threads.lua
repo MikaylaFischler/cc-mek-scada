@@ -25,8 +25,8 @@ local threads = {}
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
 
-local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
-local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
+local MAIN_CLOCK  = 0.5 -- 2Hz,  10 ticks
+local COMMS_SLEEP = 100 -- 100ms, 2 ticks
 
 ---@param smem rtu_shared_memory
 ---@param println_ts function

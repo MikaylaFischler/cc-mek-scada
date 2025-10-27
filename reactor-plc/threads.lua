@@ -11,10 +11,10 @@ local core     = require("graphics.core")
 
 local threads = {}
 
-local MAIN_CLOCK    = 0.5 -- (2Hz,   10 ticks)
-local RPS_SLEEP     = 250 -- (250ms, 5 ticks)
-local COMMS_SLEEP   = 150 -- (150ms, 3 ticks)
-local SP_CTRL_SLEEP = 250 -- (250ms, 5 ticks)
+local MAIN_CLOCK    = 0.5 -- 2Hz,   10 ticks
+local RPS_SLEEP     = 250 -- 250ms, 5 ticks
+local COMMS_SLEEP   = 150 -- 150ms, 3 ticks
+local SP_CTRL_SLEEP = 250 -- 250ms, 5 ticks
 
 local BURN_RATE_RAMP_mB_s = 5.0
 
