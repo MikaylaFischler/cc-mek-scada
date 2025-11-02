@@ -33,7 +33,9 @@ local self = {
     set_networked = nil,    ---@type function
     bundled_emcool = nil,   ---@type function
 
+    wireless = nil,         ---@type Checkbox
     wl_pref = nil,          ---@type Checkbox
+    wired = nil,            ---@type Checkbox
     range = nil,            ---@type NumberField
     show_auth_key = nil,    ---@type function
     show_key_btn = nil,     ---@type PushButton
@@ -190,39 +192,50 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=net_c_1,x=1,y=1,text="Please select the network interface(s)."}
     TextBox{parent=net_c_1,x=41,y=1,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
-    local function dis_pref(value)
-        if not value then
-            self.wl_pref.set_value(false)
+    local function en_dis_pref()
+        if self.wireless.get_value() and self.wired.get_value() then
+            self.wl_pref.enable()
+        else
+            self.wl_pref.set_value(self.wireless.get_value())
             self.wl_pref.disable()
-        else self.wl_pref.enable() end
+        end
     end
 
-    local function on_wired_change(_) tool_ctl.gen_modem_list() end
+    local function on_wired_change(_)
+        en_dis_pref()
+        tool_ctl.gen_modem_list()
+    end
 
-    local wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=dis_pref}
+    self.wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=en_dis_pref}
     self.wl_pref = Checkbox{parent=net_c_1,x=30,y=3,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
-    local wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
+    self.wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
     TextBox{parent=net_c_1,x=3,y=6,text="MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
     TextBox{parent=net_c_1,x=3,y=7,text="connecting to peripherals will cause problems",fg_bg=g_lg_fg_bg}
     local modem_list = ListBox{parent=net_c_1,x=1,y=8,height=5,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local modem_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
-    dis_pref(ini_cfg.WirelessModem)
+    en_dis_pref()
 
     local function submit_interfaces()
-        tmp_cfg.WirelessModem = wireless.get_value()
-        tmp_cfg.PreferWireless = tmp_cfg.WirelessModem and self.wl_pref.get_value()
+        tmp_cfg.WirelessModem = self.wireless.get_value()
 
-        if not wired.get_value() then
+        if tmp_cfg.WirelessModem and tmp_cfg.WiredModem then
+            tmp_cfg.PreferWireless = self.wl_pref.get_value()
+        else
+            tmp_cfg.PreferWireless = tmp_cfg.WirelessModem
+            self.wl_pref.set_value(tmp_cfg.PreferWireless)
+        end
+
+        if not self.wired.get_value() then
             tmp_cfg.WiredModem = false
             tool_ctl.gen_modem_list()
         end
 
-        if not (wired.get_value() or wireless.get_value()) then
+        if not (self.wired.get_value() or self.wireless.get_value()) then
             modem_err.set_value("Please select a modem type.")
             modem_err.show()
-        elseif wired.get_value() and type(tmp_cfg.WiredModem) ~= "string" then
+        elseif self.wired.get_value() and type(tmp_cfg.WiredModem) ~= "string" then
             modem_err.set_value("Please select a wired modem.")
             modem_err.show()
         else
@@ -538,8 +551,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
             if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
             try_set(invert, ini_cfg.EmerCoolInvert)
-            try_set(wireless, ini_cfg.WirelessModem)
-            try_set(wired, ini_cfg.WiredModem ~= false)
+            try_set(self.wireless, ini_cfg.WirelessModem)
+            try_set(self.wired, ini_cfg.WiredModem ~= false)
             try_set(self.wl_pref, ini_cfg.PreferWireless)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(plc_chan, ini_cfg.PLC_Channel)
@@ -697,7 +710,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     function tool_ctl.gen_modem_list()
         modem_list.remove_all()
 
-        local enable = wired.get_value()
+        local enable = self.wired.get_value()
 
         local function select(iface)
             tmp_cfg.WiredModem = iface
