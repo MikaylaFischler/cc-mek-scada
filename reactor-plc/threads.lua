@@ -41,24 +41,21 @@ function threads.thread__main(smem)
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
-        local networked    = smem.networked
-        local plc_state    = smem.plc_state
-        local plc_dev      = smem.plc_dev
+        local networked     = smem.networked
+        local plc_state     = smem.plc_state
 
-        local MQ__RPS_CMD  = smem.q_cmds.MQ__RPS_CMD
-        local MQ__COMM_CMD = smem.q_cmds.MQ__COMM_CMD
+        local rps           = smem.plc_sys.rps
+        local plc_comms     = smem.plc_sys.plc_comms
+        local conn_watchdog = smem.plc_sys.conn_watchdog
+
+        local MQ__RPS_CMD   = smem.q_cmds.MQ__RPS_CMD
+        local MQ__COMM_CMD  = smem.q_cmds.MQ__COMM_CMD
 
         -- start clock
         loop_clock.start()
 
         -- event loop
         while true do
-            -- get plc_sys fields (may have been set late due to degraded boot)
-            local rps           = smem.plc_sys.rps
-            local nic           = smem.plc_sys.nic
-            local plc_comms     = smem.plc_sys.plc_comms
-            local conn_watchdog = smem.plc_sys.conn_watchdog
-
             local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
@@ -70,10 +67,10 @@ function threads.thread__main(smem)
                 loop_clock.start()
 
                 -- send updated data
-                if networked and nic.is_connected() then
+                if networked then
                     if plc_comms.is_linked() then
                         smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
-                    else
+                    elseif backplane.active_nic().is_connected() then
                         if ticks_to_update == 0 then
                             plc_comms.send_link_req()
                             ticks_to_update = LINK_TICKS
@@ -95,7 +92,7 @@ function threads.thread__main(smem)
                     smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
                     -- determine if we are still in a degraded state
-                    if (not networked) or nic.is_connected() then
+                    if (not networked) or backplane.active_nic().is_connected() then
                         plc_state.degraded = false
                     end
 
@@ -113,7 +110,7 @@ function threads.thread__main(smem)
 
                 -- update indicators
                 databus.tx_hw_status(plc_state)
-            elseif event == "modem_message" and networked and nic.is_connected() then
+            elseif event == "modem_message" and networked then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
@@ -130,38 +127,8 @@ function threads.thread__main(smem)
             elseif event == "peripheral_detach" then
                 -- peripheral disconnect
                 local type, device = ppm.handle_unmount(param1)
-
                 if type ~= nil and device ~= nil then
-                    if device == plc_dev.reactor then
-                        println_ts("reactor disconnected!")
-                        log.error("reactor logic adapter disconnected")
-
-                        plc_state.no_reactor = true
-                        plc_state.degraded = true
-                    elseif networked and type == "modem" then
-                        ---@cast device Modem
-                        -- we only care if this is our comms modem
-                        if nic.is_modem(device) then
-                            nic.disconnect()
-
-                            println_ts("comms modem disconnected!")
-                            log.warning("comms modem disconnected")
-
-                            local other_modem = ppm.get_wireless_modem()
-                            if other_modem and not plc_dev.modem_wired then
-                                log.info("found another wireless modem, using it for comms")
-                                nic.connect(other_modem)
-                            else
-                                plc_state.no_modem = true
-                                plc_state.degraded = true
-
-                                -- try to scram reactor if it is still connected
-                                smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
-                            end
-                        else
-                            log.warning("non-comms modem disconnected")
-                        end
-                    end
+                    backplane.detach(param1, type, device, println_ts)
                 end
 
                 -- update indicators

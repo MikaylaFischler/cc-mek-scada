@@ -35,7 +35,8 @@ local ind_red = style.ind_red
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
-local function init(panel)
+---@param config plc_config configuraiton
+local function init(panel, config)
     local s_hi_box = style.theme.highlight_box
 
     local disabled_fg = style.fp.disabled_fg
@@ -59,7 +60,21 @@ local function init(panel)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
-    local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+    reactor.register(databus.ps, "reactor_dev_state", reactor.update)
+
+    if config.Networked then
+        if config.WirelessModem and config.WiredModem then
+            local wl_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
+            local wd_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
+            wd_modem.register(databus.ps, "wd_modem", wd_modem.update)
+            wl_modem.register(databus.ps, "wl_modem", wl_modem.update)
+        else
+            local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+            modem.register(databus.ps, util.trinary(config.WirelessModem, "wl_modem", "wd_modem"), modem.update)
+        end
+    else
+        local _ = LED{parent=system,label="MODEM",colors=ind_grn}
+    end
 
     if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.ind_bkg}}
@@ -98,9 +113,6 @@ local function init(panel)
     end
 
     system.line_break()
-
-    reactor.register(databus.ps, "reactor_dev_state", reactor.update)
-    modem.register(databus.ps, "has_modem", modem.update)
 
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=ind_grn}
@@ -150,12 +162,10 @@ local function init(panel)
     -- about footer
     --
 
-    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
+    local info_text = util.sprintf("FW: %s | NT: v%s", databus.ps.get("version"), databus.ps.get("comms_version"))
 
-    fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
+    local about = Div{parent=panel,height=1,y=term_h,fg_bg=disabled_fg}
+    TextBox{parent=about,y=1,text=info_text}
 
     --
     -- rps list

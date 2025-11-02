@@ -114,7 +114,6 @@ local function main()
         ---@class plc_sys
         plc_sys = {
             rps = nil,          ---@type rps
-            nic = nil,          ---@type nic
             plc_comms = nil,    ---@type plc_comms
             conn_watchdog = nil ---@type watchdog
         },
@@ -189,8 +188,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- create network interface then setup comms
-        smem_sys.nic = backplane.active_nic()
-        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, smem_sys.nic, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
     else
         _println_no_fp("startup> starting in non-networked mode")

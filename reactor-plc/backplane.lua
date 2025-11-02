@@ -7,9 +7,6 @@ local network = require("scada-common.network")
 local ppm     = require("scada-common.ppm")
 local util    = require("scada-common.util")
 
-local databus = require("reactor-plc.databus")
-local plc     = require("reactor-plc.plc")
-
 local println = util.println
 
 ---@class plc_backplane
@@ -22,7 +19,6 @@ local _bp = {
     lan_iface = "",
 
     act_nic = nil,  ---@type nic
-    wl_act = true,
     wd_nic = nil,   ---@type nic|nil
     wl_nic = nil    ---@type nic|nil
 }
@@ -44,32 +40,33 @@ function backplane.init(config, __shared_memory)
     if _bp.smem.networked then
         -- init wired NIC
         if type(config.WiredModem) == "string" then
-            local modem = ppm.get_modem(_bp.lan_iface)
-            _bp.wd_nic = network.nic(modem)
+            local modem  = ppm.get_modem(_bp.lan_iface)
+            local wd_nic = network.nic(modem)
 
             log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
-            plc_state.wd_modem = _bp.wd_nic.is_connected()
+            plc_state.wd_modem = wd_nic.is_connected()
 
             -- set this as active for now
-            _bp.wl_act = false
-            _bp.act_nic = _bp.wd_nic
+            _bp.act_nic = wd_nic
+            _bp.wd_nic  = wd_nic
         end
 
         -- init wireless NIC(s)
         if config.WirelessModem then
             local modem, iface = ppm.get_wireless_modem()
-            _bp.wl_nic = network.nic(modem)
+            local wl_nic       = network.nic(modem)
 
             log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
 
-            plc_state.wl_modem = _bp.wl_nic.is_connected()
+            plc_state.wl_modem = wl_nic.is_connected()
 
             -- set this as active if connected or if both modems are disconnected and this is preferred
             if (modem and _bp.wlan_pref) or not (_bp.act_nic and _bp.act_nic.is_connected()) then
-                _bp.wl_act = true
-                _bp.act_nic = _bp.wl_nic
+                _bp.act_nic = wl_nic
             end
+
+            _bp.wl_nic = wl_nic
         end
 
         -- comms modem is required if networked
@@ -123,6 +120,8 @@ function backplane.active_nic() return _bp.act_nic end
 function backplane.attach(iface, type, device, print_no_fp)
     local MQ__RPS_CMD = _bp.smem.q_cmds.MQ__RPS_CMD
 
+    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
+
     local networked = _bp.smem.networked
     local state     = _bp.smem.plc_state
     local dev       = _bp.smem.plc_dev
@@ -163,52 +162,39 @@ function backplane.attach(iface, type, device, print_no_fp)
 
             log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
 
-            local is_wd = _bp.wd_nic and (_bp.lan_iface == iface)
-            local is_wl = _bp.wl_nic and (not _bp.wl_nic.is_connected()) and m_is_wl
-
-            if is_wd then
+            if wd_nic and (_bp.lan_iface == iface) then
                 -- connect this as the wired NIC
-                _bp.wd_nic.connect(device)
+                wd_nic.connect(device)
 
                 log.info("BKPLN: WIRED PHY_UP " .. iface)
                 print_no_fp("wired comms modem reconnected")
 
                 state.wd_modem = true
 
-                if _bp.act_nic == _bp.wd_nic then
-                    -- set as active
-                    _bp.wl_act  = false
-                    _bp.act_nic = _bp.wd_nic
-                elseif _bp.wl_act and not _bp.wlan_pref then
+                if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
                     -- switch back to preferred wired
-                    _bp.wl_act  = false
-                    _bp.act_nic = _bp.wd_nic
+                    _bp.act_nic = wd_nic
 
                     sys.plc_comms.switch_nic(_bp.act_nic)
                     log.info("BKPLN: switched comms to wired modem (preferred)")
                 end
-            elseif is_wl then
+            elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
                 -- connect this as the wireless NIC
-                _bp.wl_nic.connect(device)
+                wl_nic.connect(device)
 
                 log.info("BKPLN: WIRELESS PHY_UP " .. iface)
                 print_no_fp("wireless comms modem reconnected")
 
                 state.wl_modem = true
 
-                if _bp.act_nic == _bp.wl_nic then
-                    -- set as active
-                    _bp.wl_act  = true
-                    _bp.act_nic = _bp.wl_nic
-                elseif (not _bp.wl_act) and _bp.wlan_pref then
+                if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
                     -- switch back to preferred wireless
-                    _bp.wl_act  = true
-                    _bp.act_nic = _bp.wl_nic
+                    _bp.act_nic = wl_nic
 
                     sys.plc_comms.switch_nic(_bp.act_nic)
                     log.info("BKPLN: switched comms to wireless modem (preferred)")
                 end
-            elseif _bp.wl_nic and m_is_wl then
+            elseif wl_nic and m_is_wl then
                 -- the wireless NIC already has a modem
                 print_no_fp("standby wireless modem connected")
                 log.info("BKPLN: standby wireless modem connected")
@@ -231,6 +217,85 @@ end
 ---@param device table
 ---@param print_no_fp function
 function backplane.detach(iface, type, device, print_no_fp)
+    local MQ__RPS_CMD = _bp.smem.q_cmds.MQ__RPS_CMD
+
+    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
+
+    local state = _bp.smem.plc_state
+    local dev   = _bp.smem.plc_dev
+    local sys   = _bp.smem.plc_sys
+
+    if device == dev.reactor then
+        print_no_fp("reactor disconnected")
+        log.warning("BKPLN: reactor disconnected")
+
+        state.no_reactor = true
+        state.degraded = true
+    elseif _bp.smem.networked and type == "modem" then
+        ---@cast device Modem
+
+        local m_is_wl = device.isWireless()
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_DETACH ", iface))
+
+        if wd_nic and wd_nic.is_modem(device) then
+            wd_nic.disconnect()
+            log.info("BKPLN: WIRED PHY_DOWN " .. iface)
+
+            state.wd_modem = false
+        elseif wl_nic and wl_nic.is_modem(device) then
+            wl_nic.disconnect()
+            log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
+
+            state.wl_modem = false
+        end
+
+        -- we only care if this is our active comms modem
+        if _bp.act_nic.is_modem(device) then
+            print_no_fp("active comms modem disconnected")
+            log.warning("BKPLN: active comms modem disconnected")
+
+            -- failover and try to find a new comms modem
+            if _bp.act_nic == wl_nic then
+                -- wireless active disconnected
+                -- try to find another wireless modem, otherwise switch to wired
+                local modem, m_iface = ppm.get_wireless_modem()
+                if wl_nic and modem then
+                    log.info("BKPLN: found another wireless modem, using it for comms")
+
+                    wl_nic.connect(modem)
+
+                    log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
+                elseif wd_nic and wd_nic.is_connected() then
+                    _bp.act_nic = wd_nic
+
+                    sys.plc_comms.switch_nic(_bp.act_nic)
+                    log.info("BKPLN: switched comms to wired modem")
+                else
+                    -- no other wireless modems, wired unavailable
+                    state.degraded = true
+                    _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
+                end
+            elseif wl_nic and wl_nic.is_connected() then
+                -- wired active disconnected, wireless available
+                _bp.act_nic = wl_nic
+
+                sys.plc_comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wireless modem")
+            else
+                -- wired active disconnected, wireless unavailable
+                state.degraded = true
+                _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.DEGRADED_SCRAM)
+            end
+        elseif wl_nic and m_is_wl then
+            -- wireless, but not active
+            print_no_fp("standby wireless modem disconnected")
+            log.info("BKPLN: standby wireless modem disconnected")
+        else
+            print_no_fp("unassigned modem disconnected")
+            log.warning("BKPLN: unassigned modem disconnected")
+        end
+    end
 end
 
 return backplane
