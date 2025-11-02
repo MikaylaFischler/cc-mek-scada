@@ -5,12 +5,9 @@
 local log     = require("scada-common.log")
 local network = require("scada-common.network")
 local ppm     = require("scada-common.ppm")
-local types   = require("scada-common.types")
 local util    = require("scada-common.util")
 
 local databus = require("supervisor.databus")
-
-local LISTEN_MODE = types.LISTEN_MODE
 
 local println = util.println
 
@@ -47,11 +44,10 @@ function backplane.init(config)
         _bp.wd_nic = nic
         _bp.nic_map[_bp.lan_iface] = nic
 
-        nic.closeAll()
+        log.info("BKPLN: WIRED PHY_UP " .. _bp.lan_iface)
 
-        if config.PLC_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.PLC_Channel) end
-        if config.RTU_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.RTU_Channel) end
-        if config.CRD_Listen ~= LISTEN_MODE.WIRELESS then nic.open(config.CRD_Channel) end
+        nic.closeAll()
+        nic.open(config.SVR_Channel)
 
         databus.tx_hw_wd_modem(true)
     end
@@ -69,21 +65,12 @@ function backplane.init(config)
         _bp.wl_nic = nic
         _bp.nic_map[iface] = nic
 
-        nic.closeAll()
+        log.info("BKPLN: WIRELESS PHY_UP " .. iface)
 
-        if config.PLC_Listen ~= LISTEN_MODE.WIRED then nic.open(config.PLC_Channel) end
-        if config.RTU_Listen ~= LISTEN_MODE.WIRED then nic.open(config.RTU_Channel) end
-        if config.CRD_Listen ~= LISTEN_MODE.WIRED then nic.open(config.CRD_Channel) end
-        if config.PocketEnabled then nic.open(config.PKT_Channel) end
+        nic.closeAll()
+        nic.open(config.SVR_Channel)
 
         databus.tx_hw_wl_modem(true)
-    end
-
-    ---@todo this should be a config check check
-    if not ((type(config.WiredModem) == "string" or config.WirelessModem)) then
-        println("startup> no modems configured")
-        log.fatal("BKPLN: no modems configured")
-        return false
     end
 
     return true

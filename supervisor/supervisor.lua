@@ -1,5 +1,6 @@
 local comms      = require("scada-common.comms")
 local log        = require("scada-common.log")
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local themes     = require("graphics.themes")
@@ -15,6 +16,8 @@ local DEVICE_TYPE   = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local PROBE_ACK     = comms.PROBE_ACK
 local MGMT_TYPE     = comms.MGMT_TYPE
+
+local LISTEN_MODE   = types.LISTEN_MODE
 
 ---@type svr_config
 ---@diagnostic disable-next-line: missing-fields
@@ -114,6 +117,7 @@ function supervisor.load_config()
 
     cfv.assert_type_bool(config.WirelessModem)
     cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
+    cfv.assert((config.WirelessModem == true) or (type(config.WiredModem) == "string"))
 
     cfv.assert_type_num(config.PLC_Listen)
     cfv.assert_range(config.PLC_Listen, 0, 2)
@@ -208,7 +212,9 @@ function supervisor.comms(_version, fp_ok, facility)
         local firmware_v = packet.data[2]
         local dev_type   = packet.data[3]
 
-        if comms_v ~= comms.version then
+        if (config.PLC_Listen ~= LISTEN_MODE.ALL) and (nic.isWireless() ~= (config.PLC_Listen == LISTEN_MODE.WIRELESS)) and periphemu == nil then
+            -- drop if not listening
+        elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
                 log.info(util.c("dropping PLC establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
@@ -266,7 +272,9 @@ function supervisor.comms(_version, fp_ok, facility)
         local firmware_v = packet.data[2]
         local dev_type   = packet.data[3]
 
-        if comms_v ~= comms.version then
+        if (config.RTU_Listen ~= LISTEN_MODE.ALL) and (nic.isWireless() ~= (config.RTU_Listen == LISTEN_MODE.WIRELESS)) and periphemu == nil then
+            -- drop if not listening
+        elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
                 log.info(util.c("dropping RTU_GW establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
@@ -302,7 +310,9 @@ function supervisor.comms(_version, fp_ok, facility)
         local firmware_v = packet.data[2]
         local dev_type   = packet.data[3]
 
-        if comms_v ~= comms.version then
+        if (config.CRD_Listen ~= LISTEN_MODE.ALL) and (nic.isWireless() ~= (config.CRD_Listen == LISTEN_MODE.WIRELESS)) and periphemu == nil then
+            -- drop if not listening
+        elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
                 log.info(util.c("dropping coordinator establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
@@ -341,7 +351,9 @@ function supervisor.comms(_version, fp_ok, facility)
         local firmware_v = packet.data[2]
         local dev_type   = packet.data[3]
 
-        if comms_v ~= comms.version then
+        if not config.PocketEnabled then
+            -- drop if not listening
+        elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
                 log.info(util.c("dropping PKT establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
