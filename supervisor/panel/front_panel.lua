@@ -19,6 +19,7 @@ local core          = require("graphics.core")
 local Div           = require("graphics.elements.Div")
 local ListBox       = require("graphics.elements.ListBox")
 local MultiPane     = require("graphics.elements.MultiPane")
+local Rectangle     = require("graphics.elements.Rectangle")
 local TextBox       = require("graphics.elements.TextBox")
 
 local TabBar        = require("graphics.elements.controls.TabBar")
@@ -29,6 +30,7 @@ local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
+local border = core.border
 
 local ind_grn = style.ind_grn
 
@@ -77,20 +79,18 @@ local function init(panel, config)
         wd_modem.register(databus.ps, "has_wd_modem", wd_modem.update)
     end
 
+    --
+    -- hardware labeling
+    --
+
+    local hw_labels = Rectangle{parent=main_page,x=2,y=term_h-7,width=17,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
+
 ---@diagnostic disable-next-line: undefined-field
-    local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=12,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
+    local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    --
-    -- about footer
-    --
-
-    local about   = Div{parent=main_page,width=15,height=2,y=term_h-3,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
-
-    fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
+    TextBox{parent=hw_labels,text="FW   "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="COMM v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="S/N  SVR-"..comp_id,fg_bg=s_hi_box}
 
     --
     -- page handling

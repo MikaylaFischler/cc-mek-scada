@@ -128,7 +128,7 @@ local function init(panel, config)
     rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
 
     --
-    -- status & controls & hardware labels
+    -- status & controls & hardware labeling
     --
 
     local status = Div{parent=panel,width=term_w-32,height=18,x=17,y=3}
