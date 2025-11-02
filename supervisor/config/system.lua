@@ -203,6 +203,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local function submit_channels()
         local svr_c, plc_c, rtu_c = tonumber(svr_chan.get_value()), tonumber(plc_chan.get_value()), tonumber(rtu_chan.get_value())
         local crd_c, pkt_c = tonumber(crd_chan.get_value()), tonumber(self.pkt_chan.get_value())
+
+        if not tmp_cfg.PocketEnabled then pkt_c = tmp_cfg.PKT_Channel or 16244 end
+
         if svr_c ~= nil and plc_c ~= nil and rtu_c ~= nil and crd_c ~= nil and pkt_c ~= nil then
             tmp_cfg.SVR_Channel, tmp_cfg.PLC_Channel, tmp_cfg.RTU_Channel = svr_c, plc_c, rtu_c
             tmp_cfg.CRD_Channel, tmp_cfg.PKT_Channel = crd_c, pkt_c
@@ -235,17 +238,21 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     local function submit_timeouts()
         local plc_cto, rtu_cto, crd_cto, pkt_cto = tonumber(plc_timeout.get_value()), tonumber(rtu_timeout.get_value()), tonumber(crd_timeout.get_value()), tonumber(self.pkt_timeout.get_value())
+
+        if not tmp_cfg.PocketEnabled then pkt_cto = tmp_cfg.PKT_Timeout or 5 end
+
         if plc_cto ~= nil and rtu_cto ~= nil and crd_cto ~= nil and pkt_cto ~= nil then
             tmp_cfg.PLC_Timeout, tmp_cfg.RTU_Timeout, tmp_cfg.CRD_Timeout, tmp_cfg.PKT_Timeout = plc_cto, rtu_cto, crd_cto, pkt_cto
 
             if tmp_cfg.WirelessModem then
                 net_pane.set_value(5)
-                ct_err.hide(true)
             else
                 tmp_cfg.TrustedRange = 0
                 tmp_cfg.AuthKey = ""
                 main_pane.set_value(4)
             end
+
+            ct_err.hide(true)
         else ct_err.show() end
     end
 
