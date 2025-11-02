@@ -79,6 +79,7 @@ function backplane.init(config)
         databus.tx_hw_wl_modem(true)
     end
 
+    ---@todo this should be a config check check
     if not ((type(config.WiredModem) == "string" or config.WirelessModem)) then
         println("startup> no modems configured")
         log.fatal("BKPLN: no modems configured")
@@ -101,10 +102,7 @@ function backplane.attach(iface, type, device, print_no_fp)
 
         log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
 
-        local is_wd = _bp.wd_nic and (_bp.lan_iface == iface)
-        local is_wl = _bp.wl_nic and (not _bp.wl_nic.is_connected()) and m_is_wl
-
-        if is_wd then
+        if _bp.wd_nic and (_bp.lan_iface == iface) then
             -- connect this as the wired NIC
             _bp.wd_nic.connect(device)
 
@@ -112,7 +110,7 @@ function backplane.attach(iface, type, device, print_no_fp)
             print_no_fp("wired comms modem reconnected")
 
             databus.tx_hw_wd_modem(true)
-        elseif is_wl then
+        elseif _bp.wl_nic and (not _bp.wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
             _bp.wl_nic.connect(device)
             _bp.nic_map[iface] = _bp.wl_nic
@@ -142,14 +140,12 @@ function backplane.detach(iface, type, device, print_no_fp)
         ---@cast device Modem
 
         local m_is_wl = device.isWireless()
-        local was_wd  = _bp.wd_nic and _bp.wd_nic.is_modem(device)
-        local was_wl  = _bp.wl_nic and _bp.wl_nic.is_modem(device)
 
         log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_DETACH ", iface))
 
         _bp.nic_map[iface] = nil
 
-        if _bp.wd_nic and was_wd then
+        if _bp.wd_nic and _bp.wd_nic.is_modem(device) then
             _bp.wd_nic.disconnect()
             log.info("BKPLN: WIRED PHY_DOWN " .. iface)
 
@@ -157,7 +153,7 @@ function backplane.detach(iface, type, device, print_no_fp)
             log.warning("BKPLN: wired comms modem disconnected")
 
             databus.tx_hw_wd_modem(false)
-        elseif _bp.wl_nic and was_wl then
+        elseif _bp.wl_nic and _bp.wl_nic.is_modem(device) then
             _bp.wl_nic.disconnect()
             log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
 

@@ -126,7 +126,7 @@ local function main()
         network.init_mac(config.AuthKey)
     end
 
-    -- hardware backplane initialization
+    -- modem initialization
     if not backplane.init(config) then return end
 
     -- start UI
