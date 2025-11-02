@@ -12,6 +12,7 @@ local style         = require("rtu.panel.style")
 local core          = require("graphics.core")
 
 local Div           = require("graphics.elements.Div")
+local Rectangle     = require("graphics.elements.Rectangle")
 local TextBox       = require("graphics.elements.TextBox")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
@@ -25,6 +26,7 @@ local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
+local border = core.border
 
 local ind_grn = style.ind_grn
 
@@ -32,8 +34,11 @@ local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC 
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
+---@param config rtu_config configuraiton
 ---@param units rtu_registry_entry[] unit list
-local function init(panel, units)
+local function init(panel, config, units)
+    local s_hi_box = style.theme.highlight_box
+
     local disabled_fg = style.fp.disabled_fg
 
     local term_w, term_h = term.getSize()
@@ -53,7 +58,15 @@ local function init(panel, units)
 
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
-    local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+    if config.WirelessModem and config.WiredModem then
+        local wd_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
+        local wl_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
+        wd_modem.register(databus.ps, "has_wd_modem", wd_modem.update)
+        wl_modem.register(databus.ps, "has_wl_modem", wl_modem.update)
+    else
+        local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+        modem.register(databus.ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
+    end
 
     if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.ind_bkg}}
@@ -90,8 +103,6 @@ local function init(panel, units)
 
     system.line_break()
 
-    modem.register(databus.ps, "has_modem", modem.update)
-
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_comm = LED{parent=system,label="RT COMMS",colors=ind_grn}
     system.line_break()
@@ -99,24 +110,26 @@ local function init(panel, units)
     rt_main.register(databus.ps, "routine__main", rt_main.update)
     rt_comm.register(databus.ps, "routine__comms", rt_comm.update)
 
+    --
+    -- hardware labeling
+    --
+
+    local hw_labels = Rectangle{parent=panel,y=term_h-6,width=15,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
+
 ---@diagnostic disable-next-line: undefined-field
-    local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=disabled_fg}
+    local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    TextBox{parent=system,y=term_h-5,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
-    local speaker_count = DataIndicator{parent=system,x=10,y=term_h-5,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
+    TextBox{parent=hw_labels,text="FW  "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT  v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="S/N RTU-"..comp_id,fg_bg=s_hi_box}
+
+    --
+    -- speaker count
+    --
+
+    TextBox{parent=panel,x=2,y=term_h-1,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
+    local speaker_count = DataIndicator{parent=panel,x=11,y=term_h-1,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
     speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
-
-    --
-    -- about label
-    --
-
-    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
-
-    fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
 
     --
     -- unit status list

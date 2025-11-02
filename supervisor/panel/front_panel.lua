@@ -65,32 +65,28 @@ local function init(panel, config)
 
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
-    if config.WirelessModem then
-        local wl_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
-        system.line_break()
-
-        wl_modem.register(databus.ps, "has_wl_modem", wl_modem.update)
-    end
-
-    if config.WiredModem then
+    if config.WirelessModem and config.WiredModem then
         local wd_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
-        system.line_break()
-
+        local wl_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
         wd_modem.register(databus.ps, "has_wd_modem", wd_modem.update)
+        wl_modem.register(databus.ps, "has_wl_modem", wl_modem.update)
+    else
+        local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+        modem.register(databus.ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
     end
 
     --
     -- hardware labeling
     --
 
-    local hw_labels = Rectangle{parent=main_page,x=2,y=term_h-7,width=17,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local hw_labels = Rectangle{parent=main_page,y=term_h-7,width=15,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    TextBox{parent=hw_labels,text="FW   "..databus.ps.get("version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="COMM v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="S/N  SVR-"..comp_id,fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="FW  "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT  v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="S/N SVR-"..comp_id,fg_bg=s_hi_box}
 
     --
     -- page handling

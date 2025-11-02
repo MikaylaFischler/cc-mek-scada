@@ -39,9 +39,7 @@ local ind_red = style.ind_red
 local function init(panel, config)
     local s_hi_box = style.theme.highlight_box
 
-    local disabled_fg = style.fp.disabled_fg
-
-    local term_w, term_h = term.getSize()
+    local term_w, _ = term.getSize()
 
     local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
@@ -64,8 +62,8 @@ local function init(panel, config)
 
     if config.Networked then
         if config.WirelessModem and config.WiredModem then
-            local wl_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
-            local wd_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
+            local wd_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
+            local wl_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
             wd_modem.register(databus.ps, "has_wd_modem", wd_modem.update)
             wl_modem.register(databus.ps, "has_wl_modem", wl_modem.update)
         else
@@ -159,9 +157,9 @@ local function init(panel, config)
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    TextBox{parent=hw_labels,text="FW   "..databus.ps.get("version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="COMM v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="S/N  PLC-"..comp_id,fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="FW  "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT  v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="S/N PLC-"..comp_id,fg_bg=s_hi_box}
 
     --
     -- rps list

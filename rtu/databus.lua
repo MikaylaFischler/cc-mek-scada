@@ -31,10 +31,16 @@ function databus.tx_versions(rtu_v, comms_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
--- transmit hardware status for comms modem connection state
+-- transmit hardware status for the wireless comms modem connection state
 ---@param has_modem boolean
-function databus.tx_hw_modem(has_modem)
-    databus.ps.publish("has_modem", has_modem)
+function databus.tx_hw_wl_modem(has_modem)
+    databus.ps.publish("has_wl_modem", has_modem)
+end
+
+-- transmit hardware status for the wired comms modem connection state
+---@param has_modem boolean
+function databus.tx_hw_wd_modem(has_modem)
+    databus.ps.publish("has_wd_modem", has_modem)
 end
 
 -- transmit the number of speakers connected

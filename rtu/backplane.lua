@@ -49,6 +49,8 @@ function backplane.init(config, __shared_memory)
         -- set this as active for now
         _bp.act_nic = wd_nic
         _bp.wd_nic  = wd_nic
+
+        databus.tx_hw_wd_modem(modem ~= nil)
     end
 
     -- init wireless NIC(s)
@@ -64,9 +66,9 @@ function backplane.init(config, __shared_memory)
         end
 
         _bp.wl_nic = wl_nic
-    end
 
-    databus.tx_hw_modem(_bp.act_nic.is_connected())
+        databus.tx_hw_wl_modem(modem ~= nil)
+    end
 
     -- at least one comms modem is required
     if not ((_bp.wd_nic and _bp.wd_nic.is_connected()) or (_bp.wl_nic and _bp.wl_nic.is_connected())) then
@@ -120,9 +122,13 @@ function backplane.detach(type, device, iface, print_no_fp)
         if wd_nic and wd_nic.is_modem(device) then
             wd_nic.disconnect()
             log.info("BKPLN: WIRED PHY_DOWN " .. iface)
+
+            databus.tx_hw_wd_modem(false)
         elseif wl_nic and wl_nic.is_modem(device) then
             wl_nic.disconnect()
             log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
+
+            databus.tx_hw_wl_modem(false)
         end
 
         -- we only care if this is our active comms modem
@@ -141,13 +147,13 @@ function backplane.detach(type, device, iface, print_no_fp)
                     wl_nic.connect(modem)
 
                     log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
+
+                    databus.tx_hw_wl_modem(true)
                 elseif wd_nic and wd_nic.is_connected() then
                     _bp.act_nic = _bp.wd_nic
 
                     comms.switch_nic(_bp.act_nic)
                     log.info("BKPLN: switched comms to wired modem")
-                else
-                    databus.tx_hw_modem(false)
                 end
             elseif wl_nic and wl_nic.is_connected() then
                 -- wired active disconnected, wireless available
@@ -157,7 +163,6 @@ function backplane.detach(type, device, iface, print_no_fp)
                 log.info("BKPLN: switched comms to wireless modem")
             else
                 -- wired active disconnected, wireless unavailable
-                databus.tx_hw_modem(false)
             end
         elseif _bp.wl_nic and m_is_wl then
             -- wireless, but not active
@@ -214,7 +219,7 @@ function backplane.attach(type, device, iface, print_no_fp)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
 
-                databus.tx_hw_modem(true)
+                databus.tx_hw_wd_modem(true)
             end
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
@@ -229,7 +234,7 @@ function backplane.attach(type, device, iface, print_no_fp)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
 
-                databus.tx_hw_modem(true)
+                databus.tx_hw_wl_modem(true)
             end
         elseif wl_nic and m_is_wl then
             -- the wireless NIC already has a modem

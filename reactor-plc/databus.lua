@@ -43,7 +43,9 @@ end
 
 -- transmit unit ID across the bus
 ---@param id integer unit ID
-function databus.tx_id(id) databus.ps.publish("unit_id", id) end
+function databus.tx_id(id)
+    databus.ps.publish("unit_id", id)
+end
 
 -- transmit hardware status across the bus
 ---@param plc_state plc_state
@@ -57,15 +59,21 @@ end
 -- transmit thread (routine) statuses
 ---@param thread string thread name
 ---@param ok boolean thread state
-function databus.tx_rt_status(thread, ok) databus.ps.publish(util.c("routine__", thread), ok) end
+function databus.tx_rt_status(thread, ok)
+    databus.ps.publish(util.c("routine__", thread), ok)
+end
 
 -- transmit supervisor link state across the bus
 ---@param state integer
-function databus.tx_link_state(state) databus.ps.publish("link_state", state) end
+function databus.tx_link_state(state)
+    databus.ps.publish("link_state", state)
+end
 
 -- transmit reactor enable state across the bus
 ---@param active any reactor active
-function databus.tx_reactor_state(active) databus.ps.publish("reactor_active", active == true) end
+function databus.tx_reactor_state(active)
+    databus.ps.publish("reactor_active", active == true)
+end
 
 -- transmit RPS data across the bus
 ---@param tripped boolean RPS tripped

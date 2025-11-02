@@ -124,7 +124,7 @@ local function main()
 
         -- start UI
         local message
-        rtu_state.fp_ok, message = renderer.try_start_ui(units, config.FrontPanelTheme, config.ColorMode)
+        rtu_state.fp_ok, message = renderer.try_start_ui(config, units)
 
         if not rtu_state.fp_ok then
             println_ts(util.c("UI error: ", message))
