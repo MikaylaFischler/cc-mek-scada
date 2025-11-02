@@ -149,18 +149,39 @@ local function handle_timeout()
 end
 
 -- attempt a connection to the supervisor to get cooling info
-local function sv_connect()
+---@param cfg crd_config current configuration for modem settings
+local function sv_connect(cfg)
     self.sv_conn_button.disable()
     self.sv_conn_detail.set_value("")
 
-    local modem = ppm.get_wireless_modem()
+    local modem = nil
+
+    if cfg.WirelessModem then
+        modem = ppm.get_wireless_modem()
+
+        if cfg.WiredModem then
+            local wd_modem = ppm.get_modem(cfg.WiredModem)
+
+            if cfg.PreferWireless then
+                if not modem then
+                    modem = wd_modem
+                end
+            else
+                if wd_modem then
+                    modem = wd_modem
+                end
+            end
+        end
+    elseif cfg.WiredModem then
+        modem = ppm.get_modem(cfg.WiredModem)
+    end
+
     if modem == nil then
-        self.sv_conn_status.set_value("Please connect an ender/wireless modem.")
+        self.sv_conn_status.set_value("Could not find configured modem(s).")
     else
         self.sv_conn_status.set_value("Modem found, connecting...")
-        if self.nic == nil then self.nic = network.nic(modem) end
 
-        self.nic.closeAll()
+        self.nic = network.nic(modem)
         self.nic.open(self.tmp_cfg.CRD_Channel)
 
         self.sv_addr = comms.BROADCAST
@@ -209,7 +230,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     self.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,text=""}
     self.sv_conn_detail = TextBox{parent=fac_c_1,x=1,y=11,height=2,text=""}
 
-    self.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()sv_connect()end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    self.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()sv_connect(tmp_cfg)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
     local function sv_skip()
         tcd.abort(handle_timeout)
