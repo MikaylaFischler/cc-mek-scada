@@ -293,7 +293,7 @@ end
 -- RTU Communications
 ---@nodiscard
 ---@param version string RTU version
----@param nic nic|nil network interface device
+---@param nic nic network interface device
 ---@param conn_watchdog watchdog watchdog reference
 function rtu.comms(version, nic, conn_watchdog)
     local self = {
@@ -306,15 +306,12 @@ function rtu.comms(version, nic, conn_watchdog)
 
     local insert = table.insert
 
-    -- CONDITIONAL PRIVATE FUNCTIONS --
-
-    -- these don't check for nic to be nil to save execution time on functions called extremely often
-    -- when the nic isn't present, the aliases _send and _send_modbus are cleared
+    -- PRIVATE FUNCTIONS --
 
     -- send a scada management packet
     ---@param msg_type MGMT_TYPE
     ---@param msg table
-    local function _nic_send(msg_type, msg)
+    local function _send(msg_type, msg)
         local s_pkt = comms.scada_packet()
         local m_pkt = comms.mgmt_packet()
 
@@ -325,23 +322,6 @@ function rtu.comms(version, nic, conn_watchdog)
         nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
-
-    -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_packet
-    local function _nic_send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
-
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-
----@diagnostic disable-next-line: need-check-nil
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
-        self.seq_num = self.seq_num + 1
-    end
-
-    -- PRIVATE FUNCTIONS --
-
-    -- send a scada management packet
-    local _send = _nic_send
 
     -- keep alive ack
     ---@param srv_time integer
@@ -372,8 +352,21 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@class rtu_comms
     local public = {}
 
-    -- send a MODBUS TCP packet
-    public.send_modbus = _nic_send_modbus
+    -- switch the current active NIC
+    ---@param _nic nic
+    function public.switch_nic(_nic)
+        nic.closeAll()
+
+        if _nic.isWireless() then
+            comms.set_trusted_range(config.TrustedRange)
+        end
+
+        -- configure receive channels
+        _nic.closeAll()
+        _nic.open(config.RTU_Channel)
+
+        nic = _nic
+    end
 
     -- unlink from the server
     ---@param rtu_state rtu_state
@@ -390,6 +383,18 @@ function rtu.comms(version, nic, conn_watchdog)
         conn_watchdog.cancel()
         public.unlink(rtu_state)
         _send(MGMT_TYPE.CLOSE, {})
+    end
+
+    -- send a MODBUS TCP packet
+    ---@param m_pkt modbus_packet
+    function public.send_modbus(m_pkt)
+        local s_pkt = comms.scada_packet()
+
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+
+---@diagnostic disable-next-line: need-check-nil
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        self.seq_num = self.seq_num + 1
     end
 
     -- send establish request (includes advertisement)
@@ -611,34 +616,6 @@ function rtu.comms(version, nic, conn_watchdog)
             log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
-
-    -- set the current NIC
-    ---@param _nic nic
-    function public.assign_nic(_nic)
-        if nic then nic.closeAll() end
-
-        if _nic.isWireless() then
-            comms.set_trusted_range(config.TrustedRange)
-        end
-
-        -- configure receive channels
-        _nic.closeAll()
-        _nic.open(config.RTU_Channel)
-
-        nic = _nic
-        _send = _nic_send
-        public.send_modbus = _nic_send_modbus
-    end
-
-    -- clear the current NIC
-    function public.unassign_nic()
-        _send = function () end
-        public.send_modbus = function () end
-        nic = nil
-    end
-
-    -- set the NIC if one was given
-    if nic then public.assign_nic(nic) else public.unassign_nic() end
 
     return public
 end

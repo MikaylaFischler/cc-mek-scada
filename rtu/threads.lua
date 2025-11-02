@@ -247,7 +247,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" or type == "speaker" then
-                        backplane.detach(type, device, param1)
+                        backplane.detach(type, device, param1, println_ts)
                     else
                         for i = 1, #units do
                             -- find disconnected device
@@ -272,7 +272,7 @@ function threads.thread__main(smem)
 
                 if type ~= nil and device ~= nil then
                     if type == "modem" or type == "speaker" then
-                        backplane.attach(type, device, param1)
+                        backplane.attach(type, device, param1, println_ts)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do

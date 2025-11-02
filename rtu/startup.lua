@@ -112,14 +112,15 @@ local function main()
     local units     = __shared_memory.rtu_sys.units
 
     ----------------------------------------
-    -- start system
+    -- init and start system
     ----------------------------------------
+
+    -- modem and speaker initialization
+    if not backplane.init(config, __shared_memory) then return end
 
     log.debug("boot> running uinit()")
 
     if uinit(config, __shared_memory) then
-        -- init backplane peripherals
-        backplane.init(config, __shared_memory)
 
         -- start UI
         local message
@@ -139,11 +140,7 @@ local function main()
         -- setup comms
         local nic = backplane.active_nic()
         smem_sys.rtu_comms = rtu.comms(RTU_VERSION, nic, smem_sys.conn_watchdog)
-        if nic then
-            log.debug("startup> comms init")
-        else
-            log.warning("startup> no comms modem on startup")
-        end
+        log.debug("startup> comms init")
 
         -- init threads
         local main_thread  = threads.thread__main(__shared_memory)
