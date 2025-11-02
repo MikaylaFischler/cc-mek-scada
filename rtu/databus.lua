@@ -70,11 +70,4 @@ function databus.tx_link_state(state)
     databus.ps.publish("link_state", state)
 end
 
--- link a function to receive data from the bus
----@param field string field name
----@param func function function to link
-function databus.rx_field(field, func)
-    databus.ps.subscribe(field, func)
-end
-
 return databus

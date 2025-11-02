@@ -94,11 +94,4 @@ function databus.tx_rps(tripped, status, emer_cool_active)
     databus.ps.publish("emer_cool", emer_cool_active)
 end
 
--- link a function to receive data from the bus
----@param field string field name
----@param func function function to link
-function databus.rx_field(field, func)
-    databus.ps.subscribe(field, func)
-end
-
 return databus
