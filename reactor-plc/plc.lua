@@ -559,15 +559,15 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         max_burn_rate = nil
     }
 
-    if nic.isWireless() then
+    if config.WirelessModem then
         comms.set_trusted_range(config.TrustedRange)
     end
-
-    -- PRIVATE FUNCTIONS --
 
     -- configure network channels
     nic.closeAll()
     nic.open(config.PLC_Channel)
+
+    --#region PRIVATE FUNCTIONS --
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPE
@@ -825,7 +825,9 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         end
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class plc_comms
     local public = {}
@@ -834,10 +836,6 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param _nic nic
     function public.switch_nic(_nic)
         nic.closeAll()
-
-        if _nic.isWireless() then
-            comms.set_trusted_range(config.TrustedRange)
-        end
 
         -- configure receive channels
         _nic.closeAll()
@@ -1122,6 +1120,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     function public.is_scrammed() return self.scrammed end
     ---@nodiscard
     function public.is_linked() return self.linked end
+
+    --#endregion
 
     return public
 end

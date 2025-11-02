@@ -164,12 +164,14 @@ function supervisor.comms(_version, fp_ok, facility)
         last_est_acks = {}  ---@type ESTABLISH_ACK[]
     }
 
-    comms.set_trusted_range(config.TrustedRange)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
     -- pass system data and objects to svsessions
     svsessions.init(fp_ok, config, facility)
 
-    -- PRIVATE FUNCTIONS --
+    --#region PRIVATE FUNCTIONS --
 
     -- send an establish request response
     ---@param nic nic
@@ -376,7 +378,9 @@ function supervisor.comms(_version, fp_ok, facility)
 
     --#endregion
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class superv_comms
     local public = {}
@@ -600,6 +604,8 @@ function supervisor.comms(_version, fp_ok, facility)
             log.debug("received packet for unknown channel " .. r_chan, true)
         end
     end
+
+    --#endregion
 
     return public
 end

@@ -306,7 +306,15 @@ function rtu.comms(version, nic, conn_watchdog)
 
     local insert = table.insert
 
-    -- PRIVATE FUNCTIONS --
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
+
+    -- configure network channels
+    nic.closeAll()
+    nic.open(config.RTU_Channel)
+
+    --#region PRIVATE FUNCTIONS --
 
     -- send a scada management packet
     ---@param msg_type MGMT_TYPE
@@ -347,7 +355,9 @@ function rtu.comms(version, nic, conn_watchdog)
         return advertisement
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class rtu_comms
     local public = {}
@@ -356,10 +366,6 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param _nic nic
     function public.switch_nic(_nic)
         nic.closeAll()
-
-        if _nic.isWireless() then
-            comms.set_trusted_range(config.TrustedRange)
-        end
 
         -- configure receive channels
         _nic.closeAll()
@@ -616,6 +622,8 @@ function rtu.comms(version, nic, conn_watchdog)
             log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
+
+    --#endregion
 
     return public
 end
