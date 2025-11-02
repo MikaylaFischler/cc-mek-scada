@@ -66,11 +66,11 @@ local function init(panel, config)
         if config.WirelessModem and config.WiredModem then
             local wl_modem = LED{parent=system,label="WD MODEM",colors=ind_grn}
             local wd_modem = LED{parent=system,label="WL MODEM",colors=ind_grn}
-            wd_modem.register(databus.ps, "wd_modem", wd_modem.update)
-            wl_modem.register(databus.ps, "wl_modem", wl_modem.update)
+            wd_modem.register(databus.ps, "has_wd_modem", wd_modem.update)
+            wl_modem.register(databus.ps, "has_wl_modem", wl_modem.update)
         else
             local modem = LED{parent=system,label="MODEM",colors=ind_grn}
-            modem.register(databus.ps, util.trinary(config.WirelessModem, "wl_modem", "wd_modem"), modem.update)
+            modem.register(databus.ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
         end
     else
         local _ = LED{parent=system,label="MODEM",colors=ind_grn}
@@ -127,12 +127,8 @@ local function init(panel, config)
     rt_cmrx.register(databus.ps, "routine__comms_rx", rt_cmrx.update)
     rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
 
----@diagnostic disable-next-line: undefined-field
-    local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=5,width=6,text=comp_id,fg_bg=disabled_fg}
-
     --
-    -- status & controls
+    -- status & controls & hardware labels
     --
 
     local status = Div{parent=panel,width=term_w-32,height=18,x=17,y=3}
@@ -158,14 +154,14 @@ local function init(panel, config)
     active.register(databus.ps, "reactor_active", active.update)
     scram.register(databus.ps, "rps_scram", scram.update)
 
-    --
-    -- about footer
-    --
+    local hw_labels = Rectangle{parent=status,width=status.get_width()-2,height=5,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
-    local info_text = util.sprintf("FW: %s | NT: v%s", databus.ps.get("version"), databus.ps.get("comms_version"))
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    local about = Div{parent=panel,height=1,y=term_h,fg_bg=disabled_fg}
-    TextBox{parent=about,y=1,text=info_text}
+    TextBox{parent=hw_labels,text="FW   "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="COMM v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="S/N  PLC-"..comp_id,fg_bg=s_hi_box}
 
     --
     -- rps list
