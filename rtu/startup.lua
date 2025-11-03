@@ -138,8 +138,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        local nic = backplane.active_nic()
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, nic, smem_sys.conn_watchdog)
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, backplane.active_nic(), smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 
         -- init threads

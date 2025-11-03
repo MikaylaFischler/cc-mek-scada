@@ -71,7 +71,7 @@ function backplane.init(config, __shared_memory)
 
         -- comms modem is required if networked
         if not (plc_state.wd_modem or plc_state.wl_modem) then
-            println("startup> comms modem not found")
+            println("startup> no comms modem found")
             log.warning("BKPLN: no comms modem on startup")
 
             plc_state.degraded = true

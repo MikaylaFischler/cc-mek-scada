@@ -72,7 +72,7 @@ function backplane.init(config, __shared_memory)
 
     -- at least one comms modem is required
     if not ((_bp.wd_nic and _bp.wd_nic.is_connected()) or (_bp.wl_nic and _bp.wl_nic.is_connected())) then
-        println("startup> comms modem not found")
+        println("startup> no comms modem found")
         log.warning("BKPLN: no comms modem on startup")
         return false
     end
