@@ -47,6 +47,10 @@ function coordinator.load_config()
     config.FlowDisplay = settings.get("FlowDisplay")
     config.UnitDisplays = settings.get("UnitDisplays")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
+    config.API_Enabled = settings.get("API_Enabled")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.CRD_Channel = settings.get("CRD_Channel")
     config.PKT_Channel = settings.get("PKT_Channel")
@@ -79,6 +83,13 @@ function coordinator.load_config()
 
     cfv.assert_type_num(config.SpeakerVolume)
     cfv.assert_range(config.SpeakerVolume, 0, 3)
+
+    cfv.assert_type_bool(config.WirelessModem)
+    cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
+    cfv.assert(config.WirelessModem or (type(config.WiredModem) == "string"))
+    cfv.assert_type_bool(config.PreferWireless)
+
+    cfv.assert_type_bool(config.API_Enabled)
 
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.CRD_Channel)
