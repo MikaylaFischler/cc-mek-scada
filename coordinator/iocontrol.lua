@@ -290,9 +290,13 @@ end
 -- toggle heartbeat indicator
 function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
 
+-- report presence of the wired modem
+---@param has_modem boolean
+function iocontrol.fp_has_wd_modem(has_modem) io.fp.ps.publish("has_wd_modem", has_modem) end
+
 -- report presence of the wireless modem
 ---@param has_modem boolean
-function iocontrol.fp_has_modem(has_modem) io.fp.ps.publish("has_modem", has_modem) end
+function iocontrol.fp_has_wl_modem(has_modem) io.fp.ps.publish("has_wl_modem", has_modem) end
 
 -- report presence of the speaker
 ---@param has_speaker boolean

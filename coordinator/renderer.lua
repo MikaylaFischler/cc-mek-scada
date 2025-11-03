@@ -29,7 +29,7 @@ local renderer = {}
 -- render engine
 local engine = {
     color_mode = 1,         ---@type COLOR_MODE
-    monitors = nil,         ---@type monitors_struct|nil
+    monitors = nil,         ---@type crd_displays|nil
     dmesg_window = nil,     ---@type Window|nil
     ui_ready = false,
     fp_ready = false,
@@ -83,7 +83,7 @@ function renderer.configure(config)
 end
 
 -- link to the monitor peripherals
----@param monitors monitors_struct
+---@param monitors crd_displays
 function renderer.set_displays(monitors)
     engine.monitors = monitors
 
@@ -336,18 +336,18 @@ function renderer.handle_reconnect(name, device)
     -- note: handle_resize is a more adaptive way of re-initializing a connected monitor
     --       since it can handle a monitor being reconnected that isn't the right size
 
-    if engine.monitors.main_name == name then
+    if engine.monitors.main_iface == name then
         is_used = true
         engine.monitors.main = device
 
         renderer.handle_resize(name)
-    elseif engine.monitors.flow_name == name then
+    elseif engine.monitors.flow_iface == name then
         is_used = true
         engine.monitors.flow = device
 
         renderer.handle_resize(name)
     else
-        for idx, monitor in ipairs(engine.monitors.unit_name_map) do
+        for idx, monitor in ipairs(engine.monitors.unit_ifaces) do
             if monitor == name then
                 is_used = true
                 engine.monitors.unit_displays[idx] = device
@@ -372,7 +372,7 @@ function renderer.handle_resize(name)
 
     if not engine.monitors then return false, false end
 
-    if engine.monitors.main_name == name and engine.monitors.main then
+    if engine.monitors.main_iface == name and engine.monitors.main then
         local device = engine.monitors.main  ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
@@ -415,7 +415,7 @@ function renderer.handle_resize(name)
                 is_ok = false
             end
         else engine.dmesg_window.redraw() end
-    elseif engine.monitors.flow_name == name and engine.monitors.flow then
+    elseif engine.monitors.flow_iface == name and engine.monitors.flow then
         local device = engine.monitors.flow ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
@@ -452,7 +452,7 @@ function renderer.handle_resize(name)
             end
         end
     else
-        for idx, monitor in ipairs(engine.monitors.unit_name_map) do
+        for idx, monitor in ipairs(engine.monitors.unit_ifaces) do
             local device = engine.monitors.unit_displays[idx]
 
             if monitor == name and device then
@@ -505,12 +505,12 @@ function renderer.handle_mouse(event)
         if engine.fp_ready and event.monitor == "terminal" then
             engine.ui.front_panel.handle_mouse(event)
         elseif engine.ui_ready then
-            if event.monitor == engine.monitors.main_name then
+            if event.monitor == engine.monitors.main_iface then
                 if engine.ui.main_display then engine.ui.main_display.handle_mouse(event) end
-            elseif event.monitor == engine.monitors.flow_name then
+            elseif event.monitor == engine.monitors.flow_iface then
                 if engine.ui.flow_display then engine.ui.flow_display.handle_mouse(event) end
             else
-                for id, monitor in ipairs(engine.monitors.unit_name_map) do
+                for id, monitor in ipairs(engine.monitors.unit_ifaces) do
                     local display = engine.ui.unit_displays[id]
                     if event.monitor == monitor and display then
                         if display then display.handle_mouse(event) end
