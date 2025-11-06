@@ -102,6 +102,73 @@ function backplane.active_nic() return _bp.act_nic end
 ---@return rtu_speaker_sounder[]
 function backplane.sounders() return _bp.sounders end
 
+-- handle a backplane peripheral attach
+---@param type string
+---@param device table
+---@param iface string
+---@param print_no_fp function
+function backplane.attach(type, device, iface, print_no_fp)
+    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
+
+    local comms = _bp.smem.rtu_sys.rtu_comms
+
+    if type == "modem" then
+        ---@cast device Modem
+
+        local m_is_wl = device.isWireless()
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
+
+        if wd_nic and (_bp.lan_iface == iface) then
+            -- connect this as the wired NIC
+            wd_nic.connect(device)
+
+            log.info("BKPLN: WIRED PHY_UP " .. iface)
+            print_no_fp("wired comms modem reconnected")
+
+            if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
+                -- switch back to preferred wired
+                _bp.act_nic = wd_nic
+
+                comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wired modem (preferred)")
+
+                databus.tx_hw_wd_modem(true)
+            end
+        elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
+            -- connect this as the wireless NIC
+            wl_nic.connect(device)
+
+            log.info("BKPLN: WIRELESS PHY_UP " .. iface)
+
+            if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
+                -- switch back to preferred wireless
+                _bp.act_nic = wl_nic
+
+                comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wireless modem (preferred)")
+
+                databus.tx_hw_wl_modem(true)
+            end
+        elseif wl_nic and m_is_wl then
+            -- the wireless NIC already has a modem
+            print_no_fp("standby wireless modem connected")
+            log.info("BKPLN: standby wireless modem connected")
+        else
+            print_no_fp("unassigned modem connected")
+            log.warning("BKPLN: unassigned modem connected")
+        end
+    elseif type == "speaker" then
+        ---@cast device Speaker
+        table.insert(_bp.sounders, rtu.init_sounder(device))
+
+        print_no_fp("a speaker was connected")
+        log.info(util.c("BKPLN: connected speaker ", iface))
+
+        databus.tx_hw_spkr_count(#_bp.sounders)
+    end
+end
+
 -- handle a backplane peripheral detach
 ---@param type string
 ---@param device table
@@ -185,73 +252,6 @@ function backplane.detach(type, device, iface, print_no_fp)
                 break
             end
         end
-    end
-end
-
--- handle a backplane peripheral attach
----@param type string
----@param device table
----@param iface string
----@param print_no_fp function
-function backplane.attach(type, device, iface, print_no_fp)
-    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
-
-    local comms = _bp.smem.rtu_sys.rtu_comms
-
-    if type == "modem" then
-        ---@cast device Modem
-
-        local m_is_wl = device.isWireless()
-
-        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
-
-        if wd_nic and (_bp.lan_iface == iface) then
-            -- connect this as the wired NIC
-            wd_nic.connect(device)
-
-            log.info("BKPLN: WIRED PHY_UP " .. iface)
-            print_no_fp("wired comms modem reconnected")
-
-            if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
-                -- switch back to preferred wired
-                _bp.act_nic = wd_nic
-
-                comms.switch_nic(_bp.act_nic)
-                log.info("BKPLN: switched comms to wired modem (preferred)")
-
-                databus.tx_hw_wd_modem(true)
-            end
-        elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
-            -- connect this as the wireless NIC
-            wl_nic.connect(device)
-
-            log.info("BKPLN: WIRELESS PHY_UP " .. iface)
-
-            if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
-                -- switch back to preferred wireless
-                _bp.act_nic = wl_nic
-
-                comms.switch_nic(_bp.act_nic)
-                log.info("BKPLN: switched comms to wireless modem (preferred)")
-
-                databus.tx_hw_wl_modem(true)
-            end
-        elseif wl_nic and m_is_wl then
-            -- the wireless NIC already has a modem
-            print_no_fp("standby wireless modem connected")
-            log.info("BKPLN: standby wireless modem connected")
-        else
-            print_no_fp("unassigned modem connected")
-            log.warning("BKPLN: unassigned modem connected")
-        end
-    elseif type == "speaker" then
-        ---@cast device Speaker
-        table.insert(_bp.sounders, rtu.init_sounder(device))
-
-        print_no_fp("a speaker was connected")
-        log.info(util.c("BKPLN: connected speaker ", iface))
-
-        databus.tx_hw_spkr_count(#_bp.sounders)
     end
 end
 
