@@ -121,7 +121,6 @@ local function main()
     log.debug("boot> running uinit()")
 
     if uinit(config, __shared_memory) then
-
         -- start UI
         local message
         rtu_state.fp_ok, message = renderer.try_start_ui(config, units)

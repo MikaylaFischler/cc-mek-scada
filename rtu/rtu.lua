@@ -326,7 +326,6 @@ function rtu.comms(version, nic, conn_watchdog)
         m_pkt.make(msg_type, msg)
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
----@diagnostic disable-next-line: need-check-nil
         nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end

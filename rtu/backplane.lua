@@ -150,7 +150,7 @@ function backplane.detach(type, device, iface, print_no_fp)
 
                     databus.tx_hw_wl_modem(true)
                 elseif wd_nic and wd_nic.is_connected() then
-                    _bp.act_nic = _bp.wd_nic
+                    _bp.act_nic = wd_nic
 
                     comms.switch_nic(_bp.act_nic)
                     log.info("BKPLN: switched comms to wired modem")
