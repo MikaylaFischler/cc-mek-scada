@@ -48,8 +48,8 @@ function threads.thread__main(smem)
         local plc_comms     = smem.plc_sys.plc_comms
         local conn_watchdog = smem.plc_sys.conn_watchdog
 
-        local MQ__RPS_CMD   = smem.q_cmds.MQ__RPS_CMD
-        local MQ__COMM_CMD  = smem.q_cmds.MQ__COMM_CMD
+        local MQ__RPS_CMD   = smem.q_types.MQ__RPS_CMD
+        local MQ__COMM_CMD  = smem.q_types.MQ__COMM_CMD
 
         -- start clock
         loop_clock.start()
@@ -204,7 +204,7 @@ function threads.thread__rps(smem)
 
         local rps_queue   = smem.q.mq_rps
 
-        local MQ__RPS_CMD = smem.q_cmds.MQ__RPS_CMD
+        local MQ__RPS_CMD = smem.q_types.MQ__RPS_CMD
 
         local was_linked  = false
         local last_update = util.time()
@@ -339,7 +339,7 @@ function threads.thread__comms_tx(smem)
         local plc_state    = smem.plc_state
         local comms_queue  = smem.q.mq_comms_tx
 
-        local MQ__COMM_CMD = smem.q_cmds.MQ__COMM_CMD
+        local MQ__COMM_CMD = smem.q_types.MQ__COMM_CMD
 
         local last_update = util.time()
 

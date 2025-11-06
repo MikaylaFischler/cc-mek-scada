@@ -118,7 +118,7 @@ function backplane.active_nic() return _bp.act_nic end
 ---@param device table
 ---@param print_no_fp function
 function backplane.attach(iface, type, device, print_no_fp)
-    local MQ__RPS_CMD = _bp.smem.q_cmds.MQ__RPS_CMD
+    local MQ__RPS_CMD = _bp.smem.q_types.MQ__RPS_CMD
 
     local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
 
@@ -217,7 +217,7 @@ end
 ---@param device table
 ---@param print_no_fp function
 function backplane.detach(iface, type, device, print_no_fp)
-    local MQ__RPS_CMD = _bp.smem.q_cmds.MQ__RPS_CMD
+    local MQ__RPS_CMD = _bp.smem.q_types.MQ__RPS_CMD
 
     local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
 
@@ -266,6 +266,8 @@ function backplane.detach(iface, type, device, print_no_fp)
                     wl_nic.connect(modem)
 
                     log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
+
+                    state.wl_modem = true
                 elseif wd_nic and wd_nic.is_connected() then
                     _bp.act_nic = wd_nic
 

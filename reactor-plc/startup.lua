@@ -125,8 +125,8 @@ local function main()
             mq_comms_rx = mqueue.new()
         },
 
-        -- message queue commands
-        q_cmds = {
+        -- message queue message types
+        q_types = {
             MQ__RPS_CMD = {
                 SCRAM = 1,
                 DEGRADED_SCRAM = 2,
