@@ -1,6 +1,5 @@
 local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
-local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
 local types       = require("scada-common.types")
 
@@ -252,15 +251,15 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     local public = {}
 
     -- switch the current active NIC
-    ---@param _nic nic
-    function public.switch_nic(_nic)
+    ---@param act_nic nic
+    function public.switch_nic(act_nic)
         nic.closeAll()
 
         -- configure receive channels
-        _nic.closeAll()
-        _nic.open(config.CRD_Channel)
+        act_nic.closeAll()
+        act_nic.open(config.CRD_Channel)
 
-        nic = _nic
+        nic = act_nic
     end
 
     -- try to connect to the supervisor if not already linked

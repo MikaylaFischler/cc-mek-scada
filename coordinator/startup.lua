@@ -116,7 +116,8 @@ if not disp_ok then
             disp_ok, disp_err = backplane.init_displays(config)
 
             if not disp_ok then
-                println("monitor configuration invalid, please reconfigure")
+                println(disp_err)
+                println("please reconfigure")
                 return
             end
         end

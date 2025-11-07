@@ -94,7 +94,7 @@ local function main()
         },
 
         -- system objects
-        ---@class rtu_sys 
+        ---@class rtu_sys
         rtu_sys = {
             rtu_comms = nil,     ---@type rtu_comms
             conn_watchdog = nil, ---@type watchdog

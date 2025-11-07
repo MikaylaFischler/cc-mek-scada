@@ -362,15 +362,15 @@ function rtu.comms(version, nic, conn_watchdog)
     local public = {}
 
     -- switch the current active NIC
-    ---@param _nic nic
-    function public.switch_nic(_nic)
+    ---@param act_nic nic
+    function public.switch_nic(act_nic)
         nic.closeAll()
 
         -- configure receive channels
-        _nic.closeAll()
-        _nic.open(config.RTU_Channel)
+        act_nic.closeAll()
+        act_nic.open(config.RTU_Channel)
 
-        nic = _nic
+        nic = act_nic
     end
 
     -- unlink from the server
