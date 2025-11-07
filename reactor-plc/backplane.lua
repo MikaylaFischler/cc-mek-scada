@@ -109,7 +109,6 @@ function backplane.init(config, __shared_memory)
 end
 
 -- get the active NIC
----@return nic
 function backplane.active_nic() return _bp.act_nic end
 
 -- handle a backplane peripheral attach

@@ -95,11 +95,9 @@ function backplane.init(config, __shared_memory)
 end
 
 -- get the active NIC
----@return nic
 function backplane.active_nic() return _bp.act_nic end
 
 -- get the sounder interfaces
----@return rtu_speaker_sounder[]
 function backplane.sounders() return _bp.sounders end
 
 -- handle a backplane peripheral attach
@@ -126,20 +124,23 @@ function backplane.attach(type, device, iface, print_no_fp)
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             print_no_fp("wired comms modem reconnected")
 
+            databus.tx_hw_wd_modem(true)
+
             if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
                 -- switch back to preferred wired
                 _bp.act_nic = wd_nic
 
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
-
-                databus.tx_hw_wd_modem(true)
             end
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
             wl_nic.connect(device)
 
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
+            print_no_fp("wireless comms modem reconnected")
+
+            databus.tx_hw_wl_modem(true)
 
             if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
                 -- switch back to preferred wireless
@@ -147,8 +148,6 @@ function backplane.attach(type, device, iface, print_no_fp)
 
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
-
-                databus.tx_hw_wl_modem(true)
             end
         elseif wl_nic and m_is_wl then
             -- the wireless NIC already has a modem
@@ -163,7 +162,7 @@ function backplane.attach(type, device, iface, print_no_fp)
         table.insert(_bp.sounders, rtu.init_sounder(device))
 
         print_no_fp("a speaker was connected")
-        log.info(util.c("BKPLN: connected speaker ", iface))
+        log.info("BKPLN: connected speaker " .. iface)
 
         databus.tx_hw_spkr_count(#_bp.sounders)
     end
@@ -246,7 +245,7 @@ function backplane.detach(type, device, iface, print_no_fp)
                 table.remove(_bp.sounders, i)
 
                 print_no_fp("a speaker was disconnected")
-                log.warning(util.c("BKPLN: speaker ", iface, " disconnected"))
+                log.warning("BKPLN: speaker " .. iface .. " disconnected")
 
                 databus.tx_hw_spkr_count(#_bp.sounders)
                 break
