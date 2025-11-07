@@ -84,9 +84,11 @@ function backplane.init(config, __shared_memory)
     for _, s in pairs(speakers) do
         local sounder = rtu.init_sounder(s)
 
+        log.info("BKPLN: SPEAKER LINK_UP " .. sounder.name)
+
         table.insert(_bp.sounders, sounder)
 
-        log.debug(util.c("BKPLN: added speaker, attached as ", sounder.name))
+        log.debug(util.c("BKPLN: added speaker sounder, attached as ", sounder.name))
     end
 
     databus.tx_hw_spkr_count(#_bp.sounders)
@@ -159,10 +161,13 @@ function backplane.attach(type, device, iface, print_no_fp)
         end
     elseif type == "speaker" then
         ---@cast device Speaker
+
+        log.info("BKPLN: SPEAKER LINK_UP " .. iface)
+
         table.insert(_bp.sounders, rtu.init_sounder(device))
 
         print_no_fp("a speaker was connected")
-        log.info("BKPLN: connected speaker " .. iface)
+        log.info("BKPLN: setup speaker sounder for speaker " .. iface)
 
         databus.tx_hw_spkr_count(#_bp.sounders)
     end
@@ -240,12 +245,15 @@ function backplane.detach(type, device, iface, print_no_fp)
         end
     elseif type == "speaker" then
         ---@cast device Speaker
+
+        log.info("BKPLN: SPEAKER LINK_DOWN " .. iface)
+
         for i = 1, #_bp.sounders do
             if _bp.sounders[i].speaker == device then
                 table.remove(_bp.sounders, i)
 
                 print_no_fp("a speaker was disconnected")
-                log.warning("BKPLN: speaker " .. iface .. " disconnected")
+                log.warning("BKPLN: speaker sounder " .. iface .. " disconnected")
 
                 databus.tx_hw_spkr_count(#_bp.sounders)
                 break
