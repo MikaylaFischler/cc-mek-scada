@@ -390,7 +390,40 @@ function backplane.detach(type, device, iface)
         end
     elseif type == "monitor" then
         ---@cast device Monitor
-        _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_DISCONNECT, device)
+
+        local is_used = false
+
+        log.info("BKPLN: MONITOR LINK_DOWN " .. iface)
+
+        if _bp.displays.main == device then
+            is_used = true
+
+            log.info("BKPLN: lost the main display")
+            iocontrol.fp_monitor_state("main", false)
+        elseif _bp.displays.flow == device then
+            is_used = true
+
+            log.info("BKPLN: lost the flow display")
+            iocontrol.fp_monitor_state("flow", false)
+        else
+            for idx, monitor in pairs(_bp.displays.unit_displays) do
+                if monitor == device then
+                    is_used = true
+
+                    log.info("BKPLN: lost the unit " .. idx .. " display")
+                    iocontrol.fp_monitor_state(idx, false)
+                    break
+                end
+            end
+        end
+
+        -- notify renderer if it was using it
+        if is_used then
+            log_sys("lost a configured monitor")
+            _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_DISCONNECT, iface)
+        else
+            log_sys("lost an unused monitor")
+        end
     elseif type == "speaker" then
         ---@cast device Speaker
         log_sys("lost alarm sounder speaker")

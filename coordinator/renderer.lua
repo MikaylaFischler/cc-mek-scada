@@ -267,53 +267,43 @@ function renderer.fp_ready() return engine.fp_ready end
 function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a monitor peripheral being disconnected
----@param device Monitor monitor
----@return boolean is_used if the monitor is one of the configured monitors
-function renderer.handle_disconnect(device)
-    local is_used = false
-
+---@param iface string monitor interface
+function renderer.handle_disconnect(iface)
     if not engine.monitors then return false end
 
-    if engine.monitors.main == device then
+    if engine.monitors.main_iface == iface then
         if engine.ui.main_display ~= nil then
             -- delete element tree and clear root UI elements
             engine.ui.main_display.delete()
+            log_render("closed main view due to monitor disconnect")
         end
 
-        is_used = true
         engine.monitors.main = nil
         engine.ui.main_display = nil
-
-        iocontrol.fp_monitor_state("main", false)
-    elseif engine.monitors.flow == device then
+    elseif engine.monitors.flow_iface == iface then
         if engine.ui.flow_display ~= nil then
             -- delete element tree and clear root UI elements
             engine.ui.flow_display.delete()
+            log_render("closed flow view due to monitor disconnect")
         end
 
-        is_used = true
         engine.monitors.flow = nil
         engine.ui.flow_display = nil
-
-        iocontrol.fp_monitor_state("flow", false)
     else
-        for idx, monitor in pairs(engine.monitors.unit_displays) do
-            if monitor == device then
+        for idx, u_iface in pairs(engine.monitors.unit_ifaces) do
+            if u_iface == iface then
                 if engine.ui.unit_displays[idx] ~= nil then
+                    -- delete element tree and clear root UI elements
                     engine.ui.unit_displays[idx].delete()
+                    log_render("closed unit" .. idx .. "view due to monitor disconnect")
                 end
 
-                is_used = true
                 engine.monitors.unit_displays[idx] = nil
                 engine.ui.unit_displays[idx] = nil
-
-                iocontrol.fp_monitor_state(idx, false)
                 break
             end
         end
     end
-
-    return is_used
 end
 
 -- handle a monitor peripheral being reconnected

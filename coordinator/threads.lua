@@ -264,11 +264,7 @@ function threads.thread__render(smem)
                             end
                         elseif cmd.key == MQ__RENDER_DATA.MON_DISCONNECT then
                             -- monitor disconnected
-                            if renderer.handle_disconnect(cmd.val) then
-                                log_sys("lost a configured monitor")
-                            else
-                                log_sys("lost an unused monitor")
-                            end
+                            renderer.handle_disconnect(cmd.val)
                         elseif cmd.key == MQ__RENDER_DATA.MON_RESIZE then
                             -- monitor resized
                             local is_used, is_ok = renderer.handle_resize(cmd.val)
