@@ -114,19 +114,19 @@ local function init(panel, num_units)
     local comp_id = util.sprintf("(%d)", os.getComputerID())
     TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
 
-    local monitors = Div{parent=main_page,width=16,height=17,x=18,y=2}
+    local displays = Div{parent=main_page,width=16,height=17,x=18,y=2}
 
-    local main_monitor = LED{parent=monitors,label="MAIN MONITOR",colors=led_grn}
-    main_monitor.register(ps, "main_monitor", main_monitor.update)
+    local main_disp = LEDPair{parent=displays,label="MAIN DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+    main_disp.register(ps, "main_monitor", main_disp.update)
 
-    local flow_monitor = LED{parent=monitors,label="FLOW MONITOR",colors=led_grn}
-    flow_monitor.register(ps, "flow_monitor", flow_monitor.update)
+    local flow_disp = LEDPair{parent=displays,label="FLOW DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+    flow_disp.register(ps, "flow_monitor", flow_disp.update)
 
-    monitors.line_break()
+    displays.line_break()
 
     for i = 1, num_units do
-        local unit_monitor = LED{parent=monitors,label="UNIT "..i.." MONITOR",colors=led_grn}
-        unit_monitor.register(ps, "unit_monitor_" .. i, unit_monitor.update)
+        local unit_disp = LEDPair{parent=displays,label="UNIT "..i.." DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+        unit_disp.register(ps, "unit_monitor_" .. i, unit_disp.update)
     end
 
     --

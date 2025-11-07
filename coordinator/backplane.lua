@@ -80,7 +80,7 @@ function backplane.init_displays(config)
 
     log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " MAIN/" .. iface)
 
-    iocontrol.fp_monitor_state("main", disp ~= nil)
+    iocontrol.fp_monitor_state("main", util.trinary(disp, 2, 1))
 
     if not disp then
         return false, "Main monitor is not connected."
@@ -103,7 +103,7 @@ function backplane.init_displays(config)
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " FLOW/" .. iface)
 
-        iocontrol.fp_monitor_state("flow", disp ~= nil)
+        iocontrol.fp_monitor_state("flow", util.trinary(disp, 2, 1))
 
         if not disp then
             return false, "Flow monitor is not connected."
@@ -127,7 +127,7 @@ function backplane.init_displays(config)
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " UNIT_" .. i .. "/" .. iface)
 
-        iocontrol.fp_monitor_state(i, disp ~= nil)
+        iocontrol.fp_monitor_state(i, util.trinary(disp, 2, 1))
 
         if not disp then
             return false, "Unit " .. i .. " monitor is not connected."
@@ -297,7 +297,46 @@ function backplane.attach(type, device, iface)
         end
     elseif type == "monitor" then
         ---@cast device Monitor
-        _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, { name = iface, device = device })
+
+        local is_used = false
+
+        log.info("BKPLN: DISPLAY LINK_UP " .. iface)
+
+        if _bp.displays.main_iface == iface then
+            is_used = true
+
+            _bp.displays.main = device
+
+            log.info("BKPLN: main display connected")
+            iocontrol.fp_monitor_state("main", 2)
+        elseif _bp.displays.flow_iface == iface then
+            is_used = true
+
+            _bp.displays.flow = device
+
+            log.info("BKPLN: flow display connected")
+            iocontrol.fp_monitor_state("flow", 2)
+        else
+            for idx, monitor in ipairs(_bp.displays.unit_ifaces) do
+                if monitor == iface then
+                    is_used = true
+
+                    _bp.displays.unit_displays[idx] = device
+
+                    log.info("BKPLN: unit " .. idx .. " display connected")
+                    iocontrol.fp_monitor_state(idx, 2)
+                    break
+                end
+            end
+        end
+
+        -- notify renderer if it is using it
+        if is_used then
+            log_sys(util.c("configured monitor ", iface, " connected"))
+            _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, iface)
+        else
+            log_sys(util.c("unused monitor ", iface, " connected"))
+        end
     elseif type == "speaker" then
         ---@cast device Speaker
         log_sys("alarm sounder speaker reconnected")
@@ -393,25 +432,25 @@ function backplane.detach(type, device, iface)
 
         local is_used = false
 
-        log.info("BKPLN: MONITOR LINK_DOWN " .. iface)
+        log.info("BKPLN: DISPLAY LINK_DOWN " .. iface)
 
         if _bp.displays.main == device then
             is_used = true
 
-            log.info("BKPLN: lost the main display")
-            iocontrol.fp_monitor_state("main", false)
+            log.info("BKPLN: main display disconnected")
+            iocontrol.fp_monitor_state("main", 1)
         elseif _bp.displays.flow == device then
             is_used = true
 
-            log.info("BKPLN: lost the flow display")
-            iocontrol.fp_monitor_state("flow", false)
+            log.info("BKPLN: flow display disconnected")
+            iocontrol.fp_monitor_state("flow", 1)
         else
             for idx, monitor in pairs(_bp.displays.unit_displays) do
                 if monitor == device then
                     is_used = true
 
-                    log.info("BKPLN: lost the unit " .. idx .. " display")
-                    iocontrol.fp_monitor_state(idx, false)
+                    log.info("BKPLN: unit " .. idx .. " display disconnected")
+                    iocontrol.fp_monitor_state(idx, 1)
                     break
                 end
             end

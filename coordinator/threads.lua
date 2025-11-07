@@ -257,11 +257,7 @@ function threads.thread__render(smem)
 
                         if cmd.key == MQ__RENDER_DATA.MON_CONNECT then
                             -- monitor connected
-                            if renderer.handle_reconnect(cmd.val.name, cmd.val.device) then
-                                log_sys(util.c("configured monitor ", cmd.val.name, " reconnected"))
-                            else
-                                log_sys(util.c("unused monitor ", cmd.val.name, " connected"))
-                            end
+                            renderer.handle_reconnect(cmd.val)
                         elseif cmd.key == MQ__RENDER_DATA.MON_DISCONNECT then
                             -- monitor disconnected
                             renderer.handle_disconnect(cmd.val)

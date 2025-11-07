@@ -308,39 +308,10 @@ end
 
 -- handle a monitor peripheral being reconnected
 ---@param name string monitor name
----@param device Monitor monitor
----@return boolean is_used if the monitor is one of the configured monitors
-function renderer.handle_reconnect(name, device)
-    local is_used = false
-
-    if not engine.monitors then return false end
-
+function renderer.handle_reconnect(name)
     -- note: handle_resize is a more adaptive way of re-initializing a connected monitor
     --       since it can handle a monitor being reconnected that isn't the right size
-
-    if engine.monitors.main_iface == name then
-        is_used = true
-        engine.monitors.main = device
-
-        renderer.handle_resize(name)
-    elseif engine.monitors.flow_iface == name then
-        is_used = true
-        engine.monitors.flow = device
-
-        renderer.handle_resize(name)
-    else
-        for idx, monitor in ipairs(engine.monitors.unit_ifaces) do
-            if monitor == name then
-                is_used = true
-                engine.monitors.unit_displays[idx] = device
-
-                renderer.handle_resize(name)
-                break
-            end
-        end
-    end
-
-    return is_used
+    renderer.handle_resize(name)
 end
 
 -- handle a monitor being resized<br>
@@ -372,7 +343,7 @@ function renderer.handle_resize(name)
             ui.main_display = nil
         end
 
-        iocontrol.fp_monitor_state("main", true)
+        iocontrol.fp_monitor_state("main", 2)
 
         engine.dmesg_window.setVisible(not engine.ui_ready)
 
@@ -384,6 +355,8 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
+                iocontrol.fp_monitor_state("main", 3)
+
                 log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
                 if ui.main_display then
@@ -393,7 +366,6 @@ function renderer.handle_resize(name)
 
                 _print_too_small(device)
 
-                iocontrol.fp_monitor_state("main", false)
                 is_ok = false
             end
         else engine.dmesg_window.redraw() end
@@ -410,7 +382,7 @@ function renderer.handle_resize(name)
             ui.flow_display = nil
         end
 
-        iocontrol.fp_monitor_state("flow", true)
+        iocontrol.fp_monitor_state("flow", 2)
 
         if engine.ui_ready then
             local draw_start = util.time_ms()
@@ -420,6 +392,8 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
+                iocontrol.fp_monitor_state("flow", 3)
+
                 log_render("flow view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
                 if ui.flow_display then
@@ -429,7 +403,6 @@ function renderer.handle_resize(name)
 
                 _print_too_small(device)
 
-                iocontrol.fp_monitor_state("flow", false)
                 is_ok = false
             end
         end
@@ -448,7 +421,7 @@ function renderer.handle_resize(name)
                     ui.unit_displays[idx] = nil
                 end
 
-                iocontrol.fp_monitor_state(idx, true)
+                iocontrol.fp_monitor_state(idx, 2)
 
                 if engine.ui_ready then
                     local draw_start = util.time_ms()
@@ -458,6 +431,8 @@ function renderer.handle_resize(name)
                     end)
 
                     if ok then
+                        iocontrol.fp_monitor_state(idx, 3)
+
                         log_render("unit " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
                     else
                         if ui.unit_displays[idx] then
@@ -467,7 +442,6 @@ function renderer.handle_resize(name)
 
                         _print_too_small(device)
 
-                        iocontrol.fp_monitor_state(idx, false)
                         is_ok = false
                     end
                 end

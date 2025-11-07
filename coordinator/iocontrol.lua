@@ -308,6 +308,7 @@ function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) en
 
 -- report monitor connection state
 ---@param id string|integer unit ID for unit monitor, "main" for main monitor, or "flow" for flow monitor
+---@param connected 1|2|3 1 for disconnected, 2 for connected but no view (may not fit), 3 for connected with view shown
 function iocontrol.fp_monitor_state(id, connected)
     local name = nil
 
