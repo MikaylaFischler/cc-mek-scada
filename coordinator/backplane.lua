@@ -307,14 +307,14 @@ function backplane.attach(type, device, iface)
 
             _bp.displays.main = device
 
-            log.info("BKPLN: main display connected")
+            log.info("BKPLN: main display reconnected")
             iocontrol.fp_monitor_state("main", 2)
         elseif _bp.displays.flow_iface == iface then
             is_used = true
 
             _bp.displays.flow = device
 
-            log.info("BKPLN: flow display connected")
+            log.info("BKPLN: flow display reconnected")
             iocontrol.fp_monitor_state("flow", 2)
         else
             for idx, monitor in ipairs(_bp.displays.unit_ifaces) do
@@ -323,7 +323,7 @@ function backplane.attach(type, device, iface)
 
                     _bp.displays.unit_displays[idx] = device
 
-                    log.info("BKPLN: unit " .. idx .. " display connected")
+                    log.info("BKPLN: unit " .. idx .. " display reconnected")
                     iocontrol.fp_monitor_state(idx, 2)
                     break
                 end
@@ -332,7 +332,7 @@ function backplane.attach(type, device, iface)
 
         -- notify renderer if it is using it
         if is_used then
-            log_sys(util.c("configured monitor ", iface, " connected"))
+            log_sys(util.c("configured monitor ", iface, " reconnected"))
             _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, iface)
         else
             log_sys(util.c("unused monitor ", iface, " connected"))

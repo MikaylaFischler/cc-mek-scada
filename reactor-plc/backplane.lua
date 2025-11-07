@@ -132,8 +132,8 @@ function backplane.attach(iface, type, device, print_no_fp)
             dev.reactor = device
             state.no_reactor = false
 
-            print_no_fp("reactor reconnected")
-            log.info("BKPLN: reactor reconnected")
+            print_no_fp("reactor connected")
+            log.info("BKPLN: reactor connected")
 
             -- we need to assume formed here as we cannot check in this main loop
             -- RPS will identify if it isn't and this will get set false later
@@ -166,7 +166,7 @@ function backplane.attach(iface, type, device, print_no_fp)
                 wd_nic.connect(device)
 
                 log.info("BKPLN: WIRED PHY_UP " .. iface)
-                print_no_fp("wired comms modem reconnected")
+                print_no_fp("wired comms modem connected")
 
                 state.wd_modem = true
 
@@ -182,7 +182,7 @@ function backplane.attach(iface, type, device, print_no_fp)
                 wl_nic.connect(device)
 
                 log.info("BKPLN: WIRELESS PHY_UP " .. iface)
-                print_no_fp("wireless comms modem reconnected")
+                print_no_fp("wireless comms modem connected")
 
                 state.wl_modem = true
 
