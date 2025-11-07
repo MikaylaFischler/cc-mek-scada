@@ -163,9 +163,10 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param nic nic network interface device
+---@param nic nic active network interface device
+---@param wl_nic nic|nil pocket wireless network interface device
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, sv_watchdog)
+function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -180,14 +181,18 @@ function coordinator.comms(version, nic, sv_watchdog)
         est_task_done = nil
     }
 
-    comms.set_trusted_range(config.TrustedRange)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
     -- configure network channels
     nic.closeAll()
     nic.open(config.CRD_Channel)
 
     -- pass config to apisessions
-    apisessions.init(nic, config)
+    if config.API_Enabled and wl_nic then
+        apisessions.init(wl_nic, config)
+    end
 
     -- PRIVATE FUNCTIONS --
 
@@ -224,7 +229,8 @@ function coordinator.comms(version, nic, sv_watchdog)
         m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
+---@diagnostic disable-next-line: need-check-nil
+        wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
         self.last_api_est_acks[packet.src_addr()] = ack
     end
 
@@ -244,6 +250,18 @@ function coordinator.comms(version, nic, sv_watchdog)
 
     ---@class coord_comms
     local public = {}
+
+    -- switch the current active NIC
+    ---@param _nic nic
+    function public.switch_nic(_nic)
+        nic.closeAll()
+
+        -- configure receive channels
+        _nic.closeAll()
+        _nic.open(config.CRD_Channel)
+
+        nic = _nic
+    end
 
     -- try to connect to the supervisor if not already linked
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)
@@ -399,7 +417,9 @@ function coordinator.comms(version, nic, sv_watchdog)
             if l_chan ~= config.CRD_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
             elseif r_chan == config.PKT_Channel then
-                if not self.sv_linked then
+                if not config.API_Enabled then
+                    -- log.debug("discarding pocket API packet due to the API being disabled")
+                elseif not self.sv_linked then
                     log.debug("discarding pocket API packet before linked to supervisor")
                 elseif protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame

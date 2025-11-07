@@ -80,6 +80,8 @@ function backplane.init_displays(config)
 
     log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " MAIN/" .. iface)
 
+    iocontrol.fp_monitor_state("main", disp ~= nil)
+
     if not disp then
         return false, "Main monitor is not connected."
     end
@@ -100,6 +102,8 @@ function backplane.init_displays(config)
         displays.flow_iface = iface
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " FLOW/" .. iface)
+
+        iocontrol.fp_monitor_state("flow", disp ~= nil)
 
         if not disp then
             return false, "Flow monitor is not connected."
@@ -122,6 +126,8 @@ function backplane.init_displays(config)
         displays.unit_ifaces[i] = iface
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " UNIT_" .. i .. "/" .. iface)
+
+        iocontrol.fp_monitor_state(i, disp ~= nil)
 
         if not disp then
             return false, "Unit " .. i .. " monitor is not connected."
@@ -181,6 +187,9 @@ function backplane.init(config, __shared_memory)
 
         _bp.wl_nic = wl_nic
 
+        wl_nic.closeAll()
+        wl_nic.open(config.CRD_Channel)
+
         iocontrol.fp_has_wl_modem(modem ~= nil)
     end
 
@@ -220,9 +229,177 @@ function backplane.init(config, __shared_memory)
 end
 
 -- get the active NIC
----@return nic
 function backplane.active_nic() return _bp.act_nic end
 
+-- get the wireless NIC
+function backplane.wireless_nic() return _bp.wl_nic end
+
+-- get the configured displays
 function backplane.displays() return _bp.displays end
+
+-- handle a backplane peripheral attach
+---@param type string
+---@param device table
+---@param iface string
+function backplane.attach(type, device, iface)
+    local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
+
+    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
+
+    local comms = _bp.smem.crd_sys.coord_comms
+
+    if type == "modem" then
+        ---@cast device Modem
+
+        local m_is_wl = device.isWireless()
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_ATTACH ", iface))
+
+        if wd_nic and (_bp.lan_iface == iface) then
+            -- connect this as the wired NIC
+            wd_nic.connect(device)
+
+            log.info("BKPLN: WIRED PHY_UP " .. iface)
+            log_sys("wired comms modem reconnected")
+
+            iocontrol.fp_has_wd_modem(true)
+
+            if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
+                -- switch back to preferred wired
+                _bp.act_nic = wd_nic
+
+                comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wired modem (preferred)")
+            end
+        elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
+            -- connect this as the wireless NIC
+            wl_nic.connect(device)
+
+            log.info("BKPLN: WIRELESS PHY_UP " .. iface)
+            log_sys("wireless comms modem reconnected")
+
+            iocontrol.fp_has_wl_modem(true)
+
+            if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
+                -- switch back to preferred wireless
+                _bp.act_nic = wl_nic
+
+                comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wireless modem (preferred)")
+            end
+        elseif wl_nic and m_is_wl then
+            -- the wireless NIC already has a modem
+            log_sys("standby wireless modem connected")
+            log.info("BKPLN: standby wireless modem connected")
+        else
+            log_sys("unassigned modem connected")
+            log.warning("BKPLN: unassigned modem connected")
+        end
+    elseif type == "monitor" then
+        ---@cast device Monitor
+        _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, { name = iface, device = device })
+    elseif type == "speaker" then
+        ---@cast device Speaker
+        log_sys("alarm sounder speaker reconnected")
+        log.info("BKPLN: SPEAKER LINK_UP " .. iface)
+
+        sounder.reconnect(device)
+
+        iocontrol.fp_has_speaker(true)
+    end
+end
+
+-- handle a backplane peripheral detach
+---@param type string
+---@param device table
+---@param iface string
+function backplane.detach(type, device, iface)
+    local MQ__RENDER_CMD  = _bp.smem.q_types.MQ__RENDER_CMD
+    local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
+
+    local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
+
+    local comms = _bp.smem.crd_sys.coord_comms
+
+    if type == "modem" then
+        ---@cast device Modem
+
+        local m_is_wl = device.isWireless()
+
+        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_DETACH ", iface))
+
+        if wd_nic and wd_nic.is_modem(device) then
+            wd_nic.disconnect()
+            log.info("BKPLN: WIRED PHY_DOWN " .. iface)
+
+            iocontrol.fp_has_wd_modem(false)
+        elseif wl_nic and wl_nic.is_modem(device) then
+            wl_nic.disconnect()
+            log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
+
+            iocontrol.fp_has_wl_modem(false)
+        end
+
+        -- we only care if this is our active comms modem
+        if _bp.act_nic.is_modem(device) then
+            log_sys("active comms modem disconnected")
+            log.warning("BKPLN: active comms modem disconnected")
+
+            -- failover and try to find a new comms modem
+            if _bp.act_nic == wl_nic then
+                -- wireless active disconnected
+                -- try to find another wireless modem, otherwise switch to wired
+                local modem, m_iface = ppm.get_wireless_modem()
+                if wl_nic and modem then
+                    log_sys("found another wireless modem, using it for comms")
+                    log.info("BKPLN: found another wireless modem, using it for comms")
+
+                    wl_nic.connect(modem)
+
+                    log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
+
+                    iocontrol.fp_has_wl_modem(true)
+                elseif wd_nic and wd_nic.is_connected() then
+                    _bp.act_nic = wd_nic
+
+                    comms.switch_nic(_bp.act_nic)
+                    log.info("BKPLN: switched comms to wired modem")
+                else
+                    -- close out main UI
+                    _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
+
+                    -- alert user to status
+                    log_sys("awaiting comms modem reconnect...")
+                end
+            elseif wl_nic and wl_nic.is_connected() then
+                -- wired active disconnected, wireless available
+                _bp.act_nic = wl_nic
+
+                comms.switch_nic(_bp.act_nic)
+                log.info("BKPLN: switched comms to wireless modem")
+            else
+                -- wired active disconnected, wireless unavailable
+            end
+        elseif _bp.wl_nic and m_is_wl then
+            -- wireless, but not active
+            log_sys("standby wireless modem disconnected")
+            log.info("BKPLN: standby wireless modem disconnected")
+        else
+            log_sys("unassigned modem disconnected")
+            log.warning("BKPLN: unassigned modem disconnected")
+        end
+    elseif type == "monitor" then
+        ---@cast device Monitor
+        _bp.smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_DISCONNECT, device)
+    elseif type == "speaker" then
+        ---@cast device Speaker
+        log_sys("lost alarm sounder speaker")
+
+        log.info("BKPLN: SPEAKER LINK_DOWN " .. iface)
+
+        iocontrol.fp_has_speaker(false)
+    end
+end
+
 
 return backplane

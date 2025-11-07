@@ -140,8 +140,7 @@ local function main()
 
     -- init renderer
     renderer.configure(config)
-    renderer.set_displays(backplane.displays())
-    renderer.init_displays()
+    renderer.init_displays(backplane.displays())
     renderer.init_dmesg()
 
     -- lets get started!
@@ -186,6 +185,19 @@ local function main()
         -- message queues
         q = {
             mq_render = mqueue.new()
+        },
+
+        -- message queue message types
+        q_types = {
+            MQ__RENDER_CMD = {
+                START_MAIN_UI = 1,
+                CLOSE_MAIN_UI = 2
+            },
+            MQ__RENDER_DATA = {
+                MON_CONNECT = 1,
+                MON_DISCONNECT = 2,
+                MON_RESIZE = 3
+            }
         }
     }
 
@@ -217,7 +229,7 @@ local function main()
     log.debug("startup> conn watchdog created")
 
     -- setup comms
-    smem_sys.coord_comms = coordinator.comms(COORDINATOR_VERSION, backplane.active_nic(), smem_sys.conn_watchdog)
+    smem_sys.coord_comms = coordinator.comms(COORDINATOR_VERSION, backplane.active_nic(), backplane.wireless_nic(), smem_sys.conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 

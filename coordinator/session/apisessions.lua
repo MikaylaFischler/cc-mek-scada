@@ -69,7 +69,7 @@ end
 -- PUBLIC FUNCTIONS --
 
 -- initialize apisessions
----@param nic nic network interface
+---@param nic nic API network interface
 ---@param config crd_config coordinator config
 function apisessions.init(nic, config)
     self.nic = nic

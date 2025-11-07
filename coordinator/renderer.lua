@@ -82,19 +82,11 @@ function renderer.configure(config)
     engine.disable_flow_view = config.DisableFlowView
 end
 
--- link to the monitor peripherals
+-- init all displays in use by the renderer
 ---@param monitors crd_displays
-function renderer.set_displays(monitors)
+function renderer.init_displays(monitors)
     engine.monitors = monitors
 
-    -- report to front panel as connected
-    iocontrol.fp_monitor_state("main", engine.monitors.main ~= nil)
-    iocontrol.fp_monitor_state("flow", engine.monitors.flow ~= nil)
-    for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
-end
-
--- init all displays in use by the renderer
-function renderer.init_displays()
     -- init main and flow monitors
     _init_display(engine.monitors.main)
     if not engine.disable_flow_view then _init_display(engine.monitors.flow) end
