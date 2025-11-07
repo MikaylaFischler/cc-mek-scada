@@ -34,7 +34,7 @@ function threads.thread__main(smem)
     -- execute thread
     function public.exec()
         iocontrol.fp_rt_status("main", true)
-        log.debug("main thread start")
+        log.debug("OS: main thread start")
 
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
@@ -143,10 +143,10 @@ function threads.thread__main(smem)
             -- check for termination request or UI crash
             if event == "terminate" or ppm.should_terminate() then
                 crd_state.shutdown = true
-                log.info("terminate requested, main thread exiting")
+                log.info("OS: terminate requested, main thread exiting")
             elseif not crd_state.ui_ok then
                 crd_state.shutdown = true
-                log.info("terminating due to fatal UI error")
+                log.info("OS: terminating due to fatal UI error")
             end
 
             if crd_state.shutdown then
@@ -184,7 +184,7 @@ function threads.thread__main(smem)
             -- if status is true, then we are probably exiting, so this won't matter
             -- this thread cannot be slept because it will miss events (namely "terminate")
             if not crd_state.shutdown then
-                log.info("main thread restarting now...")
+                log.info("OS: main thread restarting now...")
             end
         end
     end
@@ -202,7 +202,7 @@ function threads.thread__render(smem)
     -- execute thread
     function public.exec()
         iocontrol.fp_rt_status("render", true)
-        log.debug("render thread start")
+        log.debug("OS: render thread start")
 
         -- load in from shared memory
         local crd_state       = smem.crd_state
@@ -279,7 +279,7 @@ function threads.thread__render(smem)
 
             -- check for termination request
             if crd_state.shutdown then
-                log.info("render thread exiting")
+                log.info("OS: render thread exiting")
                 break
             end
 
@@ -301,7 +301,7 @@ function threads.thread__render(smem)
             iocontrol.fp_rt_status("render", false)
 
             if not crd_state.shutdown then
-                log.info("render thread restarting in 5 seconds...")
+                log.info("OS: render thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end

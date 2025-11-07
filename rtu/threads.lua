@@ -184,7 +184,7 @@ function threads.thread__main(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("main", true)
-        log.debug("main thread start")
+        log.debug("OS: main thread start")
 
         -- main loop clock
         local loop_clock = util.new_clock(MAIN_CLOCK)
@@ -298,7 +298,7 @@ function threads.thread__main(smem)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 rtu_state.shutdown = true
-                log.info("terminate requested, main thread exiting")
+                log.info("OS: terminate requested, main thread exiting")
                 break
             end
         end
@@ -317,7 +317,7 @@ function threads.thread__main(smem)
             databus.tx_rt_status("main", false)
 
             if not rtu_state.shutdown then
-                log.info("main thread restarting in 5 seconds...")
+                log.info("OS: main thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -336,7 +336,7 @@ function threads.thread__comms(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("comms", true)
-        log.debug("comms thread start")
+        log.debug("OS: comms thread start")
 
         -- load in from shared memory
         local rtu_state   = smem.rtu_state
@@ -370,7 +370,7 @@ function threads.thread__comms(smem)
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning("comms thread exceeded 100ms queue process limit")
+                    log.warning("OS: comms thread exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -381,7 +381,7 @@ function threads.thread__comms(smem)
             -- check for termination request
             if rtu_state.shutdown then
                 rtu_comms.close(rtu_state)
-                log.info("comms thread exiting")
+                log.info("OS: comms thread exiting")
                 break
             end
 
@@ -403,7 +403,7 @@ function threads.thread__comms(smem)
             databus.tx_rt_status("comms", false)
 
             if not rtu_state.shutdown then
-                log.info("comms thread restarting in 5 seconds...")
+                log.info("OS: comms thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -426,7 +426,7 @@ function threads.thread__unit_comms(smem, unit)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("unit_" .. unit.uid, true)
-        log.debug(util.c("rtu unit thread start -> ", types.rtu_type_to_string(unit.type), " (", unit.name, ")"))
+        log.debug(util.c("OS: rtu unit thread start -> ", types.rtu_type_to_string(unit.type), " (", unit.name, ")"))
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
@@ -443,7 +443,7 @@ function threads.thread__unit_comms(smem, unit)
         local short_name   = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ")")
 
         if packet_queue == nil then
-            log.error("rtu unit thread created without a message queue, exiting...", true)
+            log.error("OS: rtu unit thread created without a message queue, exiting...", true)
             return
         end
 
@@ -471,7 +471,7 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log.info("rtu unit thread exiting -> " .. short_name)
+                log.info("OS: rtu unit thread exiting -> " .. short_name)
                 break
             end
 
@@ -536,7 +536,7 @@ function threads.thread__unit_comms(smem, unit)
             databus.tx_rt_status("unit_" .. unit.uid, false)
 
             if not rtu_state.shutdown then
-                log.info(util.c("rtu unit thread ", types.rtu_type_to_string(unit.type), " (", unit.name, ") restarting in 5 seconds..."))
+                log.info(util.c("OS: rtu unit thread ", types.rtu_type_to_string(unit.type), " (", unit.name, ") restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end
