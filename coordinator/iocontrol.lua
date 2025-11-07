@@ -290,11 +290,11 @@ end
 -- toggle heartbeat indicator
 function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
 
--- report presence of the wired modem
+-- report presence of the wired comms modem
 ---@param has_modem boolean
 function iocontrol.fp_has_wd_modem(has_modem) io.fp.ps.publish("has_wd_modem", has_modem) end
 
--- report presence of the wireless modem
+-- report presence of the wireless comms modem
 ---@param has_modem boolean
 function iocontrol.fp_has_wl_modem(has_modem) io.fp.ps.publish("has_wl_modem", has_modem) end
 
@@ -308,7 +308,7 @@ function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) en
 
 -- report monitor connection state
 ---@param id string|integer unit ID for unit monitor, "main" for main monitor, or "flow" for flow monitor
----@param connected 1|2|3 1 for disconnected, 2 for connected but no view (may not fit), 3 for connected with view shown
+---@param connected 1|2|3 1 for disconnected, 2 for connected but no view (may not fit), 3 for connected with view rendered
 function iocontrol.fp_monitor_state(id, connected)
     local name = nil
 

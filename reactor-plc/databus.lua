@@ -33,7 +33,7 @@ function databus.rps_scram() dbus_iface.rps_scram() end
 -- transmit a command to the RPS to reset
 function databus.rps_reset() dbus_iface.rps_reset() end
 
--- transmit firmware versions across the bus
+-- transmit firmware versions
 ---@param plc_v string PLC version
 ---@param comms_v string comms version
 function databus.tx_versions(plc_v, comms_v)
@@ -41,13 +41,13 @@ function databus.tx_versions(plc_v, comms_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
--- transmit unit ID across the bus
+-- transmit unit ID
 ---@param id integer unit ID
 function databus.tx_id(id)
     databus.ps.publish("unit_id", id)
 end
 
--- transmit hardware status across the bus
+-- transmit hardware status
 ---@param plc_state plc_state
 function databus.tx_hw_status(plc_state)
     databus.ps.publish("degraded", plc_state.degraded)
@@ -63,19 +63,19 @@ function databus.tx_rt_status(thread, ok)
     databus.ps.publish(util.c("routine__", thread), ok)
 end
 
--- transmit supervisor link state across the bus
+-- transmit supervisor link state
 ---@param state integer
 function databus.tx_link_state(state)
     databus.ps.publish("link_state", state)
 end
 
--- transmit reactor enable state across the bus
+-- transmit reactor enable state
 ---@param active any reactor active
 function databus.tx_reactor_state(active)
     databus.ps.publish("reactor_active", active == true)
 end
 
--- transmit RPS data across the bus
+-- transmit RPS data
 ---@param tripped boolean RPS tripped
 ---@param status boolean[] RPS status
 ---@param emer_cool_active boolean RPS activated the emergency coolant

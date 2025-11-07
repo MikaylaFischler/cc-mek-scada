@@ -16,7 +16,7 @@ databus.ps = psil.create()
 -- call to toggle heartbeat signal
 function databus.heartbeat() databus.ps.toggle("heartbeat") end
 
--- transmit firmware versions across the bus
+-- transmit firmware versions
 ---@param sv_v string supervisor version
 ---@param comms_v string comms version
 function databus.tx_versions(sv_v, comms_v)
@@ -24,16 +24,16 @@ function databus.tx_versions(sv_v, comms_v)
     databus.ps.publish("comms_version", comms_v)
 end
 
--- transmit hardware status for the wireless comms modem connection state
----@param has_modem boolean
-function databus.tx_hw_wl_modem(has_modem)
-    databus.ps.publish("has_wl_modem", has_modem)
-end
-
--- transmit hardware status for the wired comms modem connection state
+-- transmit hardware status for the wired comms modem
 ---@param has_modem boolean
 function databus.tx_hw_wd_modem(has_modem)
     databus.ps.publish("has_wd_modem", has_modem)
+end
+
+-- transmit hardware status for the wireless comms modem
+---@param has_modem boolean
+function databus.tx_hw_wl_modem(has_modem)
+    databus.ps.publish("has_wl_modem", has_modem)
 end
 
 -- transmit PLC firmware version and session connection state

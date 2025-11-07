@@ -397,7 +397,6 @@ function rtu.comms(version, nic, conn_watchdog)
 
         s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
----@diagnostic disable-next-line: need-check-nil
         nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
         self.seq_num = self.seq_num + 1
     end
@@ -430,8 +429,6 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param distance integer
     ---@return modbus_frame|mgmt_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        -- unreachable if there isn't a nic
----@diagnostic disable-next-line: need-check-nil
         local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
 

@@ -118,7 +118,7 @@ local function main()
     -- modem and speaker initialization
     if not backplane.init(config, __shared_memory) then return end
 
-    log.debug("boot> running uinit()")
+    log.debug("startup> running uinit()")
 
     if uinit(config, __shared_memory) then
         -- start UI

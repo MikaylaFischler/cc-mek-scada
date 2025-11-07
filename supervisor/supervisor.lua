@@ -104,11 +104,11 @@ function supervisor.load_config()
     cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
     cfv.assert((config.WirelessModem == true) or (type(config.WiredModem) == "string"))
 
-    cfv.assert_type_num(config.PLC_Listen)
+    cfv.assert_type_int(config.PLC_Listen)
     cfv.assert_range(config.PLC_Listen, 0, 2)
-    cfv.assert_type_num(config.RTU_Listen)
+    cfv.assert_type_int(config.RTU_Listen)
     cfv.assert_range(config.RTU_Listen, 0, 2)
-    cfv.assert_type_num(config.CRD_Listen)
+    cfv.assert_type_int(config.CRD_Listen)
     cfv.assert_range(config.CRD_Listen, 0, 2)
 
     cfv.assert_type_bool(config.PocketEnabled)
@@ -398,6 +398,8 @@ function supervisor.comms(_version, fp_ok, facility)
 
         if nic then
             s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         if s_pkt then
@@ -418,7 +420,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 local crdn_pkt = comms.crdn_packet()
                 if crdn_pkt.decode(s_pkt) then pkt = crdn_pkt.get() end
             else
-                log.debug("receive[" .. side .. "] attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end
         end
 

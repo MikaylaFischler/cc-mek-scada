@@ -36,7 +36,8 @@ local changes = {
     { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.5.1", { "Added energy scale options" } },
-    { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } }
+    { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
+    { "v1.7.0", { "Added support for wired communications modems" } }
 }
 
 ---@class crd_configurator

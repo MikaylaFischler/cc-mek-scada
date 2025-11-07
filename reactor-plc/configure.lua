@@ -3,7 +3,7 @@
 --
 
 local log        = require("scada-common.log")
-local ppm         = require("scada-common.ppm")
+local ppm        = require("scada-common.ppm")
 local tcd        = require("scada-common.tcd")
 local util       = require("scada-common.util")
 
@@ -35,7 +35,7 @@ local changes = {
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
-    { "v1.9.1", { "Added support for wired communications modems" } }
+    { "v1.10.0", { "Added support for wired communications modems" } }
 }
 
 ---@class plc_configurator

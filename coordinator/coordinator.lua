@@ -193,7 +193,7 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         apisessions.init(wl_nic, config)
     end
 
-    -- PRIVATE FUNCTIONS --
+    --#region PRIVATE FUNCTIONS --
 
     -- send a packet to the supervisor
     ---@param msg_type MGMT_TYPE|CRDN_TYPE
@@ -245,7 +245,9 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class coord_comms
     local public = {}
@@ -733,6 +735,8 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     -- check if the coordinator is still linked to the supervisor
     ---@nodiscard
     function public.is_linked() return self.sv_linked end
+
+    --#endregion
 
     return public
 end
