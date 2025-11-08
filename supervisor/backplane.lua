@@ -23,31 +23,33 @@ local _bp = {
     nic_map = {}        ---@type nic[] connected nics
 }
 
+-- network interfaces indexed by peripheral names
 backplane.nics = _bp.nic_map
 
 -- initialize the system peripheral backplane
 ---@param config svr_config
 ---@return boolean success
 function backplane.init(config)
-    -- setup the wired modem, if configured
-    if type(config.WiredModem) == "string" then
-        _bp.lan_iface = config.WiredModem
+    _bp.lan_iface = config.WiredModem
 
-        local modem = ppm.get_modem(_bp.lan_iface)
+    -- setup the wired modem, if configured
+    if type(_bp.lan_iface) == "string" then
+        local modem  = ppm.get_modem(_bp.lan_iface)
+        local wd_nic = network.nic(modem)
+
+        log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
+
         if not (modem and _bp.lan_iface) then
             println("startup> wired comms modem not found")
             log.fatal("BKPLN: no wired comms modem on startup")
             return false
         end
 
-        local nic = network.nic(modem)
-        _bp.wd_nic = nic
-        _bp.nic_map[_bp.lan_iface] = nic
+        _bp.wd_nic = wd_nic
+        _bp.nic_map[_bp.lan_iface] = wd_nic
 
-        log.info("BKPLN: WIRED PHY_UP " .. _bp.lan_iface)
-
-        nic.closeAll()
-        nic.open(config.SVR_Channel)
+        wd_nic.closeAll()
+        wd_nic.open(config.SVR_Channel)
 
         databus.tx_hw_wd_modem(true)
     end
@@ -55,20 +57,21 @@ function backplane.init(config)
     -- setup the wireless modem, if configured
     if config.WirelessModem then
         local modem, iface = ppm.get_wireless_modem()
+        local wl_nic       = network.nic(modem)
+
+        log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
+
         if not (modem and iface) then
             println("startup> wireless comms modem not found")
             log.fatal("BKPLN: no wireless comms modem on startup")
             return false
         end
 
-        local nic = network.nic(modem)
-        _bp.wl_nic = nic
-        _bp.nic_map[iface] = nic
+        _bp.wl_nic = wl_nic
+        _bp.nic_map[iface] = wl_nic
 
-        log.info("BKPLN: WIRELESS PHY_UP " .. iface)
-
-        nic.closeAll()
-        nic.open(config.SVR_Channel)
+        wl_nic.closeAll()
+        wl_nic.open(config.SVR_Channel)
 
         databus.tx_hw_wl_modem(true)
     end

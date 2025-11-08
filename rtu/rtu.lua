@@ -310,10 +310,6 @@ function rtu.comms(version, nic, conn_watchdog)
         comms.set_trusted_range(config.TrustedRange)
     end
 
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.RTU_Channel)
-
     --#region PRIVATE FUNCTIONS --
 
     -- send a scada management packet
@@ -363,15 +359,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic)
-        nic.closeAll()
-
-        -- configure receive channels
-        act_nic.closeAll()
-        act_nic.open(config.RTU_Channel)
-
-        nic = act_nic
-    end
+    function public.switch_nic(act_nic) nic = act_nic end
 
     -- unlink from the server
     ---@param rtu_state rtu_state

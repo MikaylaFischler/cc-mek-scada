@@ -563,10 +563,6 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         comms.set_trusted_range(config.TrustedRange)
     end
 
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.PLC_Channel)
-
     --#region PRIVATE FUNCTIONS --
 
     -- send an RPLC packet
@@ -834,15 +830,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic)
-        nic.closeAll()
-
-        -- configure receive channels
-        act_nic.closeAll()
-        act_nic.open(config.PLC_Channel)
-
-        nic = act_nic
-    end
+    function public.switch_nic(act_nic) nic = act_nic end
 
     -- reconnect a newly connected reactor
     ---@param new_reactor table

@@ -71,7 +71,6 @@ local function init(panel, config)
         wl_modem.register(ps, "has_wl_modem", wl_modem.update)
     else
         local modem = LED{parent=system,label="MODEM",colors=led_grn}
-        modem.register(ps, "has_modem", modem.update)
         modem.register(ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
     end
 

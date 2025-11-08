@@ -40,15 +40,17 @@ function backplane.init(config, __shared_memory)
     -- Modem Init
 
     -- init wired NIC
-    if type(config.WiredModem) == "string" then
+    if type(_bp.lan_iface) == "string" then
         local modem  = ppm.get_modem(_bp.lan_iface)
         local wd_nic = network.nic(modem)
 
         log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
-        -- set this as active for now
-        _bp.act_nic = wd_nic
         _bp.wd_nic  = wd_nic
+        _bp.act_nic = wd_nic -- set this as active for now
+
+        wd_nic.closeAll()
+        wd_nic.open(config.RTU_Channel)
 
         databus.tx_hw_wd_modem(modem ~= nil)
     end
@@ -67,6 +69,9 @@ function backplane.init(config, __shared_memory)
 
         _bp.wl_nic = wl_nic
 
+        wl_nic.closeAll()
+        wl_nic.open(config.RTU_Channel)
+
         databus.tx_hw_wl_modem(modem ~= nil)
     end
 
@@ -82,10 +87,9 @@ function backplane.init(config, __shared_memory)
     -- find and setup all speakers
     local speakers = ppm.get_all_devices("speaker")
     for _, s in pairs(speakers) do
+        log.info("BKPLN: SPEAKER LINK_UP " .. ppm.get_iface(s))
+
         local sounder = rtu.init_sounder(s)
-
-        log.info("BKPLN: SPEAKER LINK_UP " .. sounder.name)
-
         table.insert(_bp.sounders, sounder)
 
         log.debug(util.c("BKPLN: added speaker sounder, attached as ", sounder.name))

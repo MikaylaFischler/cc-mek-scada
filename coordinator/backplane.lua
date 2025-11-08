@@ -158,16 +158,18 @@ function backplane.init(config, __shared_memory)
     -- Modem Init
 
     -- init wired NIC
-    if type(config.WiredModem) == "string" then
+    if type(_bp.lan_iface) == "string" then
         local modem  = ppm.get_modem(_bp.lan_iface)
         local wd_nic = network.nic(modem)
 
         log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
         log_comms("wired comms modem " .. util.trinary(modem, "connected", "not found"))
 
-        -- set this as active for now
-        _bp.act_nic = wd_nic
         _bp.wd_nic  = wd_nic
+        _bp.act_nic = wd_nic -- set this as active for now
+
+        wd_nic.closeAll()
+        wd_nic.open(config.CRD_Channel)
 
         iocontrol.fp_has_wd_modem(modem ~= nil)
     end
@@ -339,10 +341,12 @@ function backplane.attach(type, device, iface)
         end
     elseif type == "speaker" then
         ---@cast device Speaker
-        log_sys("alarm sounder speaker reconnected")
+
         log.info("BKPLN: SPEAKER LINK_UP " .. iface)
 
         sounder.reconnect(device)
+
+        log_sys("alarm sounder speaker reconnected")
 
         iocontrol.fp_has_speaker(true)
     end
@@ -465,9 +469,10 @@ function backplane.detach(type, device, iface)
         end
     elseif type == "speaker" then
         ---@cast device Speaker
-        log_sys("lost alarm sounder speaker")
 
         log.info("BKPLN: SPEAKER LINK_DOWN " .. iface)
+
+        log_sys("alarm sounder speaker disconnected")
 
         iocontrol.fp_has_speaker(false)
     end

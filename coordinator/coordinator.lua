@@ -184,10 +184,6 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         comms.set_trusted_range(config.TrustedRange)
     end
 
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.CRD_Channel)
-
     -- pass config to apisessions
     if config.API_Enabled and wl_nic then
         apisessions.init(wl_nic, config)
@@ -254,15 +250,7 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic)
-        nic.closeAll()
-
-        -- configure receive channels
-        act_nic.closeAll()
-        act_nic.open(config.CRD_Channel)
-
-        nic = act_nic
-    end
+    function public.switch_nic(act_nic) nic = act_nic end
 
     -- try to connect to the supervisor if not already linked
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)

@@ -39,17 +39,19 @@ function backplane.init(config, __shared_memory)
 
     if _bp.smem.networked then
         -- init wired NIC
-        if type(config.WiredModem) == "string" then
+        if type(_bp.lan_iface) == "string" then
             local modem  = ppm.get_modem(_bp.lan_iface)
             local wd_nic = network.nic(modem)
 
             log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
-            plc_state.wd_modem = wd_nic.is_connected()
-
-            -- set this as active for now
-            _bp.act_nic = wd_nic
             _bp.wd_nic  = wd_nic
+            _bp.act_nic = wd_nic -- set this as active for now
+
+            wd_nic.closeAll()
+            wd_nic.open(config.PLC_Channel)
+
+            plc_state.wd_modem = wd_nic.is_connected()
         end
 
         -- init wireless NIC(s)
@@ -59,14 +61,17 @@ function backplane.init(config, __shared_memory)
 
             log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
 
-            plc_state.wl_modem = wl_nic.is_connected()
-
             -- set this as active if connected or if both modems are disconnected and this is preferred
             if (modem and _bp.wlan_pref) or not (_bp.act_nic and _bp.act_nic.is_connected()) then
                 _bp.act_nic = wl_nic
             end
 
             _bp.wl_nic = wl_nic
+
+            wl_nic.closeAll()
+            wl_nic.open(config.PLC_Channel)
+
+            plc_state.wl_modem = wl_nic.is_connected()
         end
 
         -- comms modem is required if networked
@@ -86,6 +91,8 @@ function backplane.init(config, __shared_memory)
 
     -- we need a reactor, can at least do some things even if it isn't formed though
     if plc_state.no_reactor then
+        log.info("BKPLN: REACTOR LINK_DOWN")
+
         println("startup> fission reactor not found")
         log.warning("BKPLN: no reactor on startup")
 
@@ -97,14 +104,16 @@ function backplane.init(config, __shared_memory)
         plc_dev.reactor = dev
 
         log.info("BKPLN: mounted virtual device as reactor")
-    elseif not plc_dev.reactor.isFormed() then
-        println("startup> fission reactor is not formed")
-        log.warning("BKPLN: reactor logic adapter present, but reactor is not formed")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
     else
-        log.info("BKPLN: reactor detected")
+        log.info("BKPLN: REACTOR LINK_UP " .. ppm.get_iface(plc_dev.reactor))
+
+        if not plc_dev.reactor.isFormed() then
+            println("startup> fission reactor is not formed")
+            log.warning("BKPLN: reactor logic adapter detected, but reactor is not formed")
+
+            plc_state.degraded = true
+            plc_state.reactor_formed = false
+        end
     end
 end
 
@@ -129,6 +138,8 @@ function backplane.attach(iface, type, device, print_no_fp)
     if type ~= nil and device ~= nil then
         if state.no_reactor and (type == "fissionReactorLogicAdapter") then
             -- reconnected reactor
+            log.info("BKPLN: REACTOR LINK_UP " .. iface)
+
             dev.reactor = device
             state.no_reactor = false
 
@@ -225,6 +236,8 @@ function backplane.detach(iface, type, device, print_no_fp)
     local sys   = _bp.smem.plc_sys
 
     if device == dev.reactor then
+        log.info("BKPLN: REACTOR LINK_DOWN " .. iface)
+
         print_no_fp("reactor disconnected")
         log.warning("BKPLN: reactor disconnected")
 
