@@ -120,8 +120,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     self.wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=en_dis_pref}
     self.wl_pref = Checkbox{parent=net_c_1,x=30,y=3,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
     self.wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
-    TextBox{parent=net_c_1,x=3,y=6,text="MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
-    TextBox{parent=net_c_1,x=3,y=7,text="connecting to peripherals will cause problems",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=3,y=6,text="this one MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
+    TextBox{parent=net_c_1,x=3,y=7,text="connecting it to peripherals will cause issues",fg_bg=g_lg_fg_bg}
     local modem_list = ListBox{parent=net_c_1,x=1,y=8,height=5,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local modem_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
