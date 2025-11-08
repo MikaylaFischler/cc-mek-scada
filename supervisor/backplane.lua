@@ -59,7 +59,7 @@ function backplane.init(config)
         local modem, iface = ppm.get_wireless_modem()
         local wl_nic       = network.nic(modem)
 
-        log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
+        log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
 
         if not (modem and iface) then
             println("startup> wireless comms modem not found")

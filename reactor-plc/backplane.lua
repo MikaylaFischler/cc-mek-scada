@@ -59,11 +59,12 @@ function backplane.init(config, __shared_memory)
             local modem, iface = ppm.get_wireless_modem()
             local wl_nic       = network.nic(modem)
 
-            log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. iface)
+            log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
 
             -- set this as active if connected or if both modems are disconnected and this is preferred
             if (modem and _bp.wlan_pref) or not (_bp.act_nic and _bp.act_nic.is_connected()) then
                 _bp.act_nic = wl_nic
+                log.info("BKPLN: switched active to preferred wireless")
             end
 
             _bp.wl_nic = wl_nic
