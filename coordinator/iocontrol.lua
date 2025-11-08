@@ -34,18 +34,10 @@ local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 local iocontrol = {}
 
 ---@class ioctl
-local io = {}
-
--- initialize front panel PSIL
----@param firmware_v string coordinator version
----@param comms_v string comms version
-function iocontrol.init_fp(firmware_v, comms_v)
+local io = {
     ---@class ioctl_front_panel
-    io.fp = { ps = psil.create() }
-
-    io.fp.ps.publish("version", firmware_v)
-    io.fp.ps.publish("comms_version", comms_v)
-end
+    fp = { ps = psil.create() }
+}
 
 -- initialize the coordinator IO controller
 ---@param conf facility_conf configuration
@@ -289,6 +281,14 @@ end
 
 -- toggle heartbeat indicator
 function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
+
+-- report versions to front panel
+---@param firmware_v string coordinator version
+---@param comms_v string comms version
+function iocontrol.fp_versions(firmware_v, comms_v)
+    io.fp.ps.publish("version", firmware_v)
+    io.fp.ps.publish("comms_version", comms_v)
+end
 
 -- report presence of the wired comms modem
 ---@param has_modem boolean

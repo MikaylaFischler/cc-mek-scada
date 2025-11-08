@@ -115,7 +115,7 @@ local function main()
     -- startup
     ----------------------------------------
 
-    -- record firmware versions and ID
+    -- report versions
     databus.tx_versions(SUPERVISOR_VERSION, comms.version)
 
     -- mount connected devices

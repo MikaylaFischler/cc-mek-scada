@@ -136,8 +136,8 @@ local function main()
     -- system startup
     ----------------------------------------
 
-    -- report versions/init fp PSIL
-    iocontrol.init_fp(COORDINATOR_VERSION, comms.version)
+    -- report versions
+    iocontrol.fp_versions(COORDINATOR_VERSION, comms.version)
 
     -- init renderer
     renderer.configure(config)

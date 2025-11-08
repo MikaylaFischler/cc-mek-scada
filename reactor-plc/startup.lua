@@ -67,7 +67,7 @@ local function main()
     -- startup
     ----------------------------------------
 
-    -- record firmware versions and ID
+    -- report versions and ID
     databus.tx_versions(R_PLC_VERSION, comms.version)
     databus.tx_id(config.UnitID)
 
