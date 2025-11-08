@@ -262,7 +262,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
             end
         else
-            log.debug(util.c("illegal establish packet for device ", dev_type, " on PLC channel"))
+            log.debug(util.c("PLC_ESTABLISH: illegal establish packet for device ", dev_type, " on PLC channel"))
             _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
         end
     end
