@@ -218,7 +218,7 @@ function supervisor.comms(_version, fp_ok, facility)
             -- drop if not listening
         elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
-                log.info(util.c("dropping PLC establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
+                log.info(util.c("PLC_ESTABLISH: PLC [@", src_addr, "] dropping PLC establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
 
             _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
@@ -231,7 +231,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 if reactor_id < 1 or reactor_id > config.UnitCount then
                     -- reactor index out of range
                     if last_ack ~= ESTABLISH_ACK.DENY then
-                        log.warning(util.c("PLC_ESTABLISH: denied assignment ", reactor_id, " outside of configured unit count ", config.UnitCount))
+                        log.warning(util.c("PLC_ESTABLISH: PLC [@", src_addr, "] denied assignment ", reactor_id, " outside of configured unit count ", config.UnitCount))
                     end
 
                     _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
@@ -242,14 +242,18 @@ function supervisor.comms(_version, fp_ok, facility)
                     if plc_id == false then
                         -- reactor already has a PLC assigned
                         if last_ack ~= ESTABLISH_ACK.COLLISION then
-                            log.warning(util.c("PLC_ESTABLISH: assignment collision with reactor ", reactor_id))
+                            log.warning(util.c("PLC_ESTABLISH: PLC [@", src_addr, "] assignment collision with reactor ", reactor_id))
                         end
 
                         _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.COLLISION)
+                    elseif plc_id == true then
+                        -- valid, but this was just a test
+                        log.info(util.c("PLC_ESTABLISH: PLC [@", src_addr, "] sending connection test success response on ", nic.phy_name()))
+                        _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW)
                     else
                         -- got an ID; assigned to a reactor successfully
                         println(util.c("PLC (", firmware_v, ") [@", src_addr, "] \xbb reactor ", reactor_id, " connected"))
-                        log.info(util.c("PLC_ESTABLISH: PLC (", firmware_v, ") [@", src_addr, "] reactor unit ", reactor_id, " PLC connected with session ID ", plc_id, " on ", nic.phy_name()))
+                        log.info(util.c("PLC_ESTABLISH: PLC [@", src_addr, "] (", firmware_v, ") reactor unit ", reactor_id, " PLC connected with session ID ", plc_id, " on ", nic.phy_name()))
                         _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW)
                     end
                 end

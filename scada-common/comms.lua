@@ -17,7 +17,7 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.9"
+comms.version = "3.1.0"
 comms.api_version = "0.0.10"
 
 ---@enum PROTOCOL
@@ -146,6 +146,9 @@ comms.FAC_COMMAND = FAC_COMMAND
 
 -- destination broadcast address (to all devices)
 comms.BROADCAST = -1
+
+-- firmware version used to indicate an establish packet is a connection test
+comms.CONN_TEST_FWV = "CONN_TEST"
 
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame

@@ -568,7 +568,7 @@ types.ALARM_STATE_NAMES = {
 ---| "websocket_failure"
 ---| "websocket_message"
 ---| "websocket_success"
----| "clock_start" (custom)
+---| "conn_test_complete" (custom)
 
 ---@alias fluid
 ---| "mekanism:empty_gas"

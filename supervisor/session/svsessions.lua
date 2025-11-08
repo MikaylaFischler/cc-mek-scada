@@ -2,6 +2,7 @@
 -- Supervisor Sessions Handler
 --
 
+local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local types       = require("scada-common.types")
@@ -465,9 +466,12 @@ end
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param for_reactor integer unit ID
 ---@param version string PLC version
----@return integer|false session_id
+---@return integer|boolean session_id session ID, false if unit is already connected, and true if this is a successful connection test
 function svsessions.establish_plc_session(nic, source_addr, i_seq_num, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
+        -- don't actually establish this if it is a connection test
+        if version == comms.CONN_TEST_FWV then return true end
+
         ---@class plc_session_struct
         local plc_s = {
             s_type = "plc",
