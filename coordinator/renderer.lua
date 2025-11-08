@@ -28,6 +28,7 @@ local renderer = {}
 
 -- render engine
 local engine = {
+    config = nil,           ---@type crd_config
     color_mode = 1,         ---@type COLOR_MODE
     monitors = nil,         ---@type crd_displays|nil
     dmesg_window = nil,     ---@type Window|nil
@@ -76,10 +77,11 @@ end
 -- apply renderer configurations
 ---@param config crd_config
 function renderer.configure(config)
-    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
-
+    engine.config = config
     engine.color_mode = config.ColorMode
     engine.disable_flow_view = config.DisableFlowView
+
+    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
 end
 
 -- init all displays in use by the renderer
@@ -130,7 +132,7 @@ function renderer.try_start_fp()
         -- show front panel view on terminal
         status, msg = pcall(function ()
             engine.ui.front_panel = DisplayBox{window=term.current(),fg_bg=style.fp.root}
-            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
+            panel_view(engine.ui.front_panel, engine.config)
         end)
 
         if status then
