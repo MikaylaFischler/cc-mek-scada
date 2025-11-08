@@ -191,6 +191,7 @@ function renderer.try_start_ui()
             if engine.monitors.main ~= nil then
                 engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
                 main_view(engine.ui.main_display)
+                iocontrol.fp_monitor_state("main", 3)
                 util.nop()
             end
 
@@ -198,6 +199,7 @@ function renderer.try_start_ui()
             if engine.monitors.flow ~= nil then
                 engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
                 flow_view(engine.ui.flow_display)
+                iocontrol.fp_monitor_state("flow", 3)
                 util.nop()
             end
 
@@ -205,6 +207,7 @@ function renderer.try_start_ui()
             for idx, display in pairs(engine.monitors.unit_displays) do
                 engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
                 unit_view(engine.ui.unit_displays[idx], idx)
+                iocontrol.fp_monitor_state(idx, 3)
                 util.nop()
             end
         end)
@@ -231,9 +234,21 @@ function renderer.close_ui()
     end
 
     -- delete element trees
-    if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
-    if engine.ui.flow_display ~= nil then engine.ui.flow_display.delete() end
-    for _, display in pairs(engine.ui.unit_displays) do display.delete() end
+
+    if engine.ui.main_display ~= nil then
+        engine.ui.main_display.delete()
+        iocontrol.fp_monitor_state("main", 2)
+    end
+
+    if engine.ui.flow_display ~= nil then
+        engine.ui.flow_display.delete()
+        iocontrol.fp_monitor_state("flow", 2)
+    end
+
+    for idx, display in pairs(engine.ui.unit_displays) do
+        display.delete()
+        iocontrol.fp_monitor_state(idx, 2)
+    end
 
     -- report ui as not ready
     engine.ui_ready = false
