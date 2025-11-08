@@ -282,25 +282,31 @@ function supervisor.comms(_version, fp_ok, facility)
             -- drop if not listening
         elseif comms_v ~= comms.version then
             if last_ack ~= ESTABLISH_ACK.BAD_VERSION then
-                log.info(util.c("dropping RTU_GW establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
+                log.info(util.c("RTU_GW_ESTABLISH: [@", src_addr, "] dropping RTU_GW establish packet with incorrect comms version v", comms_v, " (expected v", comms.version, ")"))
             end
 
             _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.BAD_VERSION)
         elseif dev_type == DEVICE_TYPE.RTU then
             if packet.length == 4 then
-                -- this is an RTU advertisement for a new session
-                local rtu_advert = packet.data[4]
-                local s_id = svsessions.establish_rtu_session(nic, src_addr, i_seq_num, rtu_advert, firmware_v)
+                if firmware_v ~= comms.CONN_TEST_FWV then
+                    -- this is an RTU advertisement for a new session
+                    local rtu_advert = packet.data[4]
+                    local s_id = svsessions.establish_rtu_session(nic, src_addr, i_seq_num, rtu_advert, firmware_v)
 
-                println(util.c("RTU (", firmware_v, ") [@", src_addr, "] \xbb connected"))
-                log.info(util.c("RTU_GW_ESTABLISH: RTU_GW (",firmware_v, ") [@", src_addr, "] connected with session ID ", s_id, " on ", nic.phy_name()))
-                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                    println(util.c("RTU (", firmware_v, ") [@", src_addr, "] \xbb connected"))
+                    log.info(util.c("RTU_GW_ESTABLISH: [@", src_addr, "] RTU_GW (",firmware_v, ") connected with session ID ", s_id, " on ", nic.phy_name()))
+                    _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                else
+                    -- valid, but this was just a test
+                    log.info(util.c("RTU_GW_ESTABLISH: RTU_GW [@", src_addr, "] sending connection test success response on ", nic.phy_name()))
+                    _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW)
+                end
             else
-                log.debug("RTU_GW_ESTABLISH: packet length mismatch")
+                log.debug(util.c("RTU_GW_ESTABLISH: [@", src_addr, "] packet length mismatch"))
                 _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
             end
         else
-            log.debug(util.c("illegal establish packet for device ", dev_type, " on RTU channel"))
+            log.debug(util.c("RTU_GW_ESTABLISH: [@", src_addr, "] illegal establish packet for device ", dev_type, " on RTU channel"))
             _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
         end
     end

@@ -359,6 +359,8 @@ function configurator.configure(ask_config)
                 display.handle_paste(param1)
             elseif event == "modem_message" then
                 check.receive_sv(param1, param2, param3, param4, param5)
+            elseif event == "conn_test_complete" then
+                check.conn_test_callback(param1)
             elseif event == "peripheral_detach" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.handle_unmount(param1)
