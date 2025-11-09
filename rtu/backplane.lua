@@ -190,9 +190,7 @@ function backplane.detach(type, device, iface, print_no_fp)
     if type == "modem" then
         ---@cast device Modem
 
-        local m_is_wl = device.isWireless()
-
-        log.info(util.c("BKPLN: ", util.trinary(m_is_wl, "WIRELESS", "WIRED"), " PHY_DETACH ", iface))
+        log.info(util.c("BKPLN: PHY_DETACH ", iface))
 
         if wd_nic and wd_nic.is_modem(device) then
             wd_nic.disconnect()
@@ -239,14 +237,14 @@ function backplane.detach(type, device, iface, print_no_fp)
             else
                 -- wired active disconnected, wireless unavailable
             end
-        elseif _bp.wl_nic and m_is_wl then
-            -- wireless, but not active
-            print_no_fp("standby wireless modem disconnected")
-            log.info("BKPLN: standby wireless modem disconnected")
         elseif wd_nic and wd_nic.is_modem(device) then
             -- wired, but not active
             print_no_fp("standby wired modem disconnected")
             log.info("BKPLN: standby wired modem disconnected")
+        elseif wl_nic and wl_nic.is_modem(device) then
+            -- wireless, but not active
+            print_no_fp("standby wireless modem disconnected")
+            log.info("BKPLN: standby wireless modem disconnected")
         else
             print_no_fp("unassigned modem disconnected")
             log.warning("BKPLN: unassigned modem disconnected")
