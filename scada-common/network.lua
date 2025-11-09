@@ -49,7 +49,7 @@ function network.init_mac(passkey)
     _crypt.hmac.setKey(_crypt.key)
 
     local init_time = util.time_ms() - start
-    log.info("NET: network.init_mac completed in " .. init_time .. "ms")
+    log.info("NET: network.init_mac() completed in " .. init_time .. "ms")
 
     return init_time
 end
@@ -190,13 +190,13 @@ function network.nic(modem)
                 ---@cast tx_packet authd_packet
                 tx_packet.make(packet, compute_hmac)
 
-                -- log.debug("NET: network.modem.transmit: data processing took " .. (util.time_ms() - start) .. "ms")
+                -- log.debug("NET: network.modem.transmit(): data processing took " .. (util.time_ms() - start) .. "ms")
             end
 
 ---@diagnostic disable-next-line: need-check-nil
             modem.transmit(dest_channel, local_channel, tx_packet.raw_sendable())
         else
-            log.debug("NET: network.transmit tx dropped, link is down")
+            log.debug("NET: network.transmit() tx dropped, link is down")
         end
     end
 
@@ -227,10 +227,10 @@ function network.nic(modem)
                         local computed_hmac = compute_hmac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
 
                         if a_packet.mac() == computed_hmac then
-                            -- log.debug("NET: network.modem.receive: HMAC verified in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: network.modem.receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
                             s_packet.stamp_authenticated()
                         else
-                            -- log.debug("NET: network.modem.receive: HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: network.modem.receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                         end
                     end
                 end

@@ -17,6 +17,7 @@ local core      = require("graphics.core")
 local Div       = require("graphics.elements.Div")
 local ListBox   = require("graphics.elements.ListBox")
 local MultiPane = require("graphics.elements.MultiPane")
+local Rectangle = require("graphics.elements.Rectangle")
 local TextBox   = require("graphics.elements.TextBox")
 
 local TabBar    = require("graphics.elements.controls.TabBar")
@@ -30,13 +31,16 @@ local LINK_STATE = types.PANEL_LINK_STATE
 local ALIGN = core.ALIGN
 
 local cpair = core.cpair
+local border = core.border
 
 local led_grn = style.led_grn
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
----@param num_units integer number of units (number of unit monitors)
-local function init(panel, num_units)
+---@param config crd_config configuration
+local function init(panel, config)
+    local s_hi_box = style.fp_theme.highlight_box
+
     local ps = iocontrol.get_db().fp.ps
 
     local term_w, term_h = term.getSize()
@@ -60,7 +64,15 @@ local function init(panel, num_units)
 
     heartbeat.register(ps, "heartbeat", heartbeat.update)
 
-    local modem = LED{parent=system,label="MODEM",colors=led_grn}
+    if config.WirelessModem and config.WiredModem then
+        local wd_modem = LED{parent=system,label="WD MODEM",colors=led_grn}
+        local wl_modem = LED{parent=system,label="WL MODEM",colors=led_grn}
+        wd_modem.register(ps, "has_wd_modem", wd_modem.update)
+        wl_modem.register(ps, "has_wl_modem", wl_modem.update)
+    else
+        local modem = LED{parent=system,label="MODEM",colors=led_grn}
+        modem.register(ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
+    end
 
     if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.fp_ind_bkg}}
@@ -97,48 +109,44 @@ local function init(panel, num_units)
 
     system.line_break()
 
-    modem.register(ps, "has_modem", modem.update)
-
-    local speaker = LED{parent=system,label="SPEAKER",colors=led_grn}
-    speaker.register(ps, "has_speaker", speaker.update)
-
-    system.line_break()
-
     local rt_main = LED{parent=system,label="RT MAIN",colors=led_grn}
     local rt_render = LED{parent=system,label="RT RENDER",colors=led_grn}
 
     rt_main.register(ps, "routine__main", rt_main.update)
     rt_render.register(ps, "routine__render", rt_render.update)
 
----@diagnostic disable-next-line: undefined-field
-    local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=4,width=6,text=comp_id,fg_bg=style.fp.disabled_fg}
+    local hmi_devs = Div{parent=main_page,width=16,height=17,x=18,y=2}
 
-    local monitors = Div{parent=main_page,width=16,height=17,x=18,y=2}
+    local speaker = LED{parent=hmi_devs,label="SPEAKER",colors=led_grn}
+    speaker.register(ps, "has_speaker", speaker.update)
 
-    local main_monitor = LED{parent=monitors,label="MAIN MONITOR",colors=led_grn}
-    main_monitor.register(ps, "main_monitor", main_monitor.update)
+    hmi_devs.line_break()
 
-    local flow_monitor = LED{parent=monitors,label="FLOW MONITOR",colors=led_grn}
-    flow_monitor.register(ps, "flow_monitor", flow_monitor.update)
+    local main_disp = LEDPair{parent=hmi_devs,label="MAIN DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+    main_disp.register(ps, "main_monitor", main_disp.update)
 
-    monitors.line_break()
+    local flow_disp = LEDPair{parent=hmi_devs,label="FLOW DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+    flow_disp.register(ps, "flow_monitor", flow_disp.update)
 
-    for i = 1, num_units do
-        local unit_monitor = LED{parent=monitors,label="UNIT "..i.." MONITOR",colors=led_grn}
-        unit_monitor.register(ps, "unit_monitor_" .. i, unit_monitor.update)
+    hmi_devs.line_break()
+
+    for i = 1, config.UnitCount do
+        local unit_disp = LEDPair{parent=hmi_devs,label="UNIT "..i.." DISPLAY",off=style.fp_ind_bkg,c1=colors.red,c2=colors.green}
+        unit_disp.register(ps, "unit_monitor_" .. i, unit_disp.update)
     end
 
     --
-    -- about footer
+    -- hardware labeling
     --
 
-    local about   = Div{parent=main_page,width=15,height=2,y=term_h-3,fg_bg=style.fp.disabled_fg}
-    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
+    local hw_labels = Rectangle{parent=main_page,x=2,y=term_h-7,width=14,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
-    fw_v.register(ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    comms_v.register(ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("%03d", os.getComputerID())
+
+    TextBox{parent=hw_labels,text="FW "..ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT v"..ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="SN "..comp_id.."-CRD",fg_bg=s_hi_box}
 
     --
     -- page handling

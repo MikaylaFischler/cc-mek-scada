@@ -17,7 +17,7 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.0.8"
+comms.version = "3.1.0"
 comms.api_version = "0.0.10"
 
 ---@enum PROTOCOL
@@ -49,13 +49,14 @@ local MGMT_TYPE = {
     ESTABLISH = 0,       -- establish new connection
     KEEP_ALIVE = 1,      -- keep alive packet w/ RTT
     CLOSE = 2,           -- close a connection
-    RTU_ADVERT = 3,      -- RTU capability advertisement
-    RTU_DEV_REMOUNT = 4, -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
-    RTU_TONE_ALARM = 5,  -- instruct RTUs to play specified alarm tones
-    DIAG_TONE_GET = 6,   -- (API) diagnostic: get alarm tones
-    DIAG_TONE_SET = 7,   -- (API) diagnostic: set alarm tones
-    DIAG_ALARM_SET = 8,  -- (API) diagnostic: set alarm to simulate audio for
-    INFO_LIST_CMP = 9    -- (API) info: list all computers on the network
+    PROBE = 3,
+    RTU_ADVERT = 4,      -- RTU capability advertisement
+    RTU_DEV_REMOUNT = 5, -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
+    RTU_TONE_ALARM = 6,  -- instruct RTUs to play specified alarm tones
+    DIAG_TONE_GET = 7,   -- (API) diagnostic: get alarm tones
+    DIAG_TONE_SET = 8,   -- (API) diagnostic: set alarm tones
+    DIAG_ALARM_SET = 9,  -- (API) diagnostic: set alarm to simulate audio for
+    INFO_LIST_CMP = 10   -- (API) info: list all computers on the network
 }
 
 ---@enum CRDN_TYPE
@@ -88,6 +89,12 @@ local ESTABLISH_ACK = {
 
 ---@enum DEVICE_TYPE device types for establish messages
 local DEVICE_TYPE = { PLC = 0, RTU = 1, SVR = 2, CRD = 3, PKT = 4 }
+
+---@enum PROBE_ACK
+local PROBE_ACK = {
+    OPEN = 0,
+    CONFLICT = 1
+}
 
 ---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {
@@ -130,6 +137,8 @@ comms.CRDN_TYPE = CRDN_TYPE
 comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.DEVICE_TYPE = DEVICE_TYPE
 
+comms.PROBE_ACK = PROBE_ACK
+
 comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 
 comms.UNIT_COMMAND = UNIT_COMMAND
@@ -137,6 +146,9 @@ comms.FAC_COMMAND = FAC_COMMAND
 
 -- destination broadcast address (to all devices)
 comms.BROADCAST = -1
+
+-- firmware version used to indicate an establish packet is a connection test
+comms.CONN_TEST_FWV = "CONN_TEST"
 
 ---@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame
@@ -205,7 +217,7 @@ function comms.scada_packet()
 
         if (type(max_distance) == "number") and (type(distance) == "number") and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: comms.scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 5 then
@@ -251,6 +263,8 @@ function comms.scada_packet()
     ---@nodiscard
     function public.raw_sendable() return self.raw end
 
+    ---@nodiscard
+    function public.interface() return self.modem_msg_in.iface end
     ---@nodiscard
     function public.local_channel() return self.modem_msg_in.s_channel end
     ---@nodiscard
@@ -326,7 +340,7 @@ function comms.authd_packet()
 
         if (type(max_distance) == "number") and ((type(distance) ~= "number") or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: comms.authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
+            -- log.debug("COMMS: authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
         else
             if type(self.raw) == "table" then
                 if #self.raw == 4 then

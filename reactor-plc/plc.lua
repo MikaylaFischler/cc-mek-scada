@@ -45,6 +45,9 @@ function plc.load_config()
     config.EmerCoolColor = settings.get("EmerCoolColor")
     config.EmerCoolInvert = settings.get("EmerCoolInvert")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.PLC_Channel = settings.get("PLC_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
@@ -70,7 +73,11 @@ function plc.validate_config(cfg)
     cfv.assert_type_int(cfg.UnitID)
     cfv.assert_type_bool(cfg.EmerCoolEnable)
 
-    if cfg.Networked == true then
+    if cfg.Networked then
+        cfv.assert_type_bool(cfg.WirelessModem)
+        cfv.assert((cfg.WiredModem == false) or (type(cfg.WiredModem) == "string"))
+        cfv.assert(cfg.WirelessModem or (type(cfg.WiredModem) == "string"))
+        cfv.assert_type_bool(cfg.PreferWireless)
         cfv.assert_channel(cfg.SVR_Channel)
         cfv.assert_channel(cfg.PLC_Channel)
         cfv.assert_type_num(cfg.ConnTimeout)
@@ -552,13 +559,11 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         max_burn_rate = nil
     }
 
-    comms.set_trusted_range(config.TrustedRange)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
-    -- PRIVATE FUNCTIONS --
-
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.PLC_Channel)
+    --#region PRIVATE FUNCTIONS --
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPE
@@ -816,10 +821,19 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         end
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class plc_comms
     local public = {}
+
+    -- switch the current active NIC
+    ---@param act_nic nic
+    function public.switch_nic(act_nic)
+        public.close()
+        nic = act_nic
+    end
 
     -- reconnect a newly connected reactor
     ---@param new_reactor table
@@ -1097,6 +1111,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     function public.is_scrammed() return self.scrammed end
     ---@nodiscard
     function public.is_linked() return self.linked end
+
+    --#endregion
 
     return public
 end

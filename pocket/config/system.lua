@@ -63,7 +63,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     TextBox{parent=ui_c_1,y=4,text="Po/Pu Pellet Color"}
     TextBox{parent=ui_c_1,x=20,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
-    local pellet_color = RadioButton{parent=ui_c_1,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local pellet_color = RadioButton{parent=ui_c_1,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=ui_c_1,y=8,height=4,text="In Mekanism 10.4 and later, pellet colors now match gas colors (Cyan Pu/Green Po).",fg_bg=g_lg_fg_bg}
 
@@ -78,10 +78,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=ui_c_2,x=1,y=1,height=3,text="You may customize units below."}
 
     TextBox{parent=ui_c_2,x=1,y=4,text="Temperature Scale"}
-    local temp_scale = RadioButton{parent=ui_c_2,x=1,y=5,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local temp_scale = RadioButton{parent=ui_c_2,x=1,y=5,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=ui_c_2,x=1,y=10,text="Energy Scale"}
-    local energy_scale = RadioButton{parent=ui_c_2,x=1,y=11,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    local energy_scale = RadioButton{parent=ui_c_2,x=1,y=11,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     local function submit_ui_units()
         tmp_cfg.TempScale = temp_scale.get_value()
@@ -216,7 +216,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=log_c_1,x=1,y=1,text="Configure logging below."}
 
     TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
-    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
+    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
     TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=24,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}

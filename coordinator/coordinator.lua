@@ -1,6 +1,5 @@
 local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
-local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
 local types       = require("scada-common.types")
 
@@ -29,11 +28,9 @@ local config = {}
 
 coordinator.config = config
 
--- load the coordinator configuration<br>
--- status of 0 is OK, 1 is bad config, 2 is bad monitor config
----@return 0|1|2 status, nil|monitors_struct|string monitors (or error message)
+-- load the coordinator configuration
 function coordinator.load_config()
-    if not settings.load("/coordinator.settings") then return 1 end
+    if not settings.load("/coordinator.settings") then return false end
 
     config.UnitCount = settings.get("UnitCount")
     config.SpeakerVolume = settings.get("SpeakerVolume")
@@ -47,6 +44,10 @@ function coordinator.load_config()
     config.FlowDisplay = settings.get("FlowDisplay")
     config.UnitDisplays = settings.get("UnitDisplays")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
+    config.API_Enabled = settings.get("API_Enabled")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.CRD_Channel = settings.get("CRD_Channel")
     config.PKT_Channel = settings.get("PKT_Channel")
@@ -80,6 +81,13 @@ function coordinator.load_config()
     cfv.assert_type_num(config.SpeakerVolume)
     cfv.assert_range(config.SpeakerVolume, 0, 3)
 
+    cfv.assert_type_bool(config.WirelessModem)
+    cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
+    cfv.assert(config.WirelessModem or (type(config.WiredModem) == "string"))
+    cfv.assert_type_bool(config.PreferWireless)
+
+    cfv.assert_type_bool(config.API_Enabled)
+
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.CRD_Channel)
     cfv.assert_channel(config.PKT_Channel)
@@ -110,85 +118,7 @@ function coordinator.load_config()
     cfv.assert_type_int(config.ColorMode)
     cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
-    -- Monitor Setup
-
-    ---@class monitors_struct
-    local monitors = {
-        main = nil,         ---@type Monitor|nil
-        main_name = "",
-        flow = nil,         ---@type Monitor|nil
-        flow_name = "",
-        unit_displays = {}, ---@type Monitor[]
-        unit_name_map = {}  ---@type string[]
-    }
-
-    local mon_cfv = util.new_validator()
-
-    -- get all interface names
-    local names = {}
-    for iface, _ in pairs(ppm.get_monitor_list()) do table.insert(names, iface) end
-
-    local function setup_monitors()
-        mon_cfv.assert_type_str(config.MainDisplay)
-        if not config.DisableFlowView then mon_cfv.assert_type_str(config.FlowDisplay) end
-        mon_cfv.assert_eq(#config.UnitDisplays, config.UnitCount)
-
-        if mon_cfv.valid() then
-            local w, h, _
-
-            if not util.table_contains(names, config.MainDisplay) then
-                return 2, "Main monitor is not connected."
-            end
-
-            monitors.main = ppm.get_periph(config.MainDisplay)
-            monitors.main_name = config.MainDisplay
-
-            monitors.main.setTextScale(0.5)
-            w, _ = ppm.monitor_block_size(monitors.main.getSize())
-            if w ~= 8 then
-                return 2, util.c("Main monitor width is incorrect (was ", w, ", must be 8).")
-            end
-
-            if not config.DisableFlowView then
-                if not util.table_contains(names, config.FlowDisplay) then
-                    return 2, "Flow monitor is not connected."
-                end
-
-                monitors.flow = ppm.get_periph(config.FlowDisplay)
-                monitors.flow_name = config.FlowDisplay
-
-                monitors.flow.setTextScale(0.5)
-                w, _ = ppm.monitor_block_size(monitors.flow.getSize())
-                if w ~= 8 then
-                    return 2, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
-                end
-            end
-
-            for i = 1, config.UnitCount do
-                local display = config.UnitDisplays[i]
-                if type(display) ~= "string" or not util.table_contains(names, display) then
-                    return 2, "Unit " .. i .. " monitor is not connected."
-                end
-
-                monitors.unit_displays[i] = ppm.get_periph(display)
-                monitors.unit_name_map[i] = display
-
-                monitors.unit_displays[i].setTextScale(0.5)
-                w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
-                if w ~= 4 or h ~= 4 then
-                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
-                end
-            end
-        else return 2, "Monitor configuration invalid." end
-    end
-
-    if cfv.valid() then
-        local ok, result, message = pcall(setup_monitors)
-        assert(ok, util.c("fatal error while trying to verify monitors: ", result))
-        if result == 2 then return 2, message end
-    else return 1 end
-
-    return 0, monitors
+    return cfv.valid()
 end
 
 -- dmesg print wrapper
@@ -232,9 +162,10 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param nic nic network interface device
+---@param nic nic active network interface device
+---@param wl_nic nic|nil pocket wireless network interface device
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, sv_watchdog)
+function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -249,16 +180,16 @@ function coordinator.comms(version, nic, sv_watchdog)
         est_task_done = nil
     }
 
-    comms.set_trusted_range(config.TrustedRange)
-
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.CRD_Channel)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
     -- pass config to apisessions
-    apisessions.init(nic, config)
+    if config.API_Enabled and wl_nic then
+        apisessions.init(wl_nic, config)
+    end
 
-    -- PRIVATE FUNCTIONS --
+    --#region PRIVATE FUNCTIONS --
 
     -- send a packet to the supervisor
     ---@param msg_type MGMT_TYPE|CRDN_TYPE
@@ -293,7 +224,8 @@ function coordinator.comms(version, nic, sv_watchdog)
         m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
 
-        nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
+---@diagnostic disable-next-line: need-check-nil
+        wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
         self.last_api_est_acks[packet.src_addr()] = ack
     end
 
@@ -309,10 +241,19 @@ function coordinator.comms(version, nic, sv_watchdog)
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class coord_comms
     local public = {}
+
+    -- switch the current active NIC
+    ---@param act_nic nic
+    function public.switch_nic(act_nic)
+        public.close()
+        nic = act_nic
+    end
 
     -- try to connect to the supervisor if not already linked
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)
@@ -468,7 +409,9 @@ function coordinator.comms(version, nic, sv_watchdog)
             if l_chan ~= config.CRD_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
             elseif r_chan == config.PKT_Channel then
-                if not self.sv_linked then
+                if not config.API_Enabled then
+                    -- log.debug("discarding pocket API packet due to the API being disabled")
+                elseif not self.sv_linked then
                     log.debug("discarding pocket API packet before linked to supervisor")
                 elseif protocol == PROTOCOL.SCADA_CRDN then
                     ---@cast packet crdn_frame
@@ -783,6 +726,8 @@ function coordinator.comms(version, nic, sv_watchdog)
     -- check if the coordinator is still linked to the supervisor
     ---@nodiscard
     function public.is_linked() return self.sv_linked end
+
+    --#endregion
 
     return public
 end

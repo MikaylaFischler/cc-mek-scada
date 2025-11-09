@@ -15,6 +15,7 @@ local util       = require("scada-common.util")
 
 local core       = require("graphics.core")
 
+local backplane  = require("supervisor.backplane")
 local configure  = require("supervisor.configure")
 local databus    = require("supervisor.databus")
 local facility   = require("supervisor.facility")
@@ -23,7 +24,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.7.1"
+local SUPERVISOR_VERSION = "v1.8.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -114,7 +115,7 @@ local function main()
     -- startup
     ----------------------------------------
 
-    -- record firmware versions and ID
+    -- report versions
     databus.tx_versions(SUPERVISOR_VERSION, comms.version)
 
     -- mount connected devices
@@ -125,18 +126,11 @@ local function main()
         network.init_mac(config.AuthKey)
     end
 
-    -- get modem
-    local modem = ppm.get_wireless_modem()
-    if modem == nil then
-        println("startup> wireless modem not found")
-        log.fatal("no wireless modem on startup")
-        return
-    end
-
-    databus.tx_hw_modem(true)
+    -- modem initialization
+    if not backplane.init(config) then return end
 
     -- start UI
-    local fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
+    local fp_ok, message = renderer.try_start_ui(config)
 
     if not fp_ok then
         println_ts(util.c("UI error: ", message))
@@ -150,8 +144,7 @@ local function main()
     local sv_facility = facility.new(config)
 
     -- create network interface then setup comms
-    local nic = network.nic(modem)
-    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, nic, fp_ok, sv_facility)
+    local superv_comms = supervisor.comms(SUPERVISOR_VERSION, fp_ok, sv_facility)
 
     -- base loop clock (6.67Hz, 3 ticks)
     local MAIN_CLOCK = 0.15
@@ -173,49 +166,13 @@ local function main()
         -- handle event
         if event == "peripheral_detach" then
             local type, device = ppm.handle_unmount(param1)
-
             if type ~= nil and device ~= nil then
-                if type == "modem" then
-                    ---@cast device Modem
-                    -- we only care if this is our wireless modem
-                    if nic.is_modem(device) then
-                        nic.disconnect()
-
-                        println_ts("wireless modem disconnected!")
-                        log.warning("comms modem disconnected")
-
-                        local other_modem = ppm.get_wireless_modem()
-                        if other_modem then
-                            log.info("found another wireless modem, using it for comms")
-                            nic.connect(other_modem)
-                        else
-                            databus.tx_hw_modem(false)
-                        end
-                    else
-                        log.warning("non-comms modem disconnected")
-                    end
-                end
+                backplane.detach(param1, type, device, println_ts)
             end
         elseif event == "peripheral" then
             local type, device = ppm.mount(param1)
-
             if type ~= nil and device ~= nil then
-                if type == "modem" then
-                    ---@cast device Modem
-                    if device.isWireless() and not nic.is_connected() then
-                        -- reconnected modem
-                        nic.connect(device)
-
-                        println_ts("wireless modem reconnected.")
-                        log.info("comms modem reconnected")
-
-                        databus.tx_hw_modem(true)
-                    elseif device.isWireless() then
-                        log.info("unused wireless modem reconnected")
-                    else
-                        log.info("wired modem reconnected")
-                    end
-                end
+                backplane.attach(param1, type, device, println_ts)
             end
         elseif event == "timer" and loop_clock.is_clock(param1) then
             -- main loop tick

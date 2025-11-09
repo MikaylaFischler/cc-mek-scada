@@ -162,7 +162,7 @@ local function new_view(root)
         TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
 
         local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,callback=function()end,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
+        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
         mode.register(f_ps, "process_mode", mode.set_value)
 

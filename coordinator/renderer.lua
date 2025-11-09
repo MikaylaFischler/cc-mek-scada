@@ -28,8 +28,9 @@ local renderer = {}
 
 -- render engine
 local engine = {
+    config = nil,           ---@type crd_config
     color_mode = 1,         ---@type COLOR_MODE
-    monitors = nil,         ---@type monitors_struct|nil
+    monitors = nil,         ---@type crd_displays|nil
     dmesg_window = nil,     ---@type Window|nil
     ui_ready = false,
     fp_ready = false,
@@ -76,25 +77,18 @@ end
 -- apply renderer configurations
 ---@param config crd_config
 function renderer.configure(config)
-    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
-
+    engine.config = config
     engine.color_mode = config.ColorMode
     engine.disable_flow_view = config.DisableFlowView
-end
 
--- link to the monitor peripherals
----@param monitors monitors_struct
-function renderer.set_displays(monitors)
-    engine.monitors = monitors
-
-    -- report to front panel as connected
-    iocontrol.fp_monitor_state("main", engine.monitors.main ~= nil)
-    iocontrol.fp_monitor_state("flow", engine.monitors.flow ~= nil)
-    for i = 1, #engine.monitors.unit_displays do iocontrol.fp_monitor_state(i, true) end
+    style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
 end
 
 -- init all displays in use by the renderer
-function renderer.init_displays()
+---@param monitors crd_displays
+function renderer.init_displays(monitors)
+    engine.monitors = monitors
+
     -- init main and flow monitors
     _init_display(engine.monitors.main)
     if not engine.disable_flow_view then _init_display(engine.monitors.flow) end
@@ -138,7 +132,7 @@ function renderer.try_start_fp()
         -- show front panel view on terminal
         status, msg = pcall(function ()
             engine.ui.front_panel = DisplayBox{window=term.current(),fg_bg=style.fp.root}
-            panel_view(engine.ui.front_panel, #engine.monitors.unit_displays)
+            panel_view(engine.ui.front_panel, engine.config)
         end)
 
         if status then
@@ -199,6 +193,7 @@ function renderer.try_start_ui()
             if engine.monitors.main ~= nil then
                 engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
                 main_view(engine.ui.main_display)
+                iocontrol.fp_monitor_state("main", 3)
                 util.nop()
             end
 
@@ -206,6 +201,7 @@ function renderer.try_start_ui()
             if engine.monitors.flow ~= nil then
                 engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
                 flow_view(engine.ui.flow_display)
+                iocontrol.fp_monitor_state("flow", 3)
                 util.nop()
             end
 
@@ -213,6 +209,7 @@ function renderer.try_start_ui()
             for idx, display in pairs(engine.monitors.unit_displays) do
                 engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
                 unit_view(engine.ui.unit_displays[idx], idx)
+                iocontrol.fp_monitor_state(idx, 3)
                 util.nop()
             end
         end)
@@ -239,9 +236,21 @@ function renderer.close_ui()
     end
 
     -- delete element trees
-    if engine.ui.main_display ~= nil then engine.ui.main_display.delete() end
-    if engine.ui.flow_display ~= nil then engine.ui.flow_display.delete() end
-    for _, display in pairs(engine.ui.unit_displays) do display.delete() end
+
+    if engine.ui.main_display ~= nil then
+        engine.ui.main_display.delete()
+        iocontrol.fp_monitor_state("main", 2)
+    end
+
+    if engine.ui.flow_display ~= nil then
+        engine.ui.flow_display.delete()
+        iocontrol.fp_monitor_state("flow", 2)
+    end
+
+    for idx, display in pairs(engine.ui.unit_displays) do
+        display.delete()
+        iocontrol.fp_monitor_state(idx, 2)
+    end
 
     -- report ui as not ready
     engine.ui_ready = false
@@ -275,90 +284,51 @@ function renderer.fp_ready() return engine.fp_ready end
 function renderer.ui_ready() return engine.ui_ready end
 
 -- handle a monitor peripheral being disconnected
----@param device Monitor monitor
----@return boolean is_used if the monitor is one of the configured monitors
-function renderer.handle_disconnect(device)
-    local is_used = false
-
+---@param iface string monitor interface
+function renderer.handle_disconnect(iface)
     if not engine.monitors then return false end
 
-    if engine.monitors.main == device then
+    if engine.monitors.main_iface == iface then
         if engine.ui.main_display ~= nil then
             -- delete element tree and clear root UI elements
             engine.ui.main_display.delete()
+            log_render("closed main view due to monitor disconnect")
         end
 
-        is_used = true
         engine.monitors.main = nil
         engine.ui.main_display = nil
-
-        iocontrol.fp_monitor_state("main", false)
-    elseif engine.monitors.flow == device then
+    elseif engine.monitors.flow_iface == iface then
         if engine.ui.flow_display ~= nil then
             -- delete element tree and clear root UI elements
             engine.ui.flow_display.delete()
+            log_render("closed flow view due to monitor disconnect")
         end
 
-        is_used = true
         engine.monitors.flow = nil
         engine.ui.flow_display = nil
-
-        iocontrol.fp_monitor_state("flow", false)
     else
-        for idx, monitor in pairs(engine.monitors.unit_displays) do
-            if monitor == device then
+        for idx, u_iface in pairs(engine.monitors.unit_ifaces) do
+            if u_iface == iface then
                 if engine.ui.unit_displays[idx] ~= nil then
+                    -- delete element tree and clear root UI elements
                     engine.ui.unit_displays[idx].delete()
+                    log_render("closed unit" .. idx .. "view due to monitor disconnect")
                 end
 
-                is_used = true
                 engine.monitors.unit_displays[idx] = nil
                 engine.ui.unit_displays[idx] = nil
-
-                iocontrol.fp_monitor_state(idx, false)
                 break
             end
         end
     end
-
-    return is_used
 end
 
 -- handle a monitor peripheral being reconnected
 ---@param name string monitor name
----@param device Monitor monitor
----@return boolean is_used if the monitor is one of the configured monitors
-function renderer.handle_reconnect(name, device)
-    local is_used = false
-
-    if not engine.monitors then return false end
-
+function renderer.handle_reconnect(name)
     -- note: handle_resize is a more adaptive way of re-initializing a connected monitor
     --       since it can handle a monitor being reconnected that isn't the right size
-
-    if engine.monitors.main_name == name then
-        is_used = true
-        engine.monitors.main = device
-
-        renderer.handle_resize(name)
-    elseif engine.monitors.flow_name == name then
-        is_used = true
-        engine.monitors.flow = device
-
-        renderer.handle_resize(name)
-    else
-        for idx, monitor in ipairs(engine.monitors.unit_name_map) do
-            if monitor == name then
-                is_used = true
-                engine.monitors.unit_displays[idx] = device
-
-                renderer.handle_resize(name)
-                break
-            end
-        end
-    end
-
-    return is_used
+    renderer.handle_resize(name)
 end
 
 -- handle a monitor being resized<br>
@@ -372,7 +342,7 @@ function renderer.handle_resize(name)
 
     if not engine.monitors then return false, false end
 
-    if engine.monitors.main_name == name and engine.monitors.main then
+    if engine.monitors.main_iface == name and engine.monitors.main then
         local device = engine.monitors.main  ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
@@ -390,7 +360,7 @@ function renderer.handle_resize(name)
             ui.main_display = nil
         end
 
-        iocontrol.fp_monitor_state("main", true)
+        iocontrol.fp_monitor_state("main", 2)
 
         engine.dmesg_window.setVisible(not engine.ui_ready)
 
@@ -402,6 +372,8 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
+                iocontrol.fp_monitor_state("main", 3)
+
                 log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
                 if ui.main_display then
@@ -411,11 +383,10 @@ function renderer.handle_resize(name)
 
                 _print_too_small(device)
 
-                iocontrol.fp_monitor_state("main", false)
                 is_ok = false
             end
         else engine.dmesg_window.redraw() end
-    elseif engine.monitors.flow_name == name and engine.monitors.flow then
+    elseif engine.monitors.flow_iface == name and engine.monitors.flow then
         local device = engine.monitors.flow ---@type Monitor
 
         -- this is necessary if the bottom left block was broken and on reconnect
@@ -428,7 +399,7 @@ function renderer.handle_resize(name)
             ui.flow_display = nil
         end
 
-        iocontrol.fp_monitor_state("flow", true)
+        iocontrol.fp_monitor_state("flow", 2)
 
         if engine.ui_ready then
             local draw_start = util.time_ms()
@@ -438,6 +409,8 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
+                iocontrol.fp_monitor_state("flow", 3)
+
                 log_render("flow view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
                 if ui.flow_display then
@@ -447,12 +420,11 @@ function renderer.handle_resize(name)
 
                 _print_too_small(device)
 
-                iocontrol.fp_monitor_state("flow", false)
                 is_ok = false
             end
         end
     else
-        for idx, monitor in ipairs(engine.monitors.unit_name_map) do
+        for idx, monitor in ipairs(engine.monitors.unit_ifaces) do
             local device = engine.monitors.unit_displays[idx]
 
             if monitor == name and device then
@@ -466,7 +438,7 @@ function renderer.handle_resize(name)
                     ui.unit_displays[idx] = nil
                 end
 
-                iocontrol.fp_monitor_state(idx, true)
+                iocontrol.fp_monitor_state(idx, 2)
 
                 if engine.ui_ready then
                     local draw_start = util.time_ms()
@@ -476,6 +448,8 @@ function renderer.handle_resize(name)
                     end)
 
                     if ok then
+                        iocontrol.fp_monitor_state(idx, 3)
+
                         log_render("unit " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
                     else
                         if ui.unit_displays[idx] then
@@ -485,7 +459,6 @@ function renderer.handle_resize(name)
 
                         _print_too_small(device)
 
-                        iocontrol.fp_monitor_state(idx, false)
                         is_ok = false
                     end
                 end
@@ -505,12 +478,12 @@ function renderer.handle_mouse(event)
         if engine.fp_ready and event.monitor == "terminal" then
             engine.ui.front_panel.handle_mouse(event)
         elseif engine.ui_ready then
-            if event.monitor == engine.monitors.main_name then
+            if event.monitor == engine.monitors.main_iface then
                 if engine.ui.main_display then engine.ui.main_display.handle_mouse(event) end
-            elseif event.monitor == engine.monitors.flow_name then
+            elseif event.monitor == engine.monitors.flow_iface then
                 if engine.ui.flow_display then engine.ui.flow_display.handle_mouse(event) end
             else
-                for id, monitor in ipairs(engine.monitors.unit_name_map) do
+                for id, monitor in ipairs(engine.monitors.unit_ifaces) do
                     local display = engine.ui.unit_displays[id]
                     if event.monitor == monitor and display then
                         if display then display.handle_mouse(event) end

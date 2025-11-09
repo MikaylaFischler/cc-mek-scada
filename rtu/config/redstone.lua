@@ -484,7 +484,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     PushButton{parent=rs_c_8,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_9,x=1,y=1,height=5,text="Advanced Options"}
-    self.rs_cfg_inverted = Checkbox{parent=rs_c_9,x=1,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=function()end,disable_fg_bg=g_lg_fg_bg}
+    self.rs_cfg_inverted = Checkbox{parent=rs_c_9,x=1,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),disable_fg_bg=g_lg_fg_bg}
     TextBox{parent=rs_c_9,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
     PushButton{parent=rs_c_9,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 

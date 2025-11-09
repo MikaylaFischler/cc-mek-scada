@@ -246,7 +246,7 @@ local function new_view(root, x, y)
     -------------------------
 
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
+    local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 
     mode.register(facility.ps, "process_mode", mode.set_value)
 

@@ -33,6 +33,9 @@ function rtu.load_config()
 
     config.SpeakerVolume = settings.get("SpeakerVolume")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
@@ -57,6 +60,10 @@ function rtu.validate_config(cfg)
     cfv.assert_type_num(cfg.SpeakerVolume)
     cfv.assert_range(cfg.SpeakerVolume, 0, 3)
 
+    cfv.assert_type_bool(cfg.WirelessModem)
+    cfv.assert((cfg.WiredModem == false) or (type(cfg.WiredModem) == "string"))
+    cfv.assert(cfg.WirelessModem or (type(cfg.WiredModem) == "string"))
+    cfv.assert_type_bool(cfg.PreferWireless)
     cfv.assert_channel(cfg.SVR_Channel)
     cfv.assert_channel(cfg.RTU_Channel)
     cfv.assert_type_num(cfg.ConnTimeout)
@@ -299,13 +306,11 @@ function rtu.comms(version, nic, conn_watchdog)
 
     local insert = table.insert
 
-    comms.set_trusted_range(config.TrustedRange)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
-    -- PRIVATE FUNCTIONS --
-
-    -- configure modem channels
-    nic.closeAll()
-    nic.open(config.RTU_Channel)
+    --#region PRIVATE FUNCTIONS --
 
     -- send a scada management packet
     ---@param msg_type MGMT_TYPE
@@ -345,18 +350,19 @@ function rtu.comms(version, nic, conn_watchdog)
         return advertisement
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class rtu_comms
     local public = {}
 
-    -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_packet
-    function public.send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
-        self.seq_num = self.seq_num + 1
+    -- switch the current active NIC
+    ---@param act_nic nic
+    ---@param rtu_state rtu_state
+    function public.switch_nic(act_nic, rtu_state)
+        public.close(rtu_state)
+        nic = act_nic
     end
 
     -- unlink from the server
@@ -374,6 +380,17 @@ function rtu.comms(version, nic, conn_watchdog)
         conn_watchdog.cancel()
         public.unlink(rtu_state)
         _send(MGMT_TYPE.CLOSE, {})
+    end
+
+    -- send a MODBUS TCP packet
+    ---@param m_pkt modbus_packet
+    function public.send_modbus(m_pkt)
+        local s_pkt = comms.scada_packet()
+
+        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        self.seq_num = self.seq_num + 1
     end
 
     -- send establish request (includes advertisement)
@@ -593,6 +610,8 @@ function rtu.comms(version, nic, conn_watchdog)
             log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
+
+    --#endregion
 
     return public
 end

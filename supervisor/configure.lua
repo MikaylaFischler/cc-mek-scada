@@ -3,7 +3,9 @@
 --
 
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
+local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local facility    = require("supervisor.config.facility")
@@ -31,7 +33,8 @@ local CENTER = core.ALIGN.CENTER
 local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
-    { "v1.6.0", { "Added sodium emergency coolant option" } }
+    { "v1.6.0", { "Added sodium emergency coolant option" } },
+    { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } }
 }
 
 ---@class svr_configurator
@@ -67,13 +70,16 @@ local tool_ctl = {
     num_units = nil,      ---@type NumberField
     en_fac_tanks = nil,   ---@type Checkbox
     tank_mode = nil,      ---@type RadioButton
+    tank_fluid_opts = {}, ---@type Radio2D[]
 
     gen_summary = nil,    ---@type function
     load_legacy = nil,    ---@type function
 
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
-    aux_cool_elems = {}   ---@type { line: Div, enable: Checkbox }[]
+    aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
+
+    gen_modem_list = function () end
 }
 
 ---@class svr_config
@@ -87,6 +93,13 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    WirelessModem = true,
+    WiredModem = false,     ---@type string|false
+    PLC_Listen = 1,         ---@type LISTEN_MODE
+    RTU_Listen = 1,         ---@type LISTEN_MODE
+    CRD_Listen = 1,         ---@type LISTEN_MODE
+    PocketEnabled = true,
+    PocketTest = true,
     SVR_Channel = nil,      ---@type integer
     PLC_Channel = nil,      ---@type integer
     RTU_Channel = nil,      ---@type integer
@@ -121,6 +134,13 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "RTU_Listen", "RTU Gateway Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "CRD_Listen", "Coordinator Listen Mode", types.LISTEN_MODE.WIRELESS },
+    { "PocketEnabled", "Pocket Connectivity", true },
+    { "PocketTest", "Pocket Testing Features", true },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "PLC_Channel", "PLC Channel", 16241 },
     { "RTU_Channel", "RTU Channel", 16242 },
@@ -131,7 +151,7 @@ local fields = {
     { "CRD_Timeout", "CRD Connection Timeout", 5 },
     { "PKT_Timeout", "PKT Connection Timeout", 5 },
     { "TrustedRange", "Trusted Range", 0 },
-    { "AuthKey", "Facility Auth Key" , ""},
+    { "AuthKey", "Facility Auth Key" , "" },
     { "LogMode", "Log Mode", log.MODE.APPEND },
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },
@@ -286,10 +306,13 @@ function configurator.configure(ask_config)
     tool_ctl.has_config = load_settings(ini_cfg)
 
     -- these need to be initialized as they are used before being set
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
     tmp_cfg.FacilityTankMode = ini_cfg.FacilityTankMode
     tmp_cfg.TankFluidTypes = { table.unpack(ini_cfg.TankFluidTypes) }
 
     reset_term()
+
+    ppm.mount_all()
 
     -- set overridden colors
     for i = 1, #style.colors do
@@ -299,6 +322,8 @@ function configurator.configure(ask_config)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3 = util.pull_event()
@@ -314,6 +339,14 @@ function configurator.configure(ask_config)
                 if k_e then display.handle_key(k_e) end
             elseif event == "paste" then
                 display.handle_paste(param1)
+            elseif event == "peripheral_detach" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.handle_unmount(param1)
+                tool_ctl.gen_modem_list()
+            elseif event == "peripheral" then
+---@diagnostic disable-next-line: discard-returns
+                ppm.mount(param1)
+                tool_ctl.gen_modem_list()
             end
 
             if event == "terminate" then return end

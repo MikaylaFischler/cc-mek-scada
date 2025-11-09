@@ -3,6 +3,7 @@
 --
 
 require("/initenv").init_env()
+local backplane = require("reactor-plc.backplane")
 
 local comms     = require("scada-common.comms")
 local crash     = require("scada-common.crash")
@@ -18,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.9.0"
+local R_PLC_VERSION = "v1.10.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -66,7 +67,7 @@ local function main()
     -- startup
     ----------------------------------------
 
-    -- record firmware versions and ID
+    -- report versions and ID
     databus.tx_versions(R_PLC_VERSION, comms.version)
     databus.tx_id(config.UnitID)
 
@@ -90,9 +91,10 @@ local function main()
             fp_ok = false,
             shutdown = false,
             degraded = true,
-            reactor_formed = true,
             no_reactor = true,
-            no_modem = true
+            reactor_formed = true,
+            wd_modem = false,
+            wl_modem = false
         },
 
         -- control setpoints
@@ -102,19 +104,16 @@ local function main()
             burn_rate = 0.0
         },
 
-        -- core PLC devices
+        -- global PLC devices, still initialized by the backplane
         ---@class plc_dev
         plc_dev = {
----@diagnostic disable-next-line: assign-type-mismatch
-            reactor = ppm.get_fission_reactor(),    ---@type table
-            modem = ppm.get_wireless_modem()
+            reactor = nil       ---@type table
         },
 
         -- system objects
         ---@class plc_sys
         plc_sys = {
             rps = nil,          ---@type rps
-            nic = nil,          ---@type nic
             plc_comms = nil,    ---@type plc_comms
             conn_watchdog = nil ---@type watchdog
         },
@@ -124,6 +123,18 @@ local function main()
             mq_rps = mqueue.new(),
             mq_comms_tx = mqueue.new(),
             mq_comms_rx = mqueue.new()
+        },
+
+        -- message queue message types
+        q_types = {
+            MQ__RPS_CMD = {
+                SCRAM = 1,
+                DEGRADED_SCRAM = 2,
+                TRIP_TIMEOUT = 3
+            },
+            MQ__COMM_CMD = {
+                SEND_STATUS = 1
+            }
         }
     }
 
@@ -132,43 +143,8 @@ local function main()
 
     local plc_state = __shared_memory.plc_state
 
-    -- initial state evaluation
-    plc_state.no_reactor = smem_dev.reactor == nil
-    plc_state.no_modem = smem_dev.modem == nil
-
-    -- we need a reactor, can at least do some things even if it isn't formed though
-    if plc_state.no_reactor then
-        println("startup> fission reactor not found")
-        log.warning("startup> no reactor on startup")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
-
-        -- mount a virtual peripheral to init the RPS with
-        local _, dev = ppm.mount_virtual()
-        smem_dev.reactor = dev
-
-        log.info("startup> mounted virtual device as reactor")
-    elseif not smem_dev.reactor.isFormed() then
-        println("startup> fission reactor is not formed")
-        log.warning("startup> reactor logic adapter present, but reactor is not formed")
-
-        plc_state.degraded = true
-        plc_state.reactor_formed = false
-    end
-
-    -- modem is required if networked
-    if __shared_memory.networked and plc_state.no_modem then
-        println("startup> wireless modem not found")
-        log.warning("startup> no wireless modem on startup")
-
-        -- scram reactor if present and enabled
-        if (smem_dev.reactor ~= nil) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
-            smem_dev.reactor.scram()
-        end
-
-        plc_state.degraded = true
-    end
+    -- reactor and modem initialization
+    backplane.init(config, __shared_memory)
 
     -- scram on boot if networked, otherwise leave the reactor be
     if __shared_memory.networked and (not plc_state.no_reactor) and plc_state.reactor_formed and smem_dev.reactor.getStatus() then
@@ -178,7 +154,7 @@ local function main()
 
     -- setup front panel
     local message
-    plc_state.fp_ok, message = renderer.try_start_ui(config.FrontPanelTheme, config.ColorMode)
+    plc_state.fp_ok, message = renderer.try_start_ui(config)
 
     -- ...or not
     if not plc_state.fp_ok then
@@ -212,8 +188,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- create network interface then setup comms
-        smem_sys.nic = network.nic(smem_dev.modem)
-        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, smem_sys.nic, smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
     else
         _println_no_fp("startup> starting in non-networked mode")

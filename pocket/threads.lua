@@ -11,8 +11,8 @@ local core     = require("graphics.core")
 
 local threads = {}
 
-local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
-local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
+local MAIN_CLOCK   = 0.5 -- 2Hz,   10 ticks
+local RENDER_SLEEP = 100 -- 100ms, 2 ticks
 
 local MQ__RENDER_DATA = pocket.MQ__RENDER_DATA
 
