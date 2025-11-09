@@ -34,10 +34,9 @@ function threads.thread__main(smem)
         databus.tx_rt_status("main", true)
         log.debug("OS: main thread start")
 
-        -- send status updates at 2Hz (every 10 server ticks) (every loop tick)
-        -- send link requests at 0.5Hz (every 40 server ticks) (every 8 loop ticks)
-        local LINK_TICKS = 8
+        local LINK_TICKS = 2
         local ticks_to_update = 0
+
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
