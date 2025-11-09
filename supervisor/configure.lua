@@ -34,7 +34,7 @@ local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.6.0", { "Added sodium emergency coolant option" } },
-    { "v1.8.0", { "Added support for both wired and wireless networking" } }
+    { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } }
 }
 
 ---@class svr_configurator

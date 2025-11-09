@@ -118,6 +118,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,x=1,y=1,text="Please assign device connection interfaces if you selected multiple network interfaces."}
+    TextBox{parent=net_c_2,x=39,y=2,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=net_c_2,x=1,y=4,text="Reactor PLC\nRTU Gateway\nCoordinator",fg_bg=g_lg_fg_bg}
     local opts = { "Wireless", "Wired", "Both" }
     local plc_listen = Radio2D{parent=net_c_2,x=14,y=4,rows=1,columns=3,default=ini_cfg.PLC_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
@@ -133,7 +134,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     TextBox{parent=net_c_2,y=8,text="With a wireless modem, configure Pocket access."}
     local pkt_en = Checkbox{parent=net_c_2,y=10,label="Enable Pocket Access",default=ini_cfg.PocketEnabled,callback=on_pocket_en,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=24,y=10,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     self.pkt_test = Checkbox{parent=net_c_2,label="Enable Pocket Remote System Testing",default=ini_cfg.PocketTest,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=39,y=11,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=net_c_2,x=3,text="This allows remotely playing alarm sounds.",fg_bg=g_lg_fg_bg}
 
     local function submit_net_cfg_opts()

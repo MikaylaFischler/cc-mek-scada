@@ -37,7 +37,7 @@ local changes = {
     { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.5.1", { "Added energy scale options" } },
     { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
-    { "v1.7.0", { "Added support for wired communications modems" } }
+    { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } }
 }
 
 ---@class crd_configurator

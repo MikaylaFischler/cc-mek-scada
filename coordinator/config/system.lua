@@ -127,9 +127,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
 
     TextBox{parent=net_c_2,text="If you selected multiple interfaces, please specify if this device should prefer wireless or otherwise wired. The preferred interface is switched too when reconnected even if failover has succeeded onto the fallback interface."}
     self.wl_pref = Checkbox{parent=net_c_2,y=7,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=19,y=7,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=net_c_2,y=9,text="With a wireless modem, configure Pocket access."}
     self.api_en = Checkbox{parent=net_c_2,y=11,label="Enable Pocket Access",default=ini_cfg.API_Enabled,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=24,y=11,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function submit_net_cfg_opts()
         if tmp_cfg.WirelessModem and tmp_cfg.WiredModem then
