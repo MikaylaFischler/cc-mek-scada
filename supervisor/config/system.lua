@@ -133,7 +133,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     TextBox{parent=net_c_2,y=8,text="With a wireless modem, configure Pocket access."}
     local pkt_en = Checkbox{parent=net_c_2,y=10,label="Enable Pocket Access",default=ini_cfg.PocketEnabled,callback=on_pocket_en,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
-    self.pkt_test = Checkbox{parent=net_c_2,label="Enable Pocket Remote System Testing",default=ini_cfg.PocketEnabled,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    self.pkt_test = Checkbox{parent=net_c_2,label="Enable Pocket Remote System Testing",default=ini_cfg.PocketTest,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
     TextBox{parent=net_c_2,x=3,text="This allows remotely playing alarm sounds.",fg_bg=g_lg_fg_bg}
 
     local function submit_net_cfg_opts()
