@@ -491,20 +491,28 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     function public.close_sv()
         sv_watchdog.cancel()
         nav.unload_sv()
-        self.sv.linked = false
+
         self.sv.r_seq_num = nil
         self.sv.addr = comms.BROADCAST
-        _send_sv(MGMT_TYPE.CLOSE, {})
+
+        if self.sv.linked then
+            self.sv.linked = false
+            _send_sv(MGMT_TYPE.CLOSE, {})
+        end
     end
 
     -- close connection to coordinator API server
     function public.close_api()
         api_watchdog.cancel()
         nav.unload_api()
-        self.api.linked = false
+
         self.api.r_seq_num = nil
         self.api.addr = comms.BROADCAST
-        _send_crd(MGMT_TYPE.CLOSE, {})
+
+        if self.api.linked then
+            self.api.linked = false
+            _send_crd(MGMT_TYPE.CLOSE, {})
+        end
     end
 
     -- close the connections to the servers
