@@ -515,24 +515,18 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
     -- attempt to re-link if any of the dependent links aren't active
     function public.link_update()
-        if not self.sv.linked then
+        if not (self.sv.linked and self.api.linked) then
             if self.api.linked then
                 iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY, false, nil)
+            elseif self.sv.linked then
+                iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, nil, false)
             else
                 iocontrol.report_link_state(LINK_STATE.UNLINKED, false, false)
             end
 
             if self.establish_delay_counter <= 0 then
-                _send_sv_establish()
-                self.establish_delay_counter = 4
-            else
-                self.establish_delay_counter = self.establish_delay_counter - 1
-            end
-        elseif not self.api.linked then
-            iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, nil, false)
-
-            if self.establish_delay_counter <= 0 then
-                _send_api_establish()
+                if not self.api.linked then _send_api_establish() end
+                if not self.sv.linked then _send_sv_establish() end
                 self.establish_delay_counter = 4
             else
                 self.establish_delay_counter = self.establish_delay_counter - 1
