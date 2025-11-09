@@ -35,6 +35,8 @@ function backplane.init(config, __shared_memory)
     local plc_dev   = __shared_memory.plc_dev
     local plc_state = __shared_memory.plc_state
 
+    plc_state.degraded = false
+
     -- Modem Init
 
     if _bp.smem.networked then
