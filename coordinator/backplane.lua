@@ -245,6 +245,7 @@ function backplane.displays() return _bp.displays end
 ---@param device table
 ---@param iface string
 function backplane.attach(type, device, iface)
+    local MQ__RENDER_CMD  = _bp.smem.q_types.MQ__RENDER_CMD
     local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
 
     local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
@@ -271,6 +272,7 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wired
                 _bp.act_nic = wd_nic
 
+                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
             end
@@ -287,6 +289,7 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wireless
                 _bp.act_nic = wl_nic
 
+                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
             end
@@ -408,6 +411,7 @@ function backplane.detach(type, device, iface)
                 elseif wd_nic and wd_nic.is_connected() then
                     _bp.act_nic = wd_nic
 
+                    _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                     comms.switch_nic(_bp.act_nic)
                     log.info("BKPLN: switched comms to wired modem")
                 else
@@ -421,6 +425,7 @@ function backplane.detach(type, device, iface)
                 -- wired active disconnected, wireless available
                 _bp.act_nic = wl_nic
 
+                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem")
             else
