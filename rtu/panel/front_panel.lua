@@ -114,14 +114,14 @@ local function init(panel, config, units)
     -- hardware labeling
     --
 
-    local hw_labels = Rectangle{parent=panel,y=term_h-6,width=15,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local hw_labels = Rectangle{parent=panel,x=2,y=term_h-6,width=14,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    TextBox{parent=hw_labels,text="FW  "..databus.ps.get("version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="NT  v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="S/N RTU-"..comp_id,fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="SN "..comp_id.."-RTU",fg_bg=s_hi_box}
 
     --
     -- speaker count

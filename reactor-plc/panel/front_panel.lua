@@ -157,9 +157,9 @@ local function init(panel, config)
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    TextBox{parent=hw_labels,text="FW  "..databus.ps.get("version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="NT  v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="S/N PLC-"..comp_id,fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="SN "..comp_id.."-PLC",fg_bg=s_hi_box}
 
     --
     -- rps list
