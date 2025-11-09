@@ -136,7 +136,7 @@ function backplane.attach(type, device, iface, print_no_fp)
                 -- switch back to preferred wired
                 _bp.act_nic = wd_nic
 
-                comms.switch_nic(_bp.act_nic)
+                comms.switch_nic(_bp.act_nic, _bp.smem.rtu_state)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
             end
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
@@ -152,7 +152,7 @@ function backplane.attach(type, device, iface, print_no_fp)
                 -- switch back to preferred wireless
                 _bp.act_nic = wl_nic
 
-                comms.switch_nic(_bp.act_nic)
+                comms.switch_nic(_bp.act_nic, _bp.smem.rtu_state)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
             end
         elseif wl_nic and m_is_wl then
@@ -227,14 +227,14 @@ function backplane.detach(type, device, iface, print_no_fp)
                 elseif wd_nic and wd_nic.is_connected() then
                     _bp.act_nic = wd_nic
 
-                    comms.switch_nic(_bp.act_nic)
+                    comms.switch_nic(_bp.act_nic, _bp.smem.rtu_state)
                     log.info("BKPLN: switched comms to wired modem")
                 end
             elseif wl_nic and wl_nic.is_connected() then
                 -- wired active disconnected, wireless available
                 _bp.act_nic = wl_nic
 
-                comms.switch_nic(_bp.act_nic)
+                comms.switch_nic(_bp.act_nic, _bp.smem.rtu_state)
                 log.info("BKPLN: switched comms to wireless modem")
             else
                 -- wired active disconnected, wireless unavailable

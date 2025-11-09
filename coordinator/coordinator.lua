@@ -250,7 +250,10 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic) nic = act_nic end
+    function public.switch_nic(act_nic)
+        public.close()
+        nic = act_nic
+    end
 
     -- try to connect to the supervisor if not already linked
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)

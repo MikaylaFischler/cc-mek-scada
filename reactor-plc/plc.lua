@@ -830,7 +830,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic) nic = act_nic end
+    function public.switch_nic(act_nic)
+        public.close()
+        nic = act_nic
+    end
 
     -- reconnect a newly connected reactor
     ---@param new_reactor table

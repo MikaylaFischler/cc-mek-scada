@@ -359,7 +359,11 @@ function rtu.comms(version, nic, conn_watchdog)
 
     -- switch the current active NIC
     ---@param act_nic nic
-    function public.switch_nic(act_nic) nic = act_nic end
+    ---@param rtu_state rtu_state
+    function public.switch_nic(act_nic, rtu_state)
+        public.close(rtu_state)
+        nic = act_nic
+    end
 
     -- unlink from the server
     ---@param rtu_state rtu_state
