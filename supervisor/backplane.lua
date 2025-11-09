@@ -111,9 +111,13 @@ function backplane.attach(iface, type, device, print_no_fp)
             databus.tx_hw_wl_modem(true)
         elseif _bp.wl_nic and m_is_wl then
             -- the wireless NIC already has a modem
+            device.closeAll()
+
             print_no_fp("standby wireless modem connected")
             log.info("BKPLN: standby wireless modem connected")
         else
+            device.closeAll()
+
             print_no_fp("unassigned modem connected")
             log.warning("BKPLN: unassigned modem connected")
         end
