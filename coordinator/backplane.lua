@@ -294,6 +294,10 @@ function backplane.attach(type, device, iface)
             -- the wireless NIC already has a modem
             log_sys("standby wireless modem connected")
             log.info("BKPLN: standby wireless modem connected")
+        elseif wd_nic and wd_nic.is_modem(device) then
+            -- wired, but not active
+            log_sys("standby wired modem disconnected")
+            log.info("BKPLN: standby wired modem disconnected")
         else
             log_sys("unassigned modem connected")
             log.warning("BKPLN: unassigned modem connected")

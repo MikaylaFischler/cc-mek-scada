@@ -306,6 +306,10 @@ function backplane.detach(iface, type, device, print_no_fp)
             -- wireless, but not active
             print_no_fp("standby wireless modem disconnected")
             log.info("BKPLN: standby wireless modem disconnected")
+        elseif wd_nic and wd_nic.is_modem(device) then
+            -- wired, but not active
+            print_no_fp("standby wired modem disconnected")
+            log.info("BKPLN: standby wired modem disconnected")
         else
             print_no_fp("unassigned modem disconnected")
             log.warning("BKPLN: unassigned modem disconnected")
