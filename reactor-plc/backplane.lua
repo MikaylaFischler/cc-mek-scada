@@ -118,6 +118,14 @@ function backplane.init(config, __shared_memory)
             plc_state.reactor_formed = false
         end
     end
+
+    -- detect and warn about multiple reactors
+    if #ppm.get_all_devices("fissionReactorLogicAdapter") > 1 then
+        println("startup> !! DANGER !! more than one reactor was detected! do not share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+
+        log.warning("BKPLN: !! DANGER !! more than one reactor was detected on startup!")
+        log.warning("BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+    end
 end
 
 -- get the active NIC
@@ -139,7 +147,13 @@ function backplane.attach(iface, type, device, print_no_fp)
     local sys       = _bp.smem.plc_sys
 
     if type ~= nil and device ~= nil then
-        if state.no_reactor and (type == "fissionReactorLogicAdapter") then
+        if type == "fissionReactorLogicAdapter" then
+            if not state.no_reactor then
+                log.warning("BKPLN: !! DANGER !! an additional reactor (" .. iface .. ") was connected and will not be used!")
+                log.warning("BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+                return
+            end
+
             -- reconnected reactor
             log.info("BKPLN: REACTOR LINK_UP " .. iface)
 
@@ -250,6 +264,14 @@ function backplane.detach(iface, type, device, print_no_fp)
 
         state.no_reactor = true
         state.degraded = true
+
+        -- try to find another reactor (this should not work unless multiple were incorrectly connected)
+        local reactor, r_iface = ppm.get_fission_reactor()
+        if reactor and r_iface then
+            log.info("BKPLN: found another fission reactor logic adapter")
+
+            backplane.attach(r_iface, type, reactor, print_no_fp)
+        end
     elseif _bp.smem.networked and type == "modem" then
         ---@cast device Modem
 

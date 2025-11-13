@@ -141,6 +141,7 @@ local function self_check()
     self.self_check_msg("> check fission reactor formed...")
     -- this consumes events, but that is fine here
     self.self_check_msg(nil, reactor and reactor.isFormed(), "ensure the fission reactor multiblock is formed")
+    self.self_check_msg("> check for no more than one reactor...", #ppm.get_all_devices("fissionReactorLogicAdapter") <= 1, "there MUST be no more than one reactor connected, as a PLC uses the first one it finds, which may not always be the same one")
 
     self.self_check_msg("> check configuration...", valid_cfg, "go through Configure System and apply settings to set any missing settings and repair any corrupted ones")
 

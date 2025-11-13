@@ -425,26 +425,27 @@ end
 
 -- get a mounted peripheral by type (if multiple, returns the first)
 ---@nodiscard
----@param name string type name
----@return table|nil device function table
-function ppm.get_device(name)
-    local device = nil
+---@param type string type name
+---@return table|nil device, string|nil iface device and interface
+function ppm.get_device(type)
+    local device, d_iface = nil, nil
 
-    for _, data in pairs(_ppm.mounts) do
-        if data.type == name then
+    for iface, data in pairs(_ppm.mounts) do
+        if data.type == type then
             device = data.dev
+            d_iface = iface
             break
         end
     end
 
-    return device
+    return device, d_iface
 end
 
 -- SPECIFIC DEVICE ACCESSORS --
 
 -- get the fission reactor (if multiple, returns the first)
 ---@nodiscard
----@return table|nil reactor function table
+---@return table|nil reactor, string|nil iface reactor and interface
 function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
 
 -- get a modem by name
@@ -470,8 +471,8 @@ function ppm.get_wireless_modem()
 
     for iface, device in pairs(_ppm.mounts) do
         if device.type == "modem" and (emulated_env or device.dev.isWireless()) then
-            w_iface = iface
             w_modem = device.dev
+            w_iface = iface
             break
         end
     end
