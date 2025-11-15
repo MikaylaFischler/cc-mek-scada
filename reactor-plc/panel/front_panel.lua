@@ -50,11 +50,11 @@ local function init(panel, config)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
-    local degraded = LED{parent=system,label="STATUS",colors=cpair(colors.red,colors.green)}
+    local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.red,colors.green)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
     system.line_break()
 
-    degraded.register(databus.ps, "degraded", degraded.update)
+    sys_status.register(databus.ps, "status", sys_status.update)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}

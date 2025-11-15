@@ -11,10 +11,26 @@ local databus = {}
 -- databus PSIL
 databus.ps = psil.create()
 
-local dbus_iface = {
+local _dbus = {
     rps_scram = function () log.debug("DBUS: unset rps_scram() called") end,
-    rps_reset = function () log.debug("DBUS: unset rps_reset() called") end
+    rps_reset = function () log.debug("DBUS: unset rps_reset() called") end,
+
+    degraded = false,
+    coroutines = {}
 }
+
+-- evaluate and publish system health status
+local function eval_status()
+    local ok = _dbus.degraded
+
+    if ok then
+        for _, v in pairs(_dbus.coroutines) do
+            ok = ok and v
+        end
+    end
+
+    databus.ps.publish("status", ok)
+end
 
 -- call to toggle heartbeat signal
 function databus.heartbeat() databus.ps.toggle("heartbeat") end
@@ -23,15 +39,15 @@ function databus.heartbeat() databus.ps.toggle("heartbeat") end
 ---@param scram function reactor SCRAM function
 ---@param reset function RPS reset function
 function databus.link_rps(scram, reset)
-    dbus_iface.rps_scram = scram
-    dbus_iface.rps_reset = reset
+    _dbus.rps_scram = scram
+    _dbus.rps_reset = reset
 end
 
 -- transmit a command to the RPS to SCRAM
-function databus.rps_scram() dbus_iface.rps_scram() end
+function databus.rps_scram() _dbus.rps_scram() end
 
 -- transmit a command to the RPS to reset
-function databus.rps_reset() dbus_iface.rps_reset() end
+function databus.rps_reset() _dbus.rps_reset() end
 
 -- transmit firmware versions
 ---@param plc_v string PLC version
@@ -50,17 +66,24 @@ end
 -- transmit hardware status
 ---@param plc_state plc_state
 function databus.tx_hw_status(plc_state)
-    databus.ps.publish("degraded", plc_state.degraded)
     databus.ps.publish("reactor_dev_state", util.trinary(plc_state.no_reactor, 1, util.trinary(plc_state.reactor_formed, 3, 2)))
     databus.ps.publish("has_wd_modem", plc_state.wd_modem)
     databus.ps.publish("has_wl_modem", plc_state.wl_modem)
+
+    _dbus.degraded = plc_state.degraded
+    eval_status()
 end
 
 -- transmit thread (routine) statuses
 ---@param thread string thread name
 ---@param ok boolean thread state
 function databus.tx_rt_status(thread, ok)
-    databus.ps.publish(util.c("routine__", thread), ok)
+    local name = util.c("routine__", thread)
+
+    databus.ps.publish(name, ok)
+
+    _dbus.coroutines[name] = ok
+    eval_status()
 end
 
 -- transmit supervisor link state
