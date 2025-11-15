@@ -7,6 +7,8 @@ local network = require("scada-common.network")
 local ppm     = require("scada-common.ppm")
 local util    = require("scada-common.util")
 
+local databus = require("reactor-plc.databus")
+
 local println = util.println
 
 ---@class plc_backplane
@@ -125,6 +127,8 @@ function backplane.init(config, __shared_memory)
 
         log.warning("BKPLN: !! DANGER !! more than one reactor was detected on startup!")
         log.warning("BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+
+        databus.tx_multi_reactor(true)
     end
 end
 
@@ -151,6 +155,8 @@ function backplane.attach(iface, type, device, print_no_fp)
             if not state.no_reactor then
                 log.warning("BKPLN: !! DANGER !! an additional reactor (" .. iface .. ") was connected and will not be used!")
                 log.warning("BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+
+                databus.tx_multi_reactor(true)
                 return
             end
 
@@ -264,6 +270,9 @@ function backplane.detach(iface, type, device, print_no_fp)
 
         state.no_reactor = true
         state.degraded = true
+
+        -- clear this tentatively, so then if there is >1, that will be reported in backplane.attach in the following if statement
+        databus.tx_multi_reactor(false)
 
         -- try to find another reactor (this should not work unless multiple were incorrectly connected)
         local reactor, r_iface = ppm.get_fission_reactor()

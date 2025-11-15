@@ -2,6 +2,7 @@
 -- Reactor PLC Front Panel GUI
 --
 
+local tcd        = require("scada-common.tcd")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
@@ -160,6 +161,34 @@ local function init(panel, config)
     TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="SN "..comp_id.."-PLC",fg_bg=s_hi_box}
+
+    -- warning about multiple reactors connected
+
+    local warn_strings = { "!! DANGER !!\n>1 REACTOR\nLOGIC ADAPTER", "REMOVE\nALL BUT ONE\nLOGIC ADAPTER" }
+    local multi_warn = TextBox{parent=status,text=warn_strings[1],width=status.get_width()-2,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.red),hidden=true}
+
+    local warn_toggle = true
+    local function flash_warn()
+        multi_warn.recolor(util.trinary(warn_toggle, colors.black, colors.yellow))
+        multi_warn.set_value(util.trinary(warn_toggle, warn_strings[2], warn_strings[1]))
+        warn_toggle = not warn_toggle
+
+        if databus.ps.get("has_multi_reactor") then tcd.dispatch_unique(2, flash_warn) end
+    end
+
+    multi_warn.register(databus.ps, "has_multi_reactor", function (v)
+        if v then
+            multi_warn.show(true)
+
+            warn_toggle = false
+            flash_warn()
+
+            tcd.dispatch_unique(2, flash_warn)
+        else
+            tcd.abort(flash_warn)
+            multi_warn.hide(true)
+        end
+    end)
 
     --
     -- rps list
