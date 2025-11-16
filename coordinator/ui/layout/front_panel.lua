@@ -59,9 +59,9 @@ local function init(panel, config)
 
     local status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=led_grn}
-    status.update(true)
     system.line_break()
 
+    status.register(ps, "status", status.update)
     heartbeat.register(ps, "heartbeat", heartbeat.update)
 
     if config.WirelessModem and config.WiredModem then
