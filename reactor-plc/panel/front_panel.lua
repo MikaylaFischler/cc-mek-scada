@@ -50,7 +50,7 @@ local function init(panel, config)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
-    local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.red,colors.green)}
+    local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
     system.line_break()
 

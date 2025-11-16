@@ -21,7 +21,7 @@ local _dbus = {
 
 -- evaluate and publish system health status
 local function eval_status()
-    local ok = _dbus.degraded
+    local ok = not _dbus.degraded
 
     if ok then
         for _, v in pairs(_dbus.coroutines) do
