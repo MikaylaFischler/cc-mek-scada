@@ -7,6 +7,25 @@ local util = require("scada-common.util")
 
 local databus = {}
 
+local _dbus = {
+    wd_modem = true,
+    wl_modem = true,
+    coroutines = {}
+}
+
+-- evaluate and publish system health status
+local function eval_status()
+    local ok = _dbus.wd_modem and _dbus.wl_modem
+
+    if ok then
+        for _, v in pairs(_dbus.coroutines) do
+            ok = ok and v
+        end
+    end
+
+    databus.ps.publish("status", ok)
+end
+
 -- databus PSIL
 databus.ps = psil.create()
 
@@ -35,12 +54,18 @@ end
 ---@param has_modem boolean
 function databus.tx_hw_wd_modem(has_modem)
     databus.ps.publish("has_wd_modem", has_modem)
+
+    _dbus.wd_modem = has_modem
+    eval_status()
 end
 
 -- transmit hardware status for the wireless comms modem
 ---@param has_modem boolean
 function databus.tx_hw_wl_modem(has_modem)
     databus.ps.publish("has_wl_modem", has_modem)
+
+    _dbus.wl_modem = has_modem
+    eval_status()
 end
 
 -- transmit the number of speakers connected
@@ -67,7 +92,12 @@ end
 ---@param thread string thread name
 ---@param ok boolean thread state
 function databus.tx_rt_status(thread, ok)
-    databus.ps.publish(util.c("routine__", thread), ok)
+    local name = util.c("routine__", thread)
+
+    databus.ps.publish(name, ok)
+
+    _dbus.coroutines[name] = ok
+    eval_status()
 end
 
 -- transmit supervisor link state
