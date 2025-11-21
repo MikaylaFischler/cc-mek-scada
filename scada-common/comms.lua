@@ -29,6 +29,12 @@ local comms = {}
 comms.version = "3.1.0"
 comms.api_version = "0.0.10"
 
+---@alias frame scada_frame|authd_frame
+---@alias packet modbus_packet|rplc_packet|mgmt_packet|crdn_packet
+---@alias dataframe modbus_adu|rplc_dataframe|mgmt_dataframe|crdn_dataframe
+
+--#region Protocol Definitions
+
 ---@enum PROTOCOL
 local PROTOCOL = {
     MODBUS_TCP = 0,      -- the "MODBUS TCP"-esque protocol
@@ -153,15 +159,13 @@ comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 comms.UNIT_COMMAND = UNIT_COMMAND
 comms.FAC_COMMAND = FAC_COMMAND
 
+--#endregion
+
 -- destination broadcast address (to all devices)
 comms.BROADCAST = -1
 
 -- firmware version used to indicate an establish packet is a connection test
 comms.CONN_TEST_FWV = "CONN_TEST"
-
----@alias frame scada_frame|authd_frame
----@alias packet modbus_packet|rplc_packet|mgmt_packet|crdn_packet
----@alias dataframe modbus_adu|rplc_dataframe|mgmt_dataframe|crdn_dataframe
 
 -- configure the maximum allowable message receive distance<br>
 -- packets received with distances greater than this will be silently discarded
@@ -169,6 +173,8 @@ comms.CONN_TEST_FWV = "CONN_TEST"
 function comms.set_trusted_range(distance)
     if distance == 0 then max_distance = nil else max_distance = distance end
 end
+
+--#region Network Frames
 
 -- SCADA network frame
 ---@nodiscard
@@ -383,6 +389,10 @@ function comms.authd_frame()
 
     return public
 end
+
+--#endregion
+
+--#region Network Packets
 
 -- MODBUS packet, modeled after MODBUS TCP
 ---@nodiscard
@@ -699,5 +709,7 @@ function comms.crdn_packet()
 
     return public
 end
+
+--#endregion
 
 return comms
