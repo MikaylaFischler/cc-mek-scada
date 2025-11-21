@@ -175,30 +175,30 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- send an establish request response
     ---@param nic nic
-    ---@param packet scada_packet
+    ---@param rx_frame scada_frame
     ---@param ack ESTABLISH_ACK
     ---@param data? any optional data
-    local function _send_establish(nic, packet, ack, data)
-        local s_pkt, m_pkt = comms.scada_packet(), comms.mgmt_packet()
+    local function _send_establish(nic, rx_frame, ack, data)
+        local tx_frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        nic.transmit(packet.remote_channel(), config.SVR_Channel, s_pkt)
-        self.last_est_acks[packet.src_addr()] = ack
+        nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, tx_frame)
+        self.last_est_acks[rx_frame.src_addr()] = ack
     end
 
     -- send a probe response
     ---@param nic nic
-    ---@param packet scada_packet
+    ---@param packet scada_frame
     ---@param ack PROBE_ACK
     local function _send_probe(nic, packet, ack)
-        local s_pkt, m_pkt = comms.scada_packet(), comms.mgmt_packet()
+        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
-        m_pkt.make(MGMT_TYPE.PROBE, { ack })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        pkt.make(MGMT_TYPE.PROBE, { ack })
+        frame.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        nic.transmit(packet.remote_channel(), config.SVR_Channel, s_pkt)
+        nic.transmit(packet.remote_channel(), config.SVR_Channel, frame)
     end
 
     --#region Establish Handlers

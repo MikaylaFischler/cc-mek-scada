@@ -312,17 +312,17 @@ function rtu.comms(version, nic, conn_watchdog)
 
     --#region PRIVATE FUNCTIONS --
 
-    -- send a scada management packet
+    -- send a SCADA management packet
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame = comms.scada_frame()
+        local pkt = comms.mgmt_packet()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        pkt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -385,11 +385,11 @@ function rtu.comms(version, nic, conn_watchdog)
     -- send a MODBUS TCP packet
     ---@param m_pkt modbus_packet
     function public.send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
+        local frame = comms.scada_frame()
 
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 

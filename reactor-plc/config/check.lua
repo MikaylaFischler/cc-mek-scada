@@ -54,13 +54,13 @@ end
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
-    local s_pkt = comms.scada_packet()
+    local frame = comms.scada_frame()
     local pkt = comms.mgmt_packet()
 
     pkt.make(msg_type, msg)
-    s_pkt.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+    frame.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-    self.nic.transmit(self.settings.SVR_Channel, self.settings.PLC_Channel, s_pkt)
+    self.nic.transmit(self.settings.SVR_Channel, self.settings.PLC_Channel, frame)
 end
 
 -- handle an establish message from the supervisor

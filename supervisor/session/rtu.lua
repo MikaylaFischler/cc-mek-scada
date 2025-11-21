@@ -237,11 +237,11 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     -- send a MODBUS packet
     ---@param m_pkt modbus_packet MODBUS packet
     local function _send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
+        local frame = comms.scada_frame()
 
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        frame.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_packet(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -249,13 +249,13 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame = comms.scada_frame()
+        local pkt = comms.mgmt_packet()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        pkt.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_packet(frame)
         self.seq_num = self.seq_num + 1
     end
 

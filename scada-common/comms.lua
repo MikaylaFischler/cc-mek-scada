@@ -1,10 +1,19 @@
 --
--- Communications
+-- SCADA Network Communications Objects
 --
 
 local log = require("scada-common.log")
 
-local insert = table.insert
+-- basic acceleration aliases
+
+local type    = type
+local insert  = table.insert
+
+local TYPE_NUM = "number"
+local TYPE_STR = "string"
+local TYPE_TBL = "table"
+
+-- comms settings/attributes
 
 ---@type integer computer ID
 ---@diagnostic disable-next-line: undefined-field
@@ -150,7 +159,7 @@ comms.BROADCAST = -1
 -- firmware version used to indicate an establish packet is a connection test
 comms.CONN_TEST_FWV = "CONN_TEST"
 
----@alias packet scada_packet|modbus_packet|rplc_packet|mgmt_packet|crdn_packet
+---@alias packet scada_frame|modbus_packet|rplc_packet|mgmt_packet|crdn_packet
 ---@alias frame modbus_frame|rplc_frame|mgmt_frame|crdn_frame
 
 -- configure the maximum allowable message receive distance<br>
@@ -160,91 +169,79 @@ function comms.set_trusted_range(distance)
     if distance == 0 then max_distance = nil else max_distance = distance end
 end
 
--- generic SCADA packet
+-- SCADA network frame
 ---@nodiscard
-function comms.scada_packet()
+function comms.scada_frame()
     local self = {
-        modem_msg_in = nil, ---@type modem_message|nil
-        valid = false,
+        modem_frame = nil, ---@type modem_frame|nil
+
+        valid         = false,
         authenticated = false,
+
         raw = {},
-        src_addr = comms.BROADCAST,
-        dest_addr = comms.BROADCAST,
-        seq_num = -1,
-        protocol = PROTOCOL.SCADA_MGMT,
-        length = 0,
-        payload = {}
+
+        src_addr  = nil, ---@type integer|nil
+        dest_addr = nil, ---@type integer|nil
+        seq_num   = nil, ---@type integer|nil
+        protocol  = nil, ---@type PROTOCOL|nil
+        length    = 0,
+        payload   = {}
     }
 
-    ---@class scada_packet
+    ---@class scada_frame
     local public = {}
 
-    -- make a SCADA packet
+    -- make a SCADA frame
     ---@param dest_addr integer destination computer address (ID)
     ---@param seq_num integer sequence number
     ---@param protocol PROTOCOL
     ---@param payload table
     function public.make(dest_addr, seq_num, protocol, payload)
         self.valid = true
-        self.src_addr = COMPUTER_ID
+
+        self.src_addr  = COMPUTER_ID
         self.dest_addr = dest_addr
-        self.seq_num = seq_num
-        self.protocol = protocol
-        self.length = #payload
-        self.payload = payload
-        self.raw = { self.src_addr, self.dest_addr, self.seq_num, self.protocol, self.payload }
+        self.seq_num   = seq_num
+        self.protocol  = protocol
+        self.length    = #payload
+        self.payload   = payload
+
+        self.raw = { COMPUTER_ID, dest_addr, seq_num, protocol, payload }
     end
 
-    -- parse in a modem message as a SCADA packet
+    -- parse in modem frame fields as a SCADA frame
     ---@param side string modem side
     ---@param sender integer sender channel
     ---@param reply_to integer reply channel
     ---@param message any message body
     ---@param distance integer transmission distance
-    ---@return boolean valid valid message received
+    ---@return boolean valid valid frame received
     function public.receive(side, sender, reply_to, message, distance)
-        ---@class modem_message
-        self.modem_msg_in = {
-            iface = side,
-            s_channel = sender,
-            r_channel = reply_to,
-            msg = message,
-            dist = distance
+        ---@class modem_frame
+        self.modem_frame = {
+            iface = side, s_chan = sender, r_chan = reply_to, dist = distance, data = message
         }
 
         self.valid = false
-        self.raw = self.modem_msg_in.msg
+        self.raw = self.modem_frame.data
 
-        if (type(max_distance) == "number") and (type(distance) == "number") and (distance > max_distance) then
+        if (type(max_distance) == TYPE_NUM) and (type(distance) == TYPE_NUM) and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: scada_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
-        else
-            if type(self.raw) == "table" then
-                if #self.raw == 5 then
-                    self.src_addr = self.raw[1]
-                    self.dest_addr = self.raw[2]
-                    self.seq_num = self.raw[3]
-                    self.protocol = self.raw[4]
+            -- log.debug("COMMS: scada_frame.receive(): discarding frame with distance " .. distance .. " (outside trusted range)")
+        elseif (type(self.raw) == TYPE_TBL) then
+            self.src_addr  = self.raw[1]
+            self.dest_addr = self.raw[2]
 
-                    -- element 5 must be a table
-                    if type(self.raw[5]) == "table" then
-                        self.length = #self.raw[5]
-                        self.payload = self.raw[5]
-                    end
-                else
-                    self.src_addr = nil
-                    self.dest_addr = nil
-                    self.seq_num = nil
-                    self.protocol = nil
-                    self.length = 0
-                    self.payload = {}
-                end
+            -- check if this frame is destined for this device, otherwise discard ASAP
+            -- if it is, check that the payload is a table and continue
+            if ((self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)) and (type(self.raw[5]) == TYPE_TBL) then
+                self.seq_num  = self.raw[3]
+                self.protocol = self.raw[4]
+                self.length   = #self.raw[5]
+                self.payload  = self.raw[5]
 
-                -- check if this packet is destined for this device
-                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
-
-                self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
-                                type(self.seq_num) == "number" and type(self.protocol) == "number" and type(self.payload) == "table"
+                self.valid = type(self.src_addr) == TYPE_NUM and type(self.dest_addr) == TYPE_NUM and
+                             type(self.seq_num) == TYPE_NUM and type(self.protocol) == TYPE_NUM
             end
         end
 
@@ -257,18 +254,18 @@ function comms.scada_packet()
     -- public accessors --
 
     ---@nodiscard
-    function public.modem_event() return self.modem_msg_in end
+    function public.modem_event() return self.modem_frame end
     ---@nodiscard
     function public.raw_header() return { self.src_addr, self.dest_addr, self.seq_num, self.protocol } end
     ---@nodiscard
-    function public.raw_sendable() return self.raw end
+    function public.raw_frame() return self.raw end
 
     ---@nodiscard
-    function public.interface() return self.modem_msg_in.iface end
+    function public.interface() return self.modem_frame.iface end
     ---@nodiscard
-    function public.local_channel() return self.modem_msg_in.s_channel end
+    function public.local_channel() return self.modem_frame.s_chan end
     ---@nodiscard
-    function public.remote_channel() return self.modem_msg_in.r_channel end
+    function public.remote_channel() return self.modem_frame.r_chan end
 
     ---@nodiscard
     function public.is_valid() return self.valid end
@@ -276,90 +273,83 @@ function comms.scada_packet()
     function public.is_authenticated() return self.authenticated end
 
     ---@nodiscard
-    function public.src_addr() return self.src_addr end
+    function public.src_addr() return self.src_addr or comms.BROADCAST end
     ---@nodiscard
-    function public.dest_addr() return self.dest_addr end
+    function public.dest_addr() return self.dest_addr or comms.BROADCAST end
     ---@nodiscard
-    function public.seq_num() return self.seq_num end
+    function public.seq_num() return self.seq_num or -1 end
     ---@nodiscard
-    function public.protocol() return self.protocol end
+    function public.protocol() return self.protocol or PROTOCOL.SCADA_MGMT end
     ---@nodiscard
-    function public.length() return self.length end
+    function public.length() return self.length or 0 end
     ---@nodiscard
-    function public.data() return self.payload end
+    function public.data() return self.payload or {} end
 
     return public
 end
 
--- authenticated SCADA packet
+-- authenticated SCADA frame
 ---@nodiscard
-function comms.authd_packet()
+function comms.authd_frame()
     local self = {
-        modem_msg_in = nil, ---@type modem_message|nil
+        modem_frame = nil, ---@type modem_frame|nil
+
         valid = false,
+
         raw = {},
-        src_addr = comms.BROADCAST,
-        dest_addr = comms.BROADCAST,
-        mac = "",
-        payload = {}
+
+        src_addr  = nil, ---@type integer|nil
+        dest_addr = nil, ---@type integer|nil
+        mac       = "",
+        payload   = {}
     }
 
-    ---@class authd_packet
+    ---@class authd_frame
     local public = {}
 
-    -- make an authenticated SCADA packet
-    ---@param s_packet scada_packet scada packet to authenticate
+    -- make an authenticated SCADA frame
+    ---@param s_frame scada_frame scada frame to authenticate
     ---@param mac function message authentication hash function
-    function public.make(s_packet, mac)
+    function public.make(s_frame, mac)
         self.valid = true
-        self.src_addr = s_packet.src_addr()
-        self.dest_addr = s_packet.dest_addr()
-        self.mac = mac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
-        self.raw = { self.src_addr, self.dest_addr, self.mac, s_packet.raw_sendable() }
+
+        self.src_addr  = s_frame.src_addr()
+        self.dest_addr = s_frame.dest_addr()
+        self.mac       = mac(textutils.serialize(s_frame.raw_header(), { allow_repetitions = true, compact = true }))
+
+        self.raw = { self.src_addr, self.dest_addr, self.mac, s_frame.raw_frame() }
     end
 
-    -- parse in a modem message as an authenticated SCADA packet
+    -- parse in modem frame fields as an authenticated SCADA frame
     ---@param side string modem side
     ---@param sender integer sender channel
     ---@param reply_to integer reply channel
     ---@param message any message body
     ---@param distance integer transmission distance
-    ---@return boolean valid valid message received
+    ---@return boolean valid valid frame received
     function public.receive(side, sender, reply_to, message, distance)
-        ---@class modem_message
-        self.modem_msg_in = {
-            iface = side,
-            s_channel = sender,
-            r_channel = reply_to,
-            msg = message,
-            dist = distance
+        ---@class modem_frame
+        self.modem_frame = {
+            iface = side, s_chan = sender, r_chan = reply_to, data = message, dist = distance
         }
 
         self.valid = false
-        self.raw = self.modem_msg_in.msg
+        self.raw = self.modem_frame.data
 
-        if (type(max_distance) == "number") and ((type(distance) ~= "number") or (distance > max_distance)) then
+        if (type(max_distance) == TYPE_NUM) and ((type(distance) ~= TYPE_NUM) or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
-            -- log.debug("COMMS: authd_packet.receive(): discarding packet with distance " .. distance .. " (outside trusted range)")
-        else
-            if type(self.raw) == "table" then
-                if #self.raw == 4 then
-                    self.src_addr = self.raw[1]
-                    self.dest_addr = self.raw[2]
-                    self.mac = self.raw[3]
-                    self.payload = self.raw[4]
-                else
-                    self.src_addr = nil
-                    self.dest_addr = nil
-                    self.mac = ""
-                    self.payload = {}
-                end
+            -- log.debug("COMMS: authd_frame.receive(): discarding frame with distance " .. distance .. " (outside trusted range)")
+        elseif type(self.raw) == TYPE_TBL then
+            self.src_addr  = self.raw[1]
+            self.dest_addr = self.raw[2]
 
-                -- check if this packet is destined for this device
-                local is_destination = (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)
+            -- check if this packet is destined for this device, otherwise discard ASAP
+            if (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID) then
+                self.mac     = self.raw[3]
+                self.payload = self.raw[4]
 
-                self.valid = is_destination and type(self.src_addr) == "number" and type(self.dest_addr) == "number" and
-                                type(self.mac) == "string" and type(self.payload) == "table"
+                self.valid = type(self.src_addr) == TYPE_NUM and type(self.dest_addr) == TYPE_NUM and
+                             type(self.mac) == TYPE_STR and type(self.payload) == TYPE_TBL
             end
         end
 
@@ -369,26 +359,26 @@ function comms.authd_packet()
     -- public accessors --
 
     ---@nodiscard
-    function public.modem_event() return self.modem_msg_in end
+    function public.modem_event() return self.modem_frame end
     ---@nodiscard
-    function public.raw_sendable() return self.raw end
+    function public.raw_frame() return self.raw end
 
     ---@nodiscard
-    function public.local_channel() return self.modem_msg_in.s_channel end
+    function public.local_channel() return self.modem_frame.s_chan end
     ---@nodiscard
-    function public.remote_channel() return self.modem_msg_in.r_channel end
+    function public.remote_channel() return self.modem_frame.r_chan end
 
     ---@nodiscard
     function public.is_valid() return self.valid end
 
     ---@nodiscard
-    function public.src_addr() return self.src_addr end
+    function public.src_addr() return self.src_addr or comms.BROADCAST end
     ---@nodiscard
-    function public.dest_addr() return self.dest_addr end
+    function public.dest_addr() return self.dest_addr or comms.BROADCAST end
     ---@nodiscard
-    function public.mac() return self.mac end
+    function public.mac() return self.mac or "" end
     ---@nodiscard
-    function public.data() return self.payload end
+    function public.data() return self.payload or {} end
 
     return public
 end
@@ -415,7 +405,7 @@ function comms.modbus_packet()
     ---@param func_code MODBUS_FCODE
     ---@param data table
     function public.make(txn_id, unit_id, func_code, data)
-        if type(data) == "table" then
+        if type(data) == TYPE_TBL then
             self.txn_id = txn_id
             self.length = #data
             self.unit_id = unit_id
@@ -431,7 +421,7 @@ function comms.modbus_packet()
     end
 
     -- decode a MODBUS packet from a SCADA frame
-    ---@param frame scada_packet
+    ---@param frame scada_frame
     ---@return boolean success
     function public.decode(frame)
         if frame then
@@ -445,7 +435,7 @@ function comms.modbus_packet()
                     public.make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
                 end
 
-                local valid = type(self.txn_id) == "number" and type(self.unit_id) == "number" and type(self.func_code) == "number"
+                local valid = type(self.txn_id) == TYPE_NUM and type(self.unit_id) == TYPE_NUM and type(self.func_code) == TYPE_NUM
 
                 return size_ok and valid
             else
@@ -501,7 +491,7 @@ function comms.rplc_packet()
     ---@param packet_type RPLC_TYPE
     ---@param data table
     function public.make(id, packet_type, data)
-        if type(data) == "table" then
+        if type(data) == TYPE_TBL then
             -- packet accessor properties
             self.id = id
             self.type = packet_type
@@ -517,7 +507,7 @@ function comms.rplc_packet()
     end
 
     -- decode an RPLC packet from a SCADA frame
-    ---@param frame scada_packet
+    ---@param frame scada_frame
     ---@return boolean success
     function public.decode(frame)
         if frame then
@@ -531,7 +521,7 @@ function comms.rplc_packet()
                     public.make(data[1], data[2], { table.unpack(data, 3, #data) })
                 end
 
-                ok = ok and type(self.id) == "number"
+                ok = ok and type(self.id) == TYPE_NUM
 
                 return ok
             else
@@ -584,7 +574,7 @@ function comms.mgmt_packet()
     ---@param packet_type MGMT_TYPE
     ---@param data table
     function public.make(packet_type, data)
-        if type(data) == "table" then
+        if type(data) == TYPE_TBL then
             -- packet accessor properties
             self.type = packet_type
             self.length = #data
@@ -599,7 +589,7 @@ function comms.mgmt_packet()
     end
 
     -- decode a SCADA management packet from a SCADA frame
-    ---@param frame scada_packet
+    ---@param frame scada_frame
     ---@return boolean success
     function public.decode(frame)
         if frame then
@@ -663,7 +653,7 @@ function comms.crdn_packet()
     ---@param packet_type CRDN_TYPE
     ---@param data table
     function public.make(packet_type, data)
-        if type(data) == "table" then
+        if type(data) == TYPE_TBL then
             -- packet accessor properties
             self.type = packet_type
             self.length = #data
@@ -678,7 +668,7 @@ function comms.crdn_packet()
     end
 
     -- decode a coordinator packet from a SCADA frame
-    ---@param frame scada_packet
+    ---@param frame scada_frame
     ---@return boolean success
     function public.decode(frame)
         if frame then

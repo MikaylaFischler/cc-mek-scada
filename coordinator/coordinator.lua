@@ -195,7 +195,7 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     ---@param msg_type MGMT_TYPE|CRDN_TYPE
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
-        local s_pkt = comms.scada_packet()
+        local frame = comms.scada_frame()
         local pkt   ---@type mgmt_packet|crdn_packet
 
         if protocol == PROTOCOL.SCADA_MGMT then
@@ -207,26 +207,26 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         end
 
         pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
+        frame.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
 
-        nic.transmit(config.SVR_Channel, config.CRD_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.CRD_Channel, frame)
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
     -- send an API establish request response
-    ---@param packet scada_packet
+    ---@param rx_frame scada_frame
     ---@param ack ESTABLISH_ACK
     ---@param data any?
-    local function _send_api_establish_ack(packet, ack, data)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+    local function _send_api_establish_ack(rx_frame, ack, data)
+        local tx_frame = comms.scada_frame()
+        local pkt = comms.mgmt_packet()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
 
 ---@diagnostic disable-next-line: need-check-nil
-        wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
-        self.last_api_est_acks[packet.src_addr()] = ack
+        wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, tx_frame)
+        self.last_api_est_acks[rx_frame.src_addr()] = ack
     end
 
     -- attempt connection establishment
